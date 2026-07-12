@@ -1,5 +1,6 @@
 // Testharness für captly.html — führt das komplette Script mit DOM-Stub aus
 const fs = require('fs');
+const path = require('path');
 
 // ── Mini-DOM-Stub ───────────────────────────────
 function mkEl(id) {
@@ -37,7 +38,13 @@ global.alert = m => { global.ALERTS = (global.ALERTS || []).concat(m); };
 global.MediaRecorder = undefined;
 
 // ── Script laden + Symbole exportieren ─────────
-const script = fs.readFileSync('/tmp/c.js', 'utf8');
+const htmlPath = path.join(__dirname, 'captly.html');
+const htmlContent = fs.readFileSync(htmlPath, 'utf8');
+const match = htmlContent.match(/<script>([\s\S]*?)<\/script>/);
+if (!match) {
+  throw new Error(`Could not find <script>...</script> block in ${htmlPath}`);
+}
+const script = match[1];
 const tail = `;return {STYLES:STYLES,buildCap:buildCap,buildCaptionBlocks:buildCaptionBlocks,resplitBlock:resplitBlock,
 currentBlockIdx:currentBlockIdx,nearestBlockIdx:nearestBlockIdx,activeWordIdx:activeWordIdx,updateOverlay:updateOverlay,
 exportSRT:exportSRT,exportVTT:exportVTT,srtT:srtT,vttT:vttT,fmtS:fmtS,chunksToWords:chunksToWords,segmentsToWords:segmentsToWords,

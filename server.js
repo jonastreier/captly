@@ -161,8 +161,25 @@ function verifyStripeSig(raw, sigHeader) {
   try { return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(parts.v1 || '')); } catch (e) { return false; }
 }
 
+// Baseline security headers for every response. The CSP here is deliberately minimal:
+// the app is a single-file HTML page with an inline <script> that loads the Whisper
+// model/runtime from esm.sh, cdn.jsdelivr.net and huggingface.co (plus ffmpeg.wasm from
+// same-origin /vendor/ with an unpkg fallback), all via Web Workers/WebAssembly — a strict
+// script-src/connect-src would break that loading. We instead harden against clickjacking
+// (frame-ancestors/X-Frame-Options), <base> tag injection (base-uri) and legacy
+// plugin/object embedding (object-src) without constraining the cross-origin fetches the
+// app needs.
+function setSecurityHeaders(res) {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Permissions-Policy', 'microphone=(), camera=(), geolocation=()');
+  res.setHeader('Content-Security-Policy', "object-src 'none'; base-uri 'self'; frame-ancestors 'self'");
+}
+
 // ── HTTP ──
 http.createServer(async (req, res) => {
+  setSecurityHeaders(res);
   // CORS: same-origin (App wird von hier ausgeliefert) braucht es nicht; für fremde Origins
   // nur die Allowlist zulassen, statt pauschal '*' — sonst kann jede Seite deine Quota verbrennen.
   const origin = req.headers.origin || '';
@@ -313,6 +330,21 @@ http.createServer(async (req, res) => {
     if (req.method === 'GET' && (u.pathname === '/' || u.pathname === '/captly.html')) {
       const p = path.join(__dirname, 'captly.html');
       if (fs.existsSync(p)) { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end(fs.readFileSync(p)); }
+    }
+    // ── Vendor-Assets (self-gehostetes ffmpeg.wasm etc.), path-traversal-sicher ──
+    if (req.method === 'GET' && u.pathname.startsWith('/vendor/')) {
+      const base = path.join(__dirname, 'vendor');
+      const fp = path.normalize(path.join(__dirname, u.pathname));
+      if (fp.startsWith(base + path.sep) && fs.existsSync(fp) && fs.statSync(fp).isFile()) {
+        const ext = path.extname(fp).toLowerCase();
+        const mime = ext === '.js' || ext === '.mjs' ? 'text/javascript'
+          : ext === '.wasm' ? 'application/wasm'
+          : ext === '.json' || ext === '.map' ? 'application/json'
+          : 'application/octet-stream';
+        res.writeHead(200, { 'Content-Type': mime, 'Cache-Control': 'public, max-age=31536000, immutable' });
+        return res.end(fs.readFileSync(fp));
+      }
+      res.writeHead(404); return res.end('not found');
     }
     res.writeHead(404); res.end('not found');
   } catch (e) {

@@ -105,7 +105,7 @@ end-to-end testen (Upload → Fast → Perfect → Export → Login-Mail kommt a
 ## Tests
 
 ```bash
-python3 -c "import re;open('/tmp/c.js','w').write(re.search(r'<script>(.*)</script>',open('captly.html').read(),re.S).group(1))" && node test-captly.js
+node test-captly.js
 ```
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,

@@ -308,7 +308,7 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
           <option value="hindi">🇮🇳 Hindi</option>
         </select>
         <div class="pos-row" id="modelRow" style="margin-bottom:7px">
-          <button class="pos-btn on" data-m="tiny" onclick="setModel(this)" title="Läuft lokal im Browser · gratis · gut für schnelle Entwürfe">⚡ Fast · gratis</button>
+          <button class="pos-btn on" data-m="base" onclick="setModel(this)" title="Läuft lokal im Browser · gratis · gut für schnelle Entwürfe">⚡ Fast · gratis</button>
           <button class="pos-btn" data-m="cloud" onclick="setModel(this)" title="OpenAI Whisper · beste Qualität, auch bei Dialekten · ~0.006 $/Min">💎 Perfect</button>
         </div>
         <input type="password" id="oaiKey" class="lang-sel" style="display:none" placeholder="OpenAI API-Key (sk-…) — bleibt nur im Speicher"
@@ -582,7 +582,7 @@ var wordTimestamps  = [];
 var captionBlocks   = [];
 var currentFile     = null;
 var whisperPipes    = {};          // gecachte Pipelines pro Modell
-var whisperModel    = 'tiny';      // 'tiny' | 'base'
+var whisperModel    = 'base';      // 'tiny' | 'base'
 var whisperLang     = 'auto';      // 'auto' oder Whisper-Sprachname ('german', 'english', …)
 var LANG_BY_CODE    = {de:'german',en:'english',es:'spanish',fr:'french',it:'italian',pt:'portuguese',nl:'dutch',pl:'polish',tr:'turkish',ru:'russian',uk:'ukrainian',ja:'japanese',ko:'korean',zh:'chinese',ar:'arabic',hi:'hindi'};
 // Browser-Sprache als bester Startwert — Whisper-Tiny-Autodetect ist bei Dialekten (z. B. Schweizerdeutsch) unzuverlässig
@@ -1536,23 +1536,44 @@ function dlBlob(blob, name) {
 var _ffmpeg = null;
 async function getFFmpeg() {
   if (_ffmpeg) return _ffmpeg;
-  var util   = await import('https://esm.sh/@ffmpeg/util@0.12.1');
-  var ffBase = 'https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/';
-  var mod    = await import(ffBase + 'index.js');
-  // Der Worker MUSS same-origin/Blob sein (Cross-Origin-Worker sind verboten). Der npm-Worker hat
-  // relative Imports → auf absolute unpkg-URLs umschreiben, dann als Blob laden.
-  var wtext  = await (await fetch(ffBase + 'worker.js')).text();
-  wtext = wtext.replace(/(from\s*["'])\.\//g, '$1' + ffBase).replace(/(import\s*\(\s*["'])\.\//g, '$1' + ffBase);
-  var workerBlob = URL.createObjectURL(new Blob([wtext], { type: 'text/javascript' }));
-  var ff    = new mod.FFmpeg();
-  var cbase = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
-  await ff.load({
-    classWorkerURL: workerBlob,
-    coreURL: cbase + '/ffmpeg-core.js',
-    wasmURL: cbase + '/ffmpeg-core.wasm',
-  });
-  _ffmpeg = { ff: ff, fetchFile: util.fetchFile };
+  // Bevorzugt same-origin (self-hosted unter /vendor/ffmpeg), Fallback auf CDN (z. B. wenn die
+  // Datei direkt via file:// geöffnet wird und /vendor nicht ausgeliefert wird).
+  try {
+    _ffmpeg = await loadFFmpeg('/vendor/ffmpeg/ffmpeg/', '/vendor/ffmpeg/core/', true);
+  } catch (e) {
+    console.warn('ffmpeg same-origin fehlgeschlagen, CDN-Fallback:', e);
+    _ffmpeg = await loadFFmpeg('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/',
+                              'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/', false);
+  }
   return _ffmpeg;
+}
+async function loadFFmpeg(ffBase, cbase, sameOrigin) {
+  var mod = await import(ffBase + 'index.js');
+  var ff  = new mod.FFmpeg();
+  var opts = { coreURL: cbase + 'ffmpeg-core.js', wasmURL: cbase + 'ffmpeg-core.wasm' };
+  if (sameOrigin) {
+    // same-origin Worker ist direkt nutzbar; die relativen Imports im Worker lösen nativ auf
+    // (kein Blob/Regex-Rewrite nötig). Single-Thread-Core → kein SharedArrayBuffer/COOP/COEP.
+    opts.classWorkerURL = ffBase + 'worker.js';
+  } else {
+    // Cross-Origin-Worker sind verboten → npm-Worker mit relativen Imports auf absolute
+    // CDN-URLs umschreiben und als Blob laden.
+    var wtext = await (await fetch(ffBase + 'worker.js')).text();
+    wtext = wtext.replace(/(from\s*["'])\.\//g, '$1' + ffBase).replace(/(import\s*\(\s*["'])\.\//g, '$1' + ffBase);
+    opts.classWorkerURL = URL.createObjectURL(new Blob([wtext], { type: 'text/javascript' }));
+  }
+  await ff.load(opts);
+  return { ff: ff, fetchFile: ffFetchFile };
+}
+// Ersatz für @ffmpeg/util fetchFile (spart den util-Import): Blob/URL/ArrayBuffer → Uint8Array.
+async function ffFetchFile(input) {
+  if (input instanceof Uint8Array) return input;
+  var buf;
+  if (typeof input === 'string') buf = await (await fetch(input)).arrayBuffer();
+  else if (typeof Blob !== 'undefined' && input instanceof Blob) buf = await input.arrayBuffer();
+  else if (input instanceof ArrayBuffer) buf = input;
+  else buf = await new Response(input).arrayBuffer();
+  return new Uint8Array(buf);
 }
 // Kodiert einen aufgenommenen WebM-Blob nach H.264/AAC-MP4 um (Instagram/TikTok-tauglich).
 async function webmToMp4(blob, onProgress) {
