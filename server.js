@@ -29,6 +29,9 @@ const MAX_DAY_USD   = parseFloat(ENV('MAX_DAY_USD', '5'));
 const MAX_MONTH_USD = parseFloat(ENV('MAX_MONTH_USD', '50'));
 const ALERT_USD     = parseFloat(ENV('ALERT_USD', '10'));
 const APP_URL       = ENV('APP_URL', 'http://localhost:' + PORT);
+// Erlaubte CORS-Origins (Standard: nur die eigene App-Domain). Mehrere kommagetrennt,
+// '*' = für alle offen (nur wenn du das Tool bewusst als offene API anbietest).
+const CORS_ORIGINS  = ENV('CORS_ORIGINS', APP_URL).split(',').map(s => s.trim()).filter(Boolean);
 
 // ── DB ──
 const db = new DatabaseSync(ENV('DB_PATH', './captly.db'));
@@ -160,7 +163,14 @@ function verifyStripeSig(raw, sigHeader) {
 
 // ── HTTP ──
 http.createServer(async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS: same-origin (App wird von hier ausgeliefert) braucht es nicht; für fremde Origins
+  // nur die Allowlist zulassen, statt pauschal '*' — sonst kann jede Seite deine Quota verbrennen.
+  const origin = req.headers.origin || '';
+  if (CORS_ORIGINS.includes('*')) res.setHeader('Access-Control-Allow-Origin', '*');
+  else if (origin && CORS_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') { res.writeHead(204); return res.end(); }
   const u = new URL(req.url, 'http://x');

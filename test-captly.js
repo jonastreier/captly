@@ -26,6 +26,7 @@ global.document = {
   getElementById: id => els[id] || (els[id] = mkEl(id)),
   createElement: t => mkEl(t),
   querySelectorAll: () => [],
+  addEventListener() {}, removeEventListener() {},
   fonts: { ready: Promise.resolve(), load: () => Promise.resolve() }
 };
 global.window = global;
