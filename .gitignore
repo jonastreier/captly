@@ -1,0 +1,16 @@
+# Laufzeit-DB (persistente Daten, nie ins Repo)
+captly.db
+captly.db-*
+*.sqlite
+
+# Node
+node_modules/
+
+# OS / Editor
+.DS_Store
+
+# Versehentliches Shell-Artefakt
+av.getInt16*
+
+# Lokale Preview-Hilfe (Claude)
+.claude/
