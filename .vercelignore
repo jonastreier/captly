@@ -1,0 +1,9 @@
+# Vercel = nur die statische Demo (captly.html + /vendor).
+# Serverseitiges & Dev-Zeug gehört NICHT auf die statische Demo:
+server.js
+transcribe.php
+config.php
+config.example.php
+test-captly.js
+scripts/
+*.md

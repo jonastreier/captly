@@ -185,10 +185,42 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 .badge-g{background:#eefaf1;border:1px solid #c8ecd2;color:#15803d;font-size:10px;padding:6px 9px;border-radius:7px;margin-top:6px;line-height:1.5}
 .badge-o{background:#fdf3e7;border:1px solid #f3dcc0;color:#b45309;font-size:10px;padding:6px 9px;border-radius:7px;margin-top:6px;line-height:1.5}
 
+/* TEMPLATE-SHOWCASE (Landing) */
+.showcase{position:relative;z-index:1;width:100%;max-width:1060px;margin-top:34px;padding:0 6px}
+.show-h{font-size:clamp(22px,3.5vw,34px);font-weight:700;letter-spacing:-1px;line-height:1.1;color:#0f0f10;text-align:center}
+.show-h em{font-style:normal;background:linear-gradient(100deg,#a78bfa,#60a5fa,#ec4899,#a78bfa);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:hueflow 6s linear infinite}
+.show-sub{text-align:center;color:#52525b;font-size:13px;margin-top:6px}
+.show-wrap{position:relative;margin-top:18px}
+.show-row{display:flex;gap:16px;overflow-x:auto;padding:8px 4px 18px;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.show-row::-webkit-scrollbar{display:none}
+.show-card{flex:0 0 auto;width:174px;height:310px;border-radius:22px;overflow:hidden;position:relative;scroll-snap-align:center;box-shadow:0 16px 40px rgba(30,20,60,.18);border:1px solid rgba(255,255,255,.55);cursor:pointer;transition:transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s;animation:showIn .5s both}
+.show-card:hover{transform:translateY(-7px) scale(1.025);box-shadow:0 30px 66px rgba(30,20,60,.3)}
+@keyframes showIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.show-bg{position:absolute;inset:0}
+.show-vig{position:absolute;inset:0;background:radial-gradient(130% 70% at 50% 8%,rgba(255,255,255,.12),transparent 55%),linear-gradient(to bottom,transparent 55%,rgba(0,0,0,.34))}
+.show-cap{position:absolute;left:0;right:0;bottom:40px;text-align:center;padding:0 14px;line-height:1.28}
+.show-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;letter-spacing:.03em;color:rgba(255,255,255,.94);text-shadow:0 1px 8px rgba(0,0,0,.55)}
+.show-arrow{position:absolute;top:50%;right:-4px;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1px solid #e6e0ee;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);box-shadow:0 8px 24px rgba(30,20,60,.16);font-size:22px;line-height:1;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,background .15s}
+.show-arrow:hover{transform:translateY(-50%) scale(1.09);background:#fff}
+
+/* FOOTER (Landing) */
+.land-foot{position:relative;z-index:1;width:100%;max-width:1060px;margin-top:46px;padding:26px 22px 8px;border-top:1px solid rgba(30,20,60,.09)}
+.foot-top{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.foot-brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px;color:#1a1523}
+.foot-links{display:flex;gap:20px;flex-wrap:wrap}
+.foot-links a{color:#5b5566;font-size:13px;text-decoration:none;cursor:pointer;transition:color .15s}
+.foot-links a:hover{color:#7c3aed}
+.foot-claim{color:#6b6675;font-size:12.5px;margin-top:14px;max-width:520px}
+.foot-legal{color:#98929f;font-size:11px;margin-top:10px;line-height:1.6;max-width:560px}
+.foot-legal a{color:#7c3aed;text-decoration:underline;cursor:pointer}
+.foot-copy{color:#a9a4b0;font-size:11px;margin-top:12px}
+
 @media(max-width:640px){
   .ctrl-col{width:100%;height:46vh;border-left:none;border-top:1px solid rgba(255,255,255,.055)}
   .ed-body{flex-direction:column}
   .prev-col{flex:0 0 auto;height:54vh}
+  .show-card{width:150px;height:268px}
+  .show-arrow{display:none}
 }
 </style>
 </head>
@@ -226,6 +258,39 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
   </div>
   <div class="marquee"><div class="marquee-track" id="styleMarquee"></div></div>
   <div class="land-stats"><span><b>20</b> Styles</span><span><b>17</b> Sprachen</span><span><b>⚡</b> gratis testen</span><span><b>💎</b> Karaoke-genau</span></div>
+
+  <!-- Template-Showcase -->
+  <section class="showcase">
+    <h2 class="show-h">Ein Video. <em>20 virale Styles.</em></h2>
+    <p class="show-sub">So sehen deine Untertitel in jedem Look aus — tippen zum Ausprobieren.</p>
+    <div class="show-wrap">
+      <div class="show-row" id="showcaseRow"></div>
+      <button class="show-arrow" onclick="scrollShowcase()" aria-label="Weitere Styles zeigen">›</button>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="land-foot">
+    <div class="foot-top">
+      <div class="foot-brand">
+        <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect width="32" height="32" rx="9" fill="url(#g0)"/>
+          <rect x="7" y="9" width="18" height="3" rx="1.5" fill="white"/>
+          <rect x="7" y="14.5" width="13" height="3" rx="1.5" fill="white" opacity=".8"/>
+          <rect x="7" y="20" width="9" height="3" rx="1.5" fill="white" opacity=".5"/>
+        </svg>
+        <span>Captly</span>
+      </div>
+      <nav class="foot-links">
+        <a onclick="return false" href="#">Terms</a>
+        <a onclick="return false" href="#">Privacy Policy</a>
+        <a onclick="return false" href="#">Kontakt</a>
+      </nav>
+    </div>
+    <p class="foot-claim">Virale, wortgenaue Untertitel für Reels &amp; TikToks — in Sekunden, ohne Download.</p>
+    <p class="foot-legal">Mit dem Hochladen eines Videos stimmst du unseren <a onclick="return false" href="#">Terms</a> zu und hast unsere <a onclick="return false" href="#">Privacy Policy</a> gelesen.</p>
+    <p class="foot-copy">© 2026 Captly</p>
+  </footer>
 </div>
 
 <!-- EDITOR -->
@@ -309,8 +374,8 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
           <option value="hindi">🇮🇳 Hindi</option>
         </select>
         <div class="pos-row" id="modelRow" style="margin-bottom:7px">
-          <button class="pos-btn on" data-m="base" onclick="setModel(this)" title="Läuft lokal im Browser · gratis · gut für schnelle Entwürfe">⚡ Fast · gratis</button>
-          <button class="pos-btn" data-m="cloud" onclick="setModel(this)" title="OpenAI Whisper · beste Qualität, auch bei Dialekten · ~0.006 $/Min">💎 Perfect</button>
+          <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Schnell &amp; gratis · beste Qualität · kein Download">⚡ Fast</button>
+          <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximale Genauigkeit · etwas langsamer · kein Download">💎 Perfect</button>
         </div>
         <input type="password" id="oaiKey" class="lang-sel" style="display:none" placeholder="OpenAI API-Key (sk-…) — bleibt nur im Speicher"
           oninput="openaiKey=this.value.trim()" onchange="if(currentFile&&openaiKey)transcribeVideo(currentFile)">
@@ -373,14 +438,9 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
           <input type="range" min="2" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)">
           <span class="sz-val" id="wpbDisp">4</span>
         </div>
-        <div class="clbl" style="margin-top:10px">Timing-Feinschliff <span style="text-transform:none;letter-spacing:0">(+ = Captions früher)</span></div>
-        <div class="sz-row">
-          <input type="range" min="-500" max="500" step="50" value="0" id="offSlider" oninput="onOffChange(this.value)">
-          <span class="sz-val" id="offDisp" style="min-width:48px">0 ms</span>
-        </div>
         <div class="clbl" style="margin-top:10px">Keywords dauerhaft hervorheben</div>
         <input type="text" id="kwInput" class="lang-sel" style="margin-bottom:0" placeholder="z. B. gratis, heute, neu" oninput="onKwChange(this.value)">
-        <div class="clbl" style="margin-top:10px">Eigener Style</div>
+        <div class="clbl" style="margin-top:10px">Eigener Style <span style="text-transform:none;letter-spacing:0;color:#94909c">· startet vom gewählten Style</span></div>
         <div style="display:flex;gap:6px;align-items:center">
           <input type="color" id="csText" value="#ffffff" title="Textfarbe" style="width:34px;height:28px;border:none;background:none;cursor:pointer;padding:0" oninput="applyCustomStyle()">
           <input type="color" id="csHl" value="#facc15" title="Highlight-Farbe" style="width:34px;height:28px;border:none;background:none;cursor:pointer;padding:0" oninput="applyCustomStyle()">
@@ -390,6 +450,11 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
             <option>Inter</option><option>Oswald</option>
           </select>
         </div>
+        <label class="sz-row" style="margin-top:7px;cursor:pointer">
+          <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle()" style="cursor:pointer">
+          <span style="font-size:10.5px;color:#66616e;min-width:34px">Glow</span>
+          <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle()">
+        </label>
         <div class="clbl" style="margin-top:10px">Als Template speichern</div>
         <div style="display:flex;gap:6px;align-items:center">
           <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (z. B. Mein Look)">
@@ -594,7 +659,9 @@ var wordTimestamps  = [];
 var captionBlocks   = [];
 var currentFile     = null;
 var whisperPipes    = {};          // gecachte Pipelines pro Modell
-var whisperModel    = 'base';      // 'tiny' | 'base'
+var whisperModel    = 'fast';      // 'fast' | 'perfect' — serverseitig via transcribe.php (kein Download)
+var SERVER_MODEL    = { fast: 'whisper-large-v3-turbo', perfect: 'whisper-large-v3' };
+var LOCAL_MODEL     = { fast: 'base', perfect: 'small' }; // nur Fallback, wenn kein PHP-Proxy (z. B. Vercel-Demo)
 var whisperLang     = 'auto';      // 'auto' oder Whisper-Sprachname ('german', 'english', …)
 var LANG_BY_CODE    = {de:'german',en:'english',es:'spanish',fr:'french',it:'italian',pt:'portuguese',nl:'dutch',pl:'polish',tr:'turkish',ru:'russian',uk:'ukrainian',ja:'japanese',ko:'korean',zh:'chinese',ar:'arabic',hi:'hindi'};
 // Browser-Sprache als bester Startwert — Whisper-Tiny-Autodetect ist bei Dialekten (z. B. Schweizerdeutsch) unzuverlässig
@@ -669,7 +736,7 @@ function cleanWords(words) {
 async function transcribeChunked(pipe, audioData, opts) {
   var SR = 16000, WIN = 28 * SR, STEP = 26 * SR;
   var n = Math.max(1, Math.ceil(Math.max(1, audioData.length - (WIN - STEP)) / STEP));
-  var out = [];
+  var windows = [];
   for (var i = 0; i < n; i++) {
     var start = i * STEP;
     if (start >= audioData.length) break;
@@ -682,13 +749,38 @@ async function transcribeChunked(pipe, audioData, opts) {
     if (!words.length && (r.text || '').trim()) {
       words = segmentsToWords([{ text: r.text, timestamp: [0, seg.length / SR] }]);
     }
-    var t0 = start / SR;
-    var lastEnd = out.length ? out[out.length - 1].end : -1;
-    words.forEach(function(w) {
-      var ws = w.start + t0, we = w.end + t0;
-      if (ws > lastEnd - 0.15) out.push({ word: w.word, start: ws, end: we }); // Überlappung dedupen
-    });
+    windows.push({ start: start, segLen: seg.length, words: words });
   }
+  return mergeChunkWords(windows);
+}
+// Fenster-Ergebnisse (lokale Wort-Timestamps) → globale, lückenlose & doppelfreie Wortliste.
+// FIX: Timestamps werden auf die Fensterlänge GECLAMPT (verkettete null-Timestamps aus chunksToWords
+// drifteten sonst über das Fenster hinaus, und die alte lastEnd-Dedup löschte echte Wörter des
+// Folgefensters → Untertitel brachen am Videoende ab). Dedup erfolgt jetzt inhaltsbasiert und NUR in
+// der 2s-Overlap-Zone (gleiches Wort kurz zuvor → verwerfen), sonst wird jedes Wort übernommen.
+function mergeChunkWords(windows) {
+  var SR = 16000, WIN = 28 * SR, STEP = 26 * SR, OVER = (WIN - STEP) / SR; // 2s Overlap
+  function norm(x) { return String(x).toLowerCase().replace(/[^\wäöüàéèêß]/g, ''); }
+  var out = [];
+  for (var i = 0; i < windows.length; i++) {
+    var win = windows[i];
+    var t0 = win.start / SR;
+    var segDur = win.segLen / SR;
+    var overlapEnd = t0 + OVER; // Ende der Overlap-Zone mit dem Vorgänger (globale Zeit)
+    (function(t0, segDur, overlapEnd, first) {
+      win.words.forEach(function(w) {
+        var s = Math.min(Math.max(w.start || 0, 0), segDur);           // auf Fensterlänge clampen
+        var e = Math.min(Math.max(w.end || s, s), segDur);
+        var gs = s + t0, ge = e + t0;
+        if (first || gs >= overlapEnd) { out.push({ word: w.word, start: gs, end: ge }); return; }
+        for (var k = out.length - 1; k >= 0 && out[k].start > gs - 1.2; k--) {
+          if (norm(out[k].word) === norm(w.word)) return; // Duplikat aus der Overlap-Zone → weg
+        }
+        out.push({ word: w.word, start: gs, end: ge });
+      });
+    })(t0, segDur, overlapEnd, i === 0);
+  }
+  out.sort(function(a, b){ return a.start - b.start; });
   return out;
 }
 
@@ -1004,16 +1096,47 @@ function selectStyle(id) {
   activeId = id;
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
-  if (s && s._tpl) applyTemplateSettings(s._tpl); // gespeichertes Template: Position/Größe/Modus wiederherstellen
+  if (s) seedCustomFields(s);                        // „Eigener Style" startet vom gewählten Style/Template
+  if (s && s._tpl) applyTemplateSettings(s._tpl);    // gespeichertes Template: Position/Größe/Modus wiederherstellen
   _lastKey = null;
   updateOverlay();
+}
+// Hex-Farbe auf #rrggbb normalisieren (color-Input braucht 6 Stellen); nicht-hex (rgba/gradient) → null
+function toHex6(c) {
+  if (!c || typeof c !== 'string') return null;
+  var m = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.exec(c.trim());
+  if (!m) return null;
+  var h = m[1];
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  return '#' + h.toLowerCase();
+}
+function _cbChecked(id, def) { var e = document.getElementById(id); return e && typeof e.checked === 'boolean' ? e.checked : def; }
+// Übernimmt Farben/Font/Glow des gewählten Styles in die „Eigener Style"-Regler (ohne applyCustomStyle zu feuern)
+function seedCustomFields(s) {
+  if (!s || s.id === 'custom') return;
+  var tEl = document.getElementById('csText'), hEl = document.getElementById('csHl'), fEl = document.getElementById('csFont');
+  var tc = toHex6(s.tc), hl = toHex6(s.hl);
+  if (tEl && tc) tEl.value = tc;
+  if (hEl && hl) hEl.value = hl;
+  if (fEl && s.fl) {
+    var has = false, opts = fEl.options ? Array.prototype.slice.call(fEl.options) : [];
+    opts.forEach(function(o){ if (o.value === s.fl || o.textContent === s.fl) has = true; });
+    if (!has) { var o = document.createElement('option'); o.textContent = s.fl; o.value = s.fl; fEl.appendChild(o); }
+    fEl.value = s.fl;
+  }
+  var gInt = document.getElementById('csGlowInt'), gOn = document.getElementById('csGlow');
+  var hasGlow = !!(s.hls && s.hls !== 'none');
+  var m = /0\s+0\s+(\d+)px/.exec(s.hls || '');
+  if (gInt) gInt.value = m ? Math.min(30, parseInt(m[1], 10)) : (hasGlow ? 14 : 0);
+  if (gOn && typeof gOn.checked === 'boolean') gOn.checked = hasGlow;
 }
 
 // ── Lokale, benannte Templates (localStorage — kein Konto/Backend nötig) ──
 var userTemplates = [];
 function styleFromTemplate(t) {
+  var glow = (t.glow === false) ? 'none' : ('0 0 ' + (typeof t.glowInt === 'number' ? t.glowInt : 14) + 'px ' + t.hl);
   return { id: t.id, name: t.name, fl: t.font, font: "'" + t.font + "'", fw: '800',
-    tc: t.tc, ts: '0 2px 10px rgba(0,0,0,.6)', hl: t.hl, hls: '0 0 14px ' + t.hl,
+    tc: t.tc, ts: '0 2px 10px rgba(0,0,0,.6)', hl: t.hl, hls: glow,
     thumbBg: 'linear-gradient(160deg,#0a0a0c,#141416)', anim: 'scale', badge: '⭐', _tpl: t };
 }
 function loadTemplates() {
@@ -1028,10 +1151,12 @@ function saveTemplate() {
   var nameEl = document.getElementById('tplName');
   var name = (nameEl.value || '').trim();
   if (!name) { nameEl.focus(); nameEl.placeholder = 'Bitte Namen eingeben'; return; }
+  var giEl = document.getElementById('csGlowInt');
   var t = { id: 'tpl_' + Date.now(), name: name,
     font: document.getElementById('csFont').value,
     tc: document.getElementById('csText').value,
     hl: document.getElementById('csHl').value,
+    glow: _cbChecked('csGlow', true), glowInt: parseInt((giEl && giEl.value) || '14', 10) || 14,
     pos: capPos, voff: capVOff, size: fontSize, mode: displayMode, wpb: WORDS_PER_BLOCK };
   userTemplates.push(t);
   try { localStorage.setItem('captly_templates', JSON.stringify(userTemplates)); } catch (e) {}
@@ -1151,12 +1276,6 @@ function onWpbChange(v) {
     updateOverlay();
   }
 }
-function onOffChange(v) {
-  timeOff = parseInt(v) / 1000;
-  document.getElementById('offDisp').textContent = v + ' ms';
-  _lastKey = null;
-  updateOverlay();
-}
 function onKwChange(v) {
   hlKeywords = (v || '').toLowerCase().split(/[,;]+/).map(function(x){ return x.trim().replace(/[^\wäöüàéèêß]/g, ''); }).filter(Boolean);
   _lastKey = null;
@@ -1169,11 +1288,14 @@ function applyCustomStyle() {
     var tcv = document.getElementById('csText').value;
     var hlv = document.getElementById('csHl').value;
     var f   = document.getElementById('csFont').value;
+    var glowOn = _cbChecked('csGlow', true);
+    var giEl = document.getElementById('csGlowInt');
+    var gi = parseInt((giEl && giEl.value) || '14', 10); if (isNaN(gi)) gi = 14;
     var cs  = STYLES.find(function(x){ return x.id === 'custom'; });
     if (!cs) { cs = { id: 'custom', name: 'Mein Style', anim: 'scale', badge: '❤️' }; STYLES.push(cs); }
     cs.fl = f; cs.font = "'" + f + "'"; cs.fw = '800';
     cs.tc = tcv; cs.ts = '0 2px 10px rgba(0,0,0,.6)';
-    cs.hl = hlv; cs.hls = '0 0 14px ' + hlv;
+    cs.hl = hlv; cs.hls = glowOn ? ('0 0 ' + gi + 'px ' + hlv) : 'none';
     cs.thumbBg = 'linear-gradient(160deg,#0a0a0c,#141416)';
     buildPicker();
     selectStyle('custom');
@@ -1187,10 +1309,7 @@ function setModel(btn) {
   if (m === whisperModel) return;
   whisperModel = m;
   document.querySelectorAll('#modelRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.m === m); });
-  var kf = document.getElementById('oaiKey');
-  if (kf) kf.style.display = m === 'cloud' ? 'block' : 'none';
   if (currentFile) transcribeVideo(currentFile);
-  else if (m === 'cloud' && !openaiKey) setTStatus('💎', 'Läuft automatisch über deinen Captly-Server — oder eigenen API-Key eingeben.', false, false);
 }
 function setLang(v) {
   if (v === whisperLang) return;
@@ -1276,7 +1395,7 @@ async function fetchMe() {
 function updateAcctUI() {
   var qi = document.getElementById('quotaInfo');
   if (!qi) return;
-  if (mePlan === 'anon') qi.textContent = '💎 Perfect: 3 Videos/Tag gratis · mit Konto 10 Min geschenkt';
+  if (mePlan === 'anon') qi.textContent = '⚡ Fast & 💎 Perfect · gratis, kein Download — läuft auf jedem Gerät';
   else qi.textContent = '💎 Plan ' + mePlan + ' · noch ' + Math.floor((meRemaining || 0) / 60) + ' Min ' + Math.round((meRemaining || 0) % 60) + ' s';
 }
 async function startCheckout(plan) {
@@ -1357,8 +1476,51 @@ function setTProgress(pct) {
   document.getElementById('tProgFill').style.width = Math.min(100, pct) + '%';
 }
 
+// Serverseitige Transkription über den PHP-Proxy (Groq) — oder, falls ein eigener OpenAI-Key im
+// Speicher liegt, direkt bei OpenAI. Rückgabe: Wort-Array (ggf. leer), wenn der Server geantwortet
+// hat; sonst null (Proxy nicht erreichbar/nicht deployed) → Aufrufer nutzt den lokalen Fallback.
+async function serverTranscribe(wavBlob, model, lc, audioDur) {
+  setTStatus('', (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – Transkription läuft…', true, true);
+  var fakePct = 45, fakeTimer = setInterval(function(){ fakePct = Math.min(90, fakePct + 2); setTProgress(fakePct); }, 350);
+  var resp = null;
+  try {
+    if (openaiKey) {
+      var fd = new FormData();
+      fd.append('file', wavBlob, 'audio.wav');
+      fd.append('model', 'whisper-1');
+      fd.append('response_format', 'verbose_json');
+      if (!doTranslate) { fd.append('timestamp_granularities[]', 'word'); if (lc) fd.append('language', lc); }
+      resp = await fetch('https://api.openai.com/v1/audio/' + (doTranslate ? 'translations' : 'transcriptions'),
+        { method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd });
+    } else {
+      resp = await fetch('transcribe.php?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''),
+        { method: 'POST', headers: Object.assign({ 'Content-Type': 'audio/wav' }, authHdr()), body: wavBlob });
+    }
+  } catch (e) { clearInterval(fakeTimer); return null; } // Netzwerk-Fehler / kein Proxy → lokaler Fallback
+  clearInterval(fakeTimer);
+  if (!resp) return null;
+  if (!openaiKey && (resp.status === 404 || resp.status === 405)) return null; // Proxy nicht vorhanden → Fallback
+  if (!resp.ok) {
+    throw new Error(resp.status === 401 ? 'API-Key ungültig — Server-Konfiguration (config.php) prüfen.'
+      : resp.status === 413 ? 'Audio zu groß — bitte Video kürzen.'
+      : resp.status === 429 ? 'Gratis-Limit erreicht (zu viele Anfragen) — kurz warten und erneut versuchen.'
+      : resp.status === 503 ? 'Transkriptions-Dienst gerade ausgelastet — bitte erneut versuchen.'
+      : 'Transkriptions-Fehler ' + resp.status + '. Bitte erneut versuchen.');
+  }
+  setTProgress(92);
+  var j;
+  try { j = await resp.json(); }
+  catch (e) { if (!openaiKey) return null; throw new Error('Unerwartete Antwort vom Transkriptions-Dienst.'); }
+  // Statischer Host liefert transcribe.php evtl. als rohen Text (kein echtes JSON-Objekt) → Fallback
+  if (!openaiKey && (!j || typeof j !== 'object' || (!('words' in j) && !('segments' in j) && !('text' in j)))) return null;
+  var words = (j.words || []).map(function(w){ return { word: (w.word || '').trim(), start: w.start || 0, end: w.end || 0 }; })
+                             .filter(function(w){ return w.word; });
+  if (!words.length && j.segments) words = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
+  if (!words.length && j.text)     words = segmentsToWords([{ text: j.text, timestamp: [0, audioDur] }]);
+  return words;
+}
 async function transcribeVideo(file) {
-  setTStatus('', whisperModel === 'cloud' ? 'Verbinde…' : 'KI-Modell wird geladen…', true, true);
+  setTStatus('', 'Transkription wird vorbereitet…', true, true);
   setTProgress(5);
   document.getElementById('retryWrap').style.display = 'none';
   document.getElementById('capEditor').style.display = 'none';
@@ -1368,10 +1530,8 @@ async function transcribeVideo(file) {
 
   try {
     setTProgress(10);
-    var pipe = whisperModel === 'cloud' ? null : await getPipe(whisperModel);
-
     setTStatus('', 'Audio wird extrahiert…', true, true);
-    setTProgress(70);
+    setTProgress(40);
 
     var arrayBuffer = await file.arrayBuffer();
     var AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -1402,78 +1562,28 @@ async function transcribeVideo(file) {
     var audioDur = audioData.length / 16000;
 
     var usedLang = whisperLang;
+    var lc = (whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) ? CODE_BY_LANG[whisperLang] : '';
+    var wavBlob = new Blob([float32ToWav(audioData, 16000)], { type: 'audio/wav' });
 
-    if (whisperModel === 'cloud') {
-      // ── OpenAI Whisper API: Maximum-Qualität, Wort-Timestamps direkt vom Server ──
-      setTStatus('', 'Perfect-Transkription läuft…', true, true);
-      // Animierter Fortschritt während des Uploads (fetch liefert keinen echten Progress)
-      var fakePct = 70, fakeTimer = setInterval(function() {
-        fakePct = Math.min(90, fakePct + 1.5); setTProgress(fakePct);
-      }, 400);
-      var wavBlob = new Blob([float32ToWav(audioData, 16000)], { type: 'audio/wav' });
-      var lc = (whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) ? CODE_BY_LANG[whisperLang] : '';
-      var resp = null;
-      if (!openaiKey) {
-        // Kein Key im Browser → Captly-Server (server.js) auf demselben Host nutzen, Key bleibt dort
-        try {
-          resp = await fetch('transcribe?translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''), {
-            method: 'POST', headers: Object.assign({ 'Content-Type': 'audio/wav' }, authHdr()), body: wavBlob
-          });
-        } catch (e) { resp = null; }
-        if (!resp || resp.status === 404 || resp.status === 405) {
-          throw new Error('Perfect braucht entweder einen API-Key (Feld oben) ODER die Seite muss über deinen Captly-Server laufen (server.js).');
-        }
-      } else {
-        var fd = new FormData();
-        fd.append('file', wavBlob, 'audio.wav');
-        fd.append('model', 'whisper-1');
-        fd.append('response_format', 'verbose_json');
-        if (!doTranslate) {
-          fd.append('timestamp_granularities[]', 'word');
-          if (lc) fd.append('language', lc);
-        }
-        resp = await fetch('https://api.openai.com/v1/audio/' + (doTranslate ? 'translations' : 'transcriptions'), {
-          method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd
-        });
-      }
-      clearInterval(fakeTimer);
-      setTProgress(92);
-      if (!resp.ok) {
-        throw new Error(resp.status === 401 ? 'API-Key ungültig (Browser bzw. Server prüfen).'
-          : resp.status === 402 ? (authToken
-              ? 'Perfect-Kontingent aufgebraucht — Upgrade oder Minuten-Pack im Konto-Menü. ⚡ Fast bleibt unbegrenzt gratis.'
-              : 'Deine 3 gratis Perfect-Videos für heute sind aufgebraucht. Tipp: Mit Gratis-Konto gibt es 10 Perfect-Minuten geschenkt.')
-          : resp.status === 413 ? 'Audio zu groß (max ~25 MB / ~13 Min) — Video kürzen.'
-          : resp.status === 429 ? 'Kurz durchatmen — zu viele Anfragen. In ein paar Minuten erneut versuchen.'
-          : resp.status === 503 ? 'Perfect ist heute ausgelastet — ⚡ Fast funktioniert weiter, morgen wieder Perfect.'
-          : 'API-Fehler ' + resp.status + '. Bitte erneut versuchen.');
-      }
-      var j = await resp.json();
-      wordTimestamps = (j.words || []).map(function(w) {
-        return { word: (w.word || '').trim(), start: w.start || 0, end: w.end || 0 };
-      }).filter(function(w) { return w.word; });
-      if (!wordTimestamps.length && j.segments) {
-        wordTimestamps = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
-      }
-      if (!wordTimestamps.length && j.text) {
-        wordTimestamps = segmentsToWords([{ text: j.text, timestamp: [0, audioDur] }]);
-      }
+    // ── 1) Serverseitig transkribieren (Groq via transcribe.php) — kein Download für den Nutzer ──
+    var served = await serverTranscribe(wavBlob, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur);
+
+    if (served !== null) {
+      wordTimestamps = served;
     } else {
-
-    // Lokal: 'language' nur setzen, wenn manuell gewählt — null verwirrt die Auto-Erkennung
-    var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe' };
-    if (whisperLang !== 'auto') wOpts.language = whisperLang;
-
-    wordTimestamps = await transcribeChunked(pipe, audioData, wOpts);
-
-    // Smart-Auto: Wiederholungsschleife erkannt → mit Browser-Sprache erzwingen und Ergebnis vergleichen
-    if (whisperLang === 'auto' && NAV_LANG && looksRepetitive(wordTimestamps)) {
-      setTStatus('', 'Auto-Erkennung unsicher — versuche ' + NAV_LANG + '…', true, true);
-      var wtF = await transcribeChunked(pipe, audioData, Object.assign({}, wOpts, { language: NAV_LANG }));
-      if (wtF.length && !looksRepetitive(wtF)) { wordTimestamps = wtF; usedLang = NAV_LANG; }
+      // ── 2) Fallback: lokal im Browser (z. B. Vercel-Demo ohne PHP-Proxy) ──
+      setTStatus('', 'Server nicht verfügbar — lokale Erkennung (einmaliger Modell-Download)…', true, true);
+      var pipe = await getPipe(LOCAL_MODEL[whisperModel] || 'base');
+      var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe' };
+      if (whisperLang !== 'auto') wOpts.language = whisperLang;
+      wordTimestamps = await transcribeChunked(pipe, audioData, wOpts);
+      // Smart-Auto: Wiederholungsschleife erkannt → mit Browser-Sprache erzwingen und vergleichen
+      if (whisperLang === 'auto' && NAV_LANG && looksRepetitive(wordTimestamps)) {
+        setTStatus('', 'Auto-Erkennung unsicher — versuche ' + NAV_LANG + '…', true, true);
+        var wtF = await transcribeChunked(pipe, audioData, Object.assign({}, wOpts, { language: NAV_LANG }));
+        if (wtF.length && !looksRepetitive(wtF)) { wordTimestamps = wtF; usedLang = NAV_LANG; }
+      }
     }
-
-    } // Ende lokaler Pfad
 
     wordTimestamps = cleanWords(wordTimestamps); // Stottern & Wiederholungsschleifen entfernen
 
@@ -1484,7 +1594,7 @@ async function transcribeVideo(file) {
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
     setTStatus(qWarn ? '⚠️' : '✅',
-      wordTimestamps.length + ' Wörter · ' + (whisperModel === 'cloud' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '') + ' · Sprache: ' + (usedLang === 'auto' ? 'automatisch' : usedLang)
+      wordTimestamps.length + ' Wörter · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '') + ' · Sprache: ' + (usedLang === 'auto' ? 'automatisch' : usedLang)
       + (qWarn ? ' · Qualität fraglich → 💎 Perfect wählen' : ''), false, false);
     document.getElementById('capEditor').style.display = 'block';
     renderSegments();
@@ -1990,6 +2100,36 @@ function buildMarquee() {
     });
   }
 }
+// Phone-Mockup-Showcase: jeder Style als Beispiel-Caption auf seinem Verlaufs-Hintergrund
+var SHOW_SAMPLES = ['this changes everything','wait for it','the secret nobody tells you',
+  'let me show you how','watch this till the end','you need to know this','here is the truth',
+  'nobody talks about this','save this for later','it gets better','this is your sign',
+  'stop scrolling right now','i wish i knew this','the results speak','trust the process',
+  'level up today','one simple trick','before and after','game changer','do this instead'];
+function renderShowcase() {
+  var row = document.getElementById('showcaseRow');
+  if (!row) return;
+  row.innerHTML = '';
+  STYLES.filter(function(s){ return s.id !== 'custom' && !s._tpl; }).forEach(function(s, i) {
+    var card = document.createElement('div');
+    card.className = 'show-card';
+    card.style.animationDelay = (i * 45) + 'ms';
+    card.onclick = function(){ openEditorClean(); selectStyle(s.id); };
+    var bg = document.createElement('div'); bg.className = 'show-bg';
+    bg.style.background = s.thumbBg || 'linear-gradient(160deg,#1a1030,#0b0712)';
+    var vig = document.createElement('div'); vig.className = 'show-vig';
+    var cap = document.createElement('div'); cap.className = 'show-cap';
+    var words = SHOW_SAMPLES[i % SHOW_SAMPLES.length].split(' ');
+    cap.innerHTML = buildCap(words, s, Math.min(2, words.length - 1), 15, null);
+    var name = document.createElement('div'); name.className = 'show-name'; name.textContent = s.name;
+    card.appendChild(bg); card.appendChild(vig); card.appendChild(cap); card.appendChild(name);
+    row.appendChild(card);
+  });
+}
+function scrollShowcase() {
+  var row = document.getElementById('showcaseRow');
+  if (row) row.scrollBy({ left: Math.min(580, Math.round(row.clientWidth * 0.85)), behavior: 'smooth' });
+}
 function openEditor() {
   clearInterval(_demoTimer);
   document.getElementById('landing').style.display = 'none';
@@ -2048,13 +2188,10 @@ lz.addEventListener('drop', function(e){
 // INIT
 enableExports(false);
 renderWPills();
-// Browser-Sprache als Standard vorwählen (zuverlässiger als Tiny-Autodetect); 'auto' bleibt wählbar
-if (NAV_LANG) {
-  whisperLang = NAV_LANG;
-  var _ls = document.getElementById('langSel');
-  if (_ls) _ls.value = NAV_LANG;
-}
+// Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
+// NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
 buildMarquee();
+renderShowcase();
 startDemo();
 updateAcctUI();
 // Leertaste = Play/Pause im Editor (Pro-Creator-Standard), außer beim Tippen

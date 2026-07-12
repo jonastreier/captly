@@ -4,13 +4,33 @@ Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai
 Upload → Auto-Transkript → Karaoke-Preview in 20 Styles → Export als **MP4** (mit
 eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
-- **⚡ Fast** — Whisper lokal im Browser (transformers.js), gratis & unbegrenzt, kein Account.
-- **💎 Perfect** — OpenAI `whisper-1` über den eigenen Server (beste Qualität, wird limitiert/monetarisiert).
+- **⚡ Fast** = `whisper-large-v3-turbo`, **💎 Perfect** = `whisper-large-v3` — beide **serverseitig**
+  über einen schlanken PHP-Proxy ([`transcribe.php`](transcribe.php)). **Kein Modell-Download für den
+  Nutzer**, läuft auf jedem Gerät (auch iPhone). Transkribiert wird über **Groq** (kostenloser Free-Tier,
+  OpenAI-kompatible API).
+- **Fallback:** Ist der Proxy nicht erreichbar (z. B. reine Vercel-Demo ohne PHP), transkribiert Captly
+  automatisch **lokal im Browser** (transformers.js) — dann einmaliger Modell-Download.
 
-Zwei Dateien, kein Build:
+Dateien, kein Build:
 - [`captly.html`](captly.html) — kompletter Editor + Landing (Single-File).
-- [`server.js`](server.js) — Backend (Node 22+, `node:sqlite`, **keine** npm-Dependencies):
-  Magic-Code-Login, Projekte, Usage-/Quota-Gating, Stripe, Admin.
+- [`transcribe.php`](transcribe.php) — serverseitiger Transkriptions-Proxy für Webhosting (hält den
+  API-Key, ruft Groq). **Primärer Weg.**
+- [`server.js`](server.js) — **optionales** Node-Backend (Login, Projekte, Stripe) für später; für die
+  Transkription **nicht** nötig. Läuft nicht auf reinem Webhosting.
+
+## Transkription einrichten (Groq-Proxy)
+
+Auf klassischem **Webhosting mit PHP** — kein Node-Server nötig:
+
+1. Kostenlosen Groq-Key holen: <https://console.groq.com> → **API Keys** (kein Kreditkartenzwang).
+2. `config.example.php` → **`config.php`** kopieren und den Key eintragen (`config.php` ist per
+   `.gitignore` ausgeschlossen, kommt **nie** ins Repo/den Browser).
+3. `captly.html` **und** `transcribe.php` (+ `config.php`) in dasselbe Verzeichnis auf dem Webhosting
+   legen. Fertig — Fast/Perfect laufen ohne Download für den Nutzer.
+
+Voraussetzungen: PHP mit **cURL** aktiv; für längere Videos ggf. `upload_max_filesize` / `post_max_size`
+/ `max_execution_time` erhöhen (WAV ≈ 1,9 MB/Min — Reels sind unkritisch). Anbieterwechsel (Deepgram,
+paid) ist im Proxy gekapselt → wenige Zeilen.
 
 ## Schnellstart (lokal)
 

@@ -52,7 +52,7 @@ setState:function(bl,wts,dm){captionBlocks=bl;wordTimestamps=wts;if(dm)displayMo
 getBlocks:function(){return captionBlocks;},selectStyle:selectStyle,setPos:setPos,onSzChange:onSzChange,setMode:setMode,
 onWpbChange:onWpbChange,setLang:setLang,buildPicker:buildPicker,renderSegments:renderSegments,renderWPills:renderWPills,
 openEditorClean:openEditorClean,goBack:goBack,enableExports:enableExports,
-looksRepetitive:looksRepetitive,cleanWords:cleanWords,buildMarquee:buildMarquee,startDemo:startDemo,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onOffChange:onOffChange,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},applyPos:applyPos};`;
+looksRepetitive:looksRepetitive,cleanWords:cleanWords,buildMarquee:buildMarquee,startDemo:startDemo,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},applyPos:applyPos,mergeChunkWords:mergeChunkWords};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -148,7 +148,7 @@ ok(T.looksRepetitive([]) === false && T.looksRepetitive(null) === false, 'looksR
 // 12) NAV_LANG: null ODER gültiger Whisper-Name; wenn gesetzt, muss whisperLang vorgewählt sein
 const validLangs = ['german','english','spanish','french','italian','portuguese','dutch','polish','turkish','russian','ukrainian','japanese','korean','chinese','arabic','hindi'];
 ok(T.NAV_LANG === null || validLangs.includes(T.NAV_LANG), 'NAV_LANG gueltig: ' + T.NAV_LANG);
-ok(T.NAV_LANG === null ? initialLang === 'auto' : initialLang === T.NAV_LANG, 'whisperLang-Vorwahl nach INIT konsistent: ' + initialLang);
+ok(initialLang === 'auto', 'Sprache startet auf Auto-Erkennung: ' + initialLang);
 
 // 13) Landing-Widgets crashen nicht (Stub leert children nicht → Vielfaches von 40)
 T.buildMarquee();
@@ -186,10 +186,6 @@ ok(kwHtml.includes('f7c204'), 'Keyword ohne aktives Wort gefaerbt');
 ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animation');
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
-T.onOffChange('200');
-T.exportSRT();
-ok(global.LASTBLOB.content.includes('00:00:00,900'), 'SRT mit Offset verschoben: ' + global.LASTBLOB.content.slice(0, 80).replace(/\n/g, '|'));
-T.onOffChange('0');
 T.applyCustomStyle();
 ok(T.STYLES.length === 21 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
 // Referenz-Styles: Prime Script-Akzent, Sketch Kringel, Sonnet kursiv
@@ -232,6 +228,18 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   ok(ovS.display === 'flex' && ovS.alignItems === 'center' && ovS.transform === '', 'Mitte via Flex, kein transform');
   T.setPosState('bottom'); T.applyPos();
   ok(ovS.bottom === '12%' && ovS.display === '', 'Unten wieder normal');
+
+  // 19) Regression: driftende null-Timestamps am Fensterende duerfen das Folgefenster NICHT leeren.
+  // Fenster 0 (28s): 80 Woerter, deren End-Timestamps null sind -> chunksToWords verkettet und die
+  // Zeiten liefen (ohne Clamping) bis ~39.5s -> alte lastEnd-Dedup verwarf ALLE Tail-Woerter.
+  const drift = async (seg) => seg.length > 16000 * 20
+    ? { chunks: Array.from({ length: 80 }, (_, k) => ({ text: 'a' + k, timestamp: [k * 0.5, null] })) }
+    : { chunks: [{ text: 'tail1', timestamp: [2, 2.4] }, { text: 'tail2', timestamp: [5, 5.4] }, { text: 'tail3', timestamp: [8, 8.4] }] };
+  const dr = await T.transcribeChunked(drift, new Float32Array(16000 * 40), {}); // 40s -> 2 Fenster
+  ok(dr.some(w => w.word === 'tail1') && dr.some(w => w.word === 'tail3'), 'Tail-Woerter trotz Drift erhalten');
+  ok(dr.every(w => w.start <= 40.01), 'kein Wort laeuft ueber die Videolaenge hinaus (Clamping)');
+  ok(Math.max(...dr.map(w => w.end)) > 30, 'Abdeckung reicht bis nahe Videoende: ' + Math.max(...dr.map(w => w.end)).toFixed(1));
+  for (let z = 1; z < dr.length; z++) ok(dr[z].start >= dr[z - 1].start - 0.001, 'Startzeiten monoton');
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

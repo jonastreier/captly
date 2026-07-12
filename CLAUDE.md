@@ -2,9 +2,10 @@
 
 Captly ist ein Untertitel-Tool für Instagram/TikTok-Reels (Klon von captions.ai). **Kein Build, keine npm-Dependencies.** Details & Deploy: siehe [README.md](README.md).
 
-Zwei Kern-Dateien:
+Kern-Dateien:
 - `captly.html` — kompletter Editor + Landing als **Single-File** mit Inline-`<script>`.
-- `server.js` — Backend (Node 22+, `node:sqlite`): Magic-Code-Login, Projekte, Quota/Stripe/Admin.
+- `transcribe.php` — **primärer** Transkriptions-Proxy für Webhosting: hält den Groq-Key (aus nicht-committeter `config.php`), ruft Groq `whisper-large-v3(-turbo)`, gibt Wort-Timings zurück. **Kein Modell-Download für den Nutzer.** Frontend (`serverTranscribe`) ruft ihn; ist er nicht da → lokaler transformers.js-Fallback.
+- `server.js` — **optionales** Node-Backend (Node 22+, `node:sqlite`): Magic-Code-Login, Projekte, Quota/Stripe/Admin. Für die Transkription NICHT nötig; läuft nicht auf reinem Webhosting.
 
 ## Effizient arbeiten (Token & Modellwahl)
 

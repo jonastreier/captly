@@ -3,6 +3,9 @@ captly.db
 captly.db-*
 *.sqlite
 
+# Geheimer ASR-Key (Proxy-Config) — nie ins Repo
+config.php
+
 # Node
 node_modules/
 
