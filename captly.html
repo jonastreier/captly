@@ -136,8 +136,9 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 .wpill.on{background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.32);color:#c4b5fd}
 
 /* STYLE PICKER */
-.style-scroll{display:flex;gap:5px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
-.style-scroll::-webkit-scrollbar{display:none}
+.style-scroll{display:flex;flex-wrap:wrap;gap:5px;max-height:290px;overflow-y:auto;padding:2px 4px 4px 0;scrollbar-width:thin;scrollbar-color:rgba(124,58,237,.35) transparent}
+.style-scroll::-webkit-scrollbar{width:6px}
+.style-scroll::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:3px}
 .stile{flex-shrink:0;width:76px;border-radius:8px;overflow:hidden;border:2px solid transparent;cursor:pointer;transition:border-color .15s,transform .15s}
 .stile:hover{transform:translateY(-2px)}
 .stile.on{border-color:#7c3aed}
@@ -352,6 +353,11 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
           <button class="pos-btn" data-pos="center" onclick="setPos(this)">Mitte</button>
           <button class="pos-btn on" data-pos="bottom" onclick="setPos(this)">Unten</button>
         </div>
+        <div class="sz-row" style="margin-top:7px">
+          <span style="font-size:9px;color:#94909c;min-width:30px">Höhe</span>
+          <input type="range" min="-30" max="30" step="2" value="0" id="voffSlider" oninput="onVOffChange(this.value)">
+          <span class="sz-val" id="voffDisp" style="min-width:38px">0%</span>
+        </div>
         <div class="clbl" style="margin-top:0">Schriftgröße</div>
         <div class="sz-row">
           <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)">
@@ -383,6 +389,11 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
             <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
             <option>Inter</option><option>Oswald</option>
           </select>
+        </div>
+        <div class="clbl" style="margin-top:10px">Als Template speichern</div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (z. B. Mein Look)">
+          <button class="pos-btn" style="flex:0 0 auto;padding:5px 10px" onclick="saveTemplate()" title="Aktuellen Style + Position + Größe + Modus als benanntes Template sichern">💾</button>
         </div>
       </div>
 
@@ -575,6 +586,7 @@ var STYLES = [
 // ═══════════════════════════════════════
 var activeId        = 'bloom';
 var capPos          = 'bottom';
+var capVOff         = 0;    // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position
 var fontSize        = 22;
 var vidReady        = false;
 var vidMuted        = true;
@@ -991,8 +1003,66 @@ function renderWPills() {
 function selectStyle(id) {
   activeId = id;
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
+  var s = STYLES.find(function(x){ return x.id === id; });
+  if (s && s._tpl) applyTemplateSettings(s._tpl); // gespeichertes Template: Position/Größe/Modus wiederherstellen
   _lastKey = null;
   updateOverlay();
+}
+
+// ── Lokale, benannte Templates (localStorage — kein Konto/Backend nötig) ──
+var userTemplates = [];
+function styleFromTemplate(t) {
+  return { id: t.id, name: t.name, fl: t.font, font: "'" + t.font + "'", fw: '800',
+    tc: t.tc, ts: '0 2px 10px rgba(0,0,0,.6)', hl: t.hl, hls: '0 0 14px ' + t.hl,
+    thumbBg: 'linear-gradient(160deg,#0a0a0c,#141416)', anim: 'scale', badge: '⭐', _tpl: t };
+}
+function loadTemplates() {
+  try { userTemplates = JSON.parse(localStorage.getItem('captly_templates') || '[]'); }
+  catch (e) { userTemplates = []; }
+  if (!Array.isArray(userTemplates)) userTemplates = [];
+  userTemplates.forEach(function(t){
+    if (!STYLES.find(function(x){ return x.id === t.id; })) STYLES.push(styleFromTemplate(t));
+  });
+}
+function saveTemplate() {
+  var nameEl = document.getElementById('tplName');
+  var name = (nameEl.value || '').trim();
+  if (!name) { nameEl.focus(); nameEl.placeholder = 'Bitte Namen eingeben'; return; }
+  var t = { id: 'tpl_' + Date.now(), name: name,
+    font: document.getElementById('csFont').value,
+    tc: document.getElementById('csText').value,
+    hl: document.getElementById('csHl').value,
+    pos: capPos, voff: capVOff, size: fontSize, mode: displayMode, wpb: WORDS_PER_BLOCK };
+  userTemplates.push(t);
+  try { localStorage.setItem('captly_templates', JSON.stringify(userTemplates)); } catch (e) {}
+  STYLES.push(styleFromTemplate(t));
+  nameEl.value = '';
+  buildPicker();
+  selectStyle(t.id);
+}
+function applyTemplateSettings(t) {
+  if (t.pos) { capPos = t.pos; syncPosButtons(); }
+  if (typeof t.voff === 'number') {
+    capVOff = t.voff;
+    var vs = document.getElementById('voffSlider');
+    if (vs) { vs.value = t.voff; document.getElementById('voffDisp').textContent = (t.voff > 0 ? '+' : '') + t.voff + '%'; }
+  }
+  if (typeof t.size === 'number') {
+    fontSize = t.size;
+    var ss = document.getElementById('szSlider');
+    if (ss) { ss.value = t.size; document.getElementById('szDisp').textContent = t.size + 'px'; }
+  }
+  if (t.mode) {
+    displayMode = t.mode;
+    document.querySelectorAll('#modeRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === t.mode); });
+  }
+  if (typeof t.wpb === 'number') {
+    WORDS_PER_BLOCK = t.wpb;
+    var ws = document.getElementById('wpbSlider');
+    if (ws) { ws.value = t.wpb; document.getElementById('wpbDisp').textContent = t.wpb; }
+    if (wordTimestamps.length) { captionBlocks = buildCaptionBlocks(wordTimestamps); renderSegments(); renderWPills(); }
+  }
+  applyPos();
 }
 function buildPicker() {
   var c = document.getElementById('stylePicker');
@@ -1023,17 +1093,23 @@ function buildPicker() {
 // ═══════════════════════════════════════
 // POSITION / SIZE
 // ═══════════════════════════════════════
+function clampPct(v) { return Math.max(0, Math.min(85, v)); }
 function applyPos() {
   var ov = document.getElementById('capOverlay');
   ov.style.top = ''; ov.style.bottom = ''; ov.style.transform = '';
   ov.style.display = ''; ov.style.alignItems = ''; ov.style.justifyContent = '';
-  if (capPos === 'top') ov.style.top = '10%';
+  ov.style.paddingTop = ''; ov.style.paddingBottom = '';
+  var off = capVOff; // % , + = weiter oben
+  if (capPos === 'top') ov.style.top = clampPct(10 - off) + '%';
   else if (capPos === 'center') {
-    // Echte Mitte via Flex — translateY(-50%) würde mit der capIn-Animation (transform) kollidieren
+    // Echte Mitte via Flex — translateY würde mit der capIn-Animation (transform) kollidieren.
+    // Feinjustierung daher über Padding (verschiebt den zentrierten Inhalt).
     ov.style.top = '0'; ov.style.bottom = '0';
     ov.style.display = 'flex'; ov.style.alignItems = 'center'; ov.style.justifyContent = 'center';
+    if (off > 0) ov.style.paddingBottom = (off * 2) + '%';
+    else if (off < 0) ov.style.paddingTop = (-off * 2) + '%';
   }
-  else ov.style.bottom = '12%';
+  else ov.style.bottom = clampPct(12 + off) + '%';
 }
 function setPos(btn) {
   capPos = btn.dataset.pos;
@@ -1041,6 +1117,17 @@ function setPos(btn) {
   btn.parentElement.querySelectorAll('.pos-btn').forEach(function(b){ b.classList.remove('on'); });
   btn.classList.add('on');
   applyPos();
+}
+function onVOffChange(v) {
+  capVOff = parseInt(v);
+  document.getElementById('voffDisp').textContent = (capVOff > 0 ? '+' : '') + capVOff + '%';
+  applyPos();
+}
+// Positions-Buttons anhand capPos synchronisieren (für Templates)
+function syncPosButtons() {
+  document.querySelectorAll('.pos-btn[data-pos]').forEach(function(b){
+    b.classList.toggle('on', b.dataset.pos === capPos);
+  });
 }
 function onSzChange(v) {
   fontSize = parseInt(v);
@@ -1907,6 +1994,7 @@ function openEditor() {
   clearInterval(_demoTimer);
   document.getElementById('landing').style.display = 'none';
   document.getElementById('editor').style.display  = 'flex';
+  loadTemplates(); // gespeicherte Templates in den Picker einhängen
   buildPicker(); renderWPills(); updateOverlay();
   applyPos(); // gewählte Position beibehalten
 }
