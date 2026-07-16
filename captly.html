@@ -1,9 +1,29 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Captly — Auto Captions</title>
+<title>Captly — AI Auto Captions for Reels &amp; TikTok</title>
+<meta name="description" content="Add animated, word-perfect captions to Reels, TikToks & Shorts in seconds. 26 viral styles, automatic language detection, MP4/SRT/VTT export. Free, no signup.">
+<meta name="keywords" content="auto captions, AI subtitles, video captions, TikTok captions, Reels subtitles, karaoke captions, caption generator, subtitle generator, MP4 captions, SRT export">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta name="theme-color" content="#7c3aed">
+<!-- TODO: replace captly.app with your real domain -->
+<link rel="canonical" href="https://captly.app/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Captly">
+<meta property="og:title" content="Captly — AI Auto Captions for Reels & TikTok">
+<meta property="og:description" content="Word-perfect animated captions in 26 viral styles. Automatic language detection. Export MP4, SRT, VTT. Free, no signup.">
+<meta property="og:url" content="https://captly.app/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Captly — AI Auto Captions for Reels & TikTok">
+<meta name="twitter:description" content="Word-perfect animated captions in 26 viral styles. Free, no signup.">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Captly","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"Captly adds animated, word-perfect captions to Reels, TikToks and Shorts in seconds, with 26 viral styles, automatic language detection and MP4/SRT/VTT export.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Automatic speech-to-text captions","26 viral caption styles","Word-by-word karaoke highlighting","Automatic language detection","Export to MP4, SRT and VTT","Runs in the browser, no signup"]}
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is Captly free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Captly generates captions and exports MP4, SRT and VTT for free, with no signup."}},{"@type":"Question","name":"Which languages does Captly support?","acceptedAnswer":{"@type":"Answer","text":"Captly auto-detects the spoken language and supports English, German, Spanish, French and 15+ more."}},{"@type":"Question","name":"Do I need to install anything?","acceptedAnswer":{"@type":"Answer","text":"No. Captly runs in your browser. Upload a video, pick a style and export it."}}]}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@800&family=Bebas+Neue&family=Caveat:wght@700&family=DM+Sans:wght@700&family=Exo+2:wght@700&family=Inter:wght@400;500;600;700;800;900&family=Kalam:wght@700&family=Montserrat:wght@900&family=Orbitron:wght@700&family=Oswald:wght@700&family=Playfair+Display:ital,wght@0,700;1,700&family=Poppins:wght@700;900&family=Raleway:wght@300&family=Space+Grotesk:wght@700&family=VT323&display=swap" rel="stylesheet">
@@ -34,8 +54,8 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(6vw,-4vh) scale(1.15)}}
 @media (prefers-reduced-motion:reduce){.blob,.marquee-track,.land-h em,.upload-zone-icon{animation:none!important}}
 .land-nav{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:min(94%,980px);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.65);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.85);box-shadow:0 8px 30px rgba(30,20,60,.08);border-radius:999px;padding:9px 9px 9px 18px;z-index:5}
-.nav-cta{background:#111;color:#fff;border:none;border-radius:999px;padding:9px 18px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:background .15s,transform .15s}
-.nav-cta:hover{background:#2d2d33;transform:translateY(-1px)}
+.nav-cta{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:filter .15s,transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(124,58,237,.32)}
+.nav-cta:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.42)}
 .land-cta-row{position:relative;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .land-logo{position:relative;display:flex;align-items:center;gap:9px}
 .land-logo-txt{font-size:20px;font-weight:800;color:#111}
@@ -141,7 +161,7 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 .style-scroll::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:3px}
 .stile{flex-shrink:0;width:76px;border-radius:8px;overflow:hidden;border:2px solid transparent;cursor:pointer;transition:border-color .15s,transform .15s}
 .stile:hover{transform:translateY(-2px)}
-.stile.on{border-color:#7c3aed}
+.stile.on{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.18)}
 .stile-thumb{width:76px;height:106px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px}
 .stile-inner{text-align:center;padding:0 4px;width:100%;position:relative;z-index:2}
 .stile-info{background:#f4f2f7;padding:4px 5px 5px;text-align:center}
@@ -153,9 +173,14 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 .pos-row{display:flex;gap:4px;margin-bottom:8px}
 .pos-btn{flex:1;padding:5px 4px;border-radius:6px;border:1px solid #ddd6e4;background:#fff;color:#66616e;font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;cursor:pointer;transition:all .15s}
 .pos-btn:hover{border-color:#a99cc0;color:#111}
-.pos-btn.on{background:#111;border-color:#111;color:#fff}
+.pos-btn.on{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent;color:#fff;box-shadow:0 3px 10px rgba(124,58,237,.32)}
 .sz-row{display:flex;align-items:center;gap:9px}
-.sz-row input[type=range]{flex:1;accent-color:#7c3aed;cursor:pointer}
+.sz-row input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:999px;background:linear-gradient(90deg,#7c3aed,#6d5cf0,#3b82f6);cursor:pointer;outline:none}
+.sz-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #7c3aed;box-shadow:0 2px 7px rgba(124,58,237,.5);cursor:pointer;transition:transform .12s}
+.sz-row input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.18)}
+.sz-row input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #7c3aed;box-shadow:0 2px 7px rgba(124,58,237,.5);cursor:pointer}
+.sz-row input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:linear-gradient(90deg,#7c3aed,#6d5cf0,#3b82f6)}
+input[type=checkbox]{accent-color:#7c3aed}
 .sz-val{font-size:11px;color:#282828;min-width:28px;text-align:right}
 .ctrl-upload{border:1.5px dashed #d9d1e2;border-radius:8px;padding:9px;text-align:center;cursor:pointer;position:relative;transition:all .15s}
 .ctrl-upload:hover{border-color:rgba(124,58,237,.28);background:rgba(124,58,237,.03)}
@@ -170,8 +195,8 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 .exp-btn-icon{font-size:17px}
 .exp-btn-label{font-size:10px;font-weight:700;color:#3f3b46}
 .exp-btn-sub{font-size:8.5px;color:#5f5f5f}
-.exp-btn.hi{background:#111;border-color:#111}
-.exp-btn.hi:hover:not(:disabled){background:#2b2b31}
+.exp-btn.hi{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent}
+.exp-btn.hi:hover:not(:disabled){filter:brightness(1.08)}
 .exp-btn.hi .exp-btn-label{color:#fff}
 .exp-btn.hi .exp-btn-sub{color:rgba(255,255,255,.55)}
 
@@ -241,31 +266,31 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
       </svg>
       <span class="land-logo-txt" style="font-size:16px">Captly</span>
     </div>
-    <button class="nav-cta" onclick="openEditorClean();showAcct()">Anmelden</button>
+    <button class="nav-cta" onclick="openEditorClean();showAcct()">Sign in</button>
   </div>
-  <h1 class="land-h">Captions, die <em>knallen</em>.<br>In Sekunden.</h1>
-  <p class="land-sub">KI erkennt Deutsch, Englisch &amp; 15+ Sprachen — wortgenaue Karaoke-Untertitel in 20 Creator-Styles. 100 % lokal, kein Upload.</p>
+  <h1 class="land-h">Captions that <em>convert</em>.<br>In seconds.</h1>
+  <p class="land-sub">AI captions your videos word-for-word in 26 viral styles. Auto language detection, 17+ languages. Export MP4, SRT &amp; VTT — free, no signup.</p>
   <div class="live-demo" id="liveDemo"></div>
   <label class="upload-zone" id="landZone">
     <input type="file" accept="video/*" id="landInput">
     <div class="upload-zone-icon">🎬</div>
-    <h3>Video ablegen oder klicken</h3>
-    <p>MP4, MOV, WebM · bleibt auf deinem Gerät</p>
+    <h3>Drop a video or click</h3>
+    <p>MP4, MOV, WebM · stays on your device</p>
   </label>
   <div class="land-cta-row">
-    <button class="nav-cta" style="padding:12px 24px;font-size:14px" onclick="document.getElementById('landInput').click()">Video hochladen&nbsp;&nbsp;→</button>
-    <button class="land-try-btn" onclick="openEditorClean()">Editor öffnen&nbsp;&nbsp;→</button>
+    <button class="nav-cta" style="padding:12px 24px;font-size:14px" onclick="document.getElementById('landInput').click()">Upload video&nbsp;&nbsp;→</button>
+    <button class="land-try-btn" onclick="openEditorClean()">Open editor&nbsp;&nbsp;→</button>
   </div>
   <div class="marquee"><div class="marquee-track" id="styleMarquee"></div></div>
-  <div class="land-stats"><span><b>20</b> Styles</span><span><b>17</b> Sprachen</span><span><b>⚡</b> gratis testen</span><span><b>💎</b> Karaoke-genau</span></div>
+  <div class="land-stats"><span><b>26</b> styles</span><span><b>17</b> languages</span><span><b>⚡</b> free to use</span><span><b>💎</b> word-perfect</span></div>
 
-  <!-- Template-Showcase -->
+  <!-- Template showcase -->
   <section class="showcase">
-    <h2 class="show-h">Ein Video. <em>20 virale Styles.</em></h2>
-    <p class="show-sub">So sehen deine Untertitel in jedem Look aus — tippen zum Ausprobieren.</p>
+    <h2 class="show-h">One video. <em>26 viral styles.</em></h2>
+    <p class="show-sub">See your captions in every look — tap one to try it.</p>
     <div class="show-wrap">
       <div class="show-row" id="showcaseRow"></div>
-      <button class="show-arrow" onclick="scrollShowcase()" aria-label="Weitere Styles zeigen">›</button>
+      <button class="show-arrow" onclick="scrollShowcase()" aria-label="Show more styles">›</button>
     </div>
   </section>
 
@@ -284,11 +309,11 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
       <nav class="foot-links">
         <a onclick="return false" href="#">Terms</a>
         <a onclick="return false" href="#">Privacy Policy</a>
-        <a onclick="return false" href="#">Kontakt</a>
+        <a onclick="return false" href="#">Contact</a>
       </nav>
     </div>
-    <p class="foot-claim">Virale, wortgenaue Untertitel für Reels &amp; TikToks — in Sekunden, ohne Download.</p>
-    <p class="foot-legal">Mit dem Hochladen eines Videos stimmst du unseren <a onclick="return false" href="#">Terms</a> zu und hast unsere <a onclick="return false" href="#">Privacy Policy</a> gelesen.</p>
+    <p class="foot-claim">Viral, word-perfect captions for Reels &amp; TikToks — in seconds, no download.</p>
+    <p class="foot-legal">By uploading a video you agree to our <a onclick="return false" href="#">Terms</a> and have read our <a onclick="return false" href="#">Privacy Policy</a>.</p>
     <p class="foot-copy">© 2026 Captly</p>
   </footer>
 </div>
@@ -309,8 +334,8 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
         Captly
       </div>
     </div>
-    <div style="font-size:10.5px;color:#555">Auto Speech Recognition</div>
-    <button class="btn-back" id="acctBtn" onclick="showAcct()">Anmelden</button>
+    <div style="font-size:10.5px;color:#555">AI Caption Studio</div>
+    <button class="btn-back" id="acctBtn" onclick="showAcct()">Sign in</button>
   </div>
 
   <div class="ed-body">
@@ -323,7 +348,7 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
         <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon">▶</div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
-          <span>🎬</span><p>Video hochladen</p>
+          <span>🎬</span><p>Upload video</p>
         </div>
         <div id="capOverlay"></div>
       </div>
@@ -347,58 +372,58 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
         <div class="clbl">Video</div>
         <div class="ctrl-upload">
           <input type="file" accept="video/*" id="ctrlInput">
-          <p id="uploadLabel">📁 Video hochladen / ersetzen</p>
+          <p id="uploadLabel">📁 Upload / replace video</p>
         </div>
       </div>
 
       <!-- Transcript -->
       <div class="csect">
-        <div class="clbl">Untertitel · KI-Transkription</div>
+        <div class="clbl">Captions · AI transcription</div>
         <select id="langSel" class="lang-sel" onchange="setLang(this.value)">
-          <option value="auto">🌐 Sprache automatisch erkennen</option>
-          <option value="german">🇩🇪 Deutsch</option>
-          <option value="english">🇬🇧 Englisch</option>
-          <option value="spanish">🇪🇸 Spanisch</option>
-          <option value="french">🇫🇷 Französisch</option>
-          <option value="italian">🇮🇹 Italienisch</option>
-          <option value="portuguese">🇵🇹 Portugiesisch</option>
-          <option value="dutch">🇳🇱 Niederländisch</option>
-          <option value="polish">🇵🇱 Polnisch</option>
-          <option value="turkish">🇹🇷 Türkisch</option>
-          <option value="russian">🇷🇺 Russisch</option>
-          <option value="ukrainian">🇺🇦 Ukrainisch</option>
-          <option value="japanese">🇯🇵 Japanisch</option>
-          <option value="korean">🇰🇷 Koreanisch</option>
-          <option value="chinese">🇨🇳 Chinesisch</option>
-          <option value="arabic">🇸🇦 Arabisch</option>
+          <option value="auto">🌐 Detect language automatically</option>
+          <option value="english">🇬🇧 English</option>
+          <option value="spanish">🇪🇸 Spanish</option>
+          <option value="german">🇩🇪 German</option>
+          <option value="french">🇫🇷 French</option>
+          <option value="portuguese">🇵🇹 Portuguese</option>
+          <option value="italian">🇮🇹 Italian</option>
+          <option value="dutch">🇳🇱 Dutch</option>
+          <option value="polish">🇵🇱 Polish</option>
+          <option value="turkish">🇹🇷 Turkish</option>
+          <option value="russian">🇷🇺 Russian</option>
+          <option value="ukrainian">🇺🇦 Ukrainian</option>
+          <option value="japanese">🇯🇵 Japanese</option>
+          <option value="korean">🇰🇷 Korean</option>
+          <option value="chinese">🇨🇳 Chinese</option>
+          <option value="arabic">🇸🇦 Arabic</option>
           <option value="hindi">🇮🇳 Hindi</option>
         </select>
         <div class="pos-row" id="modelRow" style="margin-bottom:7px">
-          <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Schnell &amp; gratis · beste Qualität · kein Download">⚡ Fast</button>
-          <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximale Genauigkeit · etwas langsamer · kein Download">💎 Perfect</button>
+          <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
+          <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
         </div>
-        <input type="password" id="oaiKey" class="lang-sel" style="display:none" placeholder="OpenAI API-Key (sk-…) — bleibt nur im Speicher"
+        <input type="password" id="oaiKey" class="lang-sel" style="display:none" placeholder="OpenAI API key (sk-…) — kept in memory only"
           oninput="openaiKey=this.value.trim()" onchange="if(currentFile&&openaiKey)transcribeVideo(currentFile)">
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#66616e;margin-bottom:7px;cursor:pointer">
-          <input type="checkbox" id="trEn" onchange="doTranslate=this.checked;if(currentFile)transcribeVideo(currentFile)"> Untertitel auf Englisch übersetzen
+          <input type="checkbox" id="trEn" onchange="doTranslate=this.checked;if(currentFile)transcribeVideo(currentFile)"> Translate captions to English
         </label>
         <div id="quotaInfo" style="font-size:10.5px;color:#7c3aed;margin-bottom:7px"></div>
         <div class="t-box">
           <div class="t-status" id="tStatus">
             <span style="font-size:15px">🎙️</span>
-            <span id="tMsg">Video hochladen um Untertitel zu erstellen</span>
+            <span id="tMsg">Upload a video to generate captions</span>
           </div>
           <div id="tProgWrap" style="display:none"><div class="t-prog-bar"><div class="t-prog-fill" id="tProgFill"></div></div></div>
         </div>
 
         <div id="retryWrap" style="display:none">
-          <button class="retry-btn" onclick="retryTranscribe()">↻ Erneut versuchen</button>
-          <div class="badge-o" style="margin-top:5px">⚠️ Tipps: Erneut versuchen · Sprache oder Modell wechseln · Internetverbindung prüfen (Modell wird beim ersten Mal geladen und danach gecacht).</div>
+          <button class="retry-btn" onclick="retryTranscribe()">↻ Try again</button>
+          <div class="badge-o" style="margin-top:5px">⚠️ Tips: try again · switch language or model · check your connection.</div>
         </div>
 
         <!-- Caption editor — shown after transcription -->
         <div class="cap-editor" id="capEditor">
-          <div class="ce-hdr">Segment oder Wort klicken → Video springt hin &nbsp;·&nbsp; <em>Text direkt editierbar</em></div>
+          <div class="ce-hdr">Click a segment or word → the video jumps there &nbsp;·&nbsp; <em>text is editable</em></div>
           <div class="cap-segs" id="capSegs"></div>
           <div class="wpills" id="wpills"></div>
         </div>
@@ -414,36 +439,36 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
       <div class="csect">
         <div class="clbl">Position</div>
         <div class="pos-row">
-          <button class="pos-btn" data-pos="top" onclick="setPos(this)">Oben</button>
-          <button class="pos-btn" data-pos="center" onclick="setPos(this)">Mitte</button>
-          <button class="pos-btn on" data-pos="bottom" onclick="setPos(this)">Unten</button>
+          <button class="pos-btn" data-pos="top" onclick="setPos(this)">Top</button>
+          <button class="pos-btn" data-pos="center" onclick="setPos(this)">Middle</button>
+          <button class="pos-btn on" data-pos="bottom" onclick="setPos(this)">Bottom</button>
         </div>
         <div class="sz-row" style="margin-top:7px">
-          <span style="font-size:9px;color:#94909c;min-width:30px">Höhe</span>
+          <span style="font-size:9px;color:#94909c;min-width:34px">Height</span>
           <input type="range" min="-30" max="30" step="2" value="0" id="voffSlider" oninput="onVOffChange(this.value)">
           <span class="sz-val" id="voffDisp" style="min-width:38px">0%</span>
         </div>
-        <div class="clbl" style="margin-top:0">Schriftgröße</div>
+        <div class="clbl" style="margin-top:0">Font size</div>
         <div class="sz-row">
           <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)">
           <span class="sz-val" id="szDisp">22px</span>
         </div>
-        <div class="clbl" style="margin-top:10px">Caption-Modus</div>
+        <div class="clbl" style="margin-top:10px">Caption mode</div>
         <div class="pos-row" id="modeRow">
           <button class="pos-btn on" data-mode="karaoke" onclick="setMode(this)">🎤 Karaoke</button>
-          <button class="pos-btn" data-mode="all" onclick="setMode(this)">Durchgehend</button>
+          <button class="pos-btn" data-mode="all" onclick="setMode(this)">Continuous</button>
         </div>
-        <div class="clbl" style="margin-top:0">Wörter pro Block</div>
+        <div class="clbl" style="margin-top:0">Words per block</div>
         <div class="sz-row">
           <input type="range" min="2" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)">
           <span class="sz-val" id="wpbDisp">4</span>
         </div>
-        <div class="clbl" style="margin-top:10px">Keywords dauerhaft hervorheben</div>
-        <input type="text" id="kwInput" class="lang-sel" style="margin-bottom:0" placeholder="z. B. gratis, heute, neu" oninput="onKwChange(this.value)">
-        <div class="clbl" style="margin-top:10px">Eigener Style <span style="text-transform:none;letter-spacing:0;color:#94909c">· startet vom gewählten Style</span></div>
+        <div class="clbl" style="margin-top:10px">Always highlight keywords</div>
+        <input type="text" id="kwInput" class="lang-sel" style="margin-bottom:0" placeholder="e.g. free, today, new" oninput="onKwChange(this.value)">
+        <div class="clbl" style="margin-top:10px">Custom style <span style="text-transform:none;letter-spacing:0;color:#94909c">· starts from the selected style</span></div>
         <div style="display:flex;gap:6px;align-items:center">
-          <input type="color" id="csText" value="#ffffff" title="Textfarbe" style="width:34px;height:28px;border:none;background:none;cursor:pointer;padding:0" oninput="applyCustomStyle()">
-          <input type="color" id="csHl" value="#facc15" title="Highlight-Farbe" style="width:34px;height:28px;border:none;background:none;cursor:pointer;padding:0" oninput="applyCustomStyle()">
+          <input type="color" id="csText" value="#ffffff" title="Text color" style="width:34px;height:28px;border:none;background:none;cursor:pointer;padding:0" oninput="applyCustomStyle()">
+          <input type="color" id="csHl" value="#facc15" title="Highlight color" style="width:34px;height:28px;border:none;background:none;cursor:pointer;padding:0" oninput="applyCustomStyle()">
           <select id="csFont" class="lang-sel" style="margin:0;flex:1" onchange="applyCustomStyle()">
             <option>Poppins</option><option>Anton</option><option>Playfair Display</option><option>Kalam</option>
             <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
@@ -455,22 +480,22 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
           <span style="font-size:10.5px;color:#66616e;min-width:34px">Glow</span>
           <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle()">
         </label>
-        <div class="clbl" style="margin-top:10px">Als Template speichern</div>
+        <div class="clbl" style="margin-top:10px">Save as template</div>
         <div style="display:flex;gap:6px;align-items:center">
-          <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (z. B. Mein Look)">
-          <button class="pos-btn" style="flex:0 0 auto;padding:5px 10px" onclick="saveTemplate()" title="Aktuellen Style + Position + Größe + Modus als benanntes Template sichern">💾</button>
+          <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)">
+          <button class="pos-btn" style="flex:0 0 auto;padding:5px 10px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">💾</button>
         </div>
       </div>
 
-      <!-- Projekte (Cloud, mit Konto) -->
+      <!-- Projects (cloud, with account) -->
       <div class="csect">
-        <div class="clbl">Projekt speichern</div>
+        <div class="clbl">Save project</div>
         <div style="display:flex;gap:5px;margin-bottom:6px">
-          <input type="text" id="projTitle" class="lang-sel" style="margin:0;flex:1" placeholder="Projektname">
+          <input type="text" id="projTitle" class="lang-sel" style="margin:0;flex:1" placeholder="Project name">
           <button class="pos-btn" style="flex:0 0 auto;padding:5px 10px" onclick="saveProject()">💾</button>
         </div>
         <select id="projList" class="lang-sel" style="margin-bottom:0" onchange="loadProject(this.value)">
-          <option value="">— Projekt laden —</option>
+          <option value="">— Load project —</option>
         </select>
       </div>
 
@@ -480,31 +505,26 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
         <div class="exp-grid">
           <button class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
             <span class="exp-btn-icon">🎬</span>
-            <span class="exp-btn-label">Video + Captions</span>
-            <span class="exp-btn-sub">WebM · direkt spielbar</span>
+            <span class="exp-btn-label">Video + captions</span>
+            <span class="exp-btn-sub">MP4 · ready to post</span>
           </button>
           <button class="exp-btn" id="btnSRT" onclick="exportSRT()" disabled>
             <span class="exp-btn-icon">📝</span>
-            <span class="exp-btn-label">SRT-Datei</span>
+            <span class="exp-btn-label">SRT file</span>
             <span class="exp-btn-sub">Premiere / DaVinci…</span>
           </button>
           <button class="exp-btn" id="btnVTT" onclick="exportVTT()" disabled>
             <span class="exp-btn-icon">💬</span>
-            <span class="exp-btn-label">VTT-Datei</span>
+            <span class="exp-btn-label">VTT file</span>
             <span class="exp-btn-sub">Web / YouTube…</span>
-          </button>
-          <button class="exp-btn" onclick="exportPNG()">
-            <span class="exp-btn-icon">🖼️</span>
-            <span class="exp-btn-label">PNG-Frame</span>
-            <span class="exp-btn-sub">1080×1920</span>
           </button>
         </div>
         <div id="recProg">
-          <p id="recMsg">Video wird gerendert…</p>
+          <p id="recMsg">Rendering video…</p>
           <div class="rec-bar-wrap"><div class="rec-bar" id="recBar"></div></div>
         </div>
         <div class="badge-g" style="margin-top:7px">
-          ✅ Premiere: Datei → Importieren → .srt wählen → auf Timeline ziehen
+          ✅ Premiere: File → Import → choose the .srt → drag onto the timeline
         </div>
       </div>
 
@@ -515,21 +535,21 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 <!-- Konto-Modal -->
 <div id="acctModal" style="display:none;position:fixed;inset:0;background:rgba(20,15,35,.45);z-index:100;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:16px;padding:22px;width:320px;box-shadow:0 24px 80px rgba(0,0,0,.25)">
-    <div style="font-weight:800;font-size:15px;margin-bottom:4px">Captly Konto</div>
-    <p style="font-size:11.5px;color:#66616e;margin-bottom:10px" id="acctSub">Gratis-Konto: 10 Perfect-Minuten geschenkt. ⚡ Fast bleibt immer unbegrenzt gratis.</p>
+    <div style="font-weight:800;font-size:15px;margin-bottom:4px">Captly account</div>
+    <p style="font-size:11.5px;color:#66616e;margin-bottom:10px" id="acctSub">⚡ Fast &amp; 💎 Perfect are free — no download, on any device. Sign in to save projects.</p>
     <div id="acctStep1">
-      <input type="email" id="acctEmail" class="lang-sel" placeholder="deine@email.ch" onkeydown="if(event.key==='Enter')reqCode()">
-      <button class="pos-btn on" style="width:100%;padding:8px" onclick="reqCode()">Login-Code senden</button>
+      <input type="email" id="acctEmail" class="lang-sel" placeholder="you@email.com" onkeydown="if(event.key==='Enter')reqCode()">
+      <button class="pos-btn on" style="width:100%;padding:8px" onclick="reqCode()">Send login code</button>
     </div>
     <div id="acctStep2" style="display:none">
-      <input type="text" id="acctCode" class="lang-sel" placeholder="6-stelliger Code aus der Mail" onkeydown="if(event.key==='Enter')verifyCode()">
-      <button class="pos-btn on" style="width:100%;padding:8px" onclick="verifyCode()">Einloggen</button>
+      <input type="text" id="acctCode" class="lang-sel" placeholder="6-digit code from the email" onkeydown="if(event.key==='Enter')verifyCode()">
+      <button class="pos-btn on" style="width:100%;padding:8px" onclick="verifyCode()">Sign in</button>
     </div>
     <div id="acctStep3" style="display:none">
       <p style="font-size:12px;margin-bottom:10px" id="acctInfo"></p>
-      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('creator')">Creator · 300 Min/Monat · 9 €</button>
-      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('pro')">Pro · 1500 Min + Batch · 24 €</button>
-      <button class="pos-btn" style="width:100%;padding:8px" onclick="logout()">Abmelden</button>
+      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('creator')">Creator · 300 min/mo · $9</button>
+      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('pro')">Pro · 1500 min + batch · $24</button>
+      <button class="pos-btn" style="width:100%;padding:8px" onclick="logout()">Sign out</button>
     </div>
     <p id="acctMsg" style="font-size:11px;color:#7c3aed;margin-top:8px"></p>
   </div>
@@ -540,7 +560,7 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 // ═══════════════════════════════════════
 // STYLES
 // ═══════════════════════════════════════
-// 20 Styles nach dem offiziellen captions.ai-Katalog (captions.ai/styles)
+// 26 Styles (captions.ai-Katalog + eigene Trend-Styles: Tokyo, Chrome, Editorial, Marker, Muse, Carbon)
 var STYLES = [
   {id:'bloom',    name:'Bloom',      fl:'Playfair Display', // "A soft, dewy aesthetic"
    font:"'Playfair Display'", fw:'700', tt:'uppercase', ls:'1px',
@@ -644,6 +664,37 @@ var STYLES = [
    thumbBg:'linear-gradient(160deg,#000805,#000d0a)',
    tc:'#00ff88', ts:'0 0 10px rgba(0,255,136,.5)',
    hl:'#00ffcc', hls:'0 0 16px rgba(0,255,204,.9)', anim:'glow'},
+  {id:'tokyo',    name:'Tokyo',      fl:'Anton', // Streetwear poster — heavy condensed, amber on navy
+   font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px',
+   thumbBg:'linear-gradient(160deg,#12233b,#0a1524)',
+   tc:'#ffa649', ts:'0 3px 0 rgba(0,0,0,.35)',
+   hl:'#ffffff', hls:'0 0 18px rgba(255,166,73,.7)', anim:'punch', badge:'🗼'},
+  {id:'chrome',   name:'Chrome',     fl:'Montserrat', // Coolvetica-sleek — brushed silver gradient
+   font:"'Montserrat'", fw:'900', tt:'uppercase', ls:'.5px',
+   thumbBg:'linear-gradient(160deg,#0c0c10,#17171d)',
+   tg:'linear-gradient(180deg,#ffffff,#9aa3ad)', ts:'0 2px 10px rgba(0,0,0,.55)',
+   hl:'#ffffff', hls:'0 0 20px rgba(255,255,255,.85)', anim:'scale', badge:'🪙'},
+  {id:'editorial',name:'Editorial',  fl:'Playfair Display', // Magazine-minimal — elegant serif, italic accent
+   font:"'Playfair Display'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#111114,#0a0a0c)',
+   tc:'#f6f5f3', ts:'0 2px 10px rgba(0,0,0,.5)',
+   hl:'#c9a86a', hlItalic:true, hls:'none', anim:'none', badge:'✦'},
+  {id:'marker',   name:'Marker',     fl:'Kalam', // Creator-casual — handwriting + yellow marker bar
+   font:"'Kalam'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#0f0f12,#17171b)',
+   tc:'#ffffff', ts:'0 1px 6px rgba(0,0,0,.5)',
+   hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'wobble', badge:'🖍️'},
+  {id:'muse',     name:'Muse',       fl:'Caveat', // Elegant script — flowing, like "fonts of the week"
+   font:"'Caveat'", fw:'700', fs:'1.25em',
+   thumbBg:'linear-gradient(160deg,#160f14,#0c080b)',
+   tc:'#f4ece6', ts:'0 2px 12px rgba(0,0,0,.55)',
+   hl:'#e7b6c8', hls:'0 0 18px rgba(231,182,200,.7)', anim:'glow', badge:'🖋️'},
+  {id:'carbon',   name:'Carbon',     fl:'Space Grotesk', // Clean mono — minimal, boxed, monochrome
+   font:"'Space Grotesk'", fw:'700', tt:'uppercase', ls:'1px', fs:'.9em',
+   thumbBg:'linear-gradient(160deg,#0a0a0a,#141414)',
+   tc:'#f4f4f5', ts:'none',
+   boxBg:'rgba(255,255,255,.08)', boxBr:'8px',
+   hl:'#a3e635', hls:'none', anim:'none'},
 ];
 
 // ═══════════════════════════════════════
@@ -742,7 +793,7 @@ async function transcribeChunked(pipe, audioData, opts) {
     if (start >= audioData.length) break;
     var seg = audioData.subarray(start, Math.min(start + WIN, audioData.length));
     if (seg.length < SR * 0.4) break;
-    if (n > 1) setTStatus('', 'Sprache wird erkannt… Fenster ' + (i + 1) + '/' + n, true, true);
+    if (n > 1) setTStatus('', 'Detecting speech… window ' + (i + 1) + '/' + n, true, true);
     setTProgress(76 + ((i + 1) / n) * 16);
     var r = await safePipe(pipe, seg, opts);
     var words = chunksToWords(r.chunks);
@@ -944,7 +995,7 @@ function updateOverlay(t) {
   if (!captionBlocks.length) {
     key = 'demo:' + activeId + ':' + fontSize;
     if (key !== _lastKey) {
-      ov.innerHTML = buildCap(['Untertitel','erscheinen','hier'], s, 1, fontSize, null);
+      ov.innerHTML = buildCap(['Captions','appear','here'], s, 1, fontSize, null);
       _lastKey = key; _lastBi = -1;
     }
   } else {
@@ -1150,7 +1201,7 @@ function loadTemplates() {
 function saveTemplate() {
   var nameEl = document.getElementById('tplName');
   var name = (nameEl.value || '').trim();
-  if (!name) { nameEl.focus(); nameEl.placeholder = 'Bitte Namen eingeben'; return; }
+  if (!name) { nameEl.focus(); nameEl.placeholder = 'Enter a name'; return; }
   var giEl = document.getElementById('csGlowInt');
   var t = { id: 'tpl_' + Date.now(), name: name,
     font: document.getElementById('csFont').value,
@@ -1360,23 +1411,23 @@ async function reqCode() {
   try {
     var r = await fetch('auth/request', { method: 'POST', body: JSON.stringify({ email: document.getElementById('acctEmail').value.trim() }) });
     if (!r.ok) throw 0;
-    m.textContent = 'Code gesendet — Postfach prüfen.';
+    m.textContent = 'Code sent — check your inbox.';
     document.getElementById('acctStep1').style.display = 'none';
     document.getElementById('acctStep2').style.display = 'block';
-  } catch (e) { m.textContent = 'Konto-Login braucht den Captly-Server (server.js auf deinem Host).'; }
+  } catch (e) { m.textContent = 'Account login needs the Captly server (server.js on your host).'; }
 }
 async function verifyCode() {
   var m = document.getElementById('acctMsg');
   var r = await fetch('auth/verify', { method: 'POST', body: JSON.stringify({ email: document.getElementById('acctEmail').value.trim(), code: document.getElementById('acctCode').value.trim() }) });
   var j = await r.json().catch(function(){ return {}; });
-  if (!r.ok) { m.textContent = j.error || 'Code falsch'; return; }
+  if (!r.ok) { m.textContent = j.error || 'Wrong code'; return; }
   authToken = j.token; m.textContent = '';
   document.getElementById('acctModal').style.display = 'none';
   fetchMe(); loadProjects();
 }
 function logout() {
   authToken = ''; mePlan = 'anon'; meRemaining = null;
-  document.getElementById('acctBtn').textContent = 'Anmelden';
+  document.getElementById('acctBtn').textContent = 'Sign in';
   document.getElementById('acctModal').style.display = 'none';
   updateAcctUI();
 }
@@ -1388,30 +1439,30 @@ async function fetchMe() {
     var j = await r.json();
     mePlan = j.plan; meRemaining = j.remainingSeconds;
     document.getElementById('acctBtn').textContent = j.email.split('@')[0];
-    document.getElementById('acctInfo').textContent = j.email + ' · Plan: ' + j.plan + ' · noch ' + Math.floor(j.remainingSeconds / 60) + ' Perfect-Min';
+    document.getElementById('acctInfo').textContent = j.email + ' · Plan: ' + j.plan + ' · ' + Math.floor(j.remainingSeconds / 60) + ' min left';
   } catch (e) {}
   updateAcctUI();
 }
 function updateAcctUI() {
   var qi = document.getElementById('quotaInfo');
   if (!qi) return;
-  if (mePlan === 'anon') qi.textContent = '⚡ Fast & 💎 Perfect · gratis, kein Download — läuft auf jedem Gerät';
-  else qi.textContent = '💎 Plan ' + mePlan + ' · noch ' + Math.floor((meRemaining || 0) / 60) + ' Min ' + Math.round((meRemaining || 0) % 60) + ' s';
+  if (mePlan === 'anon') qi.textContent = '⚡ Fast & 💎 Perfect · free, no download — works on any device';
+  else qi.textContent = '💎 ' + mePlan + ' plan · ' + Math.floor((meRemaining || 0) / 60) + ' min ' + Math.round((meRemaining || 0) % 60) + ' s left';
 }
 async function startCheckout(plan) {
   var m = document.getElementById('acctMsg');
-  if (!authToken) { m.textContent = 'Bitte zuerst anmelden.'; return; }
+  if (!authToken) { m.textContent = 'Please sign in first.'; return; }
   var r = await fetch('billing/checkout', { method: 'POST', headers: authHdr(), body: JSON.stringify({ plan: plan }) });
   var j = await r.json().catch(function(){ return {}; });
   if (j.url) location.href = j.url;
-  else m.textContent = j.error || 'Checkout nicht verfügbar.';
+  else m.textContent = j.error || 'Checkout not available.';
 }
 // ── Projekte (Cloud) ──
 async function saveProject() {
   if (!authToken) { showAcct(); return; }
   var payload = { blocks: captionBlocks, style: activeId, pos: capPos, fontSize: fontSize, wpb: WORDS_PER_BLOCK, mode: displayMode, keywords: hlKeywords, timeOff: timeOff };
-  var r = await fetch('projects', { method: 'POST', headers: authHdr(), body: JSON.stringify({ title: document.getElementById('projTitle').value || 'Ohne Titel', payload: payload }) });
-  if (r.status === 402) { alert('Projekt-Limit erreicht — Creator-Plan bietet 20 Cloud-Projekte.'); return; }
+  var r = await fetch('projects', { method: 'POST', headers: authHdr(), body: JSON.stringify({ title: document.getElementById('projTitle').value || 'Untitled', payload: payload }) });
+  if (r.status === 402) { alert('Project limit reached — the Creator plan includes 20 cloud projects.'); return; }
   loadProjects();
 }
 async function loadProjects() {
@@ -1420,7 +1471,7 @@ async function loadProjects() {
     var r = await fetch('projects', { headers: authHdr() });
     var list = await r.json();
     var sel = document.getElementById('projList');
-    sel.innerHTML = '<option value="">— Projekt laden —</option>';
+    sel.innerHTML = '<option value="">— Load project —</option>';
     list.forEach(function(p) { var o = document.createElement('option'); o.value = p.id; o.textContent = p.title; sel.appendChild(o); });
   } catch (e) {}
 }
@@ -1444,7 +1495,7 @@ async function loadProject(id) {
   buildPicker(); renderSegments(); renderWPills();
   document.getElementById('capEditor').style.display = 'block';
   enableExports(true); _lastKey = null; updateOverlay();
-  setTStatus('📂', 'Projekt geladen — Video erneut hinzufügen für Preview & Export.', false, false);
+  setTStatus('📂', 'Project loaded — add the video again for preview & export.', false, false);
 }
 // ── Wasserzeichen (Free) + einmaliger Upsell nach erstem Export ──
 function drawWatermark(ctx, W, H) {
@@ -1458,7 +1509,7 @@ function maybeUpsell() {
   if (_upsellShown || mePlan === 'creator' || mePlan === 'pro') return;
   _upsellShown = true;
   setTimeout(function() {
-    document.getElementById('acctSub').textContent = 'Gefällt dir das Ergebnis? Creator: 300 Perfect-Min/Monat & ohne Wasserzeichen — 9 €.';
+    document.getElementById('acctSub').textContent = 'Like the result? Creator: 300 min/mo, no watermark — $9.';
     showAcct();
   }, 900);
 }
@@ -1480,7 +1531,7 @@ function setTProgress(pct) {
 // Speicher liegt, direkt bei OpenAI. Rückgabe: Wort-Array (ggf. leer), wenn der Server geantwortet
 // hat; sonst null (Proxy nicht erreichbar/nicht deployed) → Aufrufer nutzt den lokalen Fallback.
 async function serverTranscribe(wavBlob, model, lc, audioDur) {
-  setTStatus('', (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – Transkription läuft…', true, true);
+  setTStatus('', (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – transcribing…', true, true);
   var fakePct = 45, fakeTimer = setInterval(function(){ fakePct = Math.min(90, fakePct + 2); setTProgress(fakePct); }, 350);
   var resp = null;
   try {
@@ -1501,16 +1552,16 @@ async function serverTranscribe(wavBlob, model, lc, audioDur) {
   if (!resp) return null;
   if (!openaiKey && (resp.status === 404 || resp.status === 405)) return null; // Proxy nicht vorhanden → Fallback
   if (!resp.ok) {
-    throw new Error(resp.status === 401 ? 'API-Key ungültig — Server-Konfiguration (config.php) prüfen.'
-      : resp.status === 413 ? 'Audio zu groß — bitte Video kürzen.'
-      : resp.status === 429 ? 'Gratis-Limit erreicht (zu viele Anfragen) — kurz warten und erneut versuchen.'
-      : resp.status === 503 ? 'Transkriptions-Dienst gerade ausgelastet — bitte erneut versuchen.'
-      : 'Transkriptions-Fehler ' + resp.status + '. Bitte erneut versuchen.');
+    throw new Error(resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
+      : resp.status === 413 ? 'Audio too large — please trim the video.'
+      : resp.status === 429 ? 'Free-tier limit reached (too many requests) — wait a moment and try again.'
+      : resp.status === 503 ? 'Transcription service is busy right now — please try again.'
+      : 'Transcription error ' + resp.status + '. Please try again.');
   }
   setTProgress(92);
   var j;
   try { j = await resp.json(); }
-  catch (e) { if (!openaiKey) return null; throw new Error('Unerwartete Antwort vom Transkriptions-Dienst.'); }
+  catch (e) { if (!openaiKey) return null; throw new Error('Unexpected response from the transcription service.'); }
   // Statischer Host liefert transcribe.php evtl. als rohen Text (kein echtes JSON-Objekt) → Fallback
   if (!openaiKey && (!j || typeof j !== 'object' || (!('words' in j) && !('segments' in j) && !('text' in j)))) return null;
   var words = (j.words || []).map(function(w){ return { word: (w.word || '').trim(), start: w.start || 0, end: w.end || 0 }; })
@@ -1520,7 +1571,7 @@ async function serverTranscribe(wavBlob, model, lc, audioDur) {
   return words;
 }
 async function transcribeVideo(file) {
-  setTStatus('', 'Transkription wird vorbereitet…', true, true);
+  setTStatus('', 'Preparing transcription…', true, true);
   setTProgress(5);
   document.getElementById('retryWrap').style.display = 'none';
   document.getElementById('capEditor').style.display = 'none';
@@ -1530,7 +1581,7 @@ async function transcribeVideo(file) {
 
   try {
     setTProgress(10);
-    setTStatus('', 'Audio wird extrahiert…', true, true);
+    setTStatus('', 'Extracting audio…', true, true);
     setTProgress(40);
 
     var arrayBuffer = await file.arrayBuffer();
@@ -1540,7 +1591,7 @@ async function transcribeVideo(file) {
     try {
       audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
     } catch(e) {
-      throw new Error('Audio konnte nicht gelesen werden. Bitte MP4 oder WebM verwenden.');
+      throw new Error('Could not read the audio. Please use MP4 or WebM.');
     }
 
     // Mono-Mix über ALLE Kanäle (Sprache kann nur auf einem Kanal liegen)
@@ -1555,7 +1606,7 @@ async function transcribeVideo(file) {
     // Normalisieren — leiser Ton ist Hauptursache für "keine Sprache erkannt"
     var peak = 0;
     for (var k2 = 0; k2 < len; k2++) { var av = Math.abs(audioData[k2]); if (av > peak) peak = av; }
-    if (peak < 0.001) throw new Error('Das Video scheint keinen Ton zu enthalten.');
+    if (peak < 0.001) throw new Error('This video appears to have no audio.');
     if (peak < 0.9) { var gain = 0.95 / peak; for (var k3 = 0; k3 < len; k3++) audioData[k3] *= gain; }
 
     if (audioData.length > 16000 * 600) audioData = audioData.slice(0, 16000 * 600);
@@ -1572,14 +1623,14 @@ async function transcribeVideo(file) {
       wordTimestamps = served;
     } else {
       // ── 2) Fallback: lokal im Browser (z. B. Vercel-Demo ohne PHP-Proxy) ──
-      setTStatus('', 'Server nicht verfügbar — lokale Erkennung (einmaliger Modell-Download)…', true, true);
+      setTStatus('', 'Server unavailable — running locally (one-time model download)…', true, true);
       var pipe = await getPipe(LOCAL_MODEL[whisperModel] || 'base');
       var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe' };
       if (whisperLang !== 'auto') wOpts.language = whisperLang;
       wordTimestamps = await transcribeChunked(pipe, audioData, wOpts);
       // Smart-Auto: Wiederholungsschleife erkannt → mit Browser-Sprache erzwingen und vergleichen
       if (whisperLang === 'auto' && NAV_LANG && looksRepetitive(wordTimestamps)) {
-        setTStatus('', 'Auto-Erkennung unsicher — versuche ' + NAV_LANG + '…', true, true);
+        setTStatus('', 'Auto-detect uncertain — trying ' + NAV_LANG + '…', true, true);
         var wtF = await transcribeChunked(pipe, audioData, Object.assign({}, wOpts, { language: NAV_LANG }));
         if (wtF.length && !looksRepetitive(wtF)) { wordTimestamps = wtF; usedLang = NAV_LANG; }
       }
@@ -1588,14 +1639,14 @@ async function transcribeVideo(file) {
     wordTimestamps = cleanWords(wordTimestamps); // Stottern & Wiederholungsschleifen entfernen
 
     setTProgress(100);
-    if (!wordTimestamps.length) throw new Error('Keine Sprache erkannt. Tipp: Sprache oben manuell wählen oder Base-Modell testen.');
+    if (!wordTimestamps.length) throw new Error('No speech detected. Tip: pick the language above manually, or try Perfect.');
 
     captionBlocks = buildCaptionBlocks(wordTimestamps);
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
     setTStatus(qWarn ? '⚠️' : '✅',
-      wordTimestamps.length + ' Wörter · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '') + ' · Sprache: ' + (usedLang === 'auto' ? 'automatisch' : usedLang)
-      + (qWarn ? ' · Qualität fraglich → 💎 Perfect wählen' : ''), false, false);
+      wordTimestamps.length + ' words · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '') + ' · language: ' + (usedLang === 'auto' ? 'auto' : usedLang)
+      + (qWarn ? ' · quality uncertain → try 💎 Perfect' : ''), false, false);
     document.getElementById('capEditor').style.display = 'block';
     renderSegments();
     renderWPills();
@@ -1607,7 +1658,7 @@ async function transcribeVideo(file) {
   } catch(err) {
     if (typeof fakeTimer !== 'undefined') clearInterval(fakeTimer);
     console.error(err);
-    setTStatus('❌', 'Fehler: ' + (err.message || err), false, false);
+    setTStatus('❌', 'Error: ' + (err.message || err), false, false);
     document.getElementById('retryWrap').style.display = 'block';
   }
 }
@@ -1621,7 +1672,7 @@ function enableExports(on) {
 // VIDEO LOADING
 // ═══════════════════════════════════════
 function loadVideo(file) {
-  if (!file || !file.type.startsWith('video/')) { alert('Bitte MP4, MOV oder WebM auswählen.'); return; }
+  if (!file || !file.type.startsWith('video/')) { alert('Please choose an MP4, MOV or WebM file.'); return; }
   currentFile   = file;
   wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1;
   openEditor();
@@ -1647,7 +1698,7 @@ function loadVideo(file) {
     document.getElementById('frameDropZone').style.display = 'none';
     document.getElementById('prevBg').style.background    = '#000';
     document.getElementById('vidCtrls').style.display     = 'flex';
-    document.getElementById('uploadLabel').textContent     = '📁 Video ersetzen';
+    document.getElementById('uploadLabel').textContent     = '📁 Replace video';
     vidReady = true;
     showPlayOverlay(true);
     document.getElementById('ppBtn').textContent = '▶';
@@ -1666,7 +1717,7 @@ function loadVideo(file) {
   vid.onplay  = function() { showPlayOverlay(false); document.getElementById('ppBtn').textContent = '⏸'; startCapLoop(); };
   vid.onpause = function() { showPlayOverlay(true);  document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
   vid.onended = function() { showPlayOverlay(true); document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
-  vid.onerror = function() { alert('Video konnte nicht geladen werden.'); vidReady = false; vid.style.display = 'none'; document.getElementById('frameDropZone').style.display = 'flex'; };
+  vid.onerror = function() { alert('Could not load the video.'); vidReady = false; vid.style.display = 'none'; document.getElementById('frameDropZone').style.display = 'flex'; };
   vid.load();
 }
 
@@ -1792,8 +1843,8 @@ async function webmToMp4(blob, onProgress) {
 // ═══════════════════════════════════════
 async function exportVideoWithCaptions() {
   var vid = document.getElementById('mainVid');
-  if (!vid.src || !vid.duration) { alert('Bitte zuerst ein Video hochladen.'); return; }
-  if (!window.MediaRecorder) { alert('Dein Browser unterstützt keinen Video-Export. Bitte Chrome, Firefox oder Safari verwenden.'); return; }
+  if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
+  if (!window.MediaRecorder) { alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
 
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
 
@@ -1839,16 +1890,16 @@ async function exportVideoWithCaptions() {
     } else {
       // Firefox/ältere Safari: WebM → MP4 umkodieren, damit der Upload zu Instagram/TikTok klappt
       try {
-        recMsg.textContent = 'MP4 wird erstellt (einmalig ~15 MB Konverter laden)…';
+        recMsg.textContent = 'Creating MP4 (one-time ~15 MB converter download)…';
         recBar.style.width = '0%';
         var mp4 = await webmToMp4(blob, function(p){
           recBar.style.width = Math.round(p * 100) + '%';
-          recMsg.textContent = 'MP4 wird erstellt… ' + Math.round(p * 100) + '%';
+          recMsg.textContent = 'Creating MP4… ' + Math.round(p * 100) + '%';
         });
         dlBlob(mp4, 'captly-video.mp4');
       } catch (e) {
         console.error('MP4-Konvertierung fehlgeschlagen:', e);
-        alert('MP4-Konvertierung nicht möglich (evtl. offline) — Video wird als WebM gespeichert. '
+        alert('MP4 conversion failed (maybe offline) — saving as WebM instead. '
             + 'Tipp: In Chrome exportieren liefert direkt MP4.');
         dlBlob(blob, 'captly-video.webm');
       }
@@ -1860,7 +1911,7 @@ async function exportVideoWithCaptions() {
 
   document.getElementById('recProg').style.display = 'block';
   document.getElementById('recBar').style.width = '0%';
-  document.getElementById('recMsg').textContent = hasAudio ? 'Rendere Video…' : 'Rendere Video (keine Tonspur gefunden)…';
+  document.getElementById('recMsg').textContent = hasAudio ? 'Rendering video…' : 'Rendering video (no audio track found)…';
 
   // Sauber auf 0 seeken, DANN Aufnahme starten → Audio & Video starten synchron
   vid.pause();
@@ -2067,7 +2118,7 @@ var _demoI = 0, _demoTimer = null;
 function startDemo() {
   var d = document.getElementById('liveDemo');
   if (!d) return;
-  var words = ['CAPTIONS','DIE','EINFACH','SITZEN'];
+  var words = ['CAPTIONS','THAT','JUST','CONVERT'];
   d.innerHTML = words.map(function(w){ return '<span class="dw">' + w + '</span>'; }).join(' ');
   clearInterval(_demoTimer);
   _demoTimer = setInterval(function() {
@@ -2150,7 +2201,7 @@ function openEditorClean() {
   document.getElementById('prevFrame').style.height      = '390px';
   document.getElementById('capEditor').style.display     = 'none';
   document.getElementById('retryWrap').style.display     = 'none';
-  setTStatus('🎙️', 'Video hochladen um Untertitel zu erstellen', false, false);
+  setTStatus('🎙️', 'Upload a video to generate captions', false, false);
   enableExports(false);
   openEditor();
 }
