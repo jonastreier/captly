@@ -836,7 +836,7 @@ function mergeChunkWords(windows) {
 }
 
 var MODEL_MB    = { tiny: '~40 MB', base: '~145 MB', small: '~250 MB', turbo: '~1 GB' };
-var MODEL_LABEL = { tiny: 'Fast-Modell (lokal)', base: 'Whisper-base', small: 'Whisper-small', turbo: 'Large-v3-Turbo (Studio)' };
+var MODEL_LABEL = { tiny: 'Fast model (local)', base: 'Whisper base', small: 'Whisper small', turbo: 'Large-v3 Turbo (Studio)' };
 // Pipeline-Factory: tiny/base/small über transformers.js v2 (WASM, stabil),
 // turbo über v3 + WebGPU + whisper-large-v3-turbo (Studio-Qualität, wie captions.ai serverseitig)
 async function getPipe(model) {
@@ -849,13 +849,13 @@ async function getPipe(model) {
     mod.env.allowLocalModels = false;
     if (mod.env.useBrowserCache !== undefined) mod.env.useBrowserCache = true;
   }
-  var mName = MODEL_LABEL[model] + ' (' + MODEL_MB[model] + ', wird gecacht)';
+  var mName = MODEL_LABEL[model] + ' (' + MODEL_MB[model] + ', cached after first use)';
   var opts = {
     progress_callback: function(p) {
       if (p.status === 'progress' && p.total) {
         var pct = 15 + (p.loaded / p.total) * 50;
         setTProgress(pct);
-        setTStatus('', 'Lade ' + mName + ': ' + Math.round(p.loaded / p.total * 100) + '%', true, true);
+        setTStatus('', 'Loading ' + mName + ': ' + Math.round(p.loaded / p.total * 100) + '%', true, true);
       }
     }
   };
