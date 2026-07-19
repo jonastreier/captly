@@ -28,7 +28,8 @@ global.document = {
   createElement: t => mkEl(t),
   querySelectorAll: () => [],
   addEventListener() {}, removeEventListener() {},
-  fonts: { ready: Promise.resolve(), load: () => Promise.resolve() }
+  fonts: { ready: Promise.resolve(), load: () => Promise.resolve() },
+  body: mkEl('body')
 };
 global.window = global;
 global.requestAnimationFrame = () => 0; global.cancelAnimationFrame = () => {};
@@ -60,7 +61,7 @@ let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } };
 
 // 1) Grunddaten
-ok(T.STYLES.length === 26, '26 Styles erwartet: ' + T.STYLES.length);
+ok(T.STYLES.length === 30, '30 Styles erwartet: ' + T.STYLES.length);
 
 // 2) Zeitformate
 ok(T.srtT(61.5) === '00:01:01,500', 'srtT: ' + T.srtT(61.5));
@@ -153,7 +154,7 @@ ok(initialLang === 'auto', 'Sprache startet auf Auto-Erkennung: ' + initialLang)
 // 13) Landing-Widgets crashen nicht (Stub leert children nicht → Vielfaches von 40)
 T.buildMarquee();
 const mqN = document.getElementById('styleMarquee').children.length;
-ok(mqN >= 52 && mqN % 26 === 0, 'Marquee: 26 Styles x2 pro Aufruf, habe ' + mqN);
+ok(mqN >= 60 && mqN % 30 === 0, 'Marquee: 30 Styles x2 pro Aufruf, habe ' + mqN);
 T.startDemo();
 ok(document.getElementById('liveDemo').innerHTML.includes('CAPTIONS'), 'Demo-Woerter gerendert');
 
@@ -187,7 +188,7 @@ ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animat
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
 T.applyCustomStyle();
-ok(T.STYLES.length === 27 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
+ok(T.STYLES.length === 31 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
 // Referenz-Styles: Prime Script-Akzent, Sketch Kringel, Sonnet kursiv
 const pr = T.buildCap(['nur', 'ein', 'tipp'], T.STYLES.find(x => x.id === 'prime'), 2, 22, null);
 ok(pr.includes("font-family:'Caveat'") && pr.includes('font-style:italic'), 'Prime: Script-Akzent am aktiven Wort');

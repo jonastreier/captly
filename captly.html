@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Captly — AI Auto Captions for Reels &amp; TikTok</title>
-<meta name="description" content="Add animated, word-perfect captions to Reels, TikToks & Shorts in seconds. 26 viral styles, automatic language detection, MP4/SRT/VTT export. Free, no signup.">
+<meta name="description" content="Add animated, word-perfect captions to Reels, TikToks & Shorts in seconds. 30 viral styles, automatic language detection, MP4/SRT/VTT export. Free, no signup.">
 <meta name="keywords" content="auto captions, AI subtitles, video captions, TikTok captions, Reels subtitles, karaoke captions, caption generator, subtitle generator, MP4 captions, SRT export">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="theme-color" content="#7c3aed">
@@ -13,24 +13,24 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Captly">
 <meta property="og:title" content="Captly — AI Auto Captions for Reels & TikTok">
-<meta property="og:description" content="Word-perfect animated captions in 26 viral styles. Automatic language detection. Export MP4, SRT, VTT. Free, no signup.">
+<meta property="og:description" content="Word-perfect animated captions in 30 viral styles. Automatic language detection. Export MP4, SRT, VTT. Free, no signup.">
 <meta property="og:url" content="https://captly.app/">
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Captly — AI Auto Captions for Reels & TikTok">
-<meta name="twitter:description" content="Word-perfect animated captions in 26 viral styles. Free, no signup.">
+<meta name="twitter:description" content="Word-perfect animated captions in 30 viral styles. Free, no signup.">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Captly","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"Captly adds animated, word-perfect captions to Reels, TikToks and Shorts in seconds, with 26 viral styles, automatic language detection and MP4/SRT/VTT export.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Automatic speech-to-text captions","26 viral caption styles","Word-by-word karaoke highlighting","Automatic language detection","Export to MP4, SRT and VTT","Runs in the browser, no signup"]}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Captly","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"Captly adds animated, word-perfect captions to Reels, TikToks and Shorts in seconds, with 30 viral styles, automatic language detection and MP4/SRT/VTT export.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Automatic speech-to-text captions","30 viral caption styles","Word-by-word karaoke highlighting","Automatic language detection","Export to MP4, SRT and VTT","Runs in the browser, no signup"]}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is Captly free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Captly generates captions and exports MP4, SRT and VTT for free, with no signup."}},{"@type":"Question","name":"Which languages does Captly support?","acceptedAnswer":{"@type":"Answer","text":"Captly auto-detects the spoken language and supports English, German, Spanish, French and 15+ more."}},{"@type":"Question","name":"Do I need to install anything?","acceptedAnswer":{"@type":"Answer","text":"No. Captly runs in your browser. Upload a video, pick a style and export it."}}]}
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is Captly free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Captly generates captions and exports MP4, SRT and VTT for free, with no signup. Creator and Pro plans add more Perfect-transcription minutes and cloud project storage."}},{"@type":"Question","name":"Which languages does Captly support?","acceptedAnswer":{"@type":"Answer","text":"Captly auto-detects the spoken language and supports English, German, Spanish, French and 15+ more. You can also pick the language manually."}},{"@type":"Question","name":"Do I need to install anything?","acceptedAnswer":{"@type":"Answer","text":"No. Captly runs in your browser. Upload a video, pick a style and export it."}},{"@type":"Question","name":"What's the difference between Fast and Perfect?","acceptedAnswer":{"@type":"Answer","text":"Fast uses a lighter model for near-instant transcription. Perfect uses a larger model for maximum accuracy and is a little slower. Both run server-side, so there is nothing to download."}},{"@type":"Question","name":"Is my video uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"Only the audio track is sent off to generate captions. The video itself is rendered and exported locally in your browser."}},{"@type":"Question","name":"Can I cancel anytime?","acceptedAnswer":{"@type":"Answer","text":"Yes. Creator and Pro are month-to-month plans, and you can cancel anytime from your account."}}]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@800&family=Bebas+Neue&family=Caveat:wght@700&family=DM+Sans:wght@700&family=Exo+2:wght@700&family=Inter:wght@400;500;600;700;800;900&family=Kalam:wght@700&family=Montserrat:wght@900&family=Orbitron:wght@700&family=Oswald:wght@700&family=Playfair+Display:ital,wght@0,700;1,700&family=Poppins:wght@700;900&family=Raleway:wght@300&family=Space+Grotesk:wght@700&family=VT323&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden}
-body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body.editor-open{height:100vh;overflow:hidden}
 
 @keyframes captly-bounce{0%,100%{transform:translateY(0) scale(1)}40%{transform:translateY(-8px) scale(1.12)}70%{transform:translateY(-2px) scale(1.04)}}
 @keyframes captly-scale{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
@@ -42,18 +42,19 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes capIn{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 
-#app{display:flex;height:100vh}
+#app{display:flex;min-height:100vh}
 
 /* LANDING */
-#landing{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;padding:96px 20px 44px;gap:18px;background:linear-gradient(130deg,#f8e7e9 0%,#f3ecf6 45%,#e8f2fa 100%);animation:fadeUp .4s ease;overflow:hidden}
-.bg-mesh{position:absolute;inset:0;pointer-events:none}
+#landing{position:relative;display:flex;flex-direction:column;align-items:center;width:100%;padding:96px 20px 44px;gap:18px;background:linear-gradient(130deg,#f8e7e9 0%,#f3ecf6 45%,#e8f2fa 100%);animation:fadeUp .4s ease}
+.bg-mesh{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .blob{position:absolute;width:44vw;height:44vw;min-width:340px;min-height:340px;border-radius:50%;filter:blur(90px);opacity:.28;will-change:transform}
 .blob.b1{background:#d8c7fb;top:-12%;left:-8%;animation:drift 19s ease-in-out infinite alternate}
 .blob.b2{background:#bcdcfa;bottom:-18%;right:-10%;animation:drift 23s ease-in-out infinite alternate-reverse}
 .blob.b3{background:#fbcfe8;top:38%;left:56%;width:30vw;height:30vw;opacity:.22;animation:drift 27s ease-in-out infinite alternate}
 @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(6vw,-4vh) scale(1.15)}}
-@media (prefers-reduced-motion:reduce){.blob,.marquee-track,.land-h em,.upload-zone-icon{animation:none!important}}
-.land-nav{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:min(94%,980px);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.65);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.85);box-shadow:0 8px 30px rgba(30,20,60,.08);border-radius:999px;padding:9px 9px 9px 18px;z-index:5}
+@media (prefers-reduced-motion:reduce){.blob,.marquee-track,.land-h em,.upload-zone-icon{animation:none!important}.reveal{opacity:1!important;transform:none!important;transition:none!important}}
+.land-nav{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:min(94%,980px);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.65);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.85);box-shadow:0 8px 30px rgba(30,20,60,.08);border-radius:999px;padding:9px 9px 9px 18px;z-index:5;transition:box-shadow .25s ease}
+.land-nav.scrolled{box-shadow:0 12px 40px rgba(30,20,60,.18)}
 .nav-cta{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:filter .15s,transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(124,58,237,.32)}
 .nav-cta:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 6px 20px rgba(124,58,237,.42)}
 .land-cta-row{position:relative;display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
@@ -86,6 +87,81 @@ body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-s
 .land-or::before,.land-or::after{content:'';flex:1;height:1px;background:rgba(0,0,0,.09)}
 .land-try-btn{position:relative;background:rgba(255,255,255,.7);border:1.5px solid #d9d1e2;color:#222;padding:11px 22px;border-radius:999px;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
 .land-try-btn:hover{border-color:#111;color:#111;transform:translateY(-1px)}
+
+/* NAV LINKS + SCROLL STATE */
+.land-nav-links{display:flex;align-items:center;gap:22px}
+.land-nav-links a{color:#3f3b46;font-size:13px;font-weight:600;text-decoration:none;cursor:pointer;transition:color .15s}
+.land-nav-links a:hover{color:#7c3aed}
+
+/* SCROLL-REVEAL UTILITY */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.reveal.revealed{opacity:1;transform:translateY(0)}
+
+/* HOW IT WORKS (Landing) */
+.how-sec{position:relative;z-index:1;width:100%;max-width:1060px;margin-top:52px;padding:0 6px}
+.how-grid{display:flex;gap:18px;margin-top:26px;flex-wrap:wrap;justify-content:center}
+.how-card{position:relative;flex:1 1 260px;max-width:320px;background:rgba(255,255,255,.72);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.8);border-radius:18px;padding:26px 22px;box-shadow:0 10px 30px rgba(30,20,60,.1);transition:transform .25s,box-shadow .25s}
+.how-card:hover{transform:translateY(-4px);box-shadow:0 18px 44px rgba(30,20,60,.16)}
+.how-num{position:absolute;top:14px;right:18px;font-size:34px;font-weight:800;color:rgba(124,58,237,.14)}
+.how-ico{font-size:28px;margin-bottom:12px}
+.how-card h3{font-size:15.5px;font-weight:700;margin-bottom:6px;color:#111}
+.how-card p{font-size:12.5px;color:#5b5566;line-height:1.6}
+
+/* FEATURE GRID (Landing) */
+.feat-sec{position:relative;z-index:1;width:100%;max-width:1060px;margin-top:56px;padding:0 6px}
+.feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:26px}
+.feat-card{background:rgba(255,255,255,.72);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.8);border-radius:16px;padding:20px 18px;box-shadow:0 8px 24px rgba(30,20,60,.08);transition:transform .2s,box-shadow .2s}
+.feat-card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(30,20,60,.14)}
+.feat-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:11px;background:linear-gradient(135deg,rgba(124,58,237,.10),rgba(236,72,153,.09));box-shadow:inset 0 0 0 1px rgba(124,58,237,.08)}
+.feat-ico svg{width:21px;height:21px;display:block;overflow:visible}
+.feat-card h3{font-size:13.5px;font-weight:700;margin-bottom:5px;color:#111}
+.feat-card p{font-size:11.5px;color:#5b5566;line-height:1.55}
+@media(max-width:900px){.feat-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* PRICING (Landing) */
+.pricing-sec{position:relative;z-index:1;width:100%;max-width:1060px;margin-top:56px;padding:0 6px}
+.pricing-grid{display:flex;gap:18px;margin-top:30px;flex-wrap:wrap;justify-content:center;align-items:stretch}
+.price-card{position:relative;flex:1 1 270px;max-width:320px;background:rgba(255,255,255,.78);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.85);border-radius:20px;padding:28px 24px;box-shadow:0 10px 30px rgba(30,20,60,.1);display:flex;flex-direction:column;transition:transform .25s,box-shadow .25s}
+.price-card:hover{transform:translateY(-4px);box-shadow:0 18px 44px rgba(30,20,60,.16)}
+.price-card.pop{border:1.5px solid rgba(124,58,237,.5);box-shadow:0 16px 44px rgba(124,58,237,.22)}
+.price-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;font-size:10px;font-weight:700;letter-spacing:.05em;padding:5px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(124,58,237,.35);white-space:nowrap}
+.price-name{font-size:14px;font-weight:700;color:#3f3b46}
+.price-amt{font-size:32px;font-weight:800;color:#111;margin-top:6px}
+.price-amt span{font-size:13px;font-weight:600;color:#8a8593}
+.price-list{list-style:none;margin-top:18px;flex:1;display:flex;flex-direction:column;gap:10px}
+.price-list li{font-size:12.5px;color:#4b4655;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.price-list li::before{content:'✓';color:#7c3aed;font-weight:800;flex-shrink:0}
+.price-cta{margin-top:20px;width:100%;padding:11px;border-radius:999px;border:none;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;cursor:pointer;transition:all .15s}
+.price-cta.primary{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;box-shadow:0 6px 18px rgba(124,58,237,.32)}
+.price-cta.primary:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.price-cta.ghost{background:rgba(255,255,255,.7);border:1.5px solid #d9d1e2;color:#222}
+.price-cta.ghost:hover{border-color:#111;color:#111}
+
+/* FAQ (Landing) */
+.faq-sec{position:relative;z-index:1;width:100%;max-width:760px;margin-top:56px;padding:0 6px}
+.faq-list{margin-top:26px;display:flex;flex-direction:column;gap:10px}
+.faq-item{background:rgba(255,255,255,.72);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.8);border-radius:14px;overflow:hidden}
+.faq-q{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;background:none;border:none;text-align:left;padding:16px 18px;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:700;color:#1a1523;cursor:pointer}
+.faq-plus{flex-shrink:0;font-size:16px;font-weight:400;color:#7c3aed;transition:transform .25s}
+.faq-item.open .faq-plus{transform:rotate(45deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.faq-a p{padding:0 18px 16px;font-size:12.5px;color:#5b5566;line-height:1.65}
+.faq-item.open .faq-a{max-height:220px}
+
+/* FINAL CTA BAND (Landing) */
+.cta-band{position:relative;z-index:1;width:100%;max-width:820px;margin-top:60px;padding:46px 30px;text-align:center;background:linear-gradient(135deg,rgba(124,58,237,.1),rgba(99,102,241,.08));border:1px solid rgba(124,58,237,.18);border-radius:26px;box-shadow:0 20px 50px rgba(30,20,60,.12)}
+.cta-band h2{font-size:clamp(22px,3.2vw,30px);font-weight:700;letter-spacing:-.8px;color:#0f0f10}
+.cta-band h2 em{font-style:normal;background:linear-gradient(100deg,#a78bfa,#60a5fa,#ec4899,#a78bfa);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:hueflow 6s linear infinite}
+.cta-band p{margin-top:8px;color:#52525b;font-size:13px}
+.cta-band button{margin-top:20px}
+
+/* FOOTER COLUMNS (Landing) */
+.foot-cols{display:flex;gap:40px;flex-wrap:wrap;justify-content:space-between}
+.foot-col-brand{flex:1 1 240px;max-width:320px}
+.foot-col{display:flex;flex-direction:column;gap:9px;min-width:120px}
+.foot-col-h{font-size:11px;font-weight:700;color:#8a8593;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
+.foot-col a{color:#5b5566;font-size:13px;text-decoration:none;cursor:pointer;transition:color .15s}
+.foot-col a:hover{color:#7c3aed}
 
 /* EDITOR */
 #editor{display:none;width:100%;height:100vh;flex-direction:column}
@@ -222,6 +298,11 @@ input[type=checkbox]{accent-color:#7c3aed}
 .show-card:hover{transform:translateY(-7px) scale(1.025);box-shadow:0 30px 66px rgba(30,20,60,.3)}
 @keyframes showIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 .show-bg{position:absolute;inset:0}
+.show-face{position:absolute;left:50%;bottom:-4%;transform:translateX(-50%);width:76%;opacity:.55;pointer-events:none}
+.show-face svg{width:100%;height:auto;display:block}
+.show-mouth{transform-origin:50px 56px;animation:sf-talk 1.15s ease-in-out infinite}
+@keyframes sf-talk{0%,100%{transform:scaleY(.3)}45%{transform:scaleY(1)}70%{transform:scaleY(.5)}}
+@media (prefers-reduced-motion:reduce){.show-mouth{animation:none}}
 .show-vig{position:absolute;inset:0;background:radial-gradient(130% 70% at 50% 8%,rgba(255,255,255,.12),transparent 55%),linear-gradient(to bottom,transparent 55%,rgba(0,0,0,.34))}
 .show-cap{position:absolute;left:0;right:0;bottom:40px;text-align:center;padding:0 14px;line-height:1.28}
 .show-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:11px;font-weight:700;letter-spacing:.03em;color:rgba(255,255,255,.94);text-shadow:0 1px 8px rgba(0,0,0,.55)}
@@ -246,6 +327,12 @@ input[type=checkbox]{accent-color:#7c3aed}
   .prev-col{flex:0 0 auto;height:54vh}
   .show-card{width:150px;height:268px}
   .show-arrow{display:none}
+  .land-nav-links{display:none}
+  .feat-grid{grid-template-columns:1fr}
+  .how-grid,.pricing-grid{flex-direction:column;align-items:center}
+  .how-card,.price-card{max-width:100%;width:100%}
+  .cta-band{padding:34px 20px}
+  .foot-cols{gap:26px}
 }
 </style>
 </head>
@@ -255,7 +342,7 @@ input[type=checkbox]{accent-color:#7c3aed}
 <!-- LANDING -->
 <div id="landing">
   <div class="bg-mesh"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
-  <div class="land-nav">
+  <div class="land-nav" id="landNav">
     <div class="land-logo">
       <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
         <rect width="32" height="32" rx="9" fill="url(#g0)"/>
@@ -266,10 +353,16 @@ input[type=checkbox]{accent-color:#7c3aed}
       </svg>
       <span class="land-logo-txt" style="font-size:16px">Captly</span>
     </div>
+    <nav class="land-nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+    </nav>
     <button class="nav-cta" onclick="openEditorClean();showAcct()">Sign in</button>
   </div>
   <h1 class="land-h">Captions that <em>convert</em>.<br>In seconds.</h1>
-  <p class="land-sub">AI captions your videos word-for-word in 26 viral styles. Auto language detection, 17+ languages. Export MP4, SRT &amp; VTT — free, no signup.</p>
+  <p class="land-sub">AI captions your videos word-for-word in 30 viral styles. Auto language detection, 17+ languages. Export MP4, SRT &amp; VTT — free, no signup.</p>
   <div class="live-demo" id="liveDemo"></div>
   <label class="upload-zone" id="landZone">
     <input type="file" accept="video/*" id="landInput">
@@ -282,11 +375,37 @@ input[type=checkbox]{accent-color:#7c3aed}
     <button class="land-try-btn" onclick="openEditorClean()">Open editor&nbsp;&nbsp;→</button>
   </div>
   <div class="marquee"><div class="marquee-track" id="styleMarquee"></div></div>
-  <div class="land-stats"><span><b>26</b> styles</span><span><b>17</b> languages</span><span><b>⚡</b> free to use</span><span><b>💎</b> word-perfect</span></div>
+  <div class="land-stats"><span><b>30</b> styles</span><span><b>17</b> languages</span><span><b>⚡</b> free to use</span><span><b>💎</b> word-perfect</span></div>
+
+  <!-- How it works -->
+  <section class="how-sec reveal" id="how-it-works">
+    <h2 class="show-h">From clip to <em>posted</em> in 3 steps.</h2>
+    <p class="show-sub">No editing skills, no downloads — just upload and go.</p>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="how-num">1</div>
+        <div class="how-ico">🎬</div>
+        <h3>Upload your clip</h3>
+        <p>Drop an MP4, MOV or WebM. Your video stays on your device — only the audio is sent off to generate captions.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">2</div>
+        <div class="how-ico">✨</div>
+        <h3>AI transcribes &amp; styles it</h3>
+        <p>Word-perfect captions appear in seconds, with the language auto-detected across 17+ options. Pick from 30 viral styles.</p>
+      </div>
+      <div class="how-card">
+        <div class="how-num">3</div>
+        <div class="how-ico">🚀</div>
+        <h3>Export &amp; post</h3>
+        <p>Render your captioned video, or grab an SRT/VTT file — rendering happens right in your browser, free and fast.</p>
+      </div>
+    </div>
+  </section>
 
   <!-- Template showcase -->
   <section class="showcase">
-    <h2 class="show-h">One video. <em>26 viral styles.</em></h2>
+    <h2 class="show-h">One video. <em>30 viral styles.</em></h2>
     <p class="show-sub">See your captions in every look — tap one to try it.</p>
     <div class="show-wrap">
       <div class="show-row" id="showcaseRow"></div>
@@ -294,25 +413,133 @@ input[type=checkbox]{accent-color:#7c3aed}
     </div>
   </section>
 
+  <!-- Feature grid -->
+  <section class="feat-sec reveal" id="features">
+    <h2 class="show-h">Everything you need. <em>Nothing you don't.</em></h2>
+    <p class="show-sub">Built for creators who just want great captions, fast.</p>
+    <div class="feat-grid">
+      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg1" x1="2" y1="4" x2="22" y2="19"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs><rect x="2.5" y="5" width="19" height="13" rx="4" stroke="url(#fg1)" stroke-width="1.6"/><line x1="6" y1="10" x2="14" y2="10" stroke="url(#fg1)" stroke-width="1.6" stroke-linecap="round"/><line x1="6" y1="13.4" x2="11" y2="13.4" stroke="url(#fg1)" stroke-width="1.6" stroke-linecap="round"/><circle cx="18.3" cy="14.3" r="4.3" fill="#fff" stroke="url(#fg1)" stroke-width="1.6"/><path d="M16.6 14.3l1.1 1.1 2-2.2" stroke="url(#fg1)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h3>Word-perfect captions</h3><p>AI transcription nails every word, with fully editable text and timing.</p></div>
+      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg2a" x1="3" y1="9" x2="13" y2="19"><stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#f472b6"/></linearGradient><linearGradient id="fg2b" x1="7" y1="6" x2="17" y2="16"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#a78bfa"/></linearGradient><linearGradient id="fg2c" x1="10.5" y1="3.5" x2="20.5" y2="13.5"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs><rect x="3" y="9" width="10" height="10" rx="3" transform="rotate(-8 8 14)" fill="url(#fg2a)" opacity=".55"/><rect x="7" y="6" width="10" height="10" rx="3" transform="rotate(6 12 11)" fill="url(#fg2b)" opacity=".8"/><rect x="10.5" y="3.5" width="10" height="10" rx="3" fill="url(#fg2c)"/></svg></div><h3>30 viral styles</h3><p>From bold pop-style captions to soft cinematic looks — switch in one click.</p></div>
+      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg3" x1="3.5" y1="4.5" x2="19.5" y2="19.5"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><circle cx="11" cy="12" r="7.5" stroke="url(#fg3)" stroke-width="1.6"/><ellipse cx="11" cy="12" rx="3.1" ry="7.5" stroke="url(#fg3)" stroke-width="1.3"/><line x1="3.5" y1="12" x2="18.5" y2="12" stroke="url(#fg3)" stroke-width="1.3"/><circle cx="19.3" cy="5.8" r="2.3" fill="url(#fg3)"/></svg></div><h3>17+ languages, auto-detected</h3><p>Captly detects the spoken language automatically, or you can pick it yourself.</p></div>
+      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg4" x1="3" y1="4" x2="21" y2="20"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs><rect x="2.5" y="13" width="3.2" height="7" rx="1.6" fill="url(#fg4)" opacity=".4"/><rect x="8.4" y="6.5" width="3.2" height="13.5" rx="1.6" fill="url(#fg4)"/><rect x="14.3" y="10" width="3.2" height="10" rx="1.6" fill="url(#fg4)" opacity=".4"/><rect x="18.3" y="3.5" width="3.2" height="16.5" rx="1.6" fill="url(#fg4)" opacity=".7"/></svg></div><h3>Karaoke highlighting</h3><p>Word-by-word highlight animation that keeps viewers watching to the end.</p></div>
+      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg5" x1="3" y1="4.5" x2="21" y2="19.5"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs><path d="M3 6.5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H8l-3 2.5v-2.5H5a2 2 0 01-2-2v-4z" stroke="url(#fg5)" stroke-width="1.5" stroke-linejoin="round"/><path d="M21 12.5a2 2 0 00-2-2h-6a2 2 0 00-2 2v3.5a2 2 0 002 2h5l2.5 2v-2h.5a2 2 0 002-2v-3.5z" fill="url(#fg5)" opacity=".85"/></svg></div><h3>Translate to English</h3><p>One toggle turns captions from any detected language into English.</p></div>
+      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg6" x1="6" y1="3.5" x2="18" y2="20.5"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><path d="M6 3.5h7l4 4v11a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 016 18.5v-15z" stroke="url(#fg6)" stroke-width="1.5" stroke-linejoin="round"/><path d="M13 3.5v3.5a1 1 0 001 1h3.5" stroke="url(#fg6)" stroke-width="1.5" stroke-linejoin="round"/><path d="M9.5 14.5l3-3 3 3M12.5 11.5v7" stroke="url(#fg6)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h3>MP4, SRT &amp; VTT export</h3><p>Export a ready-to-post video, or standard subtitle files for any editor.</p></div>
+      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg7" x1="2.5" y1="4.5" x2="21.5" y2="19.5"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs><rect x="2.5" y="4.5" width="19" height="15" rx="3" stroke="url(#fg7)" stroke-width="1.6"/><line x1="2.5" y1="8.5" x2="21.5" y2="8.5" stroke="url(#fg7)" stroke-width="1.6"/><circle cx="5.3" cy="6.5" r=".9" fill="url(#fg7)"/><circle cx="8" cy="6.5" r=".9" fill="url(#fg7)"/><path d="M10.5 12l5 2.7-5 2.7v-5.4z" fill="url(#fg7)"/></svg></div><h3>Renders in your browser</h3><p>Video rendering happens locally on your device — fast, private and free.</p></div>
+      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg8" x1="4.5" y1="3" x2="21.5" y2="19.5"><stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><path d="M12 3l1.8 5.7L19.5 10.5l-5.7 1.8L12 18l-1.8-5.7L4.5 10.5l5.7-1.8L12 3z" fill="url(#fg8)"/><path d="M18.5 14.5l.7 2.1 2.1.7-2.1.7-.7 2.1-.7-2.1-2.1-.7 2.1-.7.7-2.1z" fill="url(#fg8)" opacity=".8"/></svg></div><h3>Free to start</h3><p>Try Fast and Perfect transcription with no signup and no credit card.</p></div>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing-sec reveal" id="pricing">
+    <h2 class="show-h">Simple, <em>honest</em> pricing.</h2>
+    <p class="show-sub">Start free. Upgrade only if you need more Perfect-transcription minutes.</p>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <div class="price-name">Free</div>
+        <div class="price-amt">$0</div>
+        <ul class="price-list">
+          <li>Unlimited Fast transcription</li>
+          <li>Perfect transcription trial</li>
+          <li>All 30 caption styles</li>
+          <li>MP4, SRT &amp; VTT export</li>
+          <li>No signup required</li>
+        </ul>
+        <button class="price-cta ghost" onclick="openEditorClean()">Start for free</button>
+      </div>
+      <div class="price-card pop">
+        <div class="price-badge">MOST POPULAR</div>
+        <div class="price-name">Creator</div>
+        <div class="price-amt">$9<span>/mo</span></div>
+        <ul class="price-list">
+          <li>300 Perfect-transcription min/mo</li>
+          <li>Unlimited Fast transcription</li>
+          <li>All 30 caption styles</li>
+          <li>Translate captions to English</li>
+          <li>Save projects to your account</li>
+        </ul>
+        <button class="price-cta primary" onclick="showAcct()">Get Creator</button>
+      </div>
+      <div class="price-card">
+        <div class="price-name">Pro</div>
+        <div class="price-amt">$24<span>/mo</span></div>
+        <ul class="price-list">
+          <li>1,500 Perfect-transcription min/mo</li>
+          <li>Everything in Creator</li>
+          <li>Batch processing</li>
+          <li>Save projects to your account</li>
+        </ul>
+        <button class="price-cta ghost" onclick="showAcct()">Get Pro</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="faq-sec reveal" id="faq">
+    <h2 class="show-h">Questions? <em>Answered.</em></h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Is Captly free?<span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>Yes. Captly generates captions and exports MP4, SRT and VTT for free, with no signup. Creator and Pro plans add more Perfect-transcription minutes and cloud project storage.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Which languages does Captly support?<span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>Captly auto-detects the spoken language and supports English, German, Spanish, French and 15+ more. You can also pick the language manually.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Do I need to install anything?<span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>No. Captly runs in your browser. Upload a video, pick a style and export it — no app, no plugin.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">What's the difference between Fast and Perfect?<span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>⚡ Fast uses a lighter model for near-instant transcription. 💎 Perfect uses a larger model for maximum accuracy and is a little slower. Both run server-side — no download for you.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Is my video uploaded anywhere?<span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>Only the audio track is sent off to generate captions. The video itself is rendered and exported locally in your browser.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime?<span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>Yes. Creator and Pro are month-to-month plans — cancel anytime from your account.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="cta-band reveal">
+    <h2>Ready for captions that <em>convert</em>?</h2>
+    <p>Upload a clip and see your first caption in seconds — free, no signup.</p>
+    <button class="nav-cta" style="padding:13px 28px;font-size:14.5px" onclick="document.getElementById('landInput').click()">Upload your video&nbsp;&nbsp;→</button>
+  </section>
+
   <!-- Footer -->
   <footer class="land-foot">
-    <div class="foot-top">
-      <div class="foot-brand">
-        <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <rect width="32" height="32" rx="9" fill="url(#g0)"/>
-          <rect x="7" y="9" width="18" height="3" rx="1.5" fill="white"/>
-          <rect x="7" y="14.5" width="13" height="3" rx="1.5" fill="white" opacity=".8"/>
-          <rect x="7" y="20" width="9" height="3" rx="1.5" fill="white" opacity=".5"/>
-        </svg>
-        <span>Captly</span>
+    <div class="foot-cols">
+      <div class="foot-col foot-col-brand">
+        <div class="foot-brand">
+          <svg width="20" height="20" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+            <rect width="32" height="32" rx="9" fill="url(#g0)"/>
+            <rect x="7" y="9" width="18" height="3" rx="1.5" fill="white"/>
+            <rect x="7" y="14.5" width="13" height="3" rx="1.5" fill="white" opacity=".8"/>
+            <rect x="7" y="20" width="9" height="3" rx="1.5" fill="white" opacity=".5"/>
+          </svg>
+          <span>Captly</span>
+        </div>
+        <p class="foot-claim">Viral, word-perfect captions for Reels &amp; TikToks — in seconds, no download.</p>
       </div>
-      <nav class="foot-links">
+      <div class="foot-col">
+        <div class="foot-col-h">Product</div>
+        <a href="#how-it-works">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#faq">FAQ</a>
+      </div>
+      <div class="foot-col">
+        <div class="foot-col-h">Legal</div>
         <a onclick="return false" href="#">Terms</a>
         <a onclick="return false" href="#">Privacy Policy</a>
         <a onclick="return false" href="#">Contact</a>
-      </nav>
+      </div>
     </div>
-    <p class="foot-claim">Viral, word-perfect captions for Reels &amp; TikToks — in seconds, no download.</p>
     <p class="foot-legal">By uploading a video you agree to our <a onclick="return false" href="#">Terms</a> and have read our <a onclick="return false" href="#">Privacy Policy</a>.</p>
     <p class="foot-copy">© 2026 Captly</p>
   </footer>
@@ -399,8 +626,8 @@ input[type=checkbox]{accent-color:#7c3aed}
           <option value="hindi">🇮🇳 Hindi</option>
         </select>
         <div class="pos-row" id="modelRow" style="margin-bottom:7px">
-          <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
-          <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
+          <button class="pos-btn" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
+          <button class="pos-btn on" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
         </div>
         <input type="password" id="oaiKey" class="lang-sel" style="display:none" placeholder="OpenAI API key (sk-…) — kept in memory only"
           oninput="openaiKey=this.value.trim()" onchange="if(currentFile&&openaiKey)transcribeVideo(currentFile)">
@@ -560,7 +787,7 @@ input[type=checkbox]{accent-color:#7c3aed}
 // ═══════════════════════════════════════
 // STYLES
 // ═══════════════════════════════════════
-// 26 Styles (captions.ai-Katalog + eigene Trend-Styles: Tokyo, Chrome, Editorial, Marker, Muse, Carbon)
+// 30 Styles (captions.ai-Katalog + eigene Trend-Styles: Tokyo, Chrome, Editorial, Marker, Muse, Carbon + Creator-Presets: Amplify, Headline, Pulse, Hush)
 var STYLES = [
   {id:'bloom',    name:'Bloom',      fl:'Playfair Display', // "A soft, dewy aesthetic"
    font:"'Playfair Display'", fw:'700', tt:'uppercase', ls:'1px',
@@ -695,6 +922,29 @@ var STYLES = [
    tc:'#f4f4f5', ts:'none',
    boxBg:'rgba(255,255,255,.08)', boxBr:'8px',
    hl:'#a3e635', hls:'none', anim:'none'},
+  {id:'amplify',  name:'Amplify',    fl:'Poppins', // Huge bold black-outlined caps, bright highlight — the most-requested creator preset right now
+   font:"'Poppins'", fw:'900', tt:'uppercase', fs:'1.1em',
+   thumbBg:'linear-gradient(160deg,#1a1400,#0d0a00)',
+   tc:'#fff', ts:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
+   hl:'#d7ff1f', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000,0 0 20px rgba(215,255,31,.85)',
+   anim:'punch', cstroke:'#000', badge:'💰'},
+  {id:'headline', name:'Headline',   fl:'Anton', // Bold white caps, thick black outline, high-contrast punch — the classic viral-thumbnail caption look
+   font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px', fs:'1.05em',
+   thumbBg:'linear-gradient(160deg,#1a0505,#0d0202)',
+   tc:'#fff', ts:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
+   hl:'#fff', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000,0 0 14px rgba(255,255,255,.7)',
+   anim:'scale', cstroke:'#000', badge:'🚀'},
+  {id:'pulse',    name:'Pulse',      fl:'Montserrat', // Neon-green highlight box pops behind the spoken word — the classic trending word-by-word karaoke look
+   font:"'Montserrat'", fw:'900', tt:'uppercase',
+   thumbBg:'linear-gradient(160deg,#001a10,#000d08)',
+   tc:'#fff', ts:'-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000',
+   hlPillBg:'#00ff85', hlc:'#00220f', hls:'none', anim:'flash', cstroke:'#000', badge:'🟢'},
+  {id:'hush',     name:'Hush',       fl:'Inter', // Soft black rounded pill, understated lower-third subtitle look
+   font:"'Inter'", fw:'600',
+   thumbBg:'linear-gradient(160deg,#171717,#0c0c0c)',
+   tc:'#fff', ts:'none',
+   boxBg:'rgba(20,20,20,.68)', boxBr:'22px',
+   hl:'#fff', hls:'none', anim:'none', badge:'📱'},
 ];
 
 // ═══════════════════════════════════════
@@ -710,7 +960,7 @@ var wordTimestamps  = [];
 var captionBlocks   = [];
 var currentFile     = null;
 var whisperPipes    = {};          // gecachte Pipelines pro Modell
-var whisperModel    = 'fast';      // 'fast' | 'perfect' — serverseitig via transcribe.php (kein Download)
+var whisperModel    = 'perfect';   // 'fast' | 'perfect' — serverseitig via transcribe.php (kein Download)
 var SERVER_MODEL    = { fast: 'whisper-large-v3-turbo', perfect: 'whisper-large-v3' };
 var LOCAL_MODEL     = { fast: 'base', perfect: 'small' }; // nur Fallback, wenn kein PHP-Proxy (z. B. Vercel-Demo)
 var whisperLang     = 'auto';      // 'auto' oder Whisper-Sprachname ('german', 'english', …)
@@ -2169,12 +2419,21 @@ function renderShowcase() {
     card.onclick = function(){ openEditorClean(); selectStyle(s.id); };
     var bg = document.createElement('div'); bg.className = 'show-bg';
     bg.style.background = s.thumbBg || 'linear-gradient(160deg,#1a1030,#0b0712)';
+    // Abstrakte Sprecher-Silhouette — deutet "jemand redet in die Kamera" an, ohne echtes
+    // (lizenzpflichtiges) Videomaterial oder ein Foto einer echten Person vorzutäuschen.
+    var face = document.createElement('div'); face.className = 'show-face';
+    face.style.animationDelay = (i * 90) + 'ms';
+    face.innerHTML = '<svg viewBox="0 0 100 130" preserveAspectRatio="xMidYMax meet" aria-hidden="true">'
+      + '<path d="M50 78c-24 0-40 16-40 34v18h80v-18c0-18-16-34-40-34z" fill="rgba(255,255,255,.16)"/>'
+      + '<circle cx="50" cy="42" r="32" fill="rgba(255,255,255,.18)"/>'
+      + '<ellipse class="show-mouth" cx="50" cy="56" rx="7" ry="3" fill="rgba(0,0,0,.4)" style="animation-delay:' + (i * 90) + 'ms"/>'
+      + '</svg>';
     var vig = document.createElement('div'); vig.className = 'show-vig';
     var cap = document.createElement('div'); cap.className = 'show-cap';
     var words = SHOW_SAMPLES[i % SHOW_SAMPLES.length].split(' ');
     cap.innerHTML = buildCap(words, s, Math.min(2, words.length - 1), 15, null);
     var name = document.createElement('div'); name.className = 'show-name'; name.textContent = s.name;
-    card.appendChild(bg); card.appendChild(vig); card.appendChild(cap); card.appendChild(name);
+    card.appendChild(bg); card.appendChild(face); card.appendChild(vig); card.appendChild(cap); card.appendChild(name);
     row.appendChild(card);
   });
 }
@@ -2186,6 +2445,7 @@ function openEditor() {
   clearInterval(_demoTimer);
   document.getElementById('landing').style.display = 'none';
   document.getElementById('editor').style.display  = 'flex';
+  document.body.classList.add('editor-open');
   loadTemplates(); // gespeicherte Templates in den Picker einhängen
   buildPicker(); renderWPills(); updateOverlay();
   applyPos(); // gewählte Position beibehalten
@@ -2211,6 +2471,7 @@ function goBack() {
   if (!v.paused) v.pause();
   document.getElementById('editor').style.display  = 'none';
   document.getElementById('landing').style.display = 'flex';
+  document.body.classList.remove('editor-open');
   startDemo();
 }
 
@@ -2246,6 +2507,8 @@ buildMarquee();
 renderShowcase();
 startDemo();
 updateAcctUI();
+initLandingNavScroll();
+initScrollReveal();
 // Leertaste = Play/Pause im Editor (Pro-Creator-Standard), außer beim Tippen
 document.addEventListener('keydown', function(e) {
   if (e.code !== 'Space') return;
@@ -2255,6 +2518,39 @@ document.addEventListener('keydown', function(e) {
   e.preventDefault();
   togglePlay();
 });
+
+// ═══════════════════════════════════════
+// LANDING: FAQ accordion, nav scroll state, scroll-reveal
+// ═══════════════════════════════════════
+function toggleFaq(btn) {
+  var item = btn.closest('.faq-item');
+  if (item) item.classList.toggle('open');
+}
+function initLandingNavScroll() {
+  var nav = document.getElementById('landNav');
+  if (!nav || typeof window.addEventListener !== 'function') return;
+  window.addEventListener('scroll', function() {
+    if (document.body.classList.contains('editor-open')) return;
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
+}
+function initScrollReveal() {
+  var els = document.querySelectorAll('.reveal');
+  if (!els.length) return;
+  if (!('IntersectionObserver' in window)) {
+    els.forEach(function(el){ el.classList.add('revealed'); });
+    return;
+  }
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+  els.forEach(function(el){ io.observe(el); });
+}
 </script>
 </body>
 </html>
