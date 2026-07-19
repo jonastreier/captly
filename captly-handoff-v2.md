@@ -1,110 +1,104 @@
-# Captly — Handoff v2 (Stand: 11.07.2026)
+# Captly — Handoff v3 (Stand: 19.07.2026)
 
-> **QA-Status: ✅ getestet.** `test-captly.js` (beiliegend) führt das komplette Script mit DOM-Stub in Node aus — 13 Testgruppen, alle grün (inkl. Halluzinations-Detektor, Sprach-Vorwahl, Landing-Widgets): Zeitformate (SRT/VTT), Timestamp-Sanitizing (null/NaN), Segment-Fallback, Block-Splits (Pause/Satzende), Karaoke- vs. Durchgehend-Modus, index-basiertes Highlight, Seek-Handler, SRT/VTT-Dateiformat, alle UI-Funktionen, Demo-Overlay, resplit nach Edit. Rerun: `python3 -c "import re;open('/tmp/c.js','w').write(re.search(r'<script>(.*)</script>',open('captly.html').read(),re.S).group(1))" && node test-captly.js`
-> **Nicht automatisiert testbar** (braucht echten Browser + Video): Whisper-Inferenz, MediaRecorder-Export, Canvas-Rendering. → Manuell in Chrome testen: kurzes Video laden, DE + EN prüfen, Video-Export abspielen (Ton synchron?), PNG bei pausiertem Video.
+> Diese Datei ist der **Einstiegspunkt für jede neue Umgebung/Session** (anderes Studio, Claude-Extension, neuer Rechner). Zusammen mit [CLAUDE.md](CLAUDE.md) und [README.md](README.md) reicht sie, um ohne Vorwissen weiterzuarbeiten. Repo: `git clone https://github.com/jonastreier/captly.git`.
 
-Web-Tool für Instagram/TikTok-Captions, Klon von **captions.ai**. Eine Datei: `captly.html` (kein Build, kein Backend). Whisper läuft lokal im Browser via `@xenova/transformers@2.17.2` (esm.sh).
+## 0. In 30 Sekunden startklar
 
-## ✅ Fertig (diese Version)
-
-**Echter Karaoke-Modus (wie captions.ai)**
-- Nur aktueller Block (2–6 Wörter, Slider) sichtbar; aktives Wort per Zeitstempel gehighlightet (Index-basiert, nicht mehr Wort-String-Vergleich)
-- Blöcke splitten bei Sprechpausen >0.8s und Satzenden (`/[.!?…]$/`)
-- Sync via `requestAnimationFrame` (`startCapLoop`), nicht mehr grobes `timeupdate`
-- Modi: `karaoke` (Block nur während Sprechzeit) / `all` ("Durchgehend", Block bleibt bis zum nächsten)
-- Render-Cache `_lastKey` verhindert DOM-Flackern; `capIn`-Animation nur bei Blockwechsel
-- Pausiert: nächstliegender Block als Vorschau (`nearestBlockIdx`)
-- Wort-Klick im Overlay + Word-Pills → seekt zur Stelle
-
-**Whisper-Verbesserungen**
-- Modellwahl Tiny (~40 MB) / Base (~145 MB), Pipelines gecacht in `whisperPipes{}`
-- Sprachwahl-Dropdown `#langSel`: auto + 17 Sprachen (Whisper-Namen: `german`, `english`, …)
-- Fix "Keine Sprache erkannt": Mono-Mix über alle Kanäle, Peak-Normalisierung auf 0.95, `language` wird nur gesetzt wenn manuell gewählt (kein `language:null` mehr)
-- Fallback-Kette: Wort-Timestamps → Segment-Timestamps (`return_timestamps:true`, Wörter gleichmäßig verteilt via `segmentsToWords`) → purer Text über Audiodauer
-- Modell-/Sprachwechsel triggert automatische Neu-Transkription
-
-**Mehrzeilige Captions**: DOM bricht natürlich um (max-width 100%); Canvas-Export bricht bei 86 % Breite um, zentriert, `lh = fsS*1.28`
-
-**Video-Export**: rendert aktiven Block (nicht mehr ganzes Transkript) mit Highlight-Farbe, Pill (`hlPillBg`), Outline (`cstroke` bei Viral/Impact), Glow, Gradient (Prism via `gradColors()`); `document.fonts.ready` vor Start; Seek auf 0 vor `recorder.start()` (Audio-Sync); VP9→VP8-Fallback, 8 Mbps; 120ms-Flush am Ende; Mute-Zustand wird restauriert
-
-**Datenmodell**: `captionBlocks = [{words:[{word,start,end}], start, end, text}]` — Editor-Edit ruft `resplitBlock()` (verteilt Timestamps gleichmäßig neu)
-
-## ✅ Design-Upgrade UMGESETZT (v2.1)
-
-- **Landing im captions.ai-Stil**: Aurora-Background (3 Blobs, GPU-Transforms, `prefers-reduced-motion`-Fallback), Headline „Captions, die *knallen*. In Sekunden." mit animiertem Gradient, Live-Karaoke-Demo (4 Wörter, 420ms-Takt, stoppt bei `openEditor()`), Style-Marquee (20 Styles × 2, 30s-Loop, Fade-Mask, Hover pausiert), Stats-Zeile, Upload-Zone mit Lift+Glow
-- **Editor-Polish**: Glass-Topbar, Grautöne aufgehellt
-- **Perf**: ungenutzte Font (Caveat) entfernt
-
-## ✅ Sprach-Fix v2 (Schweizerdeutsch-Bug) UMGESETZT
-
-Problem: Tiny-Autodetect hielt CH-Deutsch für Englisch → Halluzinations-Schleife („We've worked for over 3 years" ×N).
-Lösung (3 Schichten):
-1. **Browser-Sprache als Default**: `navigator.language` (z. B. `de-CH` → `german`) wird beim Start im Dropdown vorgewählt — 'auto' bleibt wählbar
-2. **Halluzinations-Detektor** `looksRepetitive()`: unique/total Wörter < 0.3 bei ≥12 Wörtern
-3. **Smart-Retry**: Wenn 'auto' repetitiven Output liefert → automatisch mit Browser-Sprache erzwingen, nur übernehmen wenn Ergebnis sauber. Status zeigt verwendete Sprache an.
-
-## ✅ Qualitäts-Upgrade v2.2 (Transkription)
-
-- **Whisper-Small** als dritte Modellstufe (~250 MB, deutlich besser bei Dialekten/CH-Deutsch als Tiny/Base)
-- **`cleanWords()`-Nachbearbeitung**: entfernt Stottern (>2 gleiche Wörter in Folge) und direkt wiederholte 3–8-Wort-Sequenzen (Halluzinations-Schleifen), iterativ bis stabil; legitime Doppelungen ("sehr sehr gut") bleiben
-- **Qualitätswarnung**: Status zeigt ⚠️ + Tipp (Small + Sprache manuell), wenn Ergebnis noch repetitiv/zu kurz
-
-**Realistische Einordnung**: captions.ai nutzt serverseitig Whisper-large. Im Browser (transformers.js v2, WASM/CPU) ist Small die praktische Obergrenze — gut, aber nicht large-Niveau. Der Sprung auf echtes Studio-Niveau ist Roadmap-Punkt 0.
-
-## ✅ v2.4: Turbo-Modell + captions.ai-Style-Katalog
-
-**🚀 Turbo (Studio-Qualität)**: 4. Modellstufe via `getPipe()`-Factory — tiny/base/small laufen weiter über transformers.js v2 (WASM, stabil), `turbo` lädt lazy `@huggingface/transformers@3.7.1` (jsdelivr) mit `device:'webgpu'`, `dtype:{encoder_model:'fp16',decoder_model_merged:'q4'}`, Modell `onnx-community/whisper-large-v3-turbo` (~1 GB, gecacht). WebGPU-Guard in `setModel()` (Alert + Verbleib, wenn `navigator.gpu` fehlt). **⚠️ Ungetestet im echten Browser — Turbo mit CH-Video in aktuellem Chrome verifizieren!**
-
-**Styles = offizieller captions.ai-Katalog** (von captions.ai/styles übernommen, IDs in Klammern): Bloom (bloom, Featured/Default), Elevate, Ember, Ignite, Impact II (impact2), Paper II (paper2 — dunkler Serif-Text auf Creme-Box; Canvas nutzt jetzt `s.boxBg`-Farbe statt hardcoded Schwarz, heller Box-Hintergrund ohne dunklen Text-Halo), Prime, Sketch, Sonnet, Volt, Y2K, Chalk, Evo, Focus (Pill-Highlight, "built to convert"), Lift, Linen, Prism Pro (prismpro), Stack (stack — Ex-Hormozi-Look), Align, Neon. Entfernt: Hormozi/Viral/Karaoke/Orbit/Pop/Story/Kai/Editorial. Fonts: Bangers+Quicksand raus, Playfair non-italic 700 rein.
-
-## ✅ v2.5: Cloud-Transkription (OpenAI API) + Light-Theme
-
-**✨ Cloud · Maximum**: 5. Modellstufe = OpenAI Whisper API (`whisper-1`, `verbose_json`, `timestamp_granularities[]=word`). Audio wird als 16-kHz-Mono-WAV hochgeladen (`float32ToWav`, ~1.9 MB/Min, API-Limit 25 MB ≈ 13 Min). API-Key nur im Speicher (`openaiKey`, nie persistiert), Passwortfeld erscheint bei Cloud-Auswahl, Key-Eingabe triggert Transkription. Sprache als ISO-Code via `CODE_BY_LANG`. Fehler 401/413 mit klaren Meldungen. **Beste Qualität für CH-Deutsch — das ist jetzt der empfohlene Modus.**
-⚠️ Sicherheit: Key liegt clientseitig — okay für persönliches Tool. Wenn öffentlich gehostet wird: Key NIE einbauen, stattdessen Mini-Proxy auf eigenem Host (siehe Roadmap).
-
-**Light-Theme wie captions.ai-Website**: Pastell-Verlauf (rosa→lila→hellblau) auf der Landing, Aurora-Blobs pastellig, weiße Karten, schwarze Pill-Buttons (aktive Zustände `#111`), heller Editor (weiße Sidebar, `#eceaf0`-Preview-Bereich), Live-Demo in dunkler "Video-Pille", Marquee-Chips dunkel (Caption-Preview-Optik). Alle Grautöne für hellen Grund neu gesetzt.
-
-## ✅ v3.0: Roadmap 1–6 umgesetzt + Fast/Perfect + Referenz-Styles
-
-**Vereinfachte Modellwahl (User-Wunsch)**: nur noch **⚡ Fast · gratis** (= whisper-tiny lokal) und **💎 Perfect** (= OpenAI API, Key-Feld). base/small/turbo-Codepfade existieren weiter (getPipe), nur ohne Buttons.
-
-**Referenz-Styles mit Font-Mix** (neue Style-Props `hlFont`, `hlItalic`, `hlUpper`, `circle` — in DOM `buildCap` UND Canvas `wordFont()` umgesetzt):
-- **Prime**: Poppins 800 weiß + aktives Wort in Cyan-Caveat-Script kursiv (wie "know this *one tip*")
-- **Sketch**: Kalam-Handschrift + aktives Wort uppercase Barlow Condensed mit gezeichnetem Kringel (Canvas: `ctx.ellipse`, wie "MINDMAP")
-- **Sonnet**: Playfair-Serif, aktives Wort kursiv-weiß (wie "making *peace*")
-- **Bloom**: + Caveat-Script-Akzent. Caveat-Font wieder geladen.
-
-**Features 1–6**: ① MP4-Export: MediaRecorder versucht `video/mp4` zuerst (aktuelles Chrome), sonst WebM; Dateiendung passt sich an. ② Timing-Feinschliff: Slider ±500 ms (`timeOff`), wirkt auf Preview, Video-Burn-in UND SRT/VTT (`offT()`). ③ Eigener Style: 2 Farbwähler + Font-Dropdown → Style "Mein Style" (`applyCustomStyle`). ④ Keywords: Textfeld, kommagetrennt → Wörter dauerhaft in Highlight-Farbe (`isKeywordWord`, ohne Animation). ⑤ ~~Reframe~~ auf User-Wunsch wieder entfernt (v3.2) — Tool ist rein 9:16, Export immer im Originalformat. ⑥ Übersetzung: Checkbox "→ Englisch" — lokal `task:'translate'`, Cloud `/v1/audio/translations` (Segment-Timestamps → `segmentsToWords`).
-
-**Bewusst NICHT umgesetzt** (User wollte "einfach & selbsterklärend"): ⑦ Batch-Queue (widerspricht Ein-Video-Editor-Einfachheit) und ⑧ Progressive Whisper (durch Fast/Perfect-Zweiteilung obsolet). Bei Bedarf später.
-
-## 💎 Pro-Creator-Roadmap (Features, für die Creator zahlen würden)
-
-0b. ✅ **Eigener Host — UMGESETZT (v3.1)**: `server.js` beiliegend (Node 18+, keine Dependencies). Hält den OpenAI-Key serverseitig, liefert captly.html aus, `POST /transcribe?lang=de&translate=0` nimmt WAV entgegen und proxied zu OpenAI (CORS offen, 25-MB-Limit). **Frontend-Logik**: Perfect ohne eingegebenen Key → automatisch same-origin `transcribe`-Proxy; mit Key → direkt zu OpenAI. Deploy: beide Dateien in einen Ordner, `OPENAI_API_KEY=sk-… node server.js`, fertig — Endnutzer brauchen keinen Key. Smoke-getestet (Routing/Static ✓; OpenAI-Call in Sandbox nicht möglich, auf echtem Host verifizieren). Noch offen: DB für Projekte/Konten (SQLite), Rate-Limiting gegen Missbrauch empfohlen bevor öffentlich!
-
-Priorisiert nach Impact/Aufwand:
-
-1. **MP4-Export** statt WebM — WebM kann Instagram/TikTok nicht direkt hochladen. Option A: `MediaRecorder` mit `video/mp4`-mimeType (Chrome 126+ unterstützt das teils). Option B: ffmpeg.wasm (~25 MB, lazy laden) für WebM→MP4-Remux. Das ist DER Kaufgrund #1.
-2. **Wort-Timing manuell justieren**: Im Editor pro Wort Start/Ende per Drag oder ±0.1s-Buttons — Whisper liegt manchmal 100–200ms daneben, Pros wollen das fixen.
-3. **Eigene Brand-Styles**: Farbe (Basis + Highlight), Font-Upload (.woff2 via FileReader), als Preset speichern — kein localStorage in Artifacts, stattdessen Export/Import als JSON-Datei.
-4. **Emoji-/Keyword-Hervorhebung**: bestimmte Wörter dauerhaft in Highlight-Farbe oder mit Emoji dahinter (captions.ai "AI Emphasis").
-5. **Auto-Reframe 9:16/1:1/16:9**: Export-Format wählbar, Video wird gecovert.
-6. **Übersetzung**: Whisper `task:'translate'` liefert EN gratis dazu → zweite Caption-Spur.
-7. **Batch-Queue**: mehrere Videos nacheinander transkribieren.
-8. **Progressive Whisper**: erst Tiny-Ergebnis sofort zeigen, Base im Hintergrund nachladen und Ergebnis austauschen ("in Sekunden"-Gefühl).
-
-## Bekannte Limits
-- Video-Export am besten in Chrome (MediaRecorder/`captureStream`); Safari eingeschränkt
-- Tonspur im Export: Element darf nicht gemutet sein (wird automatisch gehandhabt), User hört Video während Export
-- Whisper Tiny bleibt bei schwierigem Audio ungenau → Base wählen
-
-## Nächster Prompt (Vorlage)
+```bash
+git clone https://github.com/jonastreier/captly.git && cd captly
+node test-captly.js        # muss "ALLE TESTGRUPPEN BESTANDEN" zeigen
+node --check server.js     # muss ohne Fehler durchlaufen
 ```
-Arbeite an captly.html weiter (beigefügt, alles in einer Datei, Stand v2.1 —
-Karaoke-Modus, Sprach-Fix, Landing-Design und Qualitäts-Upgrade v2.2 sind
-fertig, siehe captly-handoff-v2.md). Setze Roadmap-Punkt 0 um: WebGPU +
-whisper-large-v3-turbo via @huggingface/transformers@3.x als Option
-"Turbo · Studio" mit Fallback auf den bestehenden v2-Pfad. Danach Punkt 1:
-MP4-Export via ffmpeg.wasm (lazy, WebM→MP4-Remux, Fallback WebM).
-Teste mit test-captly.js (DOM-Stub-Harness, beiliegend) und erweitere ihn.
-```
+Editor lokal ansehen: `python3 -m http.server 8788` (oder `OPENAI_API_KEY=sk-test node server.js` für volle Fidelity inkl. `/vendor`) → `http://localhost:8788`.
+
+**Vor jedem Commit:** `node test-captly.js` + `node --check server.js` müssen grün sein (steht auch in CLAUDE.md).
+
+## 1. Was Captly ist (aktueller Stand)
+
+Web-Tool für Instagram/TikTok/Reels-Untertitel (Klon von captions.ai). **Kein Build, keine npm-Dependencies.** Drei Kern-Dateien, jede für einen anderen Einsatzzweck:
+
+| Datei | Zweck | Läuft wo |
+|---|---|---|
+| `captly.html` | Kompletter Editor + Landing, Single-File mit Inline-`<script>` | überall (auch Vercel, statisch) |
+| `transcribe.php` | **Primärer** Transkriptions-Proxy: hält den Groq-Key, ruft Groq Whisper, gibt Wort-Timings zurück | eigenes Webhosting mit PHP |
+| `server.js` | **Optionales** Node-Backend: Login, Projekte, Quota, Stripe, Admin | eigener Node-Host (NICHT Vercel, NICHT reines Webhosting) |
+
+**Architektur-Prinzip:** Vercel = **nur** die statische Demo (`captly.html` + `/vendor/ffmpeg`). Alles Serverseitige (`server.js`, `transcribe.php`, `config.php`) ist per `.vercelignore` davon ausgeschlossen.
+
+## 2. Transkription: Fast/Perfect, serverseitig, kein Download
+
+**Architektur-Pivot (12.07.–19.07.2026):** Früher lief Whisper im Browser des Nutzers (Modell-Download 145 MB–1 GB). Jetzt läuft die Transkription **serverseitig über Groq** (kostenloser Free-Tier, `whisper-large-v3`/`whisper-large-v3-turbo`, OpenAI-kompatible API) — **kein Download für den Creator**, funktioniert auch auf dem iPhone.
+
+- **⚡ Fast** = `whisper-large-v3-turbo` (schnell), **💎 Perfect** = `whisper-large-v3` (Maximum). Beide serverseitig, beide gratis (Groq Free-Tier ist rate-limitiert, nicht zeitlich begrenzt).
+- Frontend-Funktion `serverTranscribe()` in `captly.html` ruft `transcribe.php` auf. Läuft dort kein PHP (z. B. Vercel-Demo) → **automatischer Fallback auf lokales transformers.js-Modell** im Browser (dann mit Download).
+- **Wichtiger Fallback-Trigger:** `serverTranscribe()` behandelt HTTP **403, 404 und 405** als "Proxy nicht vorhanden → lokal weitermachen" (nicht als Fehler). 403 ist speziell, weil Vercel genau das für per `.vercelignore` ausgeschlossene Dateien zurückgibt — **nicht 404**. Das war ein realer Bug, der auf der Live-Demo jede Transkription hat scheitern lassen (Fix: Commit `b02eea6`).
+- Sprache: **Auto-Detect ist Standard**, manuelle Wahl (17 Sprachen) bleibt möglich.
+- Lokaler Fallback bekannte Schwäche: `base`-Modell erkennt bei nicht-deutschem Audio manchmal fälschlich Deutsch (verifiziert mit echtem Test-Clip). Groq/large-v3 hat dieses Problem nicht — noch ein Grund, den Proxy zu aktivieren.
+
+### Groq-Proxy einrichten (auf Webhosting, nicht Vercel)
+1. Kostenlosen Key holen: [console.groq.com](https://console.groq.com) → API Keys.
+2. `config.example.php` → `config.php` kopieren, Key eintragen. `config.php` ist per `.gitignore` ausgeschlossen — **nie committen**.
+3. `captly.html` + `transcribe.php` + `config.php` ins selbe Verzeichnis auf dem Webhosting (PHP mit cURL nötig).
+4. **Offener TODO:** Der Groq-Key wurde bisher noch nicht bereitgestellt/eingerichtet — das ist der wichtigste nächste Schritt, um aus der Demo ein voll funktionierendes Produkt zu machen.
+
+## 3. Deployment-Status
+
+- **Vercel** (`jonas-projects55/captly`, verbunden mit diesem GitHub-Repo, Auto-Deploy auf `main`): **läuft** (Stand Commit `b02eea6`, Build erfolgreich, Live-Check bestanden). URL: `https://captly.vercel.app` (Zweck: **nur Demo/Live-Test**, keine zahlenden Kunden, kein Login/Perfect-Backend dort).
+- **Wichtiger, bereits gelöster Bug:** Vercel-Projekteinstellungen (Dashboard) hatten Framework-Preset **„Node.js"** statt „Other/Static" — dadurch versuchte Vercel, `server.js` als Serverless-Function auszuführen (crashte mit 500, später mit „No entrypoint found" komplett). **Fix liegt in `vercel.json`:** `"framework": null, "buildCommand": null` überschreibt die falsche Dashboard-Einstellung im Code. Falls der Build je wieder bricht: zuerst hier nachsehen, bevor man rätselt.
+- **Eigenes Webhosting** (für `transcribe.php` + später `server.js`): noch nicht eingerichtet/verifiziert — der Nutzer muss Zugangsdaten/Domain bereitstellen.
+- **Domain-Platzhalter:** `<head>` in `captly.html` verweist noch auf `captly.app` (canonical, og:url) — TODO: durch echte Domain ersetzen, sobald vorhanden.
+
+## 4. UI-Sprache & SEO
+
+Komplette UI ist **Englisch** (international, seit 16.07.2026 — vorher Deutsch). SEO/GEO im `<head>`: `lang="en"`, Title/Description/Keywords, Open Graph + Twitter Cards, JSON-LD (`SoftwareApplication` + `FAQPage`) für Google und AI-Antwort-Engines. Bei neuen UI-Texten: **immer Englisch**, kurz und klar, keine überflüssigen Wörter.
+
+## 5. Styles, Editor-Design
+
+- **26 Styles** (`STYLES`-Array in `captly.html`, IDs siehe Code): 20 aus dem captions.ai-Katalog (Bloom, Elevate, Ember, Ignite, Impact II, Paper II, Prime, Sketch, Sonnet, Volt, Y2K, Chalk, Evo, Focus, Lift, Linen, Prism Pro, Stack, Align, Neon) + 6 eigene Trend-Styles (Tokyo, Chrome, Editorial, Marker, Muse, Carbon).
+- Style-Rendering: `buildCap()` baut DOM-HTML aus Style-Props (`font`, `tc`, `hl`, `hls`, `hlFont`, `hlItalic`, `hlUpper`, `circle`, `pill`, `boxBg`, `tg`/`hlg` für Gradient-Text, `anim` für Highlight-Animation).
+- **Eigener Style** (`applyCustomStyle`) startet jetzt vom **gewählten Style/Template** (Farben/Font werden vorbelegt, `seedCustomFields()`), zusätzlich Glow-Regler (an/aus + Intensität).
+- **Benannte Templates**: lokal in `localStorage` (`captly_templates`), speichern Style + Position + Höhe + Größe + Modus + Glow; erscheinen als eigene Kachel im Style-Picker.
+- **Editor-Design**: lila Gradient (`#7c3aed → #6366f1`) statt Schwarz für aktive Zustände (Position/Modus/Modell-Buttons, primärer Export, Sign-in), Regler (`<input type=range>`) sind lila Verlaufs-Slider statt blauem `accent-color`.
+- Landing hat eine **Template-Showcase** unter der Hero (Gradient-Phone-Mockups aus den echten Styles, `renderShowcase()`) + Footer mit Terms/Privacy.
+- Entfernt: „Timing-Feinschliff"-Slider (überflüssig, Sync kommt aus Wort-Timestamps), PNG-Frame-Export (selten genutzt).
+
+## 6. Zuverlässigkeits-Fix: Chunk-Merge (lokaler Fallback)
+
+`transcribeChunked()`/`mergeChunkWords()` verarbeiten lange Videos in 28s-Fenstern mit 2s Overlap. **Alter Bug:** Fehlende Wort-Timestamps wurden verkettet (`prev.end + 0.35`), liefen über die Fensterlänge hinaus, und eine `lastEnd`-Dedup-Regel löschte dadurch echte Wörter des Folgefensters → **Untertitel brachen am Videoende ab**. **Fix:** Timestamps werden jetzt pro Fenster auf die Fensterlänge geclampt, Dedup ist inhaltsbasiert und nur in der Overlap-Zone aktiv. Regressionstest in `test-captly.js` (Abschnitt „driftende null-Timestamps").
+
+## 6b. Video-Export-Internas (ffmpeg.wasm) — nicht offensichtliche Fallen
+
+Chrome/Edge liefern via `MediaRecorder` direkt `video/mp4` (H.264/AAC) — kein ffmpeg nötig. Firefox/ältere Safari liefern nur WebM/VP9 → wird via ffmpeg.wasm zu MP4 transcodiert (`webmToMp4`, `getFFmpeg()`).
+
+- **Self-hosted** unter `vendor/ffmpeg/{ffmpeg,core}/` (via `scripts/fetch-ffmpeg.sh`, ~31 MB, committed). `getFFmpeg()` versucht zuerst same-origin `/vendor/...` (same-origin-Worker, kein Blob nötig), Fallback auf CDN (unpkg) nur wenn same-origin scheitert (z. B. `file://`).
+- **Worker MUSS same-origin oder Blob sein** (Cross-Origin-Worker ist verboten). Beim CDN-Fallback: npm-Worker hat relative Imports → auf absolute unpkg-URLs umschreiben, dann als Blob laden.
+- **Core = ESM-Build** (`@ffmpeg/core@0.12.6/dist/esm`), **nicht UMD** — UMD bricht im Module-Worker (`importScripts` fehlt).
+- **Bewusst Single-Thread-Core** → kein `SharedArrayBuffer`, also keine COOP/COEP-Header nötig (die würden mit dem Whisper-Modell-Laden von esm.sh kollidieren).
+- **Falle:** `esm.sh/@ffmpeg/ffmpeg/.../worker.js` gibt 404 → Ladevorgang hängt endlos. Diesen Pfad nicht verwenden.
+
+## 6c. Falls `server.js`/Monetarisierung reaktiviert wird — Go-Live-Blocker
+
+Reihenfolge, falls die Phase-1-Roadmap aus [captly-produktplan.md](captly-produktplan.md) umgesetzt wird:
+1. **ENV setzen** (siehe `.env.example`): `OPENAI_API_KEY` (sonst startet der Server gar nicht — auch wenn Perfect inzwischen primär über Groq läuft, braucht `server.js` selbst weiterhin diesen Key zum Booten), `RESEND_API_KEY`+`MAIL_FROM` (sonst Login-Codes nur im Server-Log, kein echtes Login), `STRIPE_SECRET`+3 Price-IDs (sonst `/billing` → 501).
+2. HTTPS-Reverse-Proxy + Prozessmanager vor `server.js`.
+3. CORS von `*` auf die eigene Domain einschränken (`server.js`, `CORS_ORIGINS`).
+4. SQLite-Datei (`DB_PATH`) auf **persistentem** Speicher, nicht `/tmp` — sonst sind Konten/Abos nach jedem Neustart weg.
+
+## 7. Nicht-lokal-testbare Dinge (echten Browser/Video nötig)
+
+Whisper-Inferenz-Qualität, MediaRecorder-Video-Export (Ton-Sync), ffmpeg.wasm-Transcode (Firefox/Safari-Pfad), Groq-Proxy mit echtem Key. `test-captly.js` deckt alles ab, was ohne Browser/Netzwerk testbar ist (20 Testgruppen, DOM-Stub-Harness).
+
+## 8. Bekannte offene Punkte (Priorität für die nächste Session)
+
+1. **Groq-Key besorgen & `config.php` auf dem Webhosting einrichten** — größter Hebel, macht Perfect-Qualität live.
+2. **Echte Domain** statt `captly.app`-Platzhalter im `<head>` eintragen.
+3. **Eigenes Webhosting für `transcribe.php`** einrichten und end-to-end mit echtem Video testen (bisher nur mit synthetischem Test-Audio + isolierten Unit-Checks verifiziert, kein echter Groq-Call möglich ohne Key).
+4. Optional/später: `server.js`-Monetarisierung (Login/Stripe/Quota) — Architektur & Preismodell stehen in [captly-produktplan.md](captly-produktplan.md), ist aber **bewusst noch nicht das Ziel** (aktuell nur Demo).
+
+## 9. Für Claude/Agenten: Arbeitsweise (siehe auch CLAUDE.md)
+
+- `captly.html` ist eine große Single-File-Datei → Änderungen **chirurgisch per `Edit`**, nie neu schreiben.
+- Kleines Modell (Haiku) für mechanische Edits/Doku/Tests, Sonnet/Opus für Logik mit Nebenwirkungen.
+- Vor jedem Commit: `node test-captly.js` + `node --check server.js` grün.
+- Bei Vercel-Problemen: zuerst `vercel.json` (`framework`/`buildCommand`) und `.vercelignore` prüfen, siehe Abschnitt 3.
+- Debugging von Live-Deploys ohne Vercel-Login: `curl -s "https://api.github.com/repos/jonastreier/captly/commits/<sha>/status"` zeigt Build-Erfolg/-Fehler inkl. Deployment-ID (GitHub-Vercel-Integration postet Commit-Status öffentlich, kein Auth nötig für dieses öffentliche Repo).

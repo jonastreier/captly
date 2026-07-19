@@ -1,6 +1,8 @@
 # Captly — Produkt-, Freemium- & Architektur-Setup
 
 > Annahmen sind mit **[A]** markiert. Stand: 11.07.2026. Phase 0 ist bereits implementiert (captly.html + server.js).
+>
+> **Update 19.07.2026:** Die Transkriptions-Engine hat seither gewechselt — Perfect läuft nicht mehr direkt über OpenAI/`server.js`, sondern über einen **Groq-Proxy (`transcribe.php`, kostenloser Free-Tier)**, siehe [captly-handoff-v2.md](captly-handoff-v2.md) Abschnitt 2. Das Preis-/Freemium-Modell hier bleibt als **Zukunfts-Roadmap für Phase 1** (Login/Stripe via `server.js`) gültig, ist aber aktuell **noch nicht aktiv** — Stand jetzt ist Captly eine reine Demo ohne Kontenpflicht.
 
 ## 1. Empfohlene Produktlogik
 
