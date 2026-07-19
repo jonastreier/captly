@@ -6,6 +6,9 @@ captly.db-*
 # Geheimer ASR-Key (Proxy-Config) — nie ins Repo
 config.php
 
+# Hugging-Face-Token (lokal für Showcase-Bildgenerierung, nie ins Repo)
+.hf_token
+
 # Node
 node_modules/
 
