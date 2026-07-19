@@ -1550,7 +1550,8 @@ async function serverTranscribe(wavBlob, model, lc, audioDur) {
   } catch (e) { clearInterval(fakeTimer); return null; } // Netzwerk-Fehler / kein Proxy → lokaler Fallback
   clearInterval(fakeTimer);
   if (!resp) return null;
-  if (!openaiKey && (resp.status === 404 || resp.status === 405)) return null; // Proxy nicht vorhanden → Fallback
+  // Proxy nicht vorhanden → Fallback. 403 = Vercels Antwort auf per .vercelignore ausgeschlossene Dateien (Demo ohne PHP).
+  if (!openaiKey && (resp.status === 404 || resp.status === 405 || resp.status === 403)) return null;
   if (!resp.ok) {
     throw new Error(resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
       : resp.status === 413 ? 'Audio too large — please trim the video.'
