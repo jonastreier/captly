@@ -53,7 +53,7 @@ setState:function(bl,wts,dm){captionBlocks=bl;wordTimestamps=wts;if(dm)displayMo
 getBlocks:function(){return captionBlocks;},selectStyle:selectStyle,setPos:setPos,onSzChange:onSzChange,setMode:setMode,
 onWpbChange:onWpbChange,setLang:setLang,buildPicker:buildPicker,renderSegments:renderSegments,renderWPills:renderWPills,
 openEditorClean:openEditorClean,goBack:goBack,enableExports:enableExports,
-looksRepetitive:looksRepetitive,cleanWords:cleanWords,buildMarquee:buildMarquee,startDemo:startDemo,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},applyPos:applyPos,mergeChunkWords:mergeChunkWords};`;
+looksRepetitive:looksRepetitive,cleanWords:cleanWords,renderShowcase:renderShowcase,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},applyPos:applyPos,mergeChunkWords:mergeChunkWords};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -151,12 +151,9 @@ const validLangs = ['german','english','spanish','french','italian','portuguese'
 ok(T.NAV_LANG === null || validLangs.includes(T.NAV_LANG), 'NAV_LANG gueltig: ' + T.NAV_LANG);
 ok(initialLang === 'auto', 'Sprache startet auf Auto-Erkennung: ' + initialLang);
 
-// 13) Landing-Widgets crashen nicht (Stub leert children nicht → Vielfaches von 40)
-T.buildMarquee();
-const mqN = document.getElementById('styleMarquee').children.length;
-ok(mqN >= 60 && mqN % 30 === 0, 'Marquee: 30 Styles x2 pro Aufruf, habe ' + mqN);
-T.startDemo();
-ok(document.getElementById('liveDemo').innerHTML.includes('CAPTIONS'), 'Demo-Woerter gerendert');
+// 13) Showcase-Reihe crasht nicht (renderShowcase() läuft beim Skript-Init bereits einmal automatisch)
+const showN = document.getElementById('showcaseRow').children.length;
+ok(showN === 30, 'Showcase: 30 Karten aus Auto-Init erwartet, habe ' + showN);
 
 // 14) cleanWords: Stottern + Wiederholungsschleifen
 const mkW = arr => arr.map((w, i) => ({ word: w, start: i * 0.3, end: i * 0.3 + 0.25 }));

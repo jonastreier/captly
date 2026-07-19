@@ -52,7 +52,7 @@ body.editor-open{height:100vh;overflow:hidden}
 .blob.b2{background:#bcdcfa;bottom:-18%;right:-10%;animation:drift 23s ease-in-out infinite alternate-reverse}
 .blob.b3{background:#fbcfe8;top:38%;left:56%;width:30vw;height:30vw;opacity:.22;animation:drift 27s ease-in-out infinite alternate}
 @keyframes drift{from{transform:translate(0,0) scale(1)}to{transform:translate(6vw,-4vh) scale(1.15)}}
-@media (prefers-reduced-motion:reduce){.blob,.marquee-track,.land-h em,.upload-zone-icon{animation:none!important}.reveal{opacity:1!important;transform:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){.blob,.land-h em,.upload-zone-icon{animation:none!important}.reveal{opacity:1!important;transform:none!important;transition:none!important}}
 .land-nav{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:min(94%,980px);display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.65);backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.85);box-shadow:0 8px 30px rgba(30,20,60,.08);border-radius:999px;padding:9px 9px 9px 18px;z-index:5;transition:box-shadow .25s ease}
 .land-nav.scrolled{box-shadow:0 12px 40px rgba(30,20,60,.18)}
 .nav-cta{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:999px;padding:9px 18px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:filter .15s,transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(124,58,237,.32)}
@@ -64,23 +64,13 @@ body.editor-open{height:100vh;overflow:hidden}
 .land-h em{font-style:normal;background:linear-gradient(100deg,#a78bfa,#60a5fa,#ec4899,#a78bfa);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:hueflow 6s linear infinite}
 @keyframes hueflow{to{background-position:300% 0}}
 .land-sub{position:relative;color:#52525b;font-size:14px;text-align:center;max-width:440px;line-height:1.7}
-.live-demo{position:relative;height:62px;background:#0d0d11;border:1px solid rgba(255,255,255,.09);border-radius:18px;padding:10px 28px;box-shadow:0 18px 44px rgba(30,15,60,.22),inset 0 1px 0 rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;gap:.45em;font-family:'Anton',sans-serif;font-size:28px;letter-spacing:.5px;text-transform:uppercase;color:#fff;text-shadow:0 3px 14px rgba(0,0,0,.6)}
-.live-demo .dw{display:inline-block;transition:transform .18s ease,color .18s ease,text-shadow .18s ease;color:rgba(255,255,255,.82)}
-.live-demo .dw.on{color:#f7c204;transform:scale(1.18) translateY(-2px);text-shadow:0 0 24px rgba(247,194,4,.55)}
-.upload-zone{position:relative;border:2px dashed #ddd4e6;border-radius:20px;padding:42px 38px;text-align:center;cursor:pointer;transition:transform .25s,border-color .25s,box-shadow .25s,background .25s;max-width:460px;width:100%;background:rgba(255,255,255,.78);backdrop-filter:blur(8px)}
+.upload-zone{position:relative;border:2px dashed #ddd4e6;border-radius:20px;padding:38px 38px 34px;text-align:center;cursor:pointer;transition:transform .25s,border-color .25s,box-shadow .25s,background .25s;max-width:460px;width:100%;background:rgba(255,255,255,.78);backdrop-filter:blur(8px)}
 .upload-zone:hover,.upload-zone.drag{border-color:rgba(167,139,250,.65);background:rgba(124,58,237,.06);transform:translateY(-3px);box-shadow:0 18px 60px rgba(124,58,237,.22)}
 .upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.upload-zone-icon{font-size:36px;margin-bottom:12px;display:inline-block;animation:captly-bounce 3.4s ease-in-out infinite}
+.upload-zone-icon{width:60px;height:60px;margin:0 auto 14px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(124,58,237,.12),rgba(236,72,153,.1));box-shadow:inset 0 0 0 1px rgba(124,58,237,.1);animation:captly-bounce 3.4s ease-in-out infinite}
+.upload-zone-icon svg{width:30px;height:30px;display:block;overflow:visible}
 .upload-zone h3{font-size:15.5px;font-weight:700;margin-bottom:5px}
 .upload-zone p{font-size:12px;color:#9a9a9a;line-height:1.65}
-.marquee{position:relative;width:100%;max-width:600px;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent)}
-.marquee-track{display:flex;gap:8px;width:max-content;animation:marq 30s linear infinite}
-.marquee:hover .marquee-track{animation-play-state:paused}
-@keyframes marq{to{transform:translateX(-50%)}}
-.mq-chip{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:88px;padding:13px 16px 10px;border-radius:14px;border:1px solid #26262b;background:linear-gradient(170deg,#131318,#0b0b0f);white-space:nowrap;transition:transform .2s,border-color .2s;cursor:default;box-shadow:0 6px 18px rgba(20,10,40,.18)}
-.mq-chip:hover{transform:translateY(-3px);border-color:rgba(167,139,250,.5)}
-.mq-chip .mq-sample{font-size:19px;line-height:1.1}
-.mq-chip .mq-name{font-family:'Inter',sans-serif;font-size:9.5px;color:#8f8b96;letter-spacing:.04em}
 .land-stats{position:relative;display:flex;gap:18px;font-size:11.5px;color:#6f6f6f;flex-wrap:wrap;justify-content:center}
 .land-stats b{color:#7c3aed;font-weight:700}
 .land-or{position:relative;color:#5f5f5f;font-size:12px;display:flex;align-items:center;gap:10px;max-width:440px;width:100%}
@@ -293,13 +283,14 @@ input[type=checkbox]{accent-color:#7c3aed}
 .show-h em{font-style:normal;background:linear-gradient(100deg,#a78bfa,#60a5fa,#ec4899,#a78bfa);background-size:300% 100%;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;animation:hueflow 6s linear infinite}
 .show-sub{text-align:center;color:#52525b;font-size:13px;margin-top:6px}
 .show-wrap{position:relative;margin-top:18px}
-.show-row{display:flex;gap:16px;overflow-x:auto;padding:8px 4px 18px;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.show-row{display:flex;gap:16px;overflow-x:auto;padding:8px 4px 18px;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 calc(100% - 34px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 calc(100% - 34px),transparent 100%)}
 .show-row::-webkit-scrollbar{display:none}
-.show-card{flex:0 0 auto;width:174px;height:310px;border-radius:22px;overflow:hidden;position:relative;scroll-snap-align:center;box-shadow:0 16px 40px rgba(30,20,60,.18);border:1px solid rgba(255,255,255,.55);cursor:pointer;transition:transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s;animation:showIn .5s both}
-.show-card:hover{transform:translateY(-7px) scale(1.025);box-shadow:0 30px 66px rgba(30,20,60,.3)}
+.show-card{flex:0 0 auto;width:174px;height:310px;border-radius:24px;overflow:hidden;position:relative;scroll-snap-align:center;box-shadow:0 16px 40px rgba(30,20,60,.18);border:1px solid rgba(255,255,255,.55);cursor:pointer;transition:transform .3s cubic-bezier(.2,.7,.2,1),box-shadow .3s,border-color .3s;animation:showIn .5s both}
+.show-card:hover{transform:translateY(-8px) scale(1.03);box-shadow:0 24px 54px rgba(124,58,237,.28);border-color:rgba(167,139,250,.7)}
 @keyframes showIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 .show-bg{position:absolute;inset:0}
-.show-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;display:block}
+.show-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;display:block;transition:opacity .35s ease}
+.show-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;opacity:0;pointer-events:none;transition:opacity .35s ease}
 .show-face{display:none;position:absolute;left:50%;bottom:-4%;transform:translateX(-50%);width:76%;opacity:.55;pointer-events:none}
 .show-card.no-photo .show-face{display:block}
 .show-face svg{width:100%;height:auto;display:block}
@@ -367,10 +358,9 @@ input[type=checkbox]{accent-color:#7c3aed}
   </div>
   <h1 class="land-h">Captions that <em>convert</em>.<br>In seconds.</h1>
   <p class="land-sub">AI captions your videos word-for-word in 30 viral styles. Auto language detection, 17+ languages. Export MP4, SRT &amp; VTT — free, no signup.</p>
-  <div class="live-demo" id="liveDemo"></div>
   <label class="upload-zone" id="landZone">
     <input type="file" accept="video/*" id="landInput">
-    <div class="upload-zone-icon">🎬</div>
+    <div class="upload-zone-icon"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="uzg" x1="2" y1="4" x2="22" y2="20"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs><path d="M7.5 17.5h9a3.5 3.5 0 001-6.85 5 5 0 00-9.6-1.6A4 4 0 007 17.5h.5z" stroke="url(#uzg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v7M9.2 12.5L12 9.7l2.8 2.8" stroke="url(#uzg)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <h3>Drop a video or click</h3>
     <p>MP4, MOV, WebM · stays on your device</p>
   </label>
@@ -378,7 +368,17 @@ input[type=checkbox]{accent-color:#7c3aed}
     <button class="nav-cta" style="padding:12px 24px;font-size:14px" onclick="document.getElementById('landInput').click()">Upload video&nbsp;&nbsp;→</button>
     <button class="land-try-btn" onclick="openEditorClean()">Open editor&nbsp;&nbsp;→</button>
   </div>
-  <div class="marquee"><div class="marquee-track" id="styleMarquee"></div></div>
+
+  <!-- Template showcase -->
+  <section class="showcase">
+    <h2 class="show-h">One video. <em>30 viral styles.</em></h2>
+    <p class="show-sub">See your captions in every look — tap one to try it.</p>
+    <div class="show-wrap">
+      <div class="show-row" id="showcaseRow"></div>
+      <button class="show-arrow" onclick="scrollShowcase()" aria-label="Show more styles">›</button>
+    </div>
+  </section>
+
   <div class="land-stats"><span><b>30</b> styles</span><span><b>17</b> languages</span><span><b>⚡</b> free to use</span><span><b>💎</b> word-perfect</span></div>
 
   <!-- How it works -->
@@ -404,16 +404,6 @@ input[type=checkbox]{accent-color:#7c3aed}
         <h3>Export &amp; post</h3>
         <p>Render your captioned video, or grab an SRT/VTT file — rendering happens right in your browser, free and fast.</p>
       </div>
-    </div>
-  </section>
-
-  <!-- Template showcase -->
-  <section class="showcase">
-    <h2 class="show-h">One video. <em>30 viral styles.</em></h2>
-    <p class="show-sub">See your captions in every look — tap one to try it.</p>
-    <div class="show-wrap">
-      <div class="show-row" id="showcaseRow"></div>
-      <button class="show-arrow" onclick="scrollShowcase()" aria-label="Show more styles">›</button>
     </div>
   </section>
 
@@ -2368,44 +2358,6 @@ function p3(n){ return String(n).padStart(3,'0'); }
 // ═══════════════════════════════════════
 // VIEW
 // ═══════════════════════════════════════
-// Landing: Live-Karaoke-Demo unter der Headline
-var _demoI = 0, _demoTimer = null;
-function startDemo() {
-  var d = document.getElementById('liveDemo');
-  if (!d) return;
-  var words = ['CAPTIONS','THAT','JUST','CONVERT'];
-  d.innerHTML = words.map(function(w){ return '<span class="dw">' + w + '</span>'; }).join(' ');
-  clearInterval(_demoTimer);
-  _demoTimer = setInterval(function() {
-    var sp = d.querySelectorAll('.dw');
-    if (!sp.length) return;
-    for (var i = 0; i < sp.length; i++) sp[i].classList.toggle('on', i === _demoI % sp.length);
-    _demoI++;
-  }, 420);
-}
-// Landing: auto-scrollender Style-Marquee (2× dupliziert für nahtlosen Loop)
-function buildMarquee() {
-  var m = document.getElementById('styleMarquee');
-  if (!m) return;
-  m.innerHTML = '';
-  for (var r = 0; r < 2; r++) {
-    STYLES.forEach(function(s) {
-      var c = document.createElement('span');
-      c.className = 'mq-chip';
-      var sample = document.createElement('span');
-      sample.className = 'mq-sample';
-      sample.style.fontFamily = (s.font || "'Inter'").replace(/'/g, '') + ',sans-serif';
-      sample.style.color = (s.tc && s.tc.indexOf('rgba') !== 0 && s.tc !== '#1c1917') ? s.tc : (s.hl || '#fff');
-      if (s.ts && s.ts !== 'none') sample.style.textShadow = s.ts;
-      sample.textContent = s.tt === 'uppercase' ? 'ABC' : 'Abc';
-      var name = document.createElement('span');
-      name.className = 'mq-name';
-      name.textContent = s.name;
-      c.appendChild(sample); c.appendChild(name);
-      m.appendChild(c);
-    });
-  }
-}
 // Phone-Mockup-Showcase: jeder Style als Beispiel-Caption auf seinem Verlaufs-Hintergrund
 var SHOW_SAMPLES = ['this changes everything','wait for it','the secret nobody tells you',
   'let me show you how','watch this till the end','you need to know this','here is the truth',
@@ -2416,6 +2368,10 @@ function renderShowcase() {
   var row = document.getElementById('showcaseRow');
   if (!row) return;
   row.innerHTML = '';
+  if (_showcaseIO) { _showcaseIO.disconnect(); _showcaseIO = null; }
+  if (_showcaseCapTimer) { clearInterval(_showcaseCapTimer); _showcaseCapTimer = null; }
+  _showcaseCapState = [];
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   STYLES.filter(function(s){ return s.id !== 'custom' && !s._tpl; }).forEach(function(s, i) {
     var card = document.createElement('div');
     card.className = 'show-card';
@@ -2441,18 +2397,58 @@ function renderShowcase() {
     var grain = document.createElement('div'); grain.className = 'show-grain';
     var cap = document.createElement('div'); cap.className = 'show-cap';
     var words = SHOW_SAMPLES[i % SHOW_SAMPLES.length].split(' ');
-    cap.innerHTML = buildCap(words, s, Math.min(2, words.length - 1), 17, null);
+    var startIdx = reduceMotion ? Math.min(2, words.length - 1) : (i % words.length);
+    cap.innerHTML = buildCap(words, s, startIdx, 17, null);
+    if (!reduceMotion) _showcaseCapState.push({ cap: cap, words: words, s: s, idx: startIdx });
     var name = document.createElement('div'); name.className = 'show-name'; name.textContent = s.name;
-    card.appendChild(bg); card.appendChild(photo); card.appendChild(face); card.appendChild(vig); card.appendChild(grain); card.appendChild(cap); card.appendChild(name);
+    card.appendChild(bg); card.appendChild(photo);
+    // Optionaler Live-Loop je Style unter assets/showcase/<id>.mp4 (KI-generiert aus dem Foto).
+    // Fehlt die Datei, bleibt einfach das Foto stehen - kein sichtbarer Unterschied zu vorher.
+    // Muss VOR face/vig/grain/cap/name eingehängt werden, damit die Overlays sichtbar bleiben,
+    // und braucht opacity statt display:none, sonst hat es keine Geometrie fürs IntersectionObserver.
+    if (!reduceMotion && typeof IntersectionObserver !== 'undefined') {
+      var video = document.createElement('video'); video.className = 'show-video';
+      video.muted = true; video.loop = true; video.playsInline = true; video.preload = 'none';
+      video.setAttribute('poster', 'assets/showcase/' + s.id + '.jpg');
+      video.dataset.src = 'assets/showcase/' + s.id + '.mp4';
+      video.onerror = function(){ this.remove(); };
+      video.oncanplay = function(){ this.style.opacity = '1'; photo.style.opacity = '0'; };
+      card.appendChild(video);
+      getShowcaseIO().observe(video);
+    }
+    card.appendChild(face); card.appendChild(vig); card.appendChild(grain); card.appendChild(cap); card.appendChild(name);
     row.appendChild(card);
   });
+  // Karaoke-artiges Weiterschalten der Vorschau-Captions, wortweise im Kreis (kein echtes Audio/Timing).
+  if (_showcaseCapState.length) _showcaseCapTimer = setInterval(function() {
+    _showcaseCapState.forEach(function(st) {
+      st.idx = (st.idx + 1) % st.words.length;
+      st.cap.innerHTML = buildCap(st.words, st.s, st.idx, 17, null);
+    });
+  }, 340);
+}
+var _showcaseCapState = [], _showcaseCapTimer = null;
+var _showcaseIO = null;
+function getShowcaseIO() {
+  if (_showcaseIO) return _showcaseIO;
+  _showcaseIO = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      var v = entry.target;
+      if (entry.isIntersecting) {
+        if (!v.src && v.dataset.src) { v.src = v.dataset.src; v.load(); }
+        var p = v.play(); if (p && p.catch) p.catch(function(){});
+      } else if (!v.paused) {
+        v.pause();
+      }
+    });
+  }, { rootMargin: '150px', threshold: 0.15 });
+  return _showcaseIO;
 }
 function scrollShowcase() {
   var row = document.getElementById('showcaseRow');
   if (row) row.scrollBy({ left: Math.min(580, Math.round(row.clientWidth * 0.85)), behavior: 'smooth' });
 }
 function openEditor() {
-  clearInterval(_demoTimer);
   document.getElementById('landing').style.display = 'none';
   document.getElementById('editor').style.display  = 'flex';
   document.body.classList.add('editor-open');
@@ -2482,7 +2478,6 @@ function goBack() {
   document.getElementById('editor').style.display  = 'none';
   document.getElementById('landing').style.display = 'flex';
   document.body.classList.remove('editor-open');
-  startDemo();
 }
 
 // ═══════════════════════════════════════
@@ -2513,9 +2508,7 @@ enableExports(false);
 renderWPills();
 // Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
-buildMarquee();
 renderShowcase();
-startDemo();
 updateAcctUI();
 initLandingNavScroll();
 initScrollReveal();
