@@ -196,11 +196,17 @@ body.editor-open{height:100vh;overflow:hidden}
 /* TRANSCRIPTION */
 .lang-sel{width:100%;background:#fff;border:1px solid #ddd6e4;color:#333;border-radius:8px;padding:7px 9px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:7px;outline:none;cursor:pointer}
 .lang-sel:focus{border-color:rgba(124,58,237,.4)}
-.t-box{background:#f7f6f9;border:1px solid #e8e4ee;border-radius:9px;padding:11px;margin-bottom:7px}
-.t-status{display:flex;align-items:center;gap:7px;font-size:11px;color:#55505c}
-.t-spinner{width:12px;height:12px;border:2px solid rgba(124,58,237,.22);border-top-color:#7c3aed;border-radius:50%;flex-shrink:0;animation:spin .8s linear infinite}
-.t-prog-bar{height:2px;background:#e8e4ee;border-radius:2px;overflow:hidden;margin-top:7px}
-.t-prog-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#3b82f6);border-radius:2px;width:0%;transition:width .3s}
+.t-box{background:linear-gradient(160deg,rgba(124,58,237,.06),rgba(236,72,153,.04));border:1px solid rgba(124,58,237,.16);border-radius:14px;padding:13px 14px;margin-bottom:7px;transition:border-color .25s}
+.t-status{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#3f3b46}
+.t-spinner{width:15px;height:15px;border:2.5px solid rgba(124,58,237,.18);border-top-color:#7c3aed;border-right-color:#ec4899;border-radius:50%;flex-shrink:0;animation:spin .7s linear infinite}
+.t-prog-row{display:flex;align-items:center;gap:9px;margin-top:9px}
+.t-prog-bar{flex:1;height:7px;background:rgba(124,58,237,.1);border-radius:99px;overflow:hidden}
+.t-prog-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#6366f1,#ec4899);background-size:200% 100%;border-radius:99px;width:0%;transition:width .35s cubic-bezier(.2,.7,.2,1);position:relative;overflow:hidden;animation:tprog-flow 1.8s linear infinite}
+.t-prog-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:tprog-shine 1.2s ease-in-out infinite}
+@keyframes tprog-flow{to{background-position:-200% 0}}
+@keyframes tprog-shine{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
+.t-prog-pct{font-size:10.5px;font-weight:700;color:#7c3aed;min-width:30px;text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0}
+@media (prefers-reduced-motion:reduce){.t-prog-fill,.t-prog-fill::after{animation:none!important}}
 .retry-btn{background:rgba(124,58,237,.09);border:1px solid rgba(124,58,237,.22);color:#a78bfa;padding:5px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;cursor:pointer;margin-top:6px;transition:all .15s;display:block}
 .retry-btn:hover{background:rgba(124,58,237,.2)}
 
@@ -226,10 +232,11 @@ body.editor-open{height:100vh;overflow:hidden}
 .style-scroll{display:flex;flex-wrap:wrap;gap:5px;max-height:290px;overflow-y:auto;padding:2px 4px 4px 0;scrollbar-width:thin;scrollbar-color:rgba(124,58,237,.35) transparent}
 .style-scroll::-webkit-scrollbar{width:6px}
 .style-scroll::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:3px}
-.stile{flex-shrink:0;width:76px;border-radius:8px;overflow:hidden;border:2px solid transparent;cursor:pointer;transition:border-color .15s,transform .15s}
-.stile:hover{transform:translateY(-2px)}
+.stile{flex-shrink:0;width:76px;border-radius:8px;overflow:hidden;border:2px solid transparent;cursor:pointer;transition:border-color .18s,transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s;will-change:transform}
+.stile:hover{transform:translateY(-5px) scale(1.07);box-shadow:0 12px 26px rgba(124,58,237,.24),0 0 0 1px rgba(124,58,237,.16);z-index:3}
 .stile.on{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.18)}
-.stile-thumb{width:76px;height:106px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px}
+.stile-thumb{width:76px;height:106px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:filter .18s}
+.stile:hover .stile-thumb{filter:brightness(1.12) saturate(1.15)}
 .stile-inner{text-align:center;padding:0 4px;width:100%;position:relative;z-index:2}
 .stile-info{background:#f4f2f7;padding:4px 5px 5px;text-align:center}
 .stile-name{font-size:9px;font-weight:700;color:#55505c}
@@ -634,7 +641,10 @@ input[type=checkbox]{accent-color:#7c3aed}
             <span style="font-size:15px">🎙️</span>
             <span id="tMsg">Upload a video to generate captions</span>
           </div>
-          <div id="tProgWrap" style="display:none"><div class="t-prog-bar"><div class="t-prog-fill" id="tProgFill"></div></div></div>
+          <div id="tProgWrap" style="display:none" class="t-prog-row">
+            <div class="t-prog-bar"><div class="t-prog-fill" id="tProgFill"></div></div>
+            <span class="t-prog-pct" id="tProgPct">0%</span>
+          </div>
         </div>
 
         <div id="retryWrap" style="display:none">
@@ -783,162 +793,164 @@ input[type=checkbox]{accent-color:#7c3aed}
 // ═══════════════════════════════════════
 // 30 Styles (captions.ai-Katalog + eigene Trend-Styles: Tokyo, Chrome, Editorial, Marker, Muse, Carbon + Creator-Presets: Amplify, Headline, Pulse, Hush)
 var STYLES = [
-  {id:'bloom',    name:'Bloom',      fl:'Playfair Display', // "A soft, dewy aesthetic"
-   font:"'Playfair Display'", fw:'700', tt:'uppercase', ls:'1px',
-   thumbBg:'linear-gradient(160deg,#2a1620,#14090f)',
-   tc:'#fff', ts:'0 2px 18px rgba(249,168,212,.45)',
-   hl:'#f9a8d4', hlFont:"'Caveat'", hlItalic:true, hls:'0 0 22px rgba(249,168,212,.9)', anim:'glow', badge:'✨'},
-  {id:'elevate',  name:'Elevate',    fl:'Raleway', // "A premium, refined aesthetic"
-   font:"'Raleway'", fw:'300', ls:'3px', tt:'uppercase', fs:'0.75em',
-   thumbBg:'linear-gradient(160deg,#040404,#0a0a0a)',
-   tc:'#fff', ts:'none', hl:'#d1d5db', hls:'none', anim:'none'},
-  {id:'ember',    name:'Ember',      fl:'Barlow Condensed', // "Warm, golden-hour tones"
-   font:"'Barlow Condensed'", fw:'800',
-   thumbBg:'linear-gradient(160deg,#1a0800,#0f0400)',
-   tc:'#fb923c', ts:'0 0 14px rgba(251,146,60,.7)',
-   hl:'#fde68a', hls:'0 0 22px rgba(253,230,138,1)', anim:'glow'},
-  {id:'ignite',   name:'Ignite',     fl:'Oswald', // "Bold, electric edits"
-   font:"'Oswald'", fw:'700', tt:'uppercase',
-   thumbBg:'linear-gradient(160deg,#180000,#0a0000)',
-   tc:'#ff4444', ts:'0 0 16px rgba(255,68,68,.65)',
-   hl:'#fbbf24', hls:'0 0 18px rgba(251,191,36,.8)', anim:'glow'},
-  {id:'impact2',  name:'Impact II',  fl:'Bebas Neue', // "Punchy and dynamic"
-   font:"'Bebas Neue'", fw:'400', tt:'uppercase',
-   thumbBg:'linear-gradient(160deg,#080808,#151515)',
-   tc:'#fff', ts:'3px 3px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000',
-   hl:'#facc15', hls:'3px 3px 0 #000,0 0 18px rgba(250,204,21,.7)', anim:'punch', cstroke:'#000', badge:'🔥'},
-  {id:'paper2',   name:'Paper II',   fl:'Playfair Display', // "Moody literary vibes"
-   font:"'Playfair Display'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#171310,#0b0908)',
-   tc:'#1c1917', ts:'none',
-   boxBg:'#f5f1e8', boxBr:'4px',
-   hl:'#9a3412', hls:'none', anim:'none', badge:'📖'},
-  {id:'prime',    name:'Prime',      fl:'Poppins', // "Futuristic and modern" — Bold + Cyan-Script-Akzent (wie Referenz)
-   font:"'Poppins'", fw:'800',
-   thumbBg:'linear-gradient(160deg,#0b1016,#10161e)',
-   tc:'#fff', ts:'0 2px 12px rgba(0,0,0,.6)',
-   hl:'#7df3ff', hlFont:"'Caveat'", hlItalic:true, hls:'0 0 16px rgba(125,243,255,.55)', anim:'scale'},
-  {id:'sketch',   name:'Sketch',     fl:'Kalam', // "Playful and artistic" — Handschrift + Kringel ums aktive Wort (wie Referenz)
-   font:"'Kalam'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#101418,#0a0d10)',
-   tc:'#fff', ts:'1px 2px 0 rgba(0,0,0,.5)',
-   hl:'#efe7d8', hlFont:"'Barlow Condensed'", hlUpper:true, circle:true, hls:'none', anim:'none'},
-  {id:'sonnet',   name:'Sonnet',     fl:'Playfair Display', // "Soft, poetic style" — Serif, aktives Wort kursiv (wie Referenz)
-   font:"'Playfair Display'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#141217,#0b0a0e)',
-   tc:'#e9e4f2', ts:'0 2px 10px rgba(0,0,0,.6)',
-   hl:'#fff', hlItalic:true, hls:'0 1px 12px rgba(255,255,255,.35)', anim:'none'},
-  {id:'volt',     name:'Volt',       fl:'Anton', // "Vivid and electric"
-   font:"'Anton'", fw:'400', tt:'uppercase',
-   thumbBg:'linear-gradient(160deg,#0a0a00,#141300)',
-   tc:'#facc15', ts:'0 0 14px rgba(250,204,21,.8)',
-   hl:'#fff', hls:'0 0 20px rgba(255,255,255,.9)', anim:'flash'},
-  {id:'y2k',      name:'Y2K',        fl:'VT323', // "That digicam aesthetic"
-   font:"'VT323'", fw:'400', ls:'1px', fs:'1.3em',
-   thumbBg:'linear-gradient(160deg,#000205,#00040a)',
-   tc:'#00ff88', ts:'0 0 8px rgba(0,255,136,.6)',
-   hl:'#ff00aa', hls:'0 0 14px rgba(255,0,170,.8)', anim:'flash', badge:'⚡'},
-  {id:'chalk',    name:'Chalk',      fl:'Kalam', // "A hand-drawn, tactile feel"
-   font:"'Kalam'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#0e0e0e,#171717)',
-   tc:'#f0f0ee', ts:'0 0 5px rgba(240,240,238,.2)',
-   hl:'#fef08a', hls:'0 0 10px rgba(254,240,138,.6)', anim:'wobble'},
-  {id:'evo',      name:'Evo',        fl:'Exo 2', // "Sharp professional style"
-   font:"'Exo 2'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#040404,#0d0d0d)',
-   tc:'#fff', ts:'none',
-   pill:{bg:'transparent',br:'0',p:'3px 0 3px 12px',borderLeft:'3px solid #7c3aed'},
-   hl:'#a78bfa', hls:'none', anim:'none'},
-  {id:'focus',    name:'Focus',      fl:'Poppins', // "Built to convert"
-   font:"'Poppins'", fw:'900',
-   thumbBg:'linear-gradient(160deg,#0e0818,#100a20)',
-   tc:'rgba(255,255,255,.92)', ts:'0 2px 8px rgba(0,0,0,.6)',
-   hlPillBg:'#7c3aed', hlc:'#fff', hls:'none', anim:'bounce', badge:'🎯'},
-  {id:'lift',     name:'Lift',       fl:'Inter', // "Corporate and clean"
-   font:"'Inter'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#07090d,#0b0e14)',
-   tc:'#fff', ts:'0 1px 6px rgba(0,0,0,.6)',
-   hl:'#60a5fa', hls:'0 0 10px rgba(96,165,250,.5)', anim:'none'},
-  {id:'linen',    name:'Linen',      fl:'DM Sans', // "Calm and elevated"
-   font:"'DM Sans'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#14110c,#0b0a07)',
-   tc:'#e7e5e4', ts:'0 1px 8px rgba(0,0,0,.5)',
-   hl:'#d6b26e', hls:'none', anim:'none'},
-  {id:'prismpro', name:'Prism Pro',  fl:'Montserrat', // "Bright, minimal aesthetic"
-   font:"'Montserrat'", fw:'900',
-   thumbBg:'linear-gradient(160deg,#040408,#080510)',
-   tg:'linear-gradient(90deg,#a78bfa,#60a5fa)', ts:'none',
-   hlg:'linear-gradient(90deg,#f9a8d4,#a78bfa)', anim:'scale'},
-  {id:'stack',    name:'Stack',      fl:'DM Sans', // "Clean, analytical edits"
-   font:"'DM Sans'", fw:'700', tt:'uppercase',
-   thumbBg:'linear-gradient(160deg,#050505,#111)',
-   tc:'#fff', ts:'1px 1px 5px rgba(0,0,0,.9)',
-   boxBg:'rgba(0,0,0,.72)', boxBr:'6px',
-   hl:'#f7c204', hls:'0 0 8px rgba(247,194,4,.5)', anim:'bounce', badge:'📊'},
-  {id:'align',    name:'Align',      fl:'Playfair Display', // "Polished, for luxury edits"
-   font:"'Playfair Display'", fw:'700', tt:'uppercase', ls:'2px', fs:'0.85em',
-   thumbBg:'linear-gradient(160deg,#12100a,#0a0906)',
-   tc:'#f5f5f4', ts:'none',
-   hl:'#eab308', hls:'0 0 14px rgba(234,179,8,.6)', anim:'none'},
-  {id:'neon',     name:'Neon',       fl:'Space Grotesk', // "Vibrant neon style"
-   font:"'Space Grotesk'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#000805,#000d0a)',
-   tc:'#00ff88', ts:'0 0 10px rgba(0,255,136,.5)',
-   hl:'#00ffcc', hls:'0 0 16px rgba(0,255,204,.9)', anim:'glow'},
-  {id:'tokyo',    name:'Tokyo',      fl:'Anton', // Streetwear poster — heavy condensed, amber on navy
-   font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px',
-   thumbBg:'linear-gradient(160deg,#12233b,#0a1524)',
-   tc:'#ffa649', ts:'0 3px 0 rgba(0,0,0,.35)',
-   hl:'#ffffff', hls:'0 0 18px rgba(255,166,73,.7)', anim:'punch', badge:'🗼'},
-  {id:'chrome',   name:'Chrome',     fl:'Montserrat', // Coolvetica-sleek — brushed silver gradient
-   font:"'Montserrat'", fw:'900', tt:'uppercase', ls:'.5px',
-   thumbBg:'linear-gradient(160deg,#0c0c10,#17171d)',
-   tg:'linear-gradient(180deg,#ffffff,#9aa3ad)', ts:'0 2px 10px rgba(0,0,0,.55)',
-   hl:'#ffffff', hls:'0 0 20px rgba(255,255,255,.85)', anim:'scale', badge:'🪙'},
-  {id:'editorial',name:'Editorial',  fl:'Playfair Display', // Magazine-minimal — elegant serif, italic accent
-   font:"'Playfair Display'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#111114,#0a0a0c)',
-   tc:'#f6f5f3', ts:'0 2px 10px rgba(0,0,0,.5)',
-   hl:'#c9a86a', hlItalic:true, hls:'none', anim:'none', badge:'✦'},
-  {id:'marker',   name:'Marker',     fl:'Kalam', // Creator-casual — handwriting + yellow marker bar
-   font:"'Kalam'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#0f0f12,#17171b)',
-   tc:'#ffffff', ts:'0 1px 6px rgba(0,0,0,.5)',
-   hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'wobble', badge:'🖍️'},
-  {id:'muse',     name:'Muse',       fl:'Caveat', // Elegant script — flowing, like "fonts of the week"
-   font:"'Caveat'", fw:'700', fs:'1.25em',
-   thumbBg:'linear-gradient(160deg,#160f14,#0c080b)',
-   tc:'#f4ece6', ts:'0 2px 12px rgba(0,0,0,.55)',
-   hl:'#e7b6c8', hls:'0 0 18px rgba(231,182,200,.7)', anim:'glow', badge:'🖋️'},
-  {id:'carbon',   name:'Carbon',     fl:'Space Grotesk', // Clean mono — minimal, boxed, monochrome
-   font:"'Space Grotesk'", fw:'700', tt:'uppercase', ls:'1px', fs:'.9em',
-   thumbBg:'linear-gradient(160deg,#0a0a0a,#141414)',
-   tc:'#f4f4f5', ts:'none',
-   boxBg:'rgba(255,255,255,.08)', boxBr:'8px',
-   hl:'#a3e635', hls:'none', anim:'none'},
-  {id:'amplify',  name:'Amplify',    fl:'Poppins', // Huge bold black-outlined caps, bright highlight — the most-requested creator preset right now
+  // Reihenfolge: aktuell beliebteste Untertitel-Trends zuerst (bold outline/highlight-karaoke),
+  // dann clean/minimal, energetisch, neon/futuristisch, dezent, elegant/editorial, handschriftlich.
+  {id:'amplify',  name:'Jolt',       fl:'Poppins', // Huge bold black-outlined caps, bright highlight — the most-requested creator preset right now
    font:"'Poppins'", fw:'900', tt:'uppercase', fs:'1.1em',
    thumbBg:'linear-gradient(160deg,#1a1400,#0d0a00)',
    tc:'#fff', ts:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
    hl:'#d7ff1f', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000,0 0 20px rgba(215,255,31,.85)',
    anim:'punch', cstroke:'#000', badge:'💰'},
-  {id:'headline', name:'Headline',   fl:'Anton', // Bold white caps, thick black outline, high-contrast punch — the classic viral-thumbnail caption look
+  {id:'headline', name:'Marquee',    fl:'Anton', // Bold white caps, thick black outline, high-contrast punch — the classic viral-thumbnail caption look
    font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px', fs:'1.05em',
    thumbBg:'linear-gradient(160deg,#1a0505,#0d0202)',
    tc:'#fff', ts:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
    hl:'#fff', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000,0 0 14px rgba(255,255,255,.7)',
    anim:'scale', cstroke:'#000', badge:'🚀'},
-  {id:'pulse',    name:'Pulse',      fl:'Montserrat', // Neon-green highlight box pops behind the spoken word — the classic trending word-by-word karaoke look
+  {id:'pulse',    name:'Flux',       fl:'Montserrat', // Neon-green highlight box pops behind the spoken word — the classic trending word-by-word karaoke look
    font:"'Montserrat'", fw:'900', tt:'uppercase',
    thumbBg:'linear-gradient(160deg,#001a10,#000d08)',
    tc:'#fff', ts:'-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000',
    hlPillBg:'#00ff85', hlc:'#00220f', hls:'none', anim:'flash', cstroke:'#000', badge:'🟢'},
-  {id:'hush',     name:'Hush',       fl:'Inter', // Soft black rounded pill, understated lower-third subtitle look
+  {id:'impact2',  name:'Punch',      fl:'Bebas Neue', // "Punchy and dynamic"
+   font:"'Bebas Neue'", fw:'400', tt:'uppercase',
+   thumbBg:'linear-gradient(160deg,#080808,#151515)',
+   tc:'#fff', ts:'3px 3px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000',
+   hl:'#facc15', hls:'3px 3px 0 #000,0 0 18px rgba(250,204,21,.7)', anim:'punch', cstroke:'#000', badge:'🔥'},
+  {id:'stack',    name:'Ledger',     fl:'DM Sans', // "Clean, analytical edits"
+   font:"'DM Sans'", fw:'700', tt:'uppercase',
+   thumbBg:'linear-gradient(160deg,#050505,#111)',
+   tc:'#fff', ts:'1px 1px 5px rgba(0,0,0,.9)',
+   boxBg:'rgba(0,0,0,.72)', boxBr:'6px',
+   hl:'#f7c204', hls:'0 0 8px rgba(247,194,4,.5)', anim:'bounce', badge:'📊'},
+  {id:'focus',    name:'Cue',        fl:'Poppins', // "Built to convert"
+   font:"'Poppins'", fw:'900',
+   thumbBg:'linear-gradient(160deg,#0e0818,#100a20)',
+   tc:'rgba(255,255,255,.92)', ts:'0 2px 8px rgba(0,0,0,.6)',
+   hlPillBg:'#7c3aed', hlc:'#fff', hls:'none', anim:'bounce', badge:'🎯'},
+  {id:'lift',     name:'Slate',      fl:'Inter', // "Corporate and clean"
+   font:"'Inter'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#07090d,#0b0e14)',
+   tc:'#fff', ts:'0 1px 6px rgba(0,0,0,.6)',
+   hl:'#60a5fa', hls:'0 0 10px rgba(96,165,250,.5)', anim:'none'},
+  {id:'evo',      name:'Vector',     fl:'Exo 2', // "Sharp professional style"
+   font:"'Exo 2'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#040404,#0d0d0d)',
+   tc:'#fff', ts:'none',
+   pill:{bg:'transparent',br:'0',p:'3px 0 3px 12px',borderLeft:'3px solid #7c3aed'},
+   hl:'#a78bfa', hls:'none', anim:'none'},
+  {id:'elevate',  name:'Poise',      fl:'Raleway', // "A premium, refined aesthetic"
+   font:"'Raleway'", fw:'300', ls:'3px', tt:'uppercase', fs:'0.75em',
+   thumbBg:'linear-gradient(160deg,#040404,#0a0a0a)',
+   tc:'#fff', ts:'none', hl:'#d1d5db', hls:'none', anim:'none'},
+  {id:'carbon',   name:'Graphite',   fl:'Space Grotesk', // Clean mono — minimal, boxed, monochrome
+   font:"'Space Grotesk'", fw:'700', tt:'uppercase', ls:'1px', fs:'.9em',
+   thumbBg:'linear-gradient(160deg,#0a0a0a,#141414)',
+   tc:'#f4f4f5', ts:'none',
+   boxBg:'rgba(255,255,255,.08)', boxBr:'8px',
+   hl:'#a3e635', hls:'none', anim:'none'},
+  {id:'ignite',   name:'Flare',      fl:'Oswald', // "Bold, electric edits"
+   font:"'Oswald'", fw:'700', tt:'uppercase',
+   thumbBg:'linear-gradient(160deg,#180000,#0a0000)',
+   tc:'#ff4444', ts:'0 0 16px rgba(255,68,68,.65)',
+   hl:'#fbbf24', hls:'0 0 18px rgba(251,191,36,.8)', anim:'glow'},
+  {id:'volt',     name:'Surge',      fl:'Anton', // "Vivid and electric"
+   font:"'Anton'", fw:'400', tt:'uppercase',
+   thumbBg:'linear-gradient(160deg,#0a0a00,#141300)',
+   tc:'#facc15', ts:'0 0 14px rgba(250,204,21,.8)',
+   hl:'#fff', hls:'0 0 20px rgba(255,255,255,.9)', anim:'flash'},
+  {id:'ember',    name:'Kindle',     fl:'Barlow Condensed', // "Warm, golden-hour tones"
+   font:"'Barlow Condensed'", fw:'800',
+   thumbBg:'linear-gradient(160deg,#1a0800,#0f0400)',
+   tc:'#fb923c', ts:'0 0 14px rgba(251,146,60,.7)',
+   hl:'#fde68a', hls:'0 0 22px rgba(253,230,138,1)', anim:'glow'},
+  {id:'tokyo',    name:'Skyline',    fl:'Anton', // Streetwear poster — heavy condensed, amber on navy
+   font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px',
+   thumbBg:'linear-gradient(160deg,#12233b,#0a1524)',
+   tc:'#ffa649', ts:'0 3px 0 rgba(0,0,0,.35)',
+   hl:'#ffffff', hls:'0 0 18px rgba(255,166,73,.7)', anim:'punch', badge:'🗼'},
+  {id:'neon',     name:'Vivid',      fl:'Space Grotesk', // "Vibrant neon style"
+   font:"'Space Grotesk'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#000805,#000d0a)',
+   tc:'#00ff88', ts:'0 0 10px rgba(0,255,136,.5)',
+   hl:'#00ffcc', hls:'0 0 16px rgba(0,255,204,.9)', anim:'glow'},
+  {id:'y2k',      name:'Pixel',      fl:'VT323', // "That digicam aesthetic"
+   font:"'VT323'", fw:'400', ls:'1px', fs:'1.3em',
+   thumbBg:'linear-gradient(160deg,#000205,#00040a)',
+   tc:'#00ff88', ts:'0 0 8px rgba(0,255,136,.6)',
+   hl:'#ff00aa', hls:'0 0 14px rgba(255,0,170,.8)', anim:'flash', badge:'⚡'},
+  {id:'chrome',   name:'Mercury',    fl:'Montserrat', // Coolvetica-sleek — brushed silver gradient
+   font:"'Montserrat'", fw:'900', tt:'uppercase', ls:'.5px',
+   thumbBg:'linear-gradient(160deg,#0c0c10,#17171d)',
+   tg:'linear-gradient(180deg,#ffffff,#9aa3ad)', ts:'0 2px 10px rgba(0,0,0,.55)',
+   hl:'#ffffff', hls:'0 0 20px rgba(255,255,255,.85)', anim:'scale', badge:'🪙'},
+  {id:'prime',    name:'Nova',       fl:'Poppins', // "Futuristic and modern" — Bold + Cyan-Script-Akzent (wie Referenz)
+   font:"'Poppins'", fw:'800',
+   thumbBg:'linear-gradient(160deg,#0b1016,#10161e)',
+   tc:'#fff', ts:'0 2px 12px rgba(0,0,0,.6)',
+   hl:'#7df3ff', hlFont:"'Caveat'", hlItalic:true, hls:'0 0 16px rgba(125,243,255,.55)', anim:'scale'},
+  {id:'prismpro', name:'Aurora',     fl:'Montserrat', // "Bright, minimal aesthetic"
+   font:"'Montserrat'", fw:'900',
+   thumbBg:'linear-gradient(160deg,#040408,#080510)',
+   tg:'linear-gradient(90deg,#a78bfa,#60a5fa)', ts:'none',
+   hlg:'linear-gradient(90deg,#f9a8d4,#a78bfa)', anim:'scale'},
+  {id:'hush',     name:'Velvet',     fl:'Inter', // Soft black rounded pill, understated lower-third subtitle look
    font:"'Inter'", fw:'600',
    thumbBg:'linear-gradient(160deg,#171717,#0c0c0c)',
    tc:'#fff', ts:'none',
    boxBg:'rgba(20,20,20,.68)', boxBr:'22px',
    hl:'#fff', hls:'none', anim:'none', badge:'📱'},
+  {id:'bloom',    name:'Petal',      fl:'Playfair Display', // "A soft, dewy aesthetic"
+   font:"'Playfair Display'", fw:'700', tt:'uppercase', ls:'1px',
+   thumbBg:'linear-gradient(160deg,#2a1620,#14090f)',
+   tc:'#fff', ts:'0 2px 18px rgba(249,168,212,.45)',
+   hl:'#f9a8d4', hlFont:"'Caveat'", hlItalic:true, hls:'0 0 22px rgba(249,168,212,.9)', anim:'glow', badge:'✨'},
+  {id:'sonnet',   name:'Verse',      fl:'Playfair Display', // "Soft, poetic style" — Serif, aktives Wort kursiv (wie Referenz)
+   font:"'Playfair Display'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#141217,#0b0a0e)',
+   tc:'#e9e4f2', ts:'0 2px 10px rgba(0,0,0,.6)',
+   hl:'#fff', hlItalic:true, hls:'0 1px 12px rgba(255,255,255,.35)', anim:'none'},
+  {id:'editorial',name:'Folio',      fl:'Playfair Display', // Magazine-minimal — elegant serif, italic accent
+   font:"'Playfair Display'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#111114,#0a0a0c)',
+   tc:'#f6f5f3', ts:'0 2px 10px rgba(0,0,0,.5)',
+   hl:'#c9a86a', hlItalic:true, hls:'none', anim:'none', badge:'✦'},
+  {id:'paper2',   name:'Parchment',  fl:'Playfair Display', // "Moody literary vibes"
+   font:"'Playfair Display'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#171310,#0b0908)',
+   tc:'#1c1917', ts:'none',
+   boxBg:'#f5f1e8', boxBr:'4px',
+   hl:'#9a3412', hls:'none', anim:'none', badge:'📖'},
+  {id:'align',    name:'Monogram',   fl:'Playfair Display', // "Polished, for luxury edits"
+   font:"'Playfair Display'", fw:'700', tt:'uppercase', ls:'2px', fs:'0.85em',
+   thumbBg:'linear-gradient(160deg,#12100a,#0a0906)',
+   tc:'#f5f5f4', ts:'none',
+   hl:'#eab308', hls:'0 0 14px rgba(234,179,8,.6)', anim:'none'},
+  {id:'muse',     name:'Ivy',        fl:'Caveat', // Elegant script — flowing, like "fonts of the week"
+   font:"'Caveat'", fw:'700', fs:'1.25em',
+   thumbBg:'linear-gradient(160deg,#160f14,#0c080b)',
+   tc:'#f4ece6', ts:'0 2px 12px rgba(0,0,0,.55)',
+   hl:'#e7b6c8', hls:'0 0 18px rgba(231,182,200,.7)', anim:'glow', badge:'🖋️'},
+  {id:'linen',    name:'Alabaster',  fl:'DM Sans', // "Calm and elevated"
+   font:"'DM Sans'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#14110c,#0b0a07)',
+   tc:'#e7e5e4', ts:'0 1px 8px rgba(0,0,0,.5)',
+   hl:'#d6b26e', hls:'none', anim:'none'},
+  {id:'sketch',   name:'Doodle',     fl:'Kalam', // "Playful and artistic" — Handschrift + Kringel ums aktive Wort (wie Referenz)
+   font:"'Kalam'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#101418,#0a0d10)',
+   tc:'#fff', ts:'1px 2px 0 rgba(0,0,0,.5)',
+   hl:'#efe7d8', hlFont:"'Barlow Condensed'", hlUpper:true, circle:true, hls:'none', anim:'none'},
+  {id:'chalk',    name:'Crayon',     fl:'Kalam', // "A hand-drawn, tactile feel"
+   font:"'Kalam'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#0e0e0e,#171717)',
+   tc:'#f0f0ee', ts:'0 0 5px rgba(240,240,238,.2)',
+   hl:'#fef08a', hls:'0 0 10px rgba(254,240,138,.6)', anim:'wobble'},
+  {id:'marker',   name:'Swatch',     fl:'Kalam', // Creator-casual — handwriting + yellow marker bar
+   font:"'Kalam'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#0f0f12,#17171b)',
+   tc:'#ffffff', ts:'0 1px 6px rgba(0,0,0,.5)',
+   hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'wobble', badge:'🖍️'},
 ];
 
 // ═══════════════════════════════════════
@@ -971,7 +983,12 @@ function isKeywordWord(w) {
 }
 var CODE_BY_LANG    = {}; (function(){ for (var c in LANG_BY_CODE) CODE_BY_LANG[LANG_BY_CODE[c]] = c; })();
 // Float32-Audio (mono, 16 kHz) → WAV 16-bit PCM für den API-Upload (~1.9 MB/Min statt ganzes Video)
-function float32ToWav(samples, sampleRate) {
+// Gibt die Kontrolle kurz an den Browser zurück, damit Rendering/Input während langer
+// Sample-Schleifen weiterlaufen — sonst hält Chrome die Seite bei langen Videos für
+// "reagiert nicht" (Main-Thread am Stück blockiert).
+var YIELD_EVERY = 200000; // Samples pro Chunk, bevor kurz ans Event-Loop abgegeben wird
+function yieldToUI() { return new Promise(function(r){ setTimeout(r, 0); }); }
+async function float32ToWav(samples, sampleRate) {
   var buf = new ArrayBuffer(44 + samples.length * 2);
   var v = new DataView(buf);
   function ws(o, s) { for (var i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
@@ -984,6 +1001,7 @@ function float32ToWav(samples, sampleRate) {
   for (var i = 0; i < samples.length; i++, off += 2) {
     var s = Math.max(-1, Math.min(1, samples[i]));
     v.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+    if (i > 0 && i % YIELD_EVERY === 0) await yieldToUI();
   }
   return buf;
 }
@@ -992,6 +1010,18 @@ function looksRepetitive(words) {
   if (!words || words.length < 12) return false;
   var uniq = new Set(words.map(function(w){ return w.word.toLowerCase(); })).size;
   return uniq / words.length < 0.3;
+}
+// Whisper markiert reine Musik-/Geräusch-Passagen (kein gesprochenes Wort) manchmal mit
+// Pseudo-Wörtern wie "[Music]", "(Applause)" oder Notensymbolen statt die Stelle leer zu
+// lassen — die dürfen nicht als Untertitel angezeigt werden.
+var NON_SPEECH_TAG_RE = /^[\[(][^\])]*[\])][.,!?]?$/;
+var NON_SPEECH_SYMBOL_RE = /^[♪♫🎵🎶]+$/;
+function stripNonSpeechTags(words) {
+  if (!words || !words.length) return words || [];
+  return words.filter(function(w) {
+    var t = (w.word || '').trim();
+    return t && !NON_SPEECH_TAG_RE.test(t) && !NON_SPEECH_SYMBOL_RE.test(t);
+  });
 }
 // Whisper-Nachbearbeitung: Stottern (>2 gleiche Wörter in Folge) und direkt wiederholte Wortfolgen entfernen
 function cleanWords(words) {
@@ -1315,10 +1345,16 @@ function resplitBlock(b) {
 // ═══════════════════════════════════════
 // CAPTION EDITOR
 // ═══════════════════════════════════════
-function renderSegments() {
+// Baut alle Zeilen erst in einem losgelösten Fragment (kein Live-DOM = kein Reflow pro Zeile),
+// hängt sie in EINEM Schritt ein und passt die Textarea-Höhen danach in zwei getrennten
+// Lese-/Schreib-Durchgängen an. Reihenweise abwechselnd lesen (scrollHeight) und schreiben
+// (style.height) erzwingt sonst bei JEDER Zeile einen synchronen Reflow — bei langen Videos mit
+// hunderten Blöcken blockiert das den Main-Thread spürbar (Chrome zeigt "Seite reagiert nicht").
+async function renderSegments() {
   var c = document.getElementById('capSegs');
   if (!c) return;
-  c.innerHTML = '';
+  var frag = document.createDocumentFragment();
+  var rows = [];
   captionBlocks.forEach(function(b, idx) {
     var row = document.createElement('div');
     row.className = 'cap-seg';
@@ -1348,10 +1384,20 @@ function renderSegments() {
     })(idx, ta);
     row.appendChild(ts);
     row.appendChild(ta);
-    c.appendChild(row);
-    ta.style.height = 'auto';
-    ta.style.height = (ta.scrollHeight || 14) + 'px'; // lange Texte von Anfang an voll sichtbar
+    frag.appendChild(row);
+    rows.push(ta);
   });
+  c.innerHTML = '';
+  c.appendChild(frag);
+  var heights = new Array(rows.length);
+  for (var i = 0; i < rows.length; i++) {
+    heights[i] = rows[i].scrollHeight || 14; // Lesephase: alle Reads zuerst -> nur EIN Reflow für alle Zeilen
+    if (i > 0 && i % 200 === 0) await yieldToUI();
+  }
+  for (var j = 0; j < rows.length; j++) {
+    rows[j].style.height = heights[j] + 'px'; // Schreibphase: keine Reads mehr dazwischen -> kein Thrashing
+    if (j > 0 && j % 200 === 0) await yieldToUI();
+  }
 }
 
 function setActiveSeg(idx) {
@@ -1484,9 +1530,11 @@ function applyTemplateSettings(t) {
   }
   applyPos();
 }
+var _stileHoverTimer = null;
 function buildPicker() {
   var c = document.getElementById('stylePicker');
   if (!c) return;
+  if (_stileHoverTimer) { clearInterval(_stileHoverTimer); _stileHoverTimer = null; }
   c.innerHTML = '';
   STYLES.forEach(function(s) {
     var tile = document.createElement('div');
@@ -1498,9 +1546,25 @@ function buildPicker() {
     thumb.style.background = s.thumbBg;
     var inner = document.createElement('div');
     inner.className = 'stile-inner';
-    inner.innerHTML = buildCap(['caption','text'], s, 1, 9, null);
+    var hIdx = 1;
+    inner.innerHTML = buildCap(['caption','text'], s, hIdx, 9, null);
     thumb.appendChild(inner);
     tile.appendChild(thumb);
+    // Hover: Vorschau läuft wortweise durch (mit dem echten s.anim-Effekt), wie im
+    // Showcase auf der Landingpage — zeigt sofort, wie der Style "in Bewegung" wirkt.
+    tile.addEventListener('mouseenter', function(){
+      if (_stileHoverTimer) clearInterval(_stileHoverTimer);
+      hIdx = 0;
+      inner.innerHTML = buildCap(['caption','text'], s, hIdx, 9, null);
+      _stileHoverTimer = setInterval(function(){
+        hIdx = (hIdx + 1) % 2;
+        inner.innerHTML = buildCap(['caption','text'], s, hIdx, 9, null);
+      }, 420);
+    });
+    tile.addEventListener('mouseleave', function(){
+      if (_stileHoverTimer) { clearInterval(_stileHoverTimer); _stileHoverTimer = null; }
+      inner.innerHTML = buildCap(['caption','text'], s, 1, 9, null);
+    });
     var info = document.createElement('div');
     info.className = 'stile-info';
     var badge = s.badge ? (' <span style="font-size:7px;color:#f87171">' + s.badge + '</span>') : '';
@@ -1765,10 +1829,13 @@ function setTStatus(icon, msg, spinner, prog) {
   document.getElementById('tStatus').innerHTML =
     (spinner ? '<div class="t-spinner"></div>' : '<span style="font-size:15px">' + icon + '</span>')
     + '<span>' + msg + '</span>';
-  document.getElementById('tProgWrap').style.display = prog ? 'block' : 'none';
+  document.getElementById('tProgWrap').style.display = prog ? 'flex' : 'none';
 }
 function setTProgress(pct) {
-  document.getElementById('tProgFill').style.width = Math.min(100, pct) + '%';
+  var p = Math.max(0, Math.min(100, pct));
+  document.getElementById('tProgFill').style.width = p + '%';
+  var pctEl = document.getElementById('tProgPct');
+  if (pctEl) pctEl.textContent = Math.round(p) + '%';
 }
 
 // Serverseitige Transkription über den PHP-Proxy (Groq) — oder, falls ein eigener OpenAI-Key im
@@ -1813,7 +1880,9 @@ async function serverTranscribe(wavBlob, model, lc, audioDur) {
                              .filter(function(w){ return w.word; });
   if (!words.length && j.segments) words = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
   if (!words.length && j.text)     words = segmentsToWords([{ text: j.text, timestamp: [0, audioDur] }]);
-  return words;
+  // Whisper liefert im verbose_json die tatsächlich erkannte Sprache mit (z. B. "german") —
+  // nützlich, um dem Nutzer die echte Erkennung statt nur "auto" zu zeigen.
+  return { words: words, language: (j.language || '').toLowerCase() || null };
 }
 async function transcribeVideo(file) {
   setTStatus('', 'Preparing transcription…', true, true);
@@ -1839,33 +1908,66 @@ async function transcribeVideo(file) {
       throw new Error('Could not read the audio. Please use MP4 or WebM.');
     }
 
-    // Mono-Mix über ALLE Kanäle (Sprache kann nur auf einem Kanal liegen)
+    // Mono-Mix über ALLE Kanäle (Sprache kann nur auf einem Kanal liegen) + Pegel-Scan in
+    // EINEM Durchgang statt zwei getrennten Schleifen über dieselben Samples — spart bei jedem
+    // Video einen kompletten Durchlauf, ohne an Genauigkeit/Qualität zu ändern. Läuft weiterhin
+    // in Chunks mit Yields, sonst blockiert der Main-Thread bei langen Videos am Stück.
     var chN = audioBuffer.numberOfChannels, len = audioBuffer.length;
+    var channels = [];
+    for (var c = 0; c < chN; c++) channels.push(audioBuffer.getChannelData(c));
+    var invN = 1 / chN;
     var audioData = new Float32Array(len);
-    for (var c = 0; c < chN; c++) {
-      var chD = audioBuffer.getChannelData(c);
-      for (var k = 0; k < len; k++) audioData[k] += chD[k] / chN;
+    var peak = 0;
+    for (var k = 0; k < len; k++) {
+      var s = 0;
+      for (var ci = 0; ci < chN; ci++) s += channels[ci][k];
+      s *= invN;
+      audioData[k] = s;
+      var av = s < 0 ? -s : s;
+      if (av > peak) peak = av;
+      if (k > 0 && k % YIELD_EVERY === 0) await yieldToUI();
     }
     audioCtx.close();
+    setTProgress(50);
 
     // Normalisieren — leiser Ton ist Hauptursache für "keine Sprache erkannt"
-    var peak = 0;
-    for (var k2 = 0; k2 < len; k2++) { var av = Math.abs(audioData[k2]); if (av > peak) peak = av; }
     if (peak < 0.001) throw new Error('This video appears to have no audio.');
-    if (peak < 0.9) { var gain = 0.95 / peak; for (var k3 = 0; k3 < len; k3++) audioData[k3] *= gain; }
+    if (peak < 0.9) {
+      var gain = 0.95 / peak;
+      for (var k3 = 0; k3 < len; k3++) {
+        audioData[k3] *= gain;
+        if (k3 > 0 && k3 % YIELD_EVERY === 0) await yieldToUI();
+      }
+    }
+    setTProgress(60);
 
     if (audioData.length > 16000 * 600) audioData = audioData.slice(0, 16000 * 600);
     var audioDur = audioData.length / 16000;
 
     var usedLang = whisperLang;
     var lc = (whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) ? CODE_BY_LANG[whisperLang] : '';
-    var wavBlob = new Blob([float32ToWav(audioData, 16000)], { type: 'audio/wav' });
+    var wavBlob = new Blob([await float32ToWav(audioData, 16000)], { type: 'audio/wav' });
 
     // ── 1) Serverseitig transkribieren (Groq via transcribe.php) — kein Download für den Nutzer ──
     var served = await serverTranscribe(wavBlob, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur);
 
     if (served !== null) {
-      wordTimestamps = served;
+      wordTimestamps = served.words;
+      // Server hat die Sprache selbst erkannt (Auto-Modus, Whisper liefert z.B. "german")
+      // → echten Namen statt nur "auto" anzeigen.
+      if (whisperLang === 'auto' && served.language && CODE_BY_LANG[served.language]) {
+        usedLang = served.language;
+      }
+      // Smart-Auto: Auto-Erkennung liefert eine Halluzinationsschleife (typisches Zeichen für eine
+      // falsch erkannte Sprache bei kurzen/leisen Clips) → einmal explizit mit der Browser-Sprache
+      // erzwingen und vergleichen. Bisher gab es diese Absicherung nur im lokalen Fallback-Pfad.
+      if (whisperLang === 'auto' && NAV_LANG && looksRepetitive(wordTimestamps)) {
+        setTStatus('', 'Auto-detect uncertain — trying ' + NAV_LANG + '…', true, true);
+        var servedF = await serverTranscribe(wavBlob, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, CODE_BY_LANG[NAV_LANG] || '', audioDur);
+        if (servedF && servedF.words.length && !looksRepetitive(servedF.words)) {
+          wordTimestamps = servedF.words; usedLang = NAV_LANG;
+        }
+      }
     } else {
       // ── 2) Fallback: lokal im Browser (z. B. Vercel-Demo ohne PHP-Proxy) ──
       setTStatus('', 'Server unavailable — running locally (one-time model download)…', true, true);
@@ -1881,6 +1983,7 @@ async function transcribeVideo(file) {
       }
     }
 
+    wordTimestamps = stripNonSpeechTags(wordTimestamps); // "[Music]"/"(Applause)"-Halluzinationen raus
     wordTimestamps = cleanWords(wordTimestamps); // Stottern & Wiederholungsschleifen entfernen
 
     setTProgress(100);
@@ -2372,7 +2475,16 @@ function renderShowcase() {
   if (_showcaseCapTimer) { clearInterval(_showcaseCapTimer); _showcaseCapTimer = null; }
   _showcaseCapState = [];
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  STYLES.filter(function(s){ return s.id !== 'custom' && !s._tpl; }).forEach(function(s, i) {
+  // Reihenfolge NUR für die Landing-Page-Vorschau — bewusst getrennt von STYLES (Editor-Picker
+  // bleibt nach Trend-Popularität sortiert). Hier zählt der erste Eindruck: einladende, freundliche
+  // Fotos zuerst; ein paar sehr intensive "Schock-Gesicht"-Fotos wirken sonst eher abschreckend als
+  // einladend und stehen deshalb ganz hinten (weiterhin per Scroll erreichbar, nur nicht "above the fold").
+  var SHOWCASE_ORDER = ['prismpro','marker','sketch','bloom','lift','chrome','carbon','elevate','impact2','editorial',
+    'paper2','align','linen','muse','hush','tokyo','ember','evo','stack','pulse','chalk','sonnet','y2k',
+    'volt','focus','prime','neon','amplify','headline','ignite'];
+  var showcaseStyles = SHOWCASE_ORDER.map(function(id){ return STYLES.find(function(s){ return s.id === id; }); })
+    .filter(function(s){ return s && s.id !== 'custom' && !s._tpl; });
+  showcaseStyles.forEach(function(s, i) {
     var card = document.createElement('div');
     card.className = 'show-card';
     card.style.animationDelay = (i * 45) + 'ms';

@@ -26,6 +26,7 @@ global.CLICKS = []; const els = {};
 global.document = {
   getElementById: id => els[id] || (els[id] = mkEl(id)),
   createElement: t => mkEl(t),
+  createDocumentFragment: () => ({ children: [], appendChild(c) { this.children.push(c); } }),
   querySelectorAll: () => [],
   addEventListener() {}, removeEventListener() {},
   fonts: { ready: Promise.resolve(), load: () => Promise.resolve() },
@@ -53,7 +54,7 @@ setState:function(bl,wts,dm){captionBlocks=bl;wordTimestamps=wts;if(dm)displayMo
 getBlocks:function(){return captionBlocks;},selectStyle:selectStyle,setPos:setPos,onSzChange:onSzChange,setMode:setMode,
 onWpbChange:onWpbChange,setLang:setLang,buildPicker:buildPicker,renderSegments:renderSegments,renderWPills:renderWPills,
 openEditorClean:openEditorClean,goBack:goBack,enableExports:enableExports,
-looksRepetitive:looksRepetitive,cleanWords:cleanWords,renderShowcase:renderShowcase,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},applyPos:applyPos,mergeChunkWords:mergeChunkWords};`;
+looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNonSpeechTags,renderShowcase:renderShowcase,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},applyPos:applyPos,mergeChunkWords:mergeChunkWords};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -168,12 +169,14 @@ const leg = T.cleanWords(mkW(['das', 'ist', 'sehr', 'sehr', 'gut']));
 ok(leg.length === 5, 'legitime Doppelung bleibt: ' + leg.map(w => w.word).join(' '));
 ok(T.cleanWords([]).length === 0 && T.cleanWords(null).length === 0, 'cleanWords Edge-Cases');
 
-// 15) WAV-Encoder + Sprach-Codes (Cloud-Pfad)
-const wav = new DataView(T.float32ToWav(new Float32Array([0, 0.5, -0.5, 1]), 16000));
-ok(String.fromCharCode(wav.getUint8(0), wav.getUint8(1), wav.getUint8(2), wav.getUint8(3)) === 'RIFF', 'WAV: RIFF-Header');
-ok(wav.byteLength === 44 + 8, 'WAV: 44 Header + 2 Byte/Sample');
-ok(wav.getUint32(24, true) === 16000, 'WAV: Samplerate 16k');
-ok(wav.getInt16(46, true) === 16383, 'WAV: 0.5 -> 16383, habe ' + wav.getInt16(46, true));
+// 14b) stripNonSpeechTags: "[Music]"/"(Applause)"/Notensymbole raus, echte Woerter bleiben
+const nst = T.stripNonSpeechTags(mkW(['hallo', '[Music]', 'welt', '(Applause)', 'schoen', '♪♪♪', 'tag']));
+ok(nst.map(w => w.word).join(' ') === 'hallo welt schoen tag', 'Non-Speech-Tags entfernt: ' + nst.map(w => w.word).join(' '));
+ok(T.stripNonSpeechTags([]).length === 0 && T.stripNonSpeechTags(null).length === 0, 'stripNonSpeechTags Edge-Cases');
+// Woerter, die zufaellig Klammern enthalten aber echte Sprache sind (z.B. "(lacht)" mitten im Satz), bleiben nur raus wenn sie EIN eigenes Wort-Token sind — hier: ganzer Take nur Musik
+ok(T.stripNonSpeechTags(mkW(['[Music]'])).length === 0, 'Reiner Musik-Take ergibt leere Liste');
+
+// 15) WAV-Encoder (jetzt async mit UI-Yields fuer lange Clips) + Sprach-Codes (Cloud-Pfad)
 ok(T.CODE_BY_LANG['german'] === 'de' && T.CODE_BY_LANG['english'] === 'en' && T.CODE_BY_LANG['ukrainian'] === 'uk', 'CODE_BY_LANG invertiert');
 
 // 16) Keywords, Timing-Offset, Custom Style
@@ -238,6 +241,13 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   ok(dr.every(w => w.start <= 40.01), 'kein Wort laeuft ueber die Videolaenge hinaus (Clamping)');
   ok(Math.max(...dr.map(w => w.end)) > 30, 'Abdeckung reicht bis nahe Videoende: ' + Math.max(...dr.map(w => w.end)).toFixed(1));
   for (let z = 1; z < dr.length; z++) ok(dr[z].start >= dr[z - 1].start - 0.001, 'Startzeiten monoton');
+
+  // 20) WAV-Encoder (async, yielded fuer lange Clips)
+  const wav = new DataView(await T.float32ToWav(new Float32Array([0, 0.5, -0.5, 1]), 16000));
+  ok(String.fromCharCode(wav.getUint8(0), wav.getUint8(1), wav.getUint8(2), wav.getUint8(3)) === 'RIFF', 'WAV: RIFF-Header');
+  ok(wav.byteLength === 44 + 8, 'WAV: 44 Header + 2 Byte/Sample');
+  ok(wav.getUint32(24, true) === 16000, 'WAV: Samplerate 16k');
+  ok(wav.getInt16(46, true) === 16383, 'WAV: 0.5 -> 16383, habe ' + wav.getInt16(46, true));
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
