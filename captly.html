@@ -1158,6 +1158,7 @@ async function transcribeChunked(pipe, audioData, opts) {
   var SR = 16000, WIN = 28 * SR, STEP = 26 * SR;
   var n = Math.max(1, Math.ceil(Math.max(1, audioData.length - (WIN - STEP)) / STEP));
   var windows = [];
+  var detectedLang = null; // von opts.return_language:true geliefert, falls gesetzt
   for (var i = 0; i < n; i++) {
     var start = i * STEP;
     if (start >= audioData.length) break;
@@ -1166,13 +1167,16 @@ async function transcribeChunked(pipe, audioData, opts) {
     if (n > 1) setTStatus('', 'Detecting speech… window ' + (i + 1) + '/' + n, true, true);
     setTProgress(76 + ((i + 1) / n) * 16);
     var r = await safePipe(pipe, seg, opts);
+    if (!detectedLang && r.chunks && r.chunks.length && r.chunks[0].language) detectedLang = r.chunks[0].language;
     var words = chunksToWords(r.chunks);
     if (!words.length && (r.text || '').trim()) {
       words = segmentsToWords([{ text: r.text, timestamp: [0, seg.length / SR] }]);
     }
     windows.push({ start: start, segLen: seg.length, words: words });
   }
-  return mergeChunkWords(windows);
+  var merged = mergeChunkWords(windows);
+  merged.language = detectedLang; // zusätzliche Eigenschaft auf dem Array -- .length/.map etc. bleiben unverändert nutzbar
+  return merged;
 }
 // Fenster-Ergebnisse (lokale Wort-Timestamps) → globale, lückenlose & doppelfreie Wortliste.
 // FIX: Timestamps werden auf die Fensterlänge GECLAMPT (verkettete null-Timestamps aus chunksToWords
@@ -1532,6 +1536,26 @@ async function splitBlockAtCursor(idx, ta) {
   if (nextTa) { nextTa.focus(); nextTa.setSelectionRange(0, 0); }
 }
 
+// Backspace am Anfang eines Segment-Editors: aktuellen Block mit dem vorherigen zu EINEM
+// Block verschmelzen (Gegenstück zu splitBlockAtCursor). Beim allerersten Block (idx 0)
+// gibt es nichts zum Verschmelzen -> normales Backspace-Verhalten bleibt unangetastet.
+async function mergeBlockWithPrevious(idx, ta) {
+  if (idx <= 0) return;
+  var prevBlock = captionBlocks[idx - 1];
+  var curBlock  = captionBlocks[idx];
+  if (!prevBlock || !curBlock) return;
+  var cursorPos   = prevBlock.text.length + 1; // Naht zwischen altem Vorgänger-Text und eingefügtem Leerzeichen
+  var mergedBlock = { words: prevBlock.words.concat(curBlock.words), start: prevBlock.start, end: curBlock.end,
+                       text: prevBlock.text + ' ' + curBlock.text };
+  captionBlocks.splice(idx - 1, 2, mergedBlock);
+  await renderSegments();
+  renderWPills();
+  _lastKey = null;
+  updateOverlay();
+  var prevTa = document.querySelector('#seg' + (idx - 1) + ' .cap-seg-ta');
+  if (prevTa) { prevTa.focus(); prevTa.setSelectionRange(cursorPos, cursorPos); }
+}
+
 // ═══════════════════════════════════════
 // CAPTION EDITOR
 // ═══════════════════════════════════════
@@ -1574,9 +1598,16 @@ async function renderSegments() {
     })(idx, ta);
     ta.onkeydown = (function(i, el) {
       return function(e) {
-        if (e.key !== 'Enter' || e.shiftKey) return; // Shift+Enter bleibt normaler Zeilenumbruch
-        e.preventDefault();
-        splitBlockAtCursor(i, el);
+        if (e.key === 'Enter' && !e.shiftKey) { // Shift+Enter bleibt normaler Zeilenumbruch
+          e.preventDefault();
+          splitBlockAtCursor(i, el);
+          return;
+        }
+        if (e.key === 'Backspace' && el.selectionStart === 0 && el.selectionEnd === 0) {
+          e.preventDefault();
+          mergeBlockWithPrevious(i, el);
+          return;
+        }
       };
     })(idx, ta);
     row.appendChild(ts);
@@ -2253,44 +2284,76 @@ async function transcribeVideo(file) {
       if (whisperLang === 'auto' && served.language && CODE_BY_LANG[served.language]) {
         usedLang = served.language;
       }
-      // Smart-Auto: zwei Auslöser für einen erzwungenen Gegen-Check mit der Browser-Sprache:
+      // Smart-Auto: erzwungener Gegen-Check bei zwei Auslösern.
       //  a) Halluzinationsschleife (klassisches Wiederholungsmuster bei kurzen/leisen Clips)
-      //  b) Englisch-Bias: Groq/Whisper hat sauberen, aber verdächtig englischen Text geliefert
-      //     (served.language === 'english'), obwohl der Browser eine andere Sprache signalisiert —
-      //     bekannte Modell-Eigenheit bei unsicherem Auto-Detect. Greift NICHT bei aktivem
-      //     "Translate to English" (dort ist Englisch das gewollte Ergebnis).
+      //  b) Englisch-Bias: Groq/Whisper hat sauberen, aber verdächtig englischen Text geliefert,
+      //     obwohl es selbst über `served.language` eine ANDERE Audio-Sprache erkannt hat —
+      //     bekannte Whisper-Eigenheit: die Sprach-ID ist intern oft korrekt, der generierte Text
+      //     rutscht trotzdem auf Englisch ab. `served.language` ist deshalb das bevorzugte
+      //     Korrektur-Ziel — NICHT die Browser-UI-Sprache (NAV_LANG): die sagt nichts darüber aus,
+      //     in welcher Sprache das Video ist (z. B. englischsprachiger Browser + deutsches Video
+      //     hätte mit NAV_LANG als einzigem Ziel NIE korrigiert, weil NAV_LANG dann 'english' ist).
+      //     NAV_LANG bleibt nur Rückfalloption, wenn Whisper selbst kein Gegensignal liefert
+      //     (z. B. bei (a), wo `served.language` durch die Halluzination selbst unzuverlässig sein kann).
+      //     Greift NICHT bei aktivem "Translate to English" (dort ist Englisch gewollt).
       var repetitive = looksRepetitive(wordTimestamps);
-      var suspiciousEnglishBias = !doTranslate && whisperLang === 'auto' && NAV_LANG && NAV_LANG !== 'english'
-        && served.language === 'english' && !repetitive;
-      if (whisperLang === 'auto' && NAV_LANG && (repetitive || suspiciousEnglishBias)) {
-        setTStatus('', 'Auto-detect uncertain — trying ' + NAV_LANG + '…', true, true);
-        var servedF = await serverTranscribe(wavBlob, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, CODE_BY_LANG[NAV_LANG] || '', audioDur);
-        // Bei (a) reicht "nicht wiederholend" wie bisher. Bei (b) muss der erzwungene Versuch
-        // zusätzlich plausibel nach der Zielsprache aussehen, sonst bleibt das Original (das ggf.
-        // wirklich englisch ist) unangetastet.
+      var detectedTarget = (served.language && served.language !== 'english' && CODE_BY_LANG[served.language]) ? served.language : null;
+      // Trigger: benutzt looksLikeEnglishBias (Stoppwort-Anteil) statt looksLikeTargetLang, denn
+      // looksLikeTargetLang verlangt sprachtypische SONDERZEICHEN (ä/ö/ü/ß etc.) -- viele echte,
+      // korrekte Sätze (v. a. Deutsch) enthalten aber schlicht keine, das würde hier ständig
+      // fälschlich "verdächtig" auslösen bzw. (schlimmer, siehe unten) das Ergebnis verwerfen.
+      var suspiciousEnglishBias = !doTranslate && whisperLang === 'auto' && !repetitive
+        && detectedTarget && looksLikeEnglishBias(wordTimestamps);
+      var retryTarget = detectedTarget || NAV_LANG;
+      if (whisperLang === 'auto' && retryTarget && (repetitive || suspiciousEnglishBias)) {
+        setTStatus('', 'Auto-detect uncertain — trying ' + retryTarget + '…', true, true);
+        // Fuer den Korrektur-Versuch IMMER large-v3 (Perfect) statt turbo verwenden, auch im Fast-
+        // Modus: whisper-large-v3-turbo hat laut Groq/OpenAI eine bekannt schwaechere mehrsprachige
+        // Genauigkeit (reduzierte Decoder-Tiefe) -- selbst mit erzwungenem `language`-Parameter bleibt
+        // der generierte Text bei turbo mitunter unzuverlaessig. Der Retry ist selten (nur bei
+        // Verdachtsfall) und darf daher die genauere/langsamere Variante nutzen.
+        var servedF = await serverTranscribe(wavBlob, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur);
+        // WICHTIG: NICHT mehr looksLikeTargetLang als Pflichtkriterium -- ein korrekter deutscher/
+        // französischer/... Satz OHNE Sonderzeichen (sehr häufig, z. B. "Hallo und willkommen zu
+        // unserem Projekt") würde sonst fälschlich verworfen und das falsch-englische Original
+        // behalten (das war der eigentliche, hartnäckige Bug). Stattdessen: akzeptieren, außer das
+        // Ergebnis sieht SELBST wieder verdächtig englisch aus (looksLikeTargetLang bleibt als
+        // zusätzliches, positives Signal erhalten, ist aber nicht mehr zwingend).
         if (servedF && servedF.words.length && !looksRepetitive(servedF.words)
-            && (repetitive || looksLikeTargetLang(servedF.words, NAV_LANG))) {
-          wordTimestamps = servedF.words; usedLang = NAV_LANG;
+            && (repetitive || !looksLikeEnglishBias(servedF.words) || looksLikeTargetLang(servedF.words, retryTarget))) {
+          wordTimestamps = servedF.words; usedLang = retryTarget;
         }
       }
     } else {
       // ── 2) Fallback: lokal im Browser (z. B. Vercel-Demo ohne PHP-Proxy) ──
       setTStatus('', 'Server unavailable — running locally (one-time model download)…', true, true);
       var pipe = await getPipe(LOCAL_MODEL[whisperModel] || 'base');
-      var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe' };
+      // return_language:true haengt die von Whisper selbst erkannte Audio-Sprache an die Chunks an
+      // (transcribeChunked reicht sie als wordTimestamps.language durch) -- gleiches zuverlässiges
+      // Korrektur-Ziel wie `served.language` beim Server-Pfad, statt blind auf NAV_LANG zu vertrauen.
+      var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe', return_language: true };
       if (whisperLang !== 'auto') wOpts.language = whisperLang;
       wordTimestamps = await transcribeChunked(pipe, audioData, wOpts);
-      // Smart-Auto, lokaler Pfad: gleiche zwei Auslöser wie oben. Die lokale Pipe liefert kein
-      // "language"-Feld zurück, daher hier die Stopwort-Heuristik (looksLikeEnglishBias) statt
-      // eines direkten Sprachvergleichs.
       var repetitiveLocal = looksRepetitive(wordTimestamps);
-      var suspiciousEnglishBiasLocal = !doTranslate && whisperLang === 'auto' && NAV_LANG && NAV_LANG !== 'english'
-        && !repetitiveLocal && looksLikeEnglishBias(wordTimestamps) && !looksLikeTargetLang(wordTimestamps, NAV_LANG);
-      if (whisperLang === 'auto' && NAV_LANG && (repetitiveLocal || suspiciousEnglishBiasLocal)) {
-        setTStatus('', 'Auto-detect uncertain — trying ' + NAV_LANG + '…', true, true);
-        var wtF = await transcribeChunked(pipe, audioData, Object.assign({}, wOpts, { language: NAV_LANG }));
-        if (wtF.length && !looksRepetitive(wtF) && (repetitiveLocal || looksLikeTargetLang(wtF, NAV_LANG))) {
-          wordTimestamps = wtF; usedLang = NAV_LANG;
+      var detectedTargetLocal = (wordTimestamps.language && wordTimestamps.language !== 'english' && CODE_BY_LANG[wordTimestamps.language]) ? wordTimestamps.language : null;
+      // Trigger einheitlich über looksLikeEnglishBias (Stoppwort-Anteil) statt looksLikeTargetLang --
+      // s. Kommentar beim Server-Pfad: Sonderzeichen-Pflicht verwirft sonst korrekte, akzentfreie
+      // Sätze fälschlich.
+      var suspiciousEnglishBiasLocal = !doTranslate && whisperLang === 'auto' && !repetitiveLocal
+        && looksLikeEnglishBias(wordTimestamps);
+      var retryTargetLocal = detectedTargetLocal || NAV_LANG;
+      if (whisperLang === 'auto' && retryTargetLocal && (repetitiveLocal || suspiciousEnglishBiasLocal)) {
+        setTStatus('', 'Auto-detect uncertain — trying ' + retryTargetLocal + '…', true, true);
+        // Gleicher Grund wie beim Server-Pfad: fuer den seltenen Korrektur-Versuch auf 'small'
+        // eskalieren statt beim (im Fast-Modus bewusst kleinen/schnellen) 'tiny'-Modell zu bleiben --
+        // 'tiny' ist bei nicht-englischer Sprache deutlich unzuverlaessiger, auch mit erzwungenem Hint.
+        var pipeRetry = LOCAL_MODEL[whisperModel] === 'small' ? pipe : await getPipe('small');
+        var wtF = await transcribeChunked(pipeRetry, audioData, Object.assign({}, wOpts, { language: retryTargetLocal }));
+        // Auch hier: looksLikeTargetLang nicht mehr als Pflichtkriterium, nur als zusätzliches
+        // positives Signal -- s. Server-Pfad-Kommentar oben (der eigentliche Bug-Fund).
+        if (wtF.length && !looksRepetitive(wtF)
+            && (repetitiveLocal || !looksLikeEnglishBias(wtF) || looksLikeTargetLang(wtF, retryTargetLocal))) {
+          wordTimestamps = wtF; usedLang = retryTargetLocal;
         }
       }
     }
