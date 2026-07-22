@@ -715,8 +715,8 @@ input[type=checkbox]{accent-color:#7c3aed}
         </div>
         <div class="sz-row" style="margin-top:7px">
           <span style="font-size:9px;color:#94909c;min-width:34px">Height</span>
-          <input type="range" min="-30" max="30" step="2" value="0" id="voffSlider" oninput="onVOffChange(this.value)">
-          <span class="sz-val" id="voffDisp" style="min-width:38px">0%</span>
+          <input type="range" min="-30" max="30" step="2" value="20" id="voffSlider" oninput="onVOffChange(this.value)">
+          <span class="sz-val" id="voffDisp" style="min-width:38px">+20%</span>
         </div>
         <div class="clbl" style="margin-top:0">Font size</div>
         <div class="sz-row">
@@ -732,6 +732,11 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div class="sz-row">
           <input type="range" min="1" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)">
           <span class="sz-val" id="wpbDisp">4</span>
+        </div>
+        <div class="clbl" style="margin-top:10px">Line layout</div>
+        <div class="pos-row" id="linesRow">
+          <button class="pos-btn on" data-lines="1" onclick="setLines(this)">1 line</button>
+          <button class="pos-btn" data-lines="2" onclick="setLines(this)">2 lines</button>
         </div>
         <div class="clbl" style="margin-top:10px">Always highlight keywords</div>
         <input type="text" id="kwInput" class="lang-sel" style="margin-bottom:0" placeholder="e.g. free, today, new" oninput="onKwChange(this.value)">
@@ -1003,7 +1008,7 @@ var STYLES = [
 // ═══════════════════════════════════════
 var activeId        = 'bloom';
 var capPos          = 'bottom';
-var capVOff         = 0;    // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position
+var capVOff         = 20;   // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position — Default etwas höher, damit Captions nicht mit UI-Elementen der Plattformen (Beschreibung, Like-Leiste) kollidieren
 var showSafeZone     = false; // Safe-Zone-Anzeige (Reels-UI-Bereich) an/aus
 var zoomLevel        = 1;   // Vorschau-Zoom, 1.0–2.5
 var fontSize        = 22;
@@ -1209,8 +1214,6 @@ function mergeChunkWords(windows) {
   return out;
 }
 
-var MODEL_MB    = { tiny: '~40 MB', base: '~145 MB', small: '~250 MB', turbo: '~1 GB' };
-var MODEL_LABEL = { tiny: 'Fast model (local)', base: 'Whisper base', small: 'Whisper small', turbo: 'Large-v3 Turbo (Studio)' };
 // HF hat forced_decoder_ids in die Whisper-Configs aufgenommen — kollidiert mit language/task:
 // "Cannot specify `language`/`task`/`return_timestamps` and `forced_decoder_ids` at the same time."
 function clearForcedIds(pipe) {
@@ -1299,11 +1302,10 @@ function workerCall(cmd, payload, onProgress) {
 // Lädt/baut die Pipeline im Worker; gibt nur ein leichtes Handle zurück (kein echter Aufruf hier).
 async function getPipe(model) {
   if (whisperPipes[model]) return whisperPipes[model];
-  var mName = MODEL_LABEL[model] + ' (' + MODEL_MB[model] + ', cached after first use)';
   var handle = workerCall('load', { model: model }, function(p) {
     var pct = 15 + (p.loaded / p.total) * 50;
     setTProgress(pct);
-    setTStatus('', 'Loading ' + mName + ': ' + Math.round(p.loaded / p.total * 100) + '%', true, true);
+    setTStatus('', 'Preparing captions (first time only)…', true, true);
   }).then(function() { return { model: model }; });
   whisperPipes[model] = handle;
   return handle;
@@ -1335,6 +1337,7 @@ async function safePipe(pipe, seg, opts) {
 }
 var WORDS_PER_BLOCK = 4;
 var displayMode     = 'karaoke';   // 'karaoke' = nur aktiver Block | 'all' = Block bleibt bis zum nächsten
+var CAPTION_LINES   = 1;    // max. Zeilen pro Caption-Block — 1 = das, was die meisten Nutzer wollen
 var _lastKey        = null;        // Render-Cache (verhindert DOM-Flackern)
 var _lastBi         = -1;
 var _rafId          = null;
@@ -1726,7 +1729,7 @@ function saveTemplate() {
     tc: document.getElementById('csText').value,
     hl: document.getElementById('csHl').value,
     glow: _cbChecked('csGlow', true), glowInt: parseInt((giEl && giEl.value) || '14', 10) || 14,
-    pos: capPos, voff: capVOff, size: fontSize, mode: displayMode, wpb: WORDS_PER_BLOCK };
+    pos: capPos, voff: capVOff, size: fontSize, mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES };
   userTemplates.push(t);
   try { localStorage.setItem('captly_templates', JSON.stringify(userTemplates)); } catch (e) {}
   STYLES.push(styleFromTemplate(t));
@@ -1756,6 +1759,7 @@ function applyTemplateSettings(t) {
     if (ws) { ws.value = t.wpb; document.getElementById('wpbDisp').textContent = t.wpb; }
     if (wordTimestamps.length) { captionBlocks = buildCaptionBlocks(wordTimestamps); renderSegments(); renderWPills(); }
   }
+  if (typeof t.lines === 'number') { CAPTION_LINES = t.lines; syncLinesButtons(); }
   applyPos();
 }
 var _stileHoverTimer = null;
@@ -1951,6 +1955,17 @@ function setMode(btn) {
   _lastKey = null;
   updateOverlay();
 }
+function setLines(btn) {
+  CAPTION_LINES = parseInt(btn.dataset.lines);
+  document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.lines === btn.dataset.lines); });
+  _lastKey = null;
+  updateOverlay();
+}
+function syncLinesButtons() {
+  document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){
+    b.classList.toggle('on', parseInt(b.dataset.lines) === CAPTION_LINES);
+  });
+}
 function onWpbChange(v) {
   WORDS_PER_BLOCK = parseInt(v);
   document.getElementById('wpbDisp').textContent = v;
@@ -2094,7 +2109,7 @@ async function startCheckout(plan) {
 // ── Projekte (Cloud) ──
 async function saveProject() {
   if (!authToken) { showAcct(); return; }
-  var payload = { blocks: captionBlocks, style: activeId, pos: capPos, fontSize: fontSize, wpb: WORDS_PER_BLOCK, mode: displayMode, keywords: hlKeywords, timeOff: timeOff };
+  var payload = { blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff };
   var r = await fetch('projects', { method: 'POST', headers: authHdr(), body: JSON.stringify({ title: document.getElementById('projTitle').value || 'Untitled', payload: payload }) });
   if (r.status === 402) { alert('Project limit reached — the Creator plan includes 20 cloud projects.'); return; }
   loadProjects();
@@ -2120,12 +2135,20 @@ async function loadProject(id) {
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
   }
   if (p.style) activeId = p.style;
-  if (p.fontSize) fontSize = p.fontSize;
-  if (p.wpb) WORDS_PER_BLOCK = p.wpb;
-  if (p.mode) displayMode = p.mode;
+  if (p.fontSize) { fontSize = p.fontSize; var ss = document.getElementById('szSlider'); if (ss) { ss.value = p.fontSize; document.getElementById('szDisp').textContent = p.fontSize + 'px'; } }
+  if (p.wpb) { WORDS_PER_BLOCK = p.wpb; var ws = document.getElementById('wpbSlider'); if (ws) { ws.value = p.wpb; document.getElementById('wpbDisp').textContent = p.wpb; } }
+  if (typeof p.lines === 'number') { CAPTION_LINES = p.lines; syncLinesButtons(); }
+  if (p.mode) { displayMode = p.mode; document.querySelectorAll('#modeRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === displayMode); }); }
   if (p.keywords) hlKeywords = p.keywords;
   if (p.timeOff !== undefined) timeOff = p.timeOff;
-  if (p.pos) { capPos = p.pos; applyPos(); }
+  if (p.pos) capPos = p.pos;
+  if (typeof p.voff === 'number') {
+    capVOff = p.voff;
+    var vs = document.getElementById('voffSlider');
+    if (vs) { vs.value = p.voff; document.getElementById('voffDisp').textContent = (p.voff > 0 ? '+' : '') + p.voff + '%'; }
+  }
+  syncPosButtons();
+  applyPos();
   buildPicker(); renderSegments(); renderWPills();
   document.getElementById('capEditor').style.display = 'block';
   enableExports(true); _lastKey = null; updateOverlay();
@@ -2626,6 +2649,7 @@ async function exportVideoWithCaptions() {
   catch(e) { recorder = new MediaRecorder(canvasStream); }
 
   var prevMuted = vidMuted;
+  var prevOnEnded = vid.onended; // wird unten für die Fertig-Erkennung überschrieben, danach restaurieren
   var stopped = false;
 
   recorder.ondataavailable = function(e) { if (e.data.size > 0) chunks.push(e.data); };
@@ -2654,6 +2678,7 @@ async function exportVideoWithCaptions() {
     }
     document.getElementById('recProg').style.display = 'none';
     vid.muted = prevMuted; vid.pause();
+    vid.onended = prevOnEnded; // normales onended (Play/Pause-Overlay) wiederherstellen
     maybeUpsell(); // einmalig, erst NACH dem ersten erfolgreichen Export
   };
 
@@ -2672,11 +2697,28 @@ async function exportVideoWithCaptions() {
   await vid.play().catch(function(){});
 
   var totalDur = vid.duration;
+  // Beendet die Aufnahme genau einmal — von MEHREREN, unabhängigen Auslösern aus aufrufbar
+  // (siehe unten), nicht nur vom rAF-Loop.
+  function finishExport() {
+    if (stopped) return;
+    stopped = true;
+    setTimeout(function(){ recorder.stop(); }, 120); // letzte Frames/Audio flushen
+  }
+  // FIX: Browser pausieren requestAnimationFrame komplett, sobald der Tab in den Hintergrund
+  // gerät (Tab-Wechsel, App-Wechsel, Bildschirmschoner) — Video-Wiedergabe läuft aber weiter.
+  // Hing die Fertig-Erkennung NUR am rAF-Loop, blieb der Fortschrittsbalken für immer bei dem
+  // Prozentwert stehen, den er beim Verlassen des Tabs hatte, weil recorder.stop() nie aufgerufen
+  // wurde — das war der Kern des "Export hängt bei ~X%"-Bugs. `ended` (Media-Element-Event) und
+  // ein Interval-Fallback feuern unabhängig vom rAF-Loop weiter, auch im Hintergrund-Tab.
+  vid.onended = finishExport;
+  var watchdog = setInterval(function() {
+    if (stopped) { clearInterval(watchdog); return; }
+    if (vid.ended || vid.currentTime >= totalDur - 0.04) finishExport();
+  }, 250);
   function drawLoop() {
     if (stopped) return;
     if (vid.ended || vid.currentTime >= totalDur - 0.04) {
-      stopped = true;
-      setTimeout(function(){ recorder.stop(); }, 120); // letzte Frames/Audio flushen
+      finishExport();
       return;
     }
     var t   = vid.currentTime;
@@ -2734,7 +2776,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
     wordFont(i === wi);
     var ww  = ctx.measureText(w).width;
     var add = (lines[lines.length - 1].length ? sp : 0) + ww;
-    if (lw + add > maxW && lines[lines.length - 1].length) { lines.push([]); lw = 0; add = ww; }
+    if (lw + add > maxW && lines[lines.length - 1].length && lines.length < CAPTION_LINES) { lines.push([]); lw = 0; add = ww; }
     lines[lines.length - 1].push({ txt: w, w: ww, idx: i });
     lw += add;
   });
