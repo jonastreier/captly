@@ -62,7 +62,7 @@ let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } };
 
 // 1) Grunddaten
-ok(T.STYLES.length === 30, '30 Styles erwartet: ' + T.STYLES.length);
+ok(T.STYLES.length === 31, '31 Styles erwartet: ' + T.STYLES.length);
 
 // 2) Zeitformate
 ok(T.srtT(61.5) === '00:01:01,500', 'srtT: ' + T.srtT(61.5));
@@ -152,22 +152,13 @@ const validLangs = ['german','english','spanish','french','italian','portuguese'
 ok(T.NAV_LANG === null || validLangs.includes(T.NAV_LANG), 'NAV_LANG gueltig: ' + T.NAV_LANG);
 ok(initialLang === 'auto', 'Sprache startet auf Auto-Erkennung: ' + initialLang);
 
-// 13) Showcase-Reihe crasht nicht (renderShowcase() läuft beim Skript-Init bereits einmal automatisch)
+// 13) Showcase-Reihe crasht nicht (Stub leert children nicht → Vielfaches von 31:
+// Auto-Init beim Skript-Load + ein Rebuild via goBack() weiter unten in Test 8)
 const showN = document.getElementById('showcaseRow').children.length;
-ok(showN === 30, 'Showcase: 30 Karten aus Auto-Init erwartet, habe ' + showN);
+ok(showN >= 31 && showN % 31 === 0, 'Showcase: Vielfaches von 31 Karten erwartet, habe ' + showN);
 
-// 14) cleanWords: Stottern + Wiederholungsschleifen
+// 14) cleanWords ist jetzt async (yielded) — Assertions unten in der async IIFE (Test 20b).
 const mkW = arr => arr.map((w, i) => ({ word: w, start: i * 0.3, end: i * 0.3 + 0.25 }));
-// Stottern: "das das das das" → max 2 behalten
-const st = T.cleanWords(mkW(['ich', 'das', 'das', 'das', 'das', 'sage']));
-ok(st.map(w => w.word).join(' ') === 'ich das das sage', 'Stottern reduziert: ' + st.map(w => w.word).join(' '));
-// Halluzinations-Schleife: 4-Wort-Sequenz x5 → einmal behalten
-const loop = T.cleanWords(mkW([].concat(...Array(5).fill(['weve', 'worked', 'for', 'years']), ['danach', 'normal'])));
-ok(loop.map(w => w.word).join(' ') === 'weve worked for years danach normal', 'Schleife entfernt: ' + loop.map(w => w.word).join(' '));
-// Legitime Wiederholung (2 Wörter) bleibt: "sehr sehr gut"
-const leg = T.cleanWords(mkW(['das', 'ist', 'sehr', 'sehr', 'gut']));
-ok(leg.length === 5, 'legitime Doppelung bleibt: ' + leg.map(w => w.word).join(' '));
-ok(T.cleanWords([]).length === 0 && T.cleanWords(null).length === 0, 'cleanWords Edge-Cases');
 
 // 14b) stripNonSpeechTags: "[Music]"/"(Applause)"/Notensymbole raus, echte Woerter bleiben
 const nst = T.stripNonSpeechTags(mkW(['hallo', '[Music]', 'welt', '(Applause)', 'schoen', '♪♪♪', 'tag']));
@@ -188,7 +179,7 @@ ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animat
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
 T.applyCustomStyle();
-ok(T.STYLES.length === 31 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
+ok(T.STYLES.length === 32 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
 // Referenz-Styles: Prime Script-Akzent, Sketch Kringel, Sonnet kursiv
 const pr = T.buildCap(['nur', 'ein', 'tipp'], T.STYLES.find(x => x.id === 'prime'), 2, 22, null);
 ok(pr.includes("font-family:'Caveat'") && pr.includes('font-style:italic'), 'Prime: Script-Akzent am aktiven Wort');
@@ -241,6 +232,19 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   ok(dr.every(w => w.start <= 40.01), 'kein Wort laeuft ueber die Videolaenge hinaus (Clamping)');
   ok(Math.max(...dr.map(w => w.end)) > 30, 'Abdeckung reicht bis nahe Videoende: ' + Math.max(...dr.map(w => w.end)).toFixed(1));
   for (let z = 1; z < dr.length; z++) ok(dr[z].start >= dr[z - 1].start - 0.001, 'Startzeiten monoton');
+
+  // 20b) cleanWords (async, yielded): Stottern + Wiederholungsschleifen
+  const st = await T.cleanWords(mkW(['ich', 'das', 'das', 'das', 'das', 'sage']));
+  ok(st.map(w => w.word).join(' ') === 'ich das das sage', 'Stottern reduziert: ' + st.map(w => w.word).join(' '));
+  const loop2 = await T.cleanWords(mkW([].concat(...Array(5).fill(['weve', 'worked', 'for', 'years']), ['danach', 'normal'])));
+  ok(loop2.map(w => w.word).join(' ') === 'weve worked for years danach normal', 'Schleife entfernt: ' + loop2.map(w => w.word).join(' '));
+  const leg = await T.cleanWords(mkW(['das', 'ist', 'sehr', 'sehr', 'gut']));
+  ok(leg.length === 5, 'legitime Doppelung bleibt: ' + leg.map(w => w.word).join(' '));
+  const ce1 = await T.cleanWords([]), ce2 = await T.cleanWords(null);
+  ok(ce1.length === 0 && ce2.length === 0, 'cleanWords Edge-Cases');
+  // Pathologischer Fall: 3000 Woerter, komplett eine 4er-Wiederholschleife (worst case fuer stripRepeats)
+  const bigLoop = await T.cleanWords(mkW(Array.from({ length: 3000 }, (_, i) => ['eins', 'zwei', 'drei', 'vier'][i % 4])));
+  ok(bigLoop.length < 3000, 'grosse Halluzinations-Schleife wird reduziert: ' + bigLoop.length);
 
   // 20) WAV-Encoder (async, yielded fuer lange Clips)
   const wav = new DataView(await T.float32ToWav(new Float32Array([0, 0.5, -0.5, 1]), 16000));
