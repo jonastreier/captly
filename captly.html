@@ -1346,7 +1346,43 @@ var _rafId          = null;
 // CAPTION BUILDER
 // ═══════════════════════════════════════
 // hlIdx: Index des aktiven Worts (-1 = keins) · seekTimes: Startzeiten für Klick-zum-Springen
-function buildCap(words, s, hlIdx, px, seekTimes) {
+// Misst Wortbreiten mit einem Offscreen-Canvas, um Zeilen exakt wie beim Export auf genau
+// `targetLines` Zeilen zu verteilen (statt nur bei Überlauf zu brechen).
+var _capMeasureCtx = null;
+function wrapCaptionLines(words, s, hlIdx, px, targetLines) {
+  if (targetLines <= 1 || words.length <= 1) return [words.map(function(_, i){ return i; })];
+  if (!_capMeasureCtx) _capMeasureCtx = document.createElement('canvas').getContext('2d');
+  var ctx  = _capMeasureCtx;
+  var fn   = (s.font || "'Inter'").replace(/'/g, '');
+  var fw   = s.fw || '700';
+  var fi   = s.fi === 'italic' ? 'italic ' : '';
+  var tt   = s.tt === 'uppercase';
+  ctx.font = fi + fw + ' ' + px + 'px "' + fn + '", sans-serif';
+  var sp   = ctx.measureText(' ').width;
+  var info = words.map(function(w, i) {
+    var isHL = i === hlIdx;
+    var f    = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
+    var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
+    ctx.font = it + fw + ' ' + px + 'px "' + f + '", sans-serif';
+    var wt   = (tt || (isHL && s.hlUpper)) ? w.toUpperCase() : w;
+    return { i: i, w: ctx.measureText(wt).width };
+  });
+  var n = info.length;
+  var target  = Math.min(targetLines, n);
+  var total   = info.reduce(function(a, it){ return a + it.w; }, 0) + sp * (n - 1);
+  var perLine = total / target;
+  var lines = [[]], lw = 0, remaining = target;
+  info.forEach(function(it, k) {
+    var add = (lines[lines.length - 1].length ? sp : 0) + it.w;
+    var remainingWords = n - k;
+    var shouldBreak = lines[lines.length - 1].length && remaining > 1 && remainingWords >= remaining && (lw + add > perLine);
+    if (shouldBreak) { lines.push([]); lw = 0; add = it.w; remaining--; }
+    lines[lines.length - 1].push(it.i);
+    lw += add;
+  });
+  return lines;
+}
+function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   if (!words || !words.length) return '';
   var font = s.font || "'Inter'";
   var fw   = s.fw   || '700';
@@ -1366,8 +1402,7 @@ function buildCap(words, s, hlIdx, px, seekTimes) {
     if (p.border)     pCss += 'border:' + p.border + ';';
     if (p.borderLeft) pCss += 'border-left:' + p.borderLeft + ';';
   }
-  var html = hp ? ('<span style="' + wCss + '"><span style="' + pCss + '">') : ('<span style="' + wCss + '">');
-  for (var i = 0; i < words.length; i++) {
+  function wordHtml(i) {
     var isHL = i === hlIdx;
     var isKw = !isHL && isKeywordWord(words[i]);
     var wt   = (tt === 'uppercase' || (isHL && s.hlUpper)) ? words[i].toUpperCase() : words[i];
@@ -1391,10 +1426,22 @@ function buildCap(words, s, hlIdx, px, seekTimes) {
       ck = ' onclick="event.stopPropagation();seekToTime(' + Number(seekTimes[i]).toFixed(3) + ')"';
       ws += 'cursor:pointer;';
     }
-    html += (i ? ' ' : '') + '<span' + ck + ' style="' + ws + '">' + wt + '</span>';
+    return '<span' + ck + ' style="' + ws + '">' + wt + '</span>';
   }
-  html += hp ? '</span></span>' : '</span>';
-  return html;
+  var built;
+  if (lineTarget && words.length > 1) {
+    var groups = wrapCaptionLines(words, s, hlIdx, px || 24, lineTarget);
+    built = groups.map(function(idxs) {
+      var line = idxs.map(function(i, k){ return (k ? ' ' : '') + wordHtml(i); }).join('');
+      return '<span style="display:block;white-space:nowrap">' + line + '</span>';
+    }).join('');
+  } else {
+    built = '';
+    for (var i = 0; i < words.length; i++) built += (i ? ' ' : '') + wordHtml(i);
+  }
+  return hp
+    ? ('<span style="' + wCss + '"><span style="' + pCss + '">' + built + '</span></span>')
+    : ('<span style="' + wCss + '">' + built + '</span>');
 }
 
 // ═══════════════════════════════════════
@@ -1439,7 +1486,7 @@ function updateOverlay(t) {
   if (!captionBlocks.length) {
     key = 'demo:' + activeId + ':' + fontSize;
     if (key !== _lastKey) {
-      ov.innerHTML = buildCap(['Captions','appear','here'], s, 1, fontSize, null);
+      ov.innerHTML = buildCap(['Captions','appear','here'], s, 1, fontSize, null, CAPTION_LINES);
       _lastKey = key; _lastBi = -1;
       if (showSafeZone) checkSafeZoneCollision();
     }
@@ -1453,7 +1500,7 @@ function updateOverlay(t) {
     if (key !== _lastKey) {
       ov.innerHTML = b
         ? buildCap(b.words.map(function(w){ return w.word; }), s, wi, fontSize,
-                   b.words.map(function(w){ return w.start; }))
+                   b.words.map(function(w){ return w.start; }), CAPTION_LINES)
         : '';
       if (b && bi !== _lastBi) { // Einblend-Animation nur beim Blockwechsel
         ov.style.animation = 'none'; void ov.offsetWidth;
@@ -2767,19 +2814,32 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   var words = b.words.map(function(w, i) {
     return (tt || (i === wi && s.hlUpper)) ? w.word.toUpperCase() : w.word;
   });
+  ctx.font = fi + fw + ' ' + fsS + 'px "' + fn + '", sans-serif';
   var sp    = ctx.measureText(' ').width;
   var maxW  = W * 0.86;
+  var wordInfo = words.map(function(w, i) { wordFont(i === wi); return { txt: w, w: ctx.measureText(w).width, idx: i }; });
 
-  // Mehrzeiliger Umbruch
-  var lines = [[]], lw = 0;
-  words.forEach(function(w, i) {
-    wordFont(i === wi);
-    var ww  = ctx.measureText(w).width;
-    var add = (lines[lines.length - 1].length ? sp : 0) + ww;
-    if (lw + add > maxW && lines[lines.length - 1].length && lines.length < CAPTION_LINES) { lines.push([]); lw = 0; add = ww; }
-    lines[lines.length - 1].push({ txt: w, w: ww, idx: i });
-    lw += add;
-  });
+  // Mehrzeiliger Umbruch — bei CAPTION_LINES>1 wird möglichst gleichmäßig auf genau so viele
+  // Zeilen verteilt (nicht nur bei Überlauf gebrochen), sonst würden kurze Blöcke nie umbrechen.
+  var lines;
+  if (CAPTION_LINES <= 1 || wordInfo.length <= 1) {
+    lines = [wordInfo];
+  } else {
+    var n = wordInfo.length;
+    var target = Math.min(CAPTION_LINES, n);
+    var total  = wordInfo.reduce(function(a, it){ return a + it.w; }, 0) + sp * (n - 1);
+    var perLine = total / target;
+    lines = [[]]; var lw = 0, remaining = target;
+    wordInfo.forEach(function(it, i) {
+      var add = (lines[lines.length - 1].length ? sp : 0) + it.w;
+      var remainingWords = n - i;
+      var shouldBreak = lines[lines.length - 1].length && remaining > 1 && remainingWords >= remaining
+        && (lw + add > perLine || lw + add > maxW);
+      if (shouldBreak) { lines.push([]); lw = 0; add = it.w; remaining--; }
+      lines[lines.length - 1].push(it);
+      lw += add;
+    });
+  }
 
   var lh   = fsS * 1.28;
   var yPct = capPos === 'top' ? 0.12 : capPos === 'center' ? 0.5 : 0.85;
