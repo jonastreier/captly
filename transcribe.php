@@ -1,6 +1,6 @@
 <?php
 /**
- * Captly – serverseitiger Transkriptions-Proxy (Groq Whisper large-v3).
+ * Capivo – serverseitiger Transkriptions-Proxy (Groq Whisper large-v3).
  *
  * Zweck: Der geheime API-Key darf NIE in den Browser. Der Browser lädt die Tonspur
  * (WAV, 16 kHz mono) per POST hierher; dieses Skript hängt den Key an und ruft die
@@ -44,7 +44,7 @@ function fail($code, $msg) {
 
 // GET = kleiner Health-Check (kein Key-Leak), damit man den Endpunkt im Browser sieht.
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
-  echo json_encode(['ok' => true, 'service' => 'captly-transcribe', 'configured' => $KEY !== '']);
+  echo json_encode(['ok' => true, 'service' => 'capivo-transcribe', 'configured' => $KEY !== '']);
   exit;
 }
 if ($KEY === '') fail(500, 'Server nicht konfiguriert: GROQ_API_KEY fehlt (config.php anlegen).');
@@ -65,7 +65,7 @@ if (!empty($_FILES['file']['tmp_name']) && is_uploaded_file($_FILES['file']['tmp
   $raw = file_get_contents('php://input');
   if ($raw === false || strlen($raw) < 100) fail(400, 'Keine Audiodaten empfangen.');
   if (strlen($raw) > 40 * 1024 * 1024) fail(413, 'Audio zu groß (max ~40 MB). Video kürzen.');
-  $tmp = tempnam(sys_get_temp_dir(), 'captly_');
+  $tmp = tempnam(sys_get_temp_dir(), 'capivo_');
   if ($tmp === false || file_put_contents($tmp, $raw) === false) fail(500, 'Temp-Datei konnte nicht geschrieben werden.');
   $cleanup = true;
 }

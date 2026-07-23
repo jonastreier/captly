@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// Captly Server v2 — komplettes Freemium-Backend, keine Dependencies (Node 22+)
+// Capivo Server v2 — komplettes Freemium-Backend, keine Dependencies (Node 22+)
 //
 // START:    OPENAI_API_KEY=sk-... node server.js
 // Optional: PORT=8787  DB_PATH=./captly.db  FREE_PER_DAY=3  MAX_DAY_USD=5  MAX_MONTH_USD=50
@@ -110,7 +110,7 @@ async function sendMail(to, subject, text) {
   await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: 'Bearer ' + process.env.RESEND_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: ENV('MAIL_FROM', 'captly@example.com'), to, subject, text })
+    body: JSON.stringify({ from: ENV('MAIL_FROM', 'capivo@example.com'), to, subject, text })
   }).catch(e => console.error('Mail-Fehler', e));
 }
 
@@ -135,7 +135,7 @@ function budgetExceeded(estUsd) {
   if (mSpend + estUsd > MAX_MONTH_USD) return 'Monatsbudget erreicht';
   if (daySpend.usd + estUsd > MAX_DAY_USD) return 'Tagesbudget erreicht';
   daySpend.usd += estUsd;
-  if (!alerted && mSpend > ALERT_USD) { alerted = true; sendMail(ENV('ALERT_EMAIL', ''), 'Captly Kosten-Alarm', 'Monats-API-Spend über ' + ALERT_USD + ' USD'); console.warn('⚠️ Kosten-Alarm: >' + ALERT_USD + ' USD diesen Monat'); }
+  if (!alerted && mSpend > ALERT_USD) { alerted = true; sendMail(ENV('ALERT_EMAIL', ''), 'Capivo Kosten-Alarm', 'Monats-API-Spend über ' + ALERT_USD + ' USD'); console.warn('⚠️ Kosten-Alarm: >' + ALERT_USD + ' USD diesen Monat'); }
   return null;
 }
 
@@ -201,7 +201,7 @@ http.createServer(async (req, res) => {
       if (rateLimited('auth:' + ip)) return json(res, 429, { error: 'Zu viele Versuche' });
       const code = String(crypto.randomInt(100000, 999999));
       db.prepare('INSERT OR REPLACE INTO login_codes VALUES(?,?,?,0)').run(email.toLowerCase(), code, Date.now() + 600000);
-      await sendMail(email, 'Dein Captly Login-Code', 'Code: ' + code + ' (10 Min gültig)');
+      await sendMail(email, 'Dein Capivo Login-Code', 'Code: ' + code + ' (10 Min gültig)');
       return json(res, 200, { ok: true });
     }
     if (req.method === 'POST' && u.pathname === '/auth/verify') {
@@ -274,7 +274,7 @@ http.createServer(async (req, res) => {
     if (u.pathname === '/admin') {
       const pass = ENV('ADMIN_PASS', ''); const hdr = req.headers.authorization || '';
       if (!pass || hdr !== 'Basic ' + Buffer.from('admin:' + pass).toString('base64')) {
-        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="captly"' }); return res.end();
+        res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="capivo"' }); return res.end();
       }
       if (req.method === 'POST') {
         const p = JSON.parse(await readBody(req));
@@ -286,7 +286,7 @@ http.createServer(async (req, res) => {
       const spend = q.monthSpend.get(monthStart()).c;
       const plans = db.prepare('SELECT * FROM plans').all();
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      return res.end('<h2>Captly Admin</h2><p>Nutzer: ' + users + ' · API-Spend Monat: $' + spend.toFixed(2) +
+      return res.end('<h2>Capivo Admin</h2><p>Nutzer: ' + users + ' · API-Spend Monat: $' + spend.toFixed(2) +
         '</p><pre>' + JSON.stringify(plans, null, 2) + '</pre><p>Limits ändern: POST /admin mit {id,price_cents,monthly_seconds,trial_seconds,max_projects}</p>');
     }
 
@@ -351,4 +351,4 @@ http.createServer(async (req, res) => {
     console.error(e);
     json(res, 500, { error: String(e.message || e) });
   }
-}).listen(PORT, () => console.log('✅ Captly v2 auf http://localhost:' + PORT + ' — Auth, Pläne, Usage, Stripe-ready'));
+}).listen(PORT, () => console.log('✅ Capivo v2 auf http://localhost:' + PORT + ' — Auth, Pläne, Usage, Stripe-ready'));

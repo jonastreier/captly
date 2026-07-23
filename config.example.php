@@ -1,6 +1,6 @@
 <?php
 /**
- * Captly – Beispiel-Konfiguration für den Transkriptions-Proxy.
+ * Capivo – Beispiel-Konfiguration für den Transkriptions-Proxy.
  *
  * 1. Diese Datei zu `config.php` kopieren (im selben Ordner wie transcribe.php).
  * 2. Groq-API-Key eintragen (kostenlos: https://console.groq.com → API Keys).

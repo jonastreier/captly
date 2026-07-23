@@ -54,7 +54,7 @@ setState:function(bl,wts,dm){captionBlocks=bl;wordTimestamps=wts;if(dm)displayMo
 getBlocks:function(){return captionBlocks;},selectStyle:selectStyle,setPos:setPos,onSzChange:onSzChange,setMode:setMode,
 onWpbChange:onWpbChange,setLang:setLang,buildPicker:buildPicker,renderSegments:renderSegments,renderWPills:renderWPills,
 openEditorClean:openEditorClean,goBack:goBack,enableExports:enableExports,
-looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNonSpeechTags,renderShowcase:renderShowcase,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},setVOffState:function(v){capVOff=v;},applyPos:applyPos,mergeChunkWords:mergeChunkWords};`;
+looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNonSpeechTags,renderShowcase:renderShowcase,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},setVOffState:function(v){capVOff=v;},applyPos:applyPos,mergeChunkWords:mergeChunkWords,computeCutRegions:computeCutRegions};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -185,6 +185,28 @@ const pr = T.buildCap(['nur', 'ein', 'tipp'], T.STYLES.find(x => x.id === 'prime
 ok(pr.includes("font-family:'Caveat'") && pr.includes('font-style:italic'), 'Prime: Script-Akzent am aktiven Wort');
 const sk = T.buildCap(['mind', 'map'], T.STYLES.find(x => x.id === 'sketch'), 1, 22, null);
 ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Uppercase am aktiven Wort');
+
+// 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
+const cutW = [
+  { word: 'Hallo',  start: 1.0, end: 1.3 },              // 1.0s Fuehr-Stille davor
+  { word: 'äh',     start: 1.35, end: 1.55 },             // Fuellwort direkt danach
+  { word: 'Welt',   start: 1.6, end: 2.0 },
+  { word: 'schoen', start: 3.5, end: 3.8 },               // 1.5s Luecke davor -> Cut
+  { word: 'so',     start: 3.85, end: 4.1 },               // "so" ist KEIN Fuellwort (Inhaltswort)
+];
+const cuts = T.computeCutRegions(cutW);
+ok(cuts.length === 3, '3 Cut-Regionen erwartet (Fuehr-Stille, Fuellwort, Luecke; "so" bleibt): ' + JSON.stringify(cuts));
+ok(cuts[0].start === 0 && Math.abs(cuts[0].end - 0.92) < 0.001, 'Fuehr-Stille vor "Hallo" erkannt: ' + JSON.stringify(cuts[0]));
+ok(cuts[1].start > 1.4 && cuts[1].end < 1.5, 'Fuellwort "äh" als eigene Cut-Region: ' + JSON.stringify(cuts[1]));
+ok(cuts[2].start > 2.0 && cuts[2].end < 3.5, 'Luecke vor "schoen" erkannt: ' + JSON.stringify(cuts[2]));
+ok(!cuts.some(function(r){ return r.start <= 3.9 && r.end >= 3.9; }), '"so" bleibt unangetastet: ' + JSON.stringify(cuts));
+ok(T.computeCutRegions([]).length === 0 && T.computeCutRegions(null).length === 0, 'computeCutRegions Edge-Cases');
+const noCuts = T.computeCutRegions([{ word: 'eins', start: 0, end: 0.3 }, { word: 'zwei', start: 0.35, end: 0.6 }]);
+ok(noCuts.length === 0, 'keine Luecken -> keine Cuts: ' + JSON.stringify(noCuts));
+const trailW = [{ word: 'eins', start: 0, end: 0.3 }, { word: 'zwei', start: 0.35, end: 0.6 }];
+const trailCuts = T.computeCutRegions(trailW, { totalDur: 5 });
+ok(trailCuts.length === 1 && Math.abs(trailCuts[0].end - 4.92) < 0.001, 'Trail-Stille bis Videoende erkannt (nur mit totalDur): ' + JSON.stringify(trailCuts));
+ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-Annahme: ' + JSON.stringify(T.computeCutRegions(trailW)));
 
 // 17) transcribeChunked: deckt das GANZE Video ab (async)
 (async () => {

@@ -1,6 +1,6 @@
-# Captly — Agent-Leitfaden
+# Capivo — Agent-Leitfaden
 
-Captly ist ein Untertitel-Tool für Instagram/TikTok-Reels (Klon von captions.ai). **Kein Build, keine npm-Dependencies.** Details & Deploy: siehe [README.md](README.md).
+Capivo (Repo/Dateinamen weiterhin `captly*` — siehe unten) ist ein Untertitel-Tool für Instagram/TikTok-Reels (Klon von captions.ai). **Kein Build, keine npm-Dependencies.** Details & Deploy: siehe [README.md](README.md).
 
 Kern-Dateien:
 - `captly.html` — kompletter Editor + Landing als **Single-File** mit Inline-`<script>`.

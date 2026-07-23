@@ -1,4 +1,4 @@
-# Captly
+# Capivo
 
 Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai).
 Upload → Auto-Transkript → Karaoke-Preview in 20 Styles → Export als **MP4** (mit
@@ -8,7 +8,7 @@ eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
   über einen schlanken PHP-Proxy ([`transcribe.php`](transcribe.php)). **Kein Modell-Download für den
   Nutzer**, läuft auf jedem Gerät (auch iPhone). Transkribiert wird über **Groq** (kostenloser Free-Tier,
   OpenAI-kompatible API).
-- **Fallback:** Ist der Proxy nicht erreichbar (z. B. reine Vercel-Demo ohne PHP), transkribiert Captly
+- **Fallback:** Ist der Proxy nicht erreichbar (z. B. reine Vercel-Demo ohne PHP), transkribiert Capivo
   automatisch **lokal im Browser** (transformers.js) — dann einmaliger Modell-Download.
 
 Dateien, kein Build:
