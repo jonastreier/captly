@@ -98,26 +98,27 @@ body.editor-open{height:100vh;overflow:hidden}
 .how-sec{position:relative;z-index:1;width:100%;max-width:1060px;margin-top:52px;padding:0 6px}
 .how-visual{position:relative;margin-top:26px;width:100%;max-width:1000px;margin-left:auto;margin-right:auto;aspect-ratio:1672/941;border-radius:20px;overflow:hidden;background:#ede7f5;box-shadow:0 14px 40px rgba(30,20,60,.14)}
 .how-bg{position:absolute;inset:0;width:100%;height:100%;display:block}
-.how-piece{position:absolute;display:block;mask-repeat:no-repeat;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;-webkit-mask-size:100% 100%}
-.how-piece-card1{left:7.656%;top:25.823%;width:19.678%;height:52.497%;animation:howFloatA 4.2s ease-in-out infinite}
-.how-piece-phone{left:33.971%;top:9.352%;width:21.831%;height:72.688%;animation:howFloatB 5.4s ease-in-out infinite .3s}
-.how-piece-card2{left:56.041%;top:25.823%;width:17.045%;height:52.497%;animation:howFloatC 4.6s ease-in-out infinite .6s}
-.how-piece-card3{left:74.343%;top:25.823%;width:17.584%;height:52.497%;animation:howFloatD 4.9s ease-in-out infinite .9s}
+.how-slot{position:absolute;transition:transform .6s cubic-bezier(.22,1,.36,1)}
+.how-slot-card1{left:7.656%;top:25.823%;width:19.678%;height:51.753%}
+.how-slot-phone{left:33.971%;top:9.352%;width:21.831%;height:71.201%}
+.how-slot-card2{left:56.041%;top:25.823%;width:17.045%;height:51.753%}
+.how-slot-card3{left:74.343%;top:25.823%;width:17.584%;height:51.753%}
+.how-piece{display:block;width:100%;height:100%;mask-repeat:no-repeat;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;-webkit-mask-size:100% 100%}
+.how-piece-card1{animation:howFloatA 4.2s ease-in-out infinite}
+.how-piece-phone{animation:howFloatB 5.4s ease-in-out infinite .3s}
+.how-piece-card2{animation:howFloatC 4.6s ease-in-out infinite .6s}
+.how-piece-card3{animation:howFloatD 4.9s ease-in-out infinite .9s}
 @keyframes howFloatA{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 @keyframes howFloatB{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 @keyframes howFloatC{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @keyframes howFloatD{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @media(prefers-reduced-motion:no-preference){
-  .how-visual:hover .how-piece-card1{animation-name:howFloatAHover;animation-duration:2.1s}
-  .how-visual:hover .how-piece-phone{animation-name:howFloatBHover;animation-duration:2.7s}
-  .how-visual:hover .how-piece-card2{animation-name:howFloatCHover;animation-duration:2.3s}
-  .how-visual:hover .how-piece-card3{animation-name:howFloatDHover;animation-duration:2.45s}
+  .how-visual:hover .how-slot-card1{transform:translateY(-10px)}
+  .how-visual:hover .how-slot-phone{transform:translateY(-13px)}
+  .how-visual:hover .how-slot-card2{transform:translateY(-9px)}
+  .how-visual:hover .how-slot-card3{transform:translateY(-11px)}
 }
-@keyframes howFloatAHover{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-14px) rotate(-1.5deg)}}
-@keyframes howFloatBHover{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-17px) rotate(1deg)}}
-@keyframes howFloatCHover{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-13px) rotate(1.5deg)}}
-@keyframes howFloatDHover{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-15px) rotate(-1deg)}}
-@media(prefers-reduced-motion:reduce){.how-piece{animation:none}}
+@media(prefers-reduced-motion:reduce){.how-piece{animation:none}.how-slot{transition:none}}
 
 /* FEATURE GRID (Landing) */
 .feat-sec{position:relative;z-index:1;width:100%;max-width:1060px;margin-top:56px;padding:0 6px}
@@ -440,10 +441,10 @@ input[type=checkbox]{accent-color:#7c3aed}
     <p class="show-sub">No editing skills, no downloads — just upload and go.</p>
     <div class="how-visual">
       <img class="how-bg" src="assets/how-backdrop.png" alt="" loading="lazy" width="1672" height="941">
-      <img class="how-piece how-piece-card1" src="assets/how-piece-card1.jpg" alt="Upload your clip" loading="lazy" style="mask-image:url(assets/how-mask-card1.png);-webkit-mask-image:url(assets/how-mask-card1.png)">
-      <img class="how-piece how-piece-phone" src="assets/how-piece-phone.jpg" alt="Captioned video preview" loading="lazy" style="mask-image:url(assets/how-mask-phone.png);-webkit-mask-image:url(assets/how-mask-phone.png)">
-      <img class="how-piece how-piece-card2" src="assets/how-piece-card2.jpg" alt="AI transcribes and styles it" loading="lazy" style="mask-image:url(assets/how-mask-card2.png);-webkit-mask-image:url(assets/how-mask-card2.png)">
-      <img class="how-piece how-piece-card3" src="assets/how-piece-card3.jpg" alt="Export and post" loading="lazy" style="mask-image:url(assets/how-mask-card3.png);-webkit-mask-image:url(assets/how-mask-card3.png)">
+      <div class="how-slot how-slot-card1"><img class="how-piece how-piece-card1" src="assets/how-piece-card1.jpg" alt="Upload your clip" loading="lazy" style="mask-image:url(assets/how-mask-card1.png);-webkit-mask-image:url(assets/how-mask-card1.png)"></div>
+      <div class="how-slot how-slot-phone"><img class="how-piece how-piece-phone" src="assets/how-piece-phone.jpg" alt="Captioned video preview" loading="lazy" style="mask-image:url(assets/how-mask-phone.png);-webkit-mask-image:url(assets/how-mask-phone.png)"></div>
+      <div class="how-slot how-slot-card2"><img class="how-piece how-piece-card2" src="assets/how-piece-card2.jpg" alt="AI transcribes and styles it" loading="lazy" style="mask-image:url(assets/how-mask-card2.png);-webkit-mask-image:url(assets/how-mask-card2.png)"></div>
+      <div class="how-slot how-slot-card3"><img class="how-piece how-piece-card3" src="assets/how-piece-card3.jpg" alt="Export and post" loading="lazy" style="mask-image:url(assets/how-mask-card3.png);-webkit-mask-image:url(assets/how-mask-card3.png)"></div>
     </div>
   </section>
 
