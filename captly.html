@@ -102,6 +102,15 @@ body.editor-open{height:100vh;overflow:hidden}
 .how-num{position:absolute;top:14px;right:18px;font-size:34px;font-weight:800;color:rgba(124,58,237,.14)}
 .how-ico{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:13px;background:linear-gradient(135deg,rgba(124,58,237,.10),rgba(236,72,153,.09));box-shadow:inset 0 0 0 1px rgba(124,58,237,.08)}
 .how-ico svg{width:23px;height:23px;display:block;overflow:visible}
+@keyframes howUp{0%,15%{transform:translateY(5px);opacity:.35}45%,70%{transform:translateY(0);opacity:1}100%{transform:translateY(-4px);opacity:0}}
+.how-anim-arrow{transform-box:fill-box;transform-origin:center;animation:howUp 2.6s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes howSpark1{0%,100%{transform:scale(1) rotate(0deg);opacity:1}50%{transform:scale(1.22) rotate(12deg);opacity:.85}}
+@keyframes howSpark2{0%,100%{transform:scale(.85) rotate(0deg);opacity:.6}50%{transform:scale(1.05) rotate(-10deg);opacity:1}}
+.how-anim-spark1{transform-box:fill-box;transform-origin:center;animation:howSpark1 2.6s ease-in-out infinite}
+.how-anim-spark2{transform-box:fill-box;transform-origin:center;animation:howSpark2 2.6s ease-in-out infinite .3s}
+@keyframes howPlane{0%,20%{transform:translate(0,0);opacity:1}72%{transform:translate(4px,-4px);opacity:0}73%{transform:translate(-4px,4px);opacity:0}100%{transform:translate(0,0);opacity:1}}
+.how-anim-plane{transform-box:fill-box;transform-origin:center;animation:howPlane 2.6s cubic-bezier(.4,0,.2,1) infinite}
+@media (prefers-reduced-motion:reduce){.how-anim-arrow,.how-anim-spark1,.how-anim-spark2,.how-anim-plane{animation:none}}
 .how-card h3{font-size:15.5px;font-weight:700;margin-bottom:6px;color:#111}
 .how-card p{font-size:12.5px;color:#5b5566;line-height:1.6}
 .how-visual{margin-top:26px;width:100%;max-width:1000px;margin-left:auto;margin-right:auto}
@@ -430,19 +439,19 @@ input[type=checkbox]{accent-color:#7c3aed}
     <div class="how-grid">
       <div class="how-card">
         <div class="how-num">1</div>
-        <div class="how-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="hg1" x1="3" y1="4" x2="21" y2="20"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs><rect x="3" y="7" width="18" height="13" rx="3.5" stroke="url(#hg1)" stroke-width="1.6"/><path d="M12 4v9M8.5 8.5L12 5l3.5 3.5" stroke="url(#hg1)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="how-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="hg1" x1="3" y1="4" x2="21" y2="20"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs><rect x="3" y="7" width="18" height="13" rx="3.5" stroke="url(#hg1)" stroke-width="1.6"/><path d="M12 4v9M8.5 8.5L12 5l3.5 3.5" stroke="url(#hg1)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" class="how-anim-arrow"/></svg></div>
         <h3>Upload your clip</h3>
         <p>Drop an MP4, MOV or WebM. Your video stays on your device — only the audio is sent off to generate captions.</p>
       </div>
       <div class="how-card">
         <div class="how-num">2</div>
-        <div class="how-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="hg2" x1="3" y1="3" x2="21" y2="21"><stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><path d="M9.5 3l1.6 5.4L16.5 10l-5.4 1.6L9.5 17l-1.6-5.4L2.5 10l5.4-1.6L9.5 3z" fill="url(#hg2)"/><path d="M17.5 13l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9.9-2.6z" fill="url(#hg2)" opacity=".8"/></svg></div>
+        <div class="how-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="hg2" x1="3" y1="3" x2="21" y2="21"><stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><path d="M9.5 3l1.6 5.4L16.5 10l-5.4 1.6L9.5 17l-1.6-5.4L2.5 10l5.4-1.6L9.5 3z" fill="url(#hg2)" class="how-anim-spark1"/><path d="M17.5 13l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9.9-2.6z" fill="url(#hg2)" opacity=".8" class="how-anim-spark2"/></svg></div>
         <h3>AI transcribes &amp; styles it</h3>
         <p>Word-perfect captions appear in seconds, with the language auto-detected across 17+ options. Pick from 31 viral styles.</p>
       </div>
       <div class="how-card">
         <div class="how-num">3</div>
-        <div class="how-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="hg3" x1="3" y1="4" x2="21" y2="20"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs><path d="M20.5 3.5L3 10.8l6.5 2.7 2.7 6.5L20.5 3.5z" stroke="url(#hg3)" stroke-width="1.6" stroke-linejoin="round"/><path d="M20.5 3.5l-10.9 9.9" stroke="url(#hg3)" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="how-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="hg3" x1="3" y1="4" x2="21" y2="20"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs><g class="how-anim-plane"><path d="M20.5 3.5L3 10.8l6.5 2.7 2.7 6.5L20.5 3.5z" stroke="url(#hg3)" stroke-width="1.6" stroke-linejoin="round"/><path d="M20.5 3.5l-10.9 9.9" stroke="url(#hg3)" stroke-width="1.6" stroke-linecap="round"/></g></svg></div>
         <h3>Export &amp; post</h3>
         <p>Render your captioned video, or grab an SRT/VTT file — rendering happens right in your browser, free and fast.</p>
       </div>
