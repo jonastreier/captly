@@ -3216,6 +3216,10 @@ var SHOW_SAMPLES = ['this changes everything','wait for it','the secret nobody t
   'nobody talks about this','save this for later','it gets better','this is your sign',
   'stop scrolling right now','i wish i knew this','the results speak','trust the process',
   'level up today','one simple trick','before and after','game changer','do this instead'];
+// Styles, für die tatsächlich ein Live-Loop unter assets/showcase/<id>.mp4 liegt. Ohne diese
+// Liste versucht JEDE Karte beim Scrollen ihr Video zu laden — das sind ~30 vergebliche
+// 404-Anfragen, weil bisher nur ein Loop generiert ist. Neue Videos hier eintragen.
+var SHOWCASE_VIDEOS = ['bloom'];
 function renderShowcase() {
   var row = document.getElementById('showcaseRow');
   if (!row) return;
@@ -3264,10 +3268,10 @@ function renderShowcase() {
     var name = document.createElement('div'); name.className = 'show-name'; name.textContent = s.name;
     card.appendChild(bg); card.appendChild(photo);
     // Optionaler Live-Loop je Style unter assets/showcase/<id>.mp4 (KI-generiert aus dem Foto).
-    // Fehlt die Datei, bleibt einfach das Foto stehen - kein sichtbarer Unterschied zu vorher.
+    // Nur für Styles aus SHOWCASE_VIDEOS; ohne Loop bleibt einfach das Foto stehen.
     // Muss VOR face/vig/grain/cap/name eingehängt werden, damit die Overlays sichtbar bleiben,
     // und braucht opacity statt display:none, sonst hat es keine Geometrie fürs IntersectionObserver.
-    if (!reduceMotion && typeof IntersectionObserver !== 'undefined') {
+    if (!reduceMotion && typeof IntersectionObserver !== 'undefined' && SHOWCASE_VIDEOS.indexOf(s.id) >= 0) {
       var video = document.createElement('video'); video.className = 'show-video';
       video.muted = true; video.loop = true; video.playsInline = true; video.preload = 'none';
       video.setAttribute('poster', 'assets/showcase/' + s.id + '.jpg');
