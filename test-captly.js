@@ -19,7 +19,23 @@ function mkEl(id) {
     querySelectorAll() { return []; }, getBoundingClientRect() { return { left: 0, width: 100 }; },
     load() {}, pause() { this.paused = true; }, play() { this.paused = false; return Promise.resolve(); },
     click() { global.CLICKS.push({ href: this.href, download: this.download }); },
-    onclick: null, oninput: null
+    onclick: null, oninput: null,
+    // Minimaler 2D-Kontext für wrapCaptionLines()/buildCap() — misst nicht pixelgenau, reicht aber für
+    // die Umbruch-/Struktur-Assertions hier (echte Breiten gibt's nur im Browser).
+    getContext(type) {
+      if (type !== '2d') return null;
+      return {
+        font: '',
+        measureText(str) {
+          var m = /([\d.]+)px/.exec(this.font);
+          var px = m ? parseFloat(m[1]) : 16;
+          return { width: (str || '').length * px * 0.55 };
+        },
+        roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {},
+        translate() {}, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},
+        fillRect() {}, createLinearGradient() { return { addColorStop() {} }; }
+      };
+    }
   };
 }
 global.CLICKS = []; const els = {};

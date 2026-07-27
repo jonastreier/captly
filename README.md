@@ -15,8 +15,11 @@ Dateien, kein Build:
 - [`captly.html`](captly.html) — kompletter Editor + Landing (Single-File).
 - [`transcribe.php`](transcribe.php) — serverseitiger Transkriptions-Proxy für Webhosting (hält den
   API-Key, ruft Groq). **Primärer Weg.**
-- [`server.js`](server.js) — **optionales** Node-Backend (Login, Projekte, Stripe) für später; für die
-  Transkription **nicht** nötig. Läuft nicht auf reinem Webhosting.
+- [`schema.sql`](schema.sql) — Datenbankschema für Login & Cloud-Projekte, einmalig im
+  Supabase-SQL-Editor ausführen (s. unten).
+- [`server.js`](server.js) — **altes, optionales** Node-Backend. Wird nicht mehr gebraucht:
+  Transkription läuft über `transcribe.php`, Login/Projekte über Supabase. Bleibt als Referenz
+  für Quota- und Stripe-Logik liegen, falls Bezahlung dazukommt.
 
 ## Transkription einrichten (Groq-Proxy)
 
@@ -31,6 +34,28 @@ Auf klassischem **Webhosting mit PHP** — kein Node-Server nötig:
 Voraussetzungen: PHP mit **cURL** aktiv; für längere Videos ggf. `upload_max_filesize` / `post_max_size`
 / `max_execution_time` erhöhen (WAV ≈ 1,9 MB/Min — Reels sind unkritisch). Anbieterwechsel (Deepgram,
 paid) ist im Proxy gekapselt → wenige Zeilen.
+
+## Login & Projekte einrichten (Supabase)
+
+Konten und „Projekt speichern/laden" laufen über **Supabase** (Postgres + eingebauter
+Magic-Code-Login). Kein Build, kein npm — `supabase-js` wird per ESM-CDN geladen.
+
+1. Auf <https://supabase.com> ein Projekt anlegen, **Region EU (Frankfurt)** wählen.
+2. **SQL Editor** öffnen und [`schema.sql`](schema.sql) einfügen + ausführen (Tabelle `projects`
+   inkl. Row-Level-Security).
+3. **Authentication → Emails → Magic Link**: im Template `{{ .Token }}` einbauen, damit der
+   6-stellige Code in der Mail steht (Capivo fragt den Code ab, nicht den Link).
+4. **Project Settings → API**: `Project URL` und `anon public` key kopieren und in
+   `captly.html` oben im Abschnitt „KONTO" bei `SUPABASE_URL` / `SUPABASE_ANON_KEY` eintragen.
+   Beide Werte sind **öffentlich** und gehören ins Frontend — geschützt wird über RLS.
+   Den `service_role`-Key **niemals** eintragen.
+
+Ohne diese Werte bleibt Capivo voll nutzbar (Editor, Transkription, Export) — nur der
+Sign-in-Button meldet dann, dass Konten auf dieser Instanz nicht eingerichtet sind.
+
+Der Supabase-Mailversand im Free-Tier ist stark rate-limitiert (nur für Tests). Für echte
+Nutzer unter *Authentication → SMTP Settings* einen eigenen Absender hinterlegen, sobald
+die Domain steht.
 
 ## Schnellstart (lokal)
 
@@ -118,9 +143,12 @@ captly.deinedomain.ch {
 **3) Stripe-Webhook** in Stripe eintragen: `https://captly.deinedomain.ch/billing/webhook`
 (Events: `checkout.session.completed`, `customer.subscription.deleted`).
 
-**Deploy-Checkliste:** `.env` gesetzt · `DB_PATH` persistent + Backup-Cron · HTTPS aktiv ·
-`CORS_ORIGINS` = deine Domain · Stripe-Produkte + Webhook · `ADMIN_PASS` gesetzt · einmal
-end-to-end testen (Upload → Fast → Perfect → Export → Login-Mail kommt an → Testkauf).
+**Deploy-Checkliste (aktuelle Architektur — statisches Hosting + `transcribe.php` + Supabase):**
+`config.php` mit Groq-Key auf dem Webhosting · `schema.sql` im Supabase-Projekt ausgeführt ·
+`SUPABASE_URL`/`SUPABASE_ANON_KEY` in `captly.html` eingetragen · Magic-Link-Template enthält
+`{{ .Token }}` · eigenes SMTP in Supabase hinterlegt · echte Domain in `canonical`/`og:url`/
+`og:image` statt `capivo.app` · HTTPS aktiv · einmal end-to-end testen (Upload → Fast → Perfect
+→ Export → Login-Code kommt an → Projekt speichern & wieder laden).
 
 ## Tests
 

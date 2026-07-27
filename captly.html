@@ -1343,21 +1343,50 @@ var _rafId          = null;
 // ═══════════════════════════════════════
 // CAPTION BUILDER
 // ═══════════════════════════════════════
+// Tatsächliche Breite des Vorschau-Rahmens (#prevFrame) in CSS-px — wird beim Video-Laden dynamisch
+// gesetzt (Video-Seitenverhältnis + verfügbarer Platz), ist also NICHT konstant. fontSize wird relativ
+// dazu gewählt (~8% der Rahmenbreite, s. onloadedmetadata), daher muss jede Umrechnung Vorschau→Export
+// (Canvas-Export-Skalierung, Zeilenumbruch-Breite) durch DIESEN Wert teilen statt durch eine feste Zahl —
+// sonst weicht die Schriftgröße/das Layout im Export von der Vorschau ab (Kernursache für Style-Drift).
+function previewFrameW() {
+  var f = document.getElementById('prevFrame');
+  var w = f && parseFloat(f.style.width);
+  return (w > 0) ? w : 220;
+}
+// Zwingt jede Zeile unter maxW — auch die aus wrapCaptionLines/drawCaptionsOnCtx per Ziel-Zeilenzahl
+// gebildeten, die eine zu breite letzte Zeile sonst unbegrenzt lassen. Safe-Zone-Einhaltung geht vor
+// Wort-/Zielzeilenanzahl (s. Nutzer-Feedback: Rand wichtiger als Wortbegrenzung).
+function clampLinesToWidth(lines, maxW, sp) {
+  var out = [];
+  lines.forEach(function(L) {
+    var w = L.reduce(function(a, it, i){ return a + it.w + (i ? sp : 0); }, 0);
+    if (w <= maxW || L.length <= 1) { out.push(L); return; }
+    var cur = [], cw = 0;
+    L.forEach(function(it) {
+      var add = (cur.length ? sp : 0) + it.w;
+      if (cur.length && cw + add > maxW) { out.push(cur); cur = []; add = it.w; cw = 0; }
+      cur.push(it); cw += add;
+    });
+    if (cur.length) out.push(cur);
+  });
+  return out;
+}
 // hlIdx: Index des aktiven Worts (-1 = keins) · seekTimes: Startzeiten für Klick-zum-Springen
 // Misst Wortbreiten mit einem Offscreen-Canvas, um Zeilen exakt wie beim Export auf genau
 // `targetLines` Zeilen zu verteilen (statt nur bei Überlauf zu brechen).
 var _capMeasureCtx = null;
 function wrapCaptionLines(words, s, hlIdx, px, targetLines) {
-  if (targetLines <= 1 || words.length <= 1) return [words.map(function(_, i){ return i; })];
   if (!_capMeasureCtx) _capMeasureCtx = document.createElement('canvas').getContext('2d');
-  var ctx  = _capMeasureCtx;
-  var fn   = (s.font || "'Inter'").replace(/'/g, '');
-  var fw   = s.fw || '700';
-  var fi   = s.fi === 'italic' ? 'italic ' : '';
-  var tt   = s.tt === 'uppercase';
-  ctx.font = fi + fw + ' ' + px + 'px "' + fn + '", sans-serif';
-  var sp   = ctx.measureText(' ').width;
-  var info = words.map(function(w, i) {
+  var ctx   = _capMeasureCtx;
+  var fn    = (s.font || "'Inter'").replace(/'/g, '');
+  var fw    = s.fw || '700';
+  var fi    = s.fi === 'italic' ? 'italic ' : '';
+  var tt    = s.tt === 'uppercase';
+  var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1; // muss wie in buildCap()/drawCaptionsOnCtx() angewendet werden, sonst misst der Umbruch mit der falschen Schriftgröße
+  px = px * fsMul;
+  ctx.font  = fi + fw + ' ' + px + 'px "' + fn + '", sans-serif';
+  var sp    = ctx.measureText(' ').width;
+  var info  = words.map(function(w, i) {
     var isHL = i === hlIdx;
     var f    = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
     var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
@@ -1366,19 +1395,27 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines) {
     return { i: i, w: ctx.measureText(wt).width };
   });
   var n = info.length;
-  var target  = Math.min(targetLines, n);
-  var total   = info.reduce(function(a, it){ return a + it.w; }, 0) + sp * (n - 1);
-  var perLine = total / target;
-  var lines = [[]], lw = 0, remaining = target;
-  info.forEach(function(it, k) {
-    var add = (lines[lines.length - 1].length ? sp : 0) + it.w;
-    var remainingWords = n - k;
-    var shouldBreak = lines[lines.length - 1].length && remaining > 1 && remainingWords >= remaining && (lw + add > perLine);
-    if (shouldBreak) { lines.push([]); lw = 0; add = it.w; remaining--; }
-    lines[lines.length - 1].push(it.i);
-    lw += add;
-  });
-  return lines;
+  var lines;
+  if (targetLines <= 1 || n <= 1) {
+    lines = [info];
+  } else {
+    var target  = Math.min(targetLines, n);
+    var total   = info.reduce(function(a, it){ return a + it.w; }, 0) + sp * (n - 1);
+    var perLine = total / target;
+    lines = [[]]; var lw = 0, remaining = target;
+    info.forEach(function(it, k) {
+      var add = (lines[lines.length - 1].length ? sp : 0) + it.w;
+      var remainingWords = n - k;
+      var shouldBreak = lines[lines.length - 1].length && remaining > 1 && remainingWords >= remaining && (lw + add > perLine);
+      if (shouldBreak) { lines.push([]); lw = 0; add = it.w; remaining--; }
+      lines[lines.length - 1].push(it);
+      lw += add;
+    });
+  }
+  // Harte Breitenbegrenzung NACH der Zielzeilen-Verteilung — verhindert, dass eine einzelne Zeile
+  // (insbesondere bei CAPTION_LINES=1 oder die letzte Zeile) über die Safe-Zone hinausragt.
+  lines = clampLinesToWidth(lines, previewFrameW() * 0.86, sp);
+  return lines.map(function(L){ return L.map(function(it){ return it.i; }); });
 }
 function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   if (!words || !words.length) return '';
@@ -1387,7 +1424,8 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   var tt   = s.tt   || 'none';
   var ls   = s.ls   || 'normal';
   var fi   = s.fi   || 'normal';
-  var sz   = px ? (px + 'px') : (s.fs || '1em');
+  var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1; // sonst weicht die Vorschau-Größe vom Export ab (Export wendet fsMul immer an, s. drawCaptionsOnCtx)
+  var sz   = px ? ((px * fsMul) + 'px') : (s.fs || '1em');
   var wCss = 'font-family:' + font + ';font-weight:' + fw + ';text-transform:' + tt
     + ';letter-spacing:' + ls + ';font-style:' + fi + ';font-size:' + sz
     + ';line-height:1.3;display:inline-block;max-width:100%;';
@@ -2090,90 +2128,115 @@ function segmentsToWords(segs) {
 }
 
 // ═══════════════════════════════════════
-// KONTO / FREEMIUM (Server: server.js)
+// KONTO (Supabase: Login + Cloud-Projekte)
 // ═══════════════════════════════════════
-var authToken = '', mePlan = 'anon', meRemaining = null, _upsellShown = false;
-function authHdr() { return authToken ? { Authorization: 'Bearer ' + authToken } : {}; }
+// Beide Werte sind ÖFFENTLICH und gehören bewusst ins Frontend — der anon key erlaubt für sich
+// genommen keinen Datenzugriff, das übernimmt Row-Level-Security in der DB (s. schema.sql).
+// Niemals den service_role-Key hier eintragen. Setup: README → "Login & Projekte (Supabase)".
+var SUPABASE_URL      = '';  // z. B. https://xxxxxxxx.supabase.co
+var SUPABASE_ANON_KEY = '';
+var mePlan = 'anon', _upsellShown = false, meEmail = '';
+// Lazy geladen wie ffmpeg/whisper (s. loadFFmpeg) — das Script läuft als klassisches <script>,
+// ein Top-Level-import wäre hier ein Syntaxfehler. Gibt null zurück, solange keine Credentials
+// hinterlegt sind, damit die Seite ohne Supabase voll nutzbar bleibt (Editor/Export sind gratis).
+var _sb = null;
+async function getSb() {
+  if (_sb) return _sb;
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  var mod = await import('https://esm.sh/@supabase/supabase-js@2');
+  _sb = mod.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return _sb;
+}
 function showAcct() {
   document.getElementById('acctModal').style.display = 'flex';
-  document.getElementById('acctStep1').style.display = authToken ? 'none' : 'block';
+  document.getElementById('acctStep1').style.display = meEmail ? 'none' : 'block';
   document.getElementById('acctStep2').style.display = 'none';
-  document.getElementById('acctStep3').style.display = authToken ? 'block' : 'none';
+  document.getElementById('acctStep3').style.display = meEmail ? 'block' : 'none';
 }
 async function reqCode() {
   var m = document.getElementById('acctMsg');
-  try {
-    var r = await fetch('auth/request', { method: 'POST', body: JSON.stringify({ email: document.getElementById('acctEmail').value.trim() }) });
-    if (!r.ok) throw 0;
-    m.textContent = 'Code sent — check your inbox.';
-    document.getElementById('acctStep1').style.display = 'none';
-    document.getElementById('acctStep2').style.display = 'block';
-  } catch (e) { m.textContent = 'Account login needs the Capivo server (server.js on your host).'; }
+  var sb = await getSb();
+  if (!sb) { m.textContent = 'Accounts are not set up on this deployment yet.'; return; }
+  var { error } = await sb.auth.signInWithOtp({ email: document.getElementById('acctEmail').value.trim() });
+  if (error) { m.textContent = error.message; return; }
+  m.textContent = 'Code sent — check your inbox.';
+  document.getElementById('acctStep1').style.display = 'none';
+  document.getElementById('acctStep2').style.display = 'block';
 }
 async function verifyCode() {
   var m = document.getElementById('acctMsg');
-  var r = await fetch('auth/verify', { method: 'POST', body: JSON.stringify({ email: document.getElementById('acctEmail').value.trim(), code: document.getElementById('acctCode').value.trim() }) });
-  var j = await r.json().catch(function(){ return {}; });
-  if (!r.ok) { m.textContent = j.error || 'Wrong code'; return; }
-  authToken = j.token; m.textContent = '';
+  var sb = await getSb();
+  if (!sb) { m.textContent = 'Accounts are not set up on this deployment yet.'; return; }
+  var { error } = await sb.auth.verifyOtp({
+    email: document.getElementById('acctEmail').value.trim(),
+    token: document.getElementById('acctCode').value.trim(),
+    type:  'email'
+  });
+  if (error) { m.textContent = error.message; return; }
+  m.textContent = '';
   document.getElementById('acctModal').style.display = 'none';
   fetchMe(); loadProjects();
 }
-function logout() {
-  authToken = ''; mePlan = 'anon'; meRemaining = null;
+async function logout() {
+  var sb = await getSb();
+  if (sb) await sb.auth.signOut();
+  mePlan = 'anon'; meEmail = '';
   document.getElementById('acctBtn').textContent = 'Sign in';
   document.getElementById('acctModal').style.display = 'none';
   updateAcctUI();
 }
 async function fetchMe() {
-  if (!authToken) return updateAcctUI();
-  try {
-    var r = await fetch('me', { headers: authHdr() });
-    if (!r.ok) throw 0;
-    var j = await r.json();
-    mePlan = j.plan; meRemaining = j.remainingSeconds;
-    document.getElementById('acctBtn').textContent = j.email.split('@')[0];
-    document.getElementById('acctInfo').textContent = j.email + ' · Plan: ' + j.plan + ' · ' + Math.floor(j.remainingSeconds / 60) + ' min left';
-  } catch (e) {}
+  var sb = await getSb();
+  if (sb) {
+    var { data } = await sb.auth.getUser();
+    if (data && data.user) {
+      meEmail = data.user.email; mePlan = 'free';
+      document.getElementById('acctBtn').textContent = meEmail.split('@')[0];
+      document.getElementById('acctInfo').textContent = meEmail + ' · signed in';
+    } else { meEmail = ''; mePlan = 'anon'; }
+  }
   updateAcctUI();
 }
 function updateAcctUI() {
   var qi = document.getElementById('quotaInfo');
   if (!qi) return;
   if (mePlan === 'anon') qi.textContent = '⚡ Fast & 💎 Perfect · free, no download — works on any device';
-  else qi.textContent = '💎 ' + mePlan + ' plan · ' + Math.floor((meRemaining || 0) / 60) + ' min ' + Math.round((meRemaining || 0) % 60) + ' s left';
+  else qi.textContent = '⚡ Signed in · your projects are saved to the cloud';
 }
-async function startCheckout(plan) {
-  var m = document.getElementById('acctMsg');
-  if (!authToken) { m.textContent = 'Please sign in first.'; return; }
-  var r = await fetch('billing/checkout', { method: 'POST', headers: authHdr(), body: JSON.stringify({ plan: plan }) });
-  var j = await r.json().catch(function(){ return {}; });
-  if (j.url) location.href = j.url;
-  else m.textContent = j.error || 'Checkout not available.';
+// Bezahlung ist noch nicht angebunden (kein Stripe im aktuellen Umfang) — die Plan-Buttons
+// bleiben sichtbar, sagen aber ehrlich, dass es noch nichts zu kaufen gibt.
+function startCheckout(plan) {
+  document.getElementById('acctMsg').textContent = 'Paid plans are coming soon — everything is free while Capivo is in beta.';
 }
-// ── Projekte (Cloud) ──
+// ── Projekte (Cloud, Supabase) ──
+// user_id setzt die DB selbst per DEFAULT auth.uid(); RLS stellt sicher, dass jeder nur seine
+// eigenen Zeilen sieht/ändert — deshalb braucht keine Query hier einen user-Filter.
 async function saveProject() {
-  if (!authToken) { showAcct(); return; }
+  if (!meEmail) { showAcct(); return; }
+  var sb = await getSb();
+  if (!sb) return;
   var payload = { blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff };
-  var r = await fetch('projects', { method: 'POST', headers: authHdr(), body: JSON.stringify({ title: document.getElementById('projTitle').value || 'Untitled', payload: payload }) });
-  if (r.status === 402) { alert('Project limit reached — the Creator plan includes 20 cloud projects.'); return; }
+  var { error } = await sb.from('projects').insert({ title: document.getElementById('projTitle').value || 'Untitled', payload: payload });
+  if (error) { alert('Could not save the project: ' + error.message); return; }
   loadProjects();
 }
 async function loadProjects() {
-  if (!authToken) return;
-  try {
-    var r = await fetch('projects', { headers: authHdr() });
-    var list = await r.json();
-    var sel = document.getElementById('projList');
-    sel.innerHTML = '<option value="">— Load project —</option>';
-    list.forEach(function(p) { var o = document.createElement('option'); o.value = p.id; o.textContent = p.title; sel.appendChild(o); });
-  } catch (e) {}
+  if (!meEmail) return;
+  var sb = await getSb();
+  if (!sb) return;
+  var { data, error } = await sb.from('projects').select('id,title,updated_at').order('updated_at', { ascending: false });
+  if (error || !data) return;
+  var sel = document.getElementById('projList');
+  sel.innerHTML = '<option value="">— Load project —</option>';
+  data.forEach(function(p) { var o = document.createElement('option'); o.value = p.id; o.textContent = p.title; sel.appendChild(o); });
 }
 async function loadProject(id) {
   if (!id) return;
-  var r = await fetch('projects/' + id, { headers: authHdr() });
-  var j = await r.json();
-  var p = j.payload || {};
+  var sb = await getSb();
+  if (!sb) return;
+  var { data, error } = await sb.from('projects').select('payload').eq('id', id).single();
+  if (error || !data) return;
+  var p = data.payload || {};
   if (p.blocks) {
     captionBlocks = p.blocks;
     wordTimestamps = [];
@@ -2250,7 +2313,7 @@ async function serverTranscribe(wavBlob, model, lc, audioDur) {
         { method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd });
     } else {
       resp = await fetch('transcribe.php?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''),
-        { method: 'POST', headers: Object.assign({ 'Content-Type': 'audio/wav' }, authHdr()), body: wavBlob });
+        { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: wavBlob });
     }
   } catch (e) { clearInterval(fakeTimer); return null; } // Netzwerk-Fehler / kein Proxy → lokaler Fallback
   clearInterval(fakeTimer);
@@ -2444,7 +2507,6 @@ async function transcribeVideo(file) {
     _lastKey = null;
     updateOverlay();
     enableExports(true);
-    if (authToken) fetchMe(); // Restminuten-Badge aktualisieren
 
   } catch(err) {
     if (typeof fakeTimer !== 'undefined') clearInterval(fakeTimer);
@@ -2868,6 +2930,71 @@ async function exportVideoWithCaptions() {
 function gradColors(css) {
   return (css.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/g)) || ['#fff'];
 }
+// Parst mehrschichtiges CSS text-shadow ("x y blur color, x y blur color, ...") wie in den STYLES
+// verwendet — Canvas kennt keinen text-shadow, daher wird jede Schicht als eigener fillText-Aufruf
+// mit shadowOffset/Blur/Color nachgebildet (0-Blur-Schichten ergeben so exakt denselben "Outline aus
+// versetzten Kopien"-Effekt wie im DOM, ganz ohne den früheren separaten strokeText-Hack).
+function parseTextShadows(str) {
+  if (!str || str === 'none') return [];
+  var parts = [], depth = 0, cur = '';
+  for (var i = 0; i < str.length; i++) {
+    var c = str[i];
+    if (c === '(') depth++;
+    else if (c === ')') depth--;
+    if (c === ',' && depth === 0) { parts.push(cur); cur = ''; } else cur += c;
+  }
+  if (cur.trim()) parts.push(cur);
+  var out = [];
+  parts.forEach(function(p) {
+    var m = p.trim().match(/^(-?[\d.]+)px\s+(-?[\d.]+)px(?:\s+(-?[\d.]+)px)?\s+(.+)$/);
+    if (!m) return;
+    out.push({ x: parseFloat(m[1]), y: parseFloat(m[2]), blur: m[3] ? parseFloat(m[3]) : 0, color: m[4].trim() });
+  });
+  return out;
+}
+// Zeichnet Text mitsamt allen text-shadow-Schichten (skaliert), dann eine finale scharfe Kopie obenauf.
+function fillTextWithShadow(ctx, text, x, y, shadowStr, scale) {
+  var layers = parseTextShadows(shadowStr);
+  if (layers.length) {
+    ctx.save();
+    layers.forEach(function(l) {
+      ctx.shadowOffsetX = l.x * scale; ctx.shadowOffsetY = l.y * scale;
+      ctx.shadowBlur = l.blur * scale; ctx.shadowColor = l.color;
+      ctx.fillText(text, x, y);
+    });
+    ctx.restore();
+  }
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  ctx.fillText(text, x, y);
+}
+// Keyframes der @keyframes captly-* (0.34s ease) — reproduziert die Wort-Pop-Animation beim Highlight-
+// Wechsel im Export, den der Canvas (anders als DOM/CSS) sonst komplett ignoriert.
+var ANIM_KEYFRAMES = {
+  bounce: [[0,{ty:0,sx:1,sy:1}],[40,{ty:-8,sx:1.12,sy:1.12}],[70,{ty:-2,sx:1.04,sy:1.04}],[100,{ty:0,sx:1,sy:1}]],
+  scale:  [[0,{sx:1,sy:1}],[40,{sx:1.25,sy:1.25}],[100,{sx:1,sy:1}]],
+  flash:  [[0,{op:1}],[40,{op:.1}],[80,{op:.95}],[100,{op:1}]],
+  glow:   [[0,{bright:1,sat:1}],[50,{bright:2.2,sat:1.5}],[100,{bright:1,sat:1}]],
+  punch:  [[0,{sx:1,sy:1}],[25,{sx:.8,sy:.8}],[60,{sx:1.22,sy:1.22}],[100,{sx:1,sy:1}]],
+  wobble: [[0,{rot:0}],[25,{rot:-4}],[75,{rot:4}],[100,{rot:0}]]
+};
+var ANIM_DUR = 0.34;
+function animState(anim, elapsed) {
+  var kf = ANIM_KEYFRAMES[anim];
+  if (!kf || !(elapsed >= 0) || elapsed >= ANIM_DUR) return null;
+  var pct = (elapsed / ANIM_DUR) * 100;
+  var lo = kf[0], hi = kf[kf.length - 1];
+  for (var i = 0; i < kf.length - 1; i++) { if (pct >= kf[i][0] && pct <= kf[i + 1][0]) { lo = kf[i]; hi = kf[i + 1]; break; } }
+  var span = hi[0] - lo[0], f = span > 0 ? (pct - lo[0]) / span : 0;
+  var out = { sx: 1, sy: 1, ty: 0, rot: 0, op: 1, bright: 1, sat: 1 };
+  Object.keys(out).forEach(function(k) {
+    var a = lo[1][k], b = hi[1][k];
+    if (a === undefined && b === undefined) return;
+    if (a === undefined) a = out[k];
+    if (b === undefined) b = out[k];
+    out[k] = a + (b - a) * f;
+  });
+  return out;
+}
 // Rendert den aktiven Caption-Block auf den Canvas — mit Zeilenumbruch, Highlight-Farben, Pills, Outline & Glow
 function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   if (!captionBlocks.length) return;
@@ -2879,7 +3006,8 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   var wi = activeWordIdx(b, t);
 
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
-  var fsS = Math.round(fontSize * (W / 390) * fsMul);
+  var scale = W / previewFrameW(); // Vorschau-Rahmen ist variabel breit (Video-AR-abhängig) — NIE eine feste Zahl hier
+  var fsS = Math.round(fontSize * scale * fsMul);
   var fn  = (s.font || "'Inter'").replace(/'/g,'');
   var fw  = s.fw || '400';
   var fi  = s.fi === 'italic' ? 'italic ' : '';
@@ -2916,12 +3044,16 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       var add = (lines[lines.length - 1].length ? sp : 0) + it.w;
       var remainingWords = n - i;
       var shouldBreak = lines[lines.length - 1].length && remaining > 1 && remainingWords >= remaining
-        && (lw + add > perLine || lw + add > maxW);
+        && (lw + add > perLine);
       if (shouldBreak) { lines.push([]); lw = 0; add = it.w; remaining--; }
       lines[lines.length - 1].push(it);
       lw += add;
     });
   }
+  // Harte Breitenbegrenzung NACH der Zielzeilen-Verteilung — verhindert, dass eine Zeile (auch die
+  // letzte, oder die einzige bei CAPTION_LINES=1) über die Safe-Zone hinausragt. Identische Logik wie
+  // in wrapCaptionLines() (Editor-Vorschau), damit beide garantiert dasselbe Umbruchergebnis liefern.
+  lines = clampLinesToWidth(lines, maxW, sp);
 
   var lh   = fsS * 1.28;
   // Muss exakt applyPos() (DOM-Vorschau, #capOverlay) nachbilden, sonst weicht die Position im
@@ -2943,15 +3075,39 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
 
+  // boxBg-Padding/-Radius sind im DOM (buildCap: "padding:5px 18px", s.boxBr) feste px-Werte, die bei
+  // der Vorschaubreite (previewFrameW) gemeint sind — mit `scale` (== W/previewFrameW, dieselbe Umrechnung
+  // wie fsS) 1:1 in den Export übertragen, statt (wie zuvor) willkürlich an fsS gekoppelt und boxBr zu ignorieren.
   if (s.boxBg) {
     var widest = Math.max.apply(null, lineWs);
-    var pad = fsS * 0.4;
+    var padX = 18 * scale, padY = 5 * scale;
+    var radius = parseFloat(s.boxBr || '6') * scale;
     ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
     ctx.fillStyle = s.boxBg;
     ctx.beginPath();
-    var bx = W/2 - widest/2 - pad, by = y0 - fsS * 1.05, bw = widest + pad*2, bh = (lines.length - 1) * lh + fsS * 1.5;
-    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, fsS * 0.25); else ctx.rect(bx, by, bw, bh);
+    var bx = W/2 - widest/2 - padX, by = y0 - fsS * 1.05 - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + fsS * 1.5 + padY*2;
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
     ctx.fill(); ctx.restore();
+  }
+
+  // "evo"-Style: linker Akzentstrich (s.pill, im DOM eine umschließende Box mit border-left) — fehlte
+  // im Export bisher komplett.
+  if (s.pill) {
+    var widest2 = Math.max.apply(null, lineWs);
+    var pm = String(s.pill.p || '0').split(/\s+/).map(function(v){ return parseFloat(v) || 0; });
+    var pT = (pm[0] || 0) * scale, pR = (pm.length > 1 ? pm[1] : pm[0]) * scale,
+        pB = (pm.length > 2 ? pm[2] : pm[0]) * scale, pL = (pm.length > 3 ? pm[3] : pR) * scale;
+    var borderW = 0, borderColor = null;
+    var bm = s.pill.borderLeft && s.pill.borderLeft.match(/^([\d.]+)px\s+\S+\s+(.+)$/);
+    if (bm) { borderW = parseFloat(bm[1]) * scale; borderColor = bm[2]; }
+    var pillT = y0 - fsS * 1.05 - pT, pillB = y0 + (lines.length - 1) * lh + fsS * 0.45 + pB;
+    var pillL = W/2 - widest2/2 - pL - borderW, pillR = W/2 + widest2/2 + pR;
+    if (s.pill.bg && s.pill.bg !== 'transparent') {
+      ctx.save(); ctx.fillStyle = s.pill.bg; ctx.fillRect(pillL, pillT, pillR - pillL, pillB - pillT); ctx.restore();
+    }
+    if (borderW > 0 && borderColor) {
+      ctx.save(); ctx.fillStyle = borderColor; ctx.fillRect(pillL, pillT, borderW, pillB - pillT); ctx.restore();
+    }
   }
 
   lines.forEach(function(L, li) {
@@ -2972,39 +3128,34 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
         ctx.stroke(); ctx.restore();
       }
 
-      // Pill hinter aktivem Wort (z. B. Karaoke-Style)
+      // Pill hinter aktivem Wort (z. B. Karaoke-Style) — Padding/Radius wie im DOM ("padding:2px 9px;
+      // border-radius:5px", feste px bei previewFrameW) via `scale` übertragen statt an fsS gekoppelt.
       if (isHL && s.hlPillBg) {
-        var pdx = fsS * 0.22;
+        var pdx = 9 * scale, pdy = 2 * scale;
         ctx.save(); ctx.shadowColor = 'transparent';
         ctx.fillStyle = s.hlPillBg;
         ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(x - pdx, y - fsS * 0.92, wo.w + pdx*2, fsS * 1.28, fsS * 0.18);
-        else ctx.rect(x - pdx, y - fsS * 0.92, wo.w + pdx*2, fsS * 1.28);
+        if (ctx.roundRect) ctx.roundRect(x - pdx, y - fsS * 0.92 - pdy, wo.w + pdx*2, fsS * 1.28 + pdy*2, 5 * scale);
+        else ctx.rect(x - pdx, y - fsS * 0.92 - pdy, wo.w + pdx*2, fsS * 1.28 + pdy*2);
         ctx.fill(); ctx.restore();
       }
 
-      // Schatten: Glow beim aktiven Wort, sonst weicher Drop-Shadow
-      if (isHL && s.hls && s.hls !== 'none') {
-        ctx.shadowColor = s.hl || s.hlc || '#fff';
-        ctx.shadowBlur = fsS * 0.4; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-      } else if (s.boxBg && s.boxBg.indexOf('rgba') !== 0) {
-        // helle Box (z. B. Paper II): kein dunkler Halo hinter dunklem Text
-        ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-      } else {
-        ctx.shadowColor = 'rgba(0,0,0,.85)';
-        ctx.shadowBlur = fsS * 0.16; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 2;
+      // Pop-Animation des aktiven Worts (@keyframes captly-*) — im Export bisher komplett statisch.
+      var animSt = (isHL && s.anim && s.anim !== 'none') ? animState(s.anim, t - (b.words[wo.idx].start || 0)) : null;
+      ctx.save();
+      if (animSt) {
+        var pvx = x + wo.w / 2, pvy = y - fsS * 0.32 - animSt.ty * scale;
+        ctx.translate(pvx, pvy);
+        if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
+        ctx.scale(animSt.sx, animSt.sy);
+        ctx.translate(-pvx, -pvy);
+        if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
+        if (animSt.bright !== 1 || animSt.sat !== 1) ctx.filter = 'brightness(' + animSt.bright + ') saturate(' + animSt.sat + ')';
       }
 
-      // Outline (Viral / Impact)
-      if (s.cstroke) {
-        ctx.lineWidth = Math.max(2, fsS * 0.1);
-        ctx.strokeStyle = s.cstroke;
-        ctx.lineJoin = 'round';
-        ctx.strokeText(wo.txt, x, y);
-      }
-
-      // Füllung — inkl. Gradient-Styles (Prism)
-      var fillCss = isHL ? (s.hlg || null) : (s.tg || null);
+      // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) verhalten sich wie im DOM
+      // genauso wie das Highlight-Wort (gleiche Farbe/Gradient/Schatten), nur ohne Pill/Kringel/Anim.
+      var fillCss = (isHL || isKw) ? (s.hlg || null) : (s.tg || null);
       if (fillCss) {
         var cols = gradColors(fillCss);
         var g = ctx.createLinearGradient(x, 0, x + Math.max(1, wo.w), 0);
@@ -3013,7 +3164,10 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       } else {
         ctx.fillStyle = (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (s.hl || '#fff')) : (s.tc || '#fff');
       }
-      ctx.fillText(wo.txt, x, y);
+      // Text-Shadow exakt wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter) —
+      // ersetzt den früheren generischen Einheits-Schatten + strokeText-Hack.
+      fillTextWithShadow(ctx, wo.txt, x, y, (isHL || isKw) ? (s.hls || 'none') : (s.ts || 'none'), scale);
+      ctx.restore();
       x += wo.w + sp;
     });
   });
@@ -3298,6 +3452,8 @@ renderWPills();
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
 renderShowcase();
 updateAcctUI();
+// Bereits eingeloggte Nutzer erkennen (supabase-js hält die Session in localStorage).
+fetchMe().then(function(){ if (meEmail) loadProjects(); });
 initLandingNavScroll();
 initScrollReveal();
 // Leertaste = Play/Pause im Editor (Pro-Creator-Standard), außer beim Tippen
