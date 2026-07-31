@@ -43,19 +43,36 @@ Magic-Code-Login). Kein Build, kein npm — `supabase-js` wird per ESM-CDN gelad
 1. Auf <https://supabase.com> ein Projekt anlegen, **Region EU (Frankfurt)** wählen.
 2. **SQL Editor** öffnen und [`schema.sql`](schema.sql) einfügen + ausführen (Tabelle `projects`
    inkl. Row-Level-Security).
-3. **Authentication → Emails → Magic Link**: im Template `{{ .Token }}` einbauen, damit der
-   6-stellige Code in der Mail steht (Capivo fragt den Code ab, nicht den Link).
-4. **Project Settings → API**: `Project URL` und `anon public` key kopieren und in
-   `captly.html` oben im Abschnitt „KONTO" bei `SUPABASE_URL` / `SUPABASE_ANON_KEY` eintragen.
-   Beide Werte sind **öffentlich** und gehören ins Frontend — geschützt wird über RLS.
-   Den `service_role`-Key **niemals** eintragen.
+3. **Project Settings → API Keys**: `Project URL` und den **publishable key**
+   (`sb_publishable_…`, früher „anon public") kopieren und in `captly.html` oben im Abschnitt
+   „KONTO" bei `SUPABASE_URL` / `SUPABASE_ANON_KEY` eintragen. Beide Werte sind **öffentlich**
+   und gehören ins Frontend — geschützt wird über RLS. Einen **secret**- bzw. `service_role`-Key
+   dort **niemals** eintragen.
+4. **Authentication → Sign In / Providers**: Provider *Email* aktiviert, „Allow new users to
+   sign up" an.
 
 Ohne diese Werte bleibt Capivo voll nutzbar (Editor, Transkription, Export) — nur der
 Sign-in-Button meldet dann, dass Konten auf dieser Instanz nicht eingerichtet sind.
 
-Der Supabase-Mailversand im Free-Tier ist stark rate-limitiert (nur für Tests). Für echte
-Nutzer unter *Authentication → SMTP Settings* einen eigenen Absender hinterlegen, sobald
-die Domain steht.
+### Mailversand: eigenes SMTP ist Pflicht, nicht optional
+
+Capivo fragt einen **6-stelligen Code** ab, nicht den Magic-Link. Der Code steht nur dann in der
+Mail, wenn das Template die Variable `{{ .Token }}` enthält — und **Templates lassen sich in
+Supabase erst bearbeiten, wenn eigenes SMTP hinterlegt ist** („Set up custom SMTP to edit
+templates"). Der eingebaute Free-Tier-Mailer verschickt ausschließlich das Standard-Template mit
+`{{ .ConfirmationURL }}` und ist zusätzlich auf wenige Mails/Stunde begrenzt. **Ohne SMTP
+funktioniert der Login also nicht** — auch nicht zum Testen.
+
+1. *Authentication → Emails → SMTP Settings* → **Enable Custom SMTP**, Zugangsdaten des
+   Mailanbieters eintragen (Host, Port 587, Login, SMTP-Key als Passwort, Absenderadresse).
+   Der Anbieter muss die Absenderadresse verifiziert haben.
+2. Danach unter *Authentication → Emails → Templates* **beide** relevanten Templates anpassen —
+   sie müssen `{{ .Token }}` enthalten:
+   - **„Magic Link"** → Login bestehender Nutzer.
+   - **„Confirm signup"** → erster Login eines neuen Nutzers, solange *Confirm email* aktiv ist.
+     Wird das übersehen, können sich Bestandsnutzer einloggen, neue Nutzer aber nicht registrieren.
+3. *Authentication → Rate Limits*: nach SMTP-Einrichtung stehen Auth-Mails auf ~30/Stunde —
+   bei Bedarf anheben.
 
 ## Schnellstart (lokal)
 
@@ -145,8 +162,9 @@ captly.deinedomain.ch {
 
 **Deploy-Checkliste (aktuelle Architektur — statisches Hosting + `transcribe.php` + Supabase):**
 `config.php` mit Groq-Key auf dem Webhosting · `schema.sql` im Supabase-Projekt ausgeführt ·
-`SUPABASE_URL`/`SUPABASE_ANON_KEY` in `captly.html` eingetragen · Magic-Link-Template enthält
-`{{ .Token }}` · eigenes SMTP in Supabase hinterlegt · echte Domain in `canonical`/`og:url`/
+`SUPABASE_URL`/`SUPABASE_ANON_KEY` in `captly.html` eingetragen · eigenes SMTP in Supabase
+hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ .Token }}` ·
+echte Domain in `canonical`/`og:url`/
 `og:image` statt `capivo.app` · HTTPS aktiv · einmal end-to-end testen (Upload → Fast → Perfect
 → Export → Login-Code kommt an → Projekt speichern & wieder laden).
 

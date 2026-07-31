@@ -2130,21 +2130,27 @@ function segmentsToWords(segs) {
 // ═══════════════════════════════════════
 // KONTO (Supabase: Login + Cloud-Projekte)
 // ═══════════════════════════════════════
-// Beide Werte sind ÖFFENTLICH und gehören bewusst ins Frontend — der anon key erlaubt für sich
-// genommen keinen Datenzugriff, das übernimmt Row-Level-Security in der DB (s. schema.sql).
-// Niemals den service_role-Key hier eintragen. Setup: README → "Login & Projekte (Supabase)".
-var SUPABASE_URL      = '';  // z. B. https://xxxxxxxx.supabase.co
-var SUPABASE_ANON_KEY = '';
+// Beide Werte sind ÖFFENTLICH und gehören bewusst ins Frontend — der publishable key (früher
+// "anon key") erlaubt für sich genommen keinen Datenzugriff, das übernimmt Row-Level-Security
+// in der DB (s. schema.sql). Niemals einen secret/service_role-Key hier eintragen.
+// Setup: README → "Login & Projekte (Supabase)".
+var SUPABASE_URL      = 'https://tghodbtdraqkfwcmedcv.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g';
 var mePlan = 'anon', _upsellShown = false, meEmail = '';
 // Lazy geladen wie ffmpeg/whisper (s. loadFFmpeg) — das Script läuft als klassisches <script>,
 // ein Top-Level-import wäre hier ein Syntaxfehler. Gibt null zurück, solange keine Credentials
 // hinterlegt sind, damit die Seite ohne Supabase voll nutzbar bleibt (Editor/Export sind gratis).
-var _sb = null;
+// Scheitert der CDN-Import (offline, esm.sh down, strenge CSP, Node-Testlauf), geben wir null
+// zurück statt zu werfen — dann verhält sich die Seite wie ohne Credentials, statt am Login zu
+// hängen. _sbFailed verhindert, dass jeder Aufruf denselben Fehlversuch wiederholt.
+var _sb = null, _sbFailed = false;
 async function getSb() {
   if (_sb) return _sb;
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
-  var mod = await import('https://esm.sh/@supabase/supabase-js@2');
-  _sb = mod.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  if (_sbFailed || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  try {
+    var mod = await import('https://esm.sh/@supabase/supabase-js@2');
+    _sb = mod.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  } catch (e) { _sbFailed = true; console.warn('Supabase konnte nicht geladen werden:', e); }
   return _sb;
 }
 function showAcct() {
