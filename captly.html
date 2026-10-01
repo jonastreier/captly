@@ -1725,7 +1725,7 @@ function previewFrameH() {
 // lines (optional): Ziel-Zeilenzahl (CAPTION_LINES) für die Höhen-Prüfung. Ergebnis in Vorschau-Einheiten.
 function fitCaptionWords(words, s, px, maxW, lines) {
   var maxH = previewFrameH() * CAP_FIT_MAX_H;
-  var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper,
+  var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, capWordGap(s),
             s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0].join(',') + '|' + px + '|' + Math.round(maxW)
             + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen;
   if (_capFitCache[key]) return _capFitCache[key];
@@ -4552,6 +4552,19 @@ function editListOffset(edits, movieTimescale, trackTimescale) {
   }
   return off;
 }
+// Präsentations-Ende (Sekunden) laut Edit-Liste: verzögerter Start + Dauer des normalen Edits. Ohne
+// Edit-Liste bzw. Dauer 0 (= „bis Medienende“) → Infinity. Wird eine Datei ohne Neukodierung gekürzt,
+// steht der „versteckte“ Rest weiterhin in der Spur — der Player zeigt ihn nicht, der Schnellexport muss
+// ihn deshalb ebenfalls weglassen (sonst hängt das MP4 den abgeschnittenen Schluss an).
+function editListEnd(edits, movieTimescale) {
+  if (!edits || !edits.length) return Infinity;
+  var i = 0, start = 0, ts = movieTimescale || 1;
+  if (edits[0].media_time === -1) { start = edits[0].segment_duration / ts; i = 1; }
+  if (i >= edits.length) return Infinity;
+  var dur = edits[i].segment_duration;
+  if (!(dur > 0)) return Infinity;
+  return start + dur / ts;
+}
 // H.264-Codec-Strings passend zur Auflösung: kleinstes Level, das Framegröße (MaxFS), Makroblock-Rate
 // (MaxMBPS) und Seitenlänge (√(8·MaxFS)) abdeckt — zu niedrige Level lehnen Encoder ab, unnötig hohe
 // manche Decoder (ältere Handys). Je Level High → Main → Constrained Baseline, plus ein Level Reserve.
@@ -4649,6 +4662,7 @@ async function exportFastWebCodecs(file, o) {
   if (rot === null) throw new Error('gespiegelte/schräge Video-Matrix nicht unterstützt');
   var vOff = editListOffset(vT.edits, info.timescale, vT.timescale);
   if (vOff === null) throw new Error('komplexe Edit-Liste (Video)');
+  var vEnd = editListEnd(vT.edits, info.timescale); // gekürzte Datei: Frames dahinter nicht ausgeben
   var rotW = rot % 180 ? vT.video.height : vT.video.width, rotH = rot % 180 ? vT.video.width : vT.video.height;
   // Plausibilitätscheck gegen das, was der Player zeigt (falsch erkannte Drehung/Pixel-Seitenverhältnis
   // → lieber Echtzeit-Pfad als ein verzerrtes Video).
@@ -4660,7 +4674,7 @@ async function exportFastWebCodecs(file, o) {
   if (!(fps >= 1 && fps <= 240)) fps = 30;
 
   // ── Ton: AAC 1:1 kopieren ──
-  var aT = null, aCfg = null, aOff = 0;
+  var aT = null, aCfg = null, aOff = 0, aEnd = Infinity;
   if (info.audioTracks && info.audioTracks.length) {
     aT = info.audioTracks.filter(function(t) { return /^mp4a\.40\./.test(t.codec); })[0];
     if (!aT) throw new Error('Tonspur ist kein AAC (' + info.audioTracks[0].codec + ')'); // Ton nie stillschweigend verlieren
@@ -4671,6 +4685,7 @@ async function exportFastWebCodecs(file, o) {
     if (!dsi || !dsi.data || !dsi.data.length) throw new Error('AAC ohne AudioSpecificConfig');
     aOff = editListOffset(aT.edits, info.timescale, aT.timescale);
     if (aOff === null) throw new Error('komplexe Edit-Liste (Audio)');
+    aEnd = editListEnd(aT.edits, info.timescale);
     aCfg = { codec: aT.codec, sampleRate: aT.audio.sample_rate, numberOfChannels: aT.audio.channel_count,
              description: new Uint8Array(dsi.data) };
     aId = aT.id;
@@ -4723,6 +4738,7 @@ async function exportFastWebCodecs(file, o) {
         if (frame.format && /^I4(44|22)/.test(frame.format)) { setFail(new Error('Pixelformat ' + frame.format + ' nicht unterstützt')); return; }
         var t = frame.timestamp / 1e6;
         if (t < -0.0005) return; // per Edit-Liste ausgeblendeter Vorlauf
+        if (t >= vEnd - 0.0005) return; // per Edit-Liste ausgeblendeter Schluss (Frame wird nur als Referenz dekodiert)
         if (t < 0) t = 0;
         var outT = rebaseCutTime(t, cuts);
         if (outT === null) return; // Auto-Cut: Frame liegt in Stille/Füllwort
@@ -4753,7 +4769,9 @@ async function exportFastWebCodecs(file, o) {
   async function drain() {
     for (var i = 0; i < aQ.length; i++) {
       var s = aQ[i], dur = s.duration / s.timescale;
-      var outs = planAudio(s.cts / s.timescale + aOff, dur);
+      var aStart = s.cts / s.timescale + aOff;
+      if (aStart + dur / 2 > aEnd) continue; // Tonpaket liegt (überwiegend) hinter dem Edit-Ende
+      var outs = planAudio(aStart, dur);
       for (var k = 0; k < outs.length; k++) {
         muxer.addAudioChunkRaw(s.data, 'key', Math.round(outs[k] * 1e6), Math.round(dur * 1e6),
                                aChunks ? undefined : { decoderConfig: aCfg });
