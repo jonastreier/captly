@@ -61,6 +61,26 @@ Whisper-Halluzinationen). Max. 20 Min Audio pro Video. Der Proxy hat ein IP-Limi
 Eingeloggten; das Session-Token wird serverseitig bei Supabase geprüft. Anbieterwechsel (Deepgram,
 paid) ist im Proxy gekapselt → wenige Zeilen.
 
+## Transkript-Feinschliff („Polish“, für Perfect)
+
+Nach Whisper large-v3 kann das Frontend das Transkript an **`/api/polish`** (Vercel,
+[`api/polish.js`](api/polish.js)) bzw. **`polish.php`** (PHP-Hosting) schicken. Ein LLM auf Groq
+(`openai/gpt-oss-120b`, Fallback `llama-3.3-70b-versatile`, gleicher `GROQ_API_KEY`) korrigiert **nur**
+offensichtliche Erkennungsfehler: verhörte Wörter (v. a. Namen/Marken/Orte aus „Names & terms“),
+Rechtschreibung, Gross-/Kleinschreibung, Satzzeichen, Satzgrenzen — kein Umformulieren, Übersetzen,
+Kürzen; Füllwörter/Dialekt bleiben, „ss“ wird nie zu „ß“.
+
+- Request: `POST {"lang":"de","vocab":"Birkenhof, Highland Beef","segments":[{"id":0,"text":"…"}]}`
+  (max. 12 000 Zeichen Text / 1000 Segmente, sonst 413).
+- Antwort: `{"segments":[{"id":0,"text":"…"}],"model":"…","changed":n,"rejected":n}` — gleiche ids/Reihenfolge.
+- Jede Korrektur wird serverseitig geprüft (Wortzahl ±max(2, 15 %), Wort-Editierdistanz ≤ max(1, 35 %),
+  kein neues „ß“, nicht leer); sonst bleibt das Original-Segment. Groq komplett fehlgeschlagen → 502,
+  das Frontend behält dann das unpolierte Transkript.
+- Setup: nichts zusätzlich — dieselben Env-Variablen bzw. dieselbe `config.php` wie die Transkription
+  (`RATE_LIMIT_PER_HOUR` zählt separat, `REQUIRE_LOGIN` gilt auch hier). Vercel: `maxDuration` 30 s
+  in `vercel.json`; Groq-Budget ~25 s. Check: `GET /api/polish` → `{"configured":true}`.
+- Tests: `node test-polish.js` (gemockter Groq; prüft bei vorhandenem `php` auch die PHP-Parität).
+
 ## Zuverlässigkeit & Komfort (Editor)
 
 - **Names & terms:** optionales Feld unter Fast/Perfect; wird als Whisper-`prompt` mitgeschickt
