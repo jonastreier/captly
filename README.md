@@ -21,7 +21,23 @@ Dateien, kein Build:
   Transkription läuft über `transcribe.php`, Login/Projekte über Supabase. Bleibt als Referenz
   für Quota- und Stripe-Logik liegen, falls Bezahlung dazukommt.
 
-## Transkription einrichten (Groq-Proxy)
+## Transkription einrichten auf Vercel (empfohlen, aktueller Live-Weg)
+
+Vercel führt kein PHP aus, deshalb gibt es den Proxy zusätzlich als **Serverless Function**
+[`api/transcribe.js`](api/transcribe.js) (gleiche Schnittstelle, kein npm nötig). Das Frontend probiert
+zuerst `/api/transcribe`, dann `transcribe.php`, erst danach den lokalen Fallback.
+
+1. Groq-Key holen: <https://console.groq.com> → **API Keys**.
+2. Vercel → Projekt → **Settings → Environment Variables**: `GROQ_API_KEY = gsk_…` (Production + Preview).
+   Optional: `RATE_LIMIT_PER_HOUR` (Default 120/IP, best effort pro Instanz), `REQUIRE_LOGIN=1` +
+   `SUPABASE_URL` + `SUPABASE_ANON_KEY` (nur Eingeloggte).
+3. **Redeploy** (Env-Variablen greifen erst im nächsten Deployment). Check: `GET /api/transcribe` →
+   `{"configured":true}`.
+
+Vercel kappt Request-Bodies bei 4,5 MB; das Frontend schickt ~100-s-Stücke (≤ ~3,2 MB), passt also.
+Fehlt der Key, fällt die App automatisch auf die lokale Erkennung zurück (langsam, Modell-Download).
+
+## Transkription einrichten (Groq-Proxy, klassisches PHP-Webhosting)
 
 Auf klassischem **Webhosting mit PHP** — kein Node-Server nötig:
 

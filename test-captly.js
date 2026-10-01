@@ -342,6 +342,33 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
     ok(thrown && /limit/i.test(thrown.message), '429 mit langem Retry-After → klare Meldung');
   }
 
+
+  // 22) Vercel-Function api/transcribe.js (gemocktes req/res + Groq-fetch)
+  {
+    const { Readable } = require('stream');
+    const handler = require(path.join(__dirname, 'api', 'transcribe.js'));
+    const run = async (method, url, body, env, headers) => {
+      Object.assign(process.env, { GROQ_API_KEY: '', RATE_LIMIT_PER_HOUR: '0', REQUIRE_LOGIN: '' }, env || {});
+      const req = Readable.from(body ? [Buffer.from(body)] : []);
+      Object.assign(req, { method, url, headers: headers || {}, socket: { remoteAddress: '1.2.3.4' } });
+      const res = { statusCode: 200, headers: {}, setHeader(k, v) { this.headers[k] = v; }, end(b) { this.body = b; } };
+      await handler(req, res);
+      return res;
+    };
+    ok((await run('GET', '/api/transcribe')).statusCode === 200, 'Function: GET Health-Check');
+    ok((await run('POST', '/api/transcribe', Buffer.alloc(500))).statusCode === 500, 'Function: ohne Key → 500 "nicht konfiguriert"');
+    let sent = null;
+    global.fetch = async (u, o) => { sent = { u, o }; return { status: 200, headers: { get: () => null }, text: async () => '{"words":[]}' }; };
+    const r1 = await run('POST', '/api/transcribe?model=evil&lang=de!', Buffer.alloc(500), { GROQ_API_KEY: 'gsk_x' });
+    ok(r1.statusCode === 200 && r1.body === '{"words":[]}', 'Function: reicht Groq-Antwort durch');
+    ok(sent.o.headers.Authorization === 'Bearer gsk_x' && /transcriptions$/.test(sent.u), 'Function: Key nur serverseitig + Endpoint');
+    ok(sent.o.body.get('model') === 'whisper-large-v3-turbo' && sent.o.body.get('language') === 'de', 'Function: Modell-Whitelist + lang bereinigt');
+    ok((await run('POST', '/api/transcribe', Buffer.alloc(5 * 1024 * 1024), { GROQ_API_KEY: 'k' })).statusCode === 413, 'Function: zu grosser Body → 413');
+    ok((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', REQUIRE_LOGIN: '1', SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'a' })).statusCode === 401, 'Function: Login-Pflicht ohne Token → 401');
+    const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
+    ok(rl[2] === 429, 'Function: Rate-Limit greift: ' + rl);
+  }
+
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();

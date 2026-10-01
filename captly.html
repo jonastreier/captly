@@ -2372,6 +2372,9 @@ async function authToken() {
   try { if (!_sb) return ''; var r = await _sb.auth.getSession(); return (r && r.data && r.data.session && r.data.session.access_token) || ''; }
   catch (e) { return ''; }
 }
+// Proxy-Endpunkte in Reihenfolge: Vercel-Function (/api/transcribe), dann PHP-Proxy (klassisches Webhosting).
+// Der erste, der antwortet, wird für die Sitzung gemerkt; erst wenn keiner existiert → lokaler Fallback.
+var TR_ENDPOINTS = ['api/transcribe', 'transcribe.php'], _trIdx = 0;
 async function postChunk(wavBlob, model, lc) {
   var maxAttempts = 4, lastMsg = '';
   var tok = openaiKey ? '' : await authToken();
@@ -2387,7 +2390,7 @@ async function postChunk(wavBlob, model, lc) {
         resp = await fetch('https://api.openai.com/v1/audio/' + (doTranslate ? 'translations' : 'transcriptions'),
           { method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd, signal: ctrl.signal });
       } else {
-        resp = await fetch('transcribe.php?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''),
+        resp = await fetch(TR_ENDPOINTS[_trIdx] + '?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''),
           { method: 'POST', headers: tok ? { 'Content-Type': 'audio/wav', 'X-Capivo-Token': tok } : { 'Content-Type': 'audio/wav' }, body: wavBlob, signal: ctrl.signal });
       }
     } catch (e) {
@@ -2400,10 +2403,19 @@ async function postChunk(wavBlob, model, lc) {
     }
     clearTimeout(timer);
     // Proxy nicht vorhanden → Fallback. 403 = Vercels Antwort auf per .vercelignore ausgeschlossene Dateien (Demo ohne PHP).
-    if (!openaiKey && (resp.status === 404 || resp.status === 405 || resp.status === 403)) throw transcribeErr('no proxy', { noProxy: true });
+    if (!openaiKey && (resp.status === 404 || resp.status === 405 || resp.status === 403)) {
+      if (_trIdx < TR_ENDPOINTS.length - 1) { _trIdx++; attempt--; continue; } // nächsten Endpunkt probieren
+      _trIdx = 0; throw transcribeErr('no proxy', { noProxy: true });
+    }
     if (!resp.ok) {
       var detail = '';
       try { var ej = await resp.json(); detail = (ej && (typeof ej.error === 'string' ? ej.error : ej.error && ej.error.message)) || ''; } catch (e2) {}
+      // Proxy da, aber Key nicht hinterlegt → wie "kein Proxy" behandeln (lokaler Fallback statt toter Button)
+      if (!openaiKey && resp.status === 500 && /nicht konfiguriert/i.test(detail)) {
+        console.warn('Transkriptions-Proxy ohne Key:', detail);
+        if (_trIdx < TR_ENDPOINTS.length - 1) { _trIdx++; attempt--; continue; }
+        _trIdx = 0; throw transcribeErr('no proxy', { noProxy: true });
+      }
       // Transient → wiederholen (Retry-After respektieren, aber nie ewig warten)
       if ((resp.status === 429 || resp.status >= 500) && attempt < maxAttempts) {
         var ra = parseFloat(resp.headers.get('Retry-After'));
@@ -2419,7 +2431,7 @@ async function postChunk(wavBlob, model, lc) {
     }
     var j;
     try { j = await resp.json(); }
-    catch (e3) { if (!openaiKey) throw transcribeErr('no proxy', { noProxy: true }); throw transcribeErr('Unexpected response from the transcription service.'); }
+    catch (e3) { if (!openaiKey) { if (_trIdx < TR_ENDPOINTS.length - 1) { _trIdx++; attempt--; continue; } _trIdx = 0; throw transcribeErr('no proxy', { noProxy: true }); } throw transcribeErr('Unexpected response from the transcription service.'); }
     // Statischer Host liefert transcribe.php evtl. als rohen Text (kein echtes JSON-Objekt) → Fallback
     if (!openaiKey && (!j || typeof j !== 'object' || (!('words' in j) && !('segments' in j) && !('text' in j)))) throw transcribeErr('no proxy', { noProxy: true });
     return j;
