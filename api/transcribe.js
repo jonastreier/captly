@@ -1,6 +1,7 @@
 // Capivo – Transkriptions-Proxy als Vercel Serverless Function (Groq Whisper).
 // Gleiche Schnittstelle wie transcribe.php: POST /api/transcribe?model=&lang=&translate=&prompt=
-//   Body = rohe WAV-Bytes (das Frontend schickt ~100-s-Stücke, ≤ ~3,2 MB → unter Vercels 4,5-MB-Limit).
+//   Body = rohe Audio-Bytes: Ogg/Opus (Content-Type: audio/ogg, ~0,4 MB pro Stück) oder WAV (audio/wav,
+//   Fallback) — das Frontend schickt ~100-s-Stücke, ≤ ~3,2 MB → unter Vercels 4,5-MB-Limit.
 // Antwort = Groq-JSON (verbose_json) 1:1. Der Key liegt NUR als Vercel-Umgebungsvariable.
 //
 // Vercel → Project → Settings → Environment Variables:
@@ -85,8 +86,10 @@ module.exports = async function handler(req, res) {
   catch (e) { return send(res, e.tooLarge ? 413 : 400, { error: e.tooLarge ? 'Audio zu gross (max ~4 MB pro Request).' : 'Body konnte nicht gelesen werden.' }); }
   if (audio.length < 100) return send(res, 400, { error: 'Keine Audiodaten empfangen.' });
 
+  // Dateiname/Typ nach Content-Type (Whitelist: nur audio/ogg, sonst WAV) — Groq erkennt das Format am Namen
+  const ogg = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase() === 'audio/ogg';
   const fd = new FormData();
-  fd.append('file', new Blob([audio], { type: 'audio/wav' }), 'audio.wav');
+  fd.append('file', new Blob([audio], { type: ogg ? 'audio/ogg' : 'audio/wav' }), ogg ? 'audio.ogg' : 'audio.wav');
   fd.append('model', model);
   fd.append('response_format', 'verbose_json');
   if (!translate) {

@@ -10,6 +10,12 @@ eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
   OpenAI-kompatible API).
 - **Fallback:** Ist der Proxy nicht erreichbar (z. B. reine Vercel-Demo ohne PHP), transkribiert Capivo
   automatisch **lokal im Browser** (transformers.js) — dann einmaliger Modell-Download.
+- **Video-Export:** MP4/MOV-Quellen laufen über einen **WebCodecs-Schnellexport** (Demux mit mp4box,
+  H.264-Encode, Mux mit mp4-muxer, Original-AAC wird kopiert) — schneller als Echtzeit. Bei jedem Problem
+  (Browser ohne WebCodecs/H.264-Encoder, WebM-Quelle, exotische Datei) fällt Capivo automatisch auf den
+  Echtzeit-Export (MediaRecorder, ggf. ffmpeg.wasm) zurück. Libs self-hosted unter `vendor/mp4box` +
+  `vendor/mp4-muxer` (Versionen: [`scripts/fetch-webcodecs-libs.sh`](scripts/fetch-webcodecs-libs.sh)).
+  Notschalter: `localStorage['capivo.fastExport'] = 'off'`.
 
 Dateien, kein Build:
 - [`captly.html`](captly.html) — kompletter Editor + Landing (Single-File).
@@ -35,6 +41,9 @@ zuerst `/api/transcribe`, dann `transcribe.php`, erst danach den lokalen Fallbac
    `{"configured":true}`.
 
 Vercel kappt Request-Bodies bei 4,5 MB; das Frontend schickt ~100-s-Stücke (≤ ~3,2 MB), passt also.
+Wo der Browser es kann (WebCodecs `AudioEncoder`), gehen die Stücke als **Ogg/Opus 32 kbit/s** raus
+(`Content-Type: audio/ogg`, ~0,4 MB statt 3,2 MB → auf dem Handy ~3–4× schneller); sonst WAV. Stück 1 läuft
+allein (Sprache erkennen), der Rest mit 3 parallelen Requests.
 Fehlt der Key, fällt die App automatisch auf die lokale Erkennung zurück (langsam, Modell-Download).
 
 ## Transkription einrichten (Groq-Proxy, klassisches PHP-Webhosting)
@@ -48,12 +57,32 @@ Auf klassischem **Webhosting mit PHP** — kein Node-Server nötig:
    legen. Fertig — Fast/Perfect laufen ohne Download für den Nutzer.
 
 Voraussetzungen: PHP mit **cURL** aktiv. Das Frontend zerlegt die Tonspur an Sprechpausen in ~100-s-Stücke
-(≤ ~3,2 MB je Request, jeweils mit Retry bei Netz-/429-/5xx-Fehlern), dadurch sind `post_max_size` &
+(≤ ~3,2 MB je Request als WAV bzw. ~0,4 MB als Ogg/Opus, jeweils mit Retry bei Netz-/429-/5xx-Fehlern), dadurch sind `post_max_size` &
 Timeouts auch auf billigem Hosting unkritisch; Stille-Stücke werden gar nicht gesendet (verhindert
 Whisper-Halluzinationen). Max. 20 Min Audio pro Video. Der Proxy hat ein IP-Limit
 (`RATE_LIMIT_PER_HOUR`, Default 120/h), damit niemand deinen Key leerzieht. Optional: `REQUIRE_LOGIN => true` (+ `SUPABASE_URL`/`SUPABASE_ANON_KEY`) erlaubt Transkription nur
 Eingeloggten; das Session-Token wird serverseitig bei Supabase geprüft. Anbieterwechsel (Deepgram,
 paid) ist im Proxy gekapselt → wenige Zeilen.
+
+## Transkript-Feinschliff („Polish“, für Perfect)
+
+Nach Whisper large-v3 kann das Frontend das Transkript an **`/api/polish`** (Vercel,
+[`api/polish.js`](api/polish.js)) bzw. **`polish.php`** (PHP-Hosting) schicken. Ein LLM auf Groq
+(`openai/gpt-oss-120b`, Fallback `llama-3.3-70b-versatile`, gleicher `GROQ_API_KEY`) korrigiert **nur**
+offensichtliche Erkennungsfehler: verhörte Wörter (v. a. Namen/Marken/Orte aus „Names & terms“),
+Rechtschreibung, Gross-/Kleinschreibung, Satzzeichen, Satzgrenzen — kein Umformulieren, Übersetzen,
+Kürzen; Füllwörter/Dialekt bleiben, „ss“ wird nie zu „ß“.
+
+- Request: `POST {"lang":"de","vocab":"Birkenhof, Highland Beef","segments":[{"id":0,"text":"…"}]}`
+  (max. 12 000 Zeichen Text / 1000 Segmente, sonst 413).
+- Antwort: `{"segments":[{"id":0,"text":"…"}],"model":"…","changed":n,"rejected":n}` — gleiche ids/Reihenfolge.
+- Jede Korrektur wird serverseitig geprüft (Wortzahl ±max(2, 15 %), Wort-Editierdistanz ≤ max(1, 35 %),
+  kein neues „ß“, nicht leer); sonst bleibt das Original-Segment. Groq komplett fehlgeschlagen → 502,
+  das Frontend behält dann das unpolierte Transkript.
+- Setup: nichts zusätzlich — dieselben Env-Variablen bzw. dieselbe `config.php` wie die Transkription
+  (`RATE_LIMIT_PER_HOUR` zählt separat, `REQUIRE_LOGIN` gilt auch hier). Vercel: `maxDuration` 30 s
+  in `vercel.json`; Groq-Budget ~25 s. Check: `GET /api/polish` → `{"configured":true}`.
+- Tests: `node test-polish.js` (gemockter Groq; prüft bei vorhandenem `php` auch die PHP-Parität).
 
 ## Zuverlässigkeit & Komfort (Editor)
 
@@ -195,8 +224,8 @@ captly.deinedomain.ch {
 `config.php` mit Groq-Key auf dem Webhosting · `schema.sql` im Supabase-Projekt ausgeführt ·
 `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `captly.html` eingetragen · eigenes SMTP in Supabase
 hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ .Token }}` ·
-echte Domain in `canonical`/`og:url`/
-`og:image` statt `capivo.app` · HTTPS aktiv · einmal end-to-end testen (Upload → Fast → Perfect
+`canonical`/`og:url`/`og:image` zeigen auf die Live-Domain
+(aktuell `https://captly.vercel.app` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Fast → Perfect
 → Export → Login-Code kommt an → Projekt speichern & wieder laden).
 
 ## Tests
@@ -207,5 +236,5 @@ node test-captly.js
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,
 Halluzinations-Filter, Export, Landing-Widgets, WAV-Encoder u. a.). Nicht automatisiert testbar
-(braucht echten Browser + Video): Whisper-Inferenz, MediaRecorder/ffmpeg-Export, Canvas-Rendering
+(braucht echten Browser + Video): Whisper-Inferenz, WebCodecs-/MediaRecorder-/ffmpeg-Export, Canvas-Rendering
 → manuell in Chrome **und** Firefox prüfen (MP4-Export cross-browser).

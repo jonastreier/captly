@@ -74,10 +74,26 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,isPromptEcho:isPromptEcho,capFontsChanged:capFontsChanged,
+needsWatermark:needsWatermark,editListEnd:editListEnd,histDistance:histDistance,cutThreshold:cutThreshold,
+pickCutCandidates:pickCutCandidates,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
+onBreakAtCutsChange:onBreakAtCutsChange,currentBlockIdx2:currentBlockIdx,setDisplayMode:function(m){displayMode=m;},polishWords:polishWords,
+polishEnabled:polishEnabled,setModelState:function(m){whisperModel=m;},polishSegments:polishSegments,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
+splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
+loadProjects:loadProjects,restoreSavedStyle:restoreSavedStyle,setUserTemplates:function(l){userTemplates=l;},pruneTemplates:pruneTemplates,
+TPL_ROW_TITLE:TPL_ROW_TITLE,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
+countMatches:countMatches,replaceAllCaptions:replaceAllCaptions,displayWord:displayWord,togglePunct:togglePunct,setCaptionCase:setCaptionCase,
+transcriptText:transcriptText,copyTranscript:copyTranscript,exportTXT:exportTXT,seedCustomFields:seedCustomFields,buildCustomStyle:buildCustomStyle,
+setCsDirty:function(d){_csDirty=d;},saveTemplate:saveTemplate,loadTemplates:loadTemplates,getUserTemplates:function(){return userTemplates;},
+mergeTemplates:mergeTemplates,importTemplatesFromText:importTemplatesFromText,renameTemplate:renameTemplate,duplicateTemplate:duplicateTemplate,
+deleteTemplate:deleteTemplate,parseOutline:parseOutline,outlineShadow:outlineShadow,hlColorFor:hlColorFor,getWpb:function(){return WORDS_PER_BLOCK;},
+getActiveId:function(){return activeId;},editTemplate:editTemplate,getEditingTpl:function(){return _csEditingTpl;},decodeToMono16k:decodeToMono16k,setFFmpeg:function(f){_ffmpeg=f;},isPromptEcho:isPromptEcho,capFontsChanged:capFontsChanged,
 getAutosaveTimer:function(){return _autosaveTimer;},setExporting:function(v){isExporting=v;},autosaveWhenIdle:autosaveWhenIdle,autosaveNow:autosaveNow,restoreOrTranscribe:restoreOrTranscribe,
 readAutosaves:readAutosaves,setAutosaveKey:function(k){_autosaveKey=k;},AUTOSAVE_KEY:AUTOSAVE_KEY,setTranslateState:function(v){doTranslate=v;},capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
-setMe:function(plan,email){mePlan=plan;meEmail=email;}};`;
+setMe:function(plan,email){mePlan=plan;meEmail=email;},
+rebaseCutTime:rebaseCutTime,createAudioCutPlanner:createAudioCutPlanner,rotationFromMatrix:rotationFromMatrix,editListOffset:editListOffset,
+h264CodecCandidates:h264CodecCandidates,fastExportVideoCodecs:fastExportVideoCodecs,isFastExportSource:isFastExportSource,fastExportSupported:fastExportSupported,
+oggCrc32:oggCrc32,oggLacing:oggLacing,opusPacketSamples48:opusPacketSamples48,buildOggOpus:buildOggOpus,opusPreSkipFromDesc:opusPreSkipFromDesc,
+encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSupport=null;},getOpusOff:function(){return _opusOff;},UPLOAD_CONCURRENCY:UPLOAD_CONCURRENCY};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -85,7 +101,7 @@ let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } };
 
 // 1) Grunddaten
-ok(T.STYLES.length === 31, '31 Styles erwartet: ' + T.STYLES.length);
+ok(T.STYLES.length === 36, '36 Styles erwartet (31 + 5 Trend-Presets): ' + T.STYLES.length);
 
 // 2) Zeitformate
 ok(T.srtT(61.5) === '00:01:01,500', 'srtT: ' + T.srtT(61.5));
@@ -418,12 +434,356 @@ ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animat
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
 T.applyCustomStyle();
-ok(T.STYLES.length === 32 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
+ok(T.STYLES.length === 37 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
 // Referenz-Styles: Prime Script-Akzent, Sketch Kringel, Sonnet kursiv
 const pr = T.buildCap(['nur', 'ein', 'tipp'], T.STYLES.find(x => x.id === 'prime'), 2, 22, null);
 ok(pr.includes("font-family:'Caveat'") && pr.includes('font-style:italic'), 'Prime: Script-Akzent am aktiven Wort');
 const sk = T.buildCap(['mind', 'map'], T.STYLES.find(x => x.id === 'sketch'), 1, 22, null);
 ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Uppercase am aktiven Wort');
+
+// 16a) Custom-Style-Editor: startet vom gewählten Style, nur geänderte Gruppen überschreiben
+{
+  const E = id => document.getElementById(id);
+  const base = T.STYLES.find(x => x.id === 'boxkara');
+  T.selectStyle('boxkara');                      // seedet die Regler + Basis
+  ok(E('csBox').value === 'box' && E('csHlType').value === 'pill' && E('csAnim').value === 'scale', 'Regler aus Box Karaoke befuellt');
+  E('csText').value = '#ff0000';
+  T.setCsDirty({ text: true });
+  let cs = T.buildCustomStyle();
+  ok(cs.tc === '#ff0000' && cs.boxBg === base.boxBg && cs.hlPillBg === base.hlPillBg && cs.anim === 'scale' && cs.fw === base.fw,
+     'Custom behaelt Box/Pill/Animation/Gewicht des Ausgangs-Styles');
+  // Kontur, Großbuchstaben, Abstand, Gewicht, Hintergrund, Highlight-Typ, Animation
+  E('csOutlineW').value = '4'; E('csOutlineC').value = '#112233';
+  E('csUpper').classList.add('on'); E('csLs').value = '2'; E('csWeight').value = '900';
+  E('csBox').value = 'pill'; E('csBoxC').value = '#ffffff'; E('csBoxO').value = '40';
+  E('csHlType').value = 'color'; E('csHl').value = '#00ffaa'; E('csAnim').value = 'wobble';
+  T.setCsDirty({ text: true, stroke: true, upper: true, ls: true, weight: true, box: true, hl: true, anim: true });
+  cs = T.buildCustomStyle();
+  ok(T.parseOutline(cs.ts).w === 4 && cs.ts.includes('#112233'), 'Kontur 4px in ts: ' + cs.ts.slice(0, 40));
+  ok(cs.tt === 'uppercase' && cs.ls === '2px' && cs.fw === '900' && cs.anim === 'wobble', 'Caps/Abstand/Gewicht/Animation');
+  ok(cs.boxBg === 'rgba(255,255,255,0.4)' && cs.boxBr === '22px', 'Hintergrund-Pill mit Deckkraft: ' + cs.boxBg);
+  ok(!cs.hlPillBg && cs.hl === '#00ffaa' && T.parseOutline(cs.hls).w === 4, 'Highlight als Textfarbe mit Kontur');
+  const html = T.buildCap(['eins', 'zwei'], cs, 1, 22, null);
+  ok(html.includes('letter-spacing:2px') && html.includes('text-transform:uppercase') && html.includes('rgba(255,255,255,0.4)') && html.includes('captly-wobble'),
+     'Vorschau rendert alle Custom-Eigenschaften');
+  E('csHlType').value = 'pill'; E('csPillC').value = '#fde047';
+  cs = T.buildCustomStyle();
+  ok(cs.hlPillBg === '#fde047' && cs.hlc === '#111', 'Highlight-Pill mit lesbarer Textfarbe');
+  // Kontur-Erkennung aus bestehenden Styles
+  ok(T.parseOutline(T.STYLES.find(x => x.id === 'classic').ts).w === 2, 'Kontur von Standard erkannt (2px)');
+  ok(T.parseOutline(T.outlineShadow(6, '#000')).w === 6, 'outlineShadow ↔ parseOutline');
+  T.setCsDirty({});
+}
+
+// 16a2) Templates: kompletter Style + Layout, Verwaltung, Migration, Merge, Import (bereinigt)
+{
+  const store = {};
+  global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+  // Legacy-v1-Template migrieren
+  store.capivo_templates = JSON.stringify([{ id: 'tpl_1700000000000', name: 'Alt', font: 'Anton', tc: '#ffffff', hl: '#ff0000', glow: true, glowInt: 9, pos: 'top', size: 30, wpb: 3 }]);
+  T.loadTemplates();
+  const legacy = T.STYLES.find(x => x.id === 'tpl_1700000000000');
+  ok(legacy && legacy.fl === 'Anton' && legacy.hl === '#ff0000' && /0 0 9px/.test(legacy.hls) && legacy._tpl.pos === 'top' && legacy._tpl.wpb === 3, 'Legacy-Template migriert');
+  // Neues Template speichert den VOLLEN Style
+  T.selectStyle('boxkara');
+  document.getElementById('tplName').value = 'Mein Box';
+  T.saveTemplate();
+  let tpl = T.getUserTemplates().find(t => t.name === 'Mein Box');
+  ok(tpl && tpl.style.boxBg && tpl.style.hlPillBg === '#22c55e' && tpl.style.anim === 'scale' && tpl.layout && typeof tpl.layout.wpb === 'number',
+     'Template enthaelt vollen Style + Layout');
+  T.loadTemplates();
+  ok(T.STYLES.find(x => x.id === tpl.id).boxBg === tpl.style.boxBg, 'Template ueberlebt Reload (localStorage)');
+  // Rename / Duplicate / Edit / Delete
+  global.prompt = () => 'Umbenannt'; T.renameTemplate(tpl.id);
+  ok(T.getUserTemplates().find(t => t.id === tpl.id).name === 'Umbenannt', 'Rename');
+  T.duplicateTemplate(tpl.id);
+  const dup = T.getUserTemplates().find(t => t.name === 'Umbenannt copy');
+  ok(dup && dup.id !== tpl.id && dup.style.boxBg === tpl.style.boxBg, 'Duplicate');
+  T.editTemplate(tpl.id);
+  ok(T.getEditingTpl() === tpl.id && document.getElementById('tplSaveBtn').textContent === 'Update', 'Edit-Modus');
+  T.selectStyle('hormozi'); // anderer Style beendet den Edit-Modus
+  ok(T.getEditingTpl() === null, 'Edit-Modus endet bei Style-Wechsel');
+  global.confirm = () => true; T.deleteTemplate(dup.id);
+  ok(!T.STYLES.find(x => x.id === dup.id) && T.getUserTemplates().find(t => t.id === dup.id).deleted, 'Delete hinterlaesst Grabstein');
+  // Merge: neueres updatedAt gewinnt, Grabstein schlägt ältere Version
+  const m = T.mergeTemplates([{ id: 'tpl_a', name: 'alt', style: { fl: 'Inter' }, updatedAt: 1 }, { id: 'tpl_b', name: 'b', style: {}, updatedAt: 5 }],
+                             [{ id: 'tpl_a', name: 'neu', style: { fl: 'Anton' }, updatedAt: 2 }, { id: 'tpl_b', deleted: true, updatedAt: 9 }]);
+  ok(m.find(t => t.id === 'tpl_a').name === 'neu' && m.find(t => t.id === 'tpl_b').deleted, 'Merge: neuer gewinnt, Grabstein gewinnt');
+  // Import bereinigt gefährliche Werte und kollidiert nie mit eingebauten IDs
+  const n = T.importTemplatesFromText(JSON.stringify({ templates: [{ id: 'classic', name: 'X', style: { fl: 'Inter', font: "'Inter'\"><img src=x onerror=alert(1)>", tc: 'red;background:url(http://x)' } }] }));
+  const imp = T.getUserTemplates().find(t => t.name === 'X');
+  ok(n === 1 && imp.id === 'tpl_classic' && !/[<>"]/.test(imp.style.font) && !/url\(|;/.test(imp.style.tc), 'Import bereinigt: ' + imp.style.font + ' / ' + imp.style.tc);
+  ok(T.STYLES.filter(x => x.id === 'classic').length === 1, 'eingebauter Style unangetastet');
+  delete global.localStorage; delete global.prompt;
+}
+
+// 16a3) Trend-Presets: vorhanden, Pop One erzwingt 1 Wort/Block und gibt den alten Wert zurück
+{
+  ['hormozi', 'beast', 'boxkara', 'minimal', 'popone'].forEach(id => ok(T.STYLES.find(x => x.id === id), 'Preset vorhanden: ' + id));
+  const beast = T.STYLES.find(x => x.id === 'beast');
+  ok(T.hlColorFor(beast, 0) !== T.hlColorFor(beast, 1), 'Beast: aktives Wort wechselt die Farbe');
+  ok(T.buildCap(['a', 'b'], beast, 1, 22, null).includes(beast.hlCycle[1]), 'Beast: Farbwechsel in der Vorschau');
+  T.selectStyle('classic');
+  const prevWpb = T.getWpb();
+  T.selectStyle('popone');
+  ok(T.getWpb() === 1, 'Pop One: 1 Wort pro Block');
+  T.selectStyle('classic');
+  ok(T.getWpb() === prevWpb, 'nach Pop One: vorherige Blockgroesse zurueck (' + prevWpb + ')');
+}
+
+// 16c) Timing-Regler: links früher, rechts später — Vorzeichen konsistent mit Vorschau/Export/SRT
+{
+  T.setState(T.buildCaptionBlocks([{ word: 'Hallo', start: 1, end: 1.5 }, { word: 'Welt.', start: 1.6, end: 2 }]), [], 'karaoke');
+  T.onTimeOffChange('0.2');                    // Regler nach rechts = später
+  ok(Math.abs(T.getTimeOff() + 0.2) < 1e-9 && /0\.20 s later/.test(document.getElementById('toDisp').textContent), 'Regler rechts → Captions spaeter: ' + document.getElementById('toDisp').textContent);
+  T.exportSRT();
+  ok(/^1\n00:00:01,200 --> 00:00:02,200/.test(global.LASTBLOB.content), 'SRT um 0.2 s spaeter: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 40)));
+  T.onTimeOffChange('-0.1');
+  ok(Math.abs(T.getTimeOff() - 0.1) < 1e-9 && /earlier/.test(document.getElementById('toDisp').textContent), 'Regler links → frueher');
+  T.onTimeOffChange('0');
+  ok(T.getTimeOff() === 0 && /in sync/.test(document.getElementById('toDisp').textContent), 'Regler Mitte → synchron');
+}
+
+// 16d) Suchen & Ersetzen: Trefferzahl, ganze Wörter, Timings bleiben
+{
+  T.setState([{ start: 1, end: 3, text: 'Unser Highlnd Rind und Rinder', words: [
+    { word: 'Unser', start: 1, end: 1.3 }, { word: 'Highlnd', start: 1.4, end: 1.9 }, { word: 'Rind', start: 2, end: 2.3 },
+    { word: 'und', start: 2.35, end: 2.5 }, { word: 'Rinder', start: 2.55, end: 3 }] }], [], 'karaoke');
+  T.getBlocks()[0].srcWords = T.getBlocks()[0].words.map(w => Object.assign({}, w));
+  ok(T.countMatches('rind', false) === 2 && T.countMatches('rind', true) === 1, 'Trefferzahl (Teilwort vs. ganzes Wort)');
+  document.getElementById('frFind').value = 'highlnd'; document.getElementById('frRepl').value = 'Highland';
+  document.getElementById('frWhole').checked = true;
+  T.setCaptionsEdited(false);
+  ok(T.replaceAllCaptions() === 1, 'Replace all ersetzt 1 Treffer');
+  const bw = T.getBlocks()[0].words;
+  ok(bw[1].word === 'Highland' && bw[1].start === 1.4 && bw[1].end === 1.9 && bw[4].start === 2.55, 'Ersetzen behaelt Wort-Timings');
+  ok(T.getCaptionsEdited() === true, 'Ersetzen markiert Edits');
+  document.getElementById('frFind').value = 'Rind'; document.getElementById('frRepl').value = 'Weiderind $1';
+  T.replaceAllCaptions();
+  ok(T.getBlocks()[0].text === 'Unser Highland Weiderind $1 und Rinder', 'ganzes Wort + "$" woertlich: ' + T.getBlocks()[0].text);
+  document.getElementById('frWhole').checked = false; document.getElementById('frFind').value = ''; T.setCaptionsEdited(false);
+}
+
+// 16e) Textformat (nur Darstellung) + TXT/Copy
+{
+  T.togglePunct();
+  ok(T.displayWord('Hallo,') === 'Hallo' && T.displayWord('wirklich?!') === 'wirklich' && T.displayWord('3.5') === '3.5'
+     && T.displayWord("rock'n'roll.") === "rock'n'roll" && T.displayWord('Weide-Land:') === 'Weide-Land' && T.displayWord('…') === '…',
+     'Satzzeichen entfernt, Apostroph/Bindestrich/Dezimalpunkt bleiben');
+  T.setCaptionCase('upper');
+  ok(T.displayWord('Hallo,') === 'HALLO', 'UPPERCASE + ohne Satzzeichen');
+  T.setState(T.buildCaptionBlocks([{ word: 'Hallo,', start: 0, end: 0.5 }, { word: 'Welt.', start: 0.6, end: 1 },
+    { word: 'Wie', start: 2.5, end: 2.8 }, { word: 'geht', start: 2.9, end: 3.1 }, { word: 'es?', start: 3.2, end: 3.5 }]), [], 'karaoke');
+  T.selectStyle('minimal'); T.updateOverlay(0.2);
+  ok(/HALLO/.test(document.getElementById('capOverlay').innerHTML) && !/HALLO,/.test(document.getElementById('capOverlay').innerHTML), 'Vorschau formatiert');
+  T.exportSRT();
+  ok(/HALLO, WELT\./.test(global.LASTBLOB.content), 'SRT: Case ja, Satzzeichen bleiben: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 60)));
+  T.setCaptionCase('asis'); T.togglePunct();
+  ok(T.transcriptText() === 'Hallo, Welt.\n\nWie geht es?', 'TXT: Absatz nach Satzende + Pause: ' + JSON.stringify(T.transcriptText()));
+  T.setCaptionCase('upper');
+  ok(T.transcriptText() === 'Hallo, Welt.\n\nWie geht es?', 'TXT/Kopie ignoriert UPPERCASE (Post-Beschreibung): ' + JSON.stringify(T.transcriptText()));
+  T.setCaptionCase('asis');
+  T.exportTXT();
+  ok(global.LASTBLOB.content.startsWith('Hallo, Welt.'), 'TXT-Export');
+  let copied = null; global.navigator = global.navigator || {};
+  const prevClip = global.navigator.clipboard;
+  try { Object.defineProperty(global.navigator, 'clipboard', { value: { writeText: async t => { copied = t; } }, configurable: true }); } catch (e) {}
+  T.copyTranscript();
+  ok(copied === 'Hallo, Welt.\n\nWie geht es?', 'Copy text in die Zwischenablage');
+  try { Object.defineProperty(global.navigator, 'clipboard', { value: prevClip, configurable: true }); } catch (e) {}
+}
+
+// 17a) Kürzungs-Hinweis auch beim ffmpeg-Pfad (-t MAX_AUDIO_SEC): echte Mediendauer zählt
+ok(T.audioTruncated(16000 * 1200, 1500) === true, 'Kuerzung erkannt ueber Mediendauer (ffmpeg -t)');
+ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200 + 1, NaN) === true, 'Kuerzung: normale Laenge / zu langes PCM');
+
+// 17b) text-shadow-Parser: alle Formen aus STYLES + outlineShadow (Canvas braucht eine saubere Farbe)
+{
+  const P = T.parseTextShadows;
+  const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  ok(eq(P('3px 0px 0 #000')[0], { x: 3, y: 0, blur: 0, color: '#000' }), 'Parser: "3px 0px 0 #000"');
+  ok(eq(P('-2px 0 0 #000')[0], { x: -2, y: 0, blur: 0, color: '#000' }), 'Parser: einheitslose 0 (Standard-Kontur)');
+  ok(eq(P('0 0 20px rgba(255, 255, 255, .85)')[0], { x: 0, y: 0, blur: 20, color: 'rgba(255, 255, 255, .85)' }), 'Parser: rgba mit Leerzeichen');
+  ok(eq(P('rgba(0,0,0,.5) 0 2px 4px')[0], { x: 0, y: 2, blur: 4, color: 'rgba(0,0,0,.5)' }), 'Parser: Farbe vorne');
+  ok(eq(P('1px 2px red')[0], { x: 1, y: 2, blur: 0, color: 'red' }), 'Parser: Farbname ohne Blur');
+  ok(P('none').length === 0 && P('inset 1px 1px 0 #000').length === 0, 'Parser: none / inset ignoriert');
+  const ol = P(T.outlineShadow(3, '#000'));
+  ok(ol.length === 12 && ol.every(l => l.color === '#000' && l.blur === 0), 'Parser: outlineShadow komplett lesbar');
+  let bad = [];
+  T.STYLES.forEach(st => ['ts', 'hls'].forEach(k => {
+    const v = st[k]; if (!v || v === 'none') return;
+    const parts = v.split(/,(?![^(]*\))/).length, layers = P(v);
+    if (layers.length !== parts || layers.some(l => !/^(#|rgba?\(|[a-z]+$)/i.test(l.color))) bad.push(st.id + '.' + k);
+  }));
+  ok(bad.length === 0, 'Parser: alle STYLES-Schatten sauber zerlegt: ' + bad.join(', '));
+}
+
+// 17c) Kontur-Erkennung nur für das Ring-Muster; Highlight-Farbe ändern lässt Drop-Shadows in Ruhe
+{
+  ok(T.parseOutline('1px 2px 0 #000').w === 0, 'harter Drop-Shadow ist keine Kontur');
+  ok(T.parseOutline(T.STYLES.find(x => x.id === 'hormozi').ts).w === 3, 'Ring-Kontur (outlineShadow 3px) erkannt');
+  T.STYLES.push({ id: 'tdrop', name: 'T', fl: 'Inter', font: "'Inter'", fw: '700', tc: '#fff', ts: '1px 2px 0 #000', hl: '#fff', hls: '1px 2px 0 #000,0 3px 6px rgba(0,0,0,.4)', anim: 'none', thumbBg: '#000' });
+  T.selectStyle('tdrop');
+  document.getElementById('csHl').value = '#ff00ff';
+  document.getElementById('csHlType').value = 'color';
+  T.setCsDirty({ hl: true });
+  const cs = T.buildCustomStyle();
+  ok(cs.hl === '#ff00ff' && T.parseOutline(cs.hls).w === 0 && /1px 2px 0px #000/.test(cs.hls) && /0px 3px 6px rgba/.test(cs.hls) && cs.ts === '1px 2px 0 #000',
+     'nur Highlight-Farbe: keine Fake-Kontur, Schatten bleiben: ' + cs.hls);
+  // Beast: Drop-Shadow im Highlight bleibt auch beim Farbwechsel
+  T.selectStyle('beast'); T.setCsDirty({ hl: true });
+  const cb = T.buildCustomStyle();
+  ok(T.parseOutline(cb.hls).w === 3 && /0px 5px 0px rgba\(0,0,0,\.85\)/.test(cb.hls), 'Beast: Kontur + Drop-Shadow im Highlight erhalten: ' + cb.hls.slice(-60));
+  T.setCsDirty({});
+  T.STYLES.splice(T.STYLES.findIndex(x => x.id === 'tdrop'), 1);
+  T.selectStyle('classic');
+}
+
+// 17d) Ganze-Wörter-Suche ohne Lookbehind (Safari < 16.4), auch mit Umlauten
+{
+  ok(!/\(\?<[=!]/.test(require('fs').readFileSync(htmlPath, 'utf8')), 'kein Regex-Lookbehind im Code');
+  T.setState([{ start: 0, end: 2, text: 'Grüße über alles, Rindfleisch und Rind', words: [] }], [], 'karaoke');
+  ok(T.countMatches('über', true) === 1 && T.countMatches('rind', true) === 1 && T.countMatches('rind', false) === 2, 'ganze Woerter mit Umlauten/Teilwoertern');
+  ok(T.countMatches('üß', false) === 1 && T.countMatches('(', false) === 0 && T.countMatches('ß', true) === 0 && T.countMatches('.*', false) === 0, 'Sonderzeichen-Suche wirft nicht (Regex-Zeichen woertlich)');
+}
+
+// 17e) Grabsteine verdrängen keine Live-Templates
+{
+  const now = Date.now(), list = [];
+  for (let i = 0; i < 50; i++) list.push({ id: 'tpl_l' + i, name: 'L' + i, style: { fl: 'Inter' }, layout: {}, createdAt: now - 1e6 + i, updatedAt: now - 1e6 + i });
+  for (let i = 0; i < 120; i++) list.push({ id: 'tpl_d' + i, deleted: true, updatedAt: now - i * 1000 });
+  T.setUserTemplates(list); T.pruneTemplates();
+  const ut = T.getUserTemplates();
+  ok(ut.filter(t => !t.deleted).length === 50 && ut.filter(t => t.deleted).length === 100 && !ut.some(t => t.id === 'tpl_d119'),
+     'prune: 50 live bleiben, max. 100 Grabsteine (aelteste raus)');
+  T.setUserTemplates([]);
+}
+
+// 18a) Export-Zeichnen: Ring-Kontur als EIN strokeText, Layout pro Block gecacht
+{
+  const mkCtx = () => {
+    const c = { n: { fill: 0, stroke: 0, measure: 0, font: 0 }, _font: '', letterSpacing: '0px', lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000',
+      fillStyle: '#000', shadowColor: 'transparent', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none', textAlign: 'left', textBaseline: 'alphabetic',
+      strokes: [],
+      get font() { return this._font; }, set font(v) { this.n.font++; this._font = v; },
+      measureText(str) { this.n.measure++; const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+      fillText() { this.n.fill++; }, strokeText(t) { this.n.stroke++; this.strokes.push({ w: this.lineWidth, c: this.strokeStyle, j: this.lineJoin }); },
+      save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, rect() {}, roundRect() {}, ellipse() {}, fillRect() {},
+      createLinearGradient() { return { addColorStop() {} }; } };
+    return c;
+  };
+  T.setState(T.buildCaptionBlocks([{ word: 'Das', start: 0, end: 0.3 }, { word: 'ist', start: 0.35, end: 0.6 }, { word: 'echt', start: 0.65, end: 0.9 }, { word: 'gut', start: 0.95, end: 1.2 }]), [], 'karaoke');
+  const hz = T.STYLES.find(x => x.id === 'hormozi');
+  const plan = T.capShadowPlan(hz.ts);
+  ok(plan.ring && plan.ring.w === 3 && plan.ring.color === '#000' && plan.rest.length === 1, 'Hormozi: Ring erkannt, 1 Restschicht (weicher Schatten)');
+  const c1 = mkCtx();
+  T.drawCaptionsOnCtx(c1, 0.4, hz, 1080, 1920, false);
+  const words = 4, oldCalls = words * (T.parseTextShadows(hz.ts).length + 1);
+  ok(c1.n.stroke === words && c1.strokes.every(st => st.c === '#000' && st.j === 'round' && st.w > 0), 'je Wort genau ein strokeText (rund, Konturfarbe)');
+  ok(c1.n.fill <= words * 2, 'fillText pro Frame: ' + c1.n.fill + ' statt ' + oldCalls + ' (alt: eine Schicht je Ring-Punkt)');
+  const c2 = mkCtx();
+  T.drawCaptionsOnCtx(c1, 0.7, hz, 1080, 1920, false); // gleicher Block, anderes aktives Wort
+  c1.n.measure = 0; c1.n.font = 0;
+  T.drawCaptionsOnCtx(c1, 0.75, hz, 1080, 1920, false);
+  ok(c1.n.measure === 0, 'Folge-Frame im selben Block misst nicht neu (Layout-Cache)');
+  ok(c1.n.font <= 2, 'Font wird nur bei Aenderung gesetzt: ' + c1.n.font + 'x');
+  // Styles ohne Ring zeichnen wie bisher alle Schichten
+  const lift = T.STYLES.find(x => x.id === 'lift');
+  T.drawCaptionsOnCtx(c2, 0.4, lift, 1080, 1920, false);
+  ok(c2.n.stroke === 0, 'ohne Ring-Kontur kein strokeText');
+}
+
+// 18b) Wortabstände im Export: aktives Wort vorne/Mitte/hinten, mehrere Styles (Regression „DERWEIDE.“)
+{
+  const mkCtx = () => ({ _font: '', letterSpacing: '0px', calls: [], strokes: [], lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000', fillStyle: '#000',
+    shadowColor: 'transparent', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none', textAlign: 'left', textBaseline: 'alphabetic',
+    get font() { return this._font; }, set font(v) { this._font = v; },
+    measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 + (parseFloat(this.letterSpacing) || 0) * (str || '').length }; },
+    fillText(t, x, y) { this.calls.push({ t, x, y, font: this._font, ls: parseFloat(this.letterSpacing) || 0 }); },
+    strokeText(t) { this.strokes.push({ t, w: this.lineWidth }); },
+    save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, rect() {}, roundRect() {}, ellipse() {}, fillRect() {},
+    createLinearGradient() { return { addColorStop() {} }; } });
+  const words = ['Der', 'Weide', 'und', 'Rinder'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.4 }));
+  T.setState(T.buildCaptionBlocks(words), [], 'karaoke');
+  ok(T.getBlocks().length === 1 && T.getBlocks()[0].words.length === 4, 'Test-Block mit 4 Woertern');
+  const bad = [];
+  ['hormozi', 'beast', 'boxkara', 'classic'].forEach(id => {
+    const st = T.STYLES.find(x => x.id === id);
+    [0.05, 0.55, 1.55].forEach(t => {                // aktives Wort: erstes, zweites, letztes (jeweils mitten in der Animation)
+      const c = mkCtx();
+      T.drawCaptionsOnCtx(c, t, st, 1080, 1920, false);
+      const fin = []; const seen = {};
+      for (let i = c.calls.length - 1; i >= 0; i--) { const k = c.calls[i]; if (!seen[k.t]) { seen[k.t] = 1; fin.unshift(k); } }
+      fin.sort((a, b) => a.y - b.y || a.x - b.x);
+      for (let i = 0; i + 1 < fin.length; i++) {
+        if (Math.abs(fin[i].y - fin[i + 1].y) > 1) continue;                 // nur innerhalb einer Zeile
+        const px = +/([\d.]+)px/.exec(fin[i].font)[1];
+        const wI = fin[i].t.length * px * 0.55 + fin[i].ls * fin[i].t.length, spc = px * 0.55;
+        if (!(fin[i + 1].x >= fin[i].x + wI + spc * 0.8 - 1e-6)) bad.push(id + '@' + t + ': ' + fin[i].t + '→' + fin[i + 1].t);
+      }
+    });
+  });
+  ok(bad.length === 0, 'Wortabstand im Export immer >= 0.8 Leerzeichen: ' + bad.join('; '));
+  // Konturierte Styles bekommen 2×Kontur extra Abstand — in Vorschau (word-spacing) und Export gleich
+  const hz = T.STYLES.find(x => x.id === 'hormozi'), lift = T.STYLES.find(x => x.id === 'lift');
+  ok(T.buildCap(['der', 'weide'], hz, 0, 22, null, 1).includes('word-spacing:6px') && !T.buildCap(['der', 'weide'], lift, 0, 22, null, 1).includes('word-spacing'),
+     'Vorschau: word-spacing nur fuer konturierte Styles');
+  ok(!T.buildCap(['der', 'weide'], hz, 0, 9, null).includes('word-spacing'), 'Style-Thumbnails unveraendert');
+  // Kontur skaliert in der Punch-Animation nicht mit (Breite bleibt <= Basisbreite)
+  const c3 = mkCtx(); T.drawCaptionsOnCtx(c3, 0.12, hz, 1080, 1920, false);
+  const base = Math.max(...c3.strokes.map(s => s.w)), act = c3.strokes.find(s => s.t === 'DER');
+  ok(act && act.w <= base + 1e-9, 'Kontur des animierten Worts nicht aufgeblasen: ' + (act && act.w) + ' vs ' + base);
+}
+
+// 20a) Edit-Liste: Präsentationsende (gekürzte Datei ohne Neukodierung)
+ok(T.editListEnd(null, 600) === Infinity && T.editListEnd([], 600) === Infinity, 'editListEnd: ohne Edit-Liste unbegrenzt');
+ok(T.editListEnd([{ media_time: 0, segment_duration: 3000, media_rate_integer: 1 }], 600) === 5, 'editListEnd: 5 s Segment');
+ok(Math.abs(T.editListEnd([{ media_time: -1, segment_duration: 300 }, { media_time: 1024, segment_duration: 2400 }], 600) - 4.5) < 1e-9, 'editListEnd: Verzoegerung + Segment');
+ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'editListEnd: Dauer 0 = bis Medienende');
+
+// 20b) Szenenschnitte: Blöcke überspannen keinen Schnitt
+{
+  const W = (arr) => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
+  T.onWpbChange('6');
+  let bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.5, 0.9], ['c', 1.0, 1.4], ['d', 1.5, 1.9]]), [0.95]);
+  ok(bl.length === 2 && bl[0].text === 'a b' && bl[1].text === 'c d' && bl[0].end <= 0.95 && bl[1].start >= 0.95, 'Block endet am Schnitt, neuer beginnt danach');
+  bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.7, 1.3], ['c', 1.4, 1.8]]), [1.1]);
+  ok(bl[0].text === 'a b' && bl[0].end === 1.1 && bl[0].words[1].end === 1.3 && bl[1].text === 'c', 'Wort ueber dem Schnitt: Mitte entscheidet, Timing bleibt, Block endet am Schnitt');
+  bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.5, 0.8], ['c', 0.9, 1.5], ['d', 1.6, 1.9]]), [1.0]);
+  ok(bl[0].text === 'a b' && bl[1].text === 'c d' && bl[1].start === 1.0 && bl[1].words[0].start === 0.9, 'Blockanfang auf Schnitt begrenzt, Wort-Timing unveraendert');
+  bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.5, 0.9], ['c', 1.0, 1.4]]), []);
+  ok(bl.length === 1, 'ohne Schnitte unveraendert');
+  // Integration: Schnitte kommen nach den Captions → edit-erhaltend neu gruppieren, Statushinweis, Continuous stoppt am Schnitt
+  T.setState(T.buildCaptionBlocks(W([['Hallo', 0, 0.4], ['du', 0.5, 0.9], ['da', 1.0, 1.4], ['drueben', 1.5, 1.9]]), []), W([['Hallo', 0, 0.4], ['du', 0.5, 0.9], ['da', 1.0, 1.4], ['drueben', 1.5, 1.9]]), 'karaoke');
+  T.getBlocks()[0].text = 'Hallo du da drüben'; T.retimeEditedBlock(T.getBlocks()[0]);
+  document.getElementById('tStatus').innerHTML = '<span>✅</span><span>4 words</span>';
+  T.setSceneCuts([0.95]);
+  ok(T.getBlocks().length === 2 && T.getBlocks()[1].text === 'da drüben', 'Schnitte nachtraeglich: neu gruppiert, Edit erhalten');
+  ok(/1 scene cut detected/.test(document.getElementById('tStatus').innerHTML), 'Statushinweis: ' + document.getElementById('tStatus').innerHTML);
+  T.setDisplayMode('all');
+  ok(T.currentBlockIdx2(0.93) === 0 && T.currentBlockIdx2(0.97) === -1 && T.currentBlockIdx2(1.2) === 1, 'Continuous: Block endet am Schnitt');
+  T.setDisplayMode('karaoke');
+  T.onBreakAtCutsChange(false);
+  ok(T.getBlocks().length === 1, 'Schalter aus: Bloecke wieder ueber den Schnitt');
+  T.onBreakAtCutsChange(true); T.setSceneCuts([]);
+  T.onWpbChange('4');
+}
+
+// 20c) Schnitt-Detektor: reine Bausteine mit synthetischen Daten
+{
+  const dark = T.lumaHistogram(new Float32Array(2304).fill(0.1), 16), light = T.lumaHistogram(new Float32Array(2304).fill(0.9), 16);
+  ok(T.histDistance(dark, dark) === 0 && Math.abs(T.histDistance(dark, light) - 1) < 1e-9, 'Histogramm-Distanz 0 bzw. 1');
+  ok(Math.abs(T.meanAbsDiff(new Float32Array([0.1, 0.2]), new Float32Array([0.3, 0.2])) - 0.1) < 1e-6, 'mittlere Pixel-Differenz');
+  ok(T.cutThreshold([0.01, 0.02, 0.015, 0.02, 0.01]) === 0.35, 'Schwelle: Untergrenze 0.35 bei ruhigem Video');
+  const noisy = [0.2, 0.25, 0.3, 0.22, 0.28, 0.24, 0.26];
+  ok(T.cutThreshold(noisy) > 0.35, 'Schwelle adaptiv bei unruhigem Video: ' + T.cutThreshold(noisy).toFixed(3));
+  const samples = [];
+  for (let i = 0; i < 30; i++) samples.push({ t: i * 0.2, d: i === 0 ? 0 : 0.02 + (i % 3) * 0.005, p: 0.01 });
+  samples[17] = { t: 3.4, d: 0.8, p: 0.3 };            // harter Schnitt
+  samples[24] = { t: 4.8, d: 0.5, p: 0.02 };           // Helligkeitssprung ohne Pixel-Änderung (z. B. Blitz) → kein Schnitt
+  const c = T.pickCutCandidates(samples);
+  ok(c.length === 1 && c[0] === 17, 'nur der echte Schnitt erkannt: ' + JSON.stringify(c));
+}
 
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
@@ -446,6 +806,63 @@ const trailW = [{ word: 'eins', start: 0, end: 0.3 }, { word: 'zwei', start: 0.3
 const trailCuts = T.computeCutRegions(trailW, { totalDur: 5 });
 ok(trailCuts.length === 1 && Math.abs(trailCuts[0].end - 4.92) < 0.001, 'Trail-Stille bis Videoende erkannt (nur mit totalDur): ' + JSON.stringify(trailCuts));
 ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-Annahme: ' + JSON.stringify(T.computeCutRegions(trailW)));
+
+// 16c) WebCodecs-Schnellexport: reine Helfer (Feature-Erkennung, Zeit-Re-Basing, Codec-Wahl)
+ok(T.fastExportSupported() === false, 'Node ohne WebCodecs → Schnellexport aus (kein Throw)');
+ok(T.isFastExportSource({ type: 'video/mp4', name: 'a.mp4' }) && T.isFastExportSource({ type: 'video/quicktime', name: 'IMG_1.MOV' })
+   && T.isFastExportSource({ type: '', name: 'clip.m4v' }), 'MP4/MOV/M4V → Schnellexport-Quelle');
+ok(!T.isFastExportSource({ type: 'video/webm', name: 'a.webm' }) && !T.isFastExportSource({ type: 'video/webm', name: 'falsch.mp4' })
+   && !T.isFastExportSource(null), 'WebM/fehlende Datei → kein Schnellexport');
+const rg = [{ start: 1, end: 2 }, { start: 3, end: 3.5 }];
+ok(T.rebaseCutTime(0.5, rg) === 0.5, 'vor erstem Cut unverändert');
+ok(T.rebaseCutTime(1, rg) === null && T.rebaseCutTime(1.99, rg) === null && T.rebaseCutTime(3.2, rg) === null, 'in Cut → null');
+ok(T.rebaseCutTime(2, rg) === 1 && Math.abs(T.rebaseCutTime(2.5, rg) - 1.5) < 1e-9, 'nach Cut 1 um 1 s verschoben');
+ok(Math.abs(T.rebaseCutTime(4, rg) - 2.5) < 1e-9, 'nach beiden Cuts um 1.5 s verschoben');
+ok(T.rebaseCutTime(7, []) === 7 && T.rebaseCutTime(7, null) === 7, 'ohne Cuts Identität');
+// Video-Frames (30 fps) durch die Cuts: Ausgabe lückenlos & streng monoton
+(function () {
+  let prev = -1, mono = true, maxGap = 0;
+  for (let i = 0; i < 150; i++) { const o = T.rebaseCutTime(i / 30, rg); if (o === null) continue; if (o <= prev) mono = false; if (prev >= 0) maxGap = Math.max(maxGap, o - prev); prev = o; }
+  ok(mono && maxGap < 1 / 30 + 0.02, 'Frame-Zeiten nach Cut lückenlos/monoton, max Abstand ' + maxGap.toFixed(3));
+})();
+// AAC-Pakete (1024 @ 48 kHz) durch Cuts: lückenlos, Fehler zur Videozeit ≤ ½ Paket, Länge passt
+(function () {
+  const dur = 1024 / 48000, plan = T.createAudioCutPlanner(rg);
+  let clockEnd = 0, maxErr = 0, contiguous = true, last = null, kept = 0, srcEnd = 0;
+  for (let k = -1; k * dur < 6; k++) { // k = -1: Priming-Paket vor 0
+    const ts = k * dur, outs = plan(ts, dur);
+    outs.forEach(function (o) { if (last !== null && Math.abs(o - (last + dur)) > 1e-9) contiguous = false; last = o; kept++; });
+    const ideal = T.rebaseCutTime(ts + dur / 2, rg);
+    if (outs.length && ideal !== null) maxErr = Math.max(maxErr, Math.abs(outs[outs.length - 1] + dur / 2 - ideal));
+    if (last !== null) clockEnd = last + dur;
+    srcEnd = ts + dur;
+  }
+  ok(contiguous, 'Audio-Pakete lückenlos aneinander');
+  ok(maxErr <= dur / 2 + 1e-9, 'Audio ≤ ½ Paket neben exakter Videozeit: ' + (maxErr * 1000).toFixed(1) + ' ms');
+  ok(Math.abs(clockEnd - (srcEnd - 1.5)) <= dur / 2, 'Audiolänge = Quelle − 1.5 s Cuts (±½ Paket): ' + clockEnd.toFixed(4) + ' vs ' + (srcEnd - 1.5).toFixed(4));
+  const p0 = T.createAudioCutPlanner([]);
+  ok(p0(-dur, dur).length === 0 && p0(0, dur)[0] === 0 && Math.abs(p0(dur, dur)[0] - dur) < 1e-12, 'ohne Cuts: Priming weg, Rest 1:1');
+  const pg = T.createAudioCutPlanner([]); pg(0, dur);
+  ok(Math.abs(pg(1, dur)[0] - 1) < 1e-12, 'echte Quell-Lücke (> 2.5 Pakete) wird übernommen statt aufgefüllt');
+})();
+ok(T.rotationFromMatrix([65536, 0, 0, 0, 65536, 0, 0, 0, 1073741824]) === 0, 'Matrix Identität → 0°');
+ok(T.rotationFromMatrix([0, 65536, 0, -65536, 0, 0, 0, 0, 1073741824]) === 90, 'Matrix → 90°');
+ok(T.rotationFromMatrix([-65536, 0, 0, 0, -65536, 0, 0, 0, 1073741824]) === 180, 'Matrix → 180°');
+ok(T.rotationFromMatrix([0, -65536, 0, 65536, 0, 0, 0, 0, 1073741824]) === 270, 'Matrix → 270°');
+ok(T.rotationFromMatrix([-65536, 0, 0, 0, 65536, 0, 0, 0, 1073741824]) === null, 'gespiegelte Matrix → null (Echtzeit-Pfad)');
+ok(T.rotationFromMatrix(undefined) === 0, 'keine Matrix → 0°');
+ok(T.editListOffset(undefined, 1000, 48000) === 0, 'keine Edit-Liste → 0');
+ok(Math.abs(T.editListOffset([{ segment_duration: 45000, media_time: 1024, media_rate_integer: 1 }], 1000, 48000) + 1024 / 48000) < 1e-12, 'AAC-Priming → negativer Versatz');
+ok(Math.abs(T.editListOffset([{ segment_duration: 500, media_time: -1 }, { segment_duration: 1000, media_time: 0, media_rate_integer: 1 }], 1000, 90000) - 0.5) < 1e-12, 'leerer Edit → Verzögerung');
+ok(T.editListOffset([{ segment_duration: 1, media_time: 0, media_rate_integer: 1 }, { segment_duration: 1, media_time: 9000, media_rate_integer: 1 }], 1000, 90000) === null, 'mehrere Edits → null');
+const c720 = T.h264CodecCandidates(720, 1280, 30), c1080 = T.h264CodecCandidates(1080, 1920, 30);
+ok(c720[0] === 'avc1.64001F' && c720.indexOf('avc1.42E01F') > 0, '720x1280@30 → Level 3.1 zuerst: ' + c720.join(','));
+ok(c1080[0] === 'avc1.640028' && c1080[1] === 'avc1.4D0028' && c1080[2] === 'avc1.42E028', '1080x1920@30 → Level 4.0: ' + c1080.join(','));
+ok(T.h264CodecCandidates(1080, 1920, 60)[0] === 'avc1.64002A', '1080p60 → Level 4.2');
+ok(T.h264CodecCandidates(2160, 3840, 30)[0] === 'avc1.640033', '4K30 → Level 5.1');
+ok(T.h264CodecCandidates(1080, 1920, 30).length === 6, 'passendes Level + eins Reserve');
+ok(T.h264CodecCandidates(8000, 8000, 30).length === 0, 'jenseits Level 5.2 → keine Kandidaten (→ Echtzeit-Pfad)');
+ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 'avc' && /^avc1\./.test(c.codec); }), 'Produktion: nur H.264');
 
 // 17) transcribeChunked: deckt das GANZE Video ab (async)
 (async () => {
@@ -630,6 +1047,199 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
   }
 
 
+  // 9h) Große Videos: ffmpeg per WORKERFS (lazy), KEIN file.arrayBuffer() des ganzen Videos
+  {
+    const mkFF = (opts) => {
+      const calls = []; const hand = {};
+      const ff = {
+        on: (ev, f) => { hand[ev] = f; }, off: () => {},
+        createDir: async (d) => { calls.push(['createDir', d]); },
+        mount: async (t, o, mp) => { calls.push(['mount', t, mp, o.files[0].name]); if (opts.noMount) throw new Error('no WORKERFS'); },
+        unmount: async (mp) => { calls.push(['unmount', mp]); },
+        writeFile: async (n) => { calls.push(['writeFile', n]); },
+        exec: async (args) => { calls.push(['exec'].concat(args)); if (hand.log) hand.log({ message: opts.log || '  Stream #0:0: Video: hevc\n  Stream #0:1: Audio: aac' }); if (hand.progress) hand.progress({ progress: 0.5 }); },
+        readFile: async (n) => { calls.push(['readFile', n]); if (opts.noAudio) throw new Error('FS error'); return new Uint8Array(new Int16Array([0, 16384, -16384, 8192]).buffer); },
+        deleteFile: async () => {}
+      };
+      return { g: { ff, fetchFile: async () => new Uint8Array(4) }, calls };
+    };
+    let abCalls = 0;
+    const bigFile = { name: 'Mein Reel (1).MOV', size: 450 * 1024 * 1024, type: 'video/quicktime', arrayBuffer: async () => { abCalls++; throw new Error('OOM'); } };
+    let m = mkFF({}); T.setFFmpeg(m.g);
+    const dec = await T.decodeToMono16k(bigFile);
+    ok(abCalls === 0, 'grosses Video: kein arrayBuffer() des ganzen Videos');
+    const ex = m.calls.find(c => c[0] === 'exec');
+    ok(m.calls.some(c => c[0] === 'mount' && c[1] === 'WORKERFS' && c[2] === '/in' && c[3] === 'input.mov'), 'WORKERFS-Mount mit sicherem Dateinamen: ' + JSON.stringify(m.calls.find(c => c[0] === 'mount')));
+    ok(ex && ex[2] === '/in/input.mov' && ex.includes('-t') && ex[ex.indexOf('-t') + 1] === '1200' && ex.includes('s16le'), 'exec liest aus Mount, -t MAX_AUDIO_SEC: ' + (ex && ex.join(' ')));
+    ok(m.calls.some(c => c[0] === 'unmount' && c[1] === '/in') && !m.calls.some(c => c[0] === 'writeFile'), 'danach unmount, keine Speicherkopie');
+    ok(dec.audioData.length === 4 && Math.abs(dec.peak - 0.5) < 1e-9, 'PCM korrekt dekodiert');
+    // ohne Tonspur → klare Meldung
+    m = mkFF({ noAudio: true, log: 'Input #0\n  Stream #0:0: Video: hevc\nOutput file #0 does not contain any stream' }); T.setFFmpeg(m.g);
+    let err = null; try { await T.decodeToMono16k(bigFile); } catch (e) { err = e; }
+    ok(err && /no audio track/.test(err.message) && abCalls === 0, 'grosses Video ohne Ton: klare Meldung, kein arrayBuffer-Fallback: ' + (err && err.message));
+    // kleine Datei: Web Audio zuerst; scheitert es, ffmpeg-Fallback ebenfalls per WORKERFS
+    const smallFile = { name: 'clip.webm', size: 5 * 1024 * 1024, type: 'video/webm', arrayBuffer: async () => { abCalls++; return new ArrayBuffer(8); } };
+    global.AudioContext = function () { this.decodeAudioData = async () => { throw new Error('decode failed'); }; this.close = () => {}; };
+    m = mkFF({}); T.setFFmpeg(m.g); abCalls = 0;
+    const dec2 = await T.decodeToMono16k(smallFile);
+    ok(abCalls === 1 && dec2.audioData.length === 4 && m.calls.some(c => c[0] === 'mount') && !m.calls.some(c => c[0] === 'writeFile'), 'kleine Datei: Web Audio zuerst, Fallback per WORKERFS');
+    // WORKERFS nicht verfügbar: kleine Datei → MEMFS-Kopie ok; große Datei → nie komplett kopieren
+    m = mkFF({ noMount: true }); T.setFFmpeg(m.g);
+    await T.decodeToMono16k(smallFile);
+    ok(m.calls.some(c => c[0] === 'writeFile'), 'ohne WORKERFS: kleine Datei per MEMFS');
+    m = mkFF({ noMount: true }); T.setFFmpeg(m.g);
+    err = null; try { await T.decodeToMono16k(bigFile); } catch (e) { err = e; }
+    ok(!m.calls.some(c => c[0] === 'writeFile') && err && /Could not read the audio/.test(err.message), 'ohne WORKERFS: grosses Video nie komplett in den Speicher');
+    delete global.AudioContext; T.setFFmpeg(null);
+  }
+
+  // 21c) Timing-Snap an die Sprachenergie (synthetisch: Tonstöße mit Stille dazwischen)
+  {
+    const SRn = 16000, dur = 4.5, a = new Float32Array(SRn * dur);
+    for (let i = 0; i < a.length; i++) a[i] = (Math.sin(i * 12.9898) * 43758.5453 % 1) * 0.002; // leises Rauschen
+    const burst = (t0, t1) => { for (let i = Math.floor(t0 * SRn); i < t1 * SRn; i++) a[i] = 0.5 * Math.sin(2 * Math.PI * 220 * i / SRn); };
+    burst(1.0, 1.5); burst(2.0, 2.6); burst(3.2, 3.5);
+    const ws = [{ word: 'eins', start: 0.85, end: 1.75 },  // zu früh + klebt nach
+                { word: 'zwei', start: 2.0, end: 2.6 },    // korrekt
+                { word: 'drei', start: 3.05, end: 3.9 }];  // zu früh; Ende 400 ms zu spät (> 300 ms → bleibt)
+    const sn = await T.snapWordTimings(ws, a, SRn);
+    const near = (x, y, tol) => Math.abs(x - y) <= tol;
+    ok(near(sn[0].start, 1.0, 0.02) && near(sn[0].end, 1.5, 0.02), 'Snap: frueher Start/spaetes Ende an Sprache gezogen: ' + sn[0].start + '–' + sn[0].end);
+    ok(near(sn[1].start, 2.0, 0.02) && near(sn[1].end, 2.6, 0.02), 'Snap: korrektes Wort bleibt: ' + sn[1].start + '–' + sn[1].end);
+    ok(near(sn[2].start, 3.2, 0.02) && sn[2].end === 3.9, 'Snap: Start vor (<= 250 ms), Ende ausserhalb 300-ms-Fenster bleibt: ' + sn[2].start + '–' + sn[2].end);
+    ok(sn.every((w, i) => w.end > w.start && (i === 0 || w.start >= sn[i - 1].end)), 'Snap: monoton, ohne Ueberlappung');
+    const far = await T.snapWordTimings([{ word: 'x', start: 0.6, end: 1.4 }], a, SRn);
+    ok(far[0].start === 0.6, 'Snap: Start > 250 ms vor der Sprache bleibt unveraendert');
+    // stark verrauscht → nichts verändern
+    const noisy = new Float32Array(SRn * 3);
+    for (let i = 0; i < noisy.length; i++) noisy[i] = (Math.sin(i * 78.233) * 12345.678 % 1) * 0.4;
+    const nz = await T.snapWordTimings([{ word: 'a', start: 0.5, end: 1 }], noisy, SRn);
+    ok(nz[0].start === 0.5 && nz[0].end === 1, 'Snap: verrauschtes Audio bleibt unveraendert');
+  }
+
+  // 21d) Templates in der Cloud: reservierte projects-Zeile statt JWT-Metadaten; Migration + Ausblenden
+  {
+    const store = {};
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    store.capivo_templates = JSON.stringify([{ id: 'tpl_local', name: 'Lokal', style: { fl: 'Inter' }, layout: {}, createdAt: 1, updatedAt: 10 }]);
+    const rows = [{ id: 7, title: T.TPL_ROW_TITLE, updated_at: '2026-01-01', payload: { kind: 'capivo_templates', templates: [{ id: 'tpl_row', name: 'Zeile', style: { fl: 'Anton' }, layout: {}, createdAt: 2, updatedAt: 20 }] } },
+                  { id: 8, title: 'Mein Projekt', updated_at: '2026-01-02', payload: { blocks: [] } }];
+    const calls = [];
+    const mkQ = () => {
+      const q = { op: 'select', f: [] };
+      const api = {
+        select() { if (q.op === 'insert') q.ret = true; return api; }, eq(k, v) { q.f.push(r => r[k] === v); return api; },
+        neq(k, v) { q.f.push(r => r[k] !== v); return api; }, order() { return api; },
+        update(v) { q.op = 'update'; q.val = v; return api; }, insert(v) { q.op = 'insert'; q.val = v; return api; },
+        delete() { q.op = 'delete'; return api; }, single() { q.single = true; return api; },
+        then(res, rej) {
+          calls.push(q.op);
+          const hit = rows.filter(r => q.f.every(fn => fn(r)));
+          let out;
+          if (q.op === 'select') out = { data: q.single ? hit[0] : hit, error: null };
+          else if (q.op === 'update') { hit.forEach(r => Object.assign(r, q.val)); out = { data: null, error: null }; }
+          else if (q.op === 'insert') { const r = Object.assign({ id: 99 }, q.val); rows.push(r); out = { data: { id: 99 }, error: null }; }
+          else { out = { data: null, error: null }; }
+          return Promise.resolve(out).then(res, rej);
+        }
+      };
+      return api;
+    };
+    let metaUpdate = null;
+    T.setSb({ from: () => mkQ(), auth: { updateUser: async (u) => { metaUpdate = u; return { error: null }; } } });
+    T.setMe('free', 'a@b.c');
+    await T.syncTemplatesWithCloud({ user_metadata: { capivo_templates: [{ id: 'tpl_meta', name: 'Meta', style: { fl: 'Poppins' }, layout: {}, createdAt: 3, updatedAt: 30 }] } });
+    const ids = T.getUserTemplates().map(t => t.id).sort().join(',');
+    ok(ids === 'tpl_local,tpl_meta,tpl_row', 'Sync: lokal + Zeile + alte Metadaten zusammengefuehrt: ' + ids);
+    const tplRow = rows.find(r => r.title === T.TPL_ROW_TITLE);
+    ok(tplRow.payload.templates.length === 3 && calls.includes('update'), 'Sync: Zeile mit allen Templates aktualisiert');
+    ok(metaUpdate && metaUpdate.data && metaUpdate.data.capivo_templates === null, 'Sync: alte JWT-Metadaten geleert');
+    ok(T.STYLES.filter(x => x.id === 'tpl_row').length === 1, 'Sync: keine doppelten Picker-Eintraege');
+    // Push von einem zweiten Gerät mit altem Stand darf fremde Cloud-Templates nicht überschreiben
+    tplRow.payload = { kind: 'capivo_templates', templates: tplRow.payload.templates.concat([{ id: 'tpl_otherdev', name: 'Anderes Geraet', style: { fl: 'Inter' }, layout: {}, createdAt: 5, updatedAt: 50 }]) };
+    await T.pushTemplatesToCloud();
+    const after = rows.find(r => r.title === T.TPL_ROW_TITLE).payload.templates.map(t => t.id);
+    ok(after.includes('tpl_otherdev') && after.includes('tpl_local') && T.getUserTemplates().some(t => t.id === 'tpl_otherdev'),
+       'Push mischt Cloud-Stand ein (kein Ueberschreiben fremder Templates): ' + after.join(','));
+    // Projektliste blendet die Templates-Zeile aus
+    await T.loadProjects();
+    const opts = document.getElementById('projList').children.map(o => o.textContent);
+    ok(opts.includes('Mein Projekt') && !opts.includes(T.TPL_ROW_TITLE), 'Projektliste ohne Templates-Zeile: ' + opts.join('|'));
+    // Gespeicherte Styles wiederherstellen: custom immer, fehlendes Template einmalig anlegen, gelöschtes → custom
+    if (!T.STYLES.find(x => x.id === 'custom')) T.STYLES.push({ id: 'custom', name: 'alt', fl: 'Inter', tc: '#000', hl: '#000' });
+    T.restoreSavedStyle({ style: 'custom', styleDef: { fl: 'Anton', font: "'Anton'", tc: '#123456', hl: '#fff' } });
+    ok(T.STYLES.filter(x => x.id === 'custom').length === 1 && T.STYLES.find(x => x.id === 'custom').tc === '#123456', 'Projekt-Custom-Style ersetzt den der Sitzung');
+    T.restoreSavedStyle({ style: 'tpl_gone', styleName: 'Weg', styleDef: { fl: 'Inter', tc: '#abcdef' }, tplLayout: { pos: 'top' } });
+    T.restoreSavedStyle({ style: 'tpl_gone', styleName: 'Weg', styleDef: { fl: 'Inter', tc: '#abcdef' } });
+    ok(T.getUserTemplates().filter(t => t.id === 'tpl_gone').length === 1 && T.STYLES.filter(x => x.id === 'tpl_gone').length === 1
+       && T.STYLES.find(x => x.id === 'tpl_gone')._isTpl, 'fehlendes Template einmalig als Template angelegt (keine Dubletten)');
+    T.getUserTemplates().push({ id: 'tpl_del', deleted: true, updatedAt: Date.now() });
+    T.restoreSavedStyle({ style: 'tpl_del', styleDef: { fl: 'Inter', tc: '#fedcba' } });
+    ok(T.getActiveId() === 'custom' && T.STYLES.find(x => x.id === 'custom').tc === '#fedcba' && !T.STYLES.find(x => x.id === 'tpl_del'), 'geloeschtes Template → als custom, nicht wiederbelebt');
+    T.setSb(null); T.setMe('anon', ''); T.setUserTemplates([]); delete global.localStorage;
+  }
+
+  // 21e) Schnellexport-Sicherheitsnetz: Datei per <video>-Metadaten prüfen
+  {
+    const origCreate = document.createElement, origURL = global.URL;
+    let revoked = 0, mode = {};
+    global.URL = { createObjectURL: () => 'blob:v', revokeObjectURL: () => { revoked++; } };
+    document.createElement = (tag) => {
+      if (tag !== 'video') return origCreate(tag);
+      const v = { muted: false, preload: '', videoWidth: 0, duration: NaN, removeAttribute() {}, load() {} };
+      Object.defineProperty(v, 'src', { set() {
+        if (mode.hang) return;
+        setTimeout(() => {
+          if (mode.error) return v.onerror && v.onerror();
+          v.videoWidth = mode.w === undefined ? 1080 : mode.w; v.duration = mode.d; v.onloadedmetadata && v.onloadedmetadata();
+        }, 1);
+      } });
+      return v;
+    };
+    mode = { d: 9.8 };        ok((await T.validateExportBlob({}, 10)).ok === true, 'Validierung: passende Dauer → ok');
+    mode = { d: 6 };          ok((await T.validateExportBlob({}, 10)).ok === false, 'Validierung: Dauer weicht ab → Fallback');
+    mode = { d: 10, w: 0 };   ok((await T.validateExportBlob({}, 10)).ok === false, 'Validierung: keine Bildbreite → Fallback');
+    mode = { error: true };   ok((await T.validateExportBlob({}, 10)).ok === false, 'Validierung: nicht abspielbar → Fallback');
+    mode = { hang: true };    const tr = await T.validateExportBlob({}, 10, 30);
+    ok(tr.ok === false && /Timeout/.test(tr.reason), 'Validierung: Timeout → Fallback');
+    ok(revoked === 5, 'Objekt-URL jedes Mal freigegeben: ' + revoked);
+    document.createElement = origCreate; global.URL = origURL;
+  }
+
+  // 21f) Perfect-Polish: korrigierte Wörter übernehmen die Original-Timings; Fehler → Original
+  {
+    const words = [['Wir', 0, 0.3], ['sind', 0.35, 0.6], ['am', 0.65, 0.8], ['Birken', 0.85, 1.1], ['hof.', 1.15, 1.5],
+                   ['Das', 2.0, 2.2], ['Highlnd', 2.3, 2.8], ['Rind', 2.9, 3.3], ['grast.', 3.4, 3.9]].map(([w, a, b]) => ({ word: w, start: a, end: b }));
+    let sent = null, url = null;
+    global.fetch = async (u, o) => { url = u; sent = JSON.parse(o.body);
+      return { ok: true, status: 200, json: async () => ({ model: 'x', changed: 2, segments: [{ id: 0, text: 'Wir sind am Birkenhof.' }, { id: 1, text: 'Das Highland Rind grast.' }] }) }; };
+    const r = await T.polishWords(words, 'de', 'Birkenhof', null);
+    ok(/polish/.test(url) && sent.lang === 'de' && sent.vocab === 'Birkenhof' && sent.segments.length === 2 && sent.segments[1].text === 'Das Highlnd Rind grast.', 'Polish-Request: Saetze als Segmente');
+    const hi = r.words.find(w => w.word === 'Highland');
+    ok(hi && hi.start === 2.3 && hi.end === 2.8, 'korrigiertes Wort uebernimmt Original-Timing');
+    const bh = r.words.find(w => w.word === 'Birkenhof.');
+    ok(r.words.length === 8 && bh && bh.start >= 0.85 - 1e-9 && bh.end <= 1.5 + 1e-9, 'Wortzahl-Aenderung (Birken hof → Birkenhof) mit Zeitspanne der alten Woerter');
+    ok(r.fixes >= 2, 'Fixes gezaehlt: ' + r.fixes);
+    ok(r.words.every((w, i) => i === 0 || w.start >= r.words[i - 1].start), 'Timings monoton');
+    // Umschreiben statt Korrigieren → Segment bleibt original
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ segments: [{ id: 1, text: 'Heute erzähle ich euch etwas über unsere wunderbaren schottischen Hochlandrinder.' }] }) });
+    const r2 = await T.polishWords(words, 'de', '', null);
+    ok(r2.words.map(w => w.word).join(' ') === words.map(w => w.word).join(' '), 'Umschreiben wird verworfen');
+    // Fehlerfälle: 404 auf beiden Endpunkten, 500, Netzwerk → Original, kein Fehler
+    for (const mk of [async () => ({ ok: false, status: 404, json: async () => ({}) }), async () => ({ ok: false, status: 500, json: async () => ({ error: 'nicht konfiguriert' }) }),
+                      async () => { throw new TypeError('Failed to fetch'); }]) {
+      global.fetch = mk;
+      const rf = await T.polishWords(words, 'de', '', null);
+      ok(rf.words === words && rf.fixes === 0, 'Polish-Fehler → Original unveraendert');
+    }
+    // Fast polisht nie, Übersetzen auch nicht
+    T.setModelState('fast'); ok(T.polishEnabled() === false, 'Fast: kein Polish');
+    T.setModelState('perfect'); ok(T.polishEnabled() === true, 'Perfect: Polish');
+    T.setTranslateState(true); ok(T.polishEnabled() === false, 'Perfect + Uebersetzen: kein Polish'); T.setTranslateState(false);
+    T.setModelState('fast');
+    ok(T.polishSegments(Array.from({ length: 95 }, (_, i) => ({ word: 'w' + i }))).every(sg => sg.b - sg.a <= 40), 'Segmente max. 40 Woerter');
+  }
+
   // 22) Vercel-Function api/transcribe.js (gemocktes req/res + Groq-fetch)
   {
     const { Readable } = require('stream');
@@ -662,10 +1272,171 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
     ok(sent.o.body.get('prompt') === null, 'Function: kein prompt beim Uebersetzen');
     await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
     ok(sent.o.body.get('prompt') === null, 'Function: ohne prompt-Param kein prompt-Feld');
+    ok(sent.o.body.get('file').name === 'audio.wav' && sent.o.body.get('file').type === 'audio/wav', 'Function: ohne Content-Type → audio.wav');
+    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' }, { 'content-type': 'audio/ogg' });
+    ok(sent.o.body.get('file').name === 'audio.ogg' && sent.o.body.get('file').type === 'audio/ogg', 'Function: audio/ogg → audio.ogg an Groq');
+    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' }, { 'content-type': 'text/html; charset=utf-8' });
+    ok(sent.o.body.get('file').name === 'audio.wav' && sent.o.body.get('file').type === 'audio/wav', 'Function: unbekannter Content-Type → WAV (Whitelist)');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(5 * 1024 * 1024), { GROQ_API_KEY: 'k' })).statusCode === 413, 'Function: zu grosser Body → 413');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', REQUIRE_LOGIN: '1', SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'a' })).statusCode === 401, 'Function: Login-Pflicht ohne Token → 401');
     const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
     ok(rl[2] === 429, 'Function: Rate-Limit greift: ' + rl);
+  }
+
+  // 23) Komprimierter Upload (Ogg/Opus) + parallele Stücke
+  {
+    // Ogg-Seiten parsen (Header-Felder + CRC-Prüfung), für die Muxer-Assertions
+    const pages = (u) => {
+      const out = []; let o = 0;
+      while (o < u.length) {
+        const dv = new DataView(u.buffer, u.byteOffset + o);
+        const ns = u[o + 26], segs = Array.from(u.subarray(o + 27, o + 27 + ns)), body = segs.reduce((a, b) => a + b, 0);
+        const end = o + 27 + ns + body, pg = u.slice(o, end), stored = dv.getUint32(22, true);
+        pg[22] = pg[23] = pg[24] = pg[25] = 0;
+        const lo = dv.getUint32(6, true), hi = dv.getUint32(10, true);
+        out.push({ magic: String.fromCharCode(u[o], u[o + 1], u[o + 2], u[o + 3]), flags: u[o + 5], seq: dv.getUint32(18, true),
+          granule: (lo === 0xFFFFFFFF && hi === 0xFFFFFFFF) ? -1 : hi * 4294967296 + lo, segs, crcOk: T.oggCrc32(pg) === stored,
+          body: u.subarray(o + 27 + ns, end) });
+        o = end;
+      }
+      return out;
+    };
+    // CRC32 (Ogg-Variante: Poly 0x04C11DB7, unreflektiert, Init 0, kein XOR) — Prüfwert für "123456789"
+    ok(T.oggCrc32(Buffer.from('123456789')) === 0x89A1897F, 'Ogg-CRC32 Prüfwert: 0x' + T.oggCrc32(Buffer.from('123456789')).toString(16));
+    ok(T.oggCrc32(new Uint8Array(0)) === 0, 'Ogg-CRC32 leer = 0');
+    // Lacing
+    ok(JSON.stringify(T.oggLacing(100)) === '[100]', 'Lacing 100');
+    ok(JSON.stringify(T.oggLacing(600)) === '[255,255,90]', 'Lacing 600: ' + JSON.stringify(T.oggLacing(600)));
+    ok(JSON.stringify(T.oggLacing(510)) === '[255,255,0]', 'Lacing 510 (Vielfaches von 255 → 0-Segment)');
+    ok(JSON.stringify(T.oggLacing(0)) === '[0]', 'Lacing 0');
+    // Paketdauer aus dem TOC-Byte (48-kHz-Samples)
+    const P = (...b) => new Uint8Array(b);
+    ok(T.opusPacketSamples48(P(0x48, 1, 2)) === 960, 'TOC SILK-WB 20 ms (Chromium bei 16 kHz)');
+    ok(T.opusPacketSamples48(P(0xB8, 1)) === 960, 'TOC CELT 20 ms');
+    ok(T.opusPacketSamples48(P(0x80, 1)) === 120, 'TOC CELT 2,5 ms');
+    ok(T.opusPacketSamples48(P(0x49, 1)) === 1920, 'TOC Code 1 = 2 Frames');
+    ok(T.opusPacketSamples48(P(0x0B, 3, 0)) === 2880, 'TOC Code 3, 3 Frames à 20 ms SILK-NB');
+    ok(T.opusPacketSamples48(P(0x68, 1)) === 960 && T.opusPacketSamples48(P(0x60, 1)) === 480, 'TOC Hybrid 20/10 ms');
+    // Pre-Skip aus der Encoder-description (Chromium: 104 @16 kHz → 312 @48 kHz)
+    const head = (ps, rate) => { const u = new Uint8Array(19); u.set(Buffer.from('OpusHead')); u[8] = 1; u[9] = 1; u[10] = ps & 255; u[11] = ps >> 8; new DataView(u.buffer).setUint32(12, rate, true); return u; };
+    ok(T.opusPreSkipFromDesc(head(104, 16000), 16000) === 312, 'Pre-Skip: Chromium-Wert in Eingangs-Rate umgerechnet');
+    ok(T.opusPreSkipFromDesc(head(312, 16000), 16000) === 312, 'Pre-Skip: korrekter 48-kHz-Wert bleibt');
+    ok(T.opusPreSkipFromDesc(null, 16000) === 312 && T.opusPreSkipFromDesc(new Uint8Array(5), 16000) === 312, 'Pre-Skip: Default 312');
+    // Muxer: Kopf-Seiten, Granules (ab 0 gezählt, End-Trimming), EOS, CRC
+    {
+      const pk = Array.from({ length: 3 }, () => P(0x48, 7, 7, 7));
+      const pg = pages(T.buildOggOpus(pk, { preSkip: 312, inputRate: 16000, totalSamples48: 2000 }));
+      ok(pg.length === 3 && pg.every(p => p.magic === 'OggS' && p.crcOk), 'Muxer: 3 Seiten, CRC ok');
+      ok(pg[0].flags === 0x02 && pg[0].granule === 0 && String.fromCharCode(...pg[0].body.subarray(0, 8)) === 'OpusHead', 'Muxer: BOS-Seite mit OpusHead');
+      ok((pg[0].body[10] | (pg[0].body[11] << 8)) === 312 && new DataView(pg[0].body.buffer, pg[0].body.byteOffset).getUint32(12, true) === 16000, 'Muxer: Pre-Skip + Eingangsrate im OpusHead');
+      ok(String.fromCharCode(...pg[1].body.subarray(0, 8)) === 'OpusTags' && pg[1].granule === 0, 'Muxer: OpusTags-Seite');
+      ok(pg[2].flags === 0x04 && pg[2].granule === 2312, 'Muxer: letzte Seite EOS, Granule = preSkip + Länge (End-Trimming): ' + pg[2].granule);
+      ok(pg.map(p => p.seq).join() === '0,1,2', 'Muxer: Seitennummern fortlaufend');
+    }
+    {
+      // 300 kleine Pakete → 255 auf Seite 2, Rest auf Seite 3; Granule = dekodierte Samples bis Seitenende
+      const pk = Array.from({ length: 300 }, () => P(0x48, 1, 2, 3));
+      const pg = pages(T.buildOggOpus(pk, { preSkip: 312, totalSamples48: 300 * 960 }));
+      ok(pg.length === 4 && pg[2].segs.length === 255 && pg[2].granule === 255 * 960 && pg[3].granule === 300 * 960 && pg[3].flags === 0x04,
+        'Muxer: Seitenumbruch nach 255 Segmenten, Granules ' + pg.slice(2).map(p => p.granule));
+      ok(pg.every(p => p.crcOk), 'Muxer: CRC aller Seiten ok');
+    }
+    {
+      // Riesiges Paket (140000 Bytes = 550 Segmente) → läuft über 3 Seiten: mittlere ohne Paketende (Granule -1),
+      // Folgeseiten mit Fortsetzungs-Flag 0x01
+      const BIG = 140000, big = new Uint8Array(BIG); big[0] = 0x48; for (let i = 1; i < big.length; i++) big[i] = i & 255;
+      const pg = pages(T.buildOggOpus([P(0x48, 9), big, P(0x48, 9)], { preSkip: 312 }));
+      ok(pg.length === 5, 'Muxer: grosses Paket → 5 Seiten, habe ' + pg.length);
+      ok(pg[2].segs.length === 255 && pg[2].granule === 960 && !(pg[2].flags & 1), 'Muxer: Seite 2 endet mitten im Paket, Granule = vollendetes Paket');
+      ok(pg[3].segs.length === 255 && pg[3].granule === -1 && (pg[3].flags & 1), 'Muxer: Seite ohne Paketende hat Granule -1 + Fortsetzung');
+      ok((pg[4].flags & 0x01) && (pg[4].flags & 0x04) && pg[4].granule === 2880, 'Muxer: Fortsetzungsseite (0x01) + EOS, Granule ' + pg[4].granule);
+      const rest = BIG - (pg[2].body.length - 2) - pg[3].body.length;
+      const joined = Buffer.concat([Buffer.from(pg[2].body.subarray(2)), Buffer.from(pg[3].body), Buffer.from(pg[4].body.subarray(0, rest))]);
+      ok(joined.equals(Buffer.from(big)) && pg[4].body.length === rest + 2, 'Muxer: Paketinhalt über Seitengrenzen unverändert');
+      ok(pg.every(p => p.crcOk), 'Muxer: CRC ok (Fortsetzung)');
+    }
+
+    // Upload-Encoding: Node hat kein WebCodecs → WAV
+    const origBlob = global.Blob;
+    global.Blob = function (parts, o) { this.parts = parts; this.type = o && o.type; this.content = ''; };
+    T.resetOpus();
+    ok(typeof AudioEncoder === 'undefined' && (await T.encodeUploadAudio(new Float32Array(1600).fill(0.1), 16000)).type === 'audio/wav', 'ohne AudioEncoder → WAV');
+    // Mock-AudioEncoder (verhält sich wie Chromium: 20-ms-SILK-Pakete, description mit Pre-Skip 104 @16 kHz)
+    class MockAD { constructor(o) { this.numberOfFrames = o.numberOfFrames; } close() {} }
+    let failFlush = false;
+    class MockAE {
+      constructor(cb) { this.cb = cb; this.state = 'unconfigured'; this.frames = 0; this.emitted = 0; }
+      static async isConfigSupported(c) { return { supported: c.codec === 'opus' && c.sampleRate === 16000 }; }
+      configure() { this.state = 'configured'; }
+      encode(ad) { this.frames += ad.numberOfFrames; while ((this.emitted + 1) * 320 <= this.frames) this._emit(); }
+      _emit() { const a = new Uint8Array(40); a[0] = 0x48; this.emitted++;
+        this.cb.output({ byteLength: 40, copyTo(d) { d.set(a); } }, this.emitted === 1 ? { decoderConfig: { description: head(104, 16000) } } : undefined); }
+      async flush() { if (failFlush) throw new Error('boom'); while (this.emitted * 320 < this.frames) this._emit(); }
+      close() { this.state = 'closed'; }
+    }
+    global.AudioEncoder = MockAE; global.AudioData = MockAD; T.resetOpus();
+    {
+      const b = await T.encodeUploadAudio(new Float32Array(16000 * 3).fill(0.1), 16000);
+      ok(b.type === 'audio/ogg', 'mit AudioEncoder → Ogg/Opus: ' + b.type);
+      const pg = pages(b.parts[0]);
+      ok(pg.length >= 3 && pg.every(p => p.crcOk) && pg[pg.length - 1].granule === 312 + 3 * 48000, 'Ogg vom Encoder: CRC ok, End-Granule = 312 + 3 s: ' + pg[pg.length - 1].granule);
+    }
+    // Server lehnt Ogg ab (älterer Proxy) → Stück wird als WAV nachgeschickt, Opus für die Sitzung aus
+    {
+      const ct = [];
+      global.fetch = async (url, opt) => {
+        ct.push(opt.headers['Content-Type']);
+        if (opt.headers['Content-Type'] === 'audio/ogg') return { ok: false, status: 400, headers: { get: () => null }, json: async () => ({ error: 'file must be wav' }) };
+        return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ language: 'german', words: [{ word: 'Hallo', start: 1, end: 1.4 }] }) };
+      };
+      const r = await T.serverTranscribe(new Float32Array(16000 * 5).fill(0.3), 'm', '', 5);
+      ok(ct.join() === 'audio/ogg,audio/wav' && r.words.length === 1 && T.getOpusOff(), 'Ogg abgelehnt (400) → WAV-Retry + Opus aus: ' + ct.join());
+    }
+    failFlush = true; T.resetOpus();
+    ok((await T.encodeUploadAudio(new Float32Array(16000).fill(0.1), 16000)).type === 'audio/wav' && T.getOpusOff(), 'Encoder-Fehler → WAV-Fallback');
+    delete global.AudioEncoder; delete global.AudioData; T.resetOpus();
+
+    // Parallele Stücke: 5 Stücke (400-s-Rampe → Schnitte bei je ~85 s), Antworten kommen in umgekehrter
+    // Reihenfolge zurück. Stück 1 läuft allein (Sprache), danach max. 3 gleichzeitig, Ergebnis in Reihenfolge.
+    {
+      const SRp = 16000, N = SRp * 400, a = new Float32Array(N);
+      for (let i = 0; i < N; i++) a[i] = 0.05 + 0.9 * i / N;
+      const calls = []; let inflight = 0, maxIn = 0, firstDone = false, secondBeforeFirst = false;
+      global.fetch = async (url, opt) => {
+        const c = calls.length + 1;
+        // erstes Sample des Stücks (Rampe → eindeutig je Stück) als Kennung zurückgeben
+        const id = new DataView(opt.body.parts[0]).getInt16(44, true);
+        calls.push({ url, ct: opt.headers['Content-Type'], id });
+        if (c > 1 && !firstDone) secondBeforeFirst = true;
+        inflight++; maxIn = Math.max(maxIn, inflight);
+        await new Promise(r => setTimeout(r, c === 1 ? 5 : (10 - c) * 15));
+        inflight--; if (c === 1) firstDone = true;
+        return { ok: true, status: 200, headers: { get: () => null },
+          json: async () => ({ language: 'german', words: [{ word: 'S' + id, start: 0.5, end: 0.9 }] }) };
+      };
+      const r = await T.serverTranscribe(a, 'm', '', 400);
+      const ids = r.words.map(w => +w.word.slice(1));
+      ok(calls.length === 5 && r.words.length === 5, 'Parallel: 5 Stücke, 5 Wörter: ' + calls.length + '/' + r.words.length);
+      ok(!secondBeforeFirst, 'Parallel: Stück 1 läuft allein (Sprache zuerst)');
+      ok(maxIn === T.UPLOAD_CONCURRENCY && maxIn === 3, 'Parallel: max. 3 gleichzeitig, habe ' + maxIn);
+      ok(ids.every((v, i) => i === 0 || v > ids[i - 1]), 'Parallel: Ergebnis in Stück-Reihenfolge trotz umgekehrter Antworten: ' + ids.join(','));
+      ok(r.words.every((w, i) => i === 0 || w.start > r.words[i - 1].start + 80), 'Parallel: Offsets je Stück korrekt: ' + r.words.map(w => w.start.toFixed(1)).join(','));
+      ok(calls.slice(1).every(c => /&lang=de/.test(c.url)) && !/lang=/.test(calls[0].url), 'Parallel: Sprache für Stücke 2..n festgenagelt');
+      ok(calls.every(c => c.ct === 'audio/wav'), 'Parallel: ohne WebCodecs Content-Type audio/wav');
+      ok(r.language === 'german', 'Parallel: Sprache übernommen');
+      // Fehler in einem parallelen Stück → klarer Fehler, kein weiteres Stück wird mehr gestartet
+      calls.length = 0;
+      global.fetch = async (url, opt) => {
+        const c = calls.length + 1; calls.push(c);
+        if (c === 3) return { ok: false, status: 400, headers: { get: () => null }, json: async () => ({ error: 'bad' }) };
+        await new Promise(r => setTimeout(r, 30));
+        return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ language: 'german', words: [{ word: 'x', start: 1, end: 1.2 }] }) };
+      };
+      let err = null; try { await T.serverTranscribe(a, 'm', '', 400); } catch (e) { err = e; }
+      await new Promise(r => setTimeout(r, 80));
+      ok(err && /error 400/.test(err.message) && calls.length <= 4, 'Parallel: Fehler bricht ab, kein neues Stück: ' + (err && err.message) + ' calls=' + calls.length);
+    }
+    global.Blob = origBlob;
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
