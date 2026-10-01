@@ -1,4 +1,4 @@
-# Vercel = nur die statische Demo (captly.html + /vendor).
+# Vercel = captly.html + /vendor + Serverless Function /api/transcribe.js (Groq-Proxy).
 # Serverseitiges & Dev-Zeug gehört NICHT auf die statische Demo:
 server.js
 transcribe.php

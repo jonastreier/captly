@@ -4,7 +4,8 @@ Capivo (Repo/Dateinamen weiterhin `captly*` — siehe unten) ist ein Untertitel-
 
 Kern-Dateien:
 - `captly.html` — kompletter Editor + Landing als **Single-File** mit Inline-`<script>`.
-- `transcribe.php` — **primärer** Transkriptions-Proxy für Webhosting: hält den Groq-Key (aus nicht-committeter `config.php`), ruft Groq `whisper-large-v3(-turbo)`, gibt Wort-Timings zurück. **Kein Modell-Download für den Nutzer.** Frontend (`serverTranscribe`) ruft ihn; ist er nicht da → lokaler transformers.js-Fallback.
+- `api/transcribe.js` — **primärer** Transkriptions-Proxy auf **Vercel** (Serverless Function, Key als Env `GROQ_API_KEY`). Frontend probiert `api/transcribe` → `transcribe.php` → lokal.
+- `transcribe.php` — gleicher Proxy für klassisches PHP-Webhosting: hält den Groq-Key (aus nicht-committeter `config.php`), ruft Groq `whisper-large-v3(-turbo)`, gibt Wort-Timings zurück. **Kein Modell-Download für den Nutzer.** Frontend (`serverTranscribe`) ruft ihn; ist er nicht da → lokaler transformers.js-Fallback.
 - Login & Cloud-Projekte laufen über **Supabase** (Magic-Code-Login + Postgres mit RLS), buildless per ESM-CDN direkt aus `captly.html`. Schema: `schema.sql`. Credentials (`SUPABASE_URL`/`SUPABASE_ANON_KEY`) stehen bewusst öffentlich im Frontend — geschützt wird über RLS, nie den service_role-Key eintragen.
 - `server.js` — **altes** Node-Backend, nicht mehr im Einsatz (Transkription → `transcribe.php`, Login/Projekte → Supabase). Bleibt als Referenz für Quota-/Stripe-Logik.
 
