@@ -688,6 +688,48 @@ ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200
   ok(c2.n.stroke === 0, 'ohne Ring-Kontur kein strokeText');
 }
 
+// 18b) Wortabstände im Export: aktives Wort vorne/Mitte/hinten, mehrere Styles (Regression „DERWEIDE.“)
+{
+  const mkCtx = () => ({ _font: '', letterSpacing: '0px', calls: [], strokes: [], lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000', fillStyle: '#000',
+    shadowColor: 'transparent', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none', textAlign: 'left', textBaseline: 'alphabetic',
+    get font() { return this._font; }, set font(v) { this._font = v; },
+    measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 + (parseFloat(this.letterSpacing) || 0) * (str || '').length }; },
+    fillText(t, x, y) { this.calls.push({ t, x, y, font: this._font, ls: parseFloat(this.letterSpacing) || 0 }); },
+    strokeText(t) { this.strokes.push({ t, w: this.lineWidth }); },
+    save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, rect() {}, roundRect() {}, ellipse() {}, fillRect() {},
+    createLinearGradient() { return { addColorStop() {} }; } });
+  const words = ['Der', 'Weide', 'und', 'Rinder'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.4 }));
+  T.setState(T.buildCaptionBlocks(words), [], 'karaoke');
+  ok(T.getBlocks().length === 1 && T.getBlocks()[0].words.length === 4, 'Test-Block mit 4 Woertern');
+  const bad = [];
+  ['hormozi', 'beast', 'boxkara', 'classic'].forEach(id => {
+    const st = T.STYLES.find(x => x.id === id);
+    [0.05, 0.55, 1.55].forEach(t => {                // aktives Wort: erstes, zweites, letztes (jeweils mitten in der Animation)
+      const c = mkCtx();
+      T.drawCaptionsOnCtx(c, t, st, 1080, 1920, false);
+      const fin = []; const seen = {};
+      for (let i = c.calls.length - 1; i >= 0; i--) { const k = c.calls[i]; if (!seen[k.t]) { seen[k.t] = 1; fin.unshift(k); } }
+      fin.sort((a, b) => a.y - b.y || a.x - b.x);
+      for (let i = 0; i + 1 < fin.length; i++) {
+        if (Math.abs(fin[i].y - fin[i + 1].y) > 1) continue;                 // nur innerhalb einer Zeile
+        const px = +/([\d.]+)px/.exec(fin[i].font)[1];
+        const wI = fin[i].t.length * px * 0.55 + fin[i].ls * fin[i].t.length, spc = px * 0.55;
+        if (!(fin[i + 1].x >= fin[i].x + wI + spc * 0.8 - 1e-6)) bad.push(id + '@' + t + ': ' + fin[i].t + '→' + fin[i + 1].t);
+      }
+    });
+  });
+  ok(bad.length === 0, 'Wortabstand im Export immer >= 0.8 Leerzeichen: ' + bad.join('; '));
+  // Konturierte Styles bekommen 2×Kontur extra Abstand — in Vorschau (word-spacing) und Export gleich
+  const hz = T.STYLES.find(x => x.id === 'hormozi'), lift = T.STYLES.find(x => x.id === 'lift');
+  ok(T.buildCap(['der', 'weide'], hz, 0, 22, null, 1).includes('word-spacing:6px') && !T.buildCap(['der', 'weide'], lift, 0, 22, null, 1).includes('word-spacing'),
+     'Vorschau: word-spacing nur fuer konturierte Styles');
+  ok(!T.buildCap(['der', 'weide'], hz, 0, 9, null).includes('word-spacing'), 'Style-Thumbnails unveraendert');
+  // Kontur skaliert in der Punch-Animation nicht mit (Breite bleibt <= Basisbreite)
+  const c3 = mkCtx(); T.drawCaptionsOnCtx(c3, 0.12, hz, 1080, 1920, false);
+  const base = Math.max(...c3.strokes.map(s => s.w)), act = c3.strokes.find(s => s.t === 'DER');
+  ok(act && act.w <= base + 1e-9, 'Kontur des animierten Worts nicht aufgeblasen: ' + (act && act.w) + ' vs ' + base);
+}
+
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
   { word: 'Hallo',  start: 1.0, end: 1.3 },              // 1.0s Fuehr-Stille davor

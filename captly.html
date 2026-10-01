@@ -1757,7 +1757,7 @@ function fitCaptionWords(words, s, px, maxW, lines) {
       capHyphenate(w, function(piece){ return measure(piece, p) <= maxW; }).forEach(function(pc) { outW.push(pc); orig.push(i); });
     });
     ctx.font = fi + fw + ' ' + (p * fsMul) + 'px "' + fn + '", sans-serif';
-    var sp = ctx.measureText(' ').width, nl = 1, lw = 0;
+    var sp = ctx.measureText(' ').width + capWordGap(s), nl = 1, lw = 0;
     outW.forEach(function(w) {
       var ww = measure(w, p), add = (lw ? sp : 0) + ww;
       if (lw && lw + add > maxW) { nl++; lw = ww; } else lw += add;
@@ -1880,7 +1880,7 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1; // muss wie in buildCap()/drawCaptionsOnCtx() angewendet werden, sonst misst der Umbruch mit der falschen Schriftgröße
   px = px * fsMul;
   ctx.font  = fi + fw + ' ' + px + 'px "' + fn + '", sans-serif';
-  var sp    = ctx.measureText(' ').width;
+  var sp    = ctx.measureText(' ').width + capWordGap(s); // wie word-spacing in buildCap
   var info  = words.map(function(w, i) {
     var isHL = (hlOf ? hlOf[i] : i) === hlIdx;
     var f    = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
@@ -1917,6 +1917,14 @@ function hlColorFor(s, idx) {
   if (s.hlCycle && s.hlCycle.length) return s.hlCycle[Math.abs(idx || 0) % s.hlCycle.length];
   return s.hl || '#fff';
 }
+// Konturierte Styles (Ring-Kontur der Breite w): die Kontur wächst w px in jede Richtung, also um 2w in
+// jeden Wortzwischenraum hinein — bei fetten Caps (Hormozi, Standard) blieb vom Leerzeichen kaum etwas,
+// in der Punch-Animation (aktives Wort ×1,22) verschwand es ganz („DERWEIDE.“). Zusätzlicher
+// Wortabstand = 2w (Vorschau: CSS word-spacing, Export/Umbruch/Auto-Fit: gleiche Zugabe zu sp).
+function capWordGap(s) {
+  var p = capShadowPlan(s && s.ts);
+  return p.ring && p.ring.w > 0 ? 2 * p.ring.w : 0;
+}
 function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   if (!words || !words.length) return '';
   // Auto-Fit nur für die echte Vorschau (lineTarget gesetzt) — Style-Thumbnails/Showcase haben eigene Größen.
@@ -1935,6 +1943,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   var wCss = 'font-family:' + font + ';font-weight:' + fw + ';text-transform:' + tt
     + ';letter-spacing:' + ls + ';font-style:' + fi + ';font-size:' + sz
     + ';line-height:1.3;display:inline-block;max-width:100%;';
+  if (lineTarget && capWordGap(s)) wCss += 'word-spacing:' + capWordGap(s) + 'px;';
   if (s.boxBg) wCss += 'background:' + s.boxBg + ';padding:5px 18px;border-radius:' + (s.boxBr || '6px') + ';';
   var hp = !!s.pill;
   var pCss = '';
@@ -5099,7 +5108,9 @@ function capShadowPlan(str) {
   _shadowPlanCache[str] = plan;
   return plan;
 }
-function drawTextWithPlan(ctx, text, x, y, plan, scale) {
+// strokeDiv: Skalierung der aktuellen Animations-Transformation — die Kontur wird dadurch geteilt, damit
+// sie (wie die früheren Shadow-Ringe, die der Transform nicht skaliert) gleich breit bleibt.
+function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv) {
   if (plan.rest.length) {
     ctx.save();
     // unterste Schicht zuerst (CSS: erste Schicht liegt oben)
@@ -5114,7 +5125,7 @@ function drawTextWithPlan(ctx, text, x, y, plan, scale) {
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   if (plan.ring && plan.ring.w > 0) {
     var lw = ctx.lineWidth, lj = ctx.lineJoin, ml = ctx.miterLimit, ss = ctx.strokeStyle;
-    ctx.lineWidth = 2 * plan.ring.w * scale; ctx.lineJoin = 'round'; ctx.miterLimit = 2; ctx.strokeStyle = plan.ring.color;
+    ctx.lineWidth = 2 * plan.ring.w * scale / (strokeDiv > 0 ? strokeDiv : 1); ctx.lineJoin = 'round'; ctx.miterLimit = 2; ctx.strokeStyle = plan.ring.color;
     ctx.strokeText(text, x, y);
     ctx.lineWidth = lw; ctx.lineJoin = lj; ctx.miterLimit = ml; ctx.strokeStyle = ss;
   }
@@ -5200,7 +5211,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   });
   ctx.font = fi + fw + ' ' + fsS + 'px "' + fn + '", sans-serif';
   if ('letterSpacing' in ctx) ctx.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px'; // CSS wendet es auch auf Leerzeichen an
-  var sp    = ctx.measureText(' ').width;
+  var sp    = ctx.measureText(' ').width + capWordGap(s) * scale; // gleiches Extra wie word-spacing in der Vorschau
   var maxW  = W * 0.86;
   // idx = Index des ORIGINALWORTS (Teilwörter nach Bindestrich-Trennung teilen sich Highlight/Keyword)
   var wordInfo = words.map(function(w, i) { wordFont(fit.orig[i] === wi); return { txt: w, w: ctx.measureText(w).width, idx: fit.orig[i] }; });
@@ -5377,7 +5388,8 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       // Text-Shadow wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter). Eine
       // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
       // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
-      drawTextWithPlan(ctx, wo.txt, x, y, (isHL || isKw) ? shHl : shTs, scale);
+      var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
+      drawTextWithPlan(ctx, wo.txt, x, y, (isHL || isKw) ? shHl : shTs, scale, animK);
       ctx.restore();
       x += wo.w + sp;
     });
