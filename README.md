@@ -16,6 +16,10 @@ eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
   Echtzeit-Export (MediaRecorder, ggf. ffmpeg.wasm) zurück. Libs self-hosted unter `vendor/mp4box` +
   `vendor/mp4-muxer` (Versionen: [`scripts/fetch-webcodecs-libs.sh`](scripts/fetch-webcodecs-libs.sh)).
   Notschalter: `localStorage['capivo.fastExport'] = 'off'`.
+- **Szenenschnitte** (Captions brechen an harten Schnitten): MP4/MOV werden im Hintergrund per WebCodecs
+  Frame für Frame dekodiert (gleiche mp4box-Lib) → framegenau, 34-s-Reel in ~6 s; Blitze und Überblendungen
+  werden verworfen. Sonst (WebM, kein VideoDecoder) Wiedergabe-Scan + Seeks. Der Video-Export wartet bis
+  20 s auf eine laufende Erkennung. Notschalter: `localStorage['capivo.fastCuts'] = 'off'`.
 
 Dateien, kein Build:
 - [`captly.html`](captly.html) — kompletter Editor + Landing (Single-File).

@@ -79,7 +79,7 @@ revertTranscriptionSettings:revertTranscriptionSettings,getModel:function(){retu
 exportGeometry:exportGeometry,exportBitrate:exportBitrate,drawReframed:drawReframed,classifyUnplayable:classifyUnplayable,
 applyPlayability:applyPlayability,setVideoPlayable:function(v){videoPlayable=v;},transcribeVideo:transcribeVideo,DEFAULT_STYLE:DEFAULT_STYLE,
 setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDistance:histDistance,cutThreshold:cutThreshold,
-pickCutCandidates:pickCutCandidates,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
+decideSceneCuts:decideSceneCuts,cutFrame:cutFrame,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
 onBreakAtCutsChange:onBreakAtCutsChange,currentBlockIdx2:currentBlockIdx,setDisplayMode:function(m){displayMode=m;},polishWords:polishWords,
 polishEnabled:polishEnabled,setModelState:function(m){whisperModel=m;},polishSegments:polishSegments,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
 splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
@@ -97,7 +97,8 @@ setMe:function(plan,email){mePlan=plan;meEmail=email;},
 rebaseCutTime:rebaseCutTime,createAudioCutPlanner:createAudioCutPlanner,rotationFromMatrix:rotationFromMatrix,editListOffset:editListOffset,
 h264CodecCandidates:h264CodecCandidates,fastExportVideoCodecs:fastExportVideoCodecs,isFastExportSource:isFastExportSource,fastExportSupported:fastExportSupported,
 oggCrc32:oggCrc32,oggLacing:oggLacing,opusPacketSamples48:opusPacketSamples48,buildOggOpus:buildOggOpus,opusPreSkipFromDesc:opusPreSkipFromDesc,
-encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSupport=null;},getOpusOff:function(){return _opusOff;},UPLOAD_CONCURRENCY:UPLOAD_CONCURRENCY};`;
+encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSupport=null;},getOpusOff:function(){return _opusOff;},UPLOAD_CONCURRENCY:UPLOAD_CONCURRENCY,
+sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -781,12 +782,59 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   ok(T.cutThreshold([0.01, 0.02, 0.015, 0.02, 0.01]) === 0.35, 'Schwelle: Untergrenze 0.35 bei ruhigem Video');
   const noisy = [0.2, 0.25, 0.3, 0.22, 0.28, 0.24, 0.26];
   ok(T.cutThreshold(noisy) > 0.35, 'Schwelle adaptiv bei unruhigem Video: ' + T.cutThreshold(noisy).toFixed(3));
-  const samples = [];
-  for (let i = 0; i < 30; i++) samples.push({ t: i * 0.2, d: i === 0 ? 0 : 0.02 + (i % 3) * 0.005, p: 0.01 });
-  samples[17] = { t: 3.4, d: 0.8, p: 0.3 };            // harter Schnitt
-  samples[24] = { t: 4.8, d: 0.5, p: 0.02 };           // Helligkeitssprung ohne Pixel-Änderung (z. B. Blitz) → kein Schnitt
-  const c = T.pickCutCandidates(samples);
-  ok(c.length === 1 && c[0] === 17, 'nur der echte Schnitt erkannt: ' + JSON.stringify(c));
+  // Synthetische 64×36-Luma-Folgen @30 fps: jede Szene ein eigenes, sich bewegendes Muster
+  const FW = T.CUT_W, FH = T.CUT_H, FPS = 30;
+  const scene = (k, n, speed) => {
+    const l = new Float32Array(FW * FH), sp = speed == null ? 0.05 : speed;
+    for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++)
+      l[y * FW + x] = Math.min(1, Math.max(0, 0.2 + 0.12 * k + 0.25 * Math.sin((0.15 + 0.07 * k) * x + (0.2 + 0.05 * k) * y + sp * n + k)));
+    return l;
+  };
+  const mix = (a, b, w) => a.map((v, i) => v * (1 - w) + b[i] * w);
+  const bright = (a, add) => a.map(v => Math.min(1, v + add));
+  const feats = (lumas, dt) => { const fr = []; let pf = null, pl = null;
+    lumas.forEach((l, i) => { const f = T.cutFrame(+(i * (dt || 1 / FPS)).toFixed(4), l, pf, pl); fr.push(f); pf = f; pl = l; }); return fr; };
+  const times = (fr, o) => T.decideSceneCuts(fr, o).map(c => c.t);
+  // a) harte Schnitte (Frame 60 und 151) → framegenau
+  let L = []; for (let n = 0; n < 240; n++) L.push(scene(n < 60 ? 0 : n < 151 ? 1 : 2, n));
+  let tc = times(feats(L));
+  ok(tc.length === 2 && tc[0] === 2 && Math.abs(tc[1] - 151 / FPS) < 1e-3, 'harte Schnitte framegenau: ' + JSON.stringify(tc));
+  // b) 4-Frame-Blitz mitten in einer Szene → kein Schnitt (beide Flanken), echter Schnitt danach bleibt
+  L = []; for (let n = 0; n < 240; n++) { let l = scene(n < 180 ? 0 : 1, n); if (n >= 90 && n < 94) l = bright(l, 0.5); L.push(l); }
+  tc = times(feats(L));
+  ok(tc.length === 1 && tc[0] === 6, 'Blitz verworfen, Schnitt bei 6 s bleibt: ' + JSON.stringify(tc));
+  // c) 1-s-Überblendung (Frame 90–120) → kein Schnitt; 4-Frame-Dissolve ebenso
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 90 ? scene(0, n) : n >= 120 ? scene(1, n) : mix(scene(0, n), scene(1, n), (n - 90) / 30));
+  tc = times(feats(L));
+  ok(tc.length === 0, '1-s-Überblendung ist kein Schnitt: ' + JSON.stringify(tc));
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 100 ? scene(0, n) : n >= 104 ? scene(2, n) : mix(scene(0, n), scene(2, n), (n - 99) / 5));
+  tc = times(feats(L));
+  ok(tc.length === 0, '4-Frame-Dissolve ist kein harter Schnitt: ' + JSON.stringify(tc));
+  // d) zwei Schnitte 4 Frames (0.13 s) auseinander → EIN Schnitt (kein Mini-Block)
+  L = []; for (let n = 0; n < 240; n++) L.push(scene(n < 60 ? 0 : n < 64 ? 1 : 3, n));
+  tc = times(feats(L));
+  ok(tc.length === 1 && (tc[0] === 2 || Math.abs(tc[0] - 64 / FPS) < 1e-3), 'nahe Kandidaten zusammengeführt: ' + JSON.stringify(tc));
+  ok(T.mergeCutCands([{ t: 1, c: 0.5 }, { t: 1.2, c: 0.9 }, { t: 3, c: 0.4 }], 0.3).map(x => x.t).join() === '1.2,3', 'merge: stärkster gewinnt');
+  // e) schneller Schwenk (große Bewegung pro Frame) → keine Schnitte
+  L = []; for (let n = 0; n < 240; n++) L.push(scene(0, n, 0.6));
+  tc = times(feats(L));
+  ok(tc.length === 0, 'schnelle Bewegung ist kein Schnitt: ' + JSON.stringify(tc));
+  // f) grobe Proben (0.4 s, Seek-Pfad) → Kandidat im richtigen Intervall; Helligkeitssprung ohne Pixel-Änderung nicht
+  L = []; for (let n = 0; n < 40; n++) L.push(scene(n < 17 ? 0 : 1, n * 12));
+  tc = times(feats(L, 0.4), { coarse: true });
+  ok(tc.length === 1 && Math.abs(tc[0] - 6.8) < 1e-6, 'grobe Proben: Kandidat bei der ersten Probe der neuen Szene: ' + JSON.stringify(tc));
+  const fake = []; for (let i = 0; i < 30; i++) fake.push({ t: i * 0.2, d: i ? 0.02 : 0, p: 0.01, h: dark, s: new Uint8Array(144) });
+  fake[24] = { t: 4.8, d: 0.5, p: 0.02, h: light, s: new Uint8Array(144) };
+  ok(T.decideSceneCuts(fake, { coarse: true }).length === 0, 'Histogramm-Sprung ohne Pixel-Änderung ist kein Schnitt');
+  // g) Wegwahl: WebCodecs nur für MP4/MOV mit VideoDecoder, sonst Seek-Fallback
+  const mp4 = { type: 'video/mp4', name: 'a.mp4' }, webm = { type: 'video/webm', name: 'a.webm' };
+  ok(T.sceneCutPath(mp4) === 'seek', 'ohne VideoDecoder → Seek-Pfad');
+  global.VideoDecoder = function () {}; global.EncodedVideoChunk = function () {};
+  ok(T.sceneCutPath(mp4) === 'webcodecs' && T.sceneCutPath({ type: 'video/quicktime', name: 'b.mov' }) === 'webcodecs', 'MP4/MOV + VideoDecoder → WebCodecs');
+  ok(T.sceneCutPath(webm) === 'seek', 'WebM → Seek-Pfad (mp4box demuxt kein WebM)');
+  global.localStorage = { getItem: k => (k === 'capivo.fastCuts' ? 'off' : null), setItem() {}, removeItem() {} };
+  ok(T.sceneCutPath(mp4) === 'seek', 'Notschalter capivo.fastCuts=off → Seek-Pfad');
+  delete global.localStorage; delete global.VideoDecoder; delete global.EncodedVideoChunk;
 }
 
 // 21a) Pill-Highlight: Export-Layout reserviert das Pill-Padding (keine Überlappung der Nachbarn)
@@ -1666,6 +1714,38 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(err && /error 400/.test(err.message) && calls.length <= 4, 'Parallel: Fehler bricht ab, kein neues Stück: ' + (err && err.message) + ' calls=' + calls.length);
     }
     global.Blob = origBlob;
+  }
+
+  // Szenenschnitte: Export-Hook waitForSceneCuts — wartet auf Abschluss, gibt nach Timeout den Zwischenstand
+  {
+    T.setExporting(false); T.onBreakAtCutsChange(true); T.setSceneCuts([]);
+    const st0 = document.getElementById('tStatus');
+    st0.innerHTML = '<span>✅</span><span>12 words</span>';
+    const btn = document.getElementById('btnVideo'); btn.disabled = false;
+    ok(await T.waitForSceneCuts(50) === true, 'waitForSceneCuts: keine Erkennung aktiv → sofort true');
+    const st = T.beginCutRun();
+    ok(T.cutsDetecting() && /Detecting scene cuts… 0%/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Fortschritt wird an Status angehängt: ' + st0.innerHTML);
+    let t0 = Date.now();
+    const p = T.waitForSceneCuts(2000);
+    ok(btn.disabled === true, 'Export-Button während des Wartens gesperrt');
+    setTimeout(() => T.finishCutRun(st, [1.5]), 30);
+    const r1 = await p;
+    ok(r1 === true && Date.now() - t0 < 1000 && T.getSceneCuts().join() === '1.5', 'waitForSceneCuts löst bei Abschluss auf: ' + r1 + ' ' + T.getSceneCuts());
+    ok(btn.disabled === false && !T.cutsDetecting(), 'Button wieder frei, Erkennung beendet');
+    ok(/1 scene cut detected/.test(st0.innerHTML) && !/Detecting/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Status: Ergebnis ersetzt Fortschritt: ' + st0.innerHTML);
+    const st2 = T.beginCutRun(); st2.partial = () => [2.5];
+    t0 = Date.now();
+    const r2 = await T.waitForSceneCuts(40);
+    ok(r2 === false && Date.now() - t0 >= 35 && T.getSceneCuts().join() === '2.5', 'Timeout → false + Zwischenstand übernommen: ' + r2 + ' ' + T.getSceneCuts());
+    T.finishCutRun(st2, [2.5, 3]);
+    ok(T.getSceneCuts().join() === '2.5,3' && !T.cutsDetecting(), 'späterer Abschluss setzt alle Schnitte');
+    const st3 = T.beginCutRun(); T.onBreakAtCutsChange(false);
+    ok(await T.waitForSceneCuts(2000) === true, 'Schalter aus → Export wartet nicht');
+    T.onBreakAtCutsChange(true);
+    T.beginCutRun(); // neuer Lauf (neues Video) → alter Lauf ist veraltet, sein Abschluss setzt nichts
+    T.finishCutRun(st3, [9]);
+    ok(T.getSceneCuts().join() === '2.5,3', 'veralteter Lauf überschreibt keine Schnitte');
+    T.setSceneCuts([]);
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
