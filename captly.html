@@ -201,6 +201,13 @@ body.editor-open{height:100vh;overflow:hidden}
 .col-resize-handle::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:#e6e1ec;transform:translateX(-50%);transition:background .15s,width .15s}
 .col-resize-handle:hover::after,.col-resize-handle.dragging::after{background:#7c3aed;width:3px}
 #prevBg{position:absolute;inset:0;z-index:0;background:#111;transition:background .3s}
+#prevBlurBg{position:absolute;inset:-8%;z-index:0;width:116%;height:116%;display:none;filter:blur(14px) brightness(.55);pointer-events:none}
+.prev-frame.reframe-blur #prevBlurBg{display:block}
+.prev-frame.reframe-blur #mainVid{object-fit:contain!important}
+.vid-warn{max-width:360px;width:100%;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:9px;padding:8px 10px;font-size:11.5px;line-height:1.45}
+.exp-opts{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
+.exp-opt{display:flex;align-items:center;gap:8px;font-size:10.5px;color:#66616e}
+.exp-opt .lang-sel{margin:0;flex:1;padding:5px 7px;font-size:11px}
 #mainVid{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none}
 /* Play-Overlay: dezentes Glas-Icon statt deckender weißer Scheibe — der Untertitel (z-index 10) liegt
    darüber und bleibt lesbar; positionPlayIcon() schiebt das Icon zusätzlich aus dem Untertitel-Bereich. */
@@ -414,6 +421,16 @@ input[type=checkbox]{accent-color:#7c3aed}
 .foot-legal a{color:#7c3aed;text-decoration:underline;cursor:pointer}
 .foot-copy{color:#a9a4b0;font-size:11px;margin-top:12px}
 
+/* Grobe Zeiger: Video-Leiste + Kopfzeile fingertauglich (Play ≥ 36, Mute/Safe Zone/Zoom ≥ 32, Fortschritt
+   ≥ 24 px Trefferfläche bei dünner Optik, Back/Sign in ≥ 36, Checkboxen 20 px). */
+@media (pointer:coarse) {
+  .pp-btn{width:36px;height:36px;font-size:13px}
+  .mute-btn,.sz-btn{min-height:32px;padding:4px 9px;font-size:11px}
+  .zoom-btn{width:32px;height:32px;font-size:16px}
+  .prog-track::before{top:-12px;bottom:-12px}
+  .btn-back{min-height:36px;padding:6px 12px;font-size:12px}
+  input[type=checkbox]{width:20px;height:20px}
+}
 /* Touch/Handy: Tap-Ziele ≥ 36 px, Eingaben mit 16 px Schrift (kleiner → iOS Safari zoomt beim Fokus
    ungefragt in die Seite), Regler-Daumen größer. Gilt für alle Steuerelemente aus Style-Editor,
    Suchen & Ersetzen, Timing, Templates und Export. */
@@ -437,9 +454,9 @@ input[type=checkbox]{accent-color:#7c3aed}
   .fr-row .pos-btn{min-height:36px}
 }
 @media(max-width:640px){
-  .ctrl-col{width:100%!important;height:64vh;border-left:none;border-top:1px solid rgba(255,255,255,.055)}
+  .ctrl-col{width:100%!important;height:55vh;border-left:none;border-top:1px solid rgba(255,255,255,.055)}
   .ed-body{flex-direction:column}
-  .prev-col{flex:0 0 auto;height:36vh;padding:8px 14px;gap:6px}
+  .prev-col{flex:0 0 auto;height:45vh;padding:8px 14px;gap:6px} /* vorher 36vh → Vorschau nur ~139×243 px */
   .col-resize-handle{display:none}
   .prev-frame{width:auto;height:auto;flex:1 1 auto;min-height:0;aspect-ratio:9/16;max-width:62vw}
   /* Mobile: Leiste über die volle Spaltenbreite (statt Rahmenbreite ~140px) — !important schlägt die
@@ -662,6 +679,7 @@ input[type=checkbox]{accent-color:#7c3aed}
     <div class="prev-col">
       <div class="prev-frame" id="prevFrame" onclick="if(vidReady && !capDragMoved)togglePlay()">
         <div id="prevBg"></div>
+        <canvas id="prevBlurBg" width="36" height="64" aria-hidden="true"></canvas>
         <video id="mainVid" playsinline preload="auto"
           style="position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none"></video>
         <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon">▶</div></div>
@@ -686,6 +704,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <button class="mute-btn on" id="muteBtn" onclick="toggleMute()">🔊</button>
         <button class="sz-btn" id="safeZoneBtn" onclick="toggleSafeZone()" title="Safe zone: shows where captions stay clear of the Reels/TikTok UI (top bar, icon column, profile/caption area)">🛡 Safe Zone</button>
       </div>
+      <div class="vid-warn" id="vidWarn" role="status" style="display:none"></div>
       <div class="zoom-ctrl" id="zoomCtrl">
         <button class="zoom-btn" onclick="zoomBy(-0.25)" title="Zoom out" type="button">−</button>
         <span class="zoom-lbl" id="zoomLbl">100%</span>
@@ -916,6 +935,16 @@ input[type=checkbox]{accent-color:#7c3aed}
           <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)" style="cursor:pointer">
           <span style="font-size:10.5px;color:#66616e">✂️ Auto-cut silence &amp; filler words ("um", "äh"…)</span>
         </label>
+        <div class="exp-opts">
+          <label class="exp-opt"><span style="min-width:62px">Resolution</span>
+            <select id="expRes" class="lang-sel" onchange="setExportRes(this.value)">
+              <option value="1080">1080p (recommended)</option><option value="orig">Original</option>
+            </select></label>
+          <label class="exp-opt" id="fmtRow" style="display:none"><span style="min-width:62px">Format</span>
+            <select id="expFmt" class="lang-sel" onchange="setExportFormat(this.value)">
+              <option value="original">Original</option><option value="blur">9:16 · blur fill</option><option value="crop">9:16 · crop</option>
+            </select></label>
+        </div>
         <div class="exp-grid">
           <button class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
             <span class="exp-btn-icon">🎬</span>
@@ -1179,7 +1208,10 @@ var STYLES = [
 // ═══════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════
-var activeId        = 'bloom';
+// Standard-Style für neue Nutzer: Hormozi (schnell im Export, modern, sehr gut lesbar). Früher „Petal“ —
+// dessen große Blur-Glows machten den Export bis 6× langsamer. Eine bewusste frühere Wahl bleibt erhalten.
+var DEFAULT_STYLE   = 'hormozi', STYLE_KEY = 'capivo.style';
+var activeId        = (function(){ try { return (typeof localStorage !== 'undefined' && localStorage.getItem(STYLE_KEY)) || DEFAULT_STYLE; } catch (e) { return DEFAULT_STYLE; } })();
 var capPos          = 'bottom';
 var capVOff         = 20;   // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position — Default etwas höher, damit Captions nicht mit UI-Elementen der Plattformen (Beschreibung, Like-Leiste) kollidieren
 var showSafeZone     = false; // Safe-Zone-Anzeige (Reels-UI-Bereich) an/aus
@@ -1508,6 +1540,28 @@ async function snapWordTimings(words, audio, sr) {
       for (var b = fe - 1; b >= lo; b--) if (voiced(b)) { w.end = (b + 1) * SNAP_FRAME_SEC; break; }
     }
   });
+  // Wörter mitten in langer Stille (typisch: erstes Wort bei 0.0 s nach stummem Vorlauf): hat die ganze
+  // Wortspanne keinen stimmhaften Frame und liegt sie in einer Stille von ≥ 1 s, wandert das Wort an den
+  // nächsten Sprach-Einsatz — aber nur, wenn das Folgewort höchstens 1,5 s nach diesem Einsatz beginnt
+  // (sonst gehört es wohl nicht dazu) und die Reihenfolge erhalten bleibt.
+  // Rückwärts, damit mehrere Wörter in derselben Stille gemeinsam (in Reihenfolge) nachrücken
+  for (var wi2 = out.length - 1; wi2 >= 0; wi2--) moveOutOfSilence(out[wi2], wi2);
+  function moveOutOfSilence(w, i) {
+    if (!(w.end > w.start)) return;
+    var a0 = Math.floor(w.start / SNAP_FRAME_SEC), a1 = Math.min(nF - 1, Math.ceil(w.end / SNAP_FRAME_SEC) - 1);
+    if (a0 >= nF) return;
+    for (var f2 = a0; f2 <= a1; f2++) if (voiced(f2)) return;      // irgendwo stimmhaft → in Ruhe lassen
+    var lo2 = a0; while (lo2 > 0 && !voiced(lo2 - 1)) lo2--;
+    var hi2 = a1; while (hi2 < nF - 1 && !voiced(hi2 + 1)) hi2++;
+    if ((hi2 - lo2 + 1) * SNAP_FRAME_SEC < 1.0) return;             // keine lange Stille
+    if (hi2 >= nF - 1) return;                                      // danach kommt keine Sprache mehr
+    var onset = (hi2 + 1) * SNAP_FRAME_SEC, next = out[i + 1];
+    if (next && (next.start < onset - 1e-6 || next.start - onset > 1.5)) return;
+    if (!next && onset - w.end > 1.5) return;
+    var dur = w.end - w.start;
+    if (next) dur = Math.min(dur, Math.max(0.08, next.start - onset));
+    w.start = onset; w.end = onset + Math.max(0.08, dur);
+  }
   // Monoton + überlappungsfrei halten (Snap verkürzt nur, aber Rundung auf Frames absichern)
   for (var i = 0; i < out.length; i++) {
     if (i > 0 && out[i].start < out[i - 1].end) out[i].start = out[i - 1].end;
@@ -2085,7 +2139,7 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
     var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
     ctx.font = it + fw + ' ' + px + 'px "' + f + '", sans-serif';
     var wt   = (tt || (isHL && s.hlUpper)) ? w.toUpperCase() : w;
-    return { i: i, w: ctx.measureText(wt).width };
+    return { i: i, w: ctx.measureText(wt).width + ((isHL && s.hlPillBg) ? 18 : 0) }; // Pill-Padding wie im DOM
   });
   var n = info.length;
   var lines;
@@ -2713,6 +2767,7 @@ function renderWPills() {
 // ═══════════════════════════════════════
 function selectStyle(id) {
   activeId = id;
+  if (id !== 'custom') { try { localStorage.setItem(STYLE_KEY, id); } catch (e) {} } // Custom lebt nur in der Sitzung
   scheduleAutosave();
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
@@ -4355,11 +4410,12 @@ async function transcribeVideo(file) {
   setTStatus('', 'Preparing transcription…', true, true);
   setTProgress(5);
   document.getElementById('retryWrap').style.display = 'none';
-  document.getElementById('capEditor').style.display = 'none';
-  wordTimestamps = [];
-  captionBlocks  = [];
-  captionsEdited = false; // Blöcke sind ab hier weg — Bestätigung lief (falls nötig) vorher
-  enableExports(false);
+  // Bisherige Captions bleiben stehen (Vorschau, Editor, Exporte), bis der neue Lauf ERFOLGREICH ist —
+  // ein 429 nach Fast→Perfect oder ein fehlgeschlagener Retry löschte sie sonst ersatzlos. Der Lauf
+  // arbeitet daher auf einer lokalen Wortliste (wts) und schreibt erst ganz am Ende.
+  var hadCaptions = captionBlocks.length > 0;
+  if (!hadCaptions) { document.getElementById('capEditor').style.display = 'none'; enableExports(false); }
+  var wts = [];
 
   try {
     setTProgress(10);
@@ -4396,7 +4452,7 @@ async function transcribeVideo(file) {
     bailIfStale();
 
     if (served !== null) {
-      wordTimestamps = served.words;
+      wts = served.words;
       // Server hat die Sprache selbst erkannt (Auto-Modus, Whisper liefert z.B. "german")
       // → echten Namen statt nur "auto" anzeigen.
       if (whisperLang === 'auto' && served.language && CODE_BY_LANG[served.language]) {
@@ -4414,14 +4470,14 @@ async function transcribeVideo(file) {
       //     NAV_LANG bleibt nur Rückfalloption, wenn Whisper selbst kein Gegensignal liefert
       //     (z. B. bei (a), wo `served.language` durch die Halluzination selbst unzuverlässig sein kann).
       //     Greift NICHT bei aktivem "Translate to English" (dort ist Englisch gewollt).
-      var repetitive = looksRepetitive(wordTimestamps);
+      var repetitive = looksRepetitive(wts);
       var detectedTarget = (served.language && served.language !== 'english' && CODE_BY_LANG[served.language]) ? served.language : null;
       // Trigger: benutzt looksLikeEnglishBias (Stoppwort-Anteil) statt looksLikeTargetLang, denn
       // looksLikeTargetLang verlangt sprachtypische SONDERZEICHEN (ä/ö/ü/ß etc.) -- viele echte,
       // korrekte Sätze (v. a. Deutsch) enthalten aber schlicht keine, das würde hier ständig
       // fälschlich "verdächtig" auslösen bzw. (schlimmer, siehe unten) das Ergebnis verwerfen.
       var suspiciousEnglishBias = !doTranslate && whisperLang === 'auto' && !repetitive
-        && detectedTarget && looksLikeEnglishBias(wordTimestamps);
+        && detectedTarget && looksLikeEnglishBias(wts);
       var retryTarget = detectedTarget || NAV_LANG;
       if (whisperLang === 'auto' && retryTarget && (repetitive || suspiciousEnglishBias)) {
         setTStatus('', 'Auto-detect uncertain — trying ' + retryTarget + '…', true, true);
@@ -4440,7 +4496,7 @@ async function transcribeVideo(file) {
         // zusätzliches, positives Signal erhalten, ist aber nicht mehr zwingend).
         if (servedF && servedF.words.length && !looksRepetitive(servedF.words)
             && (repetitive || !looksLikeEnglishBias(servedF.words) || looksLikeTargetLang(servedF.words, retryTarget))) {
-          wordTimestamps = servedF.words; usedLang = retryTarget;
+          wts = servedF.words; usedLang = retryTarget;
         }
       }
     } else {
@@ -4449,20 +4505,20 @@ async function transcribeVideo(file) {
       var pipe = await getPipe(LOCAL_MODEL[whisperModel] || 'base');
       bailIfStale();
       // return_language:true haengt die von Whisper selbst erkannte Audio-Sprache an die Chunks an
-      // (transcribeChunked reicht sie als wordTimestamps.language durch) -- gleiches zuverlässiges
+      // (transcribeChunked reicht sie als wts.language durch) -- gleiches zuverlässiges
       // Korrektur-Ziel wie `served.language` beim Server-Pfad, statt blind auf NAV_LANG zu vertrauen.
       var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe', return_language: true };
       if (whisperLang !== 'auto') wOpts.language = whisperLang;
       var wtLocal = await transcribeChunked(pipe, audioData, wOpts, stale);
       bailIfStale();
-      wordTimestamps = wtLocal;
-      var repetitiveLocal = looksRepetitive(wordTimestamps);
-      var detectedTargetLocal = (wordTimestamps.language && wordTimestamps.language !== 'english' && CODE_BY_LANG[wordTimestamps.language]) ? wordTimestamps.language : null;
+      wts = wtLocal;
+      var repetitiveLocal = looksRepetitive(wts);
+      var detectedTargetLocal = (wts.language && wts.language !== 'english' && CODE_BY_LANG[wts.language]) ? wts.language : null;
       // Trigger einheitlich über looksLikeEnglishBias (Stoppwort-Anteil) statt looksLikeTargetLang --
       // s. Kommentar beim Server-Pfad: Sonderzeichen-Pflicht verwirft sonst korrekte, akzentfreie
       // Sätze fälschlich.
       var suspiciousEnglishBiasLocal = !doTranslate && whisperLang === 'auto' && !repetitiveLocal
-        && looksLikeEnglishBias(wordTimestamps);
+        && looksLikeEnglishBias(wts);
       var retryTargetLocal = detectedTargetLocal || NAV_LANG;
       if (whisperLang === 'auto' && retryTargetLocal && (repetitiveLocal || suspiciousEnglishBiasLocal)) {
         setTStatus('', 'Auto-detect uncertain — trying ' + retryTargetLocal + '…', true, true);
@@ -4477,30 +4533,31 @@ async function transcribeVideo(file) {
         // positives Signal -- s. Server-Pfad-Kommentar oben (der eigentliche Bug-Fund).
         if (wtF.length && !looksRepetitive(wtF)
             && (repetitiveLocal || !looksLikeEnglishBias(wtF) || looksLikeTargetLang(wtF, retryTargetLocal))) {
-          wordTimestamps = wtF; usedLang = retryTargetLocal;
+          wts = wtF; usedLang = retryTargetLocal;
         }
       }
     }
 
-    wordTimestamps = stripNonSpeechTags(wordTimestamps); // "[Music]"/"(Applause)"-Halluzinationen raus
-    var cleaned = await cleanWords(wordTimestamps); // Stottern & Wiederholungsschleifen entfernen
+    wts = stripNonSpeechTags(wts); // "[Music]"/"(Applause)"-Halluzinationen raus
+    var cleaned = await cleanWords(wts); // Stottern & Wiederholungsschleifen entfernen
     bailIfStale();
-    wordTimestamps = cleaned;
-    wordTimestamps = sanitizeWordTimings(wordTimestamps, audioDur); // Überlappungen/gedehnte Wörter glätten
-    var snapped = await snapWordTimings(wordTimestamps, audioData, 16000); // Wortgrenzen an die echte Sprache ziehen
+    wts = cleaned;
+    wts = sanitizeWordTimings(wts, audioDur); // Überlappungen/gedehnte Wörter glätten
+    var snapped = await snapWordTimings(wts, audioData, 16000); // Wortgrenzen an die echte Sprache ziehen
     bailIfStale();
-    wordTimestamps = snapped;
+    wts = snapped;
     var polishFixes = -1;
-    if (polishEnabled() && wordTimestamps.length) {
+    if (polishEnabled() && wts.length) {
       setTStatus('', '💎 Perfect – polishing…', true, true);
-      var pol = await polishWords(wordTimestamps, CODE_BY_LANG[usedLang] || lc || '', vocab, stale);
+      var pol = await polishWords(wts, CODE_BY_LANG[usedLang] || lc || '', vocab, stale);
       bailIfStale();
-      wordTimestamps = pol.words; polishFixes = pol.fixes;
+      wts = pol.words; polishFixes = pol.fixes;
     }
 
     setTProgress(100);
-    if (!wordTimestamps.length) throw new Error('No speech detected. Tip: pick the language above manually, or try Perfect.');
+    if (!wts.length) throw new Error('No speech detected. Tip: pick the language above manually, or try Perfect.');
 
+    wordTimestamps = wts;
     captionBlocks = buildCaptionBlocks(wordTimestamps);
     captionsEdited = false;
     _lastTrMeta = { model: whisperModel, lang: usedLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
@@ -4524,19 +4581,107 @@ async function transcribeVideo(file) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
     if (typeof fakeTimer !== 'undefined') clearInterval(fakeTimer);
     console.error(err);
-    setTStatus('❌', 'Error: ' + (err.message || err), false, false);
+    if (hadCaptions && captionBlocks.length) {
+      // Vorherige Captions unverändert lassen — Editor/Exporte bleiben benutzbar
+      setTStatus('❌', 'Error: ' + (err.message || err) + ' Your previous captions are kept.', false, false);
+      document.getElementById('capEditor').style.display = 'block';
+      enableExports(true);
+    } else {
+      setTStatus('❌', 'Error: ' + (err.message || err), false, false);
+    }
     document.getElementById('retryWrap').style.display = 'block';
   }
 }
 
 function retryTranscribe() { if (currentFile) transcribeVideo(currentFile); }
+var videoPlayable = true; // false: Browser kann das Bild nicht dekodieren (HEVC) bzw. Datei hat keine Videospur
 function enableExports(on) {
   ['btnVideo','btnSRT','btnVTT','btnTXT','btnCopy'].forEach(function(id){ var b=document.getElementById(id); if(b) b.disabled=!on; });
+  // Video-Export braucht ein abspielbares Bild — SRT/VTT/TXT funktionieren trotzdem
+  var bv = document.getElementById('btnVideo'); if (bv && !videoPlayable) bv.disabled = true;
+}
+// ── Abspielbarkeit prüfen: HEVC ohne Decoder / reine Audiodatei ──
+var MSG_HEVC = 'This video uses HEVC (iPhone "High Efficiency"), which this browser can\'t play. Open Capivo in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.';
+var MSG_NOVIDEO = 'This file has no video track.';
+function showVideoWarn(msg) {
+  var w = document.getElementById('vidWarn');
+  if (!w) return;
+  w.textContent = msg || '';
+  w.style.display = msg ? 'block' : 'none';
+}
+// Videospur aus dem MP4/MOV lesen (nur Metadaten, häppchenweise) → { hasVideo, codec } oder null
+async function probeVideoTrack(file) {
+  if (!isFastExportSource(file)) return null;
+  try {
+    var libs = await getWebCodecsLibs();
+    var mp4 = libs.MP4Box.createFile(), info = null, err = null;
+    mp4.onReady = function(i) { info = i; };
+    mp4.onError = function(e) { err = e || 'mp4box'; };
+    var CHUNK = 2 * 1024 * 1024, pos = 0, iter = 0;
+    while (!info && !err && pos < file.size && iter++ < 64) {
+      var ab = await file.slice(pos, Math.min(file.size, pos + CHUNK)).arrayBuffer();
+      ab.fileStart = pos;
+      var next = mp4.appendBuffer(ab);
+      pos = (typeof next === 'number' && isFinite(next) && next > pos) ? next : pos + ab.byteLength;
+    }
+    if (!info) return null;
+    var vt = info.videoTracks && info.videoTracks[0];
+    return { hasVideo: !!vt, codec: vt ? String(vt.codec || '') : '' };
+  } catch (e) { return null; }
+}
+// Entscheidung (rein, testbar): videoWidth > 0 → ok; sonst anhand der Spur-Info bzw. Dateiart
+function classifyUnplayable(probe, file) {
+  if (probe && probe.hasVideo === false) return 'novideo';
+  if (probe && probe.hasVideo) return 'hevc'; // Spur vorhanden, Browser kann sie nicht dekodieren (praktisch immer HEVC)
+  var n = String(file && file.name || '').toLowerCase(), t = String(file && file.type || '').toLowerCase();
+  if (/^audio\//.test(t) || /\.(m4a|mp3|aac|wav|ogg|opus)$/.test(n)) return 'novideo';
+  return /\.(mov|mp4|m4v|hevc)$/.test(n) || /quicktime|mp4/.test(t) ? 'hevc' : 'novideo';
+}
+async function checkVideoPlayable(vid, file) {
+  if (vid.videoWidth > 0) return 'ok';
+  await new Promise(function(res) {
+    var tm = setTimeout(res, 1500);
+    vid.addEventListener('loadeddata', function(){ clearTimeout(tm); res(); }, { once: true });
+  });
+  if (vid.videoWidth > 0) return 'ok';
+  return classifyUnplayable(await probeVideoTrack(file), file);
+}
+function applyPlayability(state) {
+  videoPlayable = state === 'ok';
+  showVideoWarn(state === 'hevc' ? MSG_HEVC : state === 'novideo' ? MSG_NOVIDEO + ' Captions, SRT and TXT still work — video export needs a picture.' : '');
+  var bv = document.getElementById('btnVideo');
+  if (bv) { if (!videoPlayable) bv.disabled = true; bv.title = videoPlayable ? '' : (state === 'hevc' ? 'This browser can\'t play HEVC video' : 'No video track'); }
 }
 
 // ═══════════════════════════════════════
 // VIDEO LOADING
 // ═══════════════════════════════════════
+// Vorschau-Rahmen an Ausgabeformat (Video-Seitenverhältnis bzw. 9:16 beim Reframe) und verfügbaren Platz
+// anpassen. Verfügbaren Platz aus dem tatsächlich gerenderten prev-col nehmen statt aus window.innerHeight —
+// auf Mobile ist prev-col per CSS auf einen Bruchteil der Viewport-Höhe begrenzt. min()-Deckel 480/360 = Desktop.
+// setFont: Start-Schriftgröße ~8 % der Rahmenbreite (nur beim Laden eines Videos).
+function layoutPreviewFrame(setFont) {
+  var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
+  var ar = vid.videoWidth / vid.videoHeight;
+  if (reframeActive(vid.videoWidth, vid.videoHeight)) ar = 9 / 16;
+  if (!(ar > 0) || !isFinite(ar)) ar = 9 / 16; // Video ohne Bild (HEVC/Audio-only): nie durch 0 teilen
+  var pcRect = frame.parentElement ? frame.parentElement.getBoundingClientRect() : { width: 360, height: 540 };
+  var maxH = Math.min(480, Math.max(100, (pcRect.height || 540) - 56));
+  var maxW = Math.min(360, Math.max(100, (pcRect.width || 360) - 4));
+  var h = maxH, w = Math.round(h * ar);
+  if (w > maxW) { w = maxW; h = Math.round(w / ar); }
+  if (w < 120) { w = 120; h = Math.round(w / ar); }
+  frame.style.width  = w + 'px';
+  frame.style.height = h + 'px';
+  if (setFont) {
+    fontSize = Math.max(10, Math.min(54, Math.round(w * 0.08)));
+    var szSliderEl = document.getElementById('szSlider');
+    if (szSliderEl) szSliderEl.value = fontSize;
+    var szDispEl = document.getElementById('szDisp');
+    if (szDispEl) szDispEl.textContent = fontSize + 'px';
+  }
+  return w;
+}
 function loadVideo(file) {
   if (!file || !file.type.startsWith('video/')) {
     // Statt eines nativen alert() (bricht den Look-and-Feel, v.a. auf Mobile) die gleiche
@@ -4552,6 +4697,7 @@ function loadVideo(file) {
   wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1; captionsEdited = false;
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
   _cutRun++; sceneCuts = []; // Szenenschnitte gehören zum Video
+  videoPlayable = true; showVideoWarn('');
   openEditor();
 
   var vid = document.getElementById('mainVid');
@@ -4562,28 +4708,8 @@ function loadVideo(file) {
   vid.src = url; vid.muted = vidMuted;
 
   vid.onloadedmetadata = function() {
-    var ar = vid.videoWidth / vid.videoHeight;
-    var frame = document.getElementById('prevFrame');
-    // Verfügbaren Platz aus dem tatsächlich gerenderten prev-col nehmen statt aus window.innerHeight —
-    // auf Mobile ist prev-col per CSS auf einen Bruchteil der Viewport-Höhe begrenzt (Platz für die
-    // Steuerung darunter), das ignorierte die alte window.innerHeight-Formel und quetschte/verzerrte
-    // den Vorschau-Rahmen. min()-Deckel 480/360 bleiben als Desktop-Obergrenze erhalten.
-    var pcRect = frame.parentElement.getBoundingClientRect();
-    var maxH = Math.min(480, Math.max(100, pcRect.height - 56));
-    var maxW = Math.min(360, Math.max(100, pcRect.width - 4));
-    var h = maxH, w = Math.round(h * ar);
-    if (w > maxW) { w = maxW; h = Math.round(w / ar); }
-    if (w < 120) { w = 120; h = Math.round(w / ar); }
-    frame.style.width  = w + 'px';
-    frame.style.height = h + 'px';
-    // Sinnvolle Start-Schriftgröße statt fixem Wert: branchenüblich ~8% der Vorschaubreite
-    // (Reels-Untertitel wirken bei fester 22px auf schmalen/breiten Previews sonst zu klein/groß).
-    // Nutzer kann danach weiterhin frei über den Slider anpassen.
-    fontSize = Math.max(10, Math.min(54, Math.round(w * 0.08)));
-    var szSliderEl = document.getElementById('szSlider');
-    if (szSliderEl) szSliderEl.value = fontSize;
-    var szDispEl = document.getElementById('szDisp');
-    if (szDispEl) szDispEl.textContent = fontSize + 'px';
+    exportFormat = 'original'; syncFormatRow(); setExportFormat('original');
+    var w = layoutPreviewFrame(true);
     // Mindestens 320px statt nur Rahmenbreite: sonst schrumpft die Fortschrittsleiste auf wenige Pixel
     // und die Zeitangabe bricht um. CSS max-width:100% deckelt auf die Spaltenbreite.
     document.getElementById('vidCtrls').style.width = Math.max(w, 320) + 'px';
@@ -4599,6 +4725,9 @@ function loadVideo(file) {
     document.getElementById('ppBtn').textContent = '▶';
     updateOverlay();
     var restored = restoreOrTranscribe(file, vid.duration);
+    // Kein Bild (HEVC ohne Decoder / reine Audiodatei)? Transkription läuft trotzdem (Ton), Video-Export aus.
+    var runFile = file;
+    checkVideoPlayable(vid, file).then(function(st) { if (currentFile === runFile) applyPlayability(st); });
     // Szenenschnitte im Hintergrund (parallel zur Transkription); ein Autosave bringt sie schon mit
     if (!(restored && sceneCuts.length)) startSceneCutDetection(vid.src, vid.duration);
   };
@@ -4614,7 +4743,22 @@ function loadVideo(file) {
   vid.onplay  = function() { showPlayOverlay(false); document.getElementById('ppBtn').textContent = '⏸'; startCapLoop(); };
   vid.onpause = function() { showPlayOverlay(true);  document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
   vid.onended = function() { showPlayOverlay(true); document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
-  vid.onerror = function() { alert('Could not load the video.'); vidReady = false; vid.style.display = 'none'; document.getElementById('frameDropZone').style.display = 'flex'; };
+  vid.onerror = function() {
+    // In-App-Fehler statt nativem alert(): gleiche Fehlerbox wie bei anderen Problemen + Hinweis zum Weitermachen
+    vidReady = false; vid.style.display = 'none'; document.getElementById('frameDropZone').style.display = 'flex';
+    videoPlayable = false; enableExports(false);
+    setTStatus('❌', 'Couldn\'t load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone\'s Photos app, then upload it again.', false, false);
+    showVideoWarn('This video couldn\'t be opened in this browser. Tap “Upload video” to try another file.');
+    // Manche Browser (z. B. Firefox bei HEVC) melden einen Fehler statt Breite 0 — der Ton ist trotzdem
+    // lesbar: dann HEVC-Hinweis zeigen und die Captions dennoch erzeugen (SRT/TXT bleiben nutzbar).
+    var errFile = file;
+    probeVideoTrack(file).then(function(pr) {
+      if (currentFile !== errFile || !(pr && pr.hasVideo)) return;
+      applyPlayability('hevc');
+      setTStatus('', 'Preparing transcription…', true, true);
+      restoreOrTranscribe(errFile, 0);
+    });
+  };
   vid.load();
 }
 
@@ -5006,7 +5150,23 @@ async function getWebCodecsLibs() {
     import('/vendor/mp4-muxer/mp4-muxer.mjs?v=' + WC_LIB_VERSIONS.muxer)
   ]);
   _wcLibs = { MP4Box: r[0], Mux: r[1] };
+  quietMp4BoxLog(r[0]);
   return _wcLibs;
+}
+// mp4box loggt unbekannte (harmlose) Boxen wie Apples '©swr' in JEDER MOV-Datei als console.error.
+// Log-Level steht schon auf „error“ (höher geht nicht) → genau diese Meldungen herausfiltern; echte
+// Fehler (mit isofile → onError) laufen unverändert weiter.
+function quietMp4BoxLog(MP4Box) {
+  var L = MP4Box && MP4Box.Log;
+  if (!L || L._capivoQuiet) return;
+  try { if (L.setLogLevel) L.setLogLevel(L.error); } catch (e) {}
+  var orig = L.error;
+  L.error = function(module, msg, isofile) {
+    if (!isofile && /Invalid box type/i.test(String(msg))) return;
+    return orig.apply(this, arguments);
+  };
+  L.warn = function() {};
+  L._capivoQuiet = true;
 }
 // Reine Feature-Erkennung — muss auch ohne window/localStorage (Node-Tests) gefahrlos false liefern.
 function fastExportSupported() {
@@ -5133,10 +5293,10 @@ function mp4BoxPayload(MP4Box, box) {
   return new Uint8Array(ds.buffer, 8);
 }
 // Zeichnet einen dekodierten Frame "cover"-skaliert auf W×H — identisch zum Echtzeit-Pfad, plus Drehung.
-function drawFastFrame(ctx, frame, W, H, rot) {
+function drawFastFrame(ctx, frame, W, H, rot, fit) {
   var fw = frame.displayWidth, fh = frame.displayHeight;
   var rw = rot % 180 ? fh : fw, rh = rot % 180 ? fw : fh; // Maße NACH der Drehung
-  var sc = Math.max(W / rw, H / rh);
+  var sc = fit === 'contain' ? Math.min(W / rw, H / rh) : Math.max(W / rw, H / rh);
   if (!rot) { ctx.drawImage(frame, (W - fw * sc) / 2, (H - fh * sc) / 2, fw * sc, fh * sc); return; }
   ctx.save();
   ctx.translate(W / 2, H / 2);
@@ -5203,8 +5363,9 @@ async function exportFastWebCodecs(file, o) {
   var rotW = rot % 180 ? vT.video.height : vT.video.width, rotH = rot % 180 ? vT.video.width : vT.video.height;
   // Plausibilitätscheck gegen das, was der Player zeigt (falsch erkannte Drehung/Pixel-Seitenverhältnis
   // → lieber Echtzeit-Pfad als ein verzerrtes Video).
-  if (Math.abs(rotW / rotH - o.W / o.H) > 0.02 * (o.W / o.H)) {
-    throw new Error('Seitenverhältnis ' + rotW + 'x' + rotH + ' (rot ' + rot + ') passt nicht zum Player ' + o.W + 'x' + o.H);
+  var pW = o.srcW || o.W, pH = o.srcH || o.H; // Plausibilität gegen die PLAYER-Maße (Ausgabe kann 9:16/1080p sein)
+  if (Math.abs(rotW / rotH - pW / pH) > 0.02 * (pW / pH)) {
+    throw new Error('Seitenverhältnis ' + rotW + 'x' + rotH + ' (rot ' + rot + ') passt nicht zum Player ' + pW + 'x' + pH);
   }
   var W = o.W - (o.W % 2), H = o.H - (o.H % 2); // H.264 (4:2:0) braucht gerade Maße
   var fps = vT.samples_duration ? vT.nb_samples / (vT.samples_duration / vT.timescale) : 30;
@@ -5231,7 +5392,7 @@ async function exportFastWebCodecs(file, o) {
   // ── Encoder wählen ──
   var enc = null, cands = fastExportVideoCodecs(W, H, fps);
   for (var ci = 0; ci < cands.length && !enc; ci++) {
-    var ecfg = { codec: cands[ci].codec, width: W, height: H, bitrate: 8000000, framerate: fps, latencyMode: 'quality' };
+    var ecfg = { codec: cands[ci].codec, width: W, height: H, bitrate: exportBitrate(W, H, fps), framerate: fps, latencyMode: 'quality' };
     if (cands[ci].mux === 'avc') ecfg.avc = { format: 'avc' }; // Längen-präfixiert + avcC in den Metadaten (MP4)
     try {
       var es = await VideoEncoder.isConfigSupported(ecfg);
@@ -5281,7 +5442,7 @@ async function exportFastWebCodecs(file, o) {
         if (outT === null) return; // Auto-Cut: Frame liegt in Stille/Füllwort
         var outUs = Math.round(outT * 1e6);
         if (outUs <= lastOutUs) return;
-        drawFastFrame(ctx, frame, W, H, rot);
+        drawReframed(ctx, W, H, o.mode || 'original', function(c, w, h, fit){ drawFastFrame(c, frame, w, h, rot, fit); });
         drawCaptionsOnCtx(ctx, t, o.style, W, H, false);
         drawWatermark(ctx, W, H, o.wmOn);
         var vf = new VideoFrame(canvas, { timestamp: outUs, duration: frame.duration || defDurUs, alpha: 'discard' });
@@ -5402,6 +5563,7 @@ function validateExportBlob(blob, expectedDur, timeoutMs) {
   });
 }
 async function tryFastExport(vid) {
+  var geoF = exportGeometry(vid.videoWidth, vid.videoHeight, 30);
   if (!fastExportSupported() || !isFastExportSource(currentFile)) return false;
   var recBar = document.getElementById('recBar'), recMsg = document.getElementById('recMsg');
   var recProg = document.getElementById('recProg'), ctrls = document.getElementById('vidCtrls');
@@ -5416,13 +5578,14 @@ async function tryFastExport(vid) {
   var t0 = Date.now();
   try {
     var blob = await exportFastWebCodecs(currentFile, {
-      W: vid.videoWidth || 1080, H: vid.videoHeight || 1920,
+      W: geoF.W, H: geoF.H, srcW: vid.videoWidth, srcH: vid.videoHeight, mode: geoF.mode,
       style: STYLES.find(function(x){ return x.id === activeId; }),
       wmOn: needsWatermark(), // Anmeldestatus JETZT — gilt für das ganze Video (wie im Echtzeit-Pfad)
       cutRegions: cutRegions,
       onProgress: function(p) {
         recBar.style.width = Math.round(p * 100) + '%';
         recMsg.textContent = 'Rendering ' + Math.round(p * 100) + '%…';
+        exportBtnState('Rendering ' + Math.round(p * 100) + '%…');
       }
     });
     console.info('[export] WebCodecs-Schnellexport fertig in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s (Video: '
@@ -5433,6 +5596,7 @@ async function tryFastExport(vid) {
     if (!check.ok) throw new Error('Validierung fehlgeschlagen: ' + check.reason);
     dlBlob(blob, 'capivo-video.mp4');
     recProg.style.display = 'none';
+    exportBtnState(null);
     isExporting = false;
     if (ctrls) ctrls.classList.remove('exporting');
     maybeUpsell();
@@ -5449,33 +5613,138 @@ async function tryFastExport(vid) {
 // ═══════════════════════════════════════
 // EXPORT — VIDEO WITH BURNED-IN CAPTIONS
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// EXPORT-GEOMETRIE — Auflösung, Bitrate, Reframe (9:16)
+// ═══════════════════════════════════════
+// 1080p (Standard): längere Seite ≤ 1920, nie hochskalieren (Instagram-Maximum ist 1080×1920; 4K-Exporte
+// waren nur größer und langsamer). Bitrate ~0,07 Bit/Pixel/Frame, 2–12 Mbit/s. Reframe: Quer-/Quadrat-
+// Videos als 9:16 — „blur“ = unscharfer, abgedunkelter Hintergrund + ganzes Video mittig, „crop“ = Mitte.
+var exportRes = '1080', exportFormat = 'original';
+try { if (typeof localStorage !== 'undefined' && localStorage.getItem('capivo.expRes') === 'orig') exportRes = 'orig'; } catch (e) {}
+function isNineSixteen(w, h) { return w > 0 && h > 0 && Math.abs(w / h - 9 / 16) < 0.02; }
+function reframeActive(srcW, srcH) { return exportFormat !== 'original' && srcW > 0 && srcH > 0 && !isNineSixteen(srcW, srcH); }
+function exportBitrate(W, H, fps) { return Math.round(Math.max(2e6, Math.min(12e6, 0.07 * W * H * (fps || 30)))); }
+function exportGeometry(srcW, srcH, fps, res, fmt) {
+  res = res || exportRes; fmt = fmt || exportFormat;
+  srcW = srcW || 1080; srcH = srcH || 1920;
+  var mode = (fmt !== 'original' && !isNineSixteen(srcW, srcH)) ? fmt : 'original';
+  var w = srcW, h = srcH;
+  if (mode !== 'original') { var L = Math.max(srcW, srcH); h = L; w = Math.round(L * 9 / 16); }
+  if (res !== 'orig') { var k = Math.min(1, 1920 / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k); }
+  w -= w % 2; h -= h % 2; // H.264 (4:2:0) braucht gerade Maße
+  return { W: w, H: h, mode: mode, bitrate: exportBitrate(w, h, fps || 30) };
+}
+// Quelle (Video-Element oder VideoFrame über drawFn) in den Ausgaberahmen zeichnen.
+// drawFn(ctx, W, H, fit) zeichnet die Quelle zentriert mit fit = 'cover' | 'contain'.
+var _blurBgCanvas = null;
+function drawReframed(ctx, W, H, mode, drawFn) {
+  if (mode !== 'blur') { drawFn(ctx, W, H, 'cover'); return; }
+  // Hintergrund: winzig zeichnen und hochskalieren = billiger Weichzeichner (kein ctx.filter pro Frame)
+  if (!_blurBgCanvas) _blurBgCanvas = document.createElement('canvas');
+  var bw = Math.max(8, Math.round(W / 24)), bh = Math.max(8, Math.round(H / 24));
+  if (_blurBgCanvas.width !== bw || _blurBgCanvas.height !== bh) { _blurBgCanvas.width = bw; _blurBgCanvas.height = bh; }
+  var b = _blurBgCanvas.getContext('2d');
+  drawFn(b, bw, bh, 'cover');
+  ctx.save();
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(_blurBgCanvas, 0, 0, W, H);
+  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+  drawFn(ctx, W, H, 'contain');
+}
+function drawVideoFit(ctx, vid, W, H, fit) {
+  var vW = vid.videoWidth, vH = vid.videoHeight;
+  if (!(vW > 0 && vH > 0)) return;
+  var sc = fit === 'contain' ? Math.min(W / vW, H / vH) : Math.max(W / vW, H / vH);
+  ctx.drawImage(vid, (W - vW * sc) / 2, (H - vH * sc) / 2, vW * sc, vH * sc);
+}
+function setExportRes(v) {
+  exportRes = v === 'orig' ? 'orig' : '1080';
+  try { localStorage.setItem('capivo.expRes', exportRes); } catch (e) {}
+}
+// Vorschau zeigt das Ausgabeformat: 9:16-Rahmen, bei „blur“ ganzes Video + unscharfer Hintergrund
+var _blurBgTimer = null;
+function setExportFormat(v) {
+  exportFormat = (v === 'blur' || v === 'crop') ? v : 'original';
+  var sel = document.getElementById('expFmt'); if (sel && sel.value !== exportFormat) sel.value = exportFormat;
+  var frame = document.getElementById('prevFrame'), vid = document.getElementById('mainVid');
+  var blur = reframeActive(vid.videoWidth, vid.videoHeight) && exportFormat === 'blur';
+  if (frame && frame.classList) frame.classList.toggle('reframe-blur', blur);
+  if (_blurBgTimer) { clearInterval(_blurBgTimer); _blurBgTimer = null; }
+  if (blur) { updatePreviewBlurBg(); _blurBgTimer = setInterval(updatePreviewBlurBg, 300); }
+  if (vidReady) { layoutPreviewFrame(false); _lastKey = null; updateOverlay(); applyPos(); }
+}
+function updatePreviewBlurBg() {
+  var c = document.getElementById('prevBlurBg'), vid = document.getElementById('mainVid');
+  if (!c || !c.getContext || !vid || !(vid.videoWidth > 0)) return;
+  try { drawVideoFit(c.getContext('2d'), vid, c.width, c.height, 'cover'); } catch (e) {}
+}
+function syncFormatRow() {
+  var vid = document.getElementById('mainVid'), row = document.getElementById('fmtRow');
+  var show = vid && vid.videoWidth > 0 && !isNineSixteen(vid.videoWidth, vid.videoHeight);
+  if (row) row.style.display = show ? '' : 'none';
+  if (!show && exportFormat !== 'original') setExportFormat('original');
+}
+// MediaRecorder-Format wählen. Ein MP4 nur dann, wenn es AAC-Ton ausdrücklich zusagt (mp4a): Chrome auf
+// Linux/Windows sagt zu 'video/mp4;codecs=avc1' ja und schreibt dann H.264 + OPUS in den MP4-Container —
+// Instagram/iOS lehnen das ab. Ohne Tonspur reicht reines avc1. Danach WebM (→ ffmpeg nach H.264/AAC),
+// generisches 'video/mp4' nur als letzter Ausweg (Safari: kann kein WebM aufnehmen, liefert H.264/AAC).
+function pickRecorderMime(isSupported, hasAudio) {
+  var mp4 = ['video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/mp4;codecs=avc1,mp4a'];
+  if (!hasAudio) mp4.push('video/mp4;codecs=avc1');
+  var list = mp4.concat(['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4']);
+  for (var i = 0; i < list.length; i++) { try { if (isSupported(list[i])) return list[i]; } catch (e) {} }
+  return 'video/webm';
+}
+function recorderMimeIsSafeMp4(actual, requested, hasAudio) {
+  var a = String(actual || ''), r = String(requested || '');
+  if (!/mp4/i.test(a || r)) return false;
+  if (/opus|vp8|vp9|av01/i.test(a)) return false;
+  if (!hasAudio) return true;
+  if (/mp4a/i.test(a) || /mp4a/i.test(r)) return true;
+  return r === 'video/mp4' && !/codecs/i.test(a); // Safari: generisches MP4 = H.264/AAC
+}
+// Fortschritt direkt AM Export-Button (Handy: die Fortschrittsleiste darunter liegt oft außerhalb des
+// sichtbaren Bereichs) — Button währenddessen gesperrt. text = null → zurücksetzen.
+function exportBtnState(text) {
+  var b = document.getElementById('btnVideo');
+  if (!b) return;
+  var lbl = b.querySelector ? b.querySelector('.exp-btn-label') : null;
+  if (text) {
+    b.disabled = true; b.setAttribute && b.setAttribute('aria-busy', 'true');
+    if (lbl) lbl.textContent = text;
+    if (!b._scrolled) {
+      b._scrolled = true;
+      var rp = document.getElementById('recProg');
+      try { if (rp && rp.scrollIntoView) rp.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+    }
+  } else {
+    b._scrolled = false;
+    b.disabled = !videoPlayable || !captionBlocks.length;
+    b.removeAttribute && b.removeAttribute('aria-busy');
+    if (lbl) lbl.textContent = 'Video + captions';
+  }
+}
 async function exportVideoWithCaptions() {
   var vid = document.getElementById('mainVid');
   if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
   if (isExporting) return; // Doppelklick während eines laufenden Exports
+  exportBtnState('Preparing…');
 
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
 
   // Schneller Weg (WebCodecs, Sekunden statt Echtzeit). Bei jedem Problem → false → Echtzeit-Pfad unten.
   if (await tryFastExport(vid)) return;
 
-  if (!window.MediaRecorder) { alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
+  if (!window.MediaRecorder) { exportBtnState(null); alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
 
-  var W = vid.videoWidth || 1080;
-  var H = vid.videoHeight || 1920;
+  var geo = exportGeometry(vid.videoWidth, vid.videoHeight, 30);
+  var W = geo.W, H = geo.H;
   var s = STYLES.find(function(x){ return x.id === activeId; });
 
   var canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   var ctx = canvas.getContext('2d');
-
-  // Nur EXPLIZITES H.264-MP4 direkt nehmen (Instagram/TikTok/iOS-tauglich). Generisches 'video/mp4'
-  // akzeptieren Chromium-Builds ohne H.264 ebenfalls — und schreiben dann VP9/Opus in einen MP4-Container,
-  // den Instagram/iOS-Fotos ablehnen. Daher erst WebM (→ ffmpeg-Umkodierung nach H.264-MP4), generisches
-  // 'video/mp4' nur als letzter Ausweg (Safari kann kein WebM aufnehmen, liefert dort aber H.264).
-  var MP4_H264 = ['video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/mp4;codecs=avc1,mp4a', 'video/mp4;codecs=avc1'];
-  var mimeType = MP4_H264.concat(['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'])
-    .find(function(m){ return MediaRecorder.isTypeSupported(m); }) || 'video/webm';
 
   var canvasStream = canvas.captureStream(30);
   var hasAudio = false;
@@ -5488,12 +5757,13 @@ async function exportVideoWithCaptions() {
     }
   } catch(e) {}
 
+  var mimeType = pickRecorderMime(function(m){ return MediaRecorder.isTypeSupported(m); }, hasAudio);
   var recorder, chunks = [];
-  try { recorder = new MediaRecorder(canvasStream, { mimeType: mimeType, videoBitsPerSecond: 8000000 }); }
+  try { recorder = new MediaRecorder(canvasStream, { mimeType: mimeType, videoBitsPerSecond: geo.bitrate }); }
   catch(e) { recorder = new MediaRecorder(canvasStream); mimeType = recorder.mimeType || 'video/webm'; }
-  // MP4 direkt speichern: entweder explizit H.264 oder generisches MP4, das nach obiger Reihenfolge nur
-  // greift, wenn der Browser gar kein WebM aufnimmt (Safari → dort ist MP4 immer H.264). WebM → ffmpeg.
-  var isMp4 = mimeType.indexOf('mp4') >= 0;
+  // MP4 nur direkt speichern, wenn es sicher H.264 + AAC ist (bzw. ohne Ton nur H.264) — sonst WebM bzw.
+  // MP4 mit Opus → ffmpeg-Umkodierung nach H.264/AAC (webmToMp4 liest beide Container).
+  var isMp4 = recorderMimeIsSafeMp4(recorder.mimeType || mimeType, mimeType, hasAudio);
 
   var prevMuted = vidMuted;
   var prevOnEnded = vid.onended; // wird unten für die Fertig-Erkennung überschrieben, danach restaurieren
@@ -5514,6 +5784,7 @@ async function exportVideoWithCaptions() {
         var mp4 = await webmToMp4(blob, function(p){
           recBar.style.width = Math.round(p * 100) + '%';
           recMsg.textContent = 'Creating MP4… ' + Math.round(p * 100) + '%';
+          exportBtnState('Creating MP4 ' + Math.round(p * 100) + '%…');
         });
         dlBlob(mp4, 'capivo-video.mp4');
       } catch (e) {
@@ -5524,6 +5795,7 @@ async function exportVideoWithCaptions() {
       }
     }
     document.getElementById('recProg').style.display = 'none';
+    exportBtnState(null);
     vid.muted = prevMuted; vid.pause();
     vid.onended = prevOnEnded; // normales onended (Play/Pause-Overlay) wiederherstellen
     isExporting = false;
@@ -5598,10 +5870,9 @@ async function exportVideoWithCaptions() {
     var pct = t / totalDur;
     document.getElementById('recBar').style.width = (pct * 100) + '%';
     document.getElementById('recMsg').textContent = 'Rendering ' + Math.round(pct * 100) + '%…';
+    exportBtnState('Rendering ' + Math.round(pct * 100) + '%…');
 
-    var vW = vid.videoWidth, vH = vid.videoHeight;
-    var sc = Math.max(W / vW, H / vH);
-    ctx.drawImage(vid, (W - vW * sc) / 2, (H - vH * sc) / 2, vW * sc, vH * sc);
+    drawReframed(ctx, W, H, geo.mode, function(c, w, h, fit){ drawVideoFit(c, vid, w, h, fit); });
     drawCaptionsOnCtx(ctx, t, s, W, H, false);
     drawWatermark(ctx, W, H, wmOn); // nur anonym (beim Export-Start festgelegt)
     requestAnimationFrame(drawLoop);
@@ -5665,12 +5936,42 @@ function capShadowPlan(str) {
 }
 // strokeDiv: Skalierung der aktuellen Animations-Transformation — die Kontur wird dadurch geteilt, damit
 // sie (wie die früheren Shadow-Ringe, die der Transform nicht skaliert) gleich breit bleibt.
-function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv) {
+// fsS/tw (optional): Schriftgröße und Textbreite — dann werden große Blur-Glows (≥ 16 px) in einem auf
+// 1/4 verkleinerten Puffer gerechnet und hochskaliert eingesetzt (Gauß-Blur kostet ~Radius² → 16× billiger,
+// optisch gleich, weil der Glow ohnehin unscharf ist).
+var _glowBuf = null;
+function drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw) {
+  var q = 0.25, blur = l.blur * scale;
+  var m = Math.ceil(blur * 1.6 + Math.abs(l.x * scale) + Math.abs(l.y * scale) + 4);
+  var bw = Math.ceil(tw + 2 * m), bh = Math.ceil(fsS * 1.6 + 2 * m);
+  var sw = Math.max(1, Math.ceil(bw * q)), sh = Math.max(1, Math.ceil(bh * q));
+  if (!_glowBuf) _glowBuf = document.createElement('canvas');
+  var c = _glowBuf;
+  if (c.width < sw || c.height < sh) { c.width = Math.max(c.width, sw); c.height = Math.max(c.height, sh); }
+  var g = c.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, c.width, c.height);
+  g.font = ctx.font;
+  if ('letterSpacing' in g && 'letterSpacing' in ctx) g.letterSpacing = ctx.letterSpacing;
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#000';
+  g.setTransform(q, 0, 0, q, 0, 0);
+  // Text weit außerhalb zeichnen und nur den Schatten zurückholen → im Puffer landet NUR der Glow
+  // (Schatten-Offsets wirken im Geräteraum, unabhängig von der Transformation).
+  var OFF = 100000;
+  g.shadowColor = l.color; g.shadowBlur = blur * q;
+  g.shadowOffsetX = (l.x * scale + OFF) * q; g.shadowOffsetY = l.y * scale * q;
+  g.fillText(text, m - OFF, m + fsS * 1.05);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  ctx.drawImage(c, 0, 0, sw, sh, x - m, y - fsS * 1.05 - m, sw / q, sh / q);
+}
+function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw) {
   if (plan.rest.length) {
     ctx.save();
+    var lowRes = fsS > 0 && tw > 0 && typeof document !== 'undefined' && !!ctx.canvas;
     // unterste Schicht zuerst (CSS: erste Schicht liegt oben)
     for (var i = plan.rest.length - 1; i >= 0; i--) {
       var l = plan.rest[i];
+      if (lowRes && l.blur * scale >= 16) { drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw); continue; }
       ctx.shadowOffsetX = l.x * scale; ctx.shadowOffsetY = l.y * scale;
       ctx.shadowBlur = l.blur * scale; ctx.shadowColor = l.color;
       ctx.fillText(text, x, y);
@@ -5735,8 +6036,9 @@ function animState(anim, elapsed) {
 // Rahmengröße ab — nicht vom einzelnen Frame. Vorher lief das alles pro Frame (≈ 30×/s × alle Wörter).
 // Das aktive Wort fließt nur in den Key ein, wenn es die Breite ändert (hlFont/hlItalic/hlUpper).
 var _capLayoutCache = { key: null, s: null, ctx: null, val: null };
+var _capStaticLayer = null; // { key, s, W, H, cv } — siehe drawCaptionsOnCtx
 function capLayout(ctx, b, bi, wi, s, W, H) {
-  var wiKey = (s.hlFont || s.hlItalic || s.hlUpper) ? wi : -1;
+  var wiKey = (s.hlFont || s.hlItalic || s.hlUpper || s.hlPillBg) ? wi : -1;
   var key = [bi, wiKey, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
              _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length].join('|');
   var c = _capLayoutCache;
@@ -5769,7 +6071,15 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   var sp    = ctx.measureText(' ').width + capWordGap(s) * scale; // gleiches Extra wie word-spacing in der Vorschau
   var maxW  = W * 0.86;
   // idx = Index des ORIGINALWORTS (Teilwörter nach Bindestrich-Trennung teilen sich Highlight/Keyword)
-  var wordInfo = words.map(function(w, i) { wordFont(fit.orig[i] === wi); return { txt: w, w: ctx.measureText(w).width, idx: fit.orig[i] }; });
+  // Pill hinter dem aktiven Wort: im DOM ist sie Padding des Wort-Spans (2px 9px) und schiebt die Nachbarn
+  // weg — hier genauso: Breite = Text + 2·9px (skaliert), Text um padL eingerückt. Sonst überlappte die
+  // Pill im Export die Nachbarwörter („au[unserem]“).
+  var pillPad = s.hlPillBg ? 9 * scale : 0;
+  var wordInfo = words.map(function(w, i) {
+    var hl = fit.orig[i] === wi; wordFont(hl);
+    var tw = ctx.measureText(w).width, pl = (hl && pillPad) ? pillPad : 0;
+    return { txt: w, w: tw + 2 * pl, tw: tw, padL: pl, idx: fit.orig[i] };
+  });
 
   // Mehrzeiliger Umbruch — bei CAPTION_LINES>1 wird möglichst gleichmäßig auf genau so viele
   // Zeilen verteilt (nicht nur bei Überlauf gebrochen), sonst würden kurze Blöcke nie umbrechen.
@@ -5841,115 +6151,143 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   var scale = L0.scale, fsS = L0.fsS, fn = L0.fn, fw = L0.fw, fi = L0.fi, lsPxS = L0.lsPxS, sp = L0.sp;
   var lines = L0.lines, lineWs = L0.lineWs, lh = L0.lh, y0 = L0.y0;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  // Font/letterSpacing nur setzen, wenn sie sich ändern (Zuweisung parst den Font-String jedes Mal neu)
-  var curFont = null, curLs = null;
-  function wordFont(isHL) {
-    var f  = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
-    var it = (isHL && s.hlItalic) ? 'italic ' : fi;
-    var fs = it + fw + ' ' + fsS + 'px "' + f + '", sans-serif';
-    if (fs !== curFont) { ctx.font = fs; curFont = fs; }
-    if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
-  }
-  var shTs = capShadowPlan(s.ts), shHl = capShadowPlan(s.hls);
-  // boxBg-Padding/-Radius sind im DOM (buildCap: "padding:5px 18px", s.boxBr) feste px-Werte, die bei
-  // der Vorschaubreite (previewFrameW) gemeint sind — mit `scale` (== W/previewFrameW, dieselbe Umrechnung
-  // wie fsS) 1:1 in den Export übertragen, statt (wie zuvor) willkürlich an fsS gekoppelt und boxBr zu ignorieren.
-  if (s.boxBg) {
-    var widest = Math.max.apply(null, lineWs);
-    var padX = 18 * scale, padY = 5 * scale;
-    var radius = parseFloat(s.boxBr || '6') * scale;
-    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
-    ctx.fillStyle = s.boxBg;
-    ctx.beginPath();
-    var bx = W/2 - widest/2 - padX, by = y0 - fsS * 1.05 - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + fsS * 1.5 + padY*2;
-    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
-    ctx.fill(); ctx.restore();
-  }
-
-  // "evo"-Style: linker Akzentstrich (s.pill, im DOM eine umschließende Box mit border-left) — fehlte
-  // im Export bisher komplett.
-  if (s.pill) {
-    var widest2 = Math.max.apply(null, lineWs);
-    var pm = String(s.pill.p || '0').split(/\s+/).map(function(v){ return parseFloat(v) || 0; });
-    var pT = (pm[0] || 0) * scale, pR = (pm.length > 1 ? pm[1] : pm[0]) * scale,
-        pB = (pm.length > 2 ? pm[2] : pm[0]) * scale, pL = (pm.length > 3 ? pm[3] : pR) * scale;
-    var borderW = 0, borderColor = null;
-    var bm = s.pill.borderLeft && s.pill.borderLeft.match(/^([\d.]+)px\s+\S+\s+(.+)$/);
-    if (bm) { borderW = parseFloat(bm[1]) * scale; borderColor = bm[2]; }
-    var pillT = y0 - fsS * 1.05 - pT, pillB = y0 + (lines.length - 1) * lh + fsS * 0.45 + pB;
-    var pillL = W/2 - widest2/2 - pL - borderW, pillR = W/2 + widest2/2 + pR;
-    if (s.pill.bg && s.pill.bg !== 'transparent') {
-      ctx.save(); ctx.fillStyle = s.pill.bg; ctx.fillRect(pillL, pillT, pillR - pillL, pillB - pillT); ctx.restore();
+  // Statische Ebene (Box, Akzentstrich, alle NICHT aktiven Wörter mit ihren Schatten/Glows) wird je
+  // (Layout, aktives Wort) EINMAL in einen Offscreen-Canvas gemalt und pro Frame nur noch per drawImage
+  // eingesetzt; live gezeichnet wird nur das aktive Wort (Animation). Große Blur-Glows (Petal, Vivid)
+  // kosteten sonst pro Wort und Frame — Export bis 6× langsamer als Standard.
+  var useLayer = !!(ctx.canvas && typeof document !== 'undefined' && document.createElement && ctx.canvas.width === W);
+  if (useLayer) {
+    var lkey = _capLayoutCache.key + '|' + wi + '|' + (s.id || '');
+    var lc = _capStaticLayer;
+    if (!lc || lc.key !== lkey || lc.s !== s || lc.W !== W || lc.H !== H) {
+      var cv = (lc && lc.cv && lc.cv.width === W && lc.cv.height === H) ? lc.cv : document.createElement('canvas');
+      cv.width = W; cv.height = H; // setzt auch den Inhalt zurück
+      var lctx = cv.getContext('2d');
+      lctx.textAlign = 'left'; lctx.textBaseline = 'alphabetic';
+      paint(lctx, 'static');
+      _capStaticLayer = lc = { key: lkey, s: s, W: W, H: H, cv: cv };
     }
-    if (borderW > 0 && borderColor) {
-      ctx.save(); ctx.fillStyle = borderColor; ctx.fillRect(pillL, pillT, borderW, pillB - pillT); ctx.restore();
-    }
+    ctx.drawImage(lc.cv, 0, 0);
+    paint(ctx, 'active');
+  } else {
+    paint(ctx, 'all');
   }
-
-  lines.forEach(function(L, li) {
-    var x = W/2 - lineWs[li]/2;
-    var y = y0 + li * lh;
-    L.forEach(function(wo) {
-      var isHL = wo.idx === wi;
-      var isKw = !isHL && isKeywordWord(b.words[wo.idx].word);
-      wordFont(isHL);
-
-      // Kringel ums aktive Wort (Sketch, wie Referenz)
-      if (isHL && s.circle) {
-        ctx.save(); ctx.shadowColor = 'transparent';
-        ctx.strokeStyle = s.hl || '#fff';
-        ctx.lineWidth = Math.max(2, fsS * 0.07);
-        ctx.beginPath();
-        ctx.ellipse(x + wo.w / 2, y - fsS * 0.32, wo.w / 2 + fsS * 0.35, fsS * 0.72, 0, 0, Math.PI * 2);
-        ctx.stroke(); ctx.restore();
-      }
-
-      // Pill hinter aktivem Wort (z. B. Karaoke-Style) — Padding/Radius wie im DOM ("padding:2px 9px;
-      // border-radius:5px", feste px bei previewFrameW) via `scale` übertragen statt an fsS gekoppelt.
-      if (isHL && s.hlPillBg) {
-        var pdx = 9 * scale, pdy = 2 * scale;
-        ctx.save(); ctx.shadowColor = 'transparent';
-        ctx.fillStyle = s.hlPillBg;
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(x - pdx, y - fsS * 0.92 - pdy, wo.w + pdx*2, fsS * 1.28 + pdy*2, 5 * scale);
-        else ctx.rect(x - pdx, y - fsS * 0.92 - pdy, wo.w + pdx*2, fsS * 1.28 + pdy*2);
-        ctx.fill(); ctx.restore();
-      }
-
-      // Pop-Animation des aktiven Worts (@keyframes captly-*) — im Export bisher komplett statisch.
-      var animSt = (isHL && s.anim && s.anim !== 'none') ? animState(s.anim, t - (b.words[wo.idx].start || 0)) : null;
-      ctx.save();
-      if (animSt) {
-        var pvx = x + wo.w / 2, pvy = y - fsS * 0.32 - animSt.ty * scale;
-        ctx.translate(pvx, pvy);
-        if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
-        ctx.scale(animSt.sx, animSt.sy);
-        ctx.translate(-pvx, -pvy);
-        if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
-        if (animSt.bright !== 1 || animSt.sat !== 1) ctx.filter = 'brightness(' + animSt.bright + ') saturate(' + animSt.sat + ')';
-      }
-
-      // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) verhalten sich wie im DOM
-      // genauso wie das Highlight-Wort (gleiche Farbe/Gradient/Schatten), nur ohne Pill/Kringel/Anim.
-      var fillCss = (isHL || isKw) ? (s.hlg || null) : (s.tg || null);
-      if (fillCss) {
-        var cols = gradColors(fillCss);
-        var g = ctx.createLinearGradient(x, 0, x + Math.max(1, wo.w), 0);
-        cols.forEach(function(c, ci){ g.addColorStop(cols.length > 1 ? ci / (cols.length - 1) : 0, c); });
-        ctx.fillStyle = g;
-      } else {
-        ctx.fillStyle = (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (isHL ? hlColorFor(s, wo.idx) : (s.hl || '#fff'))) : (s.tc || '#fff');
-      }
-      // Text-Shadow wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter). Eine
-      // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
-      // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
-      var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
-      drawTextWithPlan(ctx, wo.txt, x, y, (isHL || isKw) ? shHl : shTs, scale, animK);
-      ctx.restore();
-      x += wo.w + sp;
-    });
-  });
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+
+  function paint(ctx, mode) {
+    // Font/letterSpacing nur setzen, wenn sie sich ändern (Zuweisung parst den Font-String jedes Mal neu)
+    var curFont = null, curLs = null;
+    function wordFont(isHL) {
+      var f  = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
+      var it = (isHL && s.hlItalic) ? 'italic ' : fi;
+      var fs = it + fw + ' ' + fsS + 'px "' + f + '", sans-serif';
+      if (fs !== curFont) { ctx.font = fs; curFont = fs; }
+      if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
+    }
+    var shTs = capShadowPlan(s.ts), shHl = capShadowPlan(s.hls);
+    // boxBg-Padding/-Radius sind im DOM (buildCap: "padding:5px 18px", s.boxBr) feste px-Werte, die bei
+    // der Vorschaubreite (previewFrameW) gemeint sind — mit `scale` (== W/previewFrameW, dieselbe Umrechnung
+    // wie fsS) 1:1 in den Export übertragen, statt (wie zuvor) willkürlich an fsS gekoppelt und boxBr zu ignorieren.
+    if (mode !== 'active' && s.boxBg) {
+      var widest = Math.max.apply(null, lineWs);
+      var padX = 18 * scale, padY = 5 * scale;
+      var radius = parseFloat(s.boxBr || '6') * scale;
+      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
+      ctx.fillStyle = s.boxBg;
+      ctx.beginPath();
+      var bx = W/2 - widest/2 - padX, by = y0 - fsS * 1.05 - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + fsS * 1.5 + padY*2;
+      if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
+      ctx.fill(); ctx.restore();
+    }
+
+    // "evo"-Style: linker Akzentstrich (s.pill, im DOM eine umschließende Box mit border-left) — fehlte
+    // im Export bisher komplett.
+    if (mode !== 'active' && s.pill) {
+      var widest2 = Math.max.apply(null, lineWs);
+      var pm = String(s.pill.p || '0').split(/\s+/).map(function(v){ return parseFloat(v) || 0; });
+      var pT = (pm[0] || 0) * scale, pR = (pm.length > 1 ? pm[1] : pm[0]) * scale,
+          pB = (pm.length > 2 ? pm[2] : pm[0]) * scale, pL = (pm.length > 3 ? pm[3] : pR) * scale;
+      var borderW = 0, borderColor = null;
+      var bm = s.pill.borderLeft && s.pill.borderLeft.match(/^([\d.]+)px\s+\S+\s+(.+)$/);
+      if (bm) { borderW = parseFloat(bm[1]) * scale; borderColor = bm[2]; }
+      var pillT = y0 - fsS * 1.05 - pT, pillB = y0 + (lines.length - 1) * lh + fsS * 0.45 + pB;
+      var pillL = W/2 - widest2/2 - pL - borderW, pillR = W/2 + widest2/2 + pR;
+      if (s.pill.bg && s.pill.bg !== 'transparent') {
+        ctx.save(); ctx.fillStyle = s.pill.bg; ctx.fillRect(pillL, pillT, pillR - pillL, pillB - pillT); ctx.restore();
+      }
+      if (borderW > 0 && borderColor) {
+        ctx.save(); ctx.fillStyle = borderColor; ctx.fillRect(pillL, pillT, borderW, pillB - pillT); ctx.restore();
+      }
+    }
+
+    lines.forEach(function(L, li) {
+      var x = W/2 - lineWs[li]/2;
+      var y = y0 + li * lh;
+      L.forEach(function(wo) {
+        var isHL = wo.idx === wi;
+        if ((mode === 'static' && isHL) || (mode === 'active' && !isHL)) { x += wo.w + sp; return; }
+        var tx = x + (wo.padL || 0), tw = wo.tw || wo.w; // Textposition (Pill-Padding eingerückt)
+        var isKw = !isHL && isKeywordWord(b.words[wo.idx].word);
+        wordFont(isHL);
+
+        // Kringel ums aktive Wort (Sketch, wie Referenz)
+        if (isHL && s.circle) {
+          ctx.save(); ctx.shadowColor = 'transparent';
+          ctx.strokeStyle = s.hl || '#fff';
+          ctx.lineWidth = Math.max(2, fsS * 0.07);
+          ctx.beginPath();
+          ctx.ellipse(x + wo.w / 2, y - fsS * 0.32, wo.w / 2 + fsS * 0.35, fsS * 0.72, 0, 0, Math.PI * 2);
+          ctx.stroke(); ctx.restore();
+        }
+
+        // Pill hinter aktivem Wort (z. B. Karaoke-Style) — Padding/Radius wie im DOM ("padding:2px 9px;
+        // border-radius:5px", feste px bei previewFrameW) via `scale` übertragen statt an fsS gekoppelt.
+        if (isHL && s.hlPillBg) {
+          var pdx = 9 * scale, pdy = 2 * scale;
+          ctx.save(); ctx.shadowColor = 'transparent';
+          ctx.fillStyle = s.hlPillBg;
+          ctx.beginPath();
+          var pw = wo.padL ? wo.w : wo.w + pdx * 2, px0 = wo.padL ? x : x - pdx;
+          if (ctx.roundRect) ctx.roundRect(px0, y - fsS * 0.92 - pdy, pw, fsS * 1.28 + pdy*2, 5 * scale);
+          else ctx.rect(px0, y - fsS * 0.92 - pdy, pw, fsS * 1.28 + pdy*2);
+          ctx.fill(); ctx.restore();
+        }
+
+        // Pop-Animation des aktiven Worts (@keyframes captly-*) — im Export bisher komplett statisch.
+        var animSt = (isHL && s.anim && s.anim !== 'none') ? animState(s.anim, t - (b.words[wo.idx].start || 0)) : null;
+        ctx.save();
+        if (animSt) {
+          var pvx = x + wo.w / 2, pvy = y - fsS * 0.32 - animSt.ty * scale;
+          ctx.translate(pvx, pvy);
+          if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
+          ctx.scale(animSt.sx, animSt.sy);
+          ctx.translate(-pvx, -pvy);
+          if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
+          if (animSt.bright !== 1 || animSt.sat !== 1) ctx.filter = 'brightness(' + animSt.bright + ') saturate(' + animSt.sat + ')';
+        }
+
+        // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) verhalten sich wie im DOM
+        // genauso wie das Highlight-Wort (gleiche Farbe/Gradient/Schatten), nur ohne Pill/Kringel/Anim.
+        var fillCss = (isHL || isKw) ? (s.hlg || null) : (s.tg || null);
+        if (fillCss) {
+          var cols = gradColors(fillCss);
+          var g = ctx.createLinearGradient(tx, 0, tx + Math.max(1, tw), 0);
+          cols.forEach(function(c, ci){ g.addColorStop(cols.length > 1 ? ci / (cols.length - 1) : 0, c); });
+          ctx.fillStyle = g;
+        } else {
+          ctx.fillStyle = (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (isHL ? hlColorFor(s, wo.idx) : (s.hl || '#fff'))) : (s.tc || '#fff');
+        }
+        // Text-Shadow wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter). Eine
+        // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
+        // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
+        var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
+        drawTextWithPlan(ctx, wo.txt, tx, y, (isHL || isKw) ? shHl : shTs, scale, animK, fsS, tw);
+        ctx.restore();
+        x += wo.w + sp;
+      });
+    });
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  }
 }
 
 // ═══════════════════════════════════════
@@ -6114,6 +6452,7 @@ function openEditor() {
   if (_showcaseCapTimer) { clearInterval(_showcaseCapTimer); _showcaseCapTimer = null; }
   if (_showcaseIO) _showcaseIO.disconnect();
   loadTemplates(); // gespeicherte Templates in den Picker einhängen
+  if (!STYLES.find(function(x){ return x.id === activeId; })) activeId = DEFAULT_STYLE; // gemerkter Style existiert nicht mehr
   buildPicker(); renderWPills(); updateOverlay();
   applyPos(); // gewählte Position beibehalten
 }
