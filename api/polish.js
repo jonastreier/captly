@@ -36,7 +36,7 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MAX_BYTES = 256 * 1024;   // roher JSON-Body
 const MAX_CHARS = 12000;        // Summe aller Segment-Texte
 const MAX_SEGMENTS = 1000;
-const BUDGET_MS = 25000;        // gesamte Groq-Zeit (vercel.json maxDuration 30)
+const BUDGET_MS = 20000;        // gesamte Groq-Zeit (vercel.json maxDuration 30)
 const MIN_FALLBACK_MS = 4000;   // weniger Restzeit → kein Fallback-Versuch mehr
 
 const hits = new Map();   // ip -> [timestamps]  (eigener Bucket; best effort pro Instanz)

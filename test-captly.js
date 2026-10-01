@@ -1155,6 +1155,12 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(tplRow.payload.templates.length === 3 && calls.includes('update'), 'Sync: Zeile mit allen Templates aktualisiert');
     ok(metaUpdate && metaUpdate.data && metaUpdate.data.capivo_templates === null, 'Sync: alte JWT-Metadaten geleert');
     ok(T.STYLES.filter(x => x.id === 'tpl_row').length === 1, 'Sync: keine doppelten Picker-Eintraege');
+    // Push von einem zweiten Gerät mit altem Stand darf fremde Cloud-Templates nicht überschreiben
+    tplRow.payload = { kind: 'capivo_templates', templates: tplRow.payload.templates.concat([{ id: 'tpl_otherdev', name: 'Anderes Geraet', style: { fl: 'Inter' }, layout: {}, createdAt: 5, updatedAt: 50 }]) };
+    await T.pushTemplatesToCloud();
+    const after = rows.find(r => r.title === T.TPL_ROW_TITLE).payload.templates.map(t => t.id);
+    ok(after.includes('tpl_otherdev') && after.includes('tpl_local') && T.getUserTemplates().some(t => t.id === 'tpl_otherdev'),
+       'Push mischt Cloud-Stand ein (kein Ueberschreiben fremder Templates): ' + after.join(','));
     // Projektliste blendet die Templates-Zeile aus
     await T.loadProjects();
     const opts = document.getElementById('projList').children.map(o => o.textContent);

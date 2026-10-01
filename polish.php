@@ -22,7 +22,7 @@ const POLISH_MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'];
 const POLISH_MAX_CHARS = 12000;
 const POLISH_MAX_SEGMENTS = 1000;
 const POLISH_MAX_BYTES = 262144;
-const POLISH_BUDGET_S = 25;
+const POLISH_BUDGET_S = 20;
 const POLISH_MIN_FALLBACK_S = 4;
 
 const POLISH_SYSTEM_PROMPT = <<<'TXT'

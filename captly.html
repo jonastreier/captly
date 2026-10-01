@@ -3168,8 +3168,16 @@ async function pushTemplatesToCloud() {
   try {
     var sb = await getSb();
     if (!sb || !meEmail) return false;
-    var payload = { kind: 'capivo_templates', v: 2, templates: templatesForCloud() };
+    // Vor jedem Schreiben den aktuellen Cloud-Stand (alle Zeilen, auch Duplikate anderer Tabs) einmischen:
+    // sonst überschreibt Gerät B mit seinem alten Stand die Templates, die Gerät A inzwischen gespeichert hat,
+    // und Löschungen anderer Geräte gehen verloren. mergeTemplates = Union per id, neuer gewinnt, inkl. Grabsteine.
     var rows = await fetchTemplateRows(sb);
+    var merged = userTemplates.slice();
+    rows.forEach(function(r) { if (r.payload && Array.isArray(r.payload.templates)) merged = mergeTemplates(merged, r.payload.templates); });
+    if (JSON.stringify(merged) !== JSON.stringify(mergeTemplates(userTemplates, []))) {
+      userTemplates = merged; persistTemplates(true); rebuildTemplateStyles(); buildPicker();
+    }
+    var payload = { kind: 'capivo_templates', v: 2, templates: templatesForCloud() };
     if (rows.length) {
       _tplRowId = rows[0].id;
       var u = await sb.from('projects').update({ payload: payload, updated_at: new Date().toISOString() }).eq('id', _tplRowId);
@@ -4269,7 +4277,7 @@ function audioTruncated(nSamples, mediaDur) {
 // Nur Text wird korrigiert; die Timings bleiben exakt: jede korrigierte Passage wird mit derselben
 // LCS-/Slot-Logik wie manuelle Edits (retimeEditedBlock) auf die getimten Wörter gelegt. Fehlt der Endpoint,
 // ist er nicht konfiguriert oder zu langsam → stillschweigend das unpolierte Transkript behalten.
-var POLISH_ENDPOINTS = ['api/polish', 'polish.php'], _plIdx = 0, POLISH_TIMEOUT_MS = 15000, POLISH_SEG_MAX = 40;
+var POLISH_ENDPOINTS = ['api/polish', 'polish.php'], _plIdx = 0, POLISH_TIMEOUT_MS = 24000, POLISH_SEG_MAX = 40;
 function polishEnabled() { return whisperModel === 'perfect' && !doTranslate; }
 function polishSegments(words) {
   var segs = [], a = 0;
