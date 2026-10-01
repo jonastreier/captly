@@ -11,20 +11,20 @@
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon-16.png" sizes="16x16" type="image/png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-<!-- TODO: replace capivo.app with your real domain -->
-<link rel="canonical" href="https://capivo.app/">
+<!-- Live-Domain der App (capivo.app ist eine FREMDE Seite — nie als canonical verwenden) -->
+<link rel="canonical" href="https://captly.vercel.app/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Capivo">
 <meta property="og:title" content="Capivo — AI Auto Captions for Reels & TikTok">
 <meta property="og:description" content="Word-perfect animated captions in 31 viral styles. Automatic language detection. Export MP4, SRT, VTT. Free, no signup.">
-<meta property="og:url" content="https://capivo.app/">
-<meta property="og:image" content="https://capivo.app/assets/og-image.jpg">
+<meta property="og:url" content="https://captly.vercel.app/">
+<meta property="og:image" content="https://captly.vercel.app/assets/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Capivo — AI Auto Captions for Reels & TikTok">
 <meta name="twitter:description" content="Word-perfect animated captions in 31 viral styles. Free, no signup.">
-<meta name="twitter:image" content="https://capivo.app/assets/og-image.jpg">
+<meta name="twitter:image" content="https://captly.vercel.app/assets/og-image.jpg">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Capivo","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"Capivo adds animated, word-perfect captions to Reels, TikToks and Shorts in seconds, with 31 viral styles, automatic language detection and MP4/SRT/VTT export.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Automatic speech-to-text captions","31 viral caption styles","Word-by-word karaoke highlighting","Automatic language detection","Export to MP4, SRT and VTT","Runs in the browser, no signup"]}
 </script>
@@ -3025,67 +3025,124 @@ async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt)
   setTProgress(92);
   return { words: all, language: language };
 }
-// Tonspur → Mono-Float32 @16 kHz. Primär per Web Audio (schnell, kein Download); scheitert das (exotischer
-// Container/Codec, iOS-Eigenheiten), extrahiert das selbst gehostete ffmpeg.wasm die Tonspur.
-async function decodeToMono16k(file, isStale) {
-  var audioData = null, peak = 0;
+// Tonspur → Mono-Float32 @16 kHz.
+// Kleine Dateien: zuerst Web Audio (schnell, kein Download), bei Fehlschlag ffmpeg.wasm.
+// Große Dateien (> 150 MB, z. B. 4K-HEVC-Reels vom iPhone mit 300–600 MB) und iOS/iPadOS: ZUERST
+// ffmpeg.wasm per WORKERFS — die Datei wird dort lazy aus dem File gelesen, im Speicher landet nur das
+// 16-kHz-PCM (32 KB/s). file.arrayBuffer() + decodeAudioData hielte das ganze Video (+ dekodiertes
+// Audio) im RAM und bringt Safari-Tabs zum Absturz.
+var BIG_MEDIA_BYTES = 150 * 1024 * 1024;
+function isIOSDevice() {
   try {
-    var arrayBuffer = await file.arrayBuffer();
-    var AudioCtx = window.AudioContext || window.webkitAudioContext;
-    var audioCtx = new AudioCtx({ sampleRate: 16000 });
-    var audioBuffer;
-    try { audioBuffer = await audioCtx.decodeAudioData(arrayBuffer); }
-    finally { try { audioCtx.close(); } catch (e0) {} }
-    // Mono-Mix über ALLE Kanäle (Sprache kann nur auf einem Kanal liegen) + Pegel-Scan in einem
-    // Durchgang, in Chunks mit Yields (sonst blockiert der Main-Thread bei langen Videos).
-    var chN = audioBuffer.numberOfChannels, len = audioBuffer.length, channels = [];
-    for (var c = 0; c < chN; c++) channels.push(audioBuffer.getChannelData(c));
-    var invN = 1 / chN;
-    audioData = new Float32Array(len);
-    for (var k = 0; k < len; k++) {
-      var s = 0;
-      for (var ci = 0; ci < chN; ci++) s += channels[ci][k];
-      s *= invN;
-      audioData[k] = s;
-      var av = s < 0 ? -s : s;
-      if (av > peak) peak = av;
-      if (k > 0 && k % YIELD_EVERY === 0) await yieldToUI();
+    var ua = navigator.userAgent || '';
+    return /iP(hone|ad|od)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  } catch (e) { return false; }
+}
+function noAudioTrackErr() { return new Error('This video has no audio track — nothing to transcribe.'); }
+async function decodeToMono16k(file, isStale) {
+  function bail() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
+  var preferFfmpeg = (file && file.size > BIG_MEDIA_BYTES) || isIOSDevice();
+  if (preferFfmpeg) {
+    try { return await ffmpegExtractPcm(file, isStale); }
+    catch (e) {
+      if (e && e.stale) throw e;
+      if (e && e.noAudio) throw noAudioTrackErr();
+      console.warn('ffmpeg/WORKERFS-Extraktion fehlgeschlagen, Web-Audio-Fallback:', e);
+      bail();
+      try { return await webAudioDecode(file); }
+      catch (e2) { console.error(e2); throw new Error('Could not read the audio. Please use MP4, MOV or WebM.'); }
     }
-  } catch (e) {
+  }
+  try { return await webAudioDecode(file); }
+  catch (e) {
     console.warn('Web-Audio-Decode fehlgeschlagen, ffmpeg-Fallback:', e);
-    if (isStale && isStale()) throw transcribeErr('stale', { stale: true });
-    setTStatus('', 'Extracting audio (compatibility mode)…', true, true);
-    var noAudio = false;
-    try {
-      var g = await getFFmpeg(), ff = g.ff;
-      // ffmpeg-Log mitschneiden: nur so lässt sich „Datei ohne Tonspur“ von „Datei kaputt/unbekannt“
-      // unterscheiden — in beiden Fällen entsteht keine a.pcm und readFile wirft bloß „FS error“.
-      var ffLog = '';
-      var onLog = function(ev) { if (ev && ev.message) ffLog += ev.message + '\n'; };
-      try { ff.on('log', onLog); } catch (eL) {}
-      await ff.writeFile('in_media', await g.fetchFile(file));
-      try { await ff.exec(['-i', 'in_media', '-vn', '-ac', '1', '-ar', '16000', '-f', 's16le', 'a.pcm']); }
-      finally { try { ff.off && ff.off('log', onLog); } catch (eL2) {} }
-      var raw = null;
-      try { raw = await ff.readFile('a.pcm'); } catch (eR) { raw = null; }
-      try { await ff.deleteFile('in_media'); await ff.deleteFile('a.pcm'); } catch (e1) {}
-      if (!raw || !raw.byteLength) {
-        noAudio = isNoAudioFfmpegLog(ffLog);
-        throw new Error('ffmpeg produced no audio output');
-      }
-      var i16 = new Int16Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + (raw.byteLength & ~1)));
-      audioData = new Float32Array(i16.length); peak = 0;
-      for (var m = 0; m < i16.length; m++) {
-        var f = i16[m] / 32768; audioData[m] = f;
-        var af = f < 0 ? -f : f; if (af > peak) peak = af;
-        if (m > 0 && m % YIELD_EVERY === 0) await yieldToUI();
-      }
-    } catch (e2) {
+    bail();
+    try { return await ffmpegExtractPcm(file, isStale); }
+    catch (e2) {
+      if (e2 && e2.stale) throw e2;
       console.error(e2);
-      if (noAudio) throw new Error('This video has no audio track — nothing to transcribe.');
+      if (e2 && e2.noAudio) throw noAudioTrackErr();
       throw new Error('Could not read the audio. Please use MP4, MOV or WebM.');
     }
   }
+}
+async function webAudioDecode(file) {
+  var audioData = null, peak = 0;
+  var arrayBuffer = await file.arrayBuffer();
+  var AudioCtx = window.AudioContext || window.webkitAudioContext;
+  var audioCtx = new AudioCtx({ sampleRate: 16000 });
+  var audioBuffer;
+  try { audioBuffer = await audioCtx.decodeAudioData(arrayBuffer); }
+  finally { try { audioCtx.close(); } catch (e0) {} }
+  // Mono-Mix über ALLE Kanäle (Sprache kann nur auf einem Kanal liegen) + Pegel-Scan in einem
+  // Durchgang, in Chunks mit Yields (sonst blockiert der Main-Thread bei langen Videos).
+  var chN = audioBuffer.numberOfChannels, len = audioBuffer.length, channels = [];
+  for (var c = 0; c < chN; c++) channels.push(audioBuffer.getChannelData(c));
+  var invN = 1 / chN;
+  audioData = new Float32Array(len);
+  for (var k = 0; k < len; k++) {
+    var s = 0;
+    for (var ci = 0; ci < chN; ci++) s += channels[ci][k];
+    s *= invN;
+    audioData[k] = s;
+    var av = s < 0 ? -s : s;
+    if (av > peak) peak = av;
+    if (k > 0 && k % YIELD_EVERY === 0) await yieldToUI();
+  }
+  return { audioData: audioData, peak: peak };
+}
+// ffmpeg.wasm-Extraktion: Datei per WORKERFS mounten (kein Komplett-Kopieren in den Wasm-Speicher),
+// nur Audio als s16le-PCM ausgeben, max. MAX_AUDIO_SEC. Wirft {noAudio:true}, wenn die Datei lesbar
+// ist, aber keine Tonspur hat; {stale:true}, wenn ein neuerer Transkriptionslauf gestartet wurde.
+async function ffmpegExtractPcm(file, isStale) {
+  function bail() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
+  setTStatus('', 'Extracting audio…', true, true);
+  setTProgress(12);
+  var g = await getFFmpeg(), ff = g.ff;
+  bail();
+  // ffmpeg-Log mitschneiden: nur so lässt sich „Datei ohne Tonspur“ von „Datei kaputt/unbekannt“
+  // unterscheiden — in beiden Fällen entsteht keine a.pcm und readFile wirft bloß „FS error“.
+  var ffLog = '';
+  var onLog = function(ev) { if (ev && ev.message) ffLog += ev.message + '\n'; };
+  var onProg = function(ev) { var p = ev && ev.progress; if (p > 0 && p <= 1) setTProgress(12 + 36 * p); };
+  try { ff.on('log', onLog); ff.on('progress', onProg); } catch (eL) {}
+  // Sicherer Dateiname (Sonderzeichen/Leerzeichen im Original) — new File([file]) ist nur eine
+  // Blob-Referenz, keine Kopie.
+  var m = /\.[a-z0-9]{1,5}$/i.exec(file.name || '');
+  var inName = 'input' + (m ? m[0].toLowerCase() : '');
+  var inFile;
+  try { inFile = new File([file], inName, { type: file.type || '' }); } catch (eF) { inFile = file; inName = file.name; }
+  var args = ['-vn', '-ac', '1', '-ar', '16000', '-t', String(MAX_AUDIO_SEC), '-f', 's16le', 'a.pcm'];
+  var mounted = false, wroteMem = false;
+  try {
+    try { await ff.createDir('/in'); } catch (eD) {} // existiert evtl. schon vom letzten Lauf
+    try { await ff.mount('WORKERFS', { files: [inFile] }, '/in'); mounted = true; }
+    catch (eM) {
+      // WORKERFS nicht verfügbar: nur für kleine Dateien in den Speicher kopieren (große würden crashen)
+      if (file.size > BIG_MEDIA_BYTES) throw eM;
+      console.warn('WORKERFS-Mount fehlgeschlagen, MEMFS-Fallback:', eM);
+      await ff.writeFile('in_media', await g.fetchFile(file)); wroteMem = true;
+    }
+    bail();
+    await ff.exec(['-i', mounted ? '/in/' + inName : 'in_media'].concat(args));
+  } finally {
+    try { ff.off && ff.off('log', onLog); ff.off && ff.off('progress', onProg); } catch (eL2) {}
+    if (mounted) { try { await ff.unmount('/in'); } catch (eU) {} }
+    if (wroteMem) { try { await ff.deleteFile('in_media'); } catch (eW) {} }
+  }
+  var raw = null;
+  try { raw = await ff.readFile('a.pcm'); } catch (eR) { raw = null; }
+  try { await ff.deleteFile('a.pcm'); } catch (e1) {}
+  bail();
+  if (!raw || !raw.byteLength) throw transcribeErr('ffmpeg produced no audio output', { noAudio: isNoAudioFfmpegLog(ffLog) });
+  var i16 = new Int16Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + (raw.byteLength & ~1)));
+  var audioData = new Float32Array(i16.length), peak = 0;
+  for (var k = 0; k < i16.length; k++) {
+    var f = i16[k] / 32768; audioData[k] = f;
+    var af = f < 0 ? -f : f; if (af > peak) peak = af;
+    if (k > 0 && k % YIELD_EVERY === 0) await yieldToUI();
+  }
+  setTProgress(48);
   return { audioData: audioData, peak: peak };
 }
 // Wertet das ffmpeg-Log aus: Eingabe erkannt (Stream-Liste vorhanden, kein „Invalid data“), aber
@@ -3117,7 +3174,6 @@ async function transcribeVideo(file) {
   try {
     setTProgress(10);
     setTStatus('', 'Extracting audio…', true, true);
-    setTProgress(40);
 
     var dec = await decodeToMono16k(file, stale);
     bailIfStale();

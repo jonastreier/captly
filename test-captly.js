@@ -74,7 +74,7 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,isPromptEcho:isPromptEcho,capFontsChanged:capFontsChanged,
+needsWatermark:needsWatermark,decodeToMono16k:decodeToMono16k,setFFmpeg:function(f){_ffmpeg=f;},isPromptEcho:isPromptEcho,capFontsChanged:capFontsChanged,
 getAutosaveTimer:function(){return _autosaveTimer;},setExporting:function(v){isExporting=v;},autosaveWhenIdle:autosaveWhenIdle,autosaveNow:autosaveNow,restoreOrTranscribe:restoreOrTranscribe,
 readAutosaves:readAutosaves,setAutosaveKey:function(k){_autosaveKey=k;},AUTOSAVE_KEY:AUTOSAVE_KEY,setTranslateState:function(v){doTranslate=v;},capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
 setMe:function(plan,email){mePlan=plan;meEmail=email;}};`;
@@ -629,6 +629,52 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
     }
   }
 
+
+  // 9h) Große Videos: ffmpeg per WORKERFS (lazy), KEIN file.arrayBuffer() des ganzen Videos
+  {
+    const mkFF = (opts) => {
+      const calls = []; const hand = {};
+      const ff = {
+        on: (ev, f) => { hand[ev] = f; }, off: () => {},
+        createDir: async (d) => { calls.push(['createDir', d]); },
+        mount: async (t, o, mp) => { calls.push(['mount', t, mp, o.files[0].name]); if (opts.noMount) throw new Error('no WORKERFS'); },
+        unmount: async (mp) => { calls.push(['unmount', mp]); },
+        writeFile: async (n) => { calls.push(['writeFile', n]); },
+        exec: async (args) => { calls.push(['exec'].concat(args)); if (hand.log) hand.log({ message: opts.log || '  Stream #0:0: Video: hevc\n  Stream #0:1: Audio: aac' }); if (hand.progress) hand.progress({ progress: 0.5 }); },
+        readFile: async (n) => { calls.push(['readFile', n]); if (opts.noAudio) throw new Error('FS error'); return new Uint8Array(new Int16Array([0, 16384, -16384, 8192]).buffer); },
+        deleteFile: async () => {}
+      };
+      return { g: { ff, fetchFile: async () => new Uint8Array(4) }, calls };
+    };
+    let abCalls = 0;
+    const bigFile = { name: 'Mein Reel (1).MOV', size: 450 * 1024 * 1024, type: 'video/quicktime', arrayBuffer: async () => { abCalls++; throw new Error('OOM'); } };
+    let m = mkFF({}); T.setFFmpeg(m.g);
+    const dec = await T.decodeToMono16k(bigFile);
+    ok(abCalls === 0, 'grosses Video: kein arrayBuffer() des ganzen Videos');
+    const ex = m.calls.find(c => c[0] === 'exec');
+    ok(m.calls.some(c => c[0] === 'mount' && c[1] === 'WORKERFS' && c[2] === '/in' && c[3] === 'input.mov'), 'WORKERFS-Mount mit sicherem Dateinamen: ' + JSON.stringify(m.calls.find(c => c[0] === 'mount')));
+    ok(ex && ex[2] === '/in/input.mov' && ex.includes('-t') && ex[ex.indexOf('-t') + 1] === '1200' && ex.includes('s16le'), 'exec liest aus Mount, -t MAX_AUDIO_SEC: ' + (ex && ex.join(' ')));
+    ok(m.calls.some(c => c[0] === 'unmount' && c[1] === '/in') && !m.calls.some(c => c[0] === 'writeFile'), 'danach unmount, keine Speicherkopie');
+    ok(dec.audioData.length === 4 && Math.abs(dec.peak - 0.5) < 1e-9, 'PCM korrekt dekodiert');
+    // ohne Tonspur → klare Meldung
+    m = mkFF({ noAudio: true, log: 'Input #0\n  Stream #0:0: Video: hevc\nOutput file #0 does not contain any stream' }); T.setFFmpeg(m.g);
+    let err = null; try { await T.decodeToMono16k(bigFile); } catch (e) { err = e; }
+    ok(err && /no audio track/.test(err.message) && abCalls === 0, 'grosses Video ohne Ton: klare Meldung, kein arrayBuffer-Fallback: ' + (err && err.message));
+    // kleine Datei: Web Audio zuerst; scheitert es, ffmpeg-Fallback ebenfalls per WORKERFS
+    const smallFile = { name: 'clip.webm', size: 5 * 1024 * 1024, type: 'video/webm', arrayBuffer: async () => { abCalls++; return new ArrayBuffer(8); } };
+    global.AudioContext = function () { this.decodeAudioData = async () => { throw new Error('decode failed'); }; this.close = () => {}; };
+    m = mkFF({}); T.setFFmpeg(m.g); abCalls = 0;
+    const dec2 = await T.decodeToMono16k(smallFile);
+    ok(abCalls === 1 && dec2.audioData.length === 4 && m.calls.some(c => c[0] === 'mount') && !m.calls.some(c => c[0] === 'writeFile'), 'kleine Datei: Web Audio zuerst, Fallback per WORKERFS');
+    // WORKERFS nicht verfügbar: kleine Datei → MEMFS-Kopie ok; große Datei → nie komplett kopieren
+    m = mkFF({ noMount: true }); T.setFFmpeg(m.g);
+    await T.decodeToMono16k(smallFile);
+    ok(m.calls.some(c => c[0] === 'writeFile'), 'ohne WORKERFS: kleine Datei per MEMFS');
+    m = mkFF({ noMount: true }); T.setFFmpeg(m.g);
+    err = null; try { await T.decodeToMono16k(bigFile); } catch (e) { err = e; }
+    ok(!m.calls.some(c => c[0] === 'writeFile') && err && /Could not read the audio/.test(err.message), 'ohne WORKERFS: grosses Video nie komplett in den Speicher');
+    delete global.AudioContext; T.setFFmpeg(null);
+  }
 
   // 22) Vercel-Function api/transcribe.js (gemocktes req/res + Groq-fetch)
   {
