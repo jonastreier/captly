@@ -74,7 +74,13 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,decodeToMono16k:decodeToMono16k,setFFmpeg:function(f){_ffmpeg=f;},isPromptEcho:isPromptEcho,capFontsChanged:capFontsChanged,
+needsWatermark:needsWatermark,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
+countMatches:countMatches,replaceAllCaptions:replaceAllCaptions,displayWord:displayWord,togglePunct:togglePunct,setCaptionCase:setCaptionCase,
+transcriptText:transcriptText,copyTranscript:copyTranscript,exportTXT:exportTXT,seedCustomFields:seedCustomFields,buildCustomStyle:buildCustomStyle,
+setCsDirty:function(d){_csDirty=d;},saveTemplate:saveTemplate,loadTemplates:loadTemplates,getUserTemplates:function(){return userTemplates;},
+mergeTemplates:mergeTemplates,importTemplatesFromText:importTemplatesFromText,renameTemplate:renameTemplate,duplicateTemplate:duplicateTemplate,
+deleteTemplate:deleteTemplate,parseOutline:parseOutline,outlineShadow:outlineShadow,hlColorFor:hlColorFor,getWpb:function(){return WORDS_PER_BLOCK;},
+getActiveId:function(){return activeId;},editTemplate:editTemplate,getEditingTpl:function(){return _csEditingTpl;},decodeToMono16k:decodeToMono16k,setFFmpeg:function(f){_ffmpeg=f;},isPromptEcho:isPromptEcho,capFontsChanged:capFontsChanged,
 getAutosaveTimer:function(){return _autosaveTimer;},setExporting:function(v){isExporting=v;},autosaveWhenIdle:autosaveWhenIdle,autosaveNow:autosaveNow,restoreOrTranscribe:restoreOrTranscribe,
 readAutosaves:readAutosaves,setAutosaveKey:function(k){_autosaveKey=k;},AUTOSAVE_KEY:AUTOSAVE_KEY,setTranslateState:function(v){doTranslate=v;},capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
 setMe:function(plan,email){mePlan=plan;meEmail=email;}};`;
@@ -85,7 +91,7 @@ let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } };
 
 // 1) Grunddaten
-ok(T.STYLES.length === 31, '31 Styles erwartet: ' + T.STYLES.length);
+ok(T.STYLES.length === 36, '36 Styles erwartet (31 + 5 Trend-Presets): ' + T.STYLES.length);
 
 // 2) Zeitformate
 ok(T.srtT(61.5) === '00:01:01,500', 'srtT: ' + T.srtT(61.5));
@@ -418,12 +424,164 @@ ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animat
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
 T.applyCustomStyle();
-ok(T.STYLES.length === 32 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
+ok(T.STYLES.length === 37 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
 // Referenz-Styles: Prime Script-Akzent, Sketch Kringel, Sonnet kursiv
 const pr = T.buildCap(['nur', 'ein', 'tipp'], T.STYLES.find(x => x.id === 'prime'), 2, 22, null);
 ok(pr.includes("font-family:'Caveat'") && pr.includes('font-style:italic'), 'Prime: Script-Akzent am aktiven Wort');
 const sk = T.buildCap(['mind', 'map'], T.STYLES.find(x => x.id === 'sketch'), 1, 22, null);
 ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Uppercase am aktiven Wort');
+
+// 16a) Custom-Style-Editor: startet vom gewählten Style, nur geänderte Gruppen überschreiben
+{
+  const E = id => document.getElementById(id);
+  const base = T.STYLES.find(x => x.id === 'boxkara');
+  T.selectStyle('boxkara');                      // seedet die Regler + Basis
+  ok(E('csBox').value === 'box' && E('csHlType').value === 'pill' && E('csAnim').value === 'scale', 'Regler aus Box Karaoke befuellt');
+  E('csText').value = '#ff0000';
+  T.setCsDirty({ text: true });
+  let cs = T.buildCustomStyle();
+  ok(cs.tc === '#ff0000' && cs.boxBg === base.boxBg && cs.hlPillBg === base.hlPillBg && cs.anim === 'scale' && cs.fw === base.fw,
+     'Custom behaelt Box/Pill/Animation/Gewicht des Ausgangs-Styles');
+  // Kontur, Großbuchstaben, Abstand, Gewicht, Hintergrund, Highlight-Typ, Animation
+  E('csOutlineW').value = '4'; E('csOutlineC').value = '#112233';
+  E('csUpper').classList.add('on'); E('csLs').value = '2'; E('csWeight').value = '900';
+  E('csBox').value = 'pill'; E('csBoxC').value = '#ffffff'; E('csBoxO').value = '40';
+  E('csHlType').value = 'color'; E('csHl').value = '#00ffaa'; E('csAnim').value = 'wobble';
+  T.setCsDirty({ text: true, stroke: true, upper: true, ls: true, weight: true, box: true, hl: true, anim: true });
+  cs = T.buildCustomStyle();
+  ok(T.parseOutline(cs.ts).w === 4 && cs.ts.includes('#112233'), 'Kontur 4px in ts: ' + cs.ts.slice(0, 40));
+  ok(cs.tt === 'uppercase' && cs.ls === '2px' && cs.fw === '900' && cs.anim === 'wobble', 'Caps/Abstand/Gewicht/Animation');
+  ok(cs.boxBg === 'rgba(255,255,255,0.4)' && cs.boxBr === '22px', 'Hintergrund-Pill mit Deckkraft: ' + cs.boxBg);
+  ok(!cs.hlPillBg && cs.hl === '#00ffaa' && T.parseOutline(cs.hls).w === 4, 'Highlight als Textfarbe mit Kontur');
+  const html = T.buildCap(['eins', 'zwei'], cs, 1, 22, null);
+  ok(html.includes('letter-spacing:2px') && html.includes('text-transform:uppercase') && html.includes('rgba(255,255,255,0.4)') && html.includes('captly-wobble'),
+     'Vorschau rendert alle Custom-Eigenschaften');
+  E('csHlType').value = 'pill'; E('csPillC').value = '#fde047';
+  cs = T.buildCustomStyle();
+  ok(cs.hlPillBg === '#fde047' && cs.hlc === '#111', 'Highlight-Pill mit lesbarer Textfarbe');
+  // Kontur-Erkennung aus bestehenden Styles
+  ok(T.parseOutline(T.STYLES.find(x => x.id === 'classic').ts).w === 2, 'Kontur von Standard erkannt (2px)');
+  ok(T.parseOutline(T.outlineShadow(6, '#000')).w === 6, 'outlineShadow ↔ parseOutline');
+  T.setCsDirty({});
+}
+
+// 16a2) Templates: kompletter Style + Layout, Verwaltung, Migration, Merge, Import (bereinigt)
+{
+  const store = {};
+  global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+  // Legacy-v1-Template migrieren
+  store.capivo_templates = JSON.stringify([{ id: 'tpl_1700000000000', name: 'Alt', font: 'Anton', tc: '#ffffff', hl: '#ff0000', glow: true, glowInt: 9, pos: 'top', size: 30, wpb: 3 }]);
+  T.loadTemplates();
+  const legacy = T.STYLES.find(x => x.id === 'tpl_1700000000000');
+  ok(legacy && legacy.fl === 'Anton' && legacy.hl === '#ff0000' && /0 0 9px/.test(legacy.hls) && legacy._tpl.pos === 'top' && legacy._tpl.wpb === 3, 'Legacy-Template migriert');
+  // Neues Template speichert den VOLLEN Style
+  T.selectStyle('boxkara');
+  document.getElementById('tplName').value = 'Mein Box';
+  T.saveTemplate();
+  let tpl = T.getUserTemplates().find(t => t.name === 'Mein Box');
+  ok(tpl && tpl.style.boxBg && tpl.style.hlPillBg === '#22c55e' && tpl.style.anim === 'scale' && tpl.layout && typeof tpl.layout.wpb === 'number',
+     'Template enthaelt vollen Style + Layout');
+  T.loadTemplates();
+  ok(T.STYLES.find(x => x.id === tpl.id).boxBg === tpl.style.boxBg, 'Template ueberlebt Reload (localStorage)');
+  // Rename / Duplicate / Edit / Delete
+  global.prompt = () => 'Umbenannt'; T.renameTemplate(tpl.id);
+  ok(T.getUserTemplates().find(t => t.id === tpl.id).name === 'Umbenannt', 'Rename');
+  T.duplicateTemplate(tpl.id);
+  const dup = T.getUserTemplates().find(t => t.name === 'Umbenannt copy');
+  ok(dup && dup.id !== tpl.id && dup.style.boxBg === tpl.style.boxBg, 'Duplicate');
+  T.editTemplate(tpl.id);
+  ok(T.getEditingTpl() === tpl.id && document.getElementById('tplSaveBtn').textContent === 'Update', 'Edit-Modus');
+  T.selectStyle('hormozi'); // anderer Style beendet den Edit-Modus
+  ok(T.getEditingTpl() === null, 'Edit-Modus endet bei Style-Wechsel');
+  global.confirm = () => true; T.deleteTemplate(dup.id);
+  ok(!T.STYLES.find(x => x.id === dup.id) && T.getUserTemplates().find(t => t.id === dup.id).deleted, 'Delete hinterlaesst Grabstein');
+  // Merge: neueres updatedAt gewinnt, Grabstein schlägt ältere Version
+  const m = T.mergeTemplates([{ id: 'tpl_a', name: 'alt', style: { fl: 'Inter' }, updatedAt: 1 }, { id: 'tpl_b', name: 'b', style: {}, updatedAt: 5 }],
+                             [{ id: 'tpl_a', name: 'neu', style: { fl: 'Anton' }, updatedAt: 2 }, { id: 'tpl_b', deleted: true, updatedAt: 9 }]);
+  ok(m.find(t => t.id === 'tpl_a').name === 'neu' && m.find(t => t.id === 'tpl_b').deleted, 'Merge: neuer gewinnt, Grabstein gewinnt');
+  // Import bereinigt gefährliche Werte und kollidiert nie mit eingebauten IDs
+  const n = T.importTemplatesFromText(JSON.stringify({ templates: [{ id: 'classic', name: 'X', style: { fl: 'Inter', font: "'Inter'\"><img src=x onerror=alert(1)>", tc: 'red;background:url(http://x)' } }] }));
+  const imp = T.getUserTemplates().find(t => t.name === 'X');
+  ok(n === 1 && imp.id === 'tpl_classic' && !/[<>"]/.test(imp.style.font) && !/url\(|;/.test(imp.style.tc), 'Import bereinigt: ' + imp.style.font + ' / ' + imp.style.tc);
+  ok(T.STYLES.filter(x => x.id === 'classic').length === 1, 'eingebauter Style unangetastet');
+  delete global.localStorage; delete global.prompt;
+}
+
+// 16a3) Trend-Presets: vorhanden, Pop One erzwingt 1 Wort/Block und gibt den alten Wert zurück
+{
+  ['hormozi', 'beast', 'boxkara', 'minimal', 'popone'].forEach(id => ok(T.STYLES.find(x => x.id === id), 'Preset vorhanden: ' + id));
+  const beast = T.STYLES.find(x => x.id === 'beast');
+  ok(T.hlColorFor(beast, 0) !== T.hlColorFor(beast, 1), 'Beast: aktives Wort wechselt die Farbe');
+  ok(T.buildCap(['a', 'b'], beast, 1, 22, null).includes(beast.hlCycle[1]), 'Beast: Farbwechsel in der Vorschau');
+  T.selectStyle('classic');
+  const prevWpb = T.getWpb();
+  T.selectStyle('popone');
+  ok(T.getWpb() === 1, 'Pop One: 1 Wort pro Block');
+  T.selectStyle('classic');
+  ok(T.getWpb() === prevWpb, 'nach Pop One: vorherige Blockgroesse zurueck (' + prevWpb + ')');
+}
+
+// 16c) Timing-Regler: links früher, rechts später — Vorzeichen konsistent mit Vorschau/Export/SRT
+{
+  T.setState(T.buildCaptionBlocks([{ word: 'Hallo', start: 1, end: 1.5 }, { word: 'Welt.', start: 1.6, end: 2 }]), [], 'karaoke');
+  T.onTimeOffChange('0.2');                    // Regler nach rechts = später
+  ok(Math.abs(T.getTimeOff() + 0.2) < 1e-9 && /0\.20 s later/.test(document.getElementById('toDisp').textContent), 'Regler rechts → Captions spaeter: ' + document.getElementById('toDisp').textContent);
+  T.exportSRT();
+  ok(/^1\n00:00:01,200 --> 00:00:02,200/.test(global.LASTBLOB.content), 'SRT um 0.2 s spaeter: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 40)));
+  T.onTimeOffChange('-0.1');
+  ok(Math.abs(T.getTimeOff() - 0.1) < 1e-9 && /earlier/.test(document.getElementById('toDisp').textContent), 'Regler links → frueher');
+  T.onTimeOffChange('0');
+  ok(T.getTimeOff() === 0 && /in sync/.test(document.getElementById('toDisp').textContent), 'Regler Mitte → synchron');
+}
+
+// 16d) Suchen & Ersetzen: Trefferzahl, ganze Wörter, Timings bleiben
+{
+  T.setState([{ start: 1, end: 3, text: 'Unser Highlnd Rind und Rinder', words: [
+    { word: 'Unser', start: 1, end: 1.3 }, { word: 'Highlnd', start: 1.4, end: 1.9 }, { word: 'Rind', start: 2, end: 2.3 },
+    { word: 'und', start: 2.35, end: 2.5 }, { word: 'Rinder', start: 2.55, end: 3 }] }], [], 'karaoke');
+  T.getBlocks()[0].srcWords = T.getBlocks()[0].words.map(w => Object.assign({}, w));
+  ok(T.countMatches('rind', false) === 2 && T.countMatches('rind', true) === 1, 'Trefferzahl (Teilwort vs. ganzes Wort)');
+  document.getElementById('frFind').value = 'highlnd'; document.getElementById('frRepl').value = 'Highland';
+  document.getElementById('frWhole').checked = true;
+  T.setCaptionsEdited(false);
+  ok(T.replaceAllCaptions() === 1, 'Replace all ersetzt 1 Treffer');
+  const bw = T.getBlocks()[0].words;
+  ok(bw[1].word === 'Highland' && bw[1].start === 1.4 && bw[1].end === 1.9 && bw[4].start === 2.55, 'Ersetzen behaelt Wort-Timings');
+  ok(T.getCaptionsEdited() === true, 'Ersetzen markiert Edits');
+  document.getElementById('frFind').value = 'Rind'; document.getElementById('frRepl').value = 'Weiderind $1';
+  T.replaceAllCaptions();
+  ok(T.getBlocks()[0].text === 'Unser Highland Weiderind $1 und Rinder', 'ganzes Wort + "$" woertlich: ' + T.getBlocks()[0].text);
+  document.getElementById('frWhole').checked = false; document.getElementById('frFind').value = ''; T.setCaptionsEdited(false);
+}
+
+// 16e) Textformat (nur Darstellung) + TXT/Copy
+{
+  T.togglePunct();
+  ok(T.displayWord('Hallo,') === 'Hallo' && T.displayWord('wirklich?!') === 'wirklich' && T.displayWord('3.5') === '3.5'
+     && T.displayWord("rock'n'roll.") === "rock'n'roll" && T.displayWord('Weide-Land:') === 'Weide-Land' && T.displayWord('…') === '…',
+     'Satzzeichen entfernt, Apostroph/Bindestrich/Dezimalpunkt bleiben');
+  T.setCaptionCase('upper');
+  ok(T.displayWord('Hallo,') === 'HALLO', 'UPPERCASE + ohne Satzzeichen');
+  T.setState(T.buildCaptionBlocks([{ word: 'Hallo,', start: 0, end: 0.5 }, { word: 'Welt.', start: 0.6, end: 1 },
+    { word: 'Wie', start: 2.5, end: 2.8 }, { word: 'geht', start: 2.9, end: 3.1 }, { word: 'es?', start: 3.2, end: 3.5 }]), [], 'karaoke');
+  T.selectStyle('minimal'); T.updateOverlay(0.2);
+  ok(/HALLO/.test(document.getElementById('capOverlay').innerHTML) && !/HALLO,/.test(document.getElementById('capOverlay').innerHTML), 'Vorschau formatiert');
+  T.exportSRT();
+  ok(/HALLO, WELT\./.test(global.LASTBLOB.content), 'SRT: Case ja, Satzzeichen bleiben: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 60)));
+  T.setCaptionCase('asis'); T.togglePunct();
+  ok(T.transcriptText() === 'Hallo, Welt.\n\nWie geht es?', 'TXT: Absatz nach Satzende + Pause: ' + JSON.stringify(T.transcriptText()));
+  T.setCaptionCase('upper');
+  ok(T.transcriptText() === 'Hallo, Welt.\n\nWie geht es?', 'TXT/Kopie ignoriert UPPERCASE (Post-Beschreibung): ' + JSON.stringify(T.transcriptText()));
+  T.setCaptionCase('asis');
+  T.exportTXT();
+  ok(global.LASTBLOB.content.startsWith('Hallo, Welt.'), 'TXT-Export');
+  let copied = null; global.navigator = global.navigator || {};
+  const prevClip = global.navigator.clipboard;
+  try { Object.defineProperty(global.navigator, 'clipboard', { value: { writeText: async t => { copied = t; } }, configurable: true }); } catch (e) {}
+  T.copyTranscript();
+  ok(copied === 'Hallo, Welt.\n\nWie geht es?', 'Copy text in die Zwischenablage');
+  try { Object.defineProperty(global.navigator, 'clipboard', { value: prevClip, configurable: true }); } catch (e) {}
+}
 
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
@@ -674,6 +832,30 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
     err = null; try { await T.decodeToMono16k(bigFile); } catch (e) { err = e; }
     ok(!m.calls.some(c => c[0] === 'writeFile') && err && /Could not read the audio/.test(err.message), 'ohne WORKERFS: grosses Video nie komplett in den Speicher');
     delete global.AudioContext; T.setFFmpeg(null);
+  }
+
+  // 21c) Timing-Snap an die Sprachenergie (synthetisch: Tonstöße mit Stille dazwischen)
+  {
+    const SRn = 16000, dur = 4.5, a = new Float32Array(SRn * dur);
+    for (let i = 0; i < a.length; i++) a[i] = (Math.sin(i * 12.9898) * 43758.5453 % 1) * 0.002; // leises Rauschen
+    const burst = (t0, t1) => { for (let i = Math.floor(t0 * SRn); i < t1 * SRn; i++) a[i] = 0.5 * Math.sin(2 * Math.PI * 220 * i / SRn); };
+    burst(1.0, 1.5); burst(2.0, 2.6); burst(3.2, 3.5);
+    const ws = [{ word: 'eins', start: 0.85, end: 1.75 },  // zu früh + klebt nach
+                { word: 'zwei', start: 2.0, end: 2.6 },    // korrekt
+                { word: 'drei', start: 3.05, end: 3.9 }];  // zu früh; Ende 400 ms zu spät (> 300 ms → bleibt)
+    const sn = await T.snapWordTimings(ws, a, SRn);
+    const near = (x, y, tol) => Math.abs(x - y) <= tol;
+    ok(near(sn[0].start, 1.0, 0.02) && near(sn[0].end, 1.5, 0.02), 'Snap: frueher Start/spaetes Ende an Sprache gezogen: ' + sn[0].start + '–' + sn[0].end);
+    ok(near(sn[1].start, 2.0, 0.02) && near(sn[1].end, 2.6, 0.02), 'Snap: korrektes Wort bleibt: ' + sn[1].start + '–' + sn[1].end);
+    ok(near(sn[2].start, 3.2, 0.02) && sn[2].end === 3.9, 'Snap: Start vor (<= 250 ms), Ende ausserhalb 300-ms-Fenster bleibt: ' + sn[2].start + '–' + sn[2].end);
+    ok(sn.every((w, i) => w.end > w.start && (i === 0 || w.start >= sn[i - 1].end)), 'Snap: monoton, ohne Ueberlappung');
+    const far = await T.snapWordTimings([{ word: 'x', start: 0.6, end: 1.4 }], a, SRn);
+    ok(far[0].start === 0.6, 'Snap: Start > 250 ms vor der Sprache bleibt unveraendert');
+    // stark verrauscht → nichts verändern
+    const noisy = new Float32Array(SRn * 3);
+    for (let i = 0; i < noisy.length; i++) noisy[i] = (Math.sin(i * 78.233) * 12345.678 % 1) * 0.4;
+    const nz = await T.snapWordTimings([{ word: 'a', start: 0.5, end: 1 }], noisy, SRn);
+    ok(nz[0].start === 0.5 && nz[0].end === 1, 'Snap: verrauschtes Audio bleibt unveraendert');
   }
 
   // 22) Vercel-Function api/transcribe.js (gemocktes req/res + Groq-fetch)
