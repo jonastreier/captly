@@ -74,7 +74,8 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
+needsWatermark:needsWatermark,autosaveNow:autosaveNow,restoreOrTranscribe:restoreOrTranscribe,
+readAutosaves:readAutosaves,setAutosaveKey:function(k){_autosaveKey=k;},AUTOSAVE_KEY:AUTOSAVE_KEY,setTranslateState:function(v){doTranslate=v;},capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
 setMe:function(plan,email){mePlan=plan;meEmail=email;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -290,6 +291,48 @@ T.setMe('anon', ''); ok(T.needsWatermark() === true, 'anonym → Wasserzeichen')
 T.setMe('free', 'a@b.c'); ok(T.needsWatermark() === false, 'angemeldet (free, Beta) → kein Wasserzeichen');
 T.setMe('pro', 'a@b.c'); ok(T.needsWatermark() === false, 'Pro → kein Wasserzeichen');
 T.setMe('anon', '');
+
+// 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
+{
+  const store = {}; let quotaMode = 'none';
+  global.localStorage = {
+    getItem: k => (k in store ? store[k] : null),
+    setItem: (k, v) => {
+      if (quotaMode === 'always' || (quotaMode === 'multi' && JSON.parse(v).length > 1)) { const e = new Error('QuotaExceededError'); e.name = 'QuotaExceededError'; throw e; }
+      store[k] = String(v);
+    },
+    removeItem: k => { delete store[k]; }
+  };
+  T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
+  T.setCaptionsEdited(true);
+  T.setAutosaveKey('clip.mp4|1234|105');
+  ok(T.autosaveNow() === true && T.readAutosaves().length === 1, 'Autosave geschrieben');
+  const savedBlocks = JSON.stringify(T.getBlocks().map(b => b.text));
+  // Reload simulieren: Zustand weg, gleiches Video erneut laden → Restore statt Transkription
+  T.setState([], []); T.setCaptionsEdited(false); T.setAutosaveKey(null);
+  document.getElementById('tStatus').innerHTML = '';
+  const restored = T.restoreOrTranscribe({ name: 'clip.mp4', size: 1234 }, 10.49);
+  ok(restored === true, 'Restore-Pfad gewaehlt');
+  ok(JSON.stringify(T.getBlocks().map(b => b.text)) === savedBlocks, 'Roundtrip: Bloecke identisch');
+  ok(T.getBlocks()[0].srcWords && T.getBlocks()[0].srcWords.length > 0, 'Roundtrip: srcWords erhalten');
+  ok(T.getCaptionsEdited() === true, 'Roundtrip: Edit-Flag uebernommen');
+  ok(/Restored your last session/.test(document.getElementById('tStatus').innerHTML) && !/Preparing/.test(document.getElementById('tStatus').innerHTML),
+     'Restore ruft KEINE Transkription auf (Status bleibt "Restored")');
+  // LRU: max. 5 Videos, neuestes zuerst
+  for (let i = 0; i < 7; i++) { T.setAutosaveKey('v' + i + '|1|10'); T.autosaveNow(); }
+  const lru = T.readAutosaves().map(e => e.key);
+  ok(lru.length === 5 && lru[0] === 'v6|1|10' && !lru.includes('v0|1|10') && !lru.includes('v1|1|10'), 'LRU auf 5 begrenzt: ' + lru.join(','));
+  // Quota: ältere Einträge opfern, aktueller Stand bleibt
+  quotaMode = 'multi'; T.setAutosaveKey('neu|1|10');
+  ok(T.autosaveNow() === true && T.readAutosaves().length === 1 && T.readAutosaves()[0].key === 'neu|1|10', 'Quota: nur aktueller Stand behalten');
+  quotaMode = 'always';
+  let threw = false; try { ok(T.autosaveNow() === false, 'Quota dauerhaft voll → false'); } catch (e) { threw = true; }
+  ok(!threw, 'Quota dauerhaft voll wirft nicht');
+  delete global.localStorage;
+  T.setAutosaveKey('x|1|1'); threw = false; try { T.autosaveNow(); T.readAutosaves(); } catch (e) { threw = true; }
+  ok(!threw, 'ohne localStorage (Privatmodus) kein Fehler');
+  T.setAutosaveKey(null); T.setCaptionsEdited(false);
+}
 
 // 9d) No-Audio-Erkennung aus dem ffmpeg-Log
 ok(T.isNoAudioFfmpegLog('Input #0, matroska,webm\n  Stream #0:0: Video: vp8, yuv420p\nOutput file #0 does not contain any stream') === true, 'ffmpeg: Video ohne Ton erkannt');
@@ -509,6 +552,26 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
     let thrown = null; try { await T.serverTranscribe(new Float32Array(SR * 5).fill(0.3), 'm', '', 5); } catch (e) { thrown = e; }
     ok(thrown && /limit/i.test(thrown.message), '429 mit langem Retry-After → klare Meldung');
     ok(/~2 min/.test(thrown.message), '429: konkrete Wartezeit genannt: ' + (thrown && thrown.message));
+    // Vokabular: Frontend haengt &prompt= an (bereinigt), Prompt-Echo-Stuecke werden verworfen
+    {
+      const urls = []; let n = 0;
+      global.fetch = async (url) => {
+        urls.push(url); n++;
+        const words = n === 1 ? [{ word: 'Birkenhof,', start: 1, end: 1.5 }, { word: 'Highland', start: 1.6, end: 2 }]  // reines Echo
+                              : [{ word: 'Der', start: 1, end: 1.2 }, { word: 'Birkenhof', start: 1.3, end: 1.8 }, { word: 'lebt', start: 1.9, end: 2.2 }];
+        return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ language: 'german', words }) };
+      };
+      const rv = await T.serverTranscribe(new Float32Array(SR * 150).fill(0.3), 'm', '', 150, null, '  Birkenhof,\n Highland   Beef ');
+      ok(urls.length === 2 && urls.every(u => u.includes('&prompt=' + encodeURIComponent('Birkenhof, Highland Beef'))), 'Frontend: URL enthaelt bereinigten prompt: ' + urls[0]);
+      ok(rv.words.length === 3 && rv.words[0].word === 'Der', 'Prompt-Echo-Stueck verworfen, echte Sprache mit Begriff bleibt: ' + rv.words.map(w => w.word).join(' '));
+      urls.length = 0; n = 1;
+      await T.serverTranscribe(new Float32Array(SR * 5).fill(0.3), 'm', '', 5, null, '');
+      ok(urls.length === 1 && !urls[0].includes('prompt='), 'Frontend: ohne Vokabular kein prompt-Param');
+      T.setTranslateState(true); urls.length = 0; n = 1;
+      await T.serverTranscribe(new Float32Array(SR * 5).fill(0.3), 'm', '', 5, null, 'Birkenhof');
+      ok(urls.length === 1 && !urls[0].includes('prompt='), 'Frontend: kein prompt beim Uebersetzen');
+      T.setTranslateState(false);
+    }
     // Race: Lauf A (2 Stuecke, langsam) wird von Lauf B ueberholt → A bricht still ab, schickt kein
     // weiteres Stueck und liefert KEIN Ergebnis (sonst landen A-Captions auf Video B).
     {
@@ -560,6 +623,16 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
     ok(sent.o.body.get('model') === 'whisper-large-v3-turbo' && sent.o.body.get('language') === 'de', 'Function: Modell-Whitelist + lang bereinigt');
     await run('POST', '/api/transcribe?model=whisper-large-v3-turbo&translate=1', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
     ok(sent.o.body.get('model') === 'whisper-large-v3' && /translations$/.test(sent.u), 'Function: Translate erzwingt large-v3 (turbo kann nicht uebersetzen)');
+    // Vokabular-Prompt: bereinigt + gedeckelt, nur bei Transkription
+    const rawPrompt = 'Birkenhof,\n\tHighland  Beef\u0007 ' + 'x'.repeat(400);
+    await run('POST', '/api/transcribe?prompt=' + encodeURIComponent(rawPrompt), Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    const fp = sent.o.body.get('prompt');
+    ok(typeof fp === 'string' && fp.startsWith('Birkenhof, Highland Beef x') && fp.length <= 300 && !/[\u0000-\u001f]/.test(fp),
+       'Function: prompt bereinigt + max 300 Zeichen: ' + JSON.stringify(fp && fp.slice(0, 30)) + ' len=' + (fp && fp.length));
+    await run('POST', '/api/transcribe?translate=1&prompt=Birkenhof', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    ok(sent.o.body.get('prompt') === null, 'Function: kein prompt beim Uebersetzen');
+    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    ok(sent.o.body.get('prompt') === null, 'Function: ohne prompt-Param kein prompt-Feld');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(5 * 1024 * 1024), { GROQ_API_KEY: 'k' })).statusCode === 413, 'Function: zu grosser Body → 413');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', REQUIRE_LOGIN: '1', SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'a' })).statusCode === 401, 'Function: Login-Pflicht ohne Token → 401');
     const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);

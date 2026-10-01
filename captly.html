@@ -248,6 +248,10 @@ body.editor-open{height:100vh;overflow:hidden}
 /* TRANSCRIPTION */
 .lang-sel{width:100%;background:#fff;border:1px solid #ddd6e4;color:#333;border-radius:8px;padding:7px 9px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:7px;outline:none;cursor:pointer}
 .lang-sel:focus{border-color:rgba(124,58,237,.4)}
+input.lang-sel{cursor:text}
+.vocab-hint{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:10px;color:#8a8494;margin:4px 0 8px;line-height:1.35}
+.vocab-hint a{color:#7c3aed;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer}
+.vocab-hint a:hover{text-decoration:underline}
 .t-box{background:linear-gradient(160deg,rgba(124,58,237,.06),rgba(236,72,153,.04));border:1px solid rgba(124,58,237,.16);border-radius:14px;padding:13px 14px;margin-bottom:7px;transition:border-color .25s}
 .t-status{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#3f3b46}
 .t-spinner{width:15px;height:15px;border:2.5px solid rgba(124,58,237,.18);border-top-color:#7c3aed;border-right-color:#ec4899;border-radius:50%;flex-shrink:0;animation:spin .7s linear infinite}
@@ -672,6 +676,12 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
           <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
         </div>
+        <input type="text" id="vocabInput" class="lang-sel" style="margin-bottom:0" maxlength="300" autocomplete="off" spellcheck="false"
+          placeholder="Names &amp; terms to spell right (optional) — e.g. Birkenhof, Highland Beef" oninput="onVocabChange(this.value)">
+        <div class="vocab-hint">
+          <span>Helps the AI spell names, brands &amp; places.</span>
+          <a id="vocabApply" href="#" onclick="applyVocab(event)" style="display:none">Re-transcribe to apply</a>
+        </div>
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#66616e;margin-bottom:7px;cursor:pointer">
           <input type="checkbox" id="trEn" onchange="setTranslate(this)"> Translate captions to English
         </label>
@@ -1044,6 +1054,12 @@ var openaiKey       = ''; // nur im Speicher — wird nie persistiert
 var timeOff         = 0;    // Timing-Feinschliff in Sekunden (+ = Captions früher)
 var hlKeywords      = [];   // Wörter, die dauerhaft in Highlight-Farbe erscheinen
 var doTranslate     = false;
+// Eigenes Vokabular („Names & terms“) → Whisper-`prompt` (verbessert Schreibweise von Hof-/Marken-/Ortsnamen).
+// Pro Gerät in localStorage gemerkt; _vocabUsed = Wert der aktuellen Transkription (null = noch keine).
+var VOCAB_KEY       = 'capivo.vocab';
+var vocabText       = '';
+var _vocabUsed      = null;
+try { vocabText = (typeof localStorage !== 'undefined' && localStorage.getItem(VOCAB_KEY)) || ''; } catch (eV) { vocabText = ''; }
 var autoCutSilence  = true; // Stille & Füllwörter beim Export automatisch überspringen (Default an, siehe computeCutRegions)
 function isKeywordWord(w) {
   if (!hlKeywords.length || !w) return false;
@@ -1967,7 +1983,7 @@ async function splitBlockAtCursor(idx, ta) {
                  text: wordsB.map(function(w){ return w.word; }).join(' ') };
   blockA.srcWords = copyTimedWords(wordsA); blockB.srcWords = copyTimedWords(wordsB);
   captionBlocks.splice(idx, 1, blockA, blockB);
-  captionsEdited = true;
+  markCaptionsEdited();
   await renderSegments();
   renderWPills();
   _lastKey = null;
@@ -1989,7 +2005,7 @@ async function mergeBlockWithPrevious(idx, ta) {
                        text: prevBlock.text + ' ' + curBlock.text };
   mergedBlock.srcWords = copyTimedWords(mergedBlock.words);
   captionBlocks.splice(idx - 1, 2, mergedBlock);
-  captionsEdited = true;
+  markCaptionsEdited();
   await renderSegments();
   renderWPills();
   _lastKey = null;
@@ -2031,7 +2047,7 @@ async function renderSegments() {
       return function() {
         captionBlocks[i].text = el.value;
         retimeEditedBlock(captionBlocks[i]);
-        captionsEdited = true;
+        markCaptionsEdited();
         el.style.height = 'auto';
         el.style.height = el.scrollHeight + 'px';
         renderWPills();
@@ -2106,6 +2122,7 @@ function renderWPills() {
 // ═══════════════════════════════════════
 function selectStyle(id) {
   activeId = id;
+  scheduleAutosave();
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
   if (s) seedCustomFields(s);                        // „Eigener Style" startet vom gewählten Style/Template
@@ -2268,6 +2285,7 @@ function applyPos() {
   }
   else ov.style.bottom = clampPct(12 + off) + '%';
   clampCapVertical();
+  scheduleAutosave(); // Position/Offset (Buttons, Slider, Drag)
   if (showSafeZone) checkSafeZoneCollision();
   positionPlayIcon();
 }
@@ -2418,18 +2436,21 @@ function onSzChange(v) {
   document.getElementById('szDisp').textContent = fontSize + 'px';
   _lastKey = null;
   updateOverlay();
+  scheduleAutosave();
 }
 function setMode(btn) {
   displayMode = btn.dataset.mode;
   document.querySelectorAll('#modeRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === displayMode); });
   _lastKey = null;
   updateOverlay();
+  scheduleAutosave();
 }
 function setLines(btn) {
   CAPTION_LINES = parseInt(btn.dataset.lines);
   document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.lines === btn.dataset.lines); });
   _lastKey = null;
   updateOverlay();
+  scheduleAutosave();
 }
 function syncLinesButtons() {
   document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){
@@ -2456,12 +2477,14 @@ function onWpbChange(v) {
     renderSegments(); renderWPills();
     _lastKey = null;
     updateOverlay();
+    scheduleAutosave();
   }
 }
 function onKwChange(v) {
   hlKeywords = (v || '').toLowerCase().split(/[,;]+/).map(function(x){ return x.trim().replace(/[^\wäöüàéèêß]/g, ''); }).filter(Boolean);
   _lastKey = null;
   updateOverlay();
+  scheduleAutosave();
 }
 var _csLast = 0, _csTimer = null;
 function applyCustomStyle() {
@@ -2491,6 +2514,37 @@ function applyCustomStyle() {
 function confirmRetranscribe() {
   if (!captionsEdited || !currentFile) return true;
   return confirm('Re-transcribe? Your caption edits will be replaced.');
+}
+// Vokabular bereinigen wie die Proxys (api/transcribe.js, transcribe.php): Steuerzeichen raus,
+// Whitespace glätten, max. 300 Zeichen.
+function cleanVocab(v) {
+  return Array.from(String(v || '').replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim())
+    .slice(0, 300).join('').trim();
+}
+// Bewusst KEIN Auto-Re-Run beim Tippen (würde Groq-Kontingent verbrennen und Edits gefährden) —
+// stattdessen erscheint „Re-transcribe to apply“, sobald der Wert vom verwendeten abweicht.
+function onVocabChange(v) {
+  vocabText = String(v || '');
+  try { localStorage.setItem(VOCAB_KEY, vocabText); } catch (e) {}
+  syncVocabApply();
+}
+function syncVocabApply() {
+  var a = document.getElementById('vocabApply');
+  if (!a) return;
+  a.style.display = (_vocabUsed !== null && currentFile && cleanVocab(vocabText) !== _vocabUsed) ? '' : 'none';
+}
+function applyVocab(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (!currentFile || !confirmRetranscribe()) return;
+  transcribeVideo(currentFile);
+}
+// Whisper „echot“ den Prompt gern in stille/unklare Passagen → ein Stück, dessen GESAMTER Text dem
+// Prompt (oder einem Anfang davon) entspricht, ist keine echte Sprache.
+function normEchoText(t) { return String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
+function isPromptEcho(words, prompt) {
+  if (!prompt || !words || !words.length) return false;
+  var ct = normEchoText(words.map(function(w){ return w.word; }).join(' ')), pt = normEchoText(prompt);
+  return !!ct && !!pt && pt.indexOf(ct) === 0 && (pt.length === ct.length || pt.charAt(ct.length) === ' ');
 }
 function setTranslate(cb) {
   if (cb.checked === doTranslate) return;
@@ -2638,7 +2692,7 @@ async function saveProject() {
   if (!meEmail) { showAcct(); return; }
   var sb = await getSb();
   if (!sb) return;
-  var payload = { blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff };
+  var payload = projectPayload();
   var { error } = await sb.from('projects').insert({ title: document.getElementById('projTitle').value || 'Untitled', payload: payload });
   if (error) { alert('Could not save the project: ' + error.message); return; }
   loadProjects();
@@ -2659,7 +2713,82 @@ async function loadProject(id) {
   if (!sb) return;
   var { data, error } = await sb.from('projects').select('payload').eq('id', id).single();
   if (error || !data) return;
-  var p = data.payload || {};
+  applyProjectPayload(data.payload || {});
+  setTStatus('📂', 'Project loaded — add the video again for preview & export.', false, false);
+}
+// ── Lokaler Autosave (Reload/Absturz-Schutz) ──
+// Pro Video (Name|Größe|Dauer) der letzte Stand in EINEM localStorage-Eintrag, LRU mit max. 5 Videos.
+// Beim erneuten Laden desselben Videos wird wiederhergestellt statt neu transkribiert (spart Zeit +
+// Groq-Kontingent). Alles in try/catch: Privatmodus/gesperrter Speicher deaktiviert das Feature still.
+var AUTOSAVE_KEY = 'capivo.autosave.v1', AUTOSAVE_MAX = 5;
+var _autosaveKey = null, _autosaveTimer = null, _lastTrMeta = null;
+function autosaveKeyFor(file, dur) { return file.name + '|' + file.size + '|' + Math.round((dur || 0) * 10); }
+function readAutosaves() {
+  try {
+    var raw = localStorage.getItem(AUTOSAVE_KEY);
+    var list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list.filter(function(e){ return e && e.key && e.data; }) : [];
+  } catch (e) { return []; }
+}
+function writeAutosaves(list) {
+  try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(list)); return true; } catch (e) { return false; }
+}
+function autosaveNow() {
+  clearTimeout(_autosaveTimer); _autosaveTimer = null;
+  if (!_autosaveKey || !captionBlocks.length) return false;
+  var data = projectPayload();
+  data.words = wordTimestamps; data.edited = captionsEdited; data.meta = _lastTrMeta;
+  var entry = { key: _autosaveKey, savedAt: Date.now(), data: data };
+  var list = [entry].concat(readAutosaves().filter(function(e){ return e.key !== _autosaveKey; })).slice(0, AUTOSAVE_MAX);
+  if (writeAutosaves(list)) return true;
+  // Quota voll: ältere Videos opfern (nur den aktuellen Stand behalten) und genau einmal neu versuchen.
+  return writeAutosaves([entry]);
+}
+function scheduleAutosave() {
+  if (!_autosaveKey) return;
+  clearTimeout(_autosaveTimer);
+  _autosaveTimer = setTimeout(autosaveNow, 800);
+}
+function findAutosave(key) {
+  var list = readAutosaves();
+  for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i];
+  return null;
+}
+function markCaptionsEdited() { captionsEdited = true; scheduleAutosave(); }
+// Nach dem Laden der Video-Metadaten: Autosave vorhanden → wiederherstellen, sonst transkribieren.
+function restoreOrTranscribe(file, dur) {
+  _autosaveKey = autosaveKeyFor(file, dur);
+  var saved = findAutosave(_autosaveKey);
+  if (saved && restoreAutosave(saved)) return true;
+  transcribeVideo(file);
+  return false;
+}
+function restoreAutosave(entry) {
+  var d = entry && entry.data;
+  if (!d || !Array.isArray(d.blocks) || !d.blocks.length) return false;
+  _trRun++; // evtl. laufende Transkription entwerten
+  applyProjectPayload(d);
+  if (Array.isArray(d.words) && d.words.length) wordTimestamps = d.words;
+  captionsEdited = !!d.edited;
+  _lastTrMeta = d.meta || null;
+  _vocabUsed = (d.meta && typeof d.meta.vocab === 'string') ? d.meta.vocab : cleanVocab(vocabText);
+  syncVocabApply();
+  document.getElementById('retryWrap').style.display = 'none';
+  setTStatus('↩︎', 'Restored your last session · <a href="#" onclick="retranscribeFromStatus(event)" '
+    + 'style="color:#7c3aed;font-weight:600;text-decoration:none">Re-transcribe</a>', false, false);
+  return true;
+}
+function retranscribeFromStatus(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (currentFile && confirmRetranscribe()) transcribeVideo(currentFile);
+}
+// Gemeinsame Payload-Form für Cloud-Projekte (saveProject) und lokale Autosaves.
+function projectPayload() {
+  return { blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
+           lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff };
+}
+// Gemeinsamer Restore-Pfad für loadProject() und den lokalen Autosave (restoreAutosave).
+function applyProjectPayload(p) {
   if (p.blocks) {
     captionBlocks = p.blocks;
     captionsEdited = false;
@@ -2685,7 +2814,6 @@ async function loadProject(id) {
   buildPicker(); renderSegments(); renderWPills();
   document.getElementById('capEditor').style.display = 'block';
   enableExports(true); _lastKey = null; updateOverlay();
-  setTStatus('📂', 'Project loaded — add the video again for preview & export.', false, false);
 }
 // ── Wasserzeichen (nur anonym) + einmaliger Upsell nach erstem Export ──
 // Beta: Bezahlpläne sind noch nicht kaufbar (startCheckout) → ein „$9 ohne Wasserzeichen“-Angebot wäre
@@ -2741,7 +2869,7 @@ async function authToken() {
 // Proxy-Endpunkte in Reihenfolge: Vercel-Function (/api/transcribe), dann PHP-Proxy (klassisches Webhosting).
 // Der erste, der antwortet, wird für die Sitzung gemerkt; erst wenn keiner existiert → lokaler Fallback.
 var TR_ENDPOINTS = ['api/transcribe', 'transcribe.php'], _trIdx = 0;
-async function postChunk(wavBlob, model, lc, isStale) {
+async function postChunk(wavBlob, model, lc, isStale, prompt) {
   var maxAttempts = 4, lastMsg = '';
   var tok = openaiKey ? '' : await authToken();
   for (var attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -2754,11 +2882,15 @@ async function postChunk(wavBlob, model, lc, isStale) {
         fd.append('file', wavBlob, 'audio.wav');
         fd.append('model', 'whisper-1');
         fd.append('response_format', 'verbose_json');
-        if (!doTranslate) { fd.append('timestamp_granularities[]', 'word'); if (lc) fd.append('language', lc); }
+        if (!doTranslate) {
+          fd.append('timestamp_granularities[]', 'word'); if (lc) fd.append('language', lc);
+          if (prompt) fd.append('prompt', prompt); // Vokabular nur beim Transkribieren, nie beim Übersetzen
+        }
         resp = await fetch('https://api.openai.com/v1/audio/' + (doTranslate ? 'translations' : 'transcriptions'),
           { method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd, signal: ctrl.signal });
       } else {
-        resp = await fetch(TR_ENDPOINTS[_trIdx] + '?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''),
+        resp = await fetch(TR_ENDPOINTS[_trIdx] + '?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : '')
+          + (prompt && !doTranslate ? '&prompt=' + encodeURIComponent(prompt) : ''),
           { method: 'POST', headers: tok ? { 'Content-Type': 'audio/wav', 'X-Capivo-Token': tok } : { 'Content-Type': 'audio/wav' }, body: wavBlob, signal: ctrl.signal });
       }
     } catch (e) {
@@ -2816,7 +2948,8 @@ async function postChunk(wavBlob, model, lc, isStale) {
 // wenn gar kein Proxy da ist (→ lokaler Fallback). Alles andere ist ein klarer Fehler statt stiller Lücke.
 // isStale (optional): liefert true, sobald ein neuerer transcribeVideo-Lauf gestartet wurde → sofort
 // abbrechen (wirft {stale:true}), ohne Status/Fortschritt des aktuellen Laufs zu überschreiben.
-async function serverTranscribe(audioData, model, lc, audioDur, isStale) {
+async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt) {
+  prompt = cleanVocab(prompt);
   function checkStale() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
   var label = (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – transcribing';
   var chunks = splitAudioChunks(audioData, 16000);
@@ -2830,14 +2963,14 @@ async function serverTranscribe(audioData, model, lc, audioDur, isStale) {
     if (chunkIsSilent(ch.samples)) continue;
     var wav = new Blob([await float32ToWav(ch.samples, 16000)], { type: 'audio/wav' });
     var j;
-    try { j = await postChunk(wav, model, forced, isStale); }
+    try { j = await postChunk(wav, model, forced, isStale, prompt); }
     catch (e) { if (e.noProxy && i === 0) return null; throw e.noProxy ? transcribeErr('Transcription server became unavailable — please try again.') : e; }
     checkStale();
     var ws = (j.words || []).map(function(w){ return { word: (w.word || '').trim(), start: w.start || 0, end: w.end || 0 }; })
                             .filter(function(w){ return w.word; });
     if (!ws.length && j.segments) ws = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
     if (!ws.length && j.text)     ws = segmentsToWords([{ text: j.text, timestamp: [0, ch.samples.length / 16000] }]);
-    if (isHallucinatedChunk(ws)) ws = [];
+    if (isHallucinatedChunk(ws) || isPromptEcho(ws, doTranslate ? '' : prompt)) ws = [];
     ws.forEach(function(w){ all.push({ word: w.word, start: w.start + ch.offset, end: w.end + ch.offset }); });
     // Sprache aus dem ersten Stück mit Inhalt für alle weiteren festnageln (kein Sprach-Flackern mitten im Video).
     // Whisper liefert die erkannte Sprache als Name (z. B. "german").
@@ -2929,6 +3062,8 @@ async function transcribeVideo(file) {
   var run = ++_trRun;
   function stale() { return run !== _trRun; }
   function bailIfStale() { if (stale()) throw transcribeErr('stale', { stale: true }); }
+  var vocab = cleanVocab(vocabText);
+  _vocabUsed = vocab; syncVocabApply();
   setTStatus('', 'Preparing transcription…', true, true);
   setTProgress(5);
   document.getElementById('retryWrap').style.display = 'none';
@@ -2967,7 +3102,7 @@ async function transcribeVideo(file) {
     var lc = (whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) ? CODE_BY_LANG[whisperLang] : '';
 
     // ── 1) Serverseitig transkribieren (Groq via transcribe.php) — kein Download für den Nutzer ──
-    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur, stale);
+    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur, stale, vocab);
     bailIfStale();
 
     if (served !== null) {
@@ -3005,7 +3140,7 @@ async function transcribeVideo(file) {
         // Genauigkeit (reduzierte Decoder-Tiefe) -- selbst mit erzwungenem `language`-Parameter bleibt
         // der generierte Text bei turbo mitunter unzuverlaessig. Der Retry ist selten (nur bei
         // Verdachtsfall) und darf daher die genauere/langsamere Variante nutzen.
-        var servedF = await serverTranscribe(audioData, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur, stale);
+        var servedF = await serverTranscribe(audioData, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur, stale, vocab);
         bailIfStale();
         // WICHTIG: NICHT mehr looksLikeTargetLang als Pflichtkriterium -- ein korrekter deutscher/
         // französischer/... Satz OHNE Sonderzeichen (sehr häufig, z. B. "Hallo und willkommen zu
@@ -3068,6 +3203,7 @@ async function transcribeVideo(file) {
 
     captionBlocks = buildCaptionBlocks(wordTimestamps);
     captionsEdited = false;
+    _lastTrMeta = { model: whisperModel, lang: usedLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
     setTStatus(qWarn ? '⚠️' : '✅',
@@ -3080,6 +3216,7 @@ async function transcribeVideo(file) {
     _lastKey = null;
     updateOverlay();
     enableExports(true);
+    scheduleAutosave();
 
   } catch(err) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
@@ -3107,6 +3244,8 @@ function loadVideo(file) {
     setTStatus('❌', 'That\'s not a video file. Please choose an MP4, MOV or WebM.', false, false);
     return;
   }
+  if (_autosaveTimer) autosaveNow(); // ausstehenden Autosave des vorigen Videos noch unter SEINEM Key sichern
+  _autosaveKey = null; _lastTrMeta = null;
   currentFile   = file;
   wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1; captionsEdited = false;
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
@@ -3154,7 +3293,7 @@ function loadVideo(file) {
     showPlayOverlay(true);
     document.getElementById('ppBtn').textContent = '▶';
     updateOverlay();
-    transcribeVideo(file);
+    restoreOrTranscribe(file, vid.duration);
   };
 
   vid.ontimeupdate = function() {
@@ -3971,7 +4110,9 @@ function openEditor() {
   applyPos(); // gewählte Position beibehalten
 }
 function openEditorClean() {
-  vidReady = false; currentFile = null; wordTimestamps = []; captionBlocks = []; captionsEdited = false; _trRun++;
+  if (_autosaveTimer) autosaveNow();
+  _autosaveKey = null;
+  vidReady = false; currentFile = null; wordTimestamps = []; captionBlocks = []; captionsEdited = false; _trRun++; _vocabUsed = null; syncVocabApply();
   var vid = document.getElementById('mainVid');
   if (vid.src && vid.src.startsWith('blob:')) URL.revokeObjectURL(vid.src);
   vid.src = ''; vid.style.display = 'none';
@@ -4083,6 +4224,7 @@ function zoomBy(delta) { setZoom(zoomLevel + delta); }
 // INIT
 enableExports(false);
 renderWPills();
+(function(){ var vi = document.getElementById('vocabInput'); if (vi && vocabText) vi.value = vocabText; })();
 // Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
 renderShowcase();

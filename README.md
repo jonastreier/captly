@@ -55,6 +55,17 @@ Whisper-Halluzinationen). Max. 20 Min Audio pro Video. Der Proxy hat ein IP-Limi
 Eingeloggten; das Session-Token wird serverseitig bei Supabase geprüft. Anbieterwechsel (Deepgram,
 paid) ist im Proxy gekapselt → wenige Zeilen.
 
+## Zuverlässigkeit & Komfort (Editor)
+
+- **Names & terms:** optionales Feld unter Fast/Perfect; wird als Whisper-`prompt` mitgeschickt
+  (nur Transkription, max. 300 Zeichen), damit Namen/Marken/Orte richtig geschrieben werden.
+  Gespeichert pro Gerät (localStorage). Änderungen greifen erst nach „Re-transcribe to apply".
+- **Lokale Zwischenspeicherung:** Untertitel + Edits + Stil werden pro Video (Name|Grösse|Dauer)
+  automatisch im Browser gesichert (max. 5 Videos). Gleiches Video erneut laden → Zustand wird
+  ohne neue Transkription wiederhergestellt („Restored your last session").
+- **Schutz vor Datenverlust:** Neu-Transkription (Fast/Perfect, Sprache, Übersetzen) fragt nach,
+  wenn Untertitel bearbeitet wurden; Wort-Timings bleiben beim Korrigieren erhalten.
+
 ## Login & Projekte einrichten (Supabase)
 
 Konten und „Projekt speichern/laden" laufen über **Supabase** (Postgres + eingebauter
