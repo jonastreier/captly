@@ -1,5 +1,5 @@
 // Capivo – Transkriptions-Proxy als Vercel Serverless Function (Groq Whisper).
-// Gleiche Schnittstelle wie transcribe.php: POST /api/transcribe?model=&lang=&translate=
+// Gleiche Schnittstelle wie transcribe.php: POST /api/transcribe?model=&lang=&translate=&prompt=
 //   Body = rohe WAV-Bytes (das Frontend schickt ~100-s-Stücke, ≤ ~3,2 MB → unter Vercels 4,5-MB-Limit).
 // Antwort = Groq-JSON (verbose_json) 1:1. Der Key liegt NUR als Vercel-Umgebungsvariable.
 //
@@ -75,6 +75,10 @@ module.exports = async function handler(req, res) {
   // whisper-large-v3-turbo ist nicht auf Übersetzung trainiert (Groq/OpenAI) → für Translate immer large-v3
   if (translate) model = 'whisper-large-v3';
   const lang = (url.searchParams.get('lang') || '').toLowerCase().replace(/[^a-z]/g, '');
+  // Optionales Vokabular („Names & terms“) als Whisper-Prompt: Steuerzeichen raus, Whitespace glätten,
+  // max. 300 Zeichen (Whisper wertet ohnehin nur ~224 Tokens aus; begrenzt auch Missbrauch).
+  const prompt = Array.from(String(url.searchParams.get('prompt') || '')
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim()).slice(0, 300).join('').trim();
 
   let audio;
   try { audio = await readBody(req); }
@@ -88,6 +92,7 @@ module.exports = async function handler(req, res) {
   if (!translate) {
     fd.append('timestamp_granularities[]', 'word'); // Wort-Timings für Karaoke
     if (lang) fd.append('language', lang);          // sonst Auto-Detect durch Groq
+    if (prompt) fd.append('prompt', prompt);        // nur Transkription — beim Übersetzen würde der Prompt die Zielsprache stören
   }
 
   let r, body;
