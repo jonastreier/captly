@@ -16,4 +16,10 @@ return [
 
   // Optional: max. Requests pro IP und Stunde (jedes ~100 s Audio = 1 Request). 0 = aus.
   'RATE_LIMIT_PER_HOUR' => 120,
+
+  // Optional: Transkription nur für eingeloggte Nutzer (Supabase-Session wird serverseitig geprüft).
+  // Werte = dieselben öffentlichen wie in captly.html (SUPABASE_URL / publishable key). Standard: aus.
+  'REQUIRE_LOGIN'     => false,
+  'SUPABASE_URL'      => '',
+  'SUPABASE_ANON_KEY' => '',
 ];

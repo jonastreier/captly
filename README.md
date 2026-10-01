@@ -35,7 +35,8 @@ Voraussetzungen: PHP mit **cURL** aktiv. Das Frontend zerlegt die Tonspur an Spr
 (≤ ~3,2 MB je Request, jeweils mit Retry bei Netz-/429-/5xx-Fehlern), dadurch sind `post_max_size` &
 Timeouts auch auf billigem Hosting unkritisch; Stille-Stücke werden gar nicht gesendet (verhindert
 Whisper-Halluzinationen). Max. 20 Min Audio pro Video. Der Proxy hat ein IP-Limit
-(`RATE_LIMIT_PER_HOUR`, Default 120/h), damit niemand deinen Key leerzieht. Anbieterwechsel (Deepgram,
+(`RATE_LIMIT_PER_HOUR`, Default 120/h), damit niemand deinen Key leerzieht. Optional: `REQUIRE_LOGIN => true` (+ `SUPABASE_URL`/`SUPABASE_ANON_KEY`) erlaubt Transkription nur
+Eingeloggten; das Session-Token wird serverseitig bei Supabase geprüft. Anbieterwechsel (Deepgram,
 paid) ist im Proxy gekapselt → wenige Zeilen.
 
 ## Login & Projekte einrichten (Supabase)

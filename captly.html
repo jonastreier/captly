@@ -2367,8 +2367,14 @@ function sleepMs(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 function transcribeErr(msg, flags) { var e = new Error(msg); if (flags) for (var k in flags) e[k] = flags[k]; return e; }
 // Ein Stück senden. Transiente Fehler (Netz, 429, 5xx) werden mit Backoff wiederholt; ein fehlender
 // Proxy (statischer Host/Demo) wird als noProxy gemeldet → Aufrufer nutzt den lokalen Fallback.
+// Supabase-Session-Token (falls eingeloggt) für den optional geschützten Proxy; sonst ''.
+async function authToken() {
+  try { if (!_sb) return ''; var r = await _sb.auth.getSession(); return (r && r.data && r.data.session && r.data.session.access_token) || ''; }
+  catch (e) { return ''; }
+}
 async function postChunk(wavBlob, model, lc) {
   var maxAttempts = 4, lastMsg = '';
+  var tok = openaiKey ? '' : await authToken();
   for (var attempt = 1; attempt <= maxAttempts; attempt++) {
     var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, 100000), resp = null;
     try {
@@ -2382,7 +2388,7 @@ async function postChunk(wavBlob, model, lc) {
           { method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd, signal: ctrl.signal });
       } else {
         resp = await fetch('transcribe.php?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''),
-          { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: wavBlob, signal: ctrl.signal });
+          { method: 'POST', headers: tok ? { 'Content-Type': 'audio/wav', 'X-Capivo-Token': tok } : { 'Content-Type': 'audio/wav' }, body: wavBlob, signal: ctrl.signal });
       }
     } catch (e) {
       clearTimeout(timer);
@@ -2404,7 +2410,8 @@ async function postChunk(wavBlob, model, lc) {
         var wait = isFinite(ra) ? ra * 1000 : 2000 * Math.pow(2, attempt - 1);
         if (wait <= 25000) { await sleepMs(wait + 250); continue; }
       }
-      throw transcribeErr(resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
+      throw transcribeErr(resp.status === 401 && detail === 'login_required' ? 'Please log in (top right) to transcribe videos.'
+        : resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
         : resp.status === 413 ? 'Audio too large for the server — please trim the video.'
         : resp.status === 429 ? 'Free-tier limit reached (too many requests) — wait a minute and try again.'
         : resp.status >= 500 ? 'Transcription service is busy right now — please try again.'

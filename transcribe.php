@@ -28,7 +28,7 @@ if ($CORS !== '' && $origin !== '') {
   if (in_array($origin, $allow, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Vary: Origin');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Capivo-Token');
     header('Access-Control-Allow-Methods: POST, OPTIONS');
   }
 }
@@ -58,6 +58,27 @@ if (!in_array($model, $ALLOWED, true)) $model = 'whisper-large-v3-turbo';
 
 $translate = (($_GET['translate'] ?? '0') === '1');
 $lang = preg_replace('/[^a-z]/', '', strtolower($_GET['lang'] ?? '')); // ISO-Kürzel, sonst leer
+
+// ── Optional: nur eingeloggte Nutzer (Supabase) dürfen transkribieren ──────────────────────
+// Aktivieren in config.php: REQUIRE_LOGIN=true + SUPABASE_URL + SUPABASE_ANON_KEY (beides öffentliche Werte).
+// Das Frontend schickt das Session-Token im Header X-Capivo-Token (Authorization wird von manchen
+// Hostern gefiltert). Ergebnis wird 5 Min. gecacht → kein Supabase-Call pro Audio-Stück.
+if (!empty($cfg['REQUIRE_LOGIN'])) {
+  $tok = trim($_SERVER['HTTP_X_CAPIVO_TOKEN'] ?? '');
+  $sbUrl = rtrim($cfg['SUPABASE_URL'] ?? '', '/'); $sbKey = $cfg['SUPABASE_ANON_KEY'] ?? '';
+  if ($sbUrl === '' || $sbKey === '') fail(500, 'REQUIRE_LOGIN aktiv, aber SUPABASE_URL/SUPABASE_ANON_KEY fehlen in config.php.');
+  if ($tok === '' || strlen($tok) > 4096) fail(401, 'login_required');
+  $cf = sys_get_temp_dir() . '/capivo_tok_' . md5($tok);
+  if (!(is_file($cf) && filemtime($cf) > time() - 300)) {
+    $c = curl_init($sbUrl . '/auth/v1/user');
+    curl_setopt_array($c, [CURLOPT_HTTPHEADER => ['apikey: ' . $sbKey, 'Authorization: Bearer ' . $tok],
+      CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 10, CURLOPT_CONNECTTIMEOUT => 5]);
+    $r = curl_exec($c); $sc = curl_getinfo($c, CURLINFO_HTTP_CODE); curl_close($c);
+    $u = json_decode((string)$r, true);
+    if ($sc !== 200 || empty($u['id'])) fail(401, 'login_required');
+    @file_put_contents($cf, '1');
+  }
+}
 
 // ── Missbrauchsschutz: einfaches Limit pro IP (der Endpunkt ist öffentlich, der Key kostet) ──
 // Das Frontend schickt pro ~100 s Audio einen Request; Default 120/Stunde ≈ 3 h Audio pro IP.
