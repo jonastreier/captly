@@ -200,9 +200,11 @@ body.editor-open{height:100vh;overflow:hidden}
 .col-resize-handle:hover::after,.col-resize-handle.dragging::after{background:#7c3aed;width:3px}
 #prevBg{position:absolute;inset:0;z-index:0;background:#111;transition:background .3s}
 #mainVid{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none}
-#playOverlay{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.28);cursor:pointer}
-.play-icon{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:17px;color:#000;padding-left:3px;box-shadow:0 4px 20px rgba(0,0,0,.5);transition:transform .15s}
-#playOverlay:hover .play-icon{transform:scale(1.08)}
+/* Play-Overlay: dezentes Glas-Icon statt deckender weißer Scheibe — der Untertitel (z-index 10) liegt
+   darüber und bleibt lesbar; positionPlayIcon() schiebt das Icon zusätzlich aus dem Untertitel-Bereich. */
+#playOverlay{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.14);cursor:pointer}
+.play-icon{width:44px;height:44px;border-radius:50%;background:rgba(20,16,30,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.38);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;padding-left:3px;box-shadow:0 4px 16px rgba(0,0,0,.28);transition:transform .15s,background .15s}
+#playOverlay:hover .play-icon{transform:scale(1.08);background:rgba(20,16,30,.58)}
 #frameDropZone{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
 #frameDropZone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:4}
 #frameDropZone span{font-size:24px}
@@ -210,14 +212,16 @@ body.editor-open{height:100vh;overflow:hidden}
 #capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
 #capOverlay:active{cursor:grabbing}
 #capOverlay.dragging{cursor:grabbing}
-.vid-ctrls{display:none;align-items:center;gap:7px;background:#fff;border:1px solid #e6e1ec;border-radius:8px;padding:6px 10px;width:220px}
+.vid-ctrls{display:none;align-items:center;gap:7px;background:#fff;border:1px solid #e6e1ec;border-radius:8px;padding:6px 10px;width:220px;max-width:100%}
 .vid-ctrls.exporting{opacity:.5;pointer-events:none}
 .pp-btn{width:25px;height:25px;border-radius:50%;background:#111;border:none;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0}
 .pp-btn:hover{background:#333}
-.prog-col{flex:1;display:flex;flex-direction:column;gap:3px}
-.prog-track{height:3px;background:#e8e4ee;border-radius:2px;cursor:pointer}
+.prog-col{flex:1 1 auto;min-width:96px;display:flex;flex-direction:column;gap:3px}
+/* Sichtbar 4px, aber per ::before ~20px Trefferfläche — sonst ist Seeken per Finger kaum möglich. */
+.prog-track{position:relative;height:4px;background:#e8e4ee;border-radius:2px;cursor:pointer;touch-action:none}
+.prog-track::before{content:'';position:absolute;left:0;right:0;top:-8px;bottom:-8px}
 .prog-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#3b82f6);border-radius:2px;width:0%;pointer-events:none}
-.prog-time{font-size:9px;color:#6f6f6f;text-align:right}
+.prog-time{font-size:9px;color:#6f6f6f;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
 .mute-btn{background:none;border:1px solid #ddd6e4;color:#66616e;font-size:9px;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
 .mute-btn:hover{border-color:rgba(255,255,255,.2);color:#aaa}
 .mute-btn.on{border-color:rgba(124,58,237,.3);color:#a78bfa}
@@ -244,6 +248,10 @@ body.editor-open{height:100vh;overflow:hidden}
 /* TRANSCRIPTION */
 .lang-sel{width:100%;background:#fff;border:1px solid #ddd6e4;color:#333;border-radius:8px;padding:7px 9px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:7px;outline:none;cursor:pointer}
 .lang-sel:focus{border-color:rgba(124,58,237,.4)}
+input.lang-sel{cursor:text}
+.vocab-hint{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:10px;color:#8a8494;margin:4px 0 8px;line-height:1.35}
+.vocab-hint a{color:#7c3aed;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer}
+.vocab-hint a:hover{text-decoration:underline}
 .t-box{background:linear-gradient(160deg,rgba(124,58,237,.06),rgba(236,72,153,.04));border:1px solid rgba(124,58,237,.16);border-radius:14px;padding:13px 14px;margin-bottom:7px;transition:border-color .25s}
 .t-status{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#3f3b46}
 .t-spinner{width:15px;height:15px;border:2.5px solid rgba(124,58,237,.18);border-top-color:#7c3aed;border-right-color:#ec4899;border-radius:50%;flex-shrink:0;animation:spin .7s linear infinite}
@@ -379,7 +387,13 @@ input[type=checkbox]{accent-color:#7c3aed}
   .prev-col{flex:0 0 auto;height:36vh;padding:8px 14px;gap:6px}
   .col-resize-handle{display:none}
   .prev-frame{width:auto;height:auto;flex:1 1 auto;min-height:0;aspect-ratio:9/16;max-width:62vw}
-  .vid-ctrls{width:auto;max-width:100%}
+  /* Mobile: Leiste über die volle Spaltenbreite (statt Rahmenbreite ~140px) — !important schlägt die
+     Inline-Breite aus loadVideo(). */
+  .vid-ctrls{width:100%!important;max-width:420px}
+  /* Zoom-Pille vertikal an den rechten Rand: die Vorschau ist hier max. 62vw breit und zentriert,
+     die horizontale Pille ragte in die obere rechte Ecke des Videos. */
+  .zoom-ctrl{top:8px;right:6px;flex-direction:column;gap:2px;padding:3px 2px}
+  .zoom-lbl{min-width:0;font-size:9px}
   .show-card{width:150px;height:268px}
   .show-arrow{display:none}
   .land-nav-links{display:none}
@@ -602,7 +616,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div id="capOverlay" onmousedown="capDragStart(event)" ontouchstart="capDragStart(event)"></div>
         <div id="safeZoneOverlay">
           <div id="safeZoneRect"></div>
-          <div id="safeZoneWarn">⚠ Untertitel könnten von der Reels-UI verdeckt werden</div>
+          <div id="safeZoneWarn">⚠ Captions may be covered by the Reels/TikTok UI</div>
         </div>
       </div>
       <div class="vid-ctrls" id="vidCtrls">
@@ -614,7 +628,7 @@ input[type=checkbox]{accent-color:#7c3aed}
           <div class="prog-time" id="timeLbl">0:00 / 0:00</div>
         </div>
         <button class="mute-btn on" id="muteBtn" onclick="toggleMute()">🔊</button>
-        <button class="sz-btn" id="safeZoneBtn" onclick="toggleSafeZone()" title="Safe-Zone-Anzeige: sicherer Bereich für Reels/TikTok-Untertitel (blendet Suchleiste, Icon-Leiste, Profil/Caption-Bereich aus)">🛡 Safe Zone</button>
+        <button class="sz-btn" id="safeZoneBtn" onclick="toggleSafeZone()" title="Safe zone: shows where captions stay clear of the Reels/TikTok UI (top bar, icon column, profile/caption area)">🛡 Safe Zone</button>
       </div>
       <div class="zoom-ctrl" id="zoomCtrl">
         <button class="zoom-btn" onclick="zoomBy(-0.25)" title="Zoom out" type="button">−</button>
@@ -622,7 +636,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <button class="zoom-btn" onclick="zoomBy(0.25)" title="Zoom in" type="button">+</button>
       </div>
     </div>
-    <div class="col-resize-handle" id="colResizeHandle" title="Bedienpanel ziehen zum Vergrößern/Verkleinern"></div>
+    <div class="col-resize-handle" id="colResizeHandle" title="Drag to resize the panel"></div>
 
     <!-- Controls -->
     <div class="ctrl-col" id="ctrlCol">
@@ -662,8 +676,14 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
           <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
         </div>
+        <input type="text" id="vocabInput" class="lang-sel" style="margin-bottom:0" maxlength="300" autocomplete="off" spellcheck="false"
+          placeholder="Names &amp; terms to spell right (optional) — e.g. Birkenhof, Highland Beef" oninput="onVocabChange(this.value)">
+        <div class="vocab-hint">
+          <span>Helps the AI spell names, brands &amp; places.</span>
+          <a id="vocabApply" href="#" onclick="applyVocab(event)" style="display:none">Re-transcribe to apply</a>
+        </div>
         <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#66616e;margin-bottom:7px;cursor:pointer">
-          <input type="checkbox" id="trEn" onchange="doTranslate=this.checked;if(currentFile)transcribeVideo(currentFile)"> Translate captions to English
+          <input type="checkbox" id="trEn" onchange="setTranslate(this)"> Translate captions to English
         </label>
         <div id="quotaInfo" style="font-size:10.5px;color:#7c3aed;margin-bottom:7px"></div>
         <div class="t-box">
@@ -1006,6 +1026,8 @@ var activeId        = 'bloom';
 var capPos          = 'bottom';
 var capVOff         = 20;   // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position — Default etwas höher, damit Captions nicht mit UI-Elementen der Plattformen (Beschreibung, Like-Leiste) kollidieren
 var showSafeZone     = false; // Safe-Zone-Anzeige (Reels-UI-Bereich) an/aus
+var _trRun           = 0;     // Lauf-Token für transcribeVideo(): nur der jüngste Lauf darf Ergebnisse/Status schreiben
+var captionsEdited   = false; // Text/Split/Merge seit letzter Transkription bzw. Projekt-Load → vor Neu-Transkription fragen
 var zoomLevel        = 1;   // Vorschau-Zoom, 1.0–2.5
 var fontSize        = 22;
 var vidReady        = false;
@@ -1032,6 +1054,12 @@ var openaiKey       = ''; // nur im Speicher — wird nie persistiert
 var timeOff         = 0;    // Timing-Feinschliff in Sekunden (+ = Captions früher)
 var hlKeywords      = [];   // Wörter, die dauerhaft in Highlight-Farbe erscheinen
 var doTranslate     = false;
+// Eigenes Vokabular („Names & terms“) → Whisper-`prompt` (verbessert Schreibweise von Hof-/Marken-/Ortsnamen).
+// Pro Gerät in localStorage gemerkt; _vocabUsed = Wert der aktuellen Transkription (null = noch keine).
+var VOCAB_KEY       = 'capivo.vocab';
+var vocabText       = '';
+var _vocabUsed      = null;
+try { vocabText = (typeof localStorage !== 'undefined' && localStorage.getItem(VOCAB_KEY)) || ''; } catch (eV) { vocabText = ''; }
 var autoCutSilence  = true; // Stille & Füllwörter beim Export automatisch überspringen (Default an, siehe computeCutRegions)
 function isKeywordWord(w) {
   if (!hlKeywords.length || !w) return false;
@@ -1100,7 +1128,10 @@ function chunkIsSilent(samples) {
 }
 // Typische Whisper-Halluzinationen bei Stille/Musik (YouTube-Trainingsdaten) — nur, wenn das
 // GANZE Stück aus kaum mehr besteht; echter Inhalt wird nie angetastet.
-var HALLU_RE = /amara\.org|untertitel(ung)?\s+(der|von|im auftrag|des)|thanks? for watching|thank you for watching|vielen dank f(ü|u)rs? (zu(schauen|sehen)|zuh(ö|o)ren)|subtitles? (by|from)|sous-titr|abonnez-vous|(copyright|©)\s*\w+/i;
+// Bewusst NUR Marker, die in einem Reel nie echte Sprache sind (Untertitel-Credits, Copyright).
+// „Thanks for watching“ / „Danke fürs Zuschauen“ / „Abonnez-vous“ sagen Creator tatsächlich als
+// Outro — und das letzte Stück eines Videos ist oft kurz → würde sonst still verschwinden.
+var HALLU_RE = /amara\.org|untertitel(ung)?\s+(der|von|im auftrag|des)|im auftrag des zdf|subtitles? (by|from)|sous-titr(es?|age)\s+(r[ée]alis[ée]s\s+)?par|©\s*\w+|copyright\s+(©|\d{4})/i;
 function isHallucinatedChunk(words) {
   if (!words || !words.length || words.length > 14) return false;
   return HALLU_RE.test(words.map(function(w){ return w.word; }).join(' '));
@@ -1124,10 +1155,33 @@ function sanitizeWordTimings(words, totalDur) {
   return out;
 }
 // Halluzinations-Detektor: Whisper-Fehldetektion erzeugt Wiederholungsschleifen ("We've worked for over 3 years …")
+// Whisper-Halluzinationsschleifen sind LOKAL (dieselbe Phrase x-mal hintereinander). Ein globales
+// Unique/Total-Verhältnis fällt dagegen bei langen, völlig normalen Videos von selbst unter 0.3
+// (Type-Token-Ratio sinkt mit der Länge) → löste unnötige large-v3-Retries + „quality uncertain“ aus.
+// Daher nur lokal prüfen: (a) periodische Wiederholung (Phrase mit 1–40 Wörtern ≥3x direkt
+// hintereinander, mind. 9 Wörter Schleife) oder (b) ein 40-Wort-Fenster mit Unique-Anteil < 0.3.
+var REP_WIN = 40, REP_STEP = 20, REP_MAX_PERIOD = 40;
 function looksRepetitive(words) {
   if (!words || words.length < 12) return false;
-  var uniq = new Set(words.map(function(w){ return w.word.toLowerCase(); })).size;
-  return uniq / words.length < 0.3;
+  var keys = words.map(function(w){ return String((w && w.word) || '').toLowerCase().replace(/[.,!?;:…"“”„'’()]/g, ''); });
+  var n = keys.length, p, i;
+  for (p = 1; p <= REP_MAX_PERIOD && p < n; p++) {
+    var run = 0;
+    for (i = 0; i + p < n; i++) {
+      if (keys[i] && keys[i] === keys[i + p]) {
+        run++;
+        if (run >= 2 * p && run + p >= 9) return true; // Phrase der Länge p mind. 3x am Stück
+      } else run = 0;
+    }
+  }
+  function winRep(from, to) {
+    var set = new Set();
+    for (var k = from; k < to; k++) set.add(keys[k]);
+    return set.size / (to - from) < 0.3;
+  }
+  if (n <= REP_WIN) return winRep(0, n);
+  for (i = 0; i + REP_WIN <= n; i += REP_STEP) { if (winRep(i, i + REP_WIN)) return true; }
+  return winRep(n - REP_WIN, n); // Rest am Ende mitprüfen
 }
 // Sprach-Bias-Detektor: Whisper (auch bei Groq) neigt bei unsicherem Auto-Detect manchmal dazu,
 // sauberen (NICHT wiederholenden) aber komplett falschsprachigen ENGLISCHEN Text zu erzeugen,
@@ -1219,7 +1273,7 @@ async function cleanWords(words) {
 
 // Lokale Erkennung in 28s-Fenstern mit 2s Überlappung — deckt zuverlässig das GANZE Video ab
 // (das interne Chunking von transformers.js bricht bei Wort-Timestamps auf langen Videos ab)
-async function transcribeChunked(pipe, audioData, opts) {
+async function transcribeChunked(pipe, audioData, opts, isStale) {
   var SR = 16000, WIN = 28 * SR, STEP = 26 * SR;
   var n = Math.max(1, Math.ceil(Math.max(1, audioData.length - (WIN - STEP)) / STEP));
   var windows = [];
@@ -1229,6 +1283,7 @@ async function transcribeChunked(pipe, audioData, opts) {
     if (start >= audioData.length) break;
     var seg = audioData.subarray(start, Math.min(start + WIN, audioData.length));
     if (seg.length < SR * 0.4) break;
+    if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); // kein Worker-Job mehr für alten Lauf
     if (n > 1) setTStatus('', 'Detecting speech… window ' + (i + 1) + '/' + n, true, true);
     setTProgress(76 + ((i + 1) / n) * 16);
     var r = await safePipe(pipe, seg, opts);
@@ -1366,7 +1421,14 @@ async function getPipe(model) {
     var pct = 15 + (p.loaded / p.total) * 50;
     setTProgress(pct);
     setTStatus('', 'Preparing captions (first time only)…', true, true);
-  }).then(function() { return { model: model }; });
+  }).then(function() { return { model: model }; }, function(err) {
+    // Engine/Modell nicht ladbar (CDN blockiert, offline, …): technische Meldung wie „Failed to fetch
+    // dynamically imported module: https://cdn.jsdelivr.net/…“ nur in die Konsole, Nutzer bekommt
+    // eine verständliche. Cache leeren, sonst bliebe das abgelehnte Promise bis zum Reload hängen.
+    console.error('Lokale Transkriptions-Engine konnte nicht geladen werden:', err);
+    delete whisperPipes[model];
+    throw transcribeErr('Transcription server is not available and the offline engine could not be loaded — check your connection and try again.', { engineLoad: true });
+  });
   whisperPipes[model] = handle;
   return handle;
 }
@@ -1437,9 +1499,199 @@ function clampLinesToWidth(lines, maxW, sp) {
 // Misst Wortbreiten mit einem Offscreen-Canvas, um Zeilen exakt wie beim Export auf genau
 // `targetLines` Zeilen zu verteilen (statt nur bei Überlauf zu brechen).
 var _capMeasureCtx = null;
-function wrapCaptionLines(words, s, hlIdx, px, targetLines) {
+function capMeasureCtx() {
   if (!_capMeasureCtx) _capMeasureCtx = document.createElement('canvas').getContext('2d');
-  var ctx   = _capMeasureCtx;
+  return _capMeasureCtx;
+}
+// ── Auto-Fit für überlange Wörter ──
+// Deutsche Komposita („Rindfleischverarbeitungsbetriebe“) sind bei großer Schrift breiter als der
+// Rahmen und wurden abgeschnitten. Daher pro Block: Schrift gerade so weit verkleinern, dass das
+// breiteste Wort passt (nie unter CAP_FIT_MIN der gewählten Größe); reicht das nicht, als letzter
+// Ausweg mit Bindestrich trennen (bevorzugt an vorhandenen Bindestrichen). Vorschau (buildCap) und
+// Export (drawCaptionsOnCtx) rufen DIESELBE Funktion mit denselben Vorschau-Einheiten auf → identisch.
+// Breite je Wort = max(normal, Highlight-Variante) → Größe springt nicht, wenn das Karaoke-Highlight wandert.
+var CAP_FIT_MIN = 0.55;
+var CAP_FIT_MAX_H = 0.40; // max. Anteil der Rahmenhöhe für einen Caption-Block
+var _capFitCache = {}, _capFitN = 0, _capFontGen = 0;
+// Web-Fonts laden asynchron: eine Messung mit der Fallback-Schrift darf NICHT dauerhaft im Cache landen
+// (sonst überlaufen lange Wörter in Vorschau UND Export, obwohl der Export auf fonts.ready wartet).
+// → Generationszähler im Key, Cache leeren + Vorschau neu rendern, sobald Fonts fertig geladen sind.
+function capFontsChanged() {
+  _capFontGen++; _capFitCache = {}; _capFitN = 0;
+  _lastKey = null;
+  try { if (vidReady || captionBlocks.length) updateOverlay(); } catch (e) {}
+}
+try {
+  if (typeof document !== 'undefined' && document.fonts) {
+    if (typeof document.fonts.addEventListener === 'function') document.fonts.addEventListener('loadingdone', capFontsChanged);
+    if (document.fonts.ready && document.fonts.ready.then) document.fonts.ready.then(capFontsChanged);
+  }
+} catch (eF) {}
+// true, wenn die Schrift (noch) nicht geladen ist → Ergebnis nicht cachen.
+function capFontPending(spec) {
+  try { return !!(document.fonts && typeof document.fonts.check === 'function' && !document.fonts.check(spec)); }
+  catch (e) { return false; }
+}
+function capFitMaxW(s) {
+  // Nutzbare Breite wie clampLinesToWidth (86 % Rahmen) minus feste Deko-Innenabstände der Styles.
+  return previewFrameW() * 0.86 - (s.boxBg ? 36 : 0) - (s.pill ? 18 : 0);
+}
+function previewFrameH() {
+  var f = document.getElementById('prevFrame');
+  var h = f && parseFloat(f.style.height);
+  return (h > 0) ? h : 390;
+}
+// lines (optional): Ziel-Zeilenzahl (CAPTION_LINES) für die Höhen-Prüfung. Ergebnis in Vorschau-Einheiten.
+function fitCaptionWords(words, s, px, maxW, lines) {
+  var maxH = previewFrameH() * CAP_FIT_MAX_H;
+  var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper,
+            s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0].join(',') + '|' + px + '|' + Math.round(maxW)
+            + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen;
+  if (_capFitCache[key]) return _capFitCache[key];
+  var ctx   = capMeasureCtx();
+  var fn    = (s.font || "'Inter'").replace(/'/g, '');
+  var fw    = s.fw || '700';
+  var fi    = s.fi === 'italic' ? 'italic ' : '';
+  var fontPending = capFontPending(fi + fw + ' 16px "' + fn + '"')
+    || (s.hlFont ? capFontPending((s.hlItalic ? 'italic ' : fi) + fw + ' 16px "' + s.hlFont.replace(/'/g, '') + '"') : false);
+  var tt    = s.tt === 'uppercase';
+  var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
+  var lsPx  = parseFloat(s.ls) || 0; // ls ist bei allen Styles px (oder 'none' → 0)
+  function measure(w, p) {
+    var sz = p * fsMul;
+    ctx.font = fi + fw + ' ' + sz + 'px "' + fn + '", sans-serif';
+    var normal = ctx.measureText(tt ? w.toUpperCase() : w).width;
+    var hf = s.hlFont ? s.hlFont.replace(/'/g, '') : fn;
+    ctx.font = (s.hlItalic ? 'italic ' : fi) + fw + ' ' + sz + 'px "' + hf + '", sans-serif';
+    var hl = ctx.measureText((tt || s.hlUpper) ? w.toUpperCase() : w).width;
+    if (s.hlPillBg) hl += 18;                 // padding 2px 9px (buildCap)
+    if (s.circle)   hl += 0.6 * sz + 5;       // padding .3em + 2.5px Rahmen je Seite
+    return Math.max(normal, hl) + lsPx * w.length;
+  }
+  // Wörter bei Größe p auf maxW bringen (ggf. trennen) + Blockhöhe grob wie clampLinesToWidth schätzen.
+  function layoutAt(p) {
+    var outW = [], orig = [];
+    words.forEach(function(w, i) {
+      if (w.length < 4 || measure(w, p) <= maxW) { outW.push(w); orig.push(i); return; }
+      capHyphenate(w, function(piece){ return measure(piece, p) <= maxW; }).forEach(function(pc) { outW.push(pc); orig.push(i); });
+    });
+    ctx.font = fi + fw + ' ' + (p * fsMul) + 'px "' + fn + '", sans-serif';
+    var sp = ctx.measureText(' ').width, nl = 1, lw = 0;
+    outW.forEach(function(w) {
+      var ww = measure(w, p), add = (lw ? sp : 0) + ww;
+      if (lw && lw + add > maxW) { nl++; lw = ww; } else lw += add;
+    });
+    nl = Math.max(nl, Math.min(lines || 1, outW.length));
+    var h = nl * 1.3 * p * fsMul + (s.boxBg ? 10 : 0);
+    return { px: p, words: outW, orig: orig, lines: nl, h: h };
+  }
+  var floor = px * CAP_FIT_MIN;
+  var widest = 0;
+  words.forEach(function(w){ widest = Math.max(widest, measure(w, px)); });
+  var epx = px;
+  if (widest > maxW) epx = Math.max(floor, Math.floor(px * maxW / widest * 10) / 10);
+  var res = layoutAt(epx);
+  // Höhe: Block darf nicht mehr als ~40 % des Rahmens belegen (sonst ragt z. B. bei Position „Bottom“
+  // die erste Zeile oben aus dem Bild) → weiter verkleinern, gleiche 55-%-Untergrenze.
+  while (res.h > maxH && epx > floor + 1e-6) {
+    epx = Math.max(floor, Math.floor(epx * 0.92 * 10) / 10);
+    res = layoutAt(epx);
+  }
+  if (fontPending) return res; // Fallback-Schrift gemessen → nicht cachen, nach dem Laden neu messen
+  if (++_capFitN > 400) { _capFitCache = {}; _capFitN = 0; }
+  _capFitCache[key] = res;
+  return res;
+}
+// ── Notfall-Silbentrennung für überlange Wörter ──
+// Keine Wörterbuch-Trennung, aber nach Qualität gestaffelte Trennstellen (Strafpunkte):
+//   vorhandener Bindestrich (-2) < Kompositumsfuge nach Fugen-/Suffixendung („-ungs“, „-heits“ …) bzw.
+//   vor häufigem Grundwort („-betrieb“, „-haltung“ …) oder nach Präfix am Wortanfang (0)
+//   < Silbengrenze nach deutscher Grundregel (4) < beliebige Stelle (60).
+// Verboten: Cluster sch/ch/ck/ph/th/st zerreißen, Teilstücke < 3 Buchstaben.
+// Aufteilung per DP über Stückzahl, Strafpunkte und ausgewogene Stücklängen (statt gierig die erste
+// Zeile zu füllen, was „verarbei-|tungsbet-|riebe“ erzeugte).
+var CAP_VOWEL_RE = /[aeiouyäöüàâáéèêëíìîïóòôúùûœæ]/i;
+var CAP_JOINT_AFTER = ['schafts', 'heits', 'keits', 'tions', 'ungs', 'ions', 'ings'];
+var CAP_JOINT_BEFORE = ['verarbeitung', 'betrieb', 'haltung', 'fleisch', 'arbeit', 'schaft', 'zeit', 'weide', 'rinder', 'land'];
+var CAP_PREFIXES = ['ver', 'zer', 'ent', 'be', 'ge', 'er', 'un'];
+var CAP_ONSETS = ['schl', 'schm', 'schn', 'schr', 'schw', 'spr', 'str', 'sch', 'bl', 'br', 'ch', 'ck', 'dr', 'fl', 'fr',
+                  'gl', 'gr', 'kl', 'kr', 'ph', 'pl', 'pr', 'sp', 'st', 'th', 'tr', 'zw'];
+function capBreakPenalties(w) {
+  var lw = w.toLowerCase(), n = w.length, pen = [], e, k;
+  function V(c) { return !!c && CAP_VOWEL_RE.test(c); }
+  function L(c) { return !!c && /\p{L}/u.test(c); }
+  for (e = 0; e <= n; e++) pen.push(60);
+  // Silbengrenzen: vor dem (maximalen) Anlaut-Cluster vor jedem Vokal, wenn davor wieder ein Vokal steht
+  for (var v = 1; v < n; v++) {
+    if (!V(lw.charAt(v))) continue;
+    var c0 = v; while (c0 > 0 && L(lw.charAt(c0 - 1)) && !V(lw.charAt(c0 - 1))) c0--;
+    if (c0 === v || c0 === 0 || !V(lw.charAt(c0 - 1))) continue;
+    var run = lw.slice(c0, v), b = v - 1;
+    for (k = 0; k < CAP_ONSETS.length; k++) {
+      var on = CAP_ONSETS[k];
+      if (run.length >= on.length && run.slice(run.length - on.length) === on) { b = v - on.length; break; }
+    }
+    pen[b] = Math.min(pen[b], 4);
+  }
+  CAP_JOINT_AFTER.forEach(function(sf) {
+    for (var i = lw.indexOf(sf); i >= 0; i = lw.indexOf(sf, i + 1)) { var at = i + sf.length; if (at < n) pen[at] = 0; }
+  });
+  CAP_JOINT_BEFORE.forEach(function(hd) {
+    for (var i = lw.indexOf(hd); i >= 0; i = lw.indexOf(hd, i + 1)) { if (i > 0) pen[i] = 0; }
+  });
+  CAP_PREFIXES.forEach(function(pf) { if (lw.indexOf(pf) === 0 && V(lw.charAt(pf.length))) pen[pf.length] = Math.min(pen[pf.length], 1); });
+  for (e = 1; e < n; e++) {
+    if (w.charAt(e - 1) === '-') { pen[e] = -2; continue; }
+    var two = lw.slice(e - 1, e + 1);
+    if (/^(ch|ck|ph|th|st)$/.test(two) || lw.slice(e - 2, e + 1) === 'sch' || lw.slice(e - 1, e + 2) === 'sch') pen[e] = Infinity;
+    if (!L(w.charAt(e - 1)) || !L(w.charAt(e))) pen[e] = Math.max(pen[e], 60); // nie an Ziffern/Satzzeichen bevorzugen
+  }
+  return pen;
+}
+// fits(piece) → passt das Teilstück (inkl. angehängtem „-“) in die Zeile?
+function capHyphenate(w, fits) {
+  var n = w.length, pen = capBreakPenalties(w);
+  function piece(i, j) { return w.slice(i, j) + (j < n && w.charAt(j - 1) !== '-' ? '-' : ''); }
+  function letters(i, j) { return w.slice(i, j).replace(/[^\p{L}\p{N}]/gu, '').length; }
+  function solve(strict) {
+    var minLen = strict ? 3 : 1, fitM = [], i, j;
+    for (i = 0; i < n; i++) { fitM.push([]); for (j = i + 1; j <= n; j++) fitM[i][j] = fits(piece(i, j)); }
+    function okEdge(i, j) {
+      if (!fitM[i][j]) return false;
+      if (j < n && strict && pen[j] === Infinity) return false;
+      return letters(i, j) >= minLen || (!strict && j - i >= 1);
+    }
+    // 1) minimale Stückzahl → Ziel-Stücklänge für die Ausgewogenheit
+    var cnt = [0];
+    for (j = 1; j <= n; j++) { cnt[j] = Infinity; for (i = 0; i < j; i++) if (cnt[i] + 1 < cnt[j] && okEdge(i, j)) cnt[j] = cnt[i] + 1; }
+    if (!isFinite(cnt[n])) return null;
+    var ideal = n / cnt[n];
+    // 2) Kosten je Stück (30) + Strafpunkte der Trennstelle + Abweichung von der Ziel-Länge.
+    //    Ein Stück mehr an einer guten Fuge schlägt so zwei willkürliche Schnitte („Weide-|haltung“
+    //    statt „Rinder-We-|idehaltung“); passen zwei Nachbarstücke zusammen, ist Zusammenlegen immer
+    //    billiger → nie zwei Teile eines Worts nebeneinander in einer Zeile.
+    var best = [0], from = [-1];
+    for (j = 1; j <= n; j++) {
+      best[j] = Infinity; from[j] = -1;
+      for (i = 0; i < j; i++) {
+        if (!isFinite(best[i]) || !okEdge(i, j)) continue;
+        var pj = j < n ? Math.min(pen[j], 100) : 0;
+        var d = (j - i - ideal) / ideal;
+        var cost = best[i] + 30 + pj + 6 * d * d;
+        if (cost < best[j]) { best[j] = cost; from[j] = i; }
+      }
+    }
+    if (!isFinite(best[n])) return null;
+    var cuts = [], at = n;
+    while (at > 0) { var st = from[at]; cuts.unshift([st, at]); at = st; }
+    return cuts.map(function(r){ return piece(r[0], r[1]); });
+  }
+  return solve(true) || solve(false) || [w];
+}
+// hlOf (optional): Index-Abbildung Teilwort → Originalwort (nach Bindestrich-Trennung), damit alle
+// Teile eines aktiven Worts mit der Highlight-Schrift gemessen werden.
+function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
+  var ctx   = capMeasureCtx();
   var fn    = (s.font || "'Inter'").replace(/'/g, '');
   var fw    = s.fw || '700';
   var fi    = s.fi === 'italic' ? 'italic ' : '';
@@ -1449,7 +1701,7 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines) {
   ctx.font  = fi + fw + ' ' + px + 'px "' + fn + '", sans-serif';
   var sp    = ctx.measureText(' ').width;
   var info  = words.map(function(w, i) {
-    var isHL = i === hlIdx;
+    var isHL = (hlOf ? hlOf[i] : i) === hlIdx;
     var f    = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
     var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
     ctx.font = it + fw + ' ' + px + 'px "' + f + '", sans-serif';
@@ -1481,6 +1733,12 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines) {
 }
 function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   if (!words || !words.length) return '';
+  // Auto-Fit nur für die echte Vorschau (lineTarget gesetzt) — Style-Thumbnails/Showcase haben eigene Größen.
+  var srcWords = words, orig = null;
+  if (lineTarget && px) {
+    var fit = fitCaptionWords(words, s, px, capFitMaxW(s), lineTarget);
+    px = fit.px; words = fit.words; orig = fit.orig;
+  }
   var font = s.font || "'Inter'";
   var fw   = s.fw   || '700';
   var tt   = s.tt   || 'none';
@@ -1501,8 +1759,9 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
     if (p.borderLeft) pCss += 'border-left:' + p.borderLeft + ';';
   }
   function wordHtml(i) {
-    var isHL = i === hlIdx;
-    var isKw = !isHL && isKeywordWord(words[i]);
+    var oi   = orig ? orig[i] : i; // Teilwort → Originalwort (Highlight, Keyword, Seek gelten fürs ganze Wort)
+    var isHL = oi === hlIdx;
+    var isKw = !isHL && isKeywordWord(srcWords[oi]);
     var wt   = (tt === 'uppercase' || (isHL && s.hlUpper)) ? words[i].toUpperCase() : words[i];
     var ws   = 'display:inline-block;';
     if (isHL || isKw) {
@@ -1520,15 +1779,15 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
       ws += 'text-shadow:' + (s.ts || 'none') + ';';
     }
     var ck = '';
-    if (seekTimes && seekTimes[i] !== undefined) {
-      ck = ' onclick="event.stopPropagation();seekToTime(' + Number(seekTimes[i]).toFixed(3) + ')"';
+    if (seekTimes && seekTimes[oi] !== undefined) {
+      ck = ' onclick="event.stopPropagation();seekToTime(' + Number(seekTimes[oi]).toFixed(3) + ')"';
       ws += 'cursor:pointer;';
     }
     return '<span' + ck + ' style="' + ws + '">' + wt + '</span>';
   }
   var built;
   if (lineTarget && words.length > 1) {
-    var groups = wrapCaptionLines(words, s, hlIdx, px || 24, lineTarget);
+    var groups = wrapCaptionLines(words, s, hlIdx, px || 24, lineTarget, orig);
     built = groups.map(function(idxs) {
       var line = idxs.map(function(i, k){ return (k ? ' ' : '') + wordHtml(i); }).join('');
       return '<span style="display:block;white-space:nowrap">' + line + '</span>';
@@ -1606,10 +1865,12 @@ function updateOverlay(t) {
       }
       _lastKey = key; _lastBi = bi;
       if (bi >= 0) setActiveSeg(bi);
+      if (ov._capClamped) applyPos(); else clampCapVertical(); // Höhe kann sich je Block ändern
       if (showSafeZone) checkSafeZoneCollision();
     }
   }
   document.getElementById('prevBg').style.background = vidReady ? '#000' : s.thumbBg;
+  if (!vidReady || vid.paused) positionPlayIcon(); // nur im Pausenzustand sichtbar → kein Layout-Read pro Frame
 }
 function syncCaption(t) { updateOverlay(t); }
 function startCapLoop() {
@@ -1644,7 +1905,8 @@ function buildCaptionBlocks(wts) {
     if (!end || end <= start) end = start + Math.max(0.9, chunk.length * 0.35);
     var words = chunk.map(function(w){ return { word: w.word, start: w.start || start, end: w.end || 0 }; });
     words.forEach(function(w, k){ if (!w.end || w.end <= w.start) w.end = words[k + 1] ? words[k + 1].start : end; });
-    blocks.push({ words: words, start: start, end: end, text: words.map(function(w){ return w.word; }).join(' ') });
+    blocks.push({ words: words, srcWords: copyTimedWords(words), start: start, end: end,
+                  text: words.map(function(w){ return w.word; }).join(' ') });
     i = j;
   }
   return blocks;
@@ -1657,6 +1919,72 @@ function resplitBlock(b) {
   b.words = ws.map(function(w, i) {
     return { word: w, start: b.start + dur * i / ws.length, end: b.start + dur * (i + 1) / ws.length };
   });
+}
+// Nach Text-Edit: ECHTE Wort-Timings erhalten (wie Opus Clip/Descript) statt alles gleichmäßig zu verteilen —
+// sonst verschiebt ein einzelner Tippfehler-Fix sämtliche Karaoke-Highlights im Block.
+// Referenz ist b.srcWords (stabile, getimte Wörter seit Transkription/Split/Merge/Regroup/Projekt-Load),
+// NICHT der Stand vom letzten Tastendruck — sonst würde „Wort löschen, neues tippen“ über den
+// Zwischenzustand als Einfügung interpoliert statt den alten Zeit-Slot zu übernehmen.
+// Gleiche Wortanzahl → Timings 1:1 übernehmen. Sonst Alignment Referenz↔neu per LCS (normalisiert):
+// gematchte Wörter behalten ihre Zeiten, gleich lange ersetzte Läufe übernehmen die Slots 1:1, sonst
+// teilen sie sich die Zeitspanne der alten Wörter; reine Einfügungen landen zwischen den Nachbarn.
+// Ohne brauchbare Wortdaten → resplitBlock().
+function normWordKey(w) { return String(w || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''); }
+function copyTimedWords(ws) {
+  return (ws || []).map(function(w){ return { word: w.word, start: w.start, end: w.end }; });
+}
+function retimeEditedBlock(b) {
+  var ws = String(b.text || '').split(/\s+/).filter(Boolean);
+  var old = (b.srcWords && b.srcWords.length) ? b.srcWords : (b.words || []);
+  var valid = old.length && old.every(function(w){ return w && isFinite(w.start) && isFinite(w.end); });
+  if (!valid) { resplitBlock(b); return; }
+  if (!ws.length) { b.words = []; return; }
+  if (ws.length === old.length) {
+    b.words = ws.map(function(w, i){ return { word: w, start: old[i].start, end: old[i].end }; });
+    return;
+  }
+  // LCS-Tabelle (Blöcke sind kurz; selbst eingefügte Absätze bleiben im niedrigen Tausender-Bereich)
+  var n = old.length, m = ws.length, i, j;
+  var ok = old.map(function(w){ return normWordKey(w.word); }), nk = ws.map(normWordKey);
+  var L = [];
+  for (i = 0; i <= n; i++) { L.push(new Array(m + 1).fill(0)); }
+  for (i = n - 1; i >= 0; i--) for (j = m - 1; j >= 0; j--)
+    L[i][j] = (ok[i] && ok[i] === nk[j]) ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  var match = new Array(m).fill(-1); // neuer Index → alter Index
+  i = 0; j = 0;
+  while (i < n && j < m) {
+    if (ok[i] && ok[i] === nk[j]) { match[j] = i; i++; j++; }
+    else if (L[i + 1][j] >= L[i][j + 1]) i++;
+    else j++;
+  }
+  var bs = isFinite(b.start) ? b.start : old[0].start, be = isFinite(b.end) ? b.end : old[n - 1].end;
+  var out = ws.map(function(w, k){ var oi = match[k]; return oi < 0 ? null : { word: w, start: old[oi].start, end: old[oi].end }; });
+  var k = 0;
+  while (k < m) {
+    if (out[k]) { k++; continue; }
+    var k1 = k; while (k1 < m && !out[k1]) k1++;           // Lauf ungematchter neuer Wörter [k, k1)
+    var pi = k > 0 ? match[k - 1] : -1, ni = k1 < m ? match[k1] : n; // alte Anker-Indizes
+    var s0, e0, cnt = k1 - k;
+    if (ni - pi - 1 === cnt) {                                // gleich lang ersetzt → Slots 1:1 übernehmen
+      for (var q1 = 0; q1 < cnt; q1++) out[k + q1] = { word: ws[k + q1], start: old[pi + 1 + q1].start, end: old[pi + 1 + q1].end };
+      k = k1; continue;
+    }
+    if (ni - pi > 1) { s0 = old[pi + 1].start; e0 = old[ni - 1].end; }   // Ersetzung: Spanne der alten Wörter
+    else { s0 = pi >= 0 ? out[k - 1].end : bs; e0 = ni < n ? out[k1].start : be; } // reine Einfügung: Lücke
+    s0 = Math.max(bs, s0); e0 = Math.min(be, Math.max(s0, e0));
+    if (e0 - s0 < 0.06 * cnt) {
+      // Keine/zu kleine Lücke (durchgehend gesprochen): zweite Hälfte des linken Nachbarn abgeben,
+      // am Blockanfang ersatzweise die erste Hälfte des rechten.
+      if (k > 0) { var pw = out[k - 1]; s0 = (pw.start + pw.end) / 2; pw.end = s0; e0 = Math.max(e0, s0); }
+      else if (k1 < m) { var nw = out[k1]; e0 = (nw.start + nw.end) / 2; nw.start = e0; }
+    }
+    for (var q = 0; q < cnt; q++)
+      out[k + q] = { word: ws[k + q], start: s0 + (e0 - s0) * q / cnt, end: s0 + (e0 - s0) * (q + 1) / cnt };
+    k = k1;
+  }
+  for (k = 1; k < m; k++) { if (out[k].start < out[k - 1].start) out[k].start = out[k - 1].start; }
+  for (k = 0; k < m; k++) { if (out[k].end < out[k].start) out[k].end = out[k].start; }
+  b.words = out;
 }
 // Enter im Segment-Editor: Block an der Cursor-Position in zwei Blöcke splitten (statt Zeilenumbruch).
 // Nutzt die ECHTEN Wort-Timestamps aus captionBlocks[idx].words (nicht neu verteilt).
@@ -1675,7 +2003,9 @@ async function splitBlockAtCursor(idx, ta) {
                  text: wordsA.map(function(w){ return w.word; }).join(' ') };
   var blockB = { words: wordsB, start: wordsB[0].start || b.start, end: wordsB[wordsB.length - 1].end || b.end,
                  text: wordsB.map(function(w){ return w.word; }).join(' ') };
+  blockA.srcWords = copyTimedWords(wordsA); blockB.srcWords = copyTimedWords(wordsB);
   captionBlocks.splice(idx, 1, blockA, blockB);
+  markCaptionsEdited();
   await renderSegments();
   renderWPills();
   _lastKey = null;
@@ -1695,7 +2025,9 @@ async function mergeBlockWithPrevious(idx, ta) {
   var cursorPos   = prevBlock.text.length + 1; // Naht zwischen altem Vorgänger-Text und eingefügtem Leerzeichen
   var mergedBlock = { words: prevBlock.words.concat(curBlock.words), start: prevBlock.start, end: curBlock.end,
                        text: prevBlock.text + ' ' + curBlock.text };
+  mergedBlock.srcWords = copyTimedWords(mergedBlock.words);
   captionBlocks.splice(idx - 1, 2, mergedBlock);
+  markCaptionsEdited();
   await renderSegments();
   renderWPills();
   _lastKey = null;
@@ -1736,7 +2068,8 @@ async function renderSegments() {
     ta.oninput = (function(i, el) {
       return function() {
         captionBlocks[i].text = el.value;
-        resplitBlock(captionBlocks[i]);
+        retimeEditedBlock(captionBlocks[i]);
+        markCaptionsEdited();
         el.style.height = 'auto';
         el.style.height = el.scrollHeight + 'px';
         renderWPills();
@@ -1811,6 +2144,7 @@ function renderWPills() {
 // ═══════════════════════════════════════
 function selectStyle(id) {
   activeId = id;
+  scheduleAutosave();
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
   if (s) seedCustomFields(s);                        // „Eigener Style" startet vom gewählten Style/Template
@@ -1902,6 +2236,7 @@ function applyTemplateSettings(t) {
     WORDS_PER_BLOCK = t.wpb;
     var ws = document.getElementById('wpbSlider');
     if (ws) { ws.value = t.wpb; document.getElementById('wpbDisp').textContent = t.wpb; }
+    syncWordsFromBlocks(); // Text-Edits beim Neu-Gruppieren behalten
     if (wordTimestamps.length) { captionBlocks = buildCaptionBlocks(wordTimestamps); renderSegments(); renderWPills(); }
   }
   if (typeof t.lines === 'number') { CAPTION_LINES = t.lines; syncLinesButtons(); }
@@ -1971,7 +2306,36 @@ function applyPos() {
     else if (off < 0) ov.style.paddingTop = (-off * 2) + '%';
   }
   else ov.style.bottom = clampPct(12 + off) + '%';
+  clampCapVertical();
   if (showSafeZone) checkSafeZoneCollision();
+  positionPlayIcon();
+}
+// Letzter Ausweg nach dem Auto-Fit (fitCaptionWords): ragt der Block trotzdem aus dem Rahmen, wird er
+// so weit verschoben, dass er komplett sichtbar bleibt — gewählte Position (oben/Mitte/unten) bleibt
+// Ausgangspunkt. Gegenstück im Export: Clamp von y0 in drawCaptionsOnCtx().
+function clampCapVertical() {
+  var ov = document.getElementById('capOverlay'), frame = document.getElementById('prevFrame');
+  if (!ov || !frame) return;
+  ov._capClamped = false;
+  var child = ov.firstElementChild;
+  if (!child || !child.getBoundingClientRect) return;
+  var fr = frame.getBoundingClientRect(), r = child.getBoundingClientRect();
+  if (!fr.height || !r.height) return;
+  var z = zoomLevel || 1, pad = 4;
+  var overTop = (fr.top - r.top) / z + pad, overBot = (r.bottom - fr.bottom) / z + pad;
+  if (overTop <= 0 && overBot <= 0) return;
+  ov._capClamped = true;
+  if (capPos === 'center') {
+    ov.style.paddingTop = ''; ov.style.paddingBottom = ''; // Feinjustierung opfern, damit nichts abgeschnitten wird
+  } else if (capPos === 'top') {
+    var topPx = parseFloat(getComputedStyle(ov).top) || 0;
+    if (overBot > 0) ov.style.top = Math.max(0, topPx - overBot) + 'px';
+    else if (overTop > 0) ov.style.top = (topPx + overTop) + 'px';
+  } else {
+    var botPx = parseFloat(getComputedStyle(ov).bottom) || 0;
+    if (overTop > 0) ov.style.bottom = Math.max(0, botPx - overTop) + 'px';
+    else if (overBot > 0) ov.style.bottom = (botPx + overBot) + 'px';
+  }
 }
 // ═══════════════════════════════════════
 // SAFE ZONE (Instagram-Reels-Standard, 1080x1920-Referenz)
@@ -2020,11 +2384,13 @@ function setPos(btn) {
   btn.parentElement.querySelectorAll('.pos-btn').forEach(function(b){ b.classList.remove('on'); });
   btn.classList.add('on');
   applyPos();
+  scheduleAutosave(); // nur echte Nutzer-Änderungen — applyPos() selbst läuft auch beim Re-Layout (Playback/Export)
 }
 function onVOffChange(v) {
   capVOff = parseInt(v);
   document.getElementById('voffDisp').textContent = (capVOff > 0 ? '+' : '') + capVOff + '%';
   applyPos();
+  scheduleAutosave();
 }
 // ═══════════════════════════════════════
 // UNTERTITEL PER MAUS/TOUCH VERSCHIEBEN
@@ -2078,6 +2444,7 @@ function capDragEnd(e) {
   document.removeEventListener('touchmove', capDragMove);
   document.removeEventListener('touchend', capDragEnd);
   applyPos(); // final anwenden
+  if (capDragMoved) scheduleAutosave(); // einmal am Drag-Ende statt bei jeder Mausbewegung
   // Klick-Play/Pause auf #prevFrame erst NACH dem folgenden Click-Event wieder freigeben
   if (capDragMoved) setTimeout(function(){ capDragMoved = false; }, 0);
   else capDragMoved = false;
@@ -2093,38 +2460,55 @@ function onSzChange(v) {
   document.getElementById('szDisp').textContent = fontSize + 'px';
   _lastKey = null;
   updateOverlay();
+  scheduleAutosave();
 }
 function setMode(btn) {
   displayMode = btn.dataset.mode;
   document.querySelectorAll('#modeRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === displayMode); });
   _lastKey = null;
   updateOverlay();
+  scheduleAutosave();
 }
 function setLines(btn) {
   CAPTION_LINES = parseInt(btn.dataset.lines);
   document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.lines === btn.dataset.lines); });
   _lastKey = null;
   updateOverlay();
+  scheduleAutosave();
 }
 function syncLinesButtons() {
   document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){
     b.classList.toggle('on', parseInt(b.dataset.lines) === CAPTION_LINES);
   });
 }
+// Vor dem Neu-Gruppieren die AKTUELLEN Block-Wörter (inkl. Text-Edits, Timings bleiben dank
+// retimeEditedBlock erhalten) zurück in die flache Wortliste schreiben — sonst baut WPB-Slider/Template
+// aus dem Original-Transkript neu und verwirft Edits stillschweigend.
+function syncWordsFromBlocks() {
+  if (!captionBlocks.length) return;
+  var flat = [];
+  captionBlocks.forEach(function(b) {
+    (b.words || []).forEach(function(w) { if (w && w.word) flat.push({ word: w.word, start: w.start, end: w.end }); });
+  });
+  wordTimestamps = flat;
+}
 function onWpbChange(v) {
   WORDS_PER_BLOCK = parseInt(v);
   document.getElementById('wpbDisp').textContent = v;
+  syncWordsFromBlocks();
   if (wordTimestamps.length) {
     captionBlocks = buildCaptionBlocks(wordTimestamps);
     renderSegments(); renderWPills();
     _lastKey = null;
     updateOverlay();
+    scheduleAutosave();
   }
 }
 function onKwChange(v) {
   hlKeywords = (v || '').toLowerCase().split(/[,;]+/).map(function(x){ return x.trim().replace(/[^\wäöüàéèêß]/g, ''); }).filter(Boolean);
   _lastKey = null;
   updateOverlay();
+  scheduleAutosave();
 }
 var _csLast = 0, _csTimer = null;
 function applyCustomStyle() {
@@ -2149,15 +2533,75 @@ function applyCustomStyle() {
   if (now - _csLast > 200) { _csLast = now; run(); }
   else { clearTimeout(_csTimer); _csTimer = setTimeout(function(){ _csLast = Date.now(); run(); }, 160); }
 }
+// Neu-Transkription ersetzt captionBlocks komplett → manuelle Text-Edits wären stillschweigend weg.
+// Daher vorher fragen; bei Abbruch bleibt alles (inkl. UI-Auswahl) beim alten Stand.
+function confirmRetranscribe() {
+  if (!captionsEdited || !currentFile) return true;
+  return confirm('Re-transcribe? Your caption edits will be replaced.');
+}
+// Vokabular bereinigen wie die Proxys (api/transcribe.js, transcribe.php): Steuerzeichen raus,
+// Whitespace glätten, max. 300 Zeichen.
+function cleanVocab(v) {
+  return Array.from(String(v || '').replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim())
+    .slice(0, 300).join('').trim();
+}
+// Bewusst KEIN Auto-Re-Run beim Tippen (würde Groq-Kontingent verbrennen und Edits gefährden) —
+// stattdessen erscheint „Re-transcribe to apply“, sobald der Wert vom verwendeten abweicht.
+function onVocabChange(v) {
+  vocabText = String(v || '');
+  try { localStorage.setItem(VOCAB_KEY, vocabText); } catch (e) {}
+  syncVocabApply();
+}
+function syncVocabApply() {
+  var a = document.getElementById('vocabApply');
+  if (!a) return;
+  a.style.display = (_vocabUsed !== null && currentFile && cleanVocab(vocabText) !== _vocabUsed) ? '' : 'none';
+}
+function applyVocab(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (!currentFile || !confirmRetranscribe()) return;
+  transcribeVideo(currentFile);
+}
+// Whisper „echot“ den Prompt gern in stille/unklare Passagen. Als Echo gilt ein Stück aber NUR, wenn
+// sein gesamter Text die Vokabelliste (nahezu) wörtlich wiedergibt: Anfang des Prompts, ≥ 4 Wörter,
+// ≥ 60 % der Prompt-Wörter UND ≥ 2 Einträge der Liste. Ein einzelner Begriff oder kurzer Anfang
+// („Wald und Tier!“ als echtes Outro bei Vokabular „Wald und Tier, Birkenhof“) wird nie verworfen.
+function normEchoText(t) { return String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
+function isPromptEcho(words, prompt) {
+  if (!prompt || !words || !words.length) return false;
+  var ct = normEchoText(words.map(function(w){ return w.word; }).join(' ')), pt = normEchoText(prompt);
+  if (!ct || !pt || pt.indexOf(ct) !== 0 || (pt.length !== ct.length && pt.charAt(ct.length) !== ' ')) return false;
+  var cWords = ct.split(' ').length, pWords = pt.split(' ').length;
+  if (cWords < 4 || cWords < 0.6 * pWords) return false;
+  // Wie viele Vokabel-Einträge (durch , ; oder Zeilenumbruch getrennt) deckt das Stück vollständig ab?
+  var entries = String(prompt).split(/[,;\n]+/).map(normEchoText).filter(Boolean), covered = 0, acc = '';
+  for (var i = 0; i < entries.length; i++) {
+    acc = acc ? acc + ' ' + entries[i] : entries[i];
+    if (ct.length >= acc.length) covered++; else break;
+  }
+  return covered >= 2;
+}
+function setTranslate(cb) {
+  if (cb.checked === doTranslate) return;
+  if (!confirmRetranscribe()) { cb.checked = doTranslate; return; }
+  doTranslate = cb.checked;
+  if (currentFile) transcribeVideo(currentFile);
+}
 function setModel(btn) {
   var m = btn.dataset.m;
   if (m === whisperModel) return;
+  if (!confirmRetranscribe()) return; // Buttons wurden noch nicht umgeschaltet → nichts zurückzusetzen
   whisperModel = m;
   document.querySelectorAll('#modelRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.m === m); });
   if (currentFile) transcribeVideo(currentFile);
 }
 function setLang(v) {
   if (v === whisperLang) return;
+  if (!confirmRetranscribe()) {
+    var ls = document.getElementById('langSel');
+    if (ls) ls.value = whisperLang; // Select hat schon umgeschaltet → zurückdrehen
+    return;
+  }
   whisperLang = v;
   if (currentFile) transcribeVideo(currentFile);
 }
@@ -2283,7 +2727,7 @@ async function saveProject() {
   if (!meEmail) { showAcct(); return; }
   var sb = await getSb();
   if (!sb) return;
-  var payload = { blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff };
+  var payload = projectPayload();
   var { error } = await sb.from('projects').insert({ title: document.getElementById('projTitle').value || 'Untitled', payload: payload });
   if (error) { alert('Could not save the project: ' + error.message); return; }
   loadProjects();
@@ -2304,9 +2748,92 @@ async function loadProject(id) {
   if (!sb) return;
   var { data, error } = await sb.from('projects').select('payload').eq('id', id).single();
   if (error || !data) return;
-  var p = data.payload || {};
+  applyProjectPayload(data.payload || {});
+  setTStatus('📂', 'Project loaded — add the video again for preview & export.', false, false);
+}
+// ── Lokaler Autosave (Reload/Absturz-Schutz) ──
+// Pro Video (Name|Größe|Dauer) der letzte Stand in EINEM localStorage-Eintrag, LRU mit max. 5 Videos.
+// Beim erneuten Laden desselben Videos wird wiederhergestellt statt neu transkribiert (spart Zeit +
+// Groq-Kontingent). Alles in try/catch: Privatmodus/gesperrter Speicher deaktiviert das Feature still.
+var AUTOSAVE_KEY = 'capivo.autosave.v1', AUTOSAVE_MAX = 5;
+var _autosaveKey = null, _autosaveTimer = null, _lastTrMeta = null;
+function autosaveKeyFor(file, dur) { return file.name + '|' + file.size + '|' + Math.round((dur || 0) * 10); }
+function readAutosaves() {
+  try {
+    var raw = localStorage.getItem(AUTOSAVE_KEY);
+    var list = raw ? JSON.parse(raw) : [];
+    return Array.isArray(list) ? list.filter(function(e){ return e && e.key && e.data; }) : [];
+  } catch (e) { return []; }
+}
+function writeAutosaves(list) {
+  try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(list)); return true; } catch (e) { return false; }
+}
+function autosaveNow() {
+  clearTimeout(_autosaveTimer); _autosaveTimer = null;
+  if (!_autosaveKey || !captionBlocks.length) return false;
+  var data = projectPayload();
+  data.words = wordTimestamps; data.edited = captionsEdited; data.meta = _lastTrMeta;
+  var entry = { key: _autosaveKey, savedAt: Date.now(), data: data };
+  var list = [entry].concat(readAutosaves().filter(function(e){ return e.key !== _autosaveKey; })).slice(0, AUTOSAVE_MAX);
+  if (writeAutosaves(list)) return true;
+  // Quota voll: ältere Videos opfern (nur den aktuellen Stand behalten) und genau einmal neu versuchen.
+  return writeAutosaves([entry]);
+}
+function scheduleAutosave() {
+  if (!_autosaveKey) return;
+  clearTimeout(_autosaveTimer);
+  _autosaveTimer = setTimeout(autosaveWhenIdle, 800);
+}
+// Während des Echtzeit-Exports nie serialisieren (JSON.stringify des ganzen Projekts blockiert den
+// Main-Thread → Ruckler/verlorene Frames im Video) — stattdessen nach dem Export nachholen.
+function autosaveWhenIdle() {
+  if (isExporting) { clearTimeout(_autosaveTimer); _autosaveTimer = setTimeout(autosaveWhenIdle, 1500); return; }
+  autosaveNow();
+}
+function findAutosave(key) {
+  var list = readAutosaves();
+  for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i];
+  return null;
+}
+function markCaptionsEdited() { captionsEdited = true; scheduleAutosave(); }
+// Nach dem Laden der Video-Metadaten: Autosave vorhanden → wiederherstellen, sonst transkribieren.
+function restoreOrTranscribe(file, dur) {
+  _autosaveKey = autosaveKeyFor(file, dur);
+  var saved = findAutosave(_autosaveKey);
+  if (saved && restoreAutosave(saved)) return true;
+  transcribeVideo(file);
+  return false;
+}
+function restoreAutosave(entry) {
+  var d = entry && entry.data;
+  if (!d || !Array.isArray(d.blocks) || !d.blocks.length) return false;
+  _trRun++; // evtl. laufende Transkription entwerten
+  applyProjectPayload(d);
+  if (Array.isArray(d.words) && d.words.length) wordTimestamps = d.words;
+  captionsEdited = !!d.edited;
+  _lastTrMeta = d.meta || null;
+  _vocabUsed = (d.meta && typeof d.meta.vocab === 'string') ? d.meta.vocab : cleanVocab(vocabText);
+  syncVocabApply();
+  document.getElementById('retryWrap').style.display = 'none';
+  setTStatus('↩︎', 'Restored your last session · <a href="#" onclick="retranscribeFromStatus(event)" '
+    + 'style="color:#7c3aed;font-weight:600;text-decoration:none">Re-transcribe</a>', false, false);
+  return true;
+}
+function retranscribeFromStatus(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  if (currentFile && confirmRetranscribe()) transcribeVideo(currentFile);
+}
+// Gemeinsame Payload-Form für Cloud-Projekte (saveProject) und lokale Autosaves.
+function projectPayload() {
+  return { blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
+           lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff };
+}
+// Gemeinsamer Restore-Pfad für loadProject() und den lokalen Autosave (restoreAutosave).
+function applyProjectPayload(p) {
   if (p.blocks) {
     captionBlocks = p.blocks;
+    captionsEdited = false;
+    captionBlocks.forEach(function(b) { if (!b.srcWords || !b.srcWords.length) b.srcWords = copyTimedWords(b.words); });
     wordTimestamps = [];
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
   }
@@ -2328,21 +2855,29 @@ async function loadProject(id) {
   buildPicker(); renderSegments(); renderWPills();
   document.getElementById('capEditor').style.display = 'block';
   enableExports(true); _lastKey = null; updateOverlay();
-  setTStatus('📂', 'Project loaded — add the video again for preview & export.', false, false);
 }
-// ── Wasserzeichen (Free) + einmaliger Upsell nach erstem Export ──
-function drawWatermark(ctx, W, H) {
-  if (mePlan === 'creator' || mePlan === 'pro') return;
+// ── Wasserzeichen (nur anonym) + einmaliger Upsell nach erstem Export ──
+// Beta: Bezahlpläne sind noch nicht kaufbar (startCheckout) → ein „$9 ohne Wasserzeichen“-Angebot wäre
+// eine Sackgasse. Stattdessen: Anmelden (kostenlos) entfernt das Wasserzeichen. Creator/Pro bleiben frei.
+// Wird zum Exportzeitpunkt ausgewertet (Nutzer kann sich nach dem Video-Laden noch anmelden).
+function needsWatermark() {
+  if (mePlan === 'creator' || mePlan === 'pro') return false;
+  return !meEmail;
+}
+// on (optional): beim Export EINMAL zu Beginn ermittelter Wert → kein Wasserzeichen-Wechsel mitten im Video,
+// falls sich der Anmeldestatus während des Renderns ändert.
+function drawWatermark(ctx, W, H, on) {
+  if (typeof on === 'boolean' ? !on : !needsWatermark()) return;
   var fsW = Math.round(H * 0.022);
   ctx.save(); ctx.globalAlpha = .55; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 6;
   ctx.font = '700 ' + fsW + 'px Inter, sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'right';
   ctx.fillText('⚡ Capivo', W - fsW, H - fsW); ctx.restore();
 }
 function maybeUpsell() {
-  if (_upsellShown || mePlan === 'creator' || mePlan === 'pro') return;
+  if (_upsellShown || !needsWatermark()) return; // Angemeldete exportieren ohnehin ohne Wasserzeichen
   _upsellShown = true;
   setTimeout(function() {
-    document.getElementById('acctSub').textContent = 'Like the result? Creator: 300 min/mo, no watermark — $9.';
+    document.getElementById('acctSub').textContent = 'Like the result? Sign in (free during beta) to export without the watermark.';
     showAcct();
   }, 900);
 }
@@ -2375,10 +2910,12 @@ async function authToken() {
 // Proxy-Endpunkte in Reihenfolge: Vercel-Function (/api/transcribe), dann PHP-Proxy (klassisches Webhosting).
 // Der erste, der antwortet, wird für die Sitzung gemerkt; erst wenn keiner existiert → lokaler Fallback.
 var TR_ENDPOINTS = ['api/transcribe', 'transcribe.php'], _trIdx = 0;
-async function postChunk(wavBlob, model, lc) {
+async function postChunk(wavBlob, model, lc, isStale, prompt) {
   var maxAttempts = 4, lastMsg = '';
   var tok = openaiKey ? '' : await authToken();
   for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Veralteter Lauf (Video ersetzt / neu gestartet) → keine weiteren Requests, auch nicht nach Backoff
+    if (isStale && isStale()) throw transcribeErr('stale', { stale: true });
     var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, 100000), resp = null;
     try {
       if (openaiKey) {
@@ -2386,11 +2923,15 @@ async function postChunk(wavBlob, model, lc) {
         fd.append('file', wavBlob, 'audio.wav');
         fd.append('model', 'whisper-1');
         fd.append('response_format', 'verbose_json');
-        if (!doTranslate) { fd.append('timestamp_granularities[]', 'word'); if (lc) fd.append('language', lc); }
+        if (!doTranslate) {
+          fd.append('timestamp_granularities[]', 'word'); if (lc) fd.append('language', lc);
+          if (prompt) fd.append('prompt', prompt); // Vokabular nur beim Transkribieren, nie beim Übersetzen
+        }
         resp = await fetch('https://api.openai.com/v1/audio/' + (doTranslate ? 'translations' : 'transcriptions'),
           { method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd, signal: ctrl.signal });
       } else {
-        resp = await fetch(TR_ENDPOINTS[_trIdx] + '?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''),
+        resp = await fetch(TR_ENDPOINTS[_trIdx] + '?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : '')
+          + (prompt && !doTranslate ? '&prompt=' + encodeURIComponent(prompt) : ''),
           { method: 'POST', headers: tok ? { 'Content-Type': 'audio/wav', 'X-Capivo-Token': tok } : { 'Content-Type': 'audio/wav' }, body: wavBlob, signal: ctrl.signal });
       }
     } catch (e) {
@@ -2422,10 +2963,15 @@ async function postChunk(wavBlob, model, lc) {
         var wait = isFinite(ra) ? ra * 1000 : 2000 * Math.pow(2, attempt - 1);
         if (wait <= 25000) { await sleepMs(wait + 250); continue; }
       }
+      // Konkrete Wartezeit nennen statt „wait a minute“ — Groq-Free-Tier sperrt teils mehrere Minuten.
+      var raSec = parseFloat(resp.headers.get('Retry-After'));
+      var rlMsg = isFinite(raSec) && raSec > 0
+        ? 'Free-tier limit reached — please try again in ~' + Math.max(1, Math.ceil(raSec / 60)) + ' min.'
+        : 'Free-tier limit reached (too many requests) — wait a minute and try again.';
       throw transcribeErr(resp.status === 401 && detail === 'login_required' ? 'Please log in (top right) to transcribe videos.'
         : resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
         : resp.status === 413 ? 'Audio too large for the server — please trim the video.'
-        : resp.status === 429 ? 'Free-tier limit reached (too many requests) — wait a minute and try again.'
+        : resp.status === 429 ? rlMsg
         : resp.status >= 500 ? 'Transcription service is busy right now — please try again.'
         : 'Transcription error ' + resp.status + (detail ? ' (' + detail.slice(0, 120) + ')' : '') + '. Please try again.');
     }
@@ -2441,25 +2987,31 @@ async function postChunk(wavBlob, model, lc) {
 // Speicher liegt, direkt bei OpenAI. Teilt das Audio in Stücke (s. splitAudioChunks), sendet sie
 // nacheinander mit echtem Fortschritt und merged die Wörter. Rückgabe: {words, language}; null nur,
 // wenn gar kein Proxy da ist (→ lokaler Fallback). Alles andere ist ein klarer Fehler statt stiller Lücke.
-async function serverTranscribe(audioData, model, lc, audioDur) {
+// isStale (optional): liefert true, sobald ein neuerer transcribeVideo-Lauf gestartet wurde → sofort
+// abbrechen (wirft {stale:true}), ohne Status/Fortschritt des aktuellen Laufs zu überschreiben.
+async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt) {
+  prompt = cleanVocab(prompt);
+  function checkStale() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
   var label = (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – transcribing';
   var chunks = splitAudioChunks(audioData, 16000);
   var all = [], language = null, forced = lc;
   setTStatus('', label + '…', true, true);
   for (var i = 0; i < chunks.length; i++) {
+    checkStale();
     setTProgress(60 + 32 * i / chunks.length);
     if (chunks.length > 1) setTStatus('', label + ' (part ' + (i + 1) + '/' + chunks.length + ')…', true, true);
     var ch = chunks[i];
     if (chunkIsSilent(ch.samples)) continue;
     var wav = new Blob([await float32ToWav(ch.samples, 16000)], { type: 'audio/wav' });
     var j;
-    try { j = await postChunk(wav, model, forced); }
+    try { j = await postChunk(wav, model, forced, isStale, prompt); }
     catch (e) { if (e.noProxy && i === 0) return null; throw e.noProxy ? transcribeErr('Transcription server became unavailable — please try again.') : e; }
+    checkStale();
     var ws = (j.words || []).map(function(w){ return { word: (w.word || '').trim(), start: w.start || 0, end: w.end || 0 }; })
                             .filter(function(w){ return w.word; });
     if (!ws.length && j.segments) ws = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
     if (!ws.length && j.text)     ws = segmentsToWords([{ text: j.text, timestamp: [0, ch.samples.length / 16000] }]);
-    if (isHallucinatedChunk(ws)) ws = [];
+    if (isHallucinatedChunk(ws) || isPromptEcho(ws, doTranslate ? '' : prompt)) ws = [];
     ws.forEach(function(w){ all.push({ word: w.word, start: w.start + ch.offset, end: w.end + ch.offset }); });
     // Sprache aus dem ersten Stück mit Inhalt für alle weiteren festnageln (kein Sprach-Flackern mitten im Video).
     // Whisper liefert die erkannte Sprache als Name (z. B. "german").
@@ -2469,12 +3021,13 @@ async function serverTranscribe(audioData, model, lc, audioDur) {
       if (!forced && !doTranslate && CODE_BY_LANG[lg]) forced = CODE_BY_LANG[lg];
     }
   }
+  checkStale();
   setTProgress(92);
   return { words: all, language: language };
 }
 // Tonspur → Mono-Float32 @16 kHz. Primär per Web Audio (schnell, kein Download); scheitert das (exotischer
 // Container/Codec, iOS-Eigenheiten), extrahiert das selbst gehostete ffmpeg.wasm die Tonspur.
-async function decodeToMono16k(file) {
+async function decodeToMono16k(file, isStale) {
   var audioData = null, peak = 0;
   try {
     var arrayBuffer = await file.arrayBuffer();
@@ -2500,13 +3053,26 @@ async function decodeToMono16k(file) {
     }
   } catch (e) {
     console.warn('Web-Audio-Decode fehlgeschlagen, ffmpeg-Fallback:', e);
+    if (isStale && isStale()) throw transcribeErr('stale', { stale: true });
     setTStatus('', 'Extracting audio (compatibility mode)…', true, true);
+    var noAudio = false;
     try {
       var g = await getFFmpeg(), ff = g.ff;
+      // ffmpeg-Log mitschneiden: nur so lässt sich „Datei ohne Tonspur“ von „Datei kaputt/unbekannt“
+      // unterscheiden — in beiden Fällen entsteht keine a.pcm und readFile wirft bloß „FS error“.
+      var ffLog = '';
+      var onLog = function(ev) { if (ev && ev.message) ffLog += ev.message + '\n'; };
+      try { ff.on('log', onLog); } catch (eL) {}
       await ff.writeFile('in_media', await g.fetchFile(file));
-      await ff.exec(['-i', 'in_media', '-vn', '-ac', '1', '-ar', '16000', '-f', 's16le', 'a.pcm']);
-      var raw = await ff.readFile('a.pcm');
+      try { await ff.exec(['-i', 'in_media', '-vn', '-ac', '1', '-ar', '16000', '-f', 's16le', 'a.pcm']); }
+      finally { try { ff.off && ff.off('log', onLog); } catch (eL2) {} }
+      var raw = null;
+      try { raw = await ff.readFile('a.pcm'); } catch (eR) { raw = null; }
       try { await ff.deleteFile('in_media'); await ff.deleteFile('a.pcm'); } catch (e1) {}
+      if (!raw || !raw.byteLength) {
+        noAudio = isNoAudioFfmpegLog(ffLog);
+        throw new Error('ffmpeg produced no audio output');
+      }
       var i16 = new Int16Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + (raw.byteLength & ~1)));
       audioData = new Float32Array(i16.length); peak = 0;
       for (var m = 0; m < i16.length; m++) {
@@ -2516,18 +3082,36 @@ async function decodeToMono16k(file) {
       }
     } catch (e2) {
       console.error(e2);
+      if (noAudio) throw new Error('This video has no audio track — nothing to transcribe.');
       throw new Error('Could not read the audio. Please use MP4, MOV or WebM.');
     }
   }
   return { audioData: audioData, peak: peak };
 }
+// Wertet das ffmpeg-Log aus: Eingabe erkannt (Stream-Liste vorhanden, kein „Invalid data“), aber
+// keine Audio-Spur → Video ohne Ton. Explizite ffmpeg-Meldungen dafür zählen immer.
+function isNoAudioFfmpegLog(log) {
+  log = String(log || '');
+  if (/does not contain any stream|matches no streams|Output file (#0 )?does not contain/i.test(log)) return true;
+  if (/Invalid data found|could not find codec parameters for stream \d+ \(audio/i.test(log)) return false;
+  return /Stream #\d+:\d+.*Video:/.test(log) && !/Stream #\d+:\d+.*Audio:/.test(log);
+}
 async function transcribeVideo(file) {
+  // Lauf-Token: Wird währenddessen ein anderes Video geladen oder neu transkribiert (Modell/Sprache/
+  // Übersetzen/Retry), darf dieser Lauf danach NICHTS mehr schreiben — sonst landen die Captions
+  // eines langen Videos A, das zuletzt fertig wird, auf dem kurzen Video B.
+  var run = ++_trRun;
+  function stale() { return run !== _trRun; }
+  function bailIfStale() { if (stale()) throw transcribeErr('stale', { stale: true }); }
+  var vocab = cleanVocab(vocabText);
+  _vocabUsed = vocab; syncVocabApply();
   setTStatus('', 'Preparing transcription…', true, true);
   setTProgress(5);
   document.getElementById('retryWrap').style.display = 'none';
   document.getElementById('capEditor').style.display = 'none';
   wordTimestamps = [];
   captionBlocks  = [];
+  captionsEdited = false; // Blöcke sind ab hier weg — Bestätigung lief (falls nötig) vorher
   enableExports(false);
 
   try {
@@ -2535,7 +3119,8 @@ async function transcribeVideo(file) {
     setTStatus('', 'Extracting audio…', true, true);
     setTProgress(40);
 
-    var dec = await decodeToMono16k(file);
+    var dec = await decodeToMono16k(file, stale);
+    bailIfStale();
     var audioData = dec.audioData, peak = dec.peak, len = audioData.length;
     setTProgress(50);
 
@@ -2545,7 +3130,7 @@ async function transcribeVideo(file) {
       var gain = 0.95 / peak;
       for (var k3 = 0; k3 < len; k3++) {
         audioData[k3] *= gain;
-        if (k3 > 0 && k3 % YIELD_EVERY === 0) await yieldToUI();
+        if (k3 > 0 && k3 % YIELD_EVERY === 0) { await yieldToUI(); bailIfStale(); }
       }
     }
     setTProgress(60);
@@ -2558,7 +3143,8 @@ async function transcribeVideo(file) {
     var lc = (whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) ? CODE_BY_LANG[whisperLang] : '';
 
     // ── 1) Serverseitig transkribieren (Groq via transcribe.php) — kein Download für den Nutzer ──
-    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur);
+    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur, stale, vocab);
+    bailIfStale();
 
     if (served !== null) {
       wordTimestamps = served.words;
@@ -2595,7 +3181,8 @@ async function transcribeVideo(file) {
         // Genauigkeit (reduzierte Decoder-Tiefe) -- selbst mit erzwungenem `language`-Parameter bleibt
         // der generierte Text bei turbo mitunter unzuverlaessig. Der Retry ist selten (nur bei
         // Verdachtsfall) und darf daher die genauere/langsamere Variante nutzen.
-        var servedF = await serverTranscribe(audioData, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur);
+        var servedF = await serverTranscribe(audioData, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur, stale, vocab);
+        bailIfStale();
         // WICHTIG: NICHT mehr looksLikeTargetLang als Pflichtkriterium -- ein korrekter deutscher/
         // französischer/... Satz OHNE Sonderzeichen (sehr häufig, z. B. "Hallo und willkommen zu
         // unserem Projekt") würde sonst fälschlich verworfen und das falsch-englische Original
@@ -2611,12 +3198,15 @@ async function transcribeVideo(file) {
       // ── 2) Fallback: lokal im Browser (z. B. Vercel-Demo ohne PHP-Proxy) ──
       setTStatus('', 'Server unavailable — running locally (one-time model download)…', true, true);
       var pipe = await getPipe(LOCAL_MODEL[whisperModel] || 'base');
+      bailIfStale();
       // return_language:true haengt die von Whisper selbst erkannte Audio-Sprache an die Chunks an
       // (transcribeChunked reicht sie als wordTimestamps.language durch) -- gleiches zuverlässiges
       // Korrektur-Ziel wie `served.language` beim Server-Pfad, statt blind auf NAV_LANG zu vertrauen.
       var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe', return_language: true };
       if (whisperLang !== 'auto') wOpts.language = whisperLang;
-      wordTimestamps = await transcribeChunked(pipe, audioData, wOpts);
+      var wtLocal = await transcribeChunked(pipe, audioData, wOpts, stale);
+      bailIfStale();
+      wordTimestamps = wtLocal;
       var repetitiveLocal = looksRepetitive(wordTimestamps);
       var detectedTargetLocal = (wordTimestamps.language && wordTimestamps.language !== 'english' && CODE_BY_LANG[wordTimestamps.language]) ? wordTimestamps.language : null;
       // Trigger einheitlich über looksLikeEnglishBias (Stoppwort-Anteil) statt looksLikeTargetLang --
@@ -2631,7 +3221,9 @@ async function transcribeVideo(file) {
         // eskalieren statt beim (im Fast-Modus bewusst kleinen/schnellen) 'tiny'-Modell zu bleiben --
         // 'tiny' ist bei nicht-englischer Sprache deutlich unzuverlaessiger, auch mit erzwungenem Hint.
         var pipeRetry = LOCAL_MODEL[whisperModel] === 'small' ? pipe : await getPipe('small');
-        var wtF = await transcribeChunked(pipeRetry, audioData, Object.assign({}, wOpts, { language: retryTargetLocal }));
+        bailIfStale();
+        var wtF = await transcribeChunked(pipeRetry, audioData, Object.assign({}, wOpts, { language: retryTargetLocal }), stale);
+        bailIfStale();
         // Auch hier: looksLikeTargetLang nicht mehr als Pflichtkriterium, nur als zusätzliches
         // positives Signal -- s. Server-Pfad-Kommentar oben (der eigentliche Bug-Fund).
         if (wtF.length && !looksRepetitive(wtF)
@@ -2642,13 +3234,17 @@ async function transcribeVideo(file) {
     }
 
     wordTimestamps = stripNonSpeechTags(wordTimestamps); // "[Music]"/"(Applause)"-Halluzinationen raus
-    wordTimestamps = await cleanWords(wordTimestamps); // Stottern & Wiederholungsschleifen entfernen
+    var cleaned = await cleanWords(wordTimestamps); // Stottern & Wiederholungsschleifen entfernen
+    bailIfStale();
+    wordTimestamps = cleaned;
     wordTimestamps = sanitizeWordTimings(wordTimestamps, audioDur); // Überlappungen/gedehnte Wörter glätten
 
     setTProgress(100);
     if (!wordTimestamps.length) throw new Error('No speech detected. Tip: pick the language above manually, or try Perfect.');
 
     captionBlocks = buildCaptionBlocks(wordTimestamps);
+    captionsEdited = false;
+    _lastTrMeta = { model: whisperModel, lang: usedLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
     setTStatus(qWarn ? '⚠️' : '✅',
@@ -2661,8 +3257,10 @@ async function transcribeVideo(file) {
     _lastKey = null;
     updateOverlay();
     enableExports(true);
+    scheduleAutosave();
 
   } catch(err) {
+    if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
     if (typeof fakeTimer !== 'undefined') clearInterval(fakeTimer);
     console.error(err);
     setTStatus('❌', 'Error: ' + (err.message || err), false, false);
@@ -2687,8 +3285,11 @@ function loadVideo(file) {
     setTStatus('❌', 'That\'s not a video file. Please choose an MP4, MOV or WebM.', false, false);
     return;
   }
+  if (_autosaveTimer) autosaveNow(); // ausstehenden Autosave des vorigen Videos noch unter SEINEM Key sichern
+  _autosaveKey = null; _lastTrMeta = null;
   currentFile   = file;
-  wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1;
+  wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1; captionsEdited = false;
+  _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
   openEditor();
 
   var vid = document.getElementById('mainVid');
@@ -2721,7 +3322,9 @@ function loadVideo(file) {
     if (szSliderEl) szSliderEl.value = fontSize;
     var szDispEl = document.getElementById('szDisp');
     if (szDispEl) szDispEl.textContent = fontSize + 'px';
-    document.getElementById('vidCtrls').style.width = w + 'px';
+    // Mindestens 320px statt nur Rahmenbreite: sonst schrumpft die Fortschrittsleiste auf wenige Pixel
+    // und die Zeitangabe bricht um. CSS max-width:100% deckelt auf die Spaltenbreite.
+    document.getElementById('vidCtrls').style.width = Math.max(w, 320) + 'px';
     vid.style.display = 'block';
     document.getElementById('frameDropZone').style.display = 'none';
     document.getElementById('prevBg').style.background    = '#000';
@@ -2731,7 +3334,7 @@ function loadVideo(file) {
     showPlayOverlay(true);
     document.getElementById('ppBtn').textContent = '▶';
     updateOverlay();
-    transcribeVideo(file);
+    restoreOrTranscribe(file, vid.duration);
   };
 
   vid.ontimeupdate = function() {
@@ -2749,7 +3352,45 @@ function loadVideo(file) {
   vid.load();
 }
 
-function showPlayOverlay(show) { document.getElementById('playOverlay').style.display = show ? 'flex' : 'none'; }
+function showPlayOverlay(show) {
+  document.getElementById('playOverlay').style.display = show ? 'flex' : 'none';
+  if (show) positionPlayIcon();
+}
+// Play-Icon aus dem Untertitel-Bereich schieben: liegt der Untertitel (z. B. Position „Middle“ oder
+// per Drag verschoben) in der Bildmitte, wandert das Icon in den größeren freien Bereich darüber bzw.
+// darunter — mit vollem Abstand (Icon-Radius + 12px) zur Text-Box, nicht nur „ungefähr daneben“.
+var PLAY_ICON_R = 22, PLAY_ICON_GAP = 12;
+function positionPlayIcon() {
+  var po = document.getElementById('playOverlay');
+  var frame = document.getElementById('prevFrame');
+  var ov = document.getElementById('capOverlay');
+  if (!po || !frame || !ov) return;
+  po.style.alignItems = ''; po.style.paddingTop = '';
+  if (po.style.display === 'none') return;
+  var fr = frame.getBoundingClientRect();
+  if (!fr.height) return;
+  var z = zoomLevel || 1, H = fr.height / z; // Rects sind per Zoom skaliert → in Rahmen-px umrechnen
+  // Bei „Middle“ spannt capOverlay die volle Höhe (Flex) → tatsächlichen Text-Bereich aus den Kindern nehmen.
+  var top = Infinity, bot = -Infinity;
+  for (var i = 0; i < ov.children.length; i++) {
+    var r = ov.children[i].getBoundingClientRect();
+    if (!r.height) continue;
+    top = Math.min(top, (r.top - fr.top) / z); bot = Math.max(bot, (r.bottom - fr.top) / z);
+  }
+  if (top === Infinity) {
+    // Noch kein Untertitel sichtbar → aus der Position schätzen (Text liegt um die Mitte nur bei „Middle“).
+    if (capPos !== 'center') return;
+    top = H * 0.42; bot = H * 0.58;
+  }
+  var R = PLAY_ICON_R, G = PLAY_ICON_GAP, mid = H / 2;
+  if (bot <= mid - R - G || top >= mid + R + G) return; // genug Abstand → mittig lassen
+  var above = top - G, below = H - bot - G;          // freier Platz über/unter der Text-Box
+  var cy = above >= below
+    ? Math.max(R + 6, Math.min(top - G - R, above / 2))
+    : Math.min(H - R - 6, Math.max(bot + G + R, bot + G + below / 2));
+  po.style.alignItems = 'flex-start';
+  po.style.paddingTop = Math.round(cy - R) + 'px';
+}
 function doPlay() { if (isExporting) return; var v = document.getElementById('mainVid'); if (v.src) v.play().catch(function(){}); }
 function togglePlay() { if (isExporting) return; var v = document.getElementById('mainVid'); if (!v.src) return; if (v.paused) v.play().catch(function(){}); else v.pause(); }
 function seekVid(e) {
@@ -2947,11 +3588,13 @@ async function exportVideoWithCaptions() {
   canvas.width = W; canvas.height = H;
   var ctx = canvas.getContext('2d');
 
-  // MP4 zuerst versuchen (Instagram/TikTok-tauglich, aktuelle Chrome-Versionen), sonst WebM
-  var mimeType = ['video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/mp4',
-                  'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+  // Nur EXPLIZITES H.264-MP4 direkt nehmen (Instagram/TikTok/iOS-tauglich). Generisches 'video/mp4'
+  // akzeptieren Chromium-Builds ohne H.264 ebenfalls — und schreiben dann VP9/Opus in einen MP4-Container,
+  // den Instagram/iOS-Fotos ablehnen. Daher erst WebM (→ ffmpeg-Umkodierung nach H.264-MP4), generisches
+  // 'video/mp4' nur als letzter Ausweg (Safari kann kein WebM aufnehmen, liefert dort aber H.264).
+  var MP4_H264 = ['video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/mp4;codecs=avc1,mp4a', 'video/mp4;codecs=avc1'];
+  var mimeType = MP4_H264.concat(['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'])
     .find(function(m){ return MediaRecorder.isTypeSupported(m); }) || 'video/webm';
-  var isMp4 = mimeType.indexOf('mp4') >= 0;
 
   var canvasStream = canvas.captureStream(30);
   var hasAudio = false;
@@ -2966,7 +3609,10 @@ async function exportVideoWithCaptions() {
 
   var recorder, chunks = [];
   try { recorder = new MediaRecorder(canvasStream, { mimeType: mimeType, videoBitsPerSecond: 8000000 }); }
-  catch(e) { recorder = new MediaRecorder(canvasStream); }
+  catch(e) { recorder = new MediaRecorder(canvasStream); mimeType = recorder.mimeType || 'video/webm'; }
+  // MP4 direkt speichern: entweder explizit H.264 oder generisches MP4, das nach obiger Reihenfolge nur
+  // greift, wenn der Browser gar kein WebM aufnimmt (Safari → dort ist MP4 immer H.264). WebM → ffmpeg.
+  var isMp4 = mimeType.indexOf('mp4') >= 0;
 
   var prevMuted = vidMuted;
   var prevOnEnded = vid.onended; // wird unten für die Fertig-Erkennung überschrieben, danach restaurieren
@@ -2980,7 +3626,7 @@ async function exportVideoWithCaptions() {
       // Chrome/Edge liefern MP4 (H.264/AAC) direkt — sofort speichern
       dlBlob(blob, 'capivo-video.mp4');
     } else {
-      // Firefox/ältere Safari: WebM → MP4 umkodieren, damit der Upload zu Instagram/TikTok klappt
+      // Firefox/Chromium ohne H.264: WebM → H.264-MP4 umkodieren, damit der Upload zu Instagram/TikTok klappt
       try {
         recMsg.textContent = 'Creating MP4 (one-time ~15 MB converter download)…';
         recBar.style.width = '0%';
@@ -2992,7 +3638,7 @@ async function exportVideoWithCaptions() {
       } catch (e) {
         console.error('MP4-Konvertierung fehlgeschlagen:', e);
         alert('MP4 conversion failed (maybe offline) — saving as WebM instead. '
-            + 'Tipp: In Chrome exportieren liefert direkt MP4.');
+            + 'Tip: exporting in Chrome or Safari gives you an Instagram-ready MP4 directly.');
         dlBlob(blob, 'capivo-video.webm');
       }
     }
@@ -3008,6 +3654,7 @@ async function exportVideoWithCaptions() {
   // Play/Pause/Seek/Mute während des Renderns sperren — sonst hängt die Fertig-Erkennung für immer,
   // weil sie an vid.currentTime/vid.ended hängt und ein pausiertes Video nie das Ende erreicht.
   isExporting = true;
+  var wmOn = needsWatermark(); // Anmeldestatus JETZT (nicht beim Video-Laden) — gilt für das ganze Video
   var vidCtrlsEl = document.getElementById('vidCtrls');
   if (vidCtrlsEl) vidCtrlsEl.classList.add('exporting');
 
@@ -3069,13 +3716,13 @@ async function exportVideoWithCaptions() {
 
     var pct = t / totalDur;
     document.getElementById('recBar').style.width = (pct * 100) + '%';
-    document.getElementById('recMsg').textContent = 'Rendere ' + Math.round(pct * 100) + '%…';
+    document.getElementById('recMsg').textContent = 'Rendering ' + Math.round(pct * 100) + '%…';
 
     var vW = vid.videoWidth, vH = vid.videoHeight;
     var sc = Math.max(W / vW, H / vH);
     ctx.drawImage(vid, (W - vW * sc) / 2, (H - vH * sc) / 2, vW * sc, vH * sc);
     drawCaptionsOnCtx(ctx, t, s, W, H, false);
-    drawWatermark(ctx, W, H); // nur Free/anonym
+    drawWatermark(ctx, W, H, wmOn); // nur anonym (beim Export-Start festgelegt)
     requestAnimationFrame(drawLoop);
   }
   requestAnimationFrame(drawLoop);
@@ -3161,7 +3808,9 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
   var scale = W / previewFrameW(); // Vorschau-Rahmen ist variabel breit (Video-AR-abhängig) — NIE eine feste Zahl hier
-  var fsS = Math.round(fontSize * scale * fsMul);
+  // Gleiches Auto-Fit wie die Vorschau (buildCap), in Vorschau-Einheiten berechnet → identisches Ergebnis.
+  var fit = fitCaptionWords(b.words.map(function(w){ return w.word; }), s, fontSize, capFitMaxW(s), CAPTION_LINES);
+  var fsS = Math.round(fit.px * scale * fsMul);
   var fn  = (s.font || "'Inter'").replace(/'/g,'');
   var fw  = s.fw || '400';
   var fi  = s.fi === 'italic' ? 'italic ' : '';
@@ -3175,13 +3824,14 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
     var it = (isHL && s.hlItalic) ? 'italic ' : fi;
     ctx.font = it + fw + ' ' + fsS + 'px "' + f + '", sans-serif';
   }
-  var words = b.words.map(function(w, i) {
-    return (tt || (i === wi && s.hlUpper)) ? w.word.toUpperCase() : w.word;
+  var words = fit.words.map(function(w, i) {
+    return (tt || (fit.orig[i] === wi && s.hlUpper)) ? w.toUpperCase() : w;
   });
   ctx.font = fi + fw + ' ' + fsS + 'px "' + fn + '", sans-serif';
   var sp    = ctx.measureText(' ').width;
   var maxW  = W * 0.86;
-  var wordInfo = words.map(function(w, i) { wordFont(i === wi); return { txt: w, w: ctx.measureText(w).width, idx: i }; });
+  // idx = Index des ORIGINALWORTS (Teilwörter nach Bindestrich-Trennung teilen sich Highlight/Keyword)
+  var wordInfo = words.map(function(w, i) { wordFont(fit.orig[i] === wi); return { txt: w, w: ctx.measureText(w).width, idx: fit.orig[i] }; });
 
   // Mehrzeiliger Umbruch — bei CAPTION_LINES>1 wird möglichst gleichmäßig auf genau so viele
   // Zeilen verteilt (nicht nur bei Überlauf gebrochen), sonst würden kurze Blöcke nie umbrechen.
@@ -3226,6 +3876,13 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
     var bottomPct = clampPct(12 + off);
     y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh;
   }
+
+  // Letzter Ausweg wie clampCapVertical() in der Vorschau: Block komplett im Bild halten.
+  var padYc = (s.boxBg ? 5 * scale : 0) + 4 * scale;
+  var blkBot = y0 + (lines.length - 1) * lh + fsS * 0.45 + padYc;
+  if (blkBot > H) y0 -= (blkBot - H);
+  var blkTop = y0 - fsS * 1.05 - padYc;
+  if (blkTop < 0) y0 -= blkTop; // oben hat Vorrang (erste Zeile ist die, die gelesen wird)
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
 
@@ -3494,7 +4151,9 @@ function openEditor() {
   applyPos(); // gewählte Position beibehalten
 }
 function openEditorClean() {
-  vidReady = false; currentFile = null; wordTimestamps = []; captionBlocks = [];
+  if (_autosaveTimer) autosaveNow();
+  _autosaveKey = null;
+  vidReady = false; currentFile = null; wordTimestamps = []; captionBlocks = []; captionsEdited = false; _trRun++; _vocabUsed = null; syncVocabApply();
   var vid = document.getElementById('mainVid');
   if (vid.src && vid.src.startsWith('blob:')) URL.revokeObjectURL(vid.src);
   vid.src = ''; vid.style.display = 'none';
@@ -3606,6 +4265,7 @@ function zoomBy(delta) { setZoom(zoomLevel + delta); }
 // INIT
 enableExports(false);
 renderWPills();
+(function(){ var vi = document.getElementById('vocabInput'); if (vi && vocabText) vi.value = vocabText; })();
 // Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
 renderShowcase();

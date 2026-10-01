@@ -9,7 +9,7 @@
  * Setup: `config.example.php` → `config.php` kopieren und Groq-Key eintragen
  * (config.php ist per .gitignore vom Repo ausgeschlossen).
  *
- * Frontend ruft:  POST transcribe.php?model=<groq-model>&lang=<iso>&translate=<0|1>
+ * Frontend ruft:  POST transcribe.php?model=<groq-model>&lang=<iso>&translate=<0|1>&prompt=<Namen/Begriffe>
  *   Body = rohe WAV-Bytes (Content-Type: audio/wav)  ODER  multipart mit Feld "file".
  * Das Frontend schickt das Audio in ~100-s-Stücken (≤ ~3,2 MB), daher keine Probleme mit post_max_size.
  * Antwort = Groq-JSON (verbose_json): { text, language, words:[{word,start,end}], segments:[...] }
@@ -57,7 +57,15 @@ $model = $_GET['model'] ?? 'whisper-large-v3-turbo';
 if (!in_array($model, $ALLOWED, true)) $model = 'whisper-large-v3-turbo';
 
 $translate = (($_GET['translate'] ?? '0') === '1');
+// whisper-large-v3-turbo ist nicht auf Übersetzung trainiert (Groq/OpenAI) → für Translate immer large-v3
+if ($translate) $model = 'whisper-large-v3';
 $lang = preg_replace('/[^a-z]/', '', strtolower($_GET['lang'] ?? '')); // ISO-Kürzel, sonst leer
+// Optionales Vokabular („Names & terms“) als Whisper-Prompt: Steuerzeichen raus, Whitespace glätten,
+// max. 300 Zeichen (UTF-8-sicher, ohne mbstring-Abhängigkeit). Ungültiges UTF-8 → verworfen.
+$prompt = is_string($_GET['prompt'] ?? null) ? $_GET['prompt'] : '';
+$prompt = preg_replace('/[\x{0000}-\x{001F}\x{007F}-\x{009F}]/u', ' ', $prompt);
+$prompt = $prompt === null ? '' : trim(preg_replace('/\s+/u', ' ', $prompt));
+if (preg_match('/^.{0,300}/us', $prompt, $pm)) $prompt = trim($pm[0]); else $prompt = '';
 
 // ── Optional: nur eingeloggte Nutzer (Supabase) dürfen transkribieren ──────────────────────
 // Aktivieren in config.php: REQUIRE_LOGIN=true + SUPABASE_URL + SUPABASE_ANON_KEY (beides öffentliche Werte).
@@ -127,6 +135,7 @@ $post = [
 if (!$translate) {
   $post['timestamp_granularities[]'] = 'word'; // Wort-Timings für Karaoke
   if ($lang !== '') $post['language'] = $lang;  // sonst Auto-Detect durch Groq
+  if ($prompt !== '') $post['prompt'] = $prompt; // nur Transkription — beim Übersetzen stört der Prompt die Zielsprache
 }
 
 $ch = curl_init($endpoint);

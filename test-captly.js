@@ -70,7 +70,14 @@ setState:function(bl,wts,dm){captionBlocks=bl;wordTimestamps=wts;if(dm)displayMo
 getBlocks:function(){return captionBlocks;},selectStyle:selectStyle,setPos:setPos,onSzChange:onSzChange,setMode:setMode,
 onWpbChange:onWpbChange,setLang:setLang,buildPicker:buildPicker,renderSegments:renderSegments,renderWPills:renderWPills,
 openEditorClean:openEditorClean,goBack:goBack,enableExports:enableExports,
-looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNonSpeechTags,renderShowcase:renderShowcase,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},setVOffState:function(v){capVOff=v;},applyPos:applyPos,mergeChunkWords:mergeChunkWords,computeCutRegions:computeCutRegions,splitAudioChunks:splitAudioChunks,chunkIsSilent:chunkIsSilent,sanitizeWordTimings:sanitizeWordTimings,isHallucinatedChunk:isHallucinatedChunk,serverTranscribe:serverTranscribe};`;
+looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNonSpeechTags,renderShowcase:renderShowcase,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},setVOffState:function(v){capVOff=v;},applyPos:applyPos,mergeChunkWords:mergeChunkWords,computeCutRegions:computeCutRegions,splitAudioChunks:splitAudioChunks,chunkIsSilent:chunkIsSilent,sanitizeWordTimings:sanitizeWordTimings,isHallucinatedChunk:isHallucinatedChunk,serverTranscribe:serverTranscribe,
+retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
+setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
+setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
+needsWatermark:needsWatermark,isPromptEcho:isPromptEcho,capFontsChanged:capFontsChanged,
+getAutosaveTimer:function(){return _autosaveTimer;},setExporting:function(v){isExporting=v;},autosaveWhenIdle:autosaveWhenIdle,autosaveNow:autosaveNow,restoreOrTranscribe:restoreOrTranscribe,
+readAutosaves:readAutosaves,setAutosaveKey:function(k){_autosaveKey=k;},AUTOSAVE_KEY:AUTOSAVE_KEY,setTranslateState:function(v){doTranslate=v;},capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
+setMe:function(plan,email){mePlan=plan;meEmail=email;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -151,6 +158,207 @@ T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
 const b0 = T.getBlocks()[0]; b0.text = 'Eins zwei drei vier fuenf'; T.resplitBlock(b0);
 ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
 
+// 9b) Timing-erhaltendes Re-Split nach Text-Edit (Tippfehler-Fix darf Karaoke-Timings nicht verschieben)
+{
+  const mk = () => ({ start: 1, end: 3, text: 'Unser Highlnd Rind grast',
+    words: [{ word: 'Unser', start: 1, end: 1.4 }, { word: 'Highlnd', start: 1.5, end: 2.1 },
+            { word: 'Rind', start: 2.2, end: 2.5 }, { word: 'grast', start: 2.6, end: 3 }] });
+  const b1 = mk(); const orig = b1.words.map(w => [w.start, w.end]);
+  b1.text = 'Unser Highland Rind grast'; T.retimeEditedBlock(b1);
+  ok(b1.words.length === 4 && b1.words.every((w, i) => w.start === orig[i][0] && w.end === orig[i][1]),
+     'Edit mit gleicher Wortanzahl behaelt Timings exakt');
+  ok(b1.words[1].word === 'Highland', 'Edit: neuer Text uebernommen');
+  // Einfügung: neues Wort landet zwischen seinen Nachbarn, gematchte Wörter behalten Start
+  const b2 = mk(); b2.text = 'Unser Highlnd Rind grast gerne'; T.retimeEditedBlock(b2);
+  const b3 = mk(); b3.text = 'Unser schottisches Highlnd Rind grast'; T.retimeEditedBlock(b3);
+  ok(b3.words.length === 5 && b3.words[1].word === 'schottisches'
+     && b3.words[1].start > b3.words[0].start && b3.words[1].start < b3.words[2].start,
+     'eingefuegtes Wort liegt zwischen den Nachbarn: ' + JSON.stringify(b3.words.map(w => w.start)));
+  ok(b3.words[2].start === 1.5 && b3.words[3].start === 2.2 && b3.words[4].start === 2.6, 'gematchte Woerter behalten Start');
+  ok(b2.words[4].word === 'gerne' && b2.words[4].start >= b2.words[3].start && b2.words[4].end <= 3 + 1e-9, 'Einfuegung am Ende bleibt im Block');
+  // Löschung + Ersetzung mehrerer Wörter
+  const b4 = mk(); b4.text = 'Unser Rind frisst Gras gerne'; T.retimeEditedBlock(b4);
+  ok(b4.words.length === 5 && b4.words[0].start === 1 && b4.words[1].start === 2.2, 'Loeschung: Rest behaelt Timings');
+  ok(b4.words[2].start >= 2.6 && b4.words[4].end <= 3 + 1e-9, 'Ersetzung nutzt Zeitspanne der alten Woerter');
+  const b5 = mk(); b5.text = 'Ganz neu am Anfang Unser Highlnd'; T.retimeEditedBlock(b5);
+  [b2, b3, b4, b5].forEach((b, n) => {
+    ok(b.words.every((w, i) => i === 0 || w.start >= b.words[i - 1].start), 'Starts monoton (Fall ' + n + ')');
+    ok(b.words.every(w => w.end >= w.start && w.start >= b.start - 1e-9 && w.end <= b.end + 1e-9), 'Timings im Block (Fall ' + n + ')');
+  });
+  // ohne Wortdaten → gleichmäßige Verteilung als Fallback
+  const b6 = { start: 0, end: 2, text: 'a b', words: [] }; T.retimeEditedBlock(b6);
+  ok(b6.words.length === 2 && b6.words[1].start === 1, 'ohne Wortdaten → resplitBlock-Fallback');
+}
+
+// 9b2) Referenz-Wörter (srcWords): Wort löschen und neu tippen übernimmt den ALTEN Zeit-Slot
+{
+  T.setState([], []); T.onWpbChange('6'); // genug Wörter pro Block für einen 4-Wort-Block
+  const blk = T.buildCaptionBlocks([{ word: 'Fleisch,', start: 1.97, end: 2.9 }, { word: 'es', start: 2.96, end: 3.2 },
+    { word: 'ist', start: 3.31, end: 3.6 }, { word: 'zart', start: 3.71, end: 4.2 }])[0];
+  ok(blk.srcWords && blk.srcWords.length === 4, 'Block hat srcWords');
+  blk.text = 'Fleisch, es ist'; T.retimeEditedBlock(blk);           // Strg+Backspace
+  ok(blk.words.length === 3 && blk.words[2].start === 3.31, 'nach Loeschen: Rest behaelt Timings');
+  ['W', 'Weide', 'Weideland'].forEach(t => { blk.text = 'Fleisch, es ist ' + t; T.retimeEditedBlock(blk); });
+  ok(blk.words[3].word === 'Weideland' && blk.words[3].start === 3.71 && blk.words[3].end === 4.2,
+     'neues letztes Wort uebernimmt Slot des alten: ' + JSON.stringify(blk.words[3]));
+  // Erstes Wort durch zwei ersetzen → Nachfolger behalten ihre Slots
+  blk.text = 'Das Fleisch es ist zart'; T.retimeEditedBlock(blk);
+  ok(blk.words[2].start === 2.96 && blk.words[4].start === 3.71, 'Ersetzung vorne verschiebt Rest nicht');
+}
+
+// 9b3) Wörter-pro-Block ändern behält Text-Edits (Regroup aus den aktuellen Block-Wörtern)
+{
+  T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
+  const bb = T.getBlocks()[0];
+  const firstWord = bb.words[0].word;
+  bb.text = 'Korrigiert ' + bb.words.slice(1).map(w => w.word).join(' '); T.retimeEditedBlock(bb);
+  const t0 = bb.words[0].start;
+  T.onWpbChangeT(2);
+  const all = T.getBlocks().flatMap(b => b.words);
+  ok(all[0].word === 'Korrigiert' && all[0].start === t0, 'Regroup behaelt Edit + Timing (' + firstWord + ' → Korrigiert)');
+  ok(T.getBlocks().every(b => b.words.length <= 2) && T.getBlocks()[0].text.startsWith('Korrigiert'), 'Regroup mit neuer Blockgroesse');
+  ok(T.getBlocks()[0].srcWords[0].word === 'Korrigiert', 'Regroup: srcWords = aktueller Stand');
+  T.onWpbChangeT(4);
+}
+
+// 9c) Neu-Transkription fragt nach manuellen Edits; Abbruch dreht die Sprachauswahl zurück
+{
+  const prevLang = T.getLang();
+  const realConfirm = global.confirm; let asked = 0;
+  global.confirm = () => { asked++; return false; };
+  T.setCurrentFile(null); T.setCaptionsEdited(true);
+  T.setLang('german'); ok(asked === 0 && T.getLang() === 'german', 'ohne Video: keine Rueckfrage');
+  T.setLang(prevLang);
+  T.setCurrentFile({ name: 'x.mp4' });
+  document.getElementById('langSel').value = 'french';
+  T.setLang('french');
+  ok(asked === 1 && T.getLang() === prevLang && document.getElementById('langSel').value === prevLang,
+     'Abbruch: Sprache + Select bleiben, Edits bleiben');
+  ok(T.getCaptionsEdited() === true, 'Edit-Flag bleibt nach Abbruch gesetzt');
+  T.setCaptionsEdited(false); T.setCurrentFile(null);
+  global.confirm = realConfirm;
+}
+
+// 9e) Auto-Fit überlanger Wörter (Stub: Breite = Zeichen * px * 0.55)
+{
+  document.getElementById('prevFrame').style.width = '270px';
+  const st = T.STYLES.find(x => !x.boxBg && !x.pill && !x.hlPillBg && !x.circle && !(parseFloat(x.ls) > 0));
+  const fsMul = st.fs ? (parseFloat(st.fs) || 1) : 1;
+  const maxW = T.capFitMaxW(st);
+  ok(Math.abs(maxW - 270 * 0.86) < 1e-9, 'Fit: nutzbare Breite = 86% Rahmen: ' + maxW);
+  const wStub = (str, px) => str.length * px * fsMul * 0.55;
+  const long = 'Rindfleischverarbeitungsbetriebe';
+  ok(long.length === 32, 'Testwort hat 32 Zeichen');
+  const f1 = T.fitCaptionWords(['Unsere', long, 'sind', 'Highland-Rinder-Weidehaltung'], st, 54, maxW);
+  ok(f1.px < 54 && f1.px >= 54 * 0.55 - 1e-9, 'Fit: effektive Groesse kleiner, aber >= 55%: ' + f1.px);
+  ok(f1.words.every(w => wStub(w, f1.px) <= maxW + 1e-9), 'Fit: jedes (Teil-)Wort passt in den Rahmen: ' + f1.words.join(' | '));
+  ok(f1.words.filter((w, i) => f1.orig[i] === 1).map(w => w.replace(/-$/, '')).join('') === long, 'Fit: Trennung verliert keine Zeichen');
+  ok(f1.words.includes('Highland-') && f1.orig.length === f1.words.length, 'Fit: vorhandene Bindestriche bevorzugt: ' + f1.words.join(' | '));
+  // Wort, das per Verkleinerung allein passt → keine Trennung
+  const f2 = T.fitCaptionWords(['Highland'], st, 54, maxW);
+  ok(f2.words.length === 1 && f2.px < 54 && wStub('Highland', f2.px) <= maxW, 'Fit: nur verkleinert, nicht getrennt: ' + f2.px);
+  const f3 = T.fitCaptionWords(['kurz', 'und', 'gut'], st, 54, maxW);
+  ok(f3.px === 54 && f3.words.length === 3, 'Fit: passende Woerter bleiben unveraendert');
+  // Vorschau nutzt die verkleinerte Größe
+  const capHtml = T.buildCap(['Unsere', long], st, 1, 54, [0, 1], 1);
+  ok(capHtml.includes('font-size:' + (f1.px * fsMul) + 'px') || capHtml.includes('font-size:' + (T.fitCaptionWords(['Unsere', long], st, 54, maxW).px * fsMul) + 'px'),
+     'Fit: Vorschau rendert mit effektiver Groesse');
+  // Trennqualität (Breite hier = Zeichenzahl inkl. „-“): Kompositumsfugen statt gieriger Schnitte
+  const hy = (w, max) => T.capHyphenate(w, p => p.length <= max).join(' / ');
+  ok(hy('Rindfleischverarbeitungsbetriebe', 14) === 'Rindfleisch- / verarbeitungs- / betriebe', 'Trennung an Fugen: ' + hy('Rindfleischverarbeitungsbetriebe', 14));
+  ok(hy('Weidehaltung', 9) === 'Weide- / haltung', 'Trennung vor Grundwort: ' + hy('Weidehaltung', 9));
+  ok(hy('Highland-Rinder-Weidehaltung', 10) === 'Highland- / Rinder- / Weide- / haltung', 'vorhandene Bindestriche + Fuge: ' + hy('Highland-Rinder-Weidehaltung', 10));
+  ['Rindfleischverarbeitungsbetriebe', 'Geschwindigkeitsbegrenzung', 'Bundesausbildungsförderungsgesetz', 'Schifffahrtsgesellschaft'].forEach(w => {
+    [8, 10, 12].forEach(max => {
+      const pcs = T.capHyphenate(w, p => p.length <= max);
+      ok(pcs.every(p => p.length <= max), 'Stuecke passen: ' + pcs.join('/'));
+      ok(pcs.every(p => p.replace(/-$/, '').length >= 3), 'keine Stuecke < 3 Buchstaben: ' + pcs.join('/'));
+      ok(pcs.map(p => p.replace(/-$/, '')).join('') === w, 'keine Zeichen verloren: ' + pcs.join('/'));
+      ok(!pcs.some((p, i) => i > 0 && (/^(ch|h)/.test(p) && /s?c$|s$/.test(pcs[i - 1].replace(/-$/, '')) && /sch/i.test(pcs[i - 1].replace(/-$/, '').slice(-2) + p.slice(0, 2)))),
+         'sch nie zerrissen: ' + pcs.join('/'));
+    });
+  });
+  // Höhe: viele Zeilen → weiter verkleinern (bis 55 %), Block <= 40 % der Rahmenhöhe
+  document.getElementById('prevFrame').style.height = '480px';
+  const many = 'eins zwei drei vier fuenf sechs sieben acht neun zehn elf zwoelf'.split(' ');
+  const fh = T.fitCaptionWords(many, st, 54, maxW, 3);
+  ok(fh.px < 54 && (fh.h <= 480 * 0.4 + 1e-9 || Math.abs(fh.px - 54 * 0.55) < 0.2), 'Hoehen-Fit: ' + fh.px + 'px, h=' + Math.round(fh.h));
+  ok(fh.px >= 54 * 0.55 - 1e-9, 'Hoehen-Fit respektiert 55-%-Untergrenze');
+  // Font-Ladezustand: mit Fallback-Schrift gemessen → nicht cachen; nach dem Laden Cache verwerfen
+  document.fonts.check = () => false;
+  const pf1 = T.fitCaptionWords(['Fontcheck'], st, 54, maxW, 1), pf2 = T.fitCaptionWords(['Fontcheck'], st, 54, maxW, 1);
+  ok(pf1 !== pf2, 'Font noch nicht geladen → Ergebnis nicht gecacht');
+  document.fonts.check = () => true;
+  const pf3 = T.fitCaptionWords(['Fontcheck'], st, 54, maxW, 1), pf4 = T.fitCaptionWords(['Fontcheck'], st, 54, maxW, 1);
+  ok(pf3 === pf4, 'Font geladen → gecacht');
+  T.capFontsChanged();
+  ok(T.fitCaptionWords(['Fontcheck'], st, 54, maxW, 1) !== pf3, 'Fonts fertig geladen → Cache verworfen, neu gemessen');
+  delete document.fonts.check;
+  document.getElementById('prevFrame').style.width = ''; document.getElementById('prevFrame').style.height = '';
+}
+
+// 9f) Beta: Wasserzeichen nur für anonyme Nutzer (Pläne sind noch nicht kaufbar)
+T.setMe('anon', ''); ok(T.needsWatermark() === true, 'anonym → Wasserzeichen');
+T.setMe('free', 'a@b.c'); ok(T.needsWatermark() === false, 'angemeldet (free, Beta) → kein Wasserzeichen');
+T.setMe('pro', 'a@b.c'); ok(T.needsWatermark() === false, 'Pro → kein Wasserzeichen');
+T.setMe('anon', '');
+
+// 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
+{
+  const store = {}; let quotaMode = 'none';
+  global.localStorage = {
+    getItem: k => (k in store ? store[k] : null),
+    setItem: (k, v) => {
+      if (quotaMode === 'always' || (quotaMode === 'multi' && JSON.parse(v).length > 1)) { const e = new Error('QuotaExceededError'); e.name = 'QuotaExceededError'; throw e; }
+      store[k] = String(v);
+    },
+    removeItem: k => { delete store[k]; }
+  };
+  T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
+  T.setCaptionsEdited(true);
+  T.setAutosaveKey('clip.mp4|1234|105');
+  ok(T.autosaveNow() === true && T.readAutosaves().length === 1, 'Autosave geschrieben');
+  const savedBlocks = JSON.stringify(T.getBlocks().map(b => b.text));
+  // Reload simulieren: Zustand weg, gleiches Video erneut laden → Restore statt Transkription
+  T.setState([], []); T.setCaptionsEdited(false); T.setAutosaveKey(null);
+  document.getElementById('tStatus').innerHTML = '';
+  const restored = T.restoreOrTranscribe({ name: 'clip.mp4', size: 1234 }, 10.49);
+  ok(restored === true, 'Restore-Pfad gewaehlt');
+  ok(JSON.stringify(T.getBlocks().map(b => b.text)) === savedBlocks, 'Roundtrip: Bloecke identisch');
+  ok(T.getBlocks()[0].srcWords && T.getBlocks()[0].srcWords.length > 0, 'Roundtrip: srcWords erhalten');
+  ok(T.getCaptionsEdited() === true, 'Roundtrip: Edit-Flag uebernommen');
+  ok(/Restored your last session/.test(document.getElementById('tStatus').innerHTML) && !/Preparing/.test(document.getElementById('tStatus').innerHTML),
+     'Restore ruft KEINE Transkription auf (Status bleibt "Restored")');
+  // LRU: max. 5 Videos, neuestes zuerst
+  for (let i = 0; i < 7; i++) { T.setAutosaveKey('v' + i + '|1|10'); T.autosaveNow(); }
+  const lru = T.readAutosaves().map(e => e.key);
+  ok(lru.length === 5 && lru[0] === 'v6|1|10' && !lru.includes('v0|1|10') && !lru.includes('v1|1|10'), 'LRU auf 5 begrenzt: ' + lru.join(','));
+  // Quota: ältere Einträge opfern, aktueller Stand bleibt
+  quotaMode = 'multi'; T.setAutosaveKey('neu|1|10');
+  ok(T.autosaveNow() === true && T.readAutosaves().length === 1 && T.readAutosaves()[0].key === 'neu|1|10', 'Quota: nur aktueller Stand behalten');
+  quotaMode = 'always';
+  let threw = false; try { ok(T.autosaveNow() === false, 'Quota dauerhaft voll → false'); } catch (e) { threw = true; }
+  ok(!threw, 'Quota dauerhaft voll wirft nicht');
+  // Re-Layout (applyPos aus updateOverlay/Export) darf KEINEN Autosave planen; während des Exports wird verschoben
+  quotaMode = 'none'; T.setAutosaveKey('lay|1|1'); clearTimeout(T.getAutosaveTimer());
+  T.setCaptionsEdited(false); T.autosaveNow(); const before = store[T.AUTOSAVE_KEY];
+  T.applyPos();
+  ok(T.getAutosaveTimer() === null, 'applyPos (Re-Layout) plant keinen Autosave');
+  T.setExporting(true); T.setCaptionsEdited(true); T.autosaveWhenIdle();
+  ok(store[T.AUTOSAVE_KEY] === before && T.getAutosaveTimer() !== null, 'waehrend Export: kein Schreiben, nur verschoben');
+  T.setExporting(false); clearTimeout(T.getAutosaveTimer()); T.autosaveWhenIdle();
+  ok(store[T.AUTOSAVE_KEY] !== before, 'nach Export: Autosave nachgeholt');
+  delete global.localStorage;
+  T.setAutosaveKey('x|1|1'); threw = false; try { T.autosaveNow(); T.readAutosaves(); } catch (e) { threw = true; }
+  ok(!threw, 'ohne localStorage (Privatmodus) kein Fehler');
+  T.setAutosaveKey(null); T.setCaptionsEdited(false);
+}
+
+// 9d) No-Audio-Erkennung aus dem ffmpeg-Log
+ok(T.isNoAudioFfmpegLog('Input #0, matroska,webm\n  Stream #0:0: Video: vp8, yuv420p\nOutput file #0 does not contain any stream') === true, 'ffmpeg: Video ohne Ton erkannt');
+ok(T.isNoAudioFfmpegLog('Stream #0:0: Video: h264\nStream #0:1: Audio: aac') === false, 'ffmpeg: Video mit Ton → kein No-Audio');
+ok(T.isNoAudioFfmpegLog('in_media: Invalid data found when processing input') === false, 'ffmpeg: kaputte Datei → generischer Fehler');
+
 // 10) Overlay-Demo ohne Transkript
 T.setState([], []);
 T.selectStyle('stack');
@@ -162,6 +370,21 @@ const rep = Array.from({ length: 40 }, (_, i) => ({ word: ['we', 'worked', 'for'
 ok(T.looksRepetitive(rep) === true, 'Wiederholungsschleife erkannt');
 ok(T.looksRepetitive(wts) === false, 'normale Sprache NICHT als repetitiv markiert');
 ok(T.looksRepetitive([]) === false && T.looksRepetitive(null) === false, 'looksRepetitive Edge-Cases');
+// Lange, normale Rede: Type-Token-Ratio fällt global unter 0.3, darf aber NICHT als Schleife gelten
+{
+  let seed = 12345; const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
+  const vocab = Array.from({ length: 400 }, (_, i) => 'w' + i.toString(36) + 'x');
+  const H = vocab.reduce((s, _, i) => s + 1 / (i + 1), 0);
+  const zipf = () => { let r = rnd() * H; for (let i = 0; i < vocab.length; i++) { r -= 1 / (i + 1); if (r <= 0) return vocab[i]; } return vocab[0]; };
+  const longTalk = Array.from({ length: 2000 }, (_, i) => ({ word: zipf(), start: i * 0.3, end: i * 0.3 + 0.25 }));
+  const ttr = new Set(longTalk.map(w => w.word)).size / longTalk.length;
+  ok(ttr < 0.3, 'Testdaten: globale TTR < 0.3 (' + ttr.toFixed(2) + ')');
+  ok(T.looksRepetitive(longTalk) === false, '2000 Woerter normale Rede NICHT repetitiv');
+  const phrase = ['and', 'then', 'we', 'went', 'home'];
+  const loop = Array.from({ length: 30 }, (_, i) => ({ word: phrase[i % 5], start: 0, end: 0 }));
+  const withLoop = longTalk.slice(0, 1000).concat(loop, longTalk.slice(1000));
+  ok(T.looksRepetitive(withLoop) === true, '30-Wort-Schleife mitten in langer Rede erkannt');
+}
 
 // 12) NAV_LANG: null ODER gültiger Whisper-Name; wenn gesetzt, muss whisperLang vorgewählt sein
 const validLangs = ['german','english','spanish','french','italian','portuguese','dutch','polish','turkish','russian','ukrainian','japanese','korean','chinese','arabic','hindi'];
@@ -308,6 +531,14 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
 
     ok(T.isHallucinatedChunk(mkW(['Untertitel', 'der', 'Amara.org-Community'])), 'Halluzination erkannt');
     ok(!T.isHallucinatedChunk(mkW(['Das', 'ist', 'echter', 'Inhalt'])), 'echter Inhalt bleibt');
+    // Echte Outros bleiben erhalten (kurzes letztes Stück!), Untertitel-Credits fliegen weiter raus
+    ok(!T.isHallucinatedChunk(mkW(['Danke', 'fürs', 'Zuschauen,', 'bis', 'zum', 'nächsten', 'Mal!'])), 'Outro "Danke fuers Zuschauen" bleibt');
+    ok(!T.isHallucinatedChunk(mkW(['Vielen', 'Dank', 'fürs', 'Zuschauen!'])), 'Outro "Vielen Dank fuers Zuschauen" bleibt');
+    ok(!T.isHallucinatedChunk(mkW(['Thanks', 'for', 'watching!'])) && !T.isHallucinatedChunk(mkW(['Thank', 'you', 'for', 'watching'])), 'Outro "Thanks for watching" bleibt');
+    ok(!T.isHallucinatedChunk(mkW(['Abonnez-vous', 'à', 'la', 'chaîne'])), 'Outro "Abonnez-vous" bleibt');
+    ok(T.isHallucinatedChunk(mkW(['Untertitelung', 'des', 'ZDF,', '2020'])), 'ZDF-Untertitel-Credit erkannt');
+    ok(T.isHallucinatedChunk(mkW(['Sous-titres', 'réalisés', 'par', 'la', 'communauté', "d'Amara.org"])), 'Amara-Credit (FR) erkannt');
+    ok(T.isHallucinatedChunk(mkW(['Subtitles', 'by', 'the', 'Amara.org', 'community'])), 'Amara-Credit (EN) erkannt');
 
     const sw = T.sanitizeWordTimings([
       { word: 'Hallo', start: 0, end: 0.5 }, { word: 'Welt', start: 0.4, end: 9 }, { word: 'x', start: 10, end: 10 }
@@ -340,6 +571,62 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
     global.fetch = async () => ({ ok: false, status: 429, headers: { get: () => '120' }, json: async () => ({}) });
     let thrown = null; try { await T.serverTranscribe(new Float32Array(SR * 5).fill(0.3), 'm', '', 5); } catch (e) { thrown = e; }
     ok(thrown && /limit/i.test(thrown.message), '429 mit langem Retry-After → klare Meldung');
+    ok(/~2 min/.test(thrown.message), '429: konkrete Wartezeit genannt: ' + (thrown && thrown.message));
+    // Vokabular: Frontend haengt &prompt= an (bereinigt), Prompt-Echo-Stuecke werden verworfen
+    {
+      const urls = []; let n = 0;
+      global.fetch = async (url) => {
+        urls.push(url); n++;
+        const words = n === 1 ? ['Birkenhof,', 'Highland', 'Beef,', 'Wald', 'und'].map((w, i) => ({ word: w, start: 1 + i * 0.4, end: 1.3 + i * 0.4 }))  // reines Echo
+                              : [{ word: 'Der', start: 1, end: 1.2 }, { word: 'Birkenhof', start: 1.3, end: 1.8 }, { word: 'lebt', start: 1.9, end: 2.2 }];
+        return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ language: 'german', words }) };
+      };
+      const rv = await T.serverTranscribe(new Float32Array(SR * 150).fill(0.3), 'm', '', 150, null, '  Birkenhof,\n Highland   Beef, Wald und Tier ');
+      ok(urls.length === 2 && urls.every(u => u.includes('&prompt=' + encodeURIComponent('Birkenhof, Highland Beef, Wald und Tier'))), 'Frontend: URL enthaelt bereinigten prompt: ' + urls[0]);
+      ok(rv.words.length === 3 && rv.words[0].word === 'Der', 'Prompt-Echo-Stueck verworfen, echte Sprache mit Begriff bleibt: ' + rv.words.map(w => w.word).join(' '));
+      urls.length = 0; n = 1;
+      await T.serverTranscribe(new Float32Array(SR * 5).fill(0.3), 'm', '', 5, null, '');
+      ok(urls.length === 1 && !urls[0].includes('prompt='), 'Frontend: ohne Vokabular kein prompt-Param');
+      T.setTranslateState(true); urls.length = 0; n = 1;
+      await T.serverTranscribe(new Float32Array(SR * 5).fill(0.3), 'm', '', 5, null, 'Birkenhof');
+      ok(urls.length === 1 && !urls[0].includes('prompt='), 'Frontend: kein prompt beim Uebersetzen');
+      T.setTranslateState(false);
+      // Echo-Regel in beide Richtungen: echte kurze Outros/Einzelbegriffe bleiben, wörtliche Liste fliegt
+      const W = str => str.split(' ').map((w, i) => ({ word: w, start: i, end: i + 0.5 }));
+      ok(!T.isPromptEcho(W('Wald und Tier!'), 'Wald und Tier, Birkenhof'), 'Echo: echtes Outro "Wald und Tier!" bleibt');
+      ok(!T.isPromptEcho(W('Birkenhof'), 'Birkenhof, Highland Beef, Fricktal'), 'Echo: einzelner Begriff bleibt');
+      ok(!T.isPromptEcho(W('Birkenhof, Highland'), 'Birkenhof, Highland Beef, Fricktal'), 'Echo: kurzer Anfang (< 4 Woerter) bleibt');
+      ok(!T.isPromptEcho(W('Wald und Tier, Birkenhof'), 'Wald und Tier, Birkenhof, Highland Beef, Fricktal, Gipf-Oberfrick'), 'Echo: < 60 % der Prompt-Woerter bleibt');
+      ok(T.isPromptEcho(W('Birkenhof, Highland Beef, Fricktal.'), 'Birkenhof, Highland Beef, Fricktal'), 'Echo: woertliche Liste verworfen');
+      ok(T.isPromptEcho(W('Wald und Tier, Birkenhof, Highland'), 'Wald und Tier, Birkenhof, Highland Beef'), 'Echo: nahezu woertliche Liste (>= 60 %, 2 Eintraege) verworfen');
+      ok(!T.isPromptEcho(W('Der Birkenhof liegt im Fricktal'), 'Birkenhof, Fricktal'), 'Echo: Satz mit Begriffen bleibt');
+    }
+    // Race: Lauf A (2 Stuecke, langsam) wird von Lauf B ueberholt → A bricht still ab, schickt kein
+    // weiteres Stueck und liefert KEIN Ergebnis (sonst landen A-Captions auf Video B).
+    {
+      let token = 0; const reqs = []; let releaseA;
+      const gateA = new Promise(r => { releaseA = r; });
+      global.fetch = async (url, opt) => {
+        const who = opt.body.__who; reqs.push(who);
+        if (who === 'A') await gateA;
+        return { ok: true, status: 200, headers: { get: () => null },
+          json: async () => ({ language: 'german', words: [{ word: 'Wort' + who, start: 1, end: 1.4 }] }) };
+      };
+      const origBlob = global.Blob;
+      let tagNext = 'A';
+      global.Blob = function (parts, o) { const b = new origBlob(parts, o); b.__who = tagNext; return b; };
+      const runA = ++token;
+      const pA = T.serverTranscribe(new Float32Array(SR * 150).fill(0.3), 'm', '', 150, () => runA !== token);
+      for (let k = 0; k < 500 && !reqs.length; k++) await new Promise(r => setTimeout(r, 1)); // bis A's 1. Request haengt
+      const runB = ++token; tagNext = 'B';
+      const rB = await T.serverTranscribe(new Float32Array(SR * 10).fill(0.3), 'm', '', 10, () => runB !== token);
+      releaseA();
+      let errA = null, resA = null; try { resA = await pA; } catch (e) { errA = e; }
+      global.Blob = origBlob;
+      ok(rB && rB.words.length === 1 && rB.words[0].word === 'WortB', 'Race: neuer Lauf B liefert eigenes Ergebnis');
+      ok(resA === null && errA && errA.stale === true, 'Race: alter Lauf A bricht als stale ab');
+      ok(reqs.filter(w => w === 'A').length === 1, 'Race: A schickt nach Ueberholen kein weiteres Stueck: ' + reqs.join(','));
+    }
   }
 
 
@@ -363,6 +650,18 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
     ok(r1.statusCode === 200 && r1.body === '{"words":[]}', 'Function: reicht Groq-Antwort durch');
     ok(sent.o.headers.Authorization === 'Bearer gsk_x' && /transcriptions$/.test(sent.u), 'Function: Key nur serverseitig + Endpoint');
     ok(sent.o.body.get('model') === 'whisper-large-v3-turbo' && sent.o.body.get('language') === 'de', 'Function: Modell-Whitelist + lang bereinigt');
+    await run('POST', '/api/transcribe?model=whisper-large-v3-turbo&translate=1', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    ok(sent.o.body.get('model') === 'whisper-large-v3' && /translations$/.test(sent.u), 'Function: Translate erzwingt large-v3 (turbo kann nicht uebersetzen)');
+    // Vokabular-Prompt: bereinigt + gedeckelt, nur bei Transkription
+    const rawPrompt = 'Birkenhof,\n\tHighland  Beef\u0007 ' + 'x'.repeat(400);
+    await run('POST', '/api/transcribe?prompt=' + encodeURIComponent(rawPrompt), Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    const fp = sent.o.body.get('prompt');
+    ok(typeof fp === 'string' && fp.startsWith('Birkenhof, Highland Beef x') && fp.length <= 300 && !/[\u0000-\u001f]/.test(fp),
+       'Function: prompt bereinigt + max 300 Zeichen: ' + JSON.stringify(fp && fp.slice(0, 30)) + ' len=' + (fp && fp.length));
+    await run('POST', '/api/transcribe?translate=1&prompt=Birkenhof', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    ok(sent.o.body.get('prompt') === null, 'Function: kein prompt beim Uebersetzen');
+    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    ok(sent.o.body.get('prompt') === null, 'Function: ohne prompt-Param kein prompt-Feld');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(5 * 1024 * 1024), { GROQ_API_KEY: 'k' })).statusCode === 413, 'Function: zu grosser Body → 413');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', REQUIRE_LOGIN: '1', SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'a' })).statusCode === 401, 'Function: Login-Pflicht ohne Token → 401');
     const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
