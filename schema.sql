@@ -21,3 +21,8 @@ create policy "own projects: read"   on public.projects for select using (auth.u
 create policy "own projects: insert" on public.projects for insert with check (auth.uid() = user_id);
 create policy "own projects: update" on public.projects for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own projects: delete" on public.projects for delete using (auth.uid() = user_id);
+
+-- Hinweis: Eigene Caption-Templates eines Nutzers liegen als EINE reservierte Zeile in dieser Tabelle
+-- (title = '__capivo_templates__', payload = { kind: 'capivo_templates', templates: [...] }).
+-- Kein eigenes Schema nötig — die RLS-Policies oben schützen sie wie jedes Projekt; das Frontend
+-- blendet sie in der Projektliste aus.
