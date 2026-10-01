@@ -3,14 +3,14 @@
  * Capivo – serverseitiger Transkriptions-Proxy (Groq Whisper large-v3).
  *
  * Zweck: Der geheime API-Key darf NIE in den Browser. Der Browser lädt die Tonspur
- * (WAV, 16 kHz mono) per POST hierher; dieses Skript hängt den Key an und ruft die
+ * (Ogg/Opus oder WAV, 16 kHz mono) per POST hierher; dieses Skript hängt den Key an und ruft die
  * OpenAI-kompatible Groq-API. Läuft auf klassischem Webhosting (kein Node-Prozess nötig).
  *
  * Setup: `config.example.php` → `config.php` kopieren und Groq-Key eintragen
  * (config.php ist per .gitignore vom Repo ausgeschlossen).
  *
  * Frontend ruft:  POST transcribe.php?model=<groq-model>&lang=<iso>&translate=<0|1>&prompt=<Namen/Begriffe>
- *   Body = rohe WAV-Bytes (Content-Type: audio/wav)  ODER  multipart mit Feld "file".
+ *   Body = rohe Audio-Bytes: Ogg/Opus (Content-Type: audio/ogg) oder WAV (audio/wav)  ODER  multipart mit Feld "file".
  * Das Frontend schickt das Audio in ~100-s-Stücken (≤ ~3,2 MB), daher keine Probleme mit post_max_size.
  * Antwort = Groq-JSON (verbose_json): { text, language, words:[{word,start,end}], segments:[...] }
  */
@@ -114,8 +114,11 @@ if ($pm > 0 && $cl > $pm) fail(413, 'Upload überschreitet post_max_size (' . in
 
 // ── Audio besorgen: multipart-Feld "file" ODER roher Body ────────────
 $tmp = null; $cleanup = false;
+// Format nach Content-Type (Whitelist: nur audio/ogg, sonst WAV) — Groq erkennt das Format am Dateinamen
+$ctype = strtolower(trim(explode(';', (string)($_SERVER['CONTENT_TYPE'] ?? ''))[0]));
 if (!empty($_FILES['file']['tmp_name']) && is_uploaded_file($_FILES['file']['tmp_name'])) {
   $tmp = $_FILES['file']['tmp_name'];
+  $ctype = strtolower((string)($_FILES['file']['type'] ?? ''));
 } else {
   $raw = file_get_contents('php://input');
   if ($raw === false || strlen($raw) < 100) fail(400, 'Keine Audiodaten empfangen.');
@@ -130,7 +133,7 @@ $endpoint = 'https://api.groq.com/openai/v1/audio/' . ($translate ? 'translation
 $post = [
   'model'           => $model,
   'response_format' => 'verbose_json',
-  'file'            => new CURLFile($tmp, 'audio/wav', 'audio.wav'),
+  'file'            => $ctype === 'audio/ogg' ? new CURLFile($tmp, 'audio/ogg', 'audio.ogg') : new CURLFile($tmp, 'audio/wav', 'audio.wav'),
 ];
 if (!$translate) {
   $post['timestamp_granularities[]'] = 'word'; // Wort-Timings für Karaoke

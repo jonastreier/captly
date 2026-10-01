@@ -1248,6 +1248,177 @@ async function float32ToWav(samples, sampleRate) {
   }
   return buf;
 }
+// ── Komprimierter Upload: Opus in Ogg (WebCodecs) statt WAV ─────────────────────────────────
+// Warum: Auf dem Handy (4G-Upload 2–10 Mbit/s) ist der WAV-Upload (32 KB/s Audio) der grösste
+// Zeitfresser. Opus mit 32 kbit/s ist für Whisper-Sprache verlustfrei genug und ~8× kleiner.
+// Der Browser-Encoder (AudioEncoder) liefert nur rohe Opus-Pakete → wir verpacken sie selbst in
+// Ogg (RFC 3533 + RFC 7845), das Groq/OpenAI direkt annehmen. Jeder Fehler → WAV wie bisher.
+var OPUS_BITRATE = 32000;
+var _opusOff = false;      // true, sobald Opus in dieser Sitzung scheiterte (Encoder oder Server lehnt ab)
+var _opusSupport = null;   // gecachtes Promise<boolean> aus AudioEncoder.isConfigSupported
+var _oggCrcTable = null;
+// Ogg-CRC32: Polynom 0x04C11DB7, NICHT reflektiert, Start 0, kein Schluss-XOR (anders als zlib-CRC32).
+function oggCrc32(bytes) {
+  if (!_oggCrcTable) {
+    _oggCrcTable = new Uint32Array(256);
+    for (var i = 0; i < 256; i++) {
+      var r = i << 24;
+      for (var b = 0; b < 8; b++) r = (r & 0x80000000) ? ((r << 1) ^ 0x04C11DB7) : (r << 1);
+      _oggCrcTable[i] = r >>> 0;
+    }
+  }
+  var crc = 0;
+  for (var k = 0; k < bytes.length; k++) crc = ((crc << 8) ^ _oggCrcTable[((crc >>> 24) ^ bytes[k]) & 0xFF]) >>> 0;
+  return crc >>> 0;
+}
+// Ogg-Lacing: ein Paket der Länge L = floor(L/255) Segmente à 255 + ein Rest-Segment (< 255, ggf. 0).
+// Das abschliessende Segment < 255 markiert das Paketende — deshalb bei L % 255 == 0 ein 0-Segment.
+function oggLacing(len) {
+  var out = [];
+  while (len >= 255) { out.push(255); len -= 255; }
+  out.push(len);
+  return out;
+}
+// Dauer eines Opus-Pakets in 48-kHz-Samples aus dem TOC-Byte (RFC 6716 §3.1). Exakt statt aus
+// chunk.duration (µs, gerundet) — die Granule-Positionen bestimmen die Zeitachse und damit die Wort-Timings.
+function opusPacketSamples48(p) {
+  if (!p || !p.length) return 0;
+  var toc = p[0], cfg = toc >> 3, fs;
+  if (cfg < 12) fs = [480, 960, 1920, 2880][cfg & 3];      // SILK: 10/20/40/60 ms
+  else if (cfg < 16) fs = (cfg & 1) ? 960 : 480;           // Hybrid: 10/20 ms
+  else fs = [120, 240, 480, 960][cfg & 3];                 // CELT: 2.5/5/10/20 ms
+  var c = toc & 3, n = c === 0 ? 1 : c === 3 ? (p.length > 1 ? p[1] & 0x3F : 0) : 2;
+  return fs * n;
+}
+// Minimaler Ogg-Opus-Muxer. packets: Uint8Array[] (rohe Opus-Pakete in Reihenfolge).
+// opts: { preSkip (48-kHz-Samples), inputRate, totalSamples48 (echte Länge → End-Trimming), serial }.
+// Seite 0 = OpusHead (BOS), Seite 1 = OpusTags, ab Seite 2 Audio. Granule = Anzahl dekodierter 48-kHz-Samples
+// (ab 0 gezählt — die Pre-Skip-Samples sind Teil davon, der Decoder verwirft sie) bis zum Ende des letzten auf
+// der Seite VOLLENDETEN Pakets (-1, wenn keines endet); letzte Seite = preSkip + echte Länge. Max. 255 Segmente/Seite;
+// Pakete, die nicht passen, beginnen auf einer neuen Seite bzw. laufen als Fortsetzung (Flag 0x01) weiter.
+function buildOggOpus(packets, opts) {
+  opts = opts || {};
+  var preSkip = opts.preSkip != null ? opts.preSkip : 312, serial = (opts.serial != null ? opts.serial : 0x43617076) >>> 0;
+  var pages = [], seq = 0, total = 0;
+  function page(segs, bodyParts, granule, flags) {
+    var bodyLen = 0, i;
+    for (i = 0; i < bodyParts.length; i++) bodyLen += bodyParts[i].length;
+    var pg = new Uint8Array(27 + segs.length + bodyLen), v = new DataView(pg.buffer);
+    pg[0] = 0x4F; pg[1] = 0x67; pg[2] = 0x67; pg[3] = 0x53; // "OggS"
+    pg[4] = 0; pg[5] = flags;
+    if (granule < 0) { v.setUint32(6, 0xFFFFFFFF, true); v.setUint32(10, 0xFFFFFFFF, true); }
+    else { v.setUint32(6, granule % 4294967296, true); v.setUint32(10, Math.floor(granule / 4294967296), true); }
+    v.setUint32(14, serial, true); v.setUint32(18, seq++, true); v.setUint32(22, 0, true);
+    pg[26] = segs.length;
+    for (i = 0; i < segs.length; i++) pg[27 + i] = segs[i];
+    var off = 27 + segs.length;
+    for (i = 0; i < bodyParts.length; i++) { pg.set(bodyParts[i], off); off += bodyParts[i].length; }
+    v.setUint32(22, oggCrc32(pg), true); // CRC über die ganze Seite mit CRC-Feld = 0
+    pages.push(pg); total += pg.length;
+  }
+  // OpusHead (RFC 7845 §5.1): Version 1, Kanäle, Pre-Skip, Original-Rate (nur Info), Gain 0, Mapping 0
+  var head = new Uint8Array(19), hv = new DataView(head.buffer);
+  [0x4F, 0x70, 0x75, 0x73, 0x48, 0x65, 0x61, 0x64].forEach(function(c, i){ head[i] = c; });
+  head[8] = 1; head[9] = opts.channels || 1; hv.setUint16(10, preSkip, true);
+  hv.setUint32(12, opts.inputRate || 48000, true); hv.setInt16(16, 0, true); head[18] = 0;
+  page(oggLacing(head.length), [head], 0, 0x02);
+  var vendor = 'Capivo', tags = new Uint8Array(8 + 4 + vendor.length + 4), tv = new DataView(tags.buffer);
+  [0x4F, 0x70, 0x75, 0x73, 0x54, 0x61, 0x67, 0x73].forEach(function(c, i){ tags[i] = c; });
+  tv.setUint32(8, vendor.length, true);
+  for (var vi = 0; vi < vendor.length; vi++) tags[12 + vi] = vendor.charCodeAt(vi);
+  tv.setUint32(12 + vendor.length, 0, true);
+  page(oggLacing(tags.length), [tags], 0, 0);
+  // Audio-Seiten
+  var granule = 0, endGranule = opts.totalSamples48 != null ? preSkip + opts.totalSamples48 : Infinity;
+  var segs = [], body = [], pageGranule = -1, cont = false;
+  function flush(last, nextCont) {
+    var g = pageGranule;
+    if (last && g >= 0) g = Math.min(g, endGranule); // End-Trimming: Decoder schneidet Encoder-Padding ab
+    page(segs, body, g, (cont ? 0x01 : 0) | (last ? 0x04 : 0));
+    segs = []; body = []; pageGranule = -1; cont = !!nextCont;
+  }
+  for (var pi = 0; pi < packets.length; pi++) {
+    var pk = packets[pi], lace = oggLacing(pk.length), pos = 0;
+    // Passt das Paket nicht mehr ganz auf die Seite (aber auf eine leere), lieber neue Seite beginnen
+    if (segs.length && segs.length + lace.length > 255 && lace.length <= 255) flush(false, false);
+    for (var s = 0; s < lace.length; s++) {
+      if (segs.length === 255) flush(false, true); // Seite voll mitten im Paket → Fortsetzungsseite
+      segs.push(lace[s]); body.push(pk.subarray(pos, pos + lace[s])); pos += lace[s];
+    }
+    granule += opusPacketSamples48(pk);
+    pageGranule = granule;
+  }
+  flush(true, false); // das letzte Paket liegt immer noch ungeschrieben in segs → EOS-Seite
+  var out = new Uint8Array(total), o = 0;
+  for (var q = 0; q < pages.length; q++) { out.set(pages[q], o); o += pages[q].length; }
+  return out;
+}
+// Pre-Skip aus der OpusHead-„description“ des Encoders. Chromium meldet den Lookahead in Samples der
+// EINGANGS-Rate (bei 16 kHz: 104 statt 312) — die Spezifikation verlangt 48 kHz. libopus hat nie weniger
+// als 2,5 ms (= 120 @48 kHz) Lookahead → kleinere Werte sind Eingangs-Rate und werden umgerechnet.
+function opusPreSkipFromDesc(desc, sr) {
+  try {
+    if (!desc) return 312;
+    var u = desc instanceof ArrayBuffer ? new Uint8Array(desc) : new Uint8Array(desc.buffer, desc.byteOffset || 0, desc.byteLength);
+    if (u.length < 19 || String.fromCharCode.apply(null, Array.prototype.slice.call(u, 0, 8)) !== 'OpusHead') return 312;
+    var p = u[10] | (u[11] << 8);
+    if (p < 120 && sr && sr < 48000) p = Math.round(p * 48000 / sr);
+    return p;
+  } catch (e) { return 312; }
+}
+function opusUploadSupported() {
+  if (_opusOff || typeof AudioEncoder !== 'function' || typeof AudioData !== 'function') return Promise.resolve(false);
+  if (!_opusSupport) {
+    _opusSupport = Promise.resolve().then(function() {
+      return AudioEncoder.isConfigSupported({ codec: 'opus', sampleRate: 16000, numberOfChannels: 1, bitrate: OPUS_BITRATE });
+    }).then(function(r){ return !!(r && r.supported); }, function(){ return false; });
+  }
+  return _opusSupport;
+}
+// Float32 mono → Ogg-Opus-Bytes (Uint8Array). Wirft bei jedem Problem (Aufrufer fällt auf WAV zurück).
+async function encodeOggOpus(samples, sr) {
+  var packets = [], desc = null, encErr = null;
+  var enc = new AudioEncoder({
+    output: function(chunk, meta) {
+      var a = new Uint8Array(chunk.byteLength); chunk.copyTo(a); packets.push(a);
+      if (!desc && meta && meta.decoderConfig && meta.decoderConfig.description) desc = meta.decoderConfig.description;
+    },
+    error: function(e) { encErr = e || new Error('encoder error'); }
+  });
+  try {
+    enc.configure({ codec: 'opus', sampleRate: sr, numberOfChannels: 1, bitrate: OPUS_BITRATE });
+    var step = sr; // 1-s-Häppchen; AudioData kopiert die Daten
+    for (var i = 0; i < samples.length; i += step) {
+      var part = samples.subarray(i, Math.min(samples.length, i + step));
+      var ad = new AudioData({ format: 'f32', sampleRate: sr, numberOfFrames: part.length, numberOfChannels: 1,
+                               timestamp: Math.round(i * 1e6 / sr), data: part });
+      enc.encode(ad); ad.close();
+      if (encErr) throw encErr;
+    }
+    // 20 ms Stille anhängen: Chromiums flush() deckt den Encoder-Lookahead (6,5 ms) nicht ab → sonst
+    // fehlte das Audio-Ende. Das Polster schneidet die End-Granule (totalSamples48) wieder exakt weg.
+    var padN = Math.ceil(sr * 0.02), pad = new AudioData({ format: 'f32', sampleRate: sr, numberOfFrames: padN, numberOfChannels: 1,
+      timestamp: Math.round(samples.length * 1e6 / sr), data: new Float32Array(padN) });
+    enc.encode(pad); pad.close();
+    // Hängender Encoder darf die Transkription nicht blockieren → nach 20 s aufgeben (→ WAV)
+    await Promise.race([enc.flush(), sleepMs(20000).then(function(){ throw new Error('opus flush timeout'); })]);
+    if (encErr) throw encErr;
+  } finally { try { if (enc.state !== 'closed') enc.close(); } catch (e) {} }
+  var total48 = Math.round(samples.length * 48000 / sr), sum = 0;
+  for (var k = 0; k < packets.length; k++) sum += opusPacketSamples48(packets[k]);
+  // Plausibilität: fehlt Audio oder ist deutlich zu viel da, stimmt die Zeitachse nicht → lieber WAV
+  if (!packets.length || sum < total48 * 0.995 || sum > total48 + 48000) throw new Error('opus length mismatch ' + sum + '/' + total48);
+  var preSkip = opusPreSkipFromDesc(desc, sr);
+  return buildOggOpus(packets, { preSkip: preSkip, inputRate: sr, totalSamples48: Math.min(total48, sum - preSkip) });
+}
+// Upload-Blob für ein Stück: Ogg/Opus, wenn der Browser es kann, sonst (oder bei jedem Fehler) WAV.
+async function encodeUploadAudio(samples, sr) {
+  if (await opusUploadSupported()) {
+    try { return new Blob([await encodeOggOpus(samples, sr)], { type: 'audio/ogg' }); }
+    catch (e) { console.warn('Opus-Encoding fehlgeschlagen, nutze WAV:', e && e.message); _opusOff = true; }
+  }
+  return new Blob([await float32ToWav(samples, sr)], { type: 'audio/wav' });
+}
 // ── Robuste Server-Transkription: Audio in Stücken statt als ein grosser Upload ──────────────
 // Warum: Ein einziger WAV-Upload scheitert auf Webhosting still an post_max_size (oft 8 MB ≈ 4 Min),
 // an Timeouts und an Groq-Limits; ein Fehler kostet ausserdem die ganze Transkription. Wie die
@@ -1256,6 +1427,7 @@ async function float32ToWav(samples, sampleRate) {
 var MAX_AUDIO_SEC = 1200; // 20 Min — darüber wird (sichtbar!) gekürzt
 var CHUNK_SEC = 100;      // Ziellänge pro Request
 var CHUNK_SEARCH_SEC = 15; // Schnittpunkt wird in den letzten Sekunden gesucht (leiseste Stelle = Sprechpause)
+var UPLOAD_CONCURRENCY = 3; // Stücke 2..n parallel hochladen (Handy-Upload ist der Flaschenhals, nicht Groq)
 var SILENT_RMS = 0.003;   // unter diesem Pegel (nach Normalisierung) kein Request → keine Whisper-Halluzination
 // Teilt Mono-Audio an den leisesten 100-ms-Stellen, damit kein Wort mittendrin durchgeschnitten wird.
 function splitAudioChunks(audio, sr, targetSec, searchSec) {
@@ -3782,6 +3954,8 @@ async function authToken() {
 var TR_ENDPOINTS = ['api/transcribe', 'transcribe.php'], _trIdx = 0;
 async function postChunk(wavBlob, model, lc, isStale, prompt) {
   var maxAttempts = 4, lastMsg = '';
+  // Ogg/Opus (s. encodeUploadAudio) oder WAV — der Proxy reicht Dateiname/Typ entsprechend an Groq weiter
+  var isOgg = !!(wavBlob && wavBlob.type === 'audio/ogg'), ctype = isOgg ? 'audio/ogg' : 'audio/wav';
   var tok = openaiKey ? '' : await authToken();
   for (var attempt = 1; attempt <= maxAttempts; attempt++) {
     // Veralteter Lauf (Video ersetzt / neu gestartet) → keine weiteren Requests, auch nicht nach Backoff
@@ -3790,7 +3964,7 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
     try {
       if (openaiKey) {
         var fd = new FormData();
-        fd.append('file', wavBlob, 'audio.wav');
+        fd.append('file', wavBlob, isOgg ? 'audio.ogg' : 'audio.wav');
         fd.append('model', 'whisper-1');
         fd.append('response_format', 'verbose_json');
         if (!doTranslate) {
@@ -3802,7 +3976,7 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       } else {
         resp = await fetch(TR_ENDPOINTS[_trIdx] + '?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : '')
           + (prompt && !doTranslate ? '&prompt=' + encodeURIComponent(prompt) : ''),
-          { method: 'POST', headers: tok ? { 'Content-Type': 'audio/wav', 'X-Capivo-Token': tok } : { 'Content-Type': 'audio/wav' }, body: wavBlob, signal: ctrl.signal });
+          { method: 'POST', headers: tok ? { 'Content-Type': ctype, 'X-Capivo-Token': tok } : { 'Content-Type': ctype }, body: wavBlob, signal: ctrl.signal });
       }
     } catch (e) {
       clearTimeout(timer);
@@ -3843,7 +4017,8 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
         : resp.status === 413 ? 'Audio too large for the server — please trim the video.'
         : resp.status === 429 ? rlMsg
         : resp.status >= 500 ? 'Transcription service is busy right now — please try again.'
-        : 'Transcription error ' + resp.status + (detail ? ' (' + detail.slice(0, 120) + ')' : '') + '. Please try again.');
+        : 'Transcription error ' + resp.status + (detail ? ' (' + detail.slice(0, 120) + ')' : '') + '. Please try again.',
+        { status: resp.status }); // Status für den Aufrufer (400 auf Ogg → einmal mit WAV wiederholen)
     }
     var j;
     try { j = await resp.json(); }
@@ -3854,44 +4029,106 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
   }
 }
 // Serverseitige Transkription über den PHP-Proxy (Groq) — oder, falls ein eigener OpenAI-Key im
-// Speicher liegt, direkt bei OpenAI. Teilt das Audio in Stücke (s. splitAudioChunks), sendet sie
-// nacheinander mit echtem Fortschritt und merged die Wörter. Rückgabe: {words, language}; null nur,
-// wenn gar kein Proxy da ist (→ lokaler Fallback). Alles andere ist ein klarer Fehler statt stiller Lücke.
+// Speicher liegt, direkt bei OpenAI. Teilt das Audio in Stücke (s. splitAudioChunks), kodiert sie als
+// Ogg/Opus (Fallback WAV), sendet das erste Stück allein (Endpunkt + Sprache) und den Rest mit bis zu
+// UPLOAD_CONCURRENCY parallelen Requests, mit echtem Fortschritt, und merged die Wörter in Reihenfolge.
+// Rückgabe: {words, language}; null nur, wenn gar kein Proxy da ist (→ lokaler Fallback). Alles andere ist ein klarer Fehler statt stiller Lücke.
 // isStale (optional): liefert true, sobald ein neuerer transcribeVideo-Lauf gestartet wurde → sofort
 // abbrechen (wirft {stale:true}), ohne Status/Fortschritt des aktuellen Laufs zu überschreiben.
 async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt) {
   prompt = cleanVocab(prompt);
   function checkStale() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
   var label = (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – transcribing';
-  var chunks = splitAudioChunks(audioData, 16000);
-  var all = [], language = null, forced = lc;
-  setTStatus('', label + '…', true, true);
-  for (var i = 0; i < chunks.length; i++) {
-    checkStale();
-    setTProgress(60 + 32 * i / chunks.length);
-    if (chunks.length > 1) setTStatus('', label + ' (part ' + (i + 1) + '/' + chunks.length + ')…', true, true);
-    var ch = chunks[i];
-    if (chunkIsSilent(ch.samples)) continue;
-    var wav = new Blob([await float32ToWav(ch.samples, 16000)], { type: 'audio/wav' });
-    var j;
-    try { j = await postChunk(wav, model, forced, isStale, prompt); }
-    catch (e) { if (e.noProxy && i === 0) return null; throw e.noProxy ? transcribeErr('Transcription server became unavailable — please try again.') : e; }
+  var chunks = splitAudioChunks(audioData, 16000), n = chunks.length;
+  var all = [], language = null, forced = lc, results = [], encP = [], done = 0, posted = 0, failed = null;
+  var silent = chunks.map(function(c){ return chunkIsSilent(c.samples); });
+  // Upload-Blob (Ogg/Opus oder WAV) je Stück genau einmal erzeugen; früh angestossen, damit das
+  // Encoding des nächsten Stücks parallel zum laufenden Upload passiert. encodeUploadAudio wirft nie.
+  function encodeAt(k) {
+    if (k < 0 || k >= n || silent[k]) return null;
+    if (!encP[k]) encP[k] = encodeUploadAudio(chunks[k].samples, 16000);
+    return encP[k];
+  }
+  // Abbruch auch, wenn ein paralleles Stück schon gescheitert ist → keine weiteren Requests/Retries
+  function stopFn() { return !!failed || !!(isStale && isStale()); }
+  async function runChunk(k) {
+    var ch = chunks[k], blob = await encodeAt(k), j;
+    try { j = await postChunk(blob, model, forced, stopFn, prompt); }
+    catch (e) {
+      // Älterer Proxy/Server ohne Ogg-Unterstützung → Opus für die Sitzung abschalten, Stück als WAV nachschicken
+      if (e && e.status === 400 && blob.type === 'audio/ogg' && !stopFn()) {
+        _opusOff = true;
+        j = await postChunk(new Blob([await float32ToWav(ch.samples, 16000)], { type: 'audio/wav' }), model, forced, stopFn, prompt);
+      } else throw e;
+    }
     checkStale();
     var ws = (j.words || []).map(function(w){ return { word: (w.word || '').trim(), start: w.start || 0, end: w.end || 0 }; })
                             .filter(function(w){ return w.word; });
     if (!ws.length && j.segments) ws = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
     if (!ws.length && j.text)     ws = segmentsToWords([{ text: j.text, timestamp: [0, ch.samples.length / 16000] }]);
     if (isHallucinatedChunk(ws) || isPromptEcho(ws, doTranslate ? '' : prompt)) ws = [];
-    ws.forEach(function(w){ all.push({ word: w.word, start: w.start + ch.offset, end: w.end + ch.offset }); });
-    // Sprache aus dem ersten Stück mit Inhalt für alle weiteren festnageln (kein Sprach-Flackern mitten im Video).
-    // Whisper liefert die erkannte Sprache als Name (z. B. "german").
-    var lg = (j.language || '').toLowerCase();
-    if (!language && lg && ws.length) {
-      language = lg;
-      if (!forced && !doTranslate && CODE_BY_LANG[lg]) forced = CODE_BY_LANG[lg];
+    return { words: ws.map(function(w){ return { word: w.word, start: w.start + ch.offset, end: w.end + ch.offset }; }),
+             lang: (j.language || '').toLowerCase() };
+  }
+  function noProxyErr(e) { return e && e.noProxy ? transcribeErr('Transcription server became unavailable — please try again.') : e; }
+  setTStatus('', label + '…', true, true);
+  // Phase 1 — sequenziell: das erste echte Stück findet den Proxy-Endpunkt (bzw. meldet noProxy → lokaler
+  // Fallback) und liefert die Sprache, die dann für alle weiteren Stücke festgenagelt wird (kein
+  // Sprach-Flackern mitten im Video). Whisper liefert die Sprache als Name (z. B. "german").
+  var i = 0;
+  for (; i < n; i++) {
+    if (posted > 0 && (language || forced || doTranslate)) break; // Sprache steht → Rest darf parallel
+    checkStale();
+    setTProgress(60 + 32 * i / n);
+    if (n > 1) setTStatus('', label + ' (part ' + (i + 1) + '/' + n + ')…', true, true);
+    if (silent[i]) { done++; continue; }
+    var nextK = i + 1; while (nextK < n && silent[nextK]) nextK++;
+    encodeAt(i); encodeAt(nextK); // nächstes Stück schon kodieren, während dieses hochlädt
+    var r;
+    try { r = await runChunk(i); }
+    catch (e) { if (e.noProxy && posted === 0) return null; throw noProxyErr(e); }
+    posted++; done++; results[i] = r;
+    if (!language && r.lang && r.words.length) {
+      language = r.lang;
+      if (!forced && !doTranslate && CODE_BY_LANG[r.lang]) forced = CODE_BY_LANG[r.lang];
     }
   }
+  // Phase 2 — Rest mit begrenzter Parallelität (Groq-Free-Tier: 20 Requests/Min → 3 gleichzeitig ist
+  // unkritisch). Ergebnisse landen per Index in results[] → Reihenfolge/Offsets bleiben exakt erhalten.
+  var queue = [];
+  for (; i < n; i++) { if (silent[i]) done++; else queue.push(i); }
+  if (queue.length) {
+    if (n > 1) setTStatus('', label + ' (' + done + '/' + n + ' parts done)…', true, true);
+    await new Promise(function(resolve, reject) {
+      var next = 0, running = 0, settled = false;
+      function pump() {
+        if (settled) return;
+        if (failed) { settled = true; reject(failed); return; }
+        if (next >= queue.length && running === 0) { settled = true; resolve(); return; }
+        while (running < UPLOAD_CONCURRENCY && next < queue.length) launch(queue[next++]);
+        if (next < queue.length) encodeAt(queue[next]); // Puffer: nächstes Stück vorkodieren
+      }
+      function launch(k) {
+        running++;
+        runChunk(k).then(function(r) {
+          running--; results[k] = r; done++;
+          if (!stopFn()) {
+            setTProgress(60 + 32 * done / n);
+            setTStatus('', label + ' (' + done + '/' + n + ' parts done)…', true, true);
+          }
+          pump();
+        }, function(e) { running--; if (!failed) failed = e; pump(); });
+      }
+      pump();
+    }).catch(function(e) { throw noProxyErr(e); });
+  }
   checkStale();
+  for (var k = 0; k < n; k++) {
+    var rk = results[k];
+    if (!rk) continue;
+    rk.words.forEach(function(w){ all.push(w); });
+    if (!language && rk.lang && rk.words.length) language = rk.lang; // z. B. bei Übersetzung: erstes Stück mit Inhalt
+  }
   setTProgress(92);
   return { words: all, language: language };
 }
