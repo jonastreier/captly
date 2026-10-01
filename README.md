@@ -10,6 +10,12 @@ eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
   OpenAI-kompatible API).
 - **Fallback:** Ist der Proxy nicht erreichbar (z. B. reine Vercel-Demo ohne PHP), transkribiert Capivo
   automatisch **lokal im Browser** (transformers.js) — dann einmaliger Modell-Download.
+- **Video-Export:** MP4/MOV-Quellen laufen über einen **WebCodecs-Schnellexport** (Demux mit mp4box,
+  H.264-Encode, Mux mit mp4-muxer, Original-AAC wird kopiert) — schneller als Echtzeit. Bei jedem Problem
+  (Browser ohne WebCodecs/H.264-Encoder, WebM-Quelle, exotische Datei) fällt Capivo automatisch auf den
+  Echtzeit-Export (MediaRecorder, ggf. ffmpeg.wasm) zurück. Libs self-hosted unter `vendor/mp4box` +
+  `vendor/mp4-muxer` (Versionen: [`scripts/fetch-webcodecs-libs.sh`](scripts/fetch-webcodecs-libs.sh)).
+  Notschalter: `localStorage['capivo.fastExport'] = 'off'`.
 
 Dateien, kein Build:
 - [`captly.html`](captly.html) — kompletter Editor + Landing (Single-File).
@@ -207,5 +213,5 @@ node test-captly.js
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,
 Halluzinations-Filter, Export, Landing-Widgets, WAV-Encoder u. a.). Nicht automatisiert testbar
-(braucht echten Browser + Video): Whisper-Inferenz, MediaRecorder/ffmpeg-Export, Canvas-Rendering
+(braucht echten Browser + Video): Whisper-Inferenz, WebCodecs-/MediaRecorder-/ffmpeg-Export, Canvas-Rendering
 → manuell in Chrome **und** Firefox prüfen (MP4-Export cross-browser).

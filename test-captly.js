@@ -77,7 +77,9 @@ setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFi
 needsWatermark:needsWatermark,isPromptEcho:isPromptEcho,capFontsChanged:capFontsChanged,
 getAutosaveTimer:function(){return _autosaveTimer;},setExporting:function(v){isExporting=v;},autosaveWhenIdle:autosaveWhenIdle,autosaveNow:autosaveNow,restoreOrTranscribe:restoreOrTranscribe,
 readAutosaves:readAutosaves,setAutosaveKey:function(k){_autosaveKey=k;},AUTOSAVE_KEY:AUTOSAVE_KEY,setTranslateState:function(v){doTranslate=v;},capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
-setMe:function(plan,email){mePlan=plan;meEmail=email;}};`;
+setMe:function(plan,email){mePlan=plan;meEmail=email;},
+rebaseCutTime:rebaseCutTime,createAudioCutPlanner:createAudioCutPlanner,rotationFromMatrix:rotationFromMatrix,editListOffset:editListOffset,
+h264CodecCandidates:h264CodecCandidates,fastExportVideoCodecs:fastExportVideoCodecs,isFastExportSource:isFastExportSource,fastExportSupported:fastExportSupported};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -446,6 +448,63 @@ const trailW = [{ word: 'eins', start: 0, end: 0.3 }, { word: 'zwei', start: 0.3
 const trailCuts = T.computeCutRegions(trailW, { totalDur: 5 });
 ok(trailCuts.length === 1 && Math.abs(trailCuts[0].end - 4.92) < 0.001, 'Trail-Stille bis Videoende erkannt (nur mit totalDur): ' + JSON.stringify(trailCuts));
 ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-Annahme: ' + JSON.stringify(T.computeCutRegions(trailW)));
+
+// 16c) WebCodecs-Schnellexport: reine Helfer (Feature-Erkennung, Zeit-Re-Basing, Codec-Wahl)
+ok(T.fastExportSupported() === false, 'Node ohne WebCodecs → Schnellexport aus (kein Throw)');
+ok(T.isFastExportSource({ type: 'video/mp4', name: 'a.mp4' }) && T.isFastExportSource({ type: 'video/quicktime', name: 'IMG_1.MOV' })
+   && T.isFastExportSource({ type: '', name: 'clip.m4v' }), 'MP4/MOV/M4V → Schnellexport-Quelle');
+ok(!T.isFastExportSource({ type: 'video/webm', name: 'a.webm' }) && !T.isFastExportSource({ type: 'video/webm', name: 'falsch.mp4' })
+   && !T.isFastExportSource(null), 'WebM/fehlende Datei → kein Schnellexport');
+const rg = [{ start: 1, end: 2 }, { start: 3, end: 3.5 }];
+ok(T.rebaseCutTime(0.5, rg) === 0.5, 'vor erstem Cut unverändert');
+ok(T.rebaseCutTime(1, rg) === null && T.rebaseCutTime(1.99, rg) === null && T.rebaseCutTime(3.2, rg) === null, 'in Cut → null');
+ok(T.rebaseCutTime(2, rg) === 1 && Math.abs(T.rebaseCutTime(2.5, rg) - 1.5) < 1e-9, 'nach Cut 1 um 1 s verschoben');
+ok(Math.abs(T.rebaseCutTime(4, rg) - 2.5) < 1e-9, 'nach beiden Cuts um 1.5 s verschoben');
+ok(T.rebaseCutTime(7, []) === 7 && T.rebaseCutTime(7, null) === 7, 'ohne Cuts Identität');
+// Video-Frames (30 fps) durch die Cuts: Ausgabe lückenlos & streng monoton
+(function () {
+  let prev = -1, mono = true, maxGap = 0;
+  for (let i = 0; i < 150; i++) { const o = T.rebaseCutTime(i / 30, rg); if (o === null) continue; if (o <= prev) mono = false; if (prev >= 0) maxGap = Math.max(maxGap, o - prev); prev = o; }
+  ok(mono && maxGap < 1 / 30 + 0.02, 'Frame-Zeiten nach Cut lückenlos/monoton, max Abstand ' + maxGap.toFixed(3));
+})();
+// AAC-Pakete (1024 @ 48 kHz) durch Cuts: lückenlos, Fehler zur Videozeit ≤ ½ Paket, Länge passt
+(function () {
+  const dur = 1024 / 48000, plan = T.createAudioCutPlanner(rg);
+  let clockEnd = 0, maxErr = 0, contiguous = true, last = null, kept = 0, srcEnd = 0;
+  for (let k = -1; k * dur < 6; k++) { // k = -1: Priming-Paket vor 0
+    const ts = k * dur, outs = plan(ts, dur);
+    outs.forEach(function (o) { if (last !== null && Math.abs(o - (last + dur)) > 1e-9) contiguous = false; last = o; kept++; });
+    const ideal = T.rebaseCutTime(ts + dur / 2, rg);
+    if (outs.length && ideal !== null) maxErr = Math.max(maxErr, Math.abs(outs[outs.length - 1] + dur / 2 - ideal));
+    if (last !== null) clockEnd = last + dur;
+    srcEnd = ts + dur;
+  }
+  ok(contiguous, 'Audio-Pakete lückenlos aneinander');
+  ok(maxErr <= dur / 2 + 1e-9, 'Audio ≤ ½ Paket neben exakter Videozeit: ' + (maxErr * 1000).toFixed(1) + ' ms');
+  ok(Math.abs(clockEnd - (srcEnd - 1.5)) <= dur / 2, 'Audiolänge = Quelle − 1.5 s Cuts (±½ Paket): ' + clockEnd.toFixed(4) + ' vs ' + (srcEnd - 1.5).toFixed(4));
+  const p0 = T.createAudioCutPlanner([]);
+  ok(p0(-dur, dur).length === 0 && p0(0, dur)[0] === 0 && Math.abs(p0(dur, dur)[0] - dur) < 1e-12, 'ohne Cuts: Priming weg, Rest 1:1');
+  const pg = T.createAudioCutPlanner([]); pg(0, dur);
+  ok(Math.abs(pg(1, dur)[0] - 1) < 1e-12, 'echte Quell-Lücke (> 2.5 Pakete) wird übernommen statt aufgefüllt');
+})();
+ok(T.rotationFromMatrix([65536, 0, 0, 0, 65536, 0, 0, 0, 1073741824]) === 0, 'Matrix Identität → 0°');
+ok(T.rotationFromMatrix([0, 65536, 0, -65536, 0, 0, 0, 0, 1073741824]) === 90, 'Matrix → 90°');
+ok(T.rotationFromMatrix([-65536, 0, 0, 0, -65536, 0, 0, 0, 1073741824]) === 180, 'Matrix → 180°');
+ok(T.rotationFromMatrix([0, -65536, 0, 65536, 0, 0, 0, 0, 1073741824]) === 270, 'Matrix → 270°');
+ok(T.rotationFromMatrix([-65536, 0, 0, 0, 65536, 0, 0, 0, 1073741824]) === null, 'gespiegelte Matrix → null (Echtzeit-Pfad)');
+ok(T.rotationFromMatrix(undefined) === 0, 'keine Matrix → 0°');
+ok(T.editListOffset(undefined, 1000, 48000) === 0, 'keine Edit-Liste → 0');
+ok(Math.abs(T.editListOffset([{ segment_duration: 45000, media_time: 1024, media_rate_integer: 1 }], 1000, 48000) + 1024 / 48000) < 1e-12, 'AAC-Priming → negativer Versatz');
+ok(Math.abs(T.editListOffset([{ segment_duration: 500, media_time: -1 }, { segment_duration: 1000, media_time: 0, media_rate_integer: 1 }], 1000, 90000) - 0.5) < 1e-12, 'leerer Edit → Verzögerung');
+ok(T.editListOffset([{ segment_duration: 1, media_time: 0, media_rate_integer: 1 }, { segment_duration: 1, media_time: 9000, media_rate_integer: 1 }], 1000, 90000) === null, 'mehrere Edits → null');
+const c720 = T.h264CodecCandidates(720, 1280, 30), c1080 = T.h264CodecCandidates(1080, 1920, 30);
+ok(c720[0] === 'avc1.64001F' && c720.indexOf('avc1.42E01F') > 0, '720x1280@30 → Level 3.1 zuerst: ' + c720.join(','));
+ok(c1080[0] === 'avc1.640028' && c1080[1] === 'avc1.4D0028' && c1080[2] === 'avc1.42E028', '1080x1920@30 → Level 4.0: ' + c1080.join(','));
+ok(T.h264CodecCandidates(1080, 1920, 60)[0] === 'avc1.64002A', '1080p60 → Level 4.2');
+ok(T.h264CodecCandidates(2160, 3840, 30)[0] === 'avc1.640033', '4K30 → Level 5.1');
+ok(T.h264CodecCandidates(1080, 1920, 30).length === 6, 'passendes Level + eins Reserve');
+ok(T.h264CodecCandidates(8000, 8000, 30).length === 0, 'jenseits Level 5.2 → keine Kandidaten (→ Echtzeit-Pfad)');
+ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 'avc' && /^avc1\./.test(c.codec); }), 'Produktion: nur H.264');
 
 // 17) transcribeChunked: deckt das GANZE Video ab (async)
 (async () => {

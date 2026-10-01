@@ -3571,14 +3571,432 @@ function computeCutRegions(words, opts) {
 }
 
 // ═══════════════════════════════════════
+// FAST EXPORT — WebCodecs (schneller als Echtzeit)
+// ═══════════════════════════════════════
+// Warum: Der MediaRecorder-Pfad unten spielt das Video in ECHTZEIT ab (60-s-Reel ≥ 60 s, in Firefox
+// wegen der WebM→MP4-Umkodierung per ffmpeg.wasm ~10× länger). Hier werden stattdessen die Original-
+// Samples der MP4/MOV demuxt (mp4box), per VideoDecoder dekodiert, jeder Frame exakt wie im Echtzeit-
+// Pfad mit Captions + Wasserzeichen auf einen Canvas gezeichnet, per VideoEncoder als H.264 kodiert
+// und mit mp4-muxer zu einer MP4 verpackt — so schnell, wie die (Hardware-)Codecs können.
+// Ton wird NICHT neu kodiert, sondern als Original-AAC-Pakete kopiert (verlustfrei, überall verfügbar —
+// AAC-Encoding per WebCodecs gibt's z. B. in Chrome/Linux und Firefox nicht).
+// Robustheit: JEDER Fehler (fehlende API, Codec, exotische Datei, Lib nicht ladbar …) → console.warn
+// und transparenter Rückfall auf den bewährten Echtzeit-Pfad. Notschalter für Support/Debugging:
+// localStorage['capivo.fastExport'] = 'off'.
+var WC_LIB_VERSIONS = { mp4box: '2.4.1', muxer: '5.2.2' }; // muss zu scripts/fetch-webcodecs-libs.sh passen
+var _wcLibs = null;
+async function getWebCodecsLibs() {
+  if (_wcLibs) return _wcLibs;
+  // Lazy (erst beim Export) und self-hosted. ?v= an der Einstiegs-URL, weil /vendor per vercel.json
+  // ein Jahr "immutable" gecacht wird — ein Lib-Update bekommt so eine neue URL. (Die internen
+  // Chunk-Imports von mp4box tragen ohnehin einen Content-Hash im Dateinamen.)
+  var r = await Promise.all([
+    import('/vendor/mp4box/mp4box.all.mjs?v=' + WC_LIB_VERSIONS.mp4box),
+    import('/vendor/mp4-muxer/mp4-muxer.mjs?v=' + WC_LIB_VERSIONS.muxer)
+  ]);
+  _wcLibs = { MP4Box: r[0], Mux: r[1] };
+  return _wcLibs;
+}
+// Reine Feature-Erkennung — muss auch ohne window/localStorage (Node-Tests) gefahrlos false liefern.
+function fastExportSupported() {
+  try { if (localStorage.getItem('capivo.fastExport') === 'off') return false; } catch (e) {}
+  return typeof VideoEncoder === 'function' && typeof VideoDecoder === 'function'
+      && typeof VideoFrame === 'function' && typeof EncodedVideoChunk === 'function';
+}
+// Nur ISO-BMFF-Container (MP4/MOV/M4V) kann mp4box demuxen — WebM/MKV & Co. gehen direkt in den Echtzeit-Pfad.
+function isFastExportSource(file) {
+  if (!file) return false;
+  var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
+  if (t === 'video/mp4' || t === 'video/quicktime' || t === 'video/x-m4v') return true;
+  return !t && /\.(mp4|m4v|mov)$/.test(n);
+}
+// Quellzeit → Ausgabezeit bei Auto-Cut: null, wenn t in einem Schnitt liegt, sonst t minus die Summe
+// aller davor entfernten Fenster (→ lückenlose Ausgabe). Erwartet sortierte, gemergte Regionen
+// (computeCutRegions). Gleiche Grenzsemantik wie der Echtzeit-Pfad: [start, end) wird übersprungen.
+function rebaseCutTime(t, regions) {
+  var removed = 0;
+  for (var i = 0; i < (regions ? regions.length : 0); i++) {
+    var r = regions[i];
+    if (t < r.start) break;
+    if (t < r.end) return null;
+    removed += r.end - r.start;
+  }
+  return t - removed;
+}
+// Plant die Ausgabe-Zeitstempel der kopierten AAC-Pakete (Quellzeit ts, Dauer dur, Sekunden).
+// Rückgabe je Paket: [] = verwerfen, [x] = bei x schreiben, [x, y] = Paket doppelt (Lückenfüller).
+// Warum so: AAC-Frames (~21–23 ms) sind unteilbar und spielen immer volle Länge — Zeitstempel-Lücken
+// oder -Überlappungen interpretieren Player unterschiedlich. Daher liegen die Pakete lückenlos hintereinander
+// (eigene "clock"); behalten wird ein Paket, wenn seine MITTE nicht in einem Schnitt liegt. Damit sich
+// Rundungsfehler über viele Schnitte nicht aufsummieren (Lippen-Asynchronität), wird gegen die exakt
+// geschnittene Videozeit ("ideal") nachgeregelt: läuft der Ton > ½ Paket vor → Paket auslassen, hinkt er
+// > ½ Paket hinterher → Paket wiederholen. Fehler bleibt so ≤ ½ Paket (~11 ms), unhörbar.
+// (Alternative AudioDecoder→AudioEncoder wäre exakter, aber AAC-Encoding fehlt in vielen Browsern.)
+function createAudioCutPlanner(regions) {
+  var clock = null;
+  return function(ts, dur) {
+    if (!(dur > 0)) return [];
+    var mid = ts + dur / 2;
+    if (mid < 0) return []; // Encoder-Priming vor Zeitpunkt 0 (Edit-Liste) — verwirft der Player ebenfalls
+    var ideal = rebaseCutTime(mid, regions);
+    if (ideal === null) return []; // Paketmitte liegt in einem Schnitt
+    ideal -= dur / 2;
+    if (clock === null) clock = Math.max(0, ideal);
+    if (clock - ideal > dur / 2) return []; // Ton läuft voraus
+    var out = [];
+    if (clock - ideal < -2.5 * dur) clock = ideal; // echte Lücke in der Quelle → springen statt "auffüllen"
+    else while (clock - ideal < -dur / 2) { out.push(clock); clock += dur; } // leicht hinterher → wiederholen
+    out.push(clock); clock += dur;
+    return out;
+  };
+}
+// Drehung aus der tkhd-Matrix (Handy-Hochkantvideos sind oft quer kodiert + 90°-Matrix). WebCodecs
+// liefert die Frames UNgedreht, der <video>-Player zeigt sie gedreht → wir drehen beim Zeichnen selbst.
+// 0/90/180/270 (im Uhrzeigersinn); null bei Spiegelung/Schrägstellung (→ Echtzeit-Pfad).
+function rotationFromMatrix(m) {
+  if (!m || m.length < 5) return 0;
+  var a = m[0], b = m[1], c = m[3], d = m[4];
+  if (a * d - b * c <= 0) return null;
+  var deg = Math.atan2(b, a) * 180 / Math.PI;
+  var near = Math.round(deg / 90) * 90;
+  if (Math.abs(deg - near) > 1) return null;
+  return ((near % 360) + 360) % 360;
+}
+// Zeitversatz (Sekunden) aus der Edit-Liste, damit die Frame-Zeiten exakt der <video>-currentTime
+// entsprechen (AAC-Priming, B-Frame-Vorlauf, verzögerter Spurstart). Nur der übliche Fall wird
+// unterstützt: optional ein leerer Edit (Verzögerung) + EIN normaler Edit mit Rate 1. Alles andere
+// (echte Schnitte in der Datei) → null → Echtzeit-Pfad, der das über den Player korrekt abbildet.
+function editListOffset(edits, movieTimescale, trackTimescale) {
+  if (!edits || !edits.length) return 0;
+  var i = 0, off = 0;
+  if (edits[0].media_time === -1) { off += edits[0].segment_duration / (movieTimescale || 1); i = 1; }
+  if (i < edits.length) {
+    var e = edits[i];
+    if (edits.length > i + 1) return null;
+    if (e.media_rate_integer != null && e.media_rate_integer !== 1) return null;
+    off -= e.media_time / (trackTimescale || 1);
+  }
+  return off;
+}
+// H.264-Codec-Strings passend zur Auflösung: kleinstes Level, das Framegröße (MaxFS), Makroblock-Rate
+// (MaxMBPS) und Seitenlänge (√(8·MaxFS)) abdeckt — zu niedrige Level lehnen Encoder ab, unnötig hohe
+// manche Decoder (ältere Handys). Je Level High → Main → Constrained Baseline, plus ein Level Reserve.
+var H264_LEVELS = [ // [level_idc, MaxFS, MaxMBPS]
+  [0x1F, 3600, 108000], [0x20, 5120, 216000], [0x28, 8192, 245760], [0x2A, 8704, 522240],
+  [0x32, 22080, 589824], [0x33, 36864, 983040], [0x34, 36864, 2073600]
+];
+function h264CodecCandidates(W, H, fps) {
+  var mbW = Math.ceil(W / 16), mbH = Math.ceil(H / 16), fs = mbW * mbH;
+  var rate = fs * Math.max(1, fps || 30);
+  var out = [];
+  for (var i = 0; i < H264_LEVELS.length && out.length < 6; i++) {
+    var L = H264_LEVELS[i];
+    if (fs > L[1] || rate > L[2] || Math.max(mbW, mbH) > Math.sqrt(8 * L[1])) continue;
+    var lv = ('0' + L[0].toString(16).toUpperCase()).slice(-2);
+    out.push('avc1.6400' + lv, 'avc1.4D00' + lv, 'avc1.42E0' + lv);
+  }
+  return out;
+}
+// Encoder-Kandidaten für den Schnellexport (mux = Codec-Name für mp4-muxer). Bewusst NUR H.264:
+// Instagram/TikTok/iOS-Fotos brauchen es. (Test-Harnesses ohne H.264 überschreiben diese Funktion.)
+function fastExportVideoCodecs(W, H, fps) {
+  return h264CodecCandidates(W, H, fps).map(function(c) { return { codec: c, mux: 'avc' }; });
+}
+// Box-Inhalt OHNE 8-Byte-Header (avcC/hvcC → VideoDecoderConfig.description).
+function mp4BoxPayload(MP4Box, box) {
+  var ds = new MP4Box.DataStream(undefined, 0, MP4Box.Endianness.BIG_ENDIAN);
+  box.write(ds);
+  return new Uint8Array(ds.buffer, 8);
+}
+// Zeichnet einen dekodierten Frame "cover"-skaliert auf W×H — identisch zum Echtzeit-Pfad, plus Drehung.
+function drawFastFrame(ctx, frame, W, H, rot) {
+  var fw = frame.displayWidth, fh = frame.displayHeight;
+  var rw = rot % 180 ? fh : fw, rh = rot % 180 ? fw : fh; // Maße NACH der Drehung
+  var sc = Math.max(W / rw, H / rh);
+  if (!rot) { ctx.drawImage(frame, (W - fw * sc) / 2, (H - fh * sc) / 2, fw * sc, fh * sc); return; }
+  ctx.save();
+  ctx.translate(W / 2, H / 2);
+  ctx.rotate(rot * Math.PI / 180); // Canvas: positiver Winkel = im Uhrzeigersinn (y nach unten)
+  ctx.drawImage(frame, -fw * sc / 2, -fh * sc / 2, fw * sc, fh * sc);
+  ctx.restore();
+}
+// Wartet, bis De-/Encoder-Queue schrumpft. 'dequeue'-Events statt Timer: Timer werden in Hintergrund-
+// Tabs auf ≥1 s gedrosselt, Codec-Events nicht. Timer nur als Fallback für Browser ohne ondequeue.
+function wcQueueTick(dec, enc) {
+  return new Promise(function(res) {
+    var done = false;
+    function fin() { if (done) return; done = true; dec.ondequeue = null; enc.ondequeue = null; res(); }
+    dec.ondequeue = fin; enc.ondequeue = fin;
+    setTimeout(fin, 50);
+  });
+}
+// Kern-Pipeline. Wirft bei JEDEM Problem (Aufrufer fällt dann auf den Echtzeit-Pfad zurück).
+// o: { W, H (Player-Maße = Exportgröße wie im Echtzeit-Pfad), style, wmOn, cutRegions, onProgress(0..1) }
+async function exportFastWebCodecs(file, o) {
+  var libs = await getWebCodecsLibs();
+  var MP4Box = libs.MP4Box, Mux = libs.Mux;
+  var mp4 = MP4Box.createFile();
+  var info = null, demuxErr = null, vQ = [], aQ = [], vId = -1, aId = -1;
+  mp4.onReady = function(i) { info = i; };
+  mp4.onError = function(e) { demuxErr = e || 'mp4box error'; };
+  mp4.onSamples = function(id, user, samples) {
+    var q = id === vId ? vQ : (id === aId ? aQ : null);
+    if (q) for (var i = 0; i < samples.length; i++) q.push(samples[i]);
+  };
+
+  // Datei häppchenweise lesen (nie komplett in den RAM). mp4box sagt per Rückgabewert, welche
+  // Dateiposition es als Nächstes braucht — wichtig bei 'moov' am Dateiende (Handy-/ffmpeg-Default).
+  var CHUNK = 4 * 1024 * 1024, size = file.size, pos = 0, iter = 0;
+  var maxIter = Math.ceil(size / CHUNK) * 4 + 50;
+  async function feed() {
+    if (++iter > maxIter) throw new Error('demux: kein Fortschritt (pos ' + pos + ')');
+    var ab = await file.slice(pos, Math.min(size, pos + CHUNK)).arrayBuffer();
+    ab.fileStart = pos;
+    var next = mp4.appendBuffer(ab);
+    if (demuxErr) throw new Error('mp4box: ' + demuxErr);
+    pos = (typeof next === 'number' && isFinite(next)) ? next : pos + ab.byteLength;
+  }
+  while (!info && pos < size) await feed();
+  if (!info) throw new Error('kein moov gefunden (keine gültige MP4/MOV)');
+  if (info.isFragmented) throw new Error('fragmentiertes MP4 nicht unterstützt');
+
+  // ── Video-Spur + Decoder ──
+  var vT = info.videoTracks && info.videoTracks[0];
+  if (!vT || !vT.nb_samples) throw new Error('keine Videospur');
+  var vEntry = mp4.getTrackById(vT.id).mdia.minf.stbl.stsd.entries[0];
+  var decCfg = { codec: vT.codec, codedWidth: vT.video.width, codedHeight: vT.video.height };
+  var cfgBox = vEntry.avcC || vEntry.hvcC;
+  if (cfgBox) decCfg.description = mp4BoxPayload(MP4Box, cfgBox);
+  else if (/^(avc|hvc|hev)/.test(vT.codec)) throw new Error('avcC/hvcC fehlt (' + vT.codec + ')');
+  var decSup = await VideoDecoder.isConfigSupported(decCfg);
+  if (!decSup || !decSup.supported) throw new Error('VideoDecoder kann ' + vT.codec + ' nicht');
+
+  var rot = rotationFromMatrix(vT.matrix);
+  if (rot === null) throw new Error('gespiegelte/schräge Video-Matrix nicht unterstützt');
+  var vOff = editListOffset(vT.edits, info.timescale, vT.timescale);
+  if (vOff === null) throw new Error('komplexe Edit-Liste (Video)');
+  var rotW = rot % 180 ? vT.video.height : vT.video.width, rotH = rot % 180 ? vT.video.width : vT.video.height;
+  // Plausibilitätscheck gegen das, was der Player zeigt (falsch erkannte Drehung/Pixel-Seitenverhältnis
+  // → lieber Echtzeit-Pfad als ein verzerrtes Video).
+  if (Math.abs(rotW / rotH - o.W / o.H) > 0.02 * (o.W / o.H)) {
+    throw new Error('Seitenverhältnis ' + rotW + 'x' + rotH + ' (rot ' + rot + ') passt nicht zum Player ' + o.W + 'x' + o.H);
+  }
+  var W = o.W - (o.W % 2), H = o.H - (o.H % 2); // H.264 (4:2:0) braucht gerade Maße
+  var fps = vT.samples_duration ? vT.nb_samples / (vT.samples_duration / vT.timescale) : 30;
+  if (!(fps >= 1 && fps <= 240)) fps = 30;
+
+  // ── Ton: AAC 1:1 kopieren ──
+  var aT = null, aCfg = null, aOff = 0;
+  if (info.audioTracks && info.audioTracks.length) {
+    aT = info.audioTracks.filter(function(t) { return /^mp4a\.40\./.test(t.codec); })[0];
+    if (!aT) throw new Error('Tonspur ist kein AAC (' + info.audioTracks[0].codec + ')'); // Ton nie stillschweigend verlieren
+    var aEntry = mp4.getTrackById(aT.id).mdia.minf.stbl.stsd.entries[0];
+    var esds = aEntry.esds || (aEntry.wave && aEntry.wave.esds);
+    var dcd = esds && esds.esd && esds.esd.findDescriptor(4);
+    var dsi = dcd && dcd.findDescriptor(5);
+    if (!dsi || !dsi.data || !dsi.data.length) throw new Error('AAC ohne AudioSpecificConfig');
+    aOff = editListOffset(aT.edits, info.timescale, aT.timescale);
+    if (aOff === null) throw new Error('komplexe Edit-Liste (Audio)');
+    aCfg = { codec: aT.codec, sampleRate: aT.audio.sample_rate, numberOfChannels: aT.audio.channel_count,
+             description: new Uint8Array(dsi.data) };
+    aId = aT.id;
+  }
+
+  // ── Encoder wählen ──
+  var enc = null, cands = fastExportVideoCodecs(W, H, fps);
+  for (var ci = 0; ci < cands.length && !enc; ci++) {
+    var ecfg = { codec: cands[ci].codec, width: W, height: H, bitrate: 8000000, framerate: fps, latencyMode: 'quality' };
+    if (cands[ci].mux === 'avc') ecfg.avc = { format: 'avc' }; // Längen-präfixiert + avcC in den Metadaten (MP4)
+    try {
+      var es = await VideoEncoder.isConfigSupported(ecfg);
+      if (es && es.supported) enc = { cfg: ecfg, mux: cands[ci].mux };
+    } catch (e) {}
+  }
+  if (!enc) throw new Error('kein unterstützter H.264-Encoder für ' + W + 'x' + H + '@' + fps.toFixed(1));
+
+  var target = new Mux.ArrayBufferTarget();
+  var muxOpts = { target: target, video: { codec: enc.mux, width: W, height: H },
+                  fastStart: 'in-memory', firstTimestampBehavior: 'cross-track-offset' };
+  if (aCfg) muxOpts.audio = { codec: 'aac', numberOfChannels: aCfg.numberOfChannels, sampleRate: aCfg.sampleRate };
+  var muxer = new Mux.Muxer(muxOpts);
+
+  var canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+
+  var fail = null;
+  function setFail(e) { if (!fail) fail = e instanceof Error ? e : new Error(String(e && e.message || e)); }
+  var cuts = o.cutRegions || [];
+  var defDurUs = Math.round(1e6 / fps);
+  var lastOutUs = -1, lastKeyUs = -Infinity, framesIn = 0, framesDone = 0, framesEnc = 0, vChunks = 0, aChunks = 0;
+
+  var encoder = new VideoEncoder({
+    output: function(chunk, meta) { try { muxer.addVideoChunk(chunk, meta); vChunks++; } catch (e) { setFail(e); } },
+    error: setFail
+  });
+  encoder.configure(enc.cfg);
+  // Pro dekodiertem Frame: zeichnen wie im Echtzeit-Pfad (Captions zur QUELLzeit t, wie dort
+  // vid.currentTime), dann mit re-basiertem Zeitstempel kodieren. Jeder VideoFrame wird sofort
+  // geschlossen — offene Frames blockieren sonst den Hardware-Decoder-Pool.
+  var decoder = new VideoDecoder({
+    output: function(frame) {
+      try {
+        framesDone++;
+        if (fail) return;
+        // 4:4:4/4:2:2-Frames (Screenrecorder, Profil-1-VP9) zeichnete Chromium im Test mit falschen
+        // Farben auf den Canvas (Schwarz → Dunkelgrün), der <video>-Player aber korrekt → Echtzeit-Pfad.
+        // Handys liefern 4:2:0 (I420/NV12, auch 10 bit) — das ist geprüft und unkritisch.
+        if (frame.format && /^I4(44|22)/.test(frame.format)) { setFail(new Error('Pixelformat ' + frame.format + ' nicht unterstützt')); return; }
+        var t = frame.timestamp / 1e6;
+        if (t < -0.0005) return; // per Edit-Liste ausgeblendeter Vorlauf
+        if (t < 0) t = 0;
+        var outT = rebaseCutTime(t, cuts);
+        if (outT === null) return; // Auto-Cut: Frame liegt in Stille/Füllwort
+        var outUs = Math.round(outT * 1e6);
+        if (outUs <= lastOutUs) return;
+        drawFastFrame(ctx, frame, W, H, rot);
+        drawCaptionsOnCtx(ctx, t, o.style, W, H, false);
+        drawWatermark(ctx, W, H, o.wmOn);
+        var vf = new VideoFrame(canvas, { timestamp: outUs, duration: frame.duration || defDurUs, alpha: 'discard' });
+        var key = outUs - lastKeyUs >= 2e6; // Keyframe alle 2 s
+        if (key) lastKeyUs = outUs;
+        try { encoder.encode(vf, { keyFrame: key }); } finally { vf.close(); }
+        lastOutUs = outUs; framesEnc++;
+      } catch (e) { setFail(e); }
+      finally { frame.close(); }
+    },
+    error: setFail
+  });
+  decoder.configure(decCfg);
+
+  var planAudio = createAudioCutPlanner(cuts);
+  var vTotal = vT.nb_samples, vRead = 0, aRead = 0, lastPct = -1;
+  function progress() {
+    var p = Math.min(1, framesDone / vTotal);
+    var pct = Math.floor(p * 100);
+    if (pct !== lastPct && o.onProgress) { lastPct = pct; o.onProgress(p); }
+  }
+  async function drain() {
+    for (var i = 0; i < aQ.length; i++) {
+      var s = aQ[i], dur = s.duration / s.timescale;
+      var outs = planAudio(s.cts / s.timescale + aOff, dur);
+      for (var k = 0; k < outs.length; k++) {
+        muxer.addAudioChunkRaw(s.data, 'key', Math.round(outs[k] * 1e6), Math.round(dur * 1e6),
+                               aChunks ? undefined : { decoderConfig: aCfg });
+        aChunks++;
+      }
+    }
+    if (aQ.length) { aRead += aQ.length; mp4.releaseUsedSamples(aId, aQ[aQ.length - 1].number + 1); aQ.length = 0; }
+    for (var j = 0; j < vQ.length; j++) {
+      // Backpressure: nie mehr als ein paar Chunks/Frames in den Codec-Queues → Speicher bleibt beschränkt
+      while (decoder.decodeQueueSize > 4 || encoder.encodeQueueSize > 4) {
+        await wcQueueTick(decoder, encoder);
+        if (fail) throw fail;
+        progress();
+      }
+      if (fail) throw fail;
+      var v = vQ[j];
+      decoder.decode(new EncodedVideoChunk({
+        type: v.is_sync ? 'key' : 'delta',
+        timestamp: Math.round((v.cts / v.timescale + vOff) * 1e6),
+        duration: Math.round(v.duration / v.timescale * 1e6),
+        data: v.data
+      }));
+      vRead++;
+      progress();
+    }
+    if (vQ.length) { mp4.releaseUsedSamples(vId, vQ[vQ.length - 1].number + 1); vQ.length = 0; }
+  }
+
+  try {
+    vId = vT.id;
+    mp4.setExtractionOptions(vId, null, { nbSamples: 30 });
+    if (aT) mp4.setExtractionOptions(aId, null, { nbSamples: 100 });
+    pos = mp4.seek(0, true).offset; // ab Sample 0 — liefert die Dateiposition, die als Nächstes fehlt
+    mp4.start();
+    await drain();
+    while (pos < size && (vRead < vTotal || (aT && aRead < aT.nb_samples))) {
+      await feed();
+      await drain();
+    }
+    mp4.flush();
+    await drain();
+    if (vRead !== vTotal) throw new Error('nur ' + vRead + '/' + vTotal + ' Video-Samples gelesen');
+    if (aT && aRead !== aT.nb_samples) throw new Error('nur ' + aRead + '/' + aT.nb_samples + ' Audio-Samples gelesen');
+    await decoder.flush();
+    if (fail) throw fail;
+    await encoder.flush();
+    if (fail) throw fail;
+    if (!framesEnc || !vChunks) throw new Error('keine Frames kodiert (' + framesDone + ' dekodiert)');
+    muxer.finalize();
+    if (o.onProgress) o.onProgress(1);
+    console.info('[export] WebCodecs: ' + framesEnc + '/' + vTotal + ' Frames kodiert (' + enc.cfg.codec + ', '
+                 + W + 'x' + H + (rot ? ', rot ' + rot : '') + '), ' + aChunks + ' AAC-Pakete kopiert'
+                 + (cuts.length ? ', ' + cuts.length + ' Auto-Cuts' : ''));
+    return new Blob([target.buffer], { type: 'video/mp4' });
+  } finally {
+    try { if (decoder.state !== 'closed') decoder.close(); } catch (e) {}
+    try { if (encoder.state !== 'closed') encoder.close(); } catch (e) {}
+    try { mp4.stop(); } catch (e) {}
+  }
+}
+// Versucht den Schnellexport inkl. UI. true = fertig (Download ausgelöst); false = nicht möglich oder
+// fehlgeschlagen → Aufrufer macht mit dem Echtzeit-Pfad weiter (UI ist dann wieder im Ausgangszustand).
+async function tryFastExport(vid) {
+  if (!fastExportSupported() || !isFastExportSource(currentFile)) return false;
+  var recBar = document.getElementById('recBar'), recMsg = document.getElementById('recMsg');
+  var recProg = document.getElementById('recProg'), ctrls = document.getElementById('vidCtrls');
+  var cutRegions = (autoCutSilence && wordTimestamps.length) ? computeCutRegions(wordTimestamps, { totalDur: vid.duration }) : [];
+  var cutTotalSec = cutRegions.reduce(function(a, r){ return a + (r.end - r.start); }, 0);
+  isExporting = true;
+  if (ctrls) ctrls.classList.add('exporting');
+  vid.pause();
+  recProg.style.display = 'block';
+  recBar.style.width = '0%';
+  recMsg.textContent = 'Rendering video…' + (cutTotalSec > 0.05 ? ' · ✂️ cutting ' + cutTotalSec.toFixed(1) + 's of silence/filler words' : '');
+  var t0 = Date.now();
+  try {
+    var blob = await exportFastWebCodecs(currentFile, {
+      W: vid.videoWidth || 1080, H: vid.videoHeight || 1920,
+      style: STYLES.find(function(x){ return x.id === activeId; }),
+      wmOn: needsWatermark(), // Anmeldestatus JETZT — gilt für das ganze Video (wie im Echtzeit-Pfad)
+      cutRegions: cutRegions,
+      onProgress: function(p) {
+        recBar.style.width = Math.round(p * 100) + '%';
+        recMsg.textContent = 'Rendering ' + Math.round(p * 100) + '%…';
+      }
+    });
+    console.info('[export] WebCodecs-Schnellexport fertig in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s (Video: '
+                 + vid.duration.toFixed(1) + ' s)');
+    dlBlob(blob, 'capivo-video.mp4');
+    recProg.style.display = 'none';
+    isExporting = false;
+    if (ctrls) ctrls.classList.remove('exporting');
+    maybeUpsell();
+    return true;
+  } catch (e) {
+    console.warn('[export] WebCodecs-Schnellexport nicht möglich → Echtzeit-Export (MediaRecorder). Grund:', e && e.message || e, e);
+    recBar.style.width = '0%';
+    isExporting = false;
+    if (ctrls) ctrls.classList.remove('exporting');
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════
 // EXPORT — VIDEO WITH BURNED-IN CAPTIONS
 // ═══════════════════════════════════════
 async function exportVideoWithCaptions() {
   var vid = document.getElementById('mainVid');
   if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
-  if (!window.MediaRecorder) { alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
+  if (isExporting) return; // Doppelklick während eines laufenden Exports
 
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
+
+  // Schneller Weg (WebCodecs, Sekunden statt Echtzeit). Bei jedem Problem → false → Echtzeit-Pfad unten.
+  if (await tryFastExport(vid)) return;
+
+  if (!window.MediaRecorder) { alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
 
   var W = vid.videoWidth || 1080;
   var H = vid.videoHeight || 1920;
