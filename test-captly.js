@@ -88,7 +88,9 @@ getAutosaveTimer:function(){return _autosaveTimer;},setExporting:function(v){isE
 readAutosaves:readAutosaves,setAutosaveKey:function(k){_autosaveKey=k;},AUTOSAVE_KEY:AUTOSAVE_KEY,setTranslateState:function(v){doTranslate=v;},capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
 setMe:function(plan,email){mePlan=plan;meEmail=email;},
 rebaseCutTime:rebaseCutTime,createAudioCutPlanner:createAudioCutPlanner,rotationFromMatrix:rotationFromMatrix,editListOffset:editListOffset,
-h264CodecCandidates:h264CodecCandidates,fastExportVideoCodecs:fastExportVideoCodecs,isFastExportSource:isFastExportSource,fastExportSupported:fastExportSupported};`;
+h264CodecCandidates:h264CodecCandidates,fastExportVideoCodecs:fastExportVideoCodecs,isFastExportSource:isFastExportSource,fastExportSupported:fastExportSupported,
+oggCrc32:oggCrc32,oggLacing:oggLacing,opusPacketSamples48:opusPacketSamples48,buildOggOpus:buildOggOpus,opusPreSkipFromDesc:opusPreSkipFromDesc,
+encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSupport=null;},getOpusOff:function(){return _opusOff;},UPLOAD_CONCURRENCY:UPLOAD_CONCURRENCY};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -1177,10 +1179,171 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(sent.o.body.get('prompt') === null, 'Function: kein prompt beim Uebersetzen');
     await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
     ok(sent.o.body.get('prompt') === null, 'Function: ohne prompt-Param kein prompt-Feld');
+    ok(sent.o.body.get('file').name === 'audio.wav' && sent.o.body.get('file').type === 'audio/wav', 'Function: ohne Content-Type → audio.wav');
+    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' }, { 'content-type': 'audio/ogg' });
+    ok(sent.o.body.get('file').name === 'audio.ogg' && sent.o.body.get('file').type === 'audio/ogg', 'Function: audio/ogg → audio.ogg an Groq');
+    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' }, { 'content-type': 'text/html; charset=utf-8' });
+    ok(sent.o.body.get('file').name === 'audio.wav' && sent.o.body.get('file').type === 'audio/wav', 'Function: unbekannter Content-Type → WAV (Whitelist)');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(5 * 1024 * 1024), { GROQ_API_KEY: 'k' })).statusCode === 413, 'Function: zu grosser Body → 413');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', REQUIRE_LOGIN: '1', SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'a' })).statusCode === 401, 'Function: Login-Pflicht ohne Token → 401');
     const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
     ok(rl[2] === 429, 'Function: Rate-Limit greift: ' + rl);
+  }
+
+  // 23) Komprimierter Upload (Ogg/Opus) + parallele Stücke
+  {
+    // Ogg-Seiten parsen (Header-Felder + CRC-Prüfung), für die Muxer-Assertions
+    const pages = (u) => {
+      const out = []; let o = 0;
+      while (o < u.length) {
+        const dv = new DataView(u.buffer, u.byteOffset + o);
+        const ns = u[o + 26], segs = Array.from(u.subarray(o + 27, o + 27 + ns)), body = segs.reduce((a, b) => a + b, 0);
+        const end = o + 27 + ns + body, pg = u.slice(o, end), stored = dv.getUint32(22, true);
+        pg[22] = pg[23] = pg[24] = pg[25] = 0;
+        const lo = dv.getUint32(6, true), hi = dv.getUint32(10, true);
+        out.push({ magic: String.fromCharCode(u[o], u[o + 1], u[o + 2], u[o + 3]), flags: u[o + 5], seq: dv.getUint32(18, true),
+          granule: (lo === 0xFFFFFFFF && hi === 0xFFFFFFFF) ? -1 : hi * 4294967296 + lo, segs, crcOk: T.oggCrc32(pg) === stored,
+          body: u.subarray(o + 27 + ns, end) });
+        o = end;
+      }
+      return out;
+    };
+    // CRC32 (Ogg-Variante: Poly 0x04C11DB7, unreflektiert, Init 0, kein XOR) — Prüfwert für "123456789"
+    ok(T.oggCrc32(Buffer.from('123456789')) === 0x89A1897F, 'Ogg-CRC32 Prüfwert: 0x' + T.oggCrc32(Buffer.from('123456789')).toString(16));
+    ok(T.oggCrc32(new Uint8Array(0)) === 0, 'Ogg-CRC32 leer = 0');
+    // Lacing
+    ok(JSON.stringify(T.oggLacing(100)) === '[100]', 'Lacing 100');
+    ok(JSON.stringify(T.oggLacing(600)) === '[255,255,90]', 'Lacing 600: ' + JSON.stringify(T.oggLacing(600)));
+    ok(JSON.stringify(T.oggLacing(510)) === '[255,255,0]', 'Lacing 510 (Vielfaches von 255 → 0-Segment)');
+    ok(JSON.stringify(T.oggLacing(0)) === '[0]', 'Lacing 0');
+    // Paketdauer aus dem TOC-Byte (48-kHz-Samples)
+    const P = (...b) => new Uint8Array(b);
+    ok(T.opusPacketSamples48(P(0x48, 1, 2)) === 960, 'TOC SILK-WB 20 ms (Chromium bei 16 kHz)');
+    ok(T.opusPacketSamples48(P(0xB8, 1)) === 960, 'TOC CELT 20 ms');
+    ok(T.opusPacketSamples48(P(0x80, 1)) === 120, 'TOC CELT 2,5 ms');
+    ok(T.opusPacketSamples48(P(0x49, 1)) === 1920, 'TOC Code 1 = 2 Frames');
+    ok(T.opusPacketSamples48(P(0x0B, 3, 0)) === 2880, 'TOC Code 3, 3 Frames à 20 ms SILK-NB');
+    ok(T.opusPacketSamples48(P(0x68, 1)) === 960 && T.opusPacketSamples48(P(0x60, 1)) === 480, 'TOC Hybrid 20/10 ms');
+    // Pre-Skip aus der Encoder-description (Chromium: 104 @16 kHz → 312 @48 kHz)
+    const head = (ps, rate) => { const u = new Uint8Array(19); u.set(Buffer.from('OpusHead')); u[8] = 1; u[9] = 1; u[10] = ps & 255; u[11] = ps >> 8; new DataView(u.buffer).setUint32(12, rate, true); return u; };
+    ok(T.opusPreSkipFromDesc(head(104, 16000), 16000) === 312, 'Pre-Skip: Chromium-Wert in Eingangs-Rate umgerechnet');
+    ok(T.opusPreSkipFromDesc(head(312, 16000), 16000) === 312, 'Pre-Skip: korrekter 48-kHz-Wert bleibt');
+    ok(T.opusPreSkipFromDesc(null, 16000) === 312 && T.opusPreSkipFromDesc(new Uint8Array(5), 16000) === 312, 'Pre-Skip: Default 312');
+    // Muxer: Kopf-Seiten, Granules (ab 0 gezählt, End-Trimming), EOS, CRC
+    {
+      const pk = Array.from({ length: 3 }, () => P(0x48, 7, 7, 7));
+      const pg = pages(T.buildOggOpus(pk, { preSkip: 312, inputRate: 16000, totalSamples48: 2000 }));
+      ok(pg.length === 3 && pg.every(p => p.magic === 'OggS' && p.crcOk), 'Muxer: 3 Seiten, CRC ok');
+      ok(pg[0].flags === 0x02 && pg[0].granule === 0 && String.fromCharCode(...pg[0].body.subarray(0, 8)) === 'OpusHead', 'Muxer: BOS-Seite mit OpusHead');
+      ok((pg[0].body[10] | (pg[0].body[11] << 8)) === 312 && new DataView(pg[0].body.buffer, pg[0].body.byteOffset).getUint32(12, true) === 16000, 'Muxer: Pre-Skip + Eingangsrate im OpusHead');
+      ok(String.fromCharCode(...pg[1].body.subarray(0, 8)) === 'OpusTags' && pg[1].granule === 0, 'Muxer: OpusTags-Seite');
+      ok(pg[2].flags === 0x04 && pg[2].granule === 2312, 'Muxer: letzte Seite EOS, Granule = preSkip + Länge (End-Trimming): ' + pg[2].granule);
+      ok(pg.map(p => p.seq).join() === '0,1,2', 'Muxer: Seitennummern fortlaufend');
+    }
+    {
+      // 300 kleine Pakete → 255 auf Seite 2, Rest auf Seite 3; Granule = dekodierte Samples bis Seitenende
+      const pk = Array.from({ length: 300 }, () => P(0x48, 1, 2, 3));
+      const pg = pages(T.buildOggOpus(pk, { preSkip: 312, totalSamples48: 300 * 960 }));
+      ok(pg.length === 4 && pg[2].segs.length === 255 && pg[2].granule === 255 * 960 && pg[3].granule === 300 * 960 && pg[3].flags === 0x04,
+        'Muxer: Seitenumbruch nach 255 Segmenten, Granules ' + pg.slice(2).map(p => p.granule));
+      ok(pg.every(p => p.crcOk), 'Muxer: CRC aller Seiten ok');
+    }
+    {
+      // Riesiges Paket (140000 Bytes = 550 Segmente) → läuft über 3 Seiten: mittlere ohne Paketende (Granule -1),
+      // Folgeseiten mit Fortsetzungs-Flag 0x01
+      const BIG = 140000, big = new Uint8Array(BIG); big[0] = 0x48; for (let i = 1; i < big.length; i++) big[i] = i & 255;
+      const pg = pages(T.buildOggOpus([P(0x48, 9), big, P(0x48, 9)], { preSkip: 312 }));
+      ok(pg.length === 5, 'Muxer: grosses Paket → 5 Seiten, habe ' + pg.length);
+      ok(pg[2].segs.length === 255 && pg[2].granule === 960 && !(pg[2].flags & 1), 'Muxer: Seite 2 endet mitten im Paket, Granule = vollendetes Paket');
+      ok(pg[3].segs.length === 255 && pg[3].granule === -1 && (pg[3].flags & 1), 'Muxer: Seite ohne Paketende hat Granule -1 + Fortsetzung');
+      ok((pg[4].flags & 0x01) && (pg[4].flags & 0x04) && pg[4].granule === 2880, 'Muxer: Fortsetzungsseite (0x01) + EOS, Granule ' + pg[4].granule);
+      const rest = BIG - (pg[2].body.length - 2) - pg[3].body.length;
+      const joined = Buffer.concat([Buffer.from(pg[2].body.subarray(2)), Buffer.from(pg[3].body), Buffer.from(pg[4].body.subarray(0, rest))]);
+      ok(joined.equals(Buffer.from(big)) && pg[4].body.length === rest + 2, 'Muxer: Paketinhalt über Seitengrenzen unverändert');
+      ok(pg.every(p => p.crcOk), 'Muxer: CRC ok (Fortsetzung)');
+    }
+
+    // Upload-Encoding: Node hat kein WebCodecs → WAV
+    const origBlob = global.Blob;
+    global.Blob = function (parts, o) { this.parts = parts; this.type = o && o.type; this.content = ''; };
+    T.resetOpus();
+    ok(typeof AudioEncoder === 'undefined' && (await T.encodeUploadAudio(new Float32Array(1600).fill(0.1), 16000)).type === 'audio/wav', 'ohne AudioEncoder → WAV');
+    // Mock-AudioEncoder (verhält sich wie Chromium: 20-ms-SILK-Pakete, description mit Pre-Skip 104 @16 kHz)
+    class MockAD { constructor(o) { this.numberOfFrames = o.numberOfFrames; } close() {} }
+    let failFlush = false;
+    class MockAE {
+      constructor(cb) { this.cb = cb; this.state = 'unconfigured'; this.frames = 0; this.emitted = 0; }
+      static async isConfigSupported(c) { return { supported: c.codec === 'opus' && c.sampleRate === 16000 }; }
+      configure() { this.state = 'configured'; }
+      encode(ad) { this.frames += ad.numberOfFrames; while ((this.emitted + 1) * 320 <= this.frames) this._emit(); }
+      _emit() { const a = new Uint8Array(40); a[0] = 0x48; this.emitted++;
+        this.cb.output({ byteLength: 40, copyTo(d) { d.set(a); } }, this.emitted === 1 ? { decoderConfig: { description: head(104, 16000) } } : undefined); }
+      async flush() { if (failFlush) throw new Error('boom'); while (this.emitted * 320 < this.frames) this._emit(); }
+      close() { this.state = 'closed'; }
+    }
+    global.AudioEncoder = MockAE; global.AudioData = MockAD; T.resetOpus();
+    {
+      const b = await T.encodeUploadAudio(new Float32Array(16000 * 3).fill(0.1), 16000);
+      ok(b.type === 'audio/ogg', 'mit AudioEncoder → Ogg/Opus: ' + b.type);
+      const pg = pages(b.parts[0]);
+      ok(pg.length >= 3 && pg.every(p => p.crcOk) && pg[pg.length - 1].granule === 312 + 3 * 48000, 'Ogg vom Encoder: CRC ok, End-Granule = 312 + 3 s: ' + pg[pg.length - 1].granule);
+    }
+    // Server lehnt Ogg ab (älterer Proxy) → Stück wird als WAV nachgeschickt, Opus für die Sitzung aus
+    {
+      const ct = [];
+      global.fetch = async (url, opt) => {
+        ct.push(opt.headers['Content-Type']);
+        if (opt.headers['Content-Type'] === 'audio/ogg') return { ok: false, status: 400, headers: { get: () => null }, json: async () => ({ error: 'file must be wav' }) };
+        return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ language: 'german', words: [{ word: 'Hallo', start: 1, end: 1.4 }] }) };
+      };
+      const r = await T.serverTranscribe(new Float32Array(16000 * 5).fill(0.3), 'm', '', 5);
+      ok(ct.join() === 'audio/ogg,audio/wav' && r.words.length === 1 && T.getOpusOff(), 'Ogg abgelehnt (400) → WAV-Retry + Opus aus: ' + ct.join());
+    }
+    failFlush = true; T.resetOpus();
+    ok((await T.encodeUploadAudio(new Float32Array(16000).fill(0.1), 16000)).type === 'audio/wav' && T.getOpusOff(), 'Encoder-Fehler → WAV-Fallback');
+    delete global.AudioEncoder; delete global.AudioData; T.resetOpus();
+
+    // Parallele Stücke: 5 Stücke (400-s-Rampe → Schnitte bei je ~85 s), Antworten kommen in umgekehrter
+    // Reihenfolge zurück. Stück 1 läuft allein (Sprache), danach max. 3 gleichzeitig, Ergebnis in Reihenfolge.
+    {
+      const SRp = 16000, N = SRp * 400, a = new Float32Array(N);
+      for (let i = 0; i < N; i++) a[i] = 0.05 + 0.9 * i / N;
+      const calls = []; let inflight = 0, maxIn = 0, firstDone = false, secondBeforeFirst = false;
+      global.fetch = async (url, opt) => {
+        const c = calls.length + 1;
+        // erstes Sample des Stücks (Rampe → eindeutig je Stück) als Kennung zurückgeben
+        const id = new DataView(opt.body.parts[0]).getInt16(44, true);
+        calls.push({ url, ct: opt.headers['Content-Type'], id });
+        if (c > 1 && !firstDone) secondBeforeFirst = true;
+        inflight++; maxIn = Math.max(maxIn, inflight);
+        await new Promise(r => setTimeout(r, c === 1 ? 5 : (10 - c) * 15));
+        inflight--; if (c === 1) firstDone = true;
+        return { ok: true, status: 200, headers: { get: () => null },
+          json: async () => ({ language: 'german', words: [{ word: 'S' + id, start: 0.5, end: 0.9 }] }) };
+      };
+      const r = await T.serverTranscribe(a, 'm', '', 400);
+      const ids = r.words.map(w => +w.word.slice(1));
+      ok(calls.length === 5 && r.words.length === 5, 'Parallel: 5 Stücke, 5 Wörter: ' + calls.length + '/' + r.words.length);
+      ok(!secondBeforeFirst, 'Parallel: Stück 1 läuft allein (Sprache zuerst)');
+      ok(maxIn === T.UPLOAD_CONCURRENCY && maxIn === 3, 'Parallel: max. 3 gleichzeitig, habe ' + maxIn);
+      ok(ids.every((v, i) => i === 0 || v > ids[i - 1]), 'Parallel: Ergebnis in Stück-Reihenfolge trotz umgekehrter Antworten: ' + ids.join(','));
+      ok(r.words.every((w, i) => i === 0 || w.start > r.words[i - 1].start + 80), 'Parallel: Offsets je Stück korrekt: ' + r.words.map(w => w.start.toFixed(1)).join(','));
+      ok(calls.slice(1).every(c => /&lang=de/.test(c.url)) && !/lang=/.test(calls[0].url), 'Parallel: Sprache für Stücke 2..n festgenagelt');
+      ok(calls.every(c => c.ct === 'audio/wav'), 'Parallel: ohne WebCodecs Content-Type audio/wav');
+      ok(r.language === 'german', 'Parallel: Sprache übernommen');
+      // Fehler in einem parallelen Stück → klarer Fehler, kein weiteres Stück wird mehr gestartet
+      calls.length = 0;
+      global.fetch = async (url, opt) => {
+        const c = calls.length + 1; calls.push(c);
+        if (c === 3) return { ok: false, status: 400, headers: { get: () => null }, json: async () => ({ error: 'bad' }) };
+        await new Promise(r => setTimeout(r, 30));
+        return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ language: 'german', words: [{ word: 'x', start: 1, end: 1.2 }] }) };
+      };
+      let err = null; try { await T.serverTranscribe(a, 'm', '', 400); } catch (e) { err = e; }
+      await new Promise(r => setTimeout(r, 80));
+      ok(err && /error 400/.test(err.message) && calls.length <= 4, 'Parallel: Fehler bricht ab, kein neues Stück: ' + (err && err.message) + ' calls=' + calls.length);
+    }
+    global.Blob = origBlob;
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

@@ -41,6 +41,9 @@ zuerst `/api/transcribe`, dann `transcribe.php`, erst danach den lokalen Fallbac
    `{"configured":true}`.
 
 Vercel kappt Request-Bodies bei 4,5 MB; das Frontend schickt ~100-s-Stücke (≤ ~3,2 MB), passt also.
+Wo der Browser es kann (WebCodecs `AudioEncoder`), gehen die Stücke als **Ogg/Opus 32 kbit/s** raus
+(`Content-Type: audio/ogg`, ~0,4 MB statt 3,2 MB → auf dem Handy ~3–4× schneller); sonst WAV. Stück 1 läuft
+allein (Sprache erkennen), der Rest mit 3 parallelen Requests.
 Fehlt der Key, fällt die App automatisch auf die lokale Erkennung zurück (langsam, Modell-Download).
 
 ## Transkription einrichten (Groq-Proxy, klassisches PHP-Webhosting)
@@ -54,7 +57,7 @@ Auf klassischem **Webhosting mit PHP** — kein Node-Server nötig:
    legen. Fertig — Fast/Perfect laufen ohne Download für den Nutzer.
 
 Voraussetzungen: PHP mit **cURL** aktiv. Das Frontend zerlegt die Tonspur an Sprechpausen in ~100-s-Stücke
-(≤ ~3,2 MB je Request, jeweils mit Retry bei Netz-/429-/5xx-Fehlern), dadurch sind `post_max_size` &
+(≤ ~3,2 MB je Request als WAV bzw. ~0,4 MB als Ogg/Opus, jeweils mit Retry bei Netz-/429-/5xx-Fehlern), dadurch sind `post_max_size` &
 Timeouts auch auf billigem Hosting unkritisch; Stille-Stücke werden gar nicht gesendet (verhindert
 Whisper-Halluzinationen). Max. 20 Min Audio pro Video. Der Proxy hat ein IP-Limit
 (`RATE_LIMIT_PER_HOUR`, Default 120/h), damit niemand deinen Key leerzieht. Optional: `REQUIRE_LOGIN => true` (+ `SUPABASE_URL`/`SUPABASE_ANON_KEY`) erlaubt Transkription nur
