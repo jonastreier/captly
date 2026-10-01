@@ -72,6 +72,8 @@ module.exports = async function handler(req, res) {
   let model = url.searchParams.get('model') || 'whisper-large-v3-turbo';
   if (!ALLOWED.includes(model)) model = 'whisper-large-v3-turbo';
   const translate = url.searchParams.get('translate') === '1';
+  // whisper-large-v3-turbo ist nicht auf Übersetzung trainiert (Groq/OpenAI) → für Translate immer large-v3
+  if (translate) model = 'whisper-large-v3';
   const lang = (url.searchParams.get('lang') || '').toLowerCase().replace(/[^a-z]/g, '');
 
   let audio;

@@ -57,6 +57,8 @@ $model = $_GET['model'] ?? 'whisper-large-v3-turbo';
 if (!in_array($model, $ALLOWED, true)) $model = 'whisper-large-v3-turbo';
 
 $translate = (($_GET['translate'] ?? '0') === '1');
+// whisper-large-v3-turbo ist nicht auf Übersetzung trainiert (Groq/OpenAI) → für Translate immer large-v3
+if ($translate) $model = 'whisper-large-v3';
 $lang = preg_replace('/[^a-z]/', '', strtolower($_GET['lang'] ?? '')); // ISO-Kürzel, sonst leer
 
 // ── Optional: nur eingeloggte Nutzer (Supabase) dürfen transkribieren ──────────────────────
