@@ -4275,7 +4275,7 @@ function polishSegments(words) {
   var segs = [], a = 0;
   for (var i = 0; i < words.length; i++) {
     var endHere = /[.!?…]["“”»)]*$/.test(words[i].word) || (i - a + 1) >= POLISH_SEG_MAX || i === words.length - 1;
-    if (endHere) { segs.push({ id: 's' + segs.length, a: a, b: i + 1, text: words.slice(a, i + 1).map(function(w){ return w.word; }).join(' ') }); a = i + 1; }
+    if (endHere) { segs.push({ id: segs.length, a: a, b: i + 1, text: words.slice(a, i + 1).map(function(w){ return w.word; }).join(' ') }); a = i + 1; }
   }
   return segs;
 }
@@ -4316,10 +4316,10 @@ async function polishWords(words, lang, vocab, isStale) {
   catch (e) { console.warn('Polish übersprungen:', e && e.message || e); return { words: words, fixes: 0 }; }
   if (isStale && isStale()) return { words: words, fixes: 0 };
   var byId = {};
-  res.segments.forEach(function(x){ if (x && typeof x.id === 'string' && typeof x.text === 'string') byId[x.id] = x.text; });
+  res.segments.forEach(function(x){ if (x && x.id != null && typeof x.text === 'string') byId[String(x.id)] = x.text; });
   var out = [], fixes = 0;
   segs.forEach(function(sg) {
-    var orig = words.slice(sg.a, sg.b), nt = byId[sg.id];
+    var orig = words.slice(sg.a, sg.b), nt = byId[String(sg.id)];
     var nw = nt === undefined ? null : String(nt).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
     if (!nw || !nw.length || nw.join(' ') === sg.text) { out.push.apply(out, orig); return; }
     var ow = orig.map(function(w){ return w.word; });
@@ -4585,6 +4585,8 @@ function loadVideo(file) {
     document.getElementById('vidCtrls').style.display     = 'flex';
     document.getElementById('uploadLabel').textContent     = '📁 Replace video';
     vidReady = true;
+    // Gesamtdauer sofort zeigen, nicht erst beim ersten timeupdate (sonst steht bis zum Abspielen "0:00 / 0:00")
+    document.getElementById('timeLbl').textContent = fmtS(0) + ' / ' + fmtS(vid.duration);
     showPlayOverlay(true);
     document.getElementById('ppBtn').textContent = '▶';
     updateOverlay();

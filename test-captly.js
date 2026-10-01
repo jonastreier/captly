@@ -1206,7 +1206,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
                    ['Das', 2.0, 2.2], ['Highlnd', 2.3, 2.8], ['Rind', 2.9, 3.3], ['grast.', 3.4, 3.9]].map(([w, a, b]) => ({ word: w, start: a, end: b }));
     let sent = null, url = null;
     global.fetch = async (u, o) => { url = u; sent = JSON.parse(o.body);
-      return { ok: true, status: 200, json: async () => ({ model: 'x', changed: 2, segments: [{ id: 's0', text: 'Wir sind am Birkenhof.' }, { id: 's1', text: 'Das Highland Rind grast.' }] }) }; };
+      return { ok: true, status: 200, json: async () => ({ model: 'x', changed: 2, segments: [{ id: 0, text: 'Wir sind am Birkenhof.' }, { id: 1, text: 'Das Highland Rind grast.' }] }) }; };
     const r = await T.polishWords(words, 'de', 'Birkenhof', null);
     ok(/polish/.test(url) && sent.lang === 'de' && sent.vocab === 'Birkenhof' && sent.segments.length === 2 && sent.segments[1].text === 'Das Highlnd Rind grast.', 'Polish-Request: Saetze als Segmente');
     const hi = r.words.find(w => w.word === 'Highland');
@@ -1216,7 +1216,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(r.fixes >= 2, 'Fixes gezaehlt: ' + r.fixes);
     ok(r.words.every((w, i) => i === 0 || w.start >= r.words[i - 1].start), 'Timings monoton');
     // Umschreiben statt Korrigieren → Segment bleibt original
-    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ segments: [{ id: 's1', text: 'Heute erzähle ich euch etwas über unsere wunderbaren schottischen Hochlandrinder.' }] }) });
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ segments: [{ id: 1, text: 'Heute erzähle ich euch etwas über unsere wunderbaren schottischen Hochlandrinder.' }] }) });
     const r2 = await T.polishWords(words, 'de', '', null);
     ok(r2.words.map(w => w.word).join(' ') === words.map(w => w.word).join(' '), 'Umschreiben wird verworfen');
     // Fehlerfälle: 404 auf beiden Endpunkten, 500, Netzwerk → Original, kein Fehler
