@@ -74,7 +74,10 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
+needsWatermark:needsWatermark,editListEnd:editListEnd,histDistance:histDistance,cutThreshold:cutThreshold,
+pickCutCandidates:pickCutCandidates,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
+onBreakAtCutsChange:onBreakAtCutsChange,currentBlockIdx2:currentBlockIdx,setDisplayMode:function(m){displayMode=m;},polishWords:polishWords,
+polishEnabled:polishEnabled,setModelState:function(m){whisperModel=m;},polishSegments:polishSegments,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
 splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
 loadProjects:loadProjects,restoreSavedStyle:restoreSavedStyle,setUserTemplates:function(l){userTemplates=l;},pruneTemplates:pruneTemplates,
 TPL_ROW_TITLE:TPL_ROW_TITLE,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
@@ -730,6 +733,56 @@ ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200
   ok(act && act.w <= base + 1e-9, 'Kontur des animierten Worts nicht aufgeblasen: ' + (act && act.w) + ' vs ' + base);
 }
 
+// 20a) Edit-Liste: Präsentationsende (gekürzte Datei ohne Neukodierung)
+ok(T.editListEnd(null, 600) === Infinity && T.editListEnd([], 600) === Infinity, 'editListEnd: ohne Edit-Liste unbegrenzt');
+ok(T.editListEnd([{ media_time: 0, segment_duration: 3000, media_rate_integer: 1 }], 600) === 5, 'editListEnd: 5 s Segment');
+ok(Math.abs(T.editListEnd([{ media_time: -1, segment_duration: 300 }, { media_time: 1024, segment_duration: 2400 }], 600) - 4.5) < 1e-9, 'editListEnd: Verzoegerung + Segment');
+ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'editListEnd: Dauer 0 = bis Medienende');
+
+// 20b) Szenenschnitte: Blöcke überspannen keinen Schnitt
+{
+  const W = (arr) => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
+  T.onWpbChange('6');
+  let bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.5, 0.9], ['c', 1.0, 1.4], ['d', 1.5, 1.9]]), [0.95]);
+  ok(bl.length === 2 && bl[0].text === 'a b' && bl[1].text === 'c d' && bl[0].end <= 0.95 && bl[1].start >= 0.95, 'Block endet am Schnitt, neuer beginnt danach');
+  bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.7, 1.3], ['c', 1.4, 1.8]]), [1.1]);
+  ok(bl[0].text === 'a b' && bl[0].end === 1.1 && bl[0].words[1].end === 1.3 && bl[1].text === 'c', 'Wort ueber dem Schnitt: Mitte entscheidet, Timing bleibt, Block endet am Schnitt');
+  bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.5, 0.8], ['c', 0.9, 1.5], ['d', 1.6, 1.9]]), [1.0]);
+  ok(bl[0].text === 'a b' && bl[1].text === 'c d' && bl[1].start === 1.0 && bl[1].words[0].start === 0.9, 'Blockanfang auf Schnitt begrenzt, Wort-Timing unveraendert');
+  bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.5, 0.9], ['c', 1.0, 1.4]]), []);
+  ok(bl.length === 1, 'ohne Schnitte unveraendert');
+  // Integration: Schnitte kommen nach den Captions → edit-erhaltend neu gruppieren, Statushinweis, Continuous stoppt am Schnitt
+  T.setState(T.buildCaptionBlocks(W([['Hallo', 0, 0.4], ['du', 0.5, 0.9], ['da', 1.0, 1.4], ['drueben', 1.5, 1.9]]), []), W([['Hallo', 0, 0.4], ['du', 0.5, 0.9], ['da', 1.0, 1.4], ['drueben', 1.5, 1.9]]), 'karaoke');
+  T.getBlocks()[0].text = 'Hallo du da drüben'; T.retimeEditedBlock(T.getBlocks()[0]);
+  document.getElementById('tStatus').innerHTML = '<span>✅</span><span>4 words</span>';
+  T.setSceneCuts([0.95]);
+  ok(T.getBlocks().length === 2 && T.getBlocks()[1].text === 'da drüben', 'Schnitte nachtraeglich: neu gruppiert, Edit erhalten');
+  ok(/1 scene cut detected/.test(document.getElementById('tStatus').innerHTML), 'Statushinweis: ' + document.getElementById('tStatus').innerHTML);
+  T.setDisplayMode('all');
+  ok(T.currentBlockIdx2(0.93) === 0 && T.currentBlockIdx2(0.97) === -1 && T.currentBlockIdx2(1.2) === 1, 'Continuous: Block endet am Schnitt');
+  T.setDisplayMode('karaoke');
+  T.onBreakAtCutsChange(false);
+  ok(T.getBlocks().length === 1, 'Schalter aus: Bloecke wieder ueber den Schnitt');
+  T.onBreakAtCutsChange(true); T.setSceneCuts([]);
+  T.onWpbChange('4');
+}
+
+// 20c) Schnitt-Detektor: reine Bausteine mit synthetischen Daten
+{
+  const dark = T.lumaHistogram(new Float32Array(2304).fill(0.1), 16), light = T.lumaHistogram(new Float32Array(2304).fill(0.9), 16);
+  ok(T.histDistance(dark, dark) === 0 && Math.abs(T.histDistance(dark, light) - 1) < 1e-9, 'Histogramm-Distanz 0 bzw. 1');
+  ok(Math.abs(T.meanAbsDiff(new Float32Array([0.1, 0.2]), new Float32Array([0.3, 0.2])) - 0.1) < 1e-6, 'mittlere Pixel-Differenz');
+  ok(T.cutThreshold([0.01, 0.02, 0.015, 0.02, 0.01]) === 0.35, 'Schwelle: Untergrenze 0.35 bei ruhigem Video');
+  const noisy = [0.2, 0.25, 0.3, 0.22, 0.28, 0.24, 0.26];
+  ok(T.cutThreshold(noisy) > 0.35, 'Schwelle adaptiv bei unruhigem Video: ' + T.cutThreshold(noisy).toFixed(3));
+  const samples = [];
+  for (let i = 0; i < 30; i++) samples.push({ t: i * 0.2, d: i === 0 ? 0 : 0.02 + (i % 3) * 0.005, p: 0.01 });
+  samples[17] = { t: 3.4, d: 0.8, p: 0.3 };            // harter Schnitt
+  samples[24] = { t: 4.8, d: 0.5, p: 0.02 };           // Helligkeitssprung ohne Pixel-Änderung (z. B. Blitz) → kein Schnitt
+  const c = T.pickCutCandidates(samples);
+  ok(c.length === 1 && c[0] === 17, 'nur der echte Schnitt erkannt: ' + JSON.stringify(c));
+}
+
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
   { word: 'Hallo',  start: 1.0, end: 1.3 },              // 1.0s Fuehr-Stille davor
@@ -1143,6 +1196,40 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(tr.ok === false && /Timeout/.test(tr.reason), 'Validierung: Timeout → Fallback');
     ok(revoked === 5, 'Objekt-URL jedes Mal freigegeben: ' + revoked);
     document.createElement = origCreate; global.URL = origURL;
+  }
+
+  // 21f) Perfect-Polish: korrigierte Wörter übernehmen die Original-Timings; Fehler → Original
+  {
+    const words = [['Wir', 0, 0.3], ['sind', 0.35, 0.6], ['am', 0.65, 0.8], ['Birken', 0.85, 1.1], ['hof.', 1.15, 1.5],
+                   ['Das', 2.0, 2.2], ['Highlnd', 2.3, 2.8], ['Rind', 2.9, 3.3], ['grast.', 3.4, 3.9]].map(([w, a, b]) => ({ word: w, start: a, end: b }));
+    let sent = null, url = null;
+    global.fetch = async (u, o) => { url = u; sent = JSON.parse(o.body);
+      return { ok: true, status: 200, json: async () => ({ model: 'x', changed: 2, segments: [{ id: 's0', text: 'Wir sind am Birkenhof.' }, { id: 's1', text: 'Das Highland Rind grast.' }] }) }; };
+    const r = await T.polishWords(words, 'de', 'Birkenhof', null);
+    ok(/polish/.test(url) && sent.lang === 'de' && sent.vocab === 'Birkenhof' && sent.segments.length === 2 && sent.segments[1].text === 'Das Highlnd Rind grast.', 'Polish-Request: Saetze als Segmente');
+    const hi = r.words.find(w => w.word === 'Highland');
+    ok(hi && hi.start === 2.3 && hi.end === 2.8, 'korrigiertes Wort uebernimmt Original-Timing');
+    const bh = r.words.find(w => w.word === 'Birkenhof.');
+    ok(r.words.length === 8 && bh && bh.start >= 0.85 - 1e-9 && bh.end <= 1.5 + 1e-9, 'Wortzahl-Aenderung (Birken hof → Birkenhof) mit Zeitspanne der alten Woerter');
+    ok(r.fixes >= 2, 'Fixes gezaehlt: ' + r.fixes);
+    ok(r.words.every((w, i) => i === 0 || w.start >= r.words[i - 1].start), 'Timings monoton');
+    // Umschreiben statt Korrigieren → Segment bleibt original
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ segments: [{ id: 's1', text: 'Heute erzähle ich euch etwas über unsere wunderbaren schottischen Hochlandrinder.' }] }) });
+    const r2 = await T.polishWords(words, 'de', '', null);
+    ok(r2.words.map(w => w.word).join(' ') === words.map(w => w.word).join(' '), 'Umschreiben wird verworfen');
+    // Fehlerfälle: 404 auf beiden Endpunkten, 500, Netzwerk → Original, kein Fehler
+    for (const mk of [async () => ({ ok: false, status: 404, json: async () => ({}) }), async () => ({ ok: false, status: 500, json: async () => ({ error: 'nicht konfiguriert' }) }),
+                      async () => { throw new TypeError('Failed to fetch'); }]) {
+      global.fetch = mk;
+      const rf = await T.polishWords(words, 'de', '', null);
+      ok(rf.words === words && rf.fixes === 0, 'Polish-Fehler → Original unveraendert');
+    }
+    // Fast polisht nie, Übersetzen auch nicht
+    T.setModelState('fast'); ok(T.polishEnabled() === false, 'Fast: kein Polish');
+    T.setModelState('perfect'); ok(T.polishEnabled() === true, 'Perfect: Polish');
+    T.setTranslateState(true); ok(T.polishEnabled() === false, 'Perfect + Uebersetzen: kein Polish'); T.setTranslateState(false);
+    T.setModelState('fast');
+    ok(T.polishSegments(Array.from({ length: 95 }, (_, i) => ({ word: 'w' + i }))).every(sg => sg.b - sg.a <= 40), 'Segmente max. 40 Woerter');
   }
 
   // 22) Vercel-Function api/transcribe.js (gemocktes req/res + Groq-fetch)

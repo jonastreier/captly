@@ -414,6 +414,28 @@ input[type=checkbox]{accent-color:#7c3aed}
 .foot-legal a{color:#7c3aed;text-decoration:underline;cursor:pointer}
 .foot-copy{color:#a9a4b0;font-size:11px;margin-top:12px}
 
+/* Touch/Handy: Tap-Ziele ≥ 36 px, Eingaben mit 16 px Schrift (kleiner → iOS Safari zoomt beim Fokus
+   ungefragt in die Seite), Regler-Daumen größer. Gilt für alle Steuerelemente aus Style-Editor,
+   Suchen & Ersetzen, Timing, Templates und Export. */
+@media (max-width:640px), (pointer:coarse) {
+  .pos-btn{min-height:36px;font-size:12px}
+  .lang-sel,.fr-row .lang-sel,.cs-sel,#tplName,#vocabInput,#kwInput{min-height:36px;font-size:16px}
+  #csWeight{flex-basis:96px!important}
+  .cs-col{width:36px;height:36px}
+  .sz-row,.fr-opt{min-height:36px}
+  .sz-row input[type=checkbox],.fr-opt input{width:18px;height:18px}
+  .sz-row input[type=range]{height:8px}
+  .sz-row input[type=range]::-webkit-slider-thumb{width:24px;height:24px}
+  .sz-row input[type=range]::-moz-range-thumb{width:24px;height:24px}
+  .cs-k{min-width:72px;font-size:12px}
+  .tpl-io a,.vocab-hint a{display:inline-block;padding:9px 2px}
+  .stile-menu-btn{width:28px;height:28px;line-height:28px;font-size:15px}
+  .stile-menu-btn::after{content:'';position:absolute;inset:-6px}
+  .tpl-menu{min-width:168px}
+  .tpl-menu button{min-height:42px;font-size:14px}
+  .exp-mini .pos-btn{min-height:42px}
+  .fr-row .pos-btn{min-height:36px}
+}
 @media(max-width:640px){
   .ctrl-col{width:100%!important;height:64vh;border-left:none;border-top:1px solid rgba(255,255,255,.055)}
   .ed-body{flex-direction:column}
@@ -787,6 +809,10 @@ input[type=checkbox]{accent-color:#7c3aed}
           <input type="range" min="1" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)">
           <span class="sz-val" id="wpbDisp">4</span>
         </div>
+        <label class="sz-row" style="margin-top:8px;cursor:pointer" title="Never let a caption run across a hard cut in your video">
+          <input type="checkbox" id="cutChk" checked onchange="onBreakAtCutsChange(this.checked)" style="cursor:pointer">
+          <span style="font-size:10.5px;color:#66616e">Break captions at scene cuts</span>
+        </label>
         <div class="clbl" style="margin-top:10px">Timing</div>
         <div class="sz-row">
           <span style="font-size:9px;color:#94909c;min-width:34px">Earlier</span>
@@ -2010,7 +2036,11 @@ function currentBlockIdx(t) {
   }
   if (displayMode === 'all') {
     for (var j = captionBlocks.length - 1; j >= 0; j--) {
-      if (captionBlocks[j].start <= t) return j;
+      if (captionBlocks[j].start <= t) {
+        // „Continuous“ hält den letzten Block bis zum nächsten — aber nicht über einen Szenenschnitt hinweg
+        if (cutBetween(activeCuts(), captionBlocks[j].end - 1e-6, t) !== null) return -1;
+        return j;
+      }
     }
   }
   return -1;
@@ -2083,7 +2113,171 @@ function startCapLoop() {
 // CAPTION BLOCKS
 // ═══════════════════════════════════════
 // Blöcke à max. WORDS_PER_BLOCK Wörter — bricht zusätzlich bei Sprechpausen (>0.8s) und Satzenden (wie captions.ai)
-function buildCaptionBlocks(wts) {
+// ═══════════════════════════════════════
+// SCENE CUTS — harte Schnitte im hochgeladenen Video erkennen (im Hintergrund)
+// ═══════════════════════════════════════
+// Verstecktes <video> (gleiche Objekt-URL) wird per Seek abgetastet (~5 fps, bei langen Videos seltener),
+// jeder Frame auf 64×36 verkleinert → Luma-Histogramm + mittlere Pixel-Differenz zum Vorgänger. Ein Schnitt
+// ist ein starker Ausreißer der Histogramm-Distanz (adaptive Schwelle: max(0.35, Median + 6·MAD)) mit
+// deutlicher Pixeländerung; die Zeit wird per Bisektion (3 Seeks) auf ~1 Frame genau bestimmt.
+// Nur Seek + 'seeked' (kein requestVideoFrameCallback) → läuft auch auf iOS Safari.
+var sceneCuts = [], breakAtCuts = true, _cutRun = 0, CUT_BINS = 16, CUT_W = 64, CUT_H = 36;
+function activeCuts() { return breakAtCuts ? sceneCuts : []; }
+function lumaFromRGBA(data) {
+  var n = data.length >> 2, out = new Float32Array(n);
+  for (var i = 0, k = 0; i < n; i++, k += 4) out[i] = (0.299 * data[k] + 0.587 * data[k + 1] + 0.114 * data[k + 2]) / 255;
+  return out;
+}
+function lumaHistogram(luma, bins) {
+  bins = bins || CUT_BINS;
+  var h = new Float32Array(bins), n = luma.length || 1;
+  for (var i = 0; i < luma.length; i++) h[Math.min(bins - 1, Math.max(0, Math.floor(luma[i] * bins)))]++;
+  for (var b = 0; b < bins; b++) h[b] /= n;
+  return h;
+}
+function histDistance(a, b) { var d = 0; for (var i = 0; i < a.length; i++) d += Math.abs(a[i] - b[i]); return d / 2; } // 0..1
+function meanAbsDiff(a, b) { var d = 0, n = Math.min(a.length, b.length) || 1; for (var i = 0; i < n; i++) d += Math.abs(a[i] - b[i]); return d / n; }
+function medianOf(arr) {
+  if (!arr.length) return 0;
+  var s2 = arr.slice().sort(function(x, y){ return x - y; }), m = s2.length >> 1;
+  return s2.length % 2 ? s2[m] : (s2[m - 1] + s2[m]) / 2;
+}
+function cutThreshold(dists) {
+  var med = medianOf(dists), mad = medianOf(dists.map(function(d){ return Math.abs(d - med); }));
+  return Math.max(0.35, med + 6 * mad);
+}
+// samples: [{ t, d (Hist.-Distanz zum Vorgänger), p (Pixel-Differenz) }] → Indizes der Schnitt-Kandidaten
+function pickCutCandidates(samples) {
+  if (samples.length < 3) return [];
+  var ds = samples.slice(1).map(function(x){ return x.d; });
+  var thr = cutThreshold(ds), out = [];
+  for (var i = 1; i < samples.length; i++) {
+    var x = samples[i];
+    if (x.d > thr && x.p > 0.06 && x.d >= (samples[i - 1].d || 0) && x.d >= ((samples[i + 1] || {}).d || 0)) out.push(i);
+  }
+  return out;
+}
+function cutSampleStep(t) { return t < 120 ? 0.2 : t < 600 ? 0.5 : 1.0; } // lange Videos: Arbeit deckeln
+function seekVideoTo(v, t, timeoutMs) {
+  return new Promise(function(resolve) {
+    var done = false;
+    function fin() { if (done) return; done = true; clearTimeout(tm); v.removeEventListener('seeked', fin); resolve(); }
+    var tm = setTimeout(fin, timeoutMs || 2500);
+    v.addEventListener('seeked', fin);
+    try { v.currentTime = t; } catch (e) { fin(); }
+  });
+}
+async function detectSceneCuts(url, dur, isStale) {
+  if (typeof document === 'undefined' || !url || !(dur > 1.5)) return [];
+  function stale() { return isStale && isStale(); }
+  var v = document.createElement('video');
+  v.muted = true; v.playsInline = true; v.preload = 'auto';
+  try { v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); } catch (e) {}
+  await new Promise(function(res) {
+    var tm = setTimeout(res, 8000);
+    v.addEventListener('loadeddata', function(){ clearTimeout(tm); res(); }, { once: true });
+    v.addEventListener('error', function(){ clearTimeout(tm); res(); }, { once: true });
+    v.src = url;
+  });
+  try {
+    if (stale() || !(v.videoWidth > 0)) return [];
+    var cv = document.createElement('canvas'); cv.width = CUT_W; cv.height = CUT_H;
+    var cx = cv.getContext('2d', { willReadFrequently: true });
+    var grab = async function(t) {
+      await seekVideoTo(v, t);
+      if (stale()) throw transcribeErr('stale', { stale: true });
+      cx.drawImage(v, 0, 0, CUT_W, CUT_H);
+      var l = lumaFromRGBA(cx.getImageData(0, 0, CUT_W, CUT_H).data);
+      return { l: l, h: lumaHistogram(l, CUT_BINS) };
+    };
+    var samples = [], prev = null, end = dur - 0.05;
+    for (var t = 0.05; t < end; t += cutSampleStep(t)) {
+      var g = await grab(t);
+      samples.push({ t: t, h: g.h, d: prev ? histDistance(prev.h, g.h) : 0, p: prev ? meanAbsDiff(prev.l, g.l) : 0 });
+      prev = g;
+      if (samples.length % 25 === 0) await yieldToUI();
+    }
+    var cuts = [];
+    var cands = pickCutCandidates(samples);
+    for (var c = 0; c < cands.length; c++) {
+      var A = samples[cands[c] - 1], B = samples[cands[c]], lo = A.t, hi = B.t;
+      for (var k = 0; k < 3; k++) { // Bisektion → ~1 Frame genau
+        var mid = (lo + hi) / 2, gm = await grab(mid);
+        if (histDistance(gm.h, A.h) <= histDistance(gm.h, B.h)) lo = mid; else hi = mid;
+      }
+      var ct = Math.round(((lo + hi) / 2) * 1000) / 1000;
+      if (!cuts.length || ct - cuts[cuts.length - 1] > 0.3) cuts.push(ct);
+    }
+    return cuts;
+  } catch (e) {
+    if (!(e && e.stale)) console.warn('Szenenschnitt-Erkennung abgebrochen:', e);
+    return [];
+  } finally {
+    try { v.removeAttribute('src'); v.load(); } catch (e2) {}
+  }
+}
+// Hintergrund-Start nach dem Laden eines Videos (verzögert, damit die Transkription zuerst Luft hat)
+function startSceneCutDetection(url, dur) {
+  var run = ++_cutRun;
+  setTimeout(function() {
+    if (run !== _cutRun) return;
+    detectSceneCuts(url, dur, function(){ return run !== _cutRun; }).then(function(cuts) {
+      if (run !== _cutRun) return;
+      setSceneCuts(cuts);
+    });
+  }, 1200);
+}
+function blocksSpanCut(blocks, cuts) {
+  return blocks.some(function(b) {
+    if (cutBetween(cuts, b.start + 1e-6, b.end - 1e-6) !== null) return true;
+    for (var i = 1; i < b.words.length; i++) if (cutBetween(cuts, wordMid(b.words[i - 1]), wordMid(b.words[i])) !== null) return true;
+    return false;
+  });
+}
+// Neue Schnitte übernehmen: nur neu gruppieren, wenn ein Block wirklich einen Schnitt überspannt
+// (Edit-erhaltender Pfad wie beim WPB-Regler), Status-Hinweis ergänzen, Autosave.
+function setSceneCuts(cuts) {
+  sceneCuts = (cuts || []).filter(function(c){ return isFinite(c) && c > 0; }).sort(function(a, b){ return a - b; });
+  regroupForCuts();
+  noteSceneCuts();
+  scheduleAutosave();
+}
+function regroupForCuts() {
+  if (!captionBlocks.length) return;
+  var cuts = activeCuts();
+  if (!cuts.length || !blocksSpanCut(captionBlocks, cuts)) return; // nichts zu tun → Blockstruktur (Split/Merge) bleibt
+  syncWordsFromBlocks();
+  captionBlocks = buildCaptionBlocks(wordTimestamps);
+  renderSegments(); renderWPills();
+  _lastKey = null; updateOverlay();
+}
+function sceneCutSuffix() { return sceneCuts.length ? ' · ' + sceneCuts.length + ' scene cut' + (sceneCuts.length === 1 ? '' : 's') + ' detected' : ''; }
+function noteSceneCuts() {
+  var el = document.getElementById('tStatus');
+  if (!el || !sceneCuts.length) return;
+  var h = String(el.innerHTML || '');
+  if (/t-spinner/.test(h) || /scene cut/.test(h)) return; // laufende Transkription setzt den Hinweis selbst
+  var i = h.lastIndexOf('</span>');
+  if (i > 0) el.innerHTML = h.slice(0, i) + sceneCutSuffix() + h.slice(i);
+}
+function onBreakAtCutsChange(on) {
+  breakAtCuts = !!on;
+  if (captionBlocks.length) {
+    syncWordsFromBlocks();
+    captionBlocks = buildCaptionBlocks(wordTimestamps);
+    renderSegments(); renderWPills();
+    _lastKey = null; updateOverlay();
+  }
+  scheduleAutosave();
+}
+// Szenenschnitte (cuts, sortierte Zeiten in s): ein Block überspannt NIE einen Schnitt. Ein Wort gehört
+// auf die Seite, auf der seine Mitte liegt; das Blockende wird auf den Schnitt begrenzt (ein Wort, das über
+// den Schnitt reicht, behält sein Timing, der Block endet trotzdem am Schnitt), der Blockanfang ebenso.
+function wordMid(w) { var e = (w.end > w.start) ? w.end : w.start; return ((w.start || 0) + (e || 0)) / 2; }
+function cutBetween(cuts, a, b) { for (var k = 0; k < cuts.length; k++) if (cuts[k] > a && cuts[k] <= b) return cuts[k]; return null; }
+function buildCaptionBlocks(wts, cuts) {
+  if (cuts === undefined) cuts = activeCuts();
+  cuts = (cuts || []).filter(function(c){ return isFinite(c); }).sort(function(a, b){ return a - b; });
   var blocks = [];
   var i = 0;
   while (i < wts.length) {
@@ -2093,11 +2287,19 @@ function buildCaptionBlocks(wts) {
       var prev = wts[j - 1];
       var gap  = wts[j].start - (prev.end || prev.start);
       if (gap > 0.8 || /[.!?…]$/.test(prev.word)) break;
+      if (cuts.length && cutBetween(cuts, wordMid(prev), wordMid(wts[j])) !== null) break; // Szenenschnitt
       chunk.push(wts[j]); j++;
     }
     var start = chunk[0].start || 0;
     var end   = chunk[chunk.length - 1].end;
     if (!end || end <= start) end = start + Math.max(0.9, chunk.length * 0.35);
+    if (cuts.length) {
+      var m0 = wordMid(chunk[0]), m1 = wordMid(chunk[chunk.length - 1]);
+      var cIn = cutBetween(cuts, start - 1e-9, m0);   // Schnitt zwischen Blockanfang und Mitte des 1. Worts
+      if (cIn !== null) start = cIn;
+      var cOut = cutBetween(cuts, m1, end);           // Schnitt nach der Mitte des letzten Worts
+      if (cOut !== null) end = Math.max(start + 0.05, cOut);
+    }
     var words = chunk.map(function(w){ return { word: w.word, start: w.start || start, end: w.end || 0 }; });
     words.forEach(function(w, k){ if (!w.end || w.end <= w.start) w.end = words[k + 1] ? words[k + 1].start : end; });
     blocks.push({ words: words, srcWords: copyTimedWords(words), start: start, end: end,
@@ -2723,6 +2925,7 @@ function closeTplMenu() {
   if (_tplMenuEl && _tplMenuEl.parentNode) _tplMenuEl.parentNode.removeChild(_tplMenuEl);
   _tplMenuEl = null;
   document.removeEventListener('mousedown', _tplMenuOutside, true);
+  document.removeEventListener('touchstart', _tplMenuOutside, true);
 }
 function _tplMenuOutside(e) { if (_tplMenuEl && !_tplMenuEl.contains(e.target)) closeTplMenu(); }
 function openTplMenu(id, btn) {
@@ -2741,7 +2944,8 @@ function openTplMenu(id, btn) {
   m.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 150, r.left - 110))) + 'px';
   document.body.appendChild(m);
   _tplMenuEl = m;
-  setTimeout(function(){ document.addEventListener('mousedown', _tplMenuOutside, true); }, 0);
+  // mousedown UND touchstart: auf Touch-Geräten schließt ein Tipp daneben das Menü sofort
+  setTimeout(function(){ document.addEventListener('mousedown', _tplMenuOutside, true); document.addEventListener('touchstart', _tplMenuOutside, true); }, 0);
 }
 // ── Export/Import (für Nutzer ohne Konto, oder zum Teilen) ──
 function exportTemplates(e) {
@@ -3447,7 +3651,7 @@ function retranscribeFromStatus(e) {
 function projectPayload() {
   var p = { blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
            lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
-           noPunct: capNoPunct, textCase: capCase };
+           noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts };
   // Eigener Style bzw. Template mitspeichern — die IDs allein existieren in einer neuen Sitzung/auf
   // einem anderen Gerät evtl. nicht (Custom lebt nur im Speicher, Templates im localStorage).
   var st = STYLES.find(function(x){ return x.id === activeId; });
@@ -3506,6 +3710,8 @@ function applyProjectPayload(p) {
   if (p.keywords) hlKeywords = p.keywords;
   if (p.timeOff !== undefined) { timeOff = Math.max(-0.5, Math.min(0.5, +p.timeOff || 0)); syncTimeOffUI(); }
   if (typeof p.noPunct === 'boolean') capNoPunct = p.noPunct;
+  if (typeof p.breakAtCuts === 'boolean') { breakAtCuts = p.breakAtCuts; var bc = document.getElementById('cutChk'); if (bc) bc.checked = breakAtCuts; }
+  if (Array.isArray(p.cuts)) sceneCuts = p.cuts.map(Number).filter(function(c){ return isFinite(c) && c > 0; }).sort(function(a, b){ return a - b; });
   if (p.textCase) capCase = (p.textCase === 'upper' || p.textCase === 'lower') ? p.textCase : 'asis';
   syncTextFormatUI();
   if (p.pos) capPos = p.pos;
@@ -3820,6 +4026,78 @@ function isNoAudioFfmpegLog(log) {
 function audioTruncated(nSamples, mediaDur) {
   return nSamples > 16000 * MAX_AUDIO_SEC || (isFinite(mediaDur) && mediaDur > MAX_AUDIO_SEC + 0.5);
 }
+// ═══════════════════════════════════════
+// POLISH — „Perfect“: Korrekturlauf über den Transkript-Text (Server: api/polish, Fallback polish.php)
+// ═══════════════════════════════════════
+// Nur Text wird korrigiert; die Timings bleiben exakt: jede korrigierte Passage wird mit derselben
+// LCS-/Slot-Logik wie manuelle Edits (retimeEditedBlock) auf die getimten Wörter gelegt. Fehlt der Endpoint,
+// ist er nicht konfiguriert oder zu langsam → stillschweigend das unpolierte Transkript behalten.
+var POLISH_ENDPOINTS = ['api/polish', 'polish.php'], _plIdx = 0, POLISH_TIMEOUT_MS = 15000, POLISH_SEG_MAX = 40;
+function polishEnabled() { return whisperModel === 'perfect' && !doTranslate; }
+function polishSegments(words) {
+  var segs = [], a = 0;
+  for (var i = 0; i < words.length; i++) {
+    var endHere = /[.!?…]["“”»)]*$/.test(words[i].word) || (i - a + 1) >= POLISH_SEG_MAX || i === words.length - 1;
+    if (endHere) { segs.push({ id: 's' + segs.length, a: a, b: i + 1, text: words.slice(a, i + 1).map(function(w){ return w.word; }).join(' ') }); a = i + 1; }
+  }
+  return segs;
+}
+function exactLcs(a, b) {
+  var L = [], i, j;
+  for (i = 0; i <= a.length; i++) L.push(new Array(b.length + 1).fill(0));
+  for (i = a.length - 1; i >= 0; i--) for (j = b.length - 1; j >= 0; j--)
+    L[i][j] = a[i] === b[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  return L[0][0];
+}
+async function postPolish(body) {
+  var tok = openaiKey ? '' : await authToken();
+  for (var guard = 0; guard < POLISH_ENDPOINTS.length + 1; guard++) {
+    var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, POLISH_TIMEOUT_MS), resp;
+    try {
+      resp = await fetch(POLISH_ENDPOINTS[_plIdx], { method: 'POST', signal: ctrl.signal,
+        headers: tok ? { 'Content-Type': 'application/json', 'X-Capivo-Token': tok } : { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body) });
+    } catch (e) { clearTimeout(timer); throw new Error('polish: ' + (e && e.name === 'AbortError' ? 'Timeout' : 'Netzwerk')); }
+    clearTimeout(timer);
+    if (resp.status === 404 || resp.status === 405 || resp.status === 403) {
+      if (_plIdx < POLISH_ENDPOINTS.length - 1) { _plIdx++; continue; }
+      _plIdx = 0; throw new Error('polish: kein Endpoint');
+    }
+    if (!resp.ok) throw new Error('polish: HTTP ' + resp.status);
+    var j = await resp.json();
+    if (!j || !Array.isArray(j.segments)) throw new Error('polish: unerwartete Antwort');
+    return j;
+  }
+  throw new Error('polish: kein Endpoint');
+}
+// words: flache getimte Wortliste → { words, fixes }. Bei jedem Fehler unverändert zurück.
+async function polishWords(words, lang, vocab, isStale) {
+  if (!words || !words.length) return { words: words || [], fixes: 0 };
+  var segs = polishSegments(words);
+  var res;
+  try { res = await postPolish({ lang: lang || '', vocab: vocab || '', segments: segs.map(function(sg){ return { id: sg.id, text: sg.text }; }) }); }
+  catch (e) { console.warn('Polish übersprungen:', e && e.message || e); return { words: words, fixes: 0 }; }
+  if (isStale && isStale()) return { words: words, fixes: 0 };
+  var byId = {};
+  res.segments.forEach(function(x){ if (x && typeof x.id === 'string' && typeof x.text === 'string') byId[x.id] = x.text; });
+  var out = [], fixes = 0;
+  segs.forEach(function(sg) {
+    var orig = words.slice(sg.a, sg.b), nt = byId[sg.id];
+    var nw = nt === undefined ? null : String(nt).replace(/\s+/g, ' ').trim().split(' ').filter(Boolean);
+    if (!nw || !nw.length || nw.join(' ') === sg.text) { out.push.apply(out, orig); return; }
+    var ow = orig.map(function(w){ return w.word; });
+    var keep = exactLcs(ow.map(normWordKey), nw.map(normWordKey));
+    // Schutz gegen „Umschreiben“: Wortzahl ±30 % und mind. die Hälfte der Wörter gleich, sonst Original
+    if (Math.abs(nw.length - ow.length) > Math.max(2, ow.length * 0.3) || keep < Math.min(ow.length, nw.length) * 0.5) { out.push.apply(out, orig); return; }
+    var pseudo = { text: nw.join(' '), words: orig.map(function(w){ return { word: w.word, start: w.start, end: w.end }; }),
+                   start: orig[0].start, end: orig[orig.length - 1].end };
+    pseudo.srcWords = copyTimedWords(pseudo.words);
+    retimeEditedBlock(pseudo);
+    fixes += Math.max(ow.length, nw.length) - exactLcs(ow, nw);
+    out.push.apply(out, pseudo.words);
+  });
+  return { words: out, fixes: fixes };
+}
 async function transcribeVideo(file) {
   // Lauf-Token: Wird währenddessen ein anderes Video geladen oder neu transkribiert (Modell/Sprache/
   // Übersetzen/Retry), darf dieser Lauf danach NICHTS mehr schreiben — sonst landen die Captions
@@ -3967,6 +4245,13 @@ async function transcribeVideo(file) {
     var snapped = await snapWordTimings(wordTimestamps, audioData, 16000); // Wortgrenzen an die echte Sprache ziehen
     bailIfStale();
     wordTimestamps = snapped;
+    var polishFixes = -1;
+    if (polishEnabled() && wordTimestamps.length) {
+      setTStatus('', '💎 Perfect – polishing…', true, true);
+      var pol = await polishWords(wordTimestamps, CODE_BY_LANG[usedLang] || lc || '', vocab, stale);
+      bailIfStale();
+      wordTimestamps = pol.words; polishFixes = pol.fixes;
+    }
 
     setTProgress(100);
     if (!wordTimestamps.length) throw new Error('No speech detected. Tip: pick the language above manually, or try Perfect.');
@@ -3979,7 +4264,9 @@ async function transcribeVideo(file) {
     setTStatus(qWarn ? '⚠️' : '✅',
       wordTimestamps.length + ' words · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '') + ' · language: ' + (usedLang === 'auto' ? 'auto' : usedLang)
       + (truncated ? ' · only the first ' + (MAX_AUDIO_SEC / 60) + ' min were transcribed' : '')
-      + (qWarn ? ' · quality uncertain → try 💎 Perfect' : ''), false, false);
+      + (qWarn ? ' · quality uncertain → try 💎 Perfect' : '')
+      + (polishFixes > 0 ? ' · polished (' + polishFixes + ' fix' + (polishFixes === 1 ? '' : 'es') + ')' : '')
+      + sceneCutSuffix(), false, false);
     document.getElementById('capEditor').style.display = 'block';
     renderSegments();
     renderWPills();
@@ -4019,6 +4306,7 @@ function loadVideo(file) {
   currentFile   = file;
   wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1; captionsEdited = false;
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
+  _cutRun++; sceneCuts = []; // Szenenschnitte gehören zum Video
   openEditor();
 
   var vid = document.getElementById('mainVid');
@@ -4063,7 +4351,9 @@ function loadVideo(file) {
     showPlayOverlay(true);
     document.getElementById('ppBtn').textContent = '▶';
     updateOverlay();
-    restoreOrTranscribe(file, vid.duration);
+    var restored = restoreOrTranscribe(file, vid.duration);
+    // Szenenschnitte im Hintergrund (parallel zur Transkription); ein Autosave bringt sie schon mit
+    if (!(restored && sceneCuts.length)) startSceneCutDetection(vid.src, vid.duration);
   };
 
   vid.ontimeupdate = function() {
