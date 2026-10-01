@@ -95,6 +95,16 @@ Kürzen; Füllwörter/Dialekt bleiben, „ss“ wird nie zu „ß“.
 - **Schutz vor Datenverlust:** Neu-Transkription (Fast/Perfect, Sprache, Übersetzen) fragt nach,
   wenn Untertitel bearbeitet wurden; Wort-Timings bleiben beim Korrigieren erhalten.
 
+### Bekannte Grenzen (Export)
+
+- **4K-Quellen:** Der Schnellexport (WebCodecs) muss jedes 4K-Bild in voller Auflösung dekodieren —
+  WebCodecs kann beim Dekodieren nicht verkleinern. Gezeichnet und kodiert wird direkt in der
+  Zielgröße (Standard 1080p, kein Vollauflösungs-Zwischenschritt), die Dauer wird aber vom 4K-Dekodieren
+  bestimmt (≈ 1,5× Videolänge auf einem Mittelklasse-Laptop).
+- **HEVC („High Efficiency“ vom iPhone):** nur in Browsern mit HEVC-Decoder (Safari, Chrome auf
+  Mac/iPhone/neueren Windows-Geräten). Sonst: Hinweis im Editor, Untertitel/SRT/TXT funktionieren,
+  Video-Export ist deaktiviert.
+
 ## Login & Projekte einrichten (Supabase)
 
 Konten und „Projekt speichern/laden" laufen über **Supabase** (Postgres + eingebauter

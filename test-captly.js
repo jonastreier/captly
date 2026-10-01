@@ -74,7 +74,8 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,pickRecorderMime:pickRecorderMime,recorderMimeIsSafeMp4:recorderMimeIsSafeMp4,
+needsWatermark:needsWatermark,enforceMinBlockDuration:enforceMinBlockDuration,exportBtnState:exportBtnState,
+revertTranscriptionSettings:revertTranscriptionSettings,getModel:function(){return whisperModel;},setLastTrMeta:function(m){_lastTrMeta=m;},pickRecorderMime:pickRecorderMime,recorderMimeIsSafeMp4:recorderMimeIsSafeMp4,
 exportGeometry:exportGeometry,exportBitrate:exportBitrate,drawReframed:drawReframed,classifyUnplayable:classifyUnplayable,
 applyPlayability:applyPlayability,setVideoPlayable:function(v){videoPlayable=v;},transcribeVideo:transcribeVideo,DEFAULT_STYLE:DEFAULT_STYLE,
 setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDistance:histDistance,cutThreshold:cutThreshold,
@@ -850,6 +851,79 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   document.createElement = origCreate;
 }
 
+// 22a) Glow-Styles: aktives Wort als Sprite — pro Frame nur drawImage, Sprite je Animationsstufe gecacht
+{
+  let created = 0, spriteDraws = 0;
+  const mkCtx = (canvas) => ({ canvas, _font: '', letterSpacing: '0px', n: 0, imgs: 0, filter: 'none', lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1,
+    get font() { return this._font; }, set font(v) { this._font = v; },
+    measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+    fillText() { this.n++; }, strokeText() {}, drawImage() { this.imgs++; }, setTransform() {}, clearRect() {},
+    roundRect() {}, rect() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, ellipse() {}, fillRect() {},
+    createLinearGradient() { return { addColorStop() {} }; } });
+  const origCreate = document.createElement;
+  document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); created++; const cv = { width: 0, height: 0 }; const cx = mkCtx(cv); cv.getContext = () => cx; return cv; };
+  const ws = ['Weiche', 'Bluete', 'leuchtet', 'heute'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.45 }));
+  T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
+  ['bloom', 'neon'].forEach(id => {
+    const st = T.STYLES.find(x => x.id === id);
+    const main = mkCtx({ width: 1080, height: 1920 });
+    T.drawCaptionsOnCtx(main, 0.40, st, 1080, 1920, false);           // Animation vorbei → Grundstufe
+    const c1 = created, n1 = main.n;
+    for (let k = 0; k < 5; k++) T.drawCaptionsOnCtx(main, 0.41 + k * 0.005, st, 1080, 1920, false);
+    ok(created === c1, id + ': Folge-Frames bauen keine neuen Canvases');
+    ok(main.n === n1, id + ': aktives Wort per drawImage statt fillText/Schatten pro Frame');
+  });
+  document.createElement = origCreate;
+}
+
+// 22b) Mindest-Anzeigedauer je Block; Stille-Verschiebung konservativ
+{
+  T.onWpbChange('4');
+  const W = (arr) => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
+  let bl = T.buildCaptionBlocks(W([['Eins', 0, 0.5], ['zwei.', 0.55, 1.0], ['Ja.', 1.1, 1.2], ['Und', 1.3, 1.6], ['weiter', 1.65, 2.2]]), []);
+  ok(bl.every(b => b.end - b.start >= 0.3 - 1e-9), 'kein Block kuerzer als 0,3 s: ' + bl.map(b => b.text + '(' + (b.end - b.start).toFixed(2) + ')').join(' | '));
+  ok(bl.map(b => b.text).join(' ').split(' ').length === 5, 'keine Woerter verloren');
+  bl = T.buildCaptionBlocks(W([['Eins', 0, 0.5], ['zwei.', 0.55, 1.0], ['Ja.', 1.1, 1.2], ['Und', 1.3, 1.6], ['weiter', 1.65, 2.2]]), [1.05, 1.25]);
+  ok(bl.some(b => b.text === 'Ja.') && !bl.some(b => /zwei\. Ja\.|Ja\. Und/.test(b.text)), 'kurzer Block wird nie ueber einen Schnitt verschmolzen');
+  const ja = bl.find(b => b.text === 'Ja.');
+  ok(ja.end <= 1.25 + 1e-9, 'Verlaengerung stoppt am Schnitt');
+  T.onWpbChange('1');
+  bl = T.buildCaptionBlocks(W([['Pop', 0, 0.1], ['eins', 0.2, 0.3], ['zwei', 0.5, 0.6]]), []);
+  ok(bl.length === 3 && bl[0].end >= 0.2 - 1e-9, '1 Wort/Block: nicht verschmelzen, nur verlaengern (bis zum naechsten Block)');
+  T.onWpbChange('4');
+}
+
+// 22c) Unabspielbares Video: Meldung nach Codec
+{
+  ok(T.classifyUnplayable({ hasVideo: true, codec: 'avc1.64001f' }, { name: 'a.mp4' }) === 'h264', 'H.264-Spur → H.264-Hinweis (nicht HEVC)');
+  ok(T.classifyUnplayable({ hasVideo: true, codec: 'hev1.1.6.L93' }, { name: 'a.mov' }) === 'hevc', 'hev1 → HEVC');
+  ok(T.classifyUnplayable({ hasVideo: true, codec: 'av01.0.08M.08' }, { name: 'a.mp4' }) === 'codec', 'anderer Codec → generisch');
+  T.applyPlayability('h264');
+  ok(/H\.264/.test(document.getElementById('vidWarn').textContent) && /H\.264/.test(document.getElementById('btnVideo').title), 'H.264-Text + Tooltip');
+  T.applyPlayability('codec');
+  ok(/video format/.test(document.getElementById('vidWarn').textContent), 'generischer Codec-Hinweis');
+  T.applyPlayability('ok');
+}
+
+// 22d) Export-Button: gut lesbarer Busy-Zustand mit Fortschritt
+{
+  const b = document.getElementById('btnVideo');
+  b.querySelector = () => document.getElementById('btnVideoLbl');
+  b.style.setProperty = function(k, v) { this[k] = v; }; b.style.removeProperty = function(k) { delete this[k]; };
+  T.exportBtnState('Rendering 42%…');
+  ok(b.classList.contains('busy') && b.style['--p'] === '42%' && document.getElementById('btnVideoLbl').textContent === 'Rendering 42%…' && b.disabled, 'Busy-Klasse, Fortschritt 42 %, gesperrt');
+  T.exportBtnState(null);
+  ok(!b.classList.contains('busy') && document.getElementById('btnVideoLbl').textContent === 'Video + captions', 'zurueckgesetzt');
+}
+
+// 22e) Fehlgeschlagener Wechsel Fast→Perfect: Einstellungen auf die der behaltenen Captions zurück
+{
+  T.setModelState('perfect');
+  const hint = T.revertTranscriptionSettings({ model: 'fast', langSetting: 'auto', translate: false });
+  ok(T.getModel() === 'fast' && /Perfect again to retry/.test(hint), 'Modell zurueck auf Fast + Hinweis: ' + hint);
+  ok(T.revertTranscriptionSettings(null) === '', 'ohne Meta: nichts tun');
+}
+
 // 21b) MediaRecorder-Format: MP4 nur mit AAC (bzw. ohne Ton), sonst WebM → Umkodierung
 {
   const sup = list => m => list.includes(m);
@@ -880,11 +954,15 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   ok(g.W % 2 === 0 && g.H % 2 === 0 && g.mode === 'crop', 'gerade Masse');
   const calls = [];
   const fakeCtx = { save() {}, restore() {}, drawImage() { calls.push('bg'); }, fillRect() { calls.push('dim'); } };
+  const smallCtx = { fillRect() { calls.push('dim@small'); } };
   const origCreate = document.createElement;
-  document.createElement = (t) => t === 'canvas' ? { width: 0, height: 0, getContext: () => ({}) } : origCreate(t);
-  T.drawReframed(fakeCtx, 1080, 1920, 'blur', (c, w, h, fit) => calls.push(fit + (c === fakeCtx ? '' : '@small')));
+  document.createElement = (t) => t === 'canvas' ? { width: 0, height: 0, getContext: () => smallCtx } : origCreate(t);
+  const fit = (c, w, h, f) => calls.push(f + (c === fakeCtx ? '' : '@small'));
+  T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit);
+  ok(calls.join(',') === 'cover@small,dim@small,bg,contain', 'Blur-Fill: winziger, schon abgedunkelter Hintergrund, Video eingepasst: ' + calls.join(','));
+  calls.length = 0; T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit); T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit);
+  ok(calls.join(',') === 'bg,contain,bg,contain', 'Hintergrund nur jeden 3. Frame neu: ' + calls.join(','));
   document.createElement = origCreate;
-  ok(calls.join(',') === 'cover@small,bg,dim,contain', 'Blur-Fill: kleiner Hintergrund, abgedunkelt, Video eingepasst: ' + calls.join(','));
   const c2 = []; T.drawReframed(fakeCtx, 1080, 1920, 'crop', (c, w, h, fit) => c2.push(fit));
   ok(c2.join() === 'cover', 'Crop = Mitte fuellend');
 }
@@ -1370,6 +1448,13 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(sn[1].start === 5.6 && sn[2].start === 6.0, 'Folgewoerter unveraendert');
     const sn2 = await T.snapWordTimings([{ word: 'weit', start: 0.3, end: 0.8 }, { word: 'weg', start: 6.8, end: 6.95 }], a, SRn);
     ok(sn2[0].start === 0.3, 'Folgewort > 1,5 s nach Einsatz → nicht verschieben');
+    // 8 Wörter in der stummen Einleitung → wahrscheinlich Halluzination: NICHT auf 40 ms zusammenquetschen
+    const many = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((w, i) => ({ word: w, start: 0.3 + i * 0.55, end: 0.75 + i * 0.55 }));
+    const sn3 = await T.snapWordTimings(many.concat([{ word: 'echt', start: 5.2, end: 5.6 }]), a, SRn);
+    ok(sn3.slice(0, 8).every((w, i) => Math.abs(w.start - many[i].start) < 1e-9), 'mehr als 2 stumme Woerter → unveraendert');
+    // zu wenig Platz vor dem Folgewort → nicht verschieben (sonst 80-ms-Blitz)
+    const sn4 = await T.snapWordTimings([{ word: 'Weide.', start: 3.0, end: 3.4 }, { word: 'Dann', start: 5.05, end: 5.4 }], a, SRn);
+    ok(sn4[0].start === 3.0, 'kein Platz bis zum Folgewort → nicht verschieben');
   }
 
   // 21h) Fehlgeschlagene Neu-Transkription behält die bisherigen Captions

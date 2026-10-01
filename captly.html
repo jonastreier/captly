@@ -361,6 +361,13 @@ input[type=checkbox]{accent-color:#7c3aed}
 .exp-btn.hi:hover:not(:disabled){filter:brightness(1.08)}
 .exp-btn.hi .exp-btn-label{color:#fff}
 .exp-btn.hi .exp-btn-sub{color:rgba(255,255,255,.55)}
+/* Export läuft: KEIN blasser Disabled-Look — volle Farbe, Fortschritt als Füllung im Button, gut lesbar */
+.exp-btn.hi.busy,.exp-btn.hi.busy:disabled{opacity:1;cursor:wait;position:relative;overflow:hidden;
+  background:linear-gradient(90deg,#5b21b6 0%,#4f46e5 var(--p,0%),#7c3aed var(--p,0%),#6366f1 100%)}
+.exp-btn.hi.busy .exp-btn-label{color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.exp-btn.hi.busy .exp-btn-sub{color:rgba(255,255,255,.8)}
+@media (prefers-reduced-motion:no-preference){.exp-btn.hi.busy{animation:expBusy 1.6s ease-in-out infinite}}
+@keyframes expBusy{0%,100%{filter:brightness(1)}50%{filter:brightness(1.12)}}
 .exp-mini{display:flex;gap:5px;margin-top:5px}
 .exp-mini .pos-btn{padding:6px 4px}
 .exp-mini .pos-btn:disabled{opacity:.3;cursor:default}
@@ -1541,26 +1548,35 @@ async function snapWordTimings(words, audio, sr) {
     }
   });
   // Wörter mitten in langer Stille (typisch: erstes Wort bei 0.0 s nach stummem Vorlauf): hat die ganze
-  // Wortspanne keinen stimmhaften Frame und liegt sie in einer Stille von ≥ 1 s, wandert das Wort an den
-  // nächsten Sprach-Einsatz — aber nur, wenn das Folgewort höchstens 1,5 s nach diesem Einsatz beginnt
-  // (sonst gehört es wohl nicht dazu) und die Reihenfolge erhalten bleibt.
-  // Rückwärts, damit mehrere Wörter in derselben Stille gemeinsam (in Reihenfolge) nachrücken
-  for (var wi2 = out.length - 1; wi2 >= 0; wi2--) moveOutOfSilence(out[wi2], wi2);
-  function moveOutOfSilence(w, i) {
-    if (!(w.end > w.start)) return;
+  // Wortspanne keinen stimmhaften Frame und liegt sie in einer Stille von ≥ 1 s, rückt sie an den nächsten
+  // Sprach-Einsatz. KONSERVATIV: nur, wenn höchstens 2 solche Wörter direkt vor dem Einsatz liegen (mehr
+  // sind eher Halluzinationen — dann bleibt alles, wie es ist), das Folgewort ≤ 1,5 s nach dem Einsatz
+  // beginnt und genug Platz ist (≥ 0,2 s pro Wort) — sonst würden Wörter auf 40 ms zusammengequetscht.
+  var silInfo = out.map(function(w) {
+    if (!(w.end > w.start)) return null;
     var a0 = Math.floor(w.start / SNAP_FRAME_SEC), a1 = Math.min(nF - 1, Math.ceil(w.end / SNAP_FRAME_SEC) - 1);
-    if (a0 >= nF) return;
-    for (var f2 = a0; f2 <= a1; f2++) if (voiced(f2)) return;      // irgendwo stimmhaft → in Ruhe lassen
+    if (a0 >= nF) return null;
+    for (var f2 = a0; f2 <= a1; f2++) if (voiced(f2)) return null;    // irgendwo stimmhaft → normales Wort
     var lo2 = a0; while (lo2 > 0 && !voiced(lo2 - 1)) lo2--;
     var hi2 = a1; while (hi2 < nF - 1 && !voiced(hi2 + 1)) hi2++;
-    if ((hi2 - lo2 + 1) * SNAP_FRAME_SEC < 1.0) return;             // keine lange Stille
-    if (hi2 >= nF - 1) return;                                      // danach kommt keine Sprache mehr
-    var onset = (hi2 + 1) * SNAP_FRAME_SEC, next = out[i + 1];
-    if (next && (next.start < onset - 1e-6 || next.start - onset > 1.5)) return;
-    if (!next && onset - w.end > 1.5) return;
-    var dur = w.end - w.start;
-    if (next) dur = Math.min(dur, Math.max(0.08, next.start - onset));
-    w.start = onset; w.end = onset + Math.max(0.08, dur);
+    if ((hi2 - lo2 + 1) * SNAP_FRAME_SEC < 1.0 || hi2 >= nF - 1) return null; // keine lange Stille / keine Sprache danach
+    return { onset: (hi2 + 1) * SNAP_FRAME_SEC };
+  });
+  for (var gi = 0; gi < out.length; ) {
+    if (!silInfo[gi]) { gi++; continue; }
+    var gEnd = gi; while (gEnd + 1 < out.length && silInfo[gEnd + 1] && silInfo[gEnd + 1].onset === silInfo[gi].onset) gEnd++;
+    var cnt = gEnd - gi + 1, onset = silInfo[gi].onset, next = out[gEnd + 1];
+    var ok = cnt <= 2
+      && (next ? (next.start >= onset - 1e-6 && next.start - onset <= 1.5 && next.start - onset >= 0.2 * cnt)
+               : (onset - out[gEnd].end <= 1.5));
+    if (ok) {
+      var room = next ? (next.start - onset) / cnt : Infinity, tcur = onset;
+      for (var k2 = gi; k2 <= gEnd; k2++) {
+        var d2 = Math.max(0.12, Math.min(out[k2].end - out[k2].start, room));
+        out[k2].start = tcur; out[k2].end = tcur + d2; tcur += d2;
+      }
+    }
+    gi = gEnd + 1;
   }
   // Monoton + überlappungsfrei halten (Snap verkürzt nur, aber Rundung auf Frames absichern)
   for (var i = 0; i < out.length; i++) {
@@ -2501,6 +2517,38 @@ function onBreakAtCutsChange(on) {
 // den Schnitt reicht, behält sein Timing, der Block endet trotzdem am Schnitt), der Blockanfang ebenso.
 function wordMid(w) { var e = (w.end > w.start) ? w.end : w.start; return ((w.start || 0) + (e || 0)) / 2; }
 function cutBetween(cuts, a, b) { for (var k = 0; k < cuts.length; k++) if (cuts[k] > a && cuts[k] <= b) return cuts[k]; return null; }
+// Mindest-Anzeigedauer je Block (~0,3 s): sehr kurze Blöcke blitzen sonst nur auf. Zu kurzen Block mit
+// dem näheren Nachbarn verschmelzen (Lücke < 0,8 s, NIE über einen Szenenschnitt); geht das nicht (oder
+// bei 1 Wort/Block, z. B. „Pop One“), nur das Ende verlängern — bis höchstens zum nächsten Block/Schnitt.
+var MIN_BLOCK_SEC = 0.3;
+function enforceMinBlockDuration(blocks, cuts) {
+  cuts = cuts || [];
+  function canJoin(a, b2) {
+    if (!a || !b2) return false;
+    if (b2.start - a.end >= 0.8) return false;
+    var la = a.words[a.words.length - 1], fb = b2.words[0];
+    return !(la && fb && cutBetween(cuts, wordMid(la), wordMid(fb)) !== null);
+  }
+  function join(a, b2) {
+    var words = a.words.concat(b2.words);
+    return { words: words, srcWords: copyTimedWords(words), start: Math.min(a.start, b2.start), end: Math.max(a.end, b2.end),
+             text: words.map(function(w){ return w.word; }).join(' ') };
+  }
+  var out = blocks.slice();
+  for (var i = 0; i < out.length; i++) {
+    var b = out[i];
+    if (b.end - b.start >= MIN_BLOCK_SEC - 1e-9) continue;
+    var prev = out[i - 1], next = out[i + 1];
+    var okP = WORDS_PER_BLOCK > 1 && canJoin(prev, b), okN = WORDS_PER_BLOCK > 1 && canJoin(b, next);
+    if (okP && (!okN || (b.start - prev.end) <= (next.start - b.end))) { out.splice(i - 1, 2, join(prev, b)); i -= 2; continue; }
+    if (okN) { out.splice(i, 2, join(b, next)); i -= 1; continue; }
+    var lim = b.start + MIN_BLOCK_SEC;
+    if (next) lim = Math.min(lim, next.start);
+    var c = cutBetween(cuts, b.start + 1e-6, lim); if (c !== null) lim = Math.min(lim, c);
+    if (lim > b.end) b.end = lim;
+  }
+  return out;
+}
 function buildCaptionBlocks(wts, cuts) {
   if (cuts === undefined) cuts = activeCuts();
   cuts = (cuts || []).filter(function(c){ return isFinite(c); }).sort(function(a, b){ return a - b; });
@@ -2532,7 +2580,7 @@ function buildCaptionBlocks(wts, cuts) {
                   text: words.map(function(w){ return w.word; }).join(' ') });
     i = j;
   }
-  return blocks;
+  return enforceMinBlockDuration(blocks, cuts);
 }
 // Nach Text-Edit: Wörter gleichmäßig über die Blockdauer verteilen
 function resplitBlock(b) {
@@ -4560,7 +4608,7 @@ async function transcribeVideo(file) {
     wordTimestamps = wts;
     captionBlocks = buildCaptionBlocks(wordTimestamps);
     captionsEdited = false;
-    _lastTrMeta = { model: whisperModel, lang: usedLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
+    _lastTrMeta = { model: whisperModel, lang: usedLang, langSetting: whisperLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
     setTStatus(qWarn ? '⚠️' : '✅',
@@ -4582,8 +4630,11 @@ async function transcribeVideo(file) {
     if (typeof fakeTimer !== 'undefined') clearInterval(fakeTimer);
     console.error(err);
     if (hadCaptions && captionBlocks.length) {
-      // Vorherige Captions unverändert lassen — Editor/Exporte bleiben benutzbar
-      setTStatus('❌', 'Error: ' + (err.message || err) + ' Your previous captions are kept.', false, false);
+      // Vorherige Captions unverändert lassen — Editor/Exporte bleiben benutzbar. Modell/Sprache/Übersetzen
+      // wieder auf die Werte stellen, die diese Captions erzeugt haben (sonst zeigt die UI z. B. 💎 Perfect
+      // über Fast-Captions) und sagen, wie man den Versuch wiederholt.
+      var hint = revertTranscriptionSettings(_lastTrMeta);
+      setTStatus('❌', 'Error: ' + (err.message || err) + ' Your previous captions are kept.' + (hint ? ' ' + hint : ''), false, false);
       document.getElementById('capEditor').style.display = 'block';
       enableExports(true);
     } else {
@@ -4593,6 +4644,21 @@ async function transcribeVideo(file) {
   }
 }
 
+// Stellt Modell/Sprache/Übersetzen auf meta zurück; liefert einen Hinweis, wie der abgebrochene Wechsel
+// wiederholt werden kann (oder '').
+function revertTranscriptionSettings(meta) {
+  if (!meta || !meta.model) return '';
+  var tried = { model: whisperModel, lang: whisperLang, translate: doTranslate }, hint = '';
+  if (tried.model !== meta.model) hint = 'Switch to ' + (tried.model === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' again to retry.';
+  else if (tried.translate !== !!meta.translate) hint = (tried.translate ? 'Turn on' : 'Turn off') + ' “Translate to English” again to retry.';
+  else if (meta.langSetting && tried.lang !== meta.langSetting) hint = 'Pick the language again to retry.';
+  whisperModel = meta.model;
+  document.querySelectorAll('#modelRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.m === whisperModel); });
+  doTranslate = !!meta.translate;
+  var tr = document.getElementById('trEn'); if (tr) tr.checked = doTranslate;
+  if (meta.langSetting) { whisperLang = meta.langSetting; var ls = document.getElementById('langSel'); if (ls) ls.value = whisperLang; }
+  return hint;
+}
 function retryTranscribe() { if (currentFile) transcribeVideo(currentFile); }
 var videoPlayable = true; // false: Browser kann das Bild nicht dekodieren (HEVC) bzw. Datei hat keine Videospur
 function enableExports(on) {
@@ -4603,6 +4669,8 @@ function enableExports(on) {
 // ── Abspielbarkeit prüfen: HEVC ohne Decoder / reine Audiodatei ──
 var MSG_HEVC = 'This video uses HEVC (iPhone "High Efficiency"), which this browser can\'t play. Open Capivo in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.';
 var MSG_NOVIDEO = 'This file has no video track.';
+var MSG_H264 = 'This browser can\'t play this H.264 video — open Capivo in Chrome, Safari or Edge.';
+var MSG_CODEC = 'This browser can\'t play this video format. Try Chrome, Safari or Edge, or convert the video to MP4 (H.264).';
 function showVideoWarn(msg) {
   var w = document.getElementById('vidWarn');
   if (!w) return;
@@ -4632,7 +4700,13 @@ async function probeVideoTrack(file) {
 // Entscheidung (rein, testbar): videoWidth > 0 → ok; sonst anhand der Spur-Info bzw. Dateiart
 function classifyUnplayable(probe, file) {
   if (probe && probe.hasVideo === false) return 'novideo';
-  if (probe && probe.hasVideo) return 'hevc'; // Spur vorhanden, Browser kann sie nicht dekodieren (praktisch immer HEVC)
+  if (probe && probe.hasVideo) {
+    // Spur vorhanden, Browser kann sie nicht dekodieren → nach Codec unterscheiden
+    var cd = String(probe.codec || '').toLowerCase();
+    if (/^(hvc1|hev1)/.test(cd)) return 'hevc';
+    if (/^(avc1|avc3)/.test(cd)) return 'h264'; // z. B. Chromium ohne proprietäre Codecs
+    return 'codec';
+  }
   var n = String(file && file.name || '').toLowerCase(), t = String(file && file.type || '').toLowerCase();
   if (/^audio\//.test(t) || /\.(m4a|mp3|aac|wav|ogg|opus)$/.test(n)) return 'novideo';
   return /\.(mov|mp4|m4v|hevc)$/.test(n) || /quicktime|mp4/.test(t) ? 'hevc' : 'novideo';
@@ -4648,9 +4722,11 @@ async function checkVideoPlayable(vid, file) {
 }
 function applyPlayability(state) {
   videoPlayable = state === 'ok';
-  showVideoWarn(state === 'hevc' ? MSG_HEVC : state === 'novideo' ? MSG_NOVIDEO + ' Captions, SRT and TXT still work — video export needs a picture.' : '');
+  var msgs = { hevc: MSG_HEVC, h264: MSG_H264, codec: MSG_CODEC, novideo: MSG_NOVIDEO + ' Captions, SRT and TXT still work — video export needs a picture.' };
+  var tips = { hevc: 'This browser can\'t play HEVC video', h264: 'This browser can\'t play this H.264 video', codec: 'This browser can\'t play this video format', novideo: 'No video track' };
+  showVideoWarn(msgs[state] || '');
   var bv = document.getElementById('btnVideo');
-  if (bv) { if (!videoPlayable) bv.disabled = true; bv.title = videoPlayable ? '' : (state === 'hevc' ? 'This browser can\'t play HEVC video' : 'No video track'); }
+  if (bv) { if (!videoPlayable) bv.disabled = true; bv.title = videoPlayable ? '' : (tips[state] || 'Video can\'t be played'); }
 }
 
 // ═══════════════════════════════════════
@@ -4754,7 +4830,7 @@ function loadVideo(file) {
     var errFile = file;
     probeVideoTrack(file).then(function(pr) {
       if (currentFile !== errFile || !(pr && pr.hasVideo)) return;
-      applyPlayability('hevc');
+      applyPlayability(classifyUnplayable(pr, errFile));
       setTStatus('', 'Preparing transcription…', true, true);
       restoreOrTranscribe(errFile, 0);
     });
@@ -5564,6 +5640,7 @@ function validateExportBlob(blob, expectedDur, timeoutMs) {
 }
 async function tryFastExport(vid) {
   var geoF = exportGeometry(vid.videoWidth, vid.videoHeight, 30);
+  if (_blurBgCanvas) _blurBgCanvas.width = 0; // Blur-Hintergrund des vorigen Exports nicht wiederverwenden
   if (!fastExportSupported() || !isFastExportSource(currentFile)) return false;
   var recBar = document.getElementById('recBar'), recMsg = document.getElementById('recMsg');
   var recProg = document.getElementById('recProg'), ctrls = document.getElementById('vidCtrls');
@@ -5636,19 +5713,26 @@ function exportGeometry(srcW, srcH, fps, res, fmt) {
 }
 // Quelle (Video-Element oder VideoFrame über drawFn) in den Ausgaberahmen zeichnen.
 // drawFn(ctx, W, H, fit) zeichnet die Quelle zentriert mit fit = 'cover' | 'contain'.
-var _blurBgCanvas = null;
+var _blurBgCanvas = null, _blurBgFrame = 0;
+// Blur-Fill-Hintergrund: winzig (27 px breit) zeichnen + direkt dort abdunkeln, dann mit Bildglättung
+// hochskalieren (= Weichzeichner ohne ctx.filter). Nur jeden 3. Frame neu — ein unscharfer Hintergrund
+// braucht keine Frame-Genauigkeit. Vorher: größerer Puffer + Vollbild-fillRect pro Frame (~1,75× Crop).
 function drawReframed(ctx, W, H, mode, drawFn) {
   if (mode !== 'blur') { drawFn(ctx, W, H, 'cover'); return; }
-  // Hintergrund: winzig zeichnen und hochskalieren = billiger Weichzeichner (kein ctx.filter pro Frame)
   if (!_blurBgCanvas) _blurBgCanvas = document.createElement('canvas');
-  var bw = Math.max(8, Math.round(W / 24)), bh = Math.max(8, Math.round(H / 24));
-  if (_blurBgCanvas.width !== bw || _blurBgCanvas.height !== bh) { _blurBgCanvas.width = bw; _blurBgCanvas.height = bh; }
-  var b = _blurBgCanvas.getContext('2d');
-  drawFn(b, bw, bh, 'cover');
+  var bw = 27, bh = Math.max(8, Math.round(27 * H / W));
+  var fresh = _blurBgCanvas.width !== bw || _blurBgCanvas.height !== bh;
+  if (fresh) { _blurBgCanvas.width = bw; _blurBgCanvas.height = bh; }
+  var redraw = fresh || (++_blurBgFrame % 3 === 0);
+  if (fresh) _blurBgFrame = 0;
+  if (redraw) {
+    var b = _blurBgCanvas.getContext('2d');
+    drawFn(b, bw, bh, 'cover');
+    b.fillStyle = 'rgba(0,0,0,.45)'; b.fillRect(0, 0, bw, bh);
+  }
   ctx.save();
   ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(_blurBgCanvas, 0, 0, W, H);
-  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(0, 0, W, H);
   ctx.restore();
   drawFn(ctx, W, H, 'contain');
 }
@@ -5712,6 +5796,9 @@ function exportBtnState(text) {
   var lbl = b.querySelector ? b.querySelector('.exp-btn-label') : null;
   if (text) {
     b.disabled = true; b.setAttribute && b.setAttribute('aria-busy', 'true');
+    if (b.classList) b.classList.add('busy');
+    var pm = /(\d+)%/.exec(text);
+    if (b.style && b.style.setProperty) b.style.setProperty('--p', (pm ? Math.min(100, +pm[1]) : 0) + '%');
     if (lbl) lbl.textContent = text;
     if (!b._scrolled) {
       b._scrolled = true;
@@ -5720,6 +5807,8 @@ function exportBtnState(text) {
     }
   } else {
     b._scrolled = false;
+    if (b.classList) b.classList.remove('busy');
+    if (b.style && b.style.removeProperty) b.style.removeProperty('--p');
     b.disabled = !videoPlayable || !captionBlocks.length;
     b.removeAttribute && b.removeAttribute('aria-busy');
     if (lbl) lbl.textContent = 'Video + captions';
@@ -5739,6 +5828,7 @@ async function exportVideoWithCaptions() {
   if (!window.MediaRecorder) { exportBtnState(null); alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
 
   var geo = exportGeometry(vid.videoWidth, vid.videoHeight, 30);
+  if (_blurBgCanvas) _blurBgCanvas.width = 0; // Blur-Hintergrund des vorigen Exports nicht wiederverwenden
   var W = geo.W, H = geo.H;
   var s = STYLES.find(function(x){ return x.id === activeId; });
 
@@ -6037,6 +6127,7 @@ function animState(anim, elapsed) {
 // Das aktive Wort fließt nur in den Key ein, wenn es die Breite ändert (hlFont/hlItalic/hlUpper).
 var _capLayoutCache = { key: null, s: null, ctx: null, val: null };
 var _capStaticLayer = null; // { key, s, W, H, cv } — siehe drawCaptionsOnCtx
+var _wordSpriteCache = new Map(); // aktives Wort als Sprite (Glow-Styles), siehe activeWordSprite
 function capLayout(ctx, b, bi, wi, s, W, H) {
   var wiKey = (s.hlFont || s.hlItalic || s.hlUpper || s.hlPillBg) ? wi : -1;
   var key = [bi, wiKey, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
@@ -6160,6 +6251,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
     var lkey = _capLayoutCache.key + '|' + wi + '|' + (s.id || '');
     var lc = _capStaticLayer;
     if (!lc || lc.key !== lkey || lc.s !== s || lc.W !== W || lc.H !== H) {
+      if (lc && lc.s !== s) _wordSpriteCache.clear(); // anderes Style-Objekt (z. B. geänderter Custom-Style) → Sprites verwerfen
       var cv = (lc && lc.cv && lc.cv.width === W && lc.cv.height === H) ? lc.cv : document.createElement('canvas');
       cv.width = W; cv.height = H; // setzt auch den Inhalt zurück
       var lctx = cv.getContext('2d');
@@ -6220,6 +6312,39 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       }
     }
 
+    function wordFill(c, wo, x0, tw, isHL, isKw) {
+      var fillCss = (isHL || isKw) ? (s.hlg || null) : (s.tg || null);
+      if (fillCss) {
+        var cols = gradColors(fillCss);
+        var g = c.createLinearGradient(x0, 0, x0 + Math.max(1, tw), 0);
+        cols.forEach(function(cc, ci){ g.addColorStop(cols.length > 1 ? ci / (cols.length - 1) : 0, cc); });
+        return g;
+      }
+      return (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (isHL ? hlColorFor(s, wo.idx) : (s.hl || '#fff'))) : (s.tc || '#fff');
+    }
+    function activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt) {
+      // Filter-Animation (glow) in 8 Helligkeits-/Sättigungsstufen; Transformationen kommen beim Einsetzen dazu
+      var fb = animSt ? Math.round((animSt.bright || 1) * 8) / 8 : 1, fs2 = animSt ? Math.round((animSt.sat || 1) * 8) / 8 : 1;
+      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txt + '|' + fb + '|' + fs2 + '|' + ctx.font + '|' + ctx.letterSpacing;
+      var hit = _wordSpriteCache.get(key);
+      if (hit) return hit;
+      var m = 6;
+      plan.rest.forEach(function(l){ m = Math.max(m, Math.ceil(l.blur * scale * 1.6 + (Math.abs(l.x) + Math.abs(l.y)) * scale + 6)); });
+      var cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.ceil(tw + 2 * m)); cv.height = Math.max(1, Math.ceil(fsS * 1.6 + 2 * m));
+      var c = cv.getContext('2d');
+      c.font = ctx.font;
+      if ('letterSpacing' in c) c.letterSpacing = ctx.letterSpacing;
+      c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+      if (fb !== 1 || fs2 !== 1) c.filter = 'brightness(' + fb + ') saturate(' + fs2 + ')';
+      c.fillStyle = wordFill(c, wo, m, tw, isHL, isKw);
+      drawTextWithPlan(c, wo.txt, m, m + fsS * 1.05, plan, scale, 1, fsS, tw);
+      var res = { cv: cv, m: m };
+      _wordSpriteCache.set(key, res);
+      if (_wordSpriteCache.size > 48) _wordSpriteCache.delete(_wordSpriteCache.keys().next().value); // klein halten
+      return res;
+    }
+
     lines.forEach(function(L, li) {
       var x = W/2 - lineWs[li]/2;
       var y = y0 + li * lh;
@@ -6255,6 +6380,30 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 
         // Pop-Animation des aktiven Worts (@keyframes captly-*) — im Export bisher komplett statisch.
         var animSt = (isHL && s.anim && s.anim !== 'none') ? animState(s.anim, t - (b.words[wo.idx].start || 0)) : null;
+        var plan = (isHL || isKw) ? shHl : shTs;
+        // Teure Glows (große Blur-Schatten, Glow-Animation per Filter) des AKTIVEN Worts als Sprite: Text +
+        // Schatten (+ Filter-Stufe) einmal je (Layout, Wort, quantisierte Animationsstufe) rendern, pro Frame
+        // nur noch per drawImage unter der Animations-Transformation einsetzen. Konturierte Styles (Ring →
+        // strokeText) sind live billig und bleiben beim direkten Zeichnen (Kontur-Breite animationsstabil).
+        var hasFilter = !!(animSt && (animSt.bright !== 1 || animSt.sat !== 1));
+        if (mode === 'active' && isHL && ctx.canvas && !plan.ring && typeof document !== 'undefined'
+            && (hasFilter || plan.rest.some(function(l){ return l.blur * scale >= 8; }))) {
+          var spr = activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt);
+          ctx.save();
+          if (animSt) {
+            var pvx2 = x + wo.w / 2, pvy2 = y - fsS * 0.32 - animSt.ty * scale;
+            ctx.translate(pvx2, pvy2);
+            if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
+            ctx.scale(animSt.sx, animSt.sy);
+            ctx.translate(-pvx2, -pvy2);
+            if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
+          }
+          ctx.shadowColor = 'transparent';
+          ctx.drawImage(spr.cv, tx - spr.m, y - fsS * 1.05 - spr.m);
+          ctx.restore();
+          x += wo.w + sp;
+          return;
+        }
         ctx.save();
         if (animSt) {
           var pvx = x + wo.w / 2, pvy = y - fsS * 0.32 - animSt.ty * scale;
