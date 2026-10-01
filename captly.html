@@ -1512,7 +1512,26 @@ function capMeasureCtx() {
 // Breite je Wort = max(normal, Highlight-Variante) → Größe springt nicht, wenn das Karaoke-Highlight wandert.
 var CAP_FIT_MIN = 0.55;
 var CAP_FIT_MAX_H = 0.40; // max. Anteil der Rahmenhöhe für einen Caption-Block
-var _capFitCache = {}, _capFitN = 0;
+var _capFitCache = {}, _capFitN = 0, _capFontGen = 0;
+// Web-Fonts laden asynchron: eine Messung mit der Fallback-Schrift darf NICHT dauerhaft im Cache landen
+// (sonst überlaufen lange Wörter in Vorschau UND Export, obwohl der Export auf fonts.ready wartet).
+// → Generationszähler im Key, Cache leeren + Vorschau neu rendern, sobald Fonts fertig geladen sind.
+function capFontsChanged() {
+  _capFontGen++; _capFitCache = {}; _capFitN = 0;
+  _lastKey = null;
+  try { if (vidReady || captionBlocks.length) updateOverlay(); } catch (e) {}
+}
+try {
+  if (typeof document !== 'undefined' && document.fonts) {
+    if (typeof document.fonts.addEventListener === 'function') document.fonts.addEventListener('loadingdone', capFontsChanged);
+    if (document.fonts.ready && document.fonts.ready.then) document.fonts.ready.then(capFontsChanged);
+  }
+} catch (eF) {}
+// true, wenn die Schrift (noch) nicht geladen ist → Ergebnis nicht cachen.
+function capFontPending(spec) {
+  try { return !!(document.fonts && typeof document.fonts.check === 'function' && !document.fonts.check(spec)); }
+  catch (e) { return false; }
+}
 function capFitMaxW(s) {
   // Nutzbare Breite wie clampLinesToWidth (86 % Rahmen) minus feste Deko-Innenabstände der Styles.
   return previewFrameW() * 0.86 - (s.boxBg ? 36 : 0) - (s.pill ? 18 : 0);
@@ -1527,12 +1546,14 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   var maxH = previewFrameH() * CAP_FIT_MAX_H;
   var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper,
             s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0].join(',') + '|' + px + '|' + Math.round(maxW)
-            + '|' + Math.round(maxH) + '|' + (lines || 0);
+            + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen;
   if (_capFitCache[key]) return _capFitCache[key];
   var ctx   = capMeasureCtx();
   var fn    = (s.font || "'Inter'").replace(/'/g, '');
   var fw    = s.fw || '700';
   var fi    = s.fi === 'italic' ? 'italic ' : '';
+  var fontPending = capFontPending(fi + fw + ' 16px "' + fn + '"')
+    || (s.hlFont ? capFontPending((s.hlItalic ? 'italic ' : fi) + fw + ' 16px "' + s.hlFont.replace(/'/g, '') + '"') : false);
   var tt    = s.tt === 'uppercase';
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
   var lsPx  = parseFloat(s.ls) || 0; // ls ist bei allen Styles px (oder 'none' → 0)
@@ -1576,6 +1597,7 @@ function fitCaptionWords(words, s, px, maxW, lines) {
     epx = Math.max(floor, Math.floor(epx * 0.92 * 10) / 10);
     res = layoutAt(epx);
   }
+  if (fontPending) return res; // Fallback-Schrift gemessen → nicht cachen, nach dem Laden neu messen
   if (++_capFitN > 400) { _capFitCache = {}; _capFitN = 0; }
   _capFitCache[key] = res;
   return res;
@@ -2285,7 +2307,6 @@ function applyPos() {
   }
   else ov.style.bottom = clampPct(12 + off) + '%';
   clampCapVertical();
-  scheduleAutosave(); // Position/Offset (Buttons, Slider, Drag)
   if (showSafeZone) checkSafeZoneCollision();
   positionPlayIcon();
 }
@@ -2363,11 +2384,13 @@ function setPos(btn) {
   btn.parentElement.querySelectorAll('.pos-btn').forEach(function(b){ b.classList.remove('on'); });
   btn.classList.add('on');
   applyPos();
+  scheduleAutosave(); // nur echte Nutzer-Änderungen — applyPos() selbst läuft auch beim Re-Layout (Playback/Export)
 }
 function onVOffChange(v) {
   capVOff = parseInt(v);
   document.getElementById('voffDisp').textContent = (capVOff > 0 ? '+' : '') + capVOff + '%';
   applyPos();
+  scheduleAutosave();
 }
 // ═══════════════════════════════════════
 // UNTERTITEL PER MAUS/TOUCH VERSCHIEBEN
@@ -2421,6 +2444,7 @@ function capDragEnd(e) {
   document.removeEventListener('touchmove', capDragMove);
   document.removeEventListener('touchend', capDragEnd);
   applyPos(); // final anwenden
+  if (capDragMoved) scheduleAutosave(); // einmal am Drag-Ende statt bei jeder Mausbewegung
   // Klick-Play/Pause auf #prevFrame erst NACH dem folgenden Click-Event wieder freigeben
   if (capDragMoved) setTimeout(function(){ capDragMoved = false; }, 0);
   else capDragMoved = false;
@@ -2538,13 +2562,24 @@ function applyVocab(e) {
   if (!currentFile || !confirmRetranscribe()) return;
   transcribeVideo(currentFile);
 }
-// Whisper „echot“ den Prompt gern in stille/unklare Passagen → ein Stück, dessen GESAMTER Text dem
-// Prompt (oder einem Anfang davon) entspricht, ist keine echte Sprache.
+// Whisper „echot“ den Prompt gern in stille/unklare Passagen. Als Echo gilt ein Stück aber NUR, wenn
+// sein gesamter Text die Vokabelliste (nahezu) wörtlich wiedergibt: Anfang des Prompts, ≥ 4 Wörter,
+// ≥ 60 % der Prompt-Wörter UND ≥ 2 Einträge der Liste. Ein einzelner Begriff oder kurzer Anfang
+// („Wald und Tier!“ als echtes Outro bei Vokabular „Wald und Tier, Birkenhof“) wird nie verworfen.
 function normEchoText(t) { return String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
 function isPromptEcho(words, prompt) {
   if (!prompt || !words || !words.length) return false;
   var ct = normEchoText(words.map(function(w){ return w.word; }).join(' ')), pt = normEchoText(prompt);
-  return !!ct && !!pt && pt.indexOf(ct) === 0 && (pt.length === ct.length || pt.charAt(ct.length) === ' ');
+  if (!ct || !pt || pt.indexOf(ct) !== 0 || (pt.length !== ct.length && pt.charAt(ct.length) !== ' ')) return false;
+  var cWords = ct.split(' ').length, pWords = pt.split(' ').length;
+  if (cWords < 4 || cWords < 0.6 * pWords) return false;
+  // Wie viele Vokabel-Einträge (durch , ; oder Zeilenumbruch getrennt) deckt das Stück vollständig ab?
+  var entries = String(prompt).split(/[,;\n]+/).map(normEchoText).filter(Boolean), covered = 0, acc = '';
+  for (var i = 0; i < entries.length; i++) {
+    acc = acc ? acc + ' ' + entries[i] : entries[i];
+    if (ct.length >= acc.length) covered++; else break;
+  }
+  return covered >= 2;
 }
 function setTranslate(cb) {
   if (cb.checked === doTranslate) return;
@@ -2747,7 +2782,13 @@ function autosaveNow() {
 function scheduleAutosave() {
   if (!_autosaveKey) return;
   clearTimeout(_autosaveTimer);
-  _autosaveTimer = setTimeout(autosaveNow, 800);
+  _autosaveTimer = setTimeout(autosaveWhenIdle, 800);
+}
+// Während des Echtzeit-Exports nie serialisieren (JSON.stringify des ganzen Projekts blockiert den
+// Main-Thread → Ruckler/verlorene Frames im Video) — stattdessen nach dem Export nachholen.
+function autosaveWhenIdle() {
+  if (isExporting) { clearTimeout(_autosaveTimer); _autosaveTimer = setTimeout(autosaveWhenIdle, 1500); return; }
+  autosaveNow();
 }
 function findAutosave(key) {
   var list = readAutosaves();
