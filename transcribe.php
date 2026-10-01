@@ -11,6 +11,7 @@
  *
  * Frontend ruft:  POST transcribe.php?model=<groq-model>&lang=<iso>&translate=<0|1>
  *   Body = rohe WAV-Bytes (Content-Type: audio/wav)  ODER  multipart mit Feld "file".
+ * Das Frontend schickt das Audio in ~100-s-Stücken (≤ ~3,2 MB), daher keine Probleme mit post_max_size.
  * Antwort = Groq-JSON (verbose_json): { text, language, words:[{word,start,end}], segments:[...] }
  */
 
@@ -47,6 +48,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
   echo json_encode(['ok' => true, 'service' => 'capivo-transcribe', 'configured' => $KEY !== '']);
   exit;
 }
+@set_time_limit(130); // Groq kann bei grösseren Stücken ein paar Sekunden brauchen
 if ($KEY === '') fail(500, 'Server nicht konfiguriert: GROQ_API_KEY fehlt (config.php anlegen).');
 
 // ── Modell whitelisten (verhindert Missbrauch beliebiger Werte) ──────
@@ -56,6 +58,30 @@ if (!in_array($model, $ALLOWED, true)) $model = 'whisper-large-v3-turbo';
 
 $translate = (($_GET['translate'] ?? '0') === '1');
 $lang = preg_replace('/[^a-z]/', '', strtolower($_GET['lang'] ?? '')); // ISO-Kürzel, sonst leer
+
+// ── Missbrauchsschutz: einfaches Limit pro IP (der Endpunkt ist öffentlich, der Key kostet) ──
+// Das Frontend schickt pro ~100 s Audio einen Request; Default 120/Stunde ≈ 3 h Audio pro IP.
+$LIMIT = (int)($cfg['RATE_LIMIT_PER_HOUR'] ?? 120);
+if ($LIMIT > 0) {
+  $ip = $_SERVER['REMOTE_ADDR'] ?? 'x';
+  $rf = sys_get_temp_dir() . '/capivo_rl_' . md5($ip) . '.json';
+  $now = time(); $hits = [];
+  if (is_file($rf)) { $d = json_decode((string)@file_get_contents($rf), true); if (is_array($d)) $hits = array_filter($d, function($t) use ($now) { return $t > $now - 3600; }); }
+  if (count($hits) >= $LIMIT) { header('Retry-After: 300'); fail(429, 'Zu viele Anfragen von dieser Adresse – bitte später erneut versuchen.'); }
+  $hits[] = $now;
+  @file_put_contents($rf, json_encode(array_values($hits)), LOCK_EX);
+}
+
+// ── Zu grosser Request? PHP verwirft den Body still, wenn er post_max_size überschreitet ──
+function ini_bytes($v) {
+  $v = trim((string)$v); if ($v === '') return 0;
+  $n = (float)$v; $u = strtolower(substr($v, -1));
+  if ($u === 'g') $n *= 1024 * 1024 * 1024; elseif ($u === 'm') $n *= 1024 * 1024; elseif ($u === 'k') $n *= 1024;
+  return (int)$n;
+}
+$cl = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+$pm = ini_bytes(ini_get('post_max_size'));
+if ($pm > 0 && $cl > $pm) fail(413, 'Upload überschreitet post_max_size (' . ini_get('post_max_size') . ') des Servers.');
 
 // ── Audio besorgen: multipart-Feld "file" ODER roher Body ────────────
 $tmp = null; $cleanup = false;
@@ -91,6 +117,11 @@ curl_setopt_array($ch, [
   CURLOPT_TIMEOUT        => 120,
   CURLOPT_CONNECTTIMEOUT => 15,
 ]);
+$retryAfter = null;
+curl_setopt($ch, CURLOPT_HEADERFUNCTION, function($c, $h) use (&$retryAfter) {
+  if (stripos($h, 'retry-after:') === 0) $retryAfter = trim(substr($h, 12));
+  return strlen($h);
+});
 $body   = curl_exec($ch);
 $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $cerr   = curl_error($ch);
@@ -99,6 +130,8 @@ if ($cleanup && $tmp) @unlink($tmp);
 
 if ($body === false) fail(502, 'Transkriptions-Dienst nicht erreichbar: ' . $cerr);
 
-// Groq-Status & -Body 1:1 durchreichen (Frontend kennt 401/402/413/429/503).
+// Groq-Status & -Body 1:1 durchreichen (Frontend kennt 401/402/413/429/503 und wiederholt 429/5xx selbst).
+if ($retryAfter !== null && is_numeric($retryAfter)) header('Retry-After: ' . (int)$retryAfter);
+if ($status >= 400 && json_decode($body) === null) fail($status, 'Transkriptions-Dienst hat nicht-lesbar geantwortet.');
 http_response_code($status ?: 502);
 echo $body;

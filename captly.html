@@ -1061,6 +1061,68 @@ async function float32ToWav(samples, sampleRate) {
   }
   return buf;
 }
+// ── Robuste Server-Transkription: Audio in Stücken statt als ein grosser Upload ──────────────
+// Warum: Ein einziger WAV-Upload scheitert auf Webhosting still an post_max_size (oft 8 MB ≈ 4 Min),
+// an Timeouts und an Groq-Limits; ein Fehler kostet ausserdem die ganze Transkription. Wie die
+// Profi-Tools (Opus Clip, FireCut) wird deshalb in ~100 s-Stücke geteilt (≤ ~3,2 MB/Request), jedes
+// Stück einzeln mit Retry gesendet, die Wort-Timings um den Stück-Offset verschoben und gemerged.
+var MAX_AUDIO_SEC = 1200; // 20 Min — darüber wird (sichtbar!) gekürzt
+var CHUNK_SEC = 100;      // Ziellänge pro Request
+var CHUNK_SEARCH_SEC = 15; // Schnittpunkt wird in den letzten Sekunden gesucht (leiseste Stelle = Sprechpause)
+var SILENT_RMS = 0.003;   // unter diesem Pegel (nach Normalisierung) kein Request → keine Whisper-Halluzination
+// Teilt Mono-Audio an den leisesten 100-ms-Stellen, damit kein Wort mittendrin durchgeschnitten wird.
+function splitAudioChunks(audio, sr, targetSec, searchSec) {
+  sr = sr || 16000; targetSec = targetSec || CHUNK_SEC; searchSec = searchSec || CHUNK_SEARCH_SEC;
+  var n = audio.length, tN = Math.round(targetSec * sr), sN = Math.round(searchSec * sr);
+  var win = Math.round(0.1 * sr), hop = Math.round(win / 2), out = [], pos = 0;
+  while (pos < n) {
+    var end;
+    if (n - pos <= tN) end = n;
+    else {
+      var best = pos + tN, bestE = Infinity;
+      for (var p = pos + tN - sN; p + win <= pos + tN; p += hop) {
+        var e = 0;
+        for (var q = p; q < p + win; q += 8) e += audio[q] < 0 ? -audio[q] : audio[q];
+        if (e < bestE) { bestE = e; best = p + hop; }
+      }
+      end = best;
+      if (n - end < sr) end = n; // winziges Reststück vermeiden
+    }
+    out.push({ samples: audio.subarray(pos, end), offset: pos / sr });
+    pos = end;
+  }
+  return out;
+}
+function chunkIsSilent(samples) {
+  var e = 0, c = 0;
+  for (var i = 0; i < samples.length; i += 4) { e += samples[i] * samples[i]; c++; }
+  return c === 0 || Math.sqrt(e / c) < SILENT_RMS;
+}
+// Typische Whisper-Halluzinationen bei Stille/Musik (YouTube-Trainingsdaten) — nur, wenn das
+// GANZE Stück aus kaum mehr besteht; echter Inhalt wird nie angetastet.
+var HALLU_RE = /amara\.org|untertitel(ung)?\s+(der|von|im auftrag|des)|thanks? for watching|thank you for watching|vielen dank f(ü|u)rs? (zu(schauen|sehen)|zuh(ö|o)ren)|subtitles? (by|from)|sous-titr|abonnez-vous|(copyright|©)\s*\w+/i;
+function isHallucinatedChunk(words) {
+  if (!words || !words.length || words.length > 14) return false;
+  return HALLU_RE.test(words.map(function(w){ return w.word; }).join(' '));
+}
+// Whisper-Wort-Timings glätten: keine Überlappungen, keine Nulllängen, und Wörter, die über eine
+// Pause "gedehnt" wurden (Karaoke-Highlight hängt, Auto-Cut sieht die Lücke nicht), auf plausible
+// Länge kürzen.
+function sanitizeWordTimings(words, totalDur) {
+  var out = [], prev = null;
+  (words || []).forEach(function(w) {
+    var st = isFinite(w.start) ? Math.max(0, w.start) : (prev ? prev.end : 0);
+    var en = isFinite(w.end) ? w.end : st;
+    if (totalDur) { st = Math.min(st, totalDur); en = Math.min(en, totalDur); }
+    var maxDur = 0.4 + 0.1 * (w.word || '').length;
+    if (en < st + 0.05) en = st + 0.05;
+    if (en - st > maxDur) en = st + maxDur;
+    if (prev && prev.end > st) prev.end = Math.max(prev.start + 0.02, st);
+    var nw = { word: w.word, start: st, end: en };
+    out.push(nw); prev = nw;
+  });
+  return out;
+}
 // Halluzinations-Detektor: Whisper-Fehldetektion erzeugt Wiederholungsschleifen ("We've worked for over 3 years …")
 function looksRepetitive(words) {
   if (!words || words.length < 12) return false;
@@ -2301,51 +2363,144 @@ function setTProgress(pct) {
   if (pctEl) pctEl.textContent = Math.round(p) + '%';
 }
 
-// Serverseitige Transkription über den PHP-Proxy (Groq) — oder, falls ein eigener OpenAI-Key im
-// Speicher liegt, direkt bei OpenAI. Rückgabe: Wort-Array (ggf. leer), wenn der Server geantwortet
-// hat; sonst null (Proxy nicht erreichbar/nicht deployed) → Aufrufer nutzt den lokalen Fallback.
-async function serverTranscribe(wavBlob, model, lc, audioDur) {
-  setTStatus('', (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – transcribing…', true, true);
-  var fakePct = 45, fakeTimer = setInterval(function(){ fakePct = Math.min(90, fakePct + 2); setTProgress(fakePct); }, 350);
-  var resp = null;
-  try {
-    if (openaiKey) {
-      var fd = new FormData();
-      fd.append('file', wavBlob, 'audio.wav');
-      fd.append('model', 'whisper-1');
-      fd.append('response_format', 'verbose_json');
-      if (!doTranslate) { fd.append('timestamp_granularities[]', 'word'); if (lc) fd.append('language', lc); }
-      resp = await fetch('https://api.openai.com/v1/audio/' + (doTranslate ? 'translations' : 'transcriptions'),
-        { method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd });
-    } else {
-      resp = await fetch('transcribe.php?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''),
-        { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: wavBlob });
+function sleepMs(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+function transcribeErr(msg, flags) { var e = new Error(msg); if (flags) for (var k in flags) e[k] = flags[k]; return e; }
+// Ein Stück senden. Transiente Fehler (Netz, 429, 5xx) werden mit Backoff wiederholt; ein fehlender
+// Proxy (statischer Host/Demo) wird als noProxy gemeldet → Aufrufer nutzt den lokalen Fallback.
+async function postChunk(wavBlob, model, lc) {
+  var maxAttempts = 4, lastMsg = '';
+  for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+    var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, 100000), resp = null;
+    try {
+      if (openaiKey) {
+        var fd = new FormData();
+        fd.append('file', wavBlob, 'audio.wav');
+        fd.append('model', 'whisper-1');
+        fd.append('response_format', 'verbose_json');
+        if (!doTranslate) { fd.append('timestamp_granularities[]', 'word'); if (lc) fd.append('language', lc); }
+        resp = await fetch('https://api.openai.com/v1/audio/' + (doTranslate ? 'translations' : 'transcriptions'),
+          { method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd, signal: ctrl.signal });
+      } else {
+        resp = await fetch('transcribe.php?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : ''),
+          { method: 'POST', headers: { 'Content-Type': 'audio/wav' }, body: wavBlob, signal: ctrl.signal });
+      }
+    } catch (e) {
+      clearTimeout(timer);
+      // file:// ohne Server → kein Proxy erreichbar → lokaler Fallback. Sonst: Netzproblem, nochmal versuchen.
+      if (!openaiKey && typeof location !== 'undefined' && location.protocol === 'file:') throw transcribeErr('no proxy', { noProxy: true });
+      lastMsg = e && e.name === 'AbortError' ? 'The transcription service took too long.' : 'Network problem — check your connection.';
+      if (attempt < maxAttempts) { await sleepMs(1500 * attempt); continue; }
+      throw transcribeErr(lastMsg + ' Please try again.');
     }
-  } catch (e) { clearInterval(fakeTimer); return null; } // Netzwerk-Fehler / kein Proxy → lokaler Fallback
-  clearInterval(fakeTimer);
-  if (!resp) return null;
-  // Proxy nicht vorhanden → Fallback. 403 = Vercels Antwort auf per .vercelignore ausgeschlossene Dateien (Demo ohne PHP).
-  if (!openaiKey && (resp.status === 404 || resp.status === 405 || resp.status === 403)) return null;
-  if (!resp.ok) {
-    throw new Error(resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
-      : resp.status === 413 ? 'Audio too large — please trim the video.'
-      : resp.status === 429 ? 'Free-tier limit reached (too many requests) — wait a moment and try again.'
-      : resp.status === 503 ? 'Transcription service is busy right now — please try again.'
-      : 'Transcription error ' + resp.status + '. Please try again.');
+    clearTimeout(timer);
+    // Proxy nicht vorhanden → Fallback. 403 = Vercels Antwort auf per .vercelignore ausgeschlossene Dateien (Demo ohne PHP).
+    if (!openaiKey && (resp.status === 404 || resp.status === 405 || resp.status === 403)) throw transcribeErr('no proxy', { noProxy: true });
+    if (!resp.ok) {
+      var detail = '';
+      try { var ej = await resp.json(); detail = (ej && (typeof ej.error === 'string' ? ej.error : ej.error && ej.error.message)) || ''; } catch (e2) {}
+      // Transient → wiederholen (Retry-After respektieren, aber nie ewig warten)
+      if ((resp.status === 429 || resp.status >= 500) && attempt < maxAttempts) {
+        var ra = parseFloat(resp.headers.get('Retry-After'));
+        var wait = isFinite(ra) ? ra * 1000 : 2000 * Math.pow(2, attempt - 1);
+        if (wait <= 25000) { await sleepMs(wait + 250); continue; }
+      }
+      throw transcribeErr(resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
+        : resp.status === 413 ? 'Audio too large for the server — please trim the video.'
+        : resp.status === 429 ? 'Free-tier limit reached (too many requests) — wait a minute and try again.'
+        : resp.status >= 500 ? 'Transcription service is busy right now — please try again.'
+        : 'Transcription error ' + resp.status + (detail ? ' (' + detail.slice(0, 120) + ')' : '') + '. Please try again.');
+    }
+    var j;
+    try { j = await resp.json(); }
+    catch (e3) { if (!openaiKey) throw transcribeErr('no proxy', { noProxy: true }); throw transcribeErr('Unexpected response from the transcription service.'); }
+    // Statischer Host liefert transcribe.php evtl. als rohen Text (kein echtes JSON-Objekt) → Fallback
+    if (!openaiKey && (!j || typeof j !== 'object' || (!('words' in j) && !('segments' in j) && !('text' in j)))) throw transcribeErr('no proxy', { noProxy: true });
+    return j;
+  }
+}
+// Serverseitige Transkription über den PHP-Proxy (Groq) — oder, falls ein eigener OpenAI-Key im
+// Speicher liegt, direkt bei OpenAI. Teilt das Audio in Stücke (s. splitAudioChunks), sendet sie
+// nacheinander mit echtem Fortschritt und merged die Wörter. Rückgabe: {words, language}; null nur,
+// wenn gar kein Proxy da ist (→ lokaler Fallback). Alles andere ist ein klarer Fehler statt stiller Lücke.
+async function serverTranscribe(audioData, model, lc, audioDur) {
+  var label = (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – transcribing';
+  var chunks = splitAudioChunks(audioData, 16000);
+  var all = [], language = null, forced = lc;
+  setTStatus('', label + '…', true, true);
+  for (var i = 0; i < chunks.length; i++) {
+    setTProgress(60 + 32 * i / chunks.length);
+    if (chunks.length > 1) setTStatus('', label + ' (part ' + (i + 1) + '/' + chunks.length + ')…', true, true);
+    var ch = chunks[i];
+    if (chunkIsSilent(ch.samples)) continue;
+    var wav = new Blob([await float32ToWav(ch.samples, 16000)], { type: 'audio/wav' });
+    var j;
+    try { j = await postChunk(wav, model, forced); }
+    catch (e) { if (e.noProxy && i === 0) return null; throw e.noProxy ? transcribeErr('Transcription server became unavailable — please try again.') : e; }
+    var ws = (j.words || []).map(function(w){ return { word: (w.word || '').trim(), start: w.start || 0, end: w.end || 0 }; })
+                            .filter(function(w){ return w.word; });
+    if (!ws.length && j.segments) ws = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
+    if (!ws.length && j.text)     ws = segmentsToWords([{ text: j.text, timestamp: [0, ch.samples.length / 16000] }]);
+    if (isHallucinatedChunk(ws)) ws = [];
+    ws.forEach(function(w){ all.push({ word: w.word, start: w.start + ch.offset, end: w.end + ch.offset }); });
+    // Sprache aus dem ersten Stück mit Inhalt für alle weiteren festnageln (kein Sprach-Flackern mitten im Video).
+    // Whisper liefert die erkannte Sprache als Name (z. B. "german").
+    var lg = (j.language || '').toLowerCase();
+    if (!language && lg && ws.length) {
+      language = lg;
+      if (!forced && !doTranslate && CODE_BY_LANG[lg]) forced = CODE_BY_LANG[lg];
+    }
   }
   setTProgress(92);
-  var j;
-  try { j = await resp.json(); }
-  catch (e) { if (!openaiKey) return null; throw new Error('Unexpected response from the transcription service.'); }
-  // Statischer Host liefert transcribe.php evtl. als rohen Text (kein echtes JSON-Objekt) → Fallback
-  if (!openaiKey && (!j || typeof j !== 'object' || (!('words' in j) && !('segments' in j) && !('text' in j)))) return null;
-  var words = (j.words || []).map(function(w){ return { word: (w.word || '').trim(), start: w.start || 0, end: w.end || 0 }; })
-                             .filter(function(w){ return w.word; });
-  if (!words.length && j.segments) words = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
-  if (!words.length && j.text)     words = segmentsToWords([{ text: j.text, timestamp: [0, audioDur] }]);
-  // Whisper liefert im verbose_json die tatsächlich erkannte Sprache mit (z. B. "german") —
-  // nützlich, um dem Nutzer die echte Erkennung statt nur "auto" zu zeigen.
-  return { words: words, language: (j.language || '').toLowerCase() || null };
+  return { words: all, language: language };
+}
+// Tonspur → Mono-Float32 @16 kHz. Primär per Web Audio (schnell, kein Download); scheitert das (exotischer
+// Container/Codec, iOS-Eigenheiten), extrahiert das selbst gehostete ffmpeg.wasm die Tonspur.
+async function decodeToMono16k(file) {
+  var audioData = null, peak = 0;
+  try {
+    var arrayBuffer = await file.arrayBuffer();
+    var AudioCtx = window.AudioContext || window.webkitAudioContext;
+    var audioCtx = new AudioCtx({ sampleRate: 16000 });
+    var audioBuffer;
+    try { audioBuffer = await audioCtx.decodeAudioData(arrayBuffer); }
+    finally { try { audioCtx.close(); } catch (e0) {} }
+    // Mono-Mix über ALLE Kanäle (Sprache kann nur auf einem Kanal liegen) + Pegel-Scan in einem
+    // Durchgang, in Chunks mit Yields (sonst blockiert der Main-Thread bei langen Videos).
+    var chN = audioBuffer.numberOfChannels, len = audioBuffer.length, channels = [];
+    for (var c = 0; c < chN; c++) channels.push(audioBuffer.getChannelData(c));
+    var invN = 1 / chN;
+    audioData = new Float32Array(len);
+    for (var k = 0; k < len; k++) {
+      var s = 0;
+      for (var ci = 0; ci < chN; ci++) s += channels[ci][k];
+      s *= invN;
+      audioData[k] = s;
+      var av = s < 0 ? -s : s;
+      if (av > peak) peak = av;
+      if (k > 0 && k % YIELD_EVERY === 0) await yieldToUI();
+    }
+  } catch (e) {
+    console.warn('Web-Audio-Decode fehlgeschlagen, ffmpeg-Fallback:', e);
+    setTStatus('', 'Extracting audio (compatibility mode)…', true, true);
+    try {
+      var g = await getFFmpeg(), ff = g.ff;
+      await ff.writeFile('in_media', await g.fetchFile(file));
+      await ff.exec(['-i', 'in_media', '-vn', '-ac', '1', '-ar', '16000', '-f', 's16le', 'a.pcm']);
+      var raw = await ff.readFile('a.pcm');
+      try { await ff.deleteFile('in_media'); await ff.deleteFile('a.pcm'); } catch (e1) {}
+      var i16 = new Int16Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + (raw.byteLength & ~1)));
+      audioData = new Float32Array(i16.length); peak = 0;
+      for (var m = 0; m < i16.length; m++) {
+        var f = i16[m] / 32768; audioData[m] = f;
+        var af = f < 0 ? -f : f; if (af > peak) peak = af;
+        if (m > 0 && m % YIELD_EVERY === 0) await yieldToUI();
+      }
+    } catch (e2) {
+      console.error(e2);
+      throw new Error('Could not read the audio. Please use MP4, MOV or WebM.');
+    }
+  }
+  return { audioData: audioData, peak: peak };
 }
 async function transcribeVideo(file) {
   setTStatus('', 'Preparing transcription…', true, true);
@@ -2361,36 +2516,8 @@ async function transcribeVideo(file) {
     setTStatus('', 'Extracting audio…', true, true);
     setTProgress(40);
 
-    var arrayBuffer = await file.arrayBuffer();
-    var AudioCtx = window.AudioContext || window.webkitAudioContext;
-    var audioCtx = new AudioCtx({ sampleRate: 16000 });
-    var audioBuffer;
-    try {
-      audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-    } catch(e) {
-      throw new Error('Could not read the audio. Please use MP4 or WebM.');
-    }
-
-    // Mono-Mix über ALLE Kanäle (Sprache kann nur auf einem Kanal liegen) + Pegel-Scan in
-    // EINEM Durchgang statt zwei getrennten Schleifen über dieselben Samples — spart bei jedem
-    // Video einen kompletten Durchlauf, ohne an Genauigkeit/Qualität zu ändern. Läuft weiterhin
-    // in Chunks mit Yields, sonst blockiert der Main-Thread bei langen Videos am Stück.
-    var chN = audioBuffer.numberOfChannels, len = audioBuffer.length;
-    var channels = [];
-    for (var c = 0; c < chN; c++) channels.push(audioBuffer.getChannelData(c));
-    var invN = 1 / chN;
-    var audioData = new Float32Array(len);
-    var peak = 0;
-    for (var k = 0; k < len; k++) {
-      var s = 0;
-      for (var ci = 0; ci < chN; ci++) s += channels[ci][k];
-      s *= invN;
-      audioData[k] = s;
-      var av = s < 0 ? -s : s;
-      if (av > peak) peak = av;
-      if (k > 0 && k % YIELD_EVERY === 0) await yieldToUI();
-    }
-    audioCtx.close();
+    var dec = await decodeToMono16k(file);
+    var audioData = dec.audioData, peak = dec.peak, len = audioData.length;
     setTProgress(50);
 
     // Normalisieren — leiser Ton ist Hauptursache für "keine Sprache erkannt"
@@ -2404,15 +2531,15 @@ async function transcribeVideo(file) {
     }
     setTProgress(60);
 
-    if (audioData.length > 16000 * 600) audioData = audioData.slice(0, 16000 * 600);
+    var truncated = audioData.length > 16000 * MAX_AUDIO_SEC;
+    if (truncated) audioData = audioData.slice(0, 16000 * MAX_AUDIO_SEC);
     var audioDur = audioData.length / 16000;
 
     var usedLang = whisperLang;
     var lc = (whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) ? CODE_BY_LANG[whisperLang] : '';
-    var wavBlob = new Blob([await float32ToWav(audioData, 16000)], { type: 'audio/wav' });
 
     // ── 1) Serverseitig transkribieren (Groq via transcribe.php) — kein Download für den Nutzer ──
-    var served = await serverTranscribe(wavBlob, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur);
+    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur);
 
     if (served !== null) {
       wordTimestamps = served.words;
@@ -2449,7 +2576,7 @@ async function transcribeVideo(file) {
         // Genauigkeit (reduzierte Decoder-Tiefe) -- selbst mit erzwungenem `language`-Parameter bleibt
         // der generierte Text bei turbo mitunter unzuverlaessig. Der Retry ist selten (nur bei
         // Verdachtsfall) und darf daher die genauere/langsamere Variante nutzen.
-        var servedF = await serverTranscribe(wavBlob, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur);
+        var servedF = await serverTranscribe(audioData, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur);
         // WICHTIG: NICHT mehr looksLikeTargetLang als Pflichtkriterium -- ein korrekter deutscher/
         // französischer/... Satz OHNE Sonderzeichen (sehr häufig, z. B. "Hallo und willkommen zu
         // unserem Projekt") würde sonst fälschlich verworfen und das falsch-englische Original
@@ -2497,6 +2624,7 @@ async function transcribeVideo(file) {
 
     wordTimestamps = stripNonSpeechTags(wordTimestamps); // "[Music]"/"(Applause)"-Halluzinationen raus
     wordTimestamps = await cleanWords(wordTimestamps); // Stottern & Wiederholungsschleifen entfernen
+    wordTimestamps = sanitizeWordTimings(wordTimestamps, audioDur); // Überlappungen/gedehnte Wörter glätten
 
     setTProgress(100);
     if (!wordTimestamps.length) throw new Error('No speech detected. Tip: pick the language above manually, or try Perfect.');
@@ -2506,6 +2634,7 @@ async function transcribeVideo(file) {
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
     setTStatus(qWarn ? '⚠️' : '✅',
       wordTimestamps.length + ' words · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '') + ' · language: ' + (usedLang === 'auto' ? 'auto' : usedLang)
+      + (truncated ? ' · only the first ' + (MAX_AUDIO_SEC / 60) + ' min were transcribed' : '')
       + (qWarn ? ' · quality uncertain → try 💎 Perfect' : ''), false, false);
     document.getElementById('capEditor').style.display = 'block';
     renderSegments();

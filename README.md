@@ -31,8 +31,11 @@ Auf klassischem **Webhosting mit PHP** — kein Node-Server nötig:
 3. `captly.html` **und** `transcribe.php` (+ `config.php`) in dasselbe Verzeichnis auf dem Webhosting
    legen. Fertig — Fast/Perfect laufen ohne Download für den Nutzer.
 
-Voraussetzungen: PHP mit **cURL** aktiv; für längere Videos ggf. `upload_max_filesize` / `post_max_size`
-/ `max_execution_time` erhöhen (WAV ≈ 1,9 MB/Min — Reels sind unkritisch). Anbieterwechsel (Deepgram,
+Voraussetzungen: PHP mit **cURL** aktiv. Das Frontend zerlegt die Tonspur an Sprechpausen in ~100-s-Stücke
+(≤ ~3,2 MB je Request, jeweils mit Retry bei Netz-/429-/5xx-Fehlern), dadurch sind `post_max_size` &
+Timeouts auch auf billigem Hosting unkritisch; Stille-Stücke werden gar nicht gesendet (verhindert
+Whisper-Halluzinationen). Max. 20 Min Audio pro Video. Der Proxy hat ein IP-Limit
+(`RATE_LIMIT_PER_HOUR`, Default 120/h), damit niemand deinen Key leerzieht. Anbieterwechsel (Deepgram,
 paid) ist im Proxy gekapselt → wenige Zeilen.
 
 ## Login & Projekte einrichten (Supabase)

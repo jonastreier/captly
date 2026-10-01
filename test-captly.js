@@ -70,7 +70,7 @@ setState:function(bl,wts,dm){captionBlocks=bl;wordTimestamps=wts;if(dm)displayMo
 getBlocks:function(){return captionBlocks;},selectStyle:selectStyle,setPos:setPos,onSzChange:onSzChange,setMode:setMode,
 onWpbChange:onWpbChange,setLang:setLang,buildPicker:buildPicker,renderSegments:renderSegments,renderWPills:renderWPills,
 openEditorClean:openEditorClean,goBack:goBack,enableExports:enableExports,
-looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNonSpeechTags,renderShowcase:renderShowcase,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},setVOffState:function(v){capVOff=v;},applyPos:applyPos,mergeChunkWords:mergeChunkWords,computeCutRegions:computeCutRegions};`;
+looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNonSpeechTags,renderShowcase:renderShowcase,getLang:function(){return whisperLang;},NAV_LANG:NAV_LANG,float32ToWav:float32ToWav,CODE_BY_LANG:CODE_BY_LANG,onKwChange:onKwChange,applyCustomStyle:applyCustomStyle,isKeywordWord:isKeywordWord,transcribeChunked:transcribeChunked,safePipe:safePipe,clearForcedIds:clearForcedIds,setPosState:function(p){capPos=p;},setVOffState:function(v){capVOff=v;},applyPos:applyPos,mergeChunkWords:mergeChunkWords,computeCutRegions:computeCutRegions,splitAudioChunks:splitAudioChunks,chunkIsSilent:chunkIsSilent,sanitizeWordTimings:sanitizeWordTimings,isHallucinatedChunk:isHallucinatedChunk,serverTranscribe:serverTranscribe};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -290,6 +290,57 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
   ok(wav.byteLength === 44 + 8, 'WAV: 44 Header + 2 Byte/Sample');
   ok(wav.getUint32(24, true) === 16000, 'WAV: Samplerate 16k');
   ok(wav.getInt16(46, true) === 16383, 'WAV: 0.5 -> 16383, habe ' + wav.getInt16(46, true));
+
+
+  // 21) Robuste Server-Transkription: Chunking an Pausen, Retry, Offset-Merge, Timing-Glättung
+  {
+    const SR = 16000;
+    // 250 s Rauschen-"Sprache" mit einer Stille-Lücke bei 99.0–99.5 s → Schnitt muss dort landen
+    const aud = new Float32Array(SR * 250).fill(0.3);
+    aud.fill(0, Math.round(99.0 * SR), Math.round(99.5 * SR));
+    const parts = T.splitAudioChunks(aud, SR);
+    ok(parts.length === 3, 'Chunking: 3 Stuecke, habe ' + parts.length);
+    ok(parts[1].offset > 99.0 && parts[1].offset < 99.5, 'Schnitt in der Pause: ' + parts[1].offset.toFixed(2));
+    ok(parts.every(p => p.samples.length <= SR * 100 + 1), 'kein Stueck laenger als 100s');
+    ok(parts.reduce((a, p) => a + p.samples.length, 0) === aud.length, 'Chunking verliert keine Samples');
+    ok(T.splitAudioChunks(new Float32Array(SR * 30), SR).length === 1, 'kurzes Audio = 1 Stueck');
+    ok(T.chunkIsSilent(new Float32Array(SR)) && !T.chunkIsSilent(new Float32Array(SR).fill(0.2)), 'Stille-Erkennung');
+
+    ok(T.isHallucinatedChunk(mkW(['Untertitel', 'der', 'Amara.org-Community'])), 'Halluzination erkannt');
+    ok(!T.isHallucinatedChunk(mkW(['Das', 'ist', 'echter', 'Inhalt'])), 'echter Inhalt bleibt');
+
+    const sw = T.sanitizeWordTimings([
+      { word: 'Hallo', start: 0, end: 0.5 }, { word: 'Welt', start: 0.4, end: 9 }, { word: 'x', start: 10, end: 10 }
+    ], 12);
+    ok(sw[0].end <= sw[1].start + 1e-9, 'Ueberlappung geglaettet');
+    ok(sw[1].end - sw[1].start < 1.5, 'gedehntes Wort gekuerzt: ' + (sw[1].end - sw[1].start).toFixed(2));
+    ok(sw[2].end > sw[2].start, 'Nulllaenge behoben');
+
+    // serverTranscribe mit Mock-fetch: 2 Stuecke, 1x 503 → Retry, Offsets + festgenagelte Sprache
+    const calls = [];
+    global.fetch = async (url, opt) => {
+      calls.push(url);
+      if (calls.length === 1) return { ok: false, status: 503, headers: { get: () => null }, json: async () => ({ error: 'busy' }) };
+      const n = calls.length;
+      return { ok: true, status: 200, headers: { get: () => null },
+        json: async () => ({ language: 'german', words: [{ word: 'Wort' + n, start: 1, end: 1.4 }] }) };
+    };
+    const origTO = global.setTimeout; global.setTimeout = (f) => origTO(f, 0); // Backoff im Test abkuerzen
+    const big = new Float32Array(SR * 150).fill(0.3);
+    const r = await T.serverTranscribe(big, 'whisper-large-v3-turbo', '', 150);
+    global.setTimeout = origTO;
+    ok(r && r.words.length === 2, 'Server: 2 Woerter nach Retry, habe ' + (r && r.words.length));
+    ok(r.words[1].start > 80 && r.words[1].start < 101, 'zweites Stueck um Offset verschoben: ' + r.words[1].start);
+    ok(r.language === 'german', 'Sprache uebernommen');
+    ok(calls.length === 3 && /lang=de/.test(calls[2]), 'Sprache fuer Folge-Stueck festgenagelt: ' + calls[2]);
+    // fehlender Proxy (404) → null = lokaler Fallback
+    global.fetch = async () => ({ ok: false, status: 404, headers: { get: () => null }, json: async () => ({}) });
+    ok((await T.serverTranscribe(new Float32Array(SR * 5).fill(0.3), 'm', '', 5)) === null, '404 → Fallback (null)');
+    // dauerhaft 429 → klarer Fehler, kein stilles Verschlucken
+    global.fetch = async () => ({ ok: false, status: 429, headers: { get: () => '120' }, json: async () => ({}) });
+    let thrown = null; try { await T.serverTranscribe(new Float32Array(SR * 5).fill(0.3), 'm', '', 5); } catch (e) { thrown = e; }
+    ok(thrown && /limit/i.test(thrown.message), '429 mit langem Retry-After → klare Meldung');
+  }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
