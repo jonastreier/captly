@@ -2288,12 +2288,21 @@ function startCapLoop() {
 // ═══════════════════════════════════════
 // SCENE CUTS — harte Schnitte im hochgeladenen Video erkennen (im Hintergrund)
 // ═══════════════════════════════════════
-// Verstecktes <video> (gleiche Objekt-URL) wird per Seek abgetastet (~5 fps, bei langen Videos seltener),
-// jeder Frame auf 64×36 verkleinert → Luma-Histogramm + mittlere Pixel-Differenz zum Vorgänger. Ein Schnitt
-// ist ein starker Ausreißer der Histogramm-Distanz (adaptive Schwelle: max(0.35, Median + 6·MAD)) mit
-// deutlicher Pixeländerung; die Zeit wird per Bisektion (3 Seeks) auf ~1 Frame genau bestimmt.
-// Nur Seek + 'seeked' (kein requestVideoFrameCallback) → läuft auch auf iOS Safari.
-var sceneCuts = [], breakAtCuts = true, _cutRun = 0, CUT_BINS = 16, CUT_W = 64, CUT_H = 36;
+// Zwei Wege, GLEICHE Entscheidungslogik (decideSceneCuts):
+//  • WebCodecs (MP4/MOV, wo VideoDecoder existiert): Datei häppchenweise per mp4box demuxen (wie der
+//    Schnellexport), JEDEN Frame sequenziell dekodieren (P/B-Frames brauchen ihre Referenzen; ein Seek
+//    dekodiert dagegen jedes Mal ab dem letzten Keyframe neu — bei GOP 250 ~0.4 s pro Probe, 34-s-Reel
+//    > 1 min), sofort auf 64×36 verkleinern und den VideoFrame schließen. Zeiten = Frame-Zeitstempel.
+//  • Fallback (WebM, HEVC ohne Decoder, kein WebCodecs, iOS ohne VideoDecoder): verstecktes <video> grob
+//    abtasten — stumm mit 4× abspielen + requestVideoFrameCallback, Lücken > 1 s per Seek (2.5 fps) füllen;
+//    ohne rVFC/Autoplay (z. B. iOS-Sperre) also reiner Seek-Pfad wie bisher. Nur um Kandidaten herum per
+//    Bisektion auf < ½ Frame verfeinern.
+// Pro Frame: Luma-Histogramm (16 Bins), 16×9-Mini-Thumbnail, Histogramm-Distanz d und mittlere Pixel-
+// Differenz p (64×36) zum Vorgänger. Harter Schnitt = große Änderung zwischen ZWEI Frames, die BLEIBT:
+// Blitze/Strobos (Bild 0.3 s später gleicht dem davor) und Überblendungen (Änderung verteilt sich auf
+// viele Frames) werden verworfen — sie erzeugten sonst 0.16-s-Ein-Wort-Blöcke mitten im Satz.
+var sceneCuts = [], breakAtCuts = true, _cutRun = 0, _cutState = null, CUT_BINS = 16, CUT_W = 64, CUT_H = 36, CUT_TW = 16, CUT_TH = 9;
+var CUT_FLOOR = 0.25, CUT_MIN_P = 0.04; // Mindest-Änderung (cutChange) bzw. Mindest-Pixeldifferenz eines Schnitts
 function activeCuts() { return breakAtCuts ? sceneCuts : []; }
 function lumaFromRGBA(data) {
   var n = data.length >> 2, out = new Float32Array(n);
@@ -2314,34 +2323,146 @@ function medianOf(arr) {
   var s2 = arr.slice().sort(function(x, y){ return x - y; }), m = s2.length >> 1;
   return s2.length % 2 ? s2[m] : (s2[m - 1] + s2[m]) / 2;
 }
-function cutThreshold(dists) {
+// Adaptive Schwelle: Median + 6·MAD, mit Untergrenze (Rauschen bei ruhigem Video) und Obergrenze 0.6
+// (Dauer-Bewegung wie Handkamera/Tanz soll echte Schnitte nicht "wegnormalisieren").
+function cutThreshold(dists, floor) {
   var med = medianOf(dists), mad = medianOf(dists.map(function(d){ return Math.abs(d - med); }));
-  return Math.max(0.35, med + 6 * mad);
+  return Math.max(floor == null ? 0.35 : floor, Math.min(0.6, med + 6 * mad));
 }
-// samples: [{ t, d (Hist.-Distanz zum Vorgänger), p (Pixel-Differenz) }] → Indizes der Schnitt-Kandidaten
-function pickCutCandidates(samples) {
-  if (samples.length < 3) return [];
-  var ds = samples.slice(1).map(function(x){ return x.d; });
-  var thr = cutThreshold(ds), out = [];
-  for (var i = 1; i < samples.length; i++) {
-    var x = samples[i];
-    if (x.d > thr && x.p > 0.06 && x.d >= (samples[i - 1].d || 0) && x.d >= ((samples[i + 1] || {}).d || 0)) out.push(i);
+// Änderungsmaß: Histogramme übersehen Schnitte zwischen ähnlich hellen Szenen, die Pixel-Differenz
+// allein springt auf Bewegung an — das Maximum aus beiden (p skaliert) trägt beides. Bewusst NICHT bei 1
+// gekappt: sonst sättigen Schnitt und Blitz gleich und die Verhältnis-Tests unten verlieren Trennschärfe.
+function cutChange(d, p) { return Math.max(d, p * 4); }
+// 64×36-Luma → 16×9-Mini-Thumbnail (4×4-Blockmittel, Uint8): billig zu speichern (144 B/Frame, auch bei
+// 10 min @ 30 fps nur ~2.6 MB) und mittelt Bewegung weg → taugt zum Vergleich weiter auseinanderliegender Frames.
+function cutThumb(luma, into) {
+  var s = into || new Uint8Array(CUT_TW * CUT_TH), bx = CUT_W / CUT_TW, by = CUT_H / CUT_TH;
+  for (var y = 0; y < CUT_TH; y++) for (var x = 0; x < CUT_TW; x++) {
+    var sum = 0;
+    for (var yy = 0; yy < by; yy++) for (var xx = 0; xx < bx; xx++) sum += luma[(y * by + yy) * CUT_W + x * bx + xx];
+    s[y * CUT_TW + x] = Math.round(sum / (bx * by) * 255);
   }
-  return out;
+  return s;
 }
-function cutSampleStep(t) { return t < 120 ? 0.2 : t < 600 ? 0.5 : 1.0; } // lange Videos: Arbeit deckeln
+function thumbDiff(a, b) { var d = 0; for (var i = 0; i < a.length; i++) d += Math.abs(a[i] - b[i]); return d / ((a.length || 1) * 255); }
+function frameDist(a, b) { return cutChange(histDistance(a.h, b.h), thumbDiff(a.s, b.s)); }
+// Histogramm + Thumbnail liegen als Views in großen Blöcken ("Slabs" à 1024 Frames) statt in je eigenen
+// Typed Arrays: 10 min @ 30 fps wären sonst 36 000 einzelne ArrayBuffer — deren GC-Kosten blockierten im
+// Test die UI zunehmend (Lags bis ~0.5 s gegen Ende).
+var _cutSlab = null;
+function cutSlot() {
+  if (!_cutSlab || _cutSlab.n >= 1024) _cutSlab = { h: new Float32Array(1024 * CUT_BINS), s: new Uint8Array(1024 * CUT_TW * CUT_TH), n: 0 };
+  var k = _cutSlab.n++, ts = CUT_TW * CUT_TH;
+  return { h: _cutSlab.h.subarray(k * CUT_BINS, (k + 1) * CUT_BINS), s: _cutSlab.s.subarray(k * ts, (k + 1) * ts) };
+}
+// Merkmale eines Frames (luma: 64×36 Float32 0..1); prev/prevLuma = Vorgänger (oder null)
+function cutFrame(t, luma, prev, prevLuma) {
+  var slot = cutSlot();
+  slot.h.set(lumaHistogram(luma, CUT_BINS));
+  return { t: t, h: slot.h, s: cutThumb(luma, slot.s), d: prev ? histDistance(prev.h, slot.h) : 0, p: prevLuma ? meanAbsDiff(prevLuma, luma) : 0 };
+}
+// Kandidaten < gap s auseinander → nur der stärkste bleibt (ein Schnitt, nicht zwei Mini-Blöcke)
+function mergeCutCands(cands, gap) {
+  var m = [];
+  cands.forEach(function(x) {
+    var last = m[m.length - 1];
+    if (last && x.t - last.t < gap) { if (x.c > last.c) m[m.length - 1] = x; }
+    else m.push(x);
+  });
+  return m;
+}
+// Reine Entscheidung (Node-testbar). fr: [{ t, h, s, d, p }] zeitlich sortiert — volle Framerate
+// (WebCodecs) oder grobe Proben (Seek-Pfad, o.coarse: dort prüft erst die Bisektion "hart vs. weich").
+// → [{ t (Zeit des ersten Frames der neuen Szene), c (Stärke), i (Index) }]
+function decideSceneCuts(fr, o) {
+  o = o || {};
+  var n = fr ? fr.length : 0, out = [], i;
+  if (n < 3) return out;
+  var c = [0];
+  for (i = 1; i < n; i++) c.push(cutChange(fr[i].d, fr[i].p));
+  var thr = cutThreshold(c.slice(1), CUT_FLOOR), steps = [];
+  for (i = 1; i < n && i < 400; i++) steps.push(fr[i].t - fr[i - 1].t);
+  var dt = Math.max(1e-3, medianOf(steps));
+  var K = Math.max(1, Math.round(0.3 / dt)), W = Math.max(1, Math.round(0.5 / dt));
+  function cc(j) { return j >= 1 && j < n ? c[j] : 0; }
+  for (i = 1; i < n; i++) {
+    var ci = c[i];
+    if (ci < thr || fr[i].p < CUT_MIN_P || ci < cc(i - 1) || ci < cc(i + 1)) continue;
+    // Überblendung: Distanzen steigen auf BEIDEN Seiten an (Nachbarn > 40 % des Peaks) oder der Sprung
+    // ist nur ein kleiner Teil der Gesamtänderung über ±0.5 s (graduell) → kein harter Schnitt. Grobe
+    // Proben: lockerer (verpasster Schnitt wäre schlimmer; die Bisektion prüft ohnehin nach).
+    var rampF = o.coarse ? 0.6 : 0.4, spanF = o.coarse ? 0.3 : 0.4;
+    if (Math.min(Math.max(cc(i - 1), cc(i - 2)), Math.max(cc(i + 1), cc(i + 2))) > rampF * ci) continue;
+    if (frameDist(fr[i - 1], fr[i]) < spanF * frameDist(fr[Math.max(0, i - W)], fr[Math.min(n - 1, i + W)])) continue;
+    // Blitz/Strobo/kurzer Einschub: kehrt das Bild binnen ~0.3 s zum Bild davor zurück (steigende Flanke)
+    // bzw. glich das Bild danach schon einem Bild ≤ 0.3 s vorher (fallende Flanke) → kein Schnitt. Jeweils
+    // gegen ALLE Frames im Fenster, damit der zeitlich nächste passt (Bewegung/Schwenk verfälscht sonst).
+    var jump = frameDist(fr[i - 1], fr[i]), rev = Infinity, j;
+    for (j = i + 1; j <= Math.min(n - 1, i + K); j++) rev = Math.min(rev, frameDist(fr[i - 1], fr[j]));
+    for (j = Math.max(0, i - 1 - K); j < i - 1; j++) rev = Math.min(rev, frameDist(fr[j], fr[i]));
+    if (rev < 0.5 * jump) continue;
+    out.push({ t: fr[i].t, c: ci, i: i });
+  }
+  return mergeCutCands(out, 0.3);
+}
+function cutTimes(cands) { return cands.map(function(x){ return Math.round(x.t * 1e4) / 1e4; }); }
+function cutCoarseStep(dur) { return dur <= 120 ? 0.4 : dur <= 600 ? 0.5 : 1.0; } // Seek-Pfad: Arbeit deckeln
+// true = 'seeked' kam; false = Timeout (Bild ist dann NICHT das gewünschte → Aufrufer verwirft es)
 function seekVideoTo(v, t, timeoutMs) {
   return new Promise(function(resolve) {
     var done = false;
-    function fin() { if (done) return; done = true; clearTimeout(tm); v.removeEventListener('seeked', fin); resolve(); }
-    var tm = setTimeout(fin, timeoutMs || 2500);
-    v.addEventListener('seeked', fin);
-    try { v.currentTime = t; } catch (e) { fin(); }
+    function fin(ok) { if (done) return; done = true; clearTimeout(tm); v.removeEventListener('seeked', onSeeked); resolve(ok); }
+    function onSeeked() { fin(true); }
+    var tm = setTimeout(function(){ fin(false); }, timeoutMs || 2500);
+    v.addEventListener('seeked', onSeeked);
+    try { v.currentTime = t; } catch (e) { fin(false); }
   });
 }
-async function detectSceneCuts(url, dur, isStale) {
+function lumaToU8(l) { var u = new Uint8Array(l.length); for (var i = 0; i < l.length; i++) u[i] = Math.round(l[i] * 255); return u; }
+function lumaFromU8(u) { var l = new Float32Array(u.length); for (var i = 0; i < u.length; i++) l[i] = u[i] / 255; return l; }
+// Verstecktes Video stumm mit 4× abspielen und jeden PRÄSENTIERTEN Frame (requestVideoFrameCallback,
+// mediaTime; der Canvas kann schon ein paar Frames weiter sein → Verfeinerung erweitert B) auf 64×36 greifen. Bricht ab bei Ende, Stillstand > 3 s
+// (Hintergrund-Tab, iOS-Autoplay-Sperre), Fehler oder neuem Video → Rest füllt der Seek-Pfad.
+// → [{ t, l (Uint8-Luma, spart Speicher) }]
+function scanByPlayback(v, cx, dur, stale, onProgress) {
+  return new Promise(function(resolve) {
+    var out = [];
+    if (typeof v.requestVideoFrameCallback !== 'function') { resolve(out); return; }
+    var lastWall = Date.now(), done = false, wd = null;
+    function fin() {
+      if (done) return; done = true;
+      if (wd) clearInterval(wd);
+      try { v.pause(); v.playbackRate = 1; } catch (e) {}
+      resolve(out);
+    }
+    function cb(now, meta) {
+      if (done) return;
+      if (stale()) { fin(); return; }
+      try {
+        cx.drawImage(v, 0, 0, CUT_W, CUT_H);
+        out.push({ t: meta.mediaTime, l: lumaToU8(lumaFromRGBA(cx.getImageData(0, 0, CUT_W, CUT_H).data)) });
+      } catch (e) { fin(); return; }
+      lastWall = Date.now();
+      if (onProgress) onProgress(0.8 * meta.mediaTime / dur);
+      v.requestVideoFrameCallback(cb);
+    }
+    wd = setInterval(function() { if (stale() || Date.now() - lastWall > 3000) fin(); }, 500);
+    v.addEventListener('ended', fin, { once: true });
+    v.addEventListener('error', fin, { once: true });
+    try {
+      v.requestVideoFrameCallback(cb);
+      v.playbackRate = 4;
+      var p = v.play();
+      if (p && p.catch) p.catch(fin);
+    } catch (e) { fin(); }
+  });
+}
+// o: { isStale(), onProgress(0..1), state (bekommt .partial()) } → Schnittzeiten [s]
+async function detectSceneCutsSeek(url, dur, o) {
   if (typeof document === 'undefined' || !url || !(dur > 1.5)) return [];
-  function stale() { return isStale && isStale(); }
+  o = o || {};
+  if (o.state) o.state.partial = null; // evtl. Rest eines abgebrochenen WebCodecs-Versuchs
+  function stale() { return o.isStale && o.isStale(); }
   var v = document.createElement('video');
   v.muted = true; v.playsInline = true; v.preload = 'auto';
   try { v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); } catch (e) {}
@@ -2355,49 +2476,306 @@ async function detectSceneCuts(url, dur, isStale) {
     if (stale() || !(v.videoWidth > 0)) return [];
     var cv = document.createElement('canvas'); cv.width = CUT_W; cv.height = CUT_H;
     var cx = cv.getContext('2d', { willReadFrequently: true });
+    // null = Seek nicht rechtzeitig fertig. Großzügiges Timeout: ein Rückwärts-Seek dekodiert ab dem
+    // letzten Keyframe (GOP 250, 1080p: im Test bis ~3.7 s) — ein zu knappes Timeout lieferte das alte Bild.
     var grab = async function(t) {
-      await seekVideoTo(v, t);
+      var ok = await seekVideoTo(v, t, 10000);
       if (stale()) throw transcribeErr('stale', { stale: true });
+      if (!ok) return null;
       cx.drawImage(v, 0, 0, CUT_W, CUT_H);
-      var l = lumaFromRGBA(cx.getImageData(0, 0, CUT_W, CUT_H).data);
-      return { l: l, h: lumaHistogram(l, CUT_BINS) };
+      return lumaFromRGBA(cx.getImageData(0, 0, CUT_W, CUT_H).data);
     };
-    var samples = [], prev = null, end = dur - 0.05;
-    for (var t = 0.05; t < end; t += cutSampleStep(t)) {
-      var g = await grab(t);
-      samples.push({ t: t, h: g.h, d: prev ? histDistance(prev.h, g.h) : 0, p: prev ? meanAbsDiff(prev.l, g.l) : 0 });
-      prev = g;
-      if (samples.length % 25 === 0) await yieldToUI();
+    // 1) Grobe Proben. a) Wo möglich per Wiedergabe (stumm, 4×) + requestVideoFrameCallback: das dekodiert
+    //    sequenziell — jeder Seek dagegen dekodiert ab dem Keyframe davor (GOP 250, 1080p: ~0.4 s pro Probe,
+    //    auch vorwärts). b) Lücken > 1 s (Frames bei 4× verworfen, Wiedergabe blockiert/abgebrochen,
+    //    Hintergrund-Tab, kein rVFC) per Seek mit 2.5 fps füllen (lange Videos seltener).
+    var t0 = Date.now(), step = cutCoarseStep(dur), end = dur - 0.05;
+    var raw = await scanByPlayback(v, cx, dur, stale, o.onProgress);
+    var tPlay = Date.now() - t0;
+    raw.sort(function(x, y) { return x.t - y.t; });
+    var fill = [], last = 0.05 - step;
+    for (var r = 0; r <= raw.length; r++) {
+      var nextT = r < raw.length ? raw[r].t : end + step;
+      if (nextT - last > 1.0) for (var ft = last + step; ft < nextT - step / 2 && ft < end; ft += step) fill.push(ft);
+      if (r < raw.length) last = raw[r].t;
     }
-    var cuts = [];
-    var cands = pickCutCandidates(samples);
+    for (var q = 0; q < fill.length; q++) {
+      var gl0 = await grab(fill[q]);
+      if (gl0) raw.push({ t: fill[q], l: lumaToU8(gl0) });
+      if (o.onProgress) o.onProgress(Math.max(raw.length ? raw[raw.length - 1].t / dur : 0, (q + 1) / fill.length) * 0.8);
+      if (q % 10 === 9) await yieldToUI();
+    }
+    raw.sort(function(x, y) { return x.t - y.t; });
+    var fr = [], prevF = null, prevL = null;
+    for (r = 0; r < raw.length; r++) {
+      if (prevF && raw[r].t - prevF.t < 1e-4) continue; // doppelt (gleicher Frame)
+      var l = lumaFromU8(raw[r].l), f = cutFrame(raw[r].t, l, prevF, prevL);
+      fr.push(f); prevF = f; prevL = l;
+    }
+    raw = null;
+    var tCoarse = Date.now() - t0;
+    if (o.state) o.state.partial = function() { return []; }; // grobe Proben allein sind nicht framegenau
+    // 2) Nur um die Kandidaten herum verfeinern: Bisektion bis < 1/60 s. Referenzen per Seek neu holen und
+    //    B um 0.5 s nach hinten erweitern: bei 4× zeigt der Canvas im rVFC-Callback evtl. schon einen
+    //    späteren Frame als mediaTime sagt (Wiedergabe läuft weiter) — so lag der Schnitt im 10-min-Test
+    //    knapp HINTER der Probe B und wurde verworfen. Harter Schnitt ⇔ (fast) die ganze Änderung passiert
+    //    zwischen zwei benachbarten Frames; bei einer Überblendung schrumpft sie mit dem Intervall → verworfen.
+    //    Zeit = erste Probe mit der neuen Szene (Fehler < ½ Frame bei 30 fps).
+    var cands = decideSceneCuts(fr, { coarse: true }), cuts = [];
     for (var c = 0; c < cands.length; c++) {
-      var A = samples[cands[c] - 1], B = samples[cands[c]], lo = A.t, hi = B.t;
-      for (var k = 0; k < 3; k++) { // Bisektion → ~1 Frame genau
-        var mid = (lo + hi) / 2, gm = await grab(mid);
-        if (histDistance(gm.h, A.h) <= histDistance(gm.h, B.h)) lo = mid; else hi = mid;
+      var B0 = fr[cands[c].i], lo = fr[cands[c].i - 1].t, hi = Math.min(end, B0.t + 0.5), broken = false;
+      var Al = await grab(lo), Bl = Al && await grab(hi);
+      if (!Al || !Bl) broken = true;
+      else {
+        var Af = cutFrame(lo, Al, null, null), Bf = cutFrame(hi, Bl, null, null), L = Af, R = Bf, Ll = Al, Rl = Bl;
+        var nBis = Math.max(1, Math.ceil(Math.log(Math.max(1, (hi - lo) * 60)) / Math.LN2));
+        for (var k = 0; k < nBis; k++) {
+          var mid = (lo + hi) / 2, ml = await grab(mid);
+          if (!ml) { broken = true; break; }
+          var M = cutFrame(mid, ml, null, null);
+          if (frameDist(M, Af) <= frameDist(M, Bf)) { lo = mid; L = M; Ll = ml; } else { hi = mid; R = M; Rl = ml; }
+        }
       }
-      var ct = Math.round(((lo + hi) / 2) * 1000) / 1000;
-      if (!cuts.length || ct - cuts[cuts.length - 1] > 0.3) cuts.push(ct);
+      if (o.onProgress) o.onProgress(0.8 + 0.2 * (c + 1) / cands.length);
+      if (broken) { cuts.push({ t: B0.t, c: cands[c].c }); continue; } // Seek hängt → grob übernehmen statt verlieren
+      if (meanAbsDiff(Ll, Rl) < CUT_MIN_P || frameDist(L, R) < 0.5 * frameDist(Af, Bf)) continue;
+      cuts.push({ t: hi, c: frameDist(L, R) });
     }
-    return cuts;
-  } catch (e) {
-    if (!(e && e.stale)) console.warn('Szenenschnitt-Erkennung abgebrochen:', e);
-    return [];
+    console.info('[cuts] Seek-Pfad: ' + fr.length + ' grobe Proben in ' + (tCoarse / 1000).toFixed(1) + ' s (Wiedergabe '
+                 + (tPlay / 1000).toFixed(1) + ' s, ' + fill.length + ' Seeks), '
+                 + cands.length + ' Kandidaten verfeinert in ' + ((Date.now() - t0 - tCoarse) / 1000).toFixed(1) + ' s');
+    return cutTimes(mergeCutCands(cuts, 0.3));
   } finally {
     try { v.removeAttribute('src'); v.load(); } catch (e2) {}
   }
 }
+// 64×36-Luma direkt aus der Y-Ebene eines VideoFrames (copyTo = Speicherkopie; drawImage auf einen
+// Canvas kostete in Chrome ~10 ms/Frame für die volle YUV→RGB-Wandlung + Skalierung, copyTo < 1 ms).
+// Pro Zelle 4×4 Stichproben gemittelt (gegen Aliasing). null = Format unbekannt → Aufrufer zeichnet.
+var CUT_YUV8 = { I420: 1, I420A: 1, I422: 1, I422A: 1, I444: 1, I444A: 1, NV12: 1 };
+async function lumaFromVideoFrame(frame, bufRef) {
+  var fmt = frame.format, b16 = /^I4(20|22|44)A?P(10|12)$/.test(fmt || ''), rgb = /^(RGB|BGR)[AX]$/.test(fmt || '');
+  if (!fmt || !(CUT_YUV8[fmt] || b16 || rgb)) return null;
+  var size = frame.allocationSize();
+  if (!bufRef.buf || bufRef.buf.byteLength < size) bufRef.buf = new Uint8Array(size);
+  var buf = bufRef.buf, lay = await frame.copyTo(buf), off = lay[0].offset, st = lay[0].stride;
+  var W = frame.visibleRect ? frame.visibleRect.width : frame.codedWidth, H = frame.visibleRect ? frame.visibleRect.height : frame.codedHeight;
+  var dv = b16 ? new DataView(buf.buffer, buf.byteOffset, size) : null;
+  var full = !!(frame.colorSpace && frame.colorSpace.fullRange); // manche Handys: Full-Range-YUV
+  var lo = full ? 0 : 16, rng = full ? 255 : 219; // Video-Range (8 bit); 10/12 bit skaliert
+  if (b16) { var sh = /P12$/.test(fmt) ? 4 : 2; lo = lo << sh; rng = full ? (1 << (8 + sh)) - 1 : 219 << sh; }
+  // zwei Ziel-Puffer im Wechsel (aktueller + Vorgänger-Frame) statt pro Frame neu allozieren
+  bufRef.k = (bufRef.k || 0) ^ 1;
+  var out = (bufRef.l || (bufRef.l = [new Float32Array(CUT_W * CUT_H), new Float32Array(CUT_W * CUT_H)]))[bufRef.k], S = 4;
+  for (var y = 0; y < CUT_H; y++) for (var x = 0; x < CUT_W; x++) {
+    var acc = 0;
+    for (var sy = 0; sy < S; sy++) {
+      var row = Math.min(H - 1, Math.floor((y + (sy + 0.5) / S) * H / CUT_H)) * st + off;
+      for (var sx = 0; sx < S; sx++) {
+        var col = Math.min(W - 1, Math.floor((x + (sx + 0.5) / S) * W / CUT_W));
+        if (rgb) { var k = row + col * 4, r = buf[k], g = buf[k + 1], bl = buf[k + 2]; if (fmt[0] === 'B') { var tmp = r; r = bl; bl = tmp; } acc += (0.299 * r + 0.587 * g + 0.114 * bl) / 255; }
+        else acc += ((b16 ? dv.getUint16(row + col * 2, true) : buf[row + col]) - lo) / rng;
+      }
+    }
+    out[y * CUT_W + x] = Math.max(0, Math.min(1, acc / (S * S)));
+  }
+  return out;
+}
+// Schneller Pfad: alle Frames sequenziell dekodieren (Demux wie exportFastWebCodecs). Wirft bei JEDEM
+// Problem (Codec, fragmentiertes MP4, komplexe Edit-Liste …) → Aufrufer nimmt den Seek-Pfad.
+async function detectSceneCutsWC(file, dur, o) {
+  o = o || {};
+  function stale() { return o.isStale && o.isStale(); }
+  var MP4Box = (await getWebCodecsLibs()).MP4Box;
+  var mp4 = MP4Box.createFile(), info = null, demuxErr = null, vQ = [], vId = -1;
+  mp4.onReady = function(i) { info = i; };
+  mp4.onError = function(e) { demuxErr = e || 'mp4box error'; };
+  // Andere Spuren (Ton) werden mit extrahiert und sofort freigegeben: mp4box gibt einen 4-MB-Puffer erst frei,
+  // wenn ALLE Samples darin "benutzt" sind — sonst blieb die ganze Datei im RAM (10-min-Test: Heap = Dateigröße).
+  var otherRel = {};
+  mp4.onSamples = function(id, user, samples) {
+    if (id === vId) { for (var i = 0; i < samples.length; i++) vQ.push(samples[i]); }
+    else if (samples.length) otherRel[id] = samples[samples.length - 1].number + 1;
+  };
+  // Datei häppchenweise lesen (nie komplett in den RAM); mp4box sagt, welche Position es als Nächstes braucht
+  var CHUNK = 4 * 1024 * 1024, size = file.size, pos = 0, iter = 0, maxIter = Math.ceil(size / CHUNK) * 4 + 50;
+  async function feed() {
+    if (++iter > maxIter) throw new Error('demux: kein Fortschritt (pos ' + pos + ')');
+    var ab = await file.slice(pos, Math.min(size, pos + CHUNK)).arrayBuffer();
+    ab.fileStart = pos;
+    var next = mp4.appendBuffer(ab);
+    if (demuxErr) throw new Error('mp4box: ' + demuxErr);
+    pos = (typeof next === 'number' && isFinite(next)) ? next : pos + ab.byteLength;
+  }
+  while (!info && pos < size) await feed();
+  if (!info) throw new Error('kein moov gefunden');
+  if (info.isFragmented) throw new Error('fragmentiertes MP4 nicht unterstützt');
+  var vT = info.videoTracks && info.videoTracks[0];
+  if (!vT || !vT.nb_samples) throw new Error('keine Videospur');
+  var vEntry = mp4.getTrackById(vT.id).mdia.minf.stbl.stsd.entries[0];
+  var decCfg = { codec: vT.codec, codedWidth: vT.video.width, codedHeight: vT.video.height };
+  var cfgBox = vEntry.avcC || vEntry.hvcC;
+  if (cfgBox) decCfg.description = mp4BoxPayload(MP4Box, cfgBox);
+  else if (/^(avc|hvc|hev)/.test(vT.codec)) throw new Error('avcC/hvcC fehlt (' + vT.codec + ')');
+  var sup = await VideoDecoder.isConfigSupported(decCfg);
+  if (!sup || !sup.supported) throw new Error('VideoDecoder kann ' + vT.codec + ' nicht');
+  var vOff = editListOffset(vT.edits, info.timescale, vT.timescale);
+  if (vOff === null) throw new Error('komplexe Edit-Liste');
+  var vEnd = editListEnd(vT.edits, info.timescale);
+
+  var cv = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(CUT_W, CUT_H) : document.createElement('canvas');
+  cv.width = CUT_W; cv.height = CUT_H;
+  var cx = cv.getContext('2d', { willReadFrequently: true });
+  var fr = [], prevF = null, prevL = null, fail = null, done = 0, sent = 0, open = 0, total = vT.nb_samples;
+  var chain = Promise.resolve(), bufRef = {};
+  function setFail(e) { if (!fail) fail = e instanceof Error ? e : new Error(String(e && e.message || e)); }
+  // Pro Frame nur 64×36-Luma + Merkmale, dann SOFORT schließen (offene Frames blockieren den Decoder-
+  // Pool). copyTo ist asynchron → Frames strikt der Reihe nach über eine Promise-Kette verarbeiten.
+  async function handle(frame) {
+    try {
+      if (fail) return;
+      var t = frame.timestamp / 1e6;
+      if (t < -0.0005 || t >= vEnd - 0.0005) return; // per Edit-Liste ausgeblendet (wie im Export)
+      var l = await lumaFromVideoFrame(frame, bufRef);
+      if (!l) { cx.drawImage(frame, 0, 0, CUT_W, CUT_H); l = lumaFromRGBA(cx.getImageData(0, 0, CUT_W, CUT_H).data); }
+      var f = cutFrame(Math.max(0, t), l, prevF, prevL);
+      fr.push(f); prevF = f; prevL = l;
+    } catch (e) { setFail(e); }
+    finally { frame.close(); open--; done++; wakeUp(); }
+  }
+  // Warten, bis Decoder-Queue ODER Verarbeitungskette Platz hat ('dequeue'/Frame-Ende statt Timer: Timer
+  // werden in Hintergrund-Tabs auf ≥ 1 s gedrosselt; der Timer ist nur Sicherheitsnetz)
+  var wake = null;
+  function wakeUp() { if (wake) { var w = wake; wake = null; w(); } }
+  function tick() { return new Promise(function(res) { wake = res; decoder.ondequeue = wakeUp; setTimeout(wakeUp, 50); }); }
+  var decoder = new VideoDecoder({
+    output: function(frame) { open++; chain = chain.then(function() { return handle(frame); }); },
+    error: setFail
+  });
+  decoder.configure(decCfg);
+  // Zwischenstand für waitForSceneCuts (Timeout): alles bis 0.5 s vor dem letzten Frame ist entschieden
+  if (o.state) o.state.partial = function() {
+    var lim = fr.length ? fr[fr.length - 1].t - 0.5 : 0;
+    return cutTimes(decideSceneCuts(fr).filter(function(x){ return x.t < lim; }));
+  };
+  var lastPct = -1;
+  function progress() {
+    var p = Math.min(1, done / total);
+    if (o.onProgress && Math.floor(p * 100) !== lastPct) { lastPct = Math.floor(p * 100); o.onProgress(p); }
+  }
+  async function drain() {
+    for (var j = 0; j < vQ.length; j++) {
+      // Backpressure: nur ein paar Chunks in der Queue → Speicher beschränkt, UI bleibt flüssig
+      while (decoder.decodeQueueSize > 6 || open > 4) {
+        await tick();
+        if (fail) throw fail;
+        if (stale()) throw transcribeErr('stale', { stale: true });
+        progress();
+      }
+      var s = vQ[j];
+      decoder.decode(new EncodedVideoChunk({
+        type: s.is_sync ? 'key' : 'delta',
+        timestamp: Math.round((s.cts / s.timescale + vOff) * 1e6),
+        duration: Math.round(s.duration / s.timescale * 1e6),
+        data: s.data
+      }));
+      sent++;
+    }
+    if (vQ.length) { mp4.releaseUsedSamples(vId, vQ[vQ.length - 1].number + 1); vQ.length = 0; }
+    for (var oid in otherRel) { mp4.releaseUsedSamples(+oid, otherRel[oid]); delete otherRel[oid]; }
+    if (stale()) throw transcribeErr('stale', { stale: true });
+    progress();
+  }
+  try {
+    vId = vT.id;
+    mp4.setExtractionOptions(vId, null, { nbSamples: 60 });
+    (info.tracks || []).forEach(function(tr) { if (tr.id !== vId) mp4.setExtractionOptions(tr.id, null, { nbSamples: 500 }); });
+    pos = mp4.seek(0, true).offset;
+    mp4.start();
+    await drain();
+    while (pos < size && sent < total) { await feed(); await drain(); }
+    mp4.flush();
+    await drain();
+    await decoder.flush();
+    await chain;
+    if (fail) throw fail;
+    if (fr.length < Math.min(3, total)) throw new Error('nur ' + fr.length + '/' + total + ' Frames dekodiert');
+    return cutTimes(decideSceneCuts(fr));
+  } finally {
+    try { if (decoder.state !== 'closed') decoder.close(); } catch (e) {}
+    try { mp4.stop(); } catch (e) {}
+  }
+}
+// Wegwahl (Node-testbar): WebCodecs nur für MP4/MOV mit VideoDecoder. Notschalter für Support/Debugging:
+// localStorage['capivo.fastCuts'] = 'off'.
+function sceneCutPath(file) {
+  try { if (localStorage.getItem('capivo.fastCuts') === 'off') return 'seek'; } catch (e) {}
+  return (typeof VideoDecoder === 'function' && typeof EncodedVideoChunk === 'function' && isFastExportSource(file)) ? 'webcodecs' : 'seek';
+}
+async function detectSceneCuts(file, url, dur, o) {
+  if (sceneCutPath(file) === 'webcodecs') {
+    try { return await detectSceneCutsWC(file, dur, o); }
+    catch (e) {
+      if (e && e.stale) throw e;
+      console.warn('[cuts] WebCodecs-Erkennung nicht möglich → Seek-Pfad. Grund:', e && e.message || e);
+    }
+  }
+  return detectSceneCutsSeek(url, dur, o);
+}
+// Lauf-Status für Fortschritt + waitForSceneCuts: { run, running, pct, promise, partial() }
+function beginCutRun() {
+  var st = { run: ++_cutRun, running: true, pct: 0, partial: null, resolve: null };
+  st.promise = new Promise(function(res) { st.resolve = res; });
+  _cutState = st;
+  noteSceneCuts();
+  return st;
+}
+function finishCutRun(st, cuts) {
+  if (!st.running) return;
+  st.running = false;
+  if (st.run === _cutRun && cuts) setSceneCuts(cuts); else noteSceneCuts();
+  st.resolve(true);
+}
+function cutsDetecting() { var st = _cutState; return !!(st && st.running && st.run === _cutRun); }
 // Hintergrund-Start nach dem Laden eines Videos (verzögert, damit die Transkription zuerst Luft hat)
 function startSceneCutDetection(url, dur) {
-  var run = ++_cutRun;
+  var file = currentFile, st = beginCutRun(), run = st.run, t0 = Date.now();
+  var stale = function() { return run !== _cutRun; };
   setTimeout(function() {
-    if (run !== _cutRun) return;
-    detectSceneCuts(url, dur, function(){ return run !== _cutRun; }).then(function(cuts) {
-      if (run !== _cutRun) return;
-      setSceneCuts(cuts);
+    if (stale()) { finishCutRun(st, null); return; }
+    detectSceneCuts(file, url, dur, {
+      isStale: stale, state: st,
+      onProgress: function(p) { var pct = Math.floor(p * 100); if (pct !== st.pct) { st.pct = pct; noteSceneCuts(); } }
+    }).then(function(cuts) {
+      console.info('[cuts] ' + cuts.length + ' Szenenschnitte in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s: ' + cuts.join(', '));
+      finishCutRun(st, stale() ? null : cuts);
+    }, function(e) {
+      if (!(e && e.stale)) console.warn('Szenenschnitt-Erkennung abgebrochen:', e);
+      finishCutRun(st, null);
     });
   }, 1200);
+}
+// Export-Hook: läuft die Erkennung noch (und ist "Break captions at scene cuts" an), bis timeoutMs warten
+// — Fortschritt im Export-Balken — damit kein Block im Export über einen Schnitt läuft. Nach Timeout
+// zählt der entschiedene Zwischenstand. true = Schnitte vollständig bekannt.
+async function waitForSceneCuts(timeoutMs) {
+  var st = _cutState;
+  if (!breakAtCuts || !cutsDetecting() || isExporting || st.waiting) return true; // Export läuft/wartet schon
+  var btn = document.getElementById('btnVideo'), prog = document.getElementById('recProg');
+  var wasDis = btn ? btn.disabled : false;
+  if (btn) btn.disabled = true; // kein zweiter Export-Start während des Wartens
+  st.waiting = true; noteSceneCuts();
+  if (prog) prog.style.display = 'block';
+  var tm, ok = await Promise.race([st.promise, new Promise(function(res) { tm = setTimeout(function(){ res(false); }, timeoutMs || 20000); })]);
+  clearTimeout(tm);
+  st.waiting = false;
+  if (!ok && st.running && st.partial) {
+    try { var pc = st.partial(); if (pc.length) setSceneCuts(pc); } catch (e) {}
+    console.warn('[cuts] Export wartet nicht länger auf die Schnitterkennung (' + st.pct + '%)');
+  }
+  if (prog) prog.style.display = 'none';
+  if (btn) btn.disabled = wasDis;
+  return !!ok;
 }
 function blocksSpanCut(blocks, cuts) {
   return blocks.some(function(b) {
@@ -2423,12 +2801,26 @@ function regroupForCuts() {
   renderSegments(); renderWPills();
   _lastKey = null; updateOverlay();
 }
-function sceneCutSuffix() { return sceneCuts.length ? ' · ' + sceneCuts.length + ' scene cut' + (sceneCuts.length === 1 ? '' : 's') + ' detected' : ''; }
+// Dezenter Zusatz in der Statuszeile (eigener <span class="cut-note">, wird ersetzt statt überschrieben —
+// Erfolgs-/Fehlertext der Transkription bleibt stehen): Fortschritt während der Erkennung, danach die Anzahl.
+function sceneCutSuffix() {
+  var txt = cutsDetecting() ? 'Detecting scene cuts… ' + _cutState.pct + '%'
+    : sceneCuts.length ? sceneCuts.length + ' scene cut' + (sceneCuts.length === 1 ? '' : 's') + ' detected' : '';
+  return txt ? '<span class="cut-note"> · ' + txt + '</span>' : '';
+}
 function noteSceneCuts() {
+  if (typeof document === 'undefined') return;
+  var st = _cutState;
+  if (st && st.waiting) { // Export wartet → Fortschritt im Export-Balken
+    var rm = document.getElementById('recMsg'), rb = document.getElementById('recBar');
+    if (rm) rm.textContent = 'Detecting scene cuts… ' + st.pct + '% (so captions break at every cut)';
+    if (rb) rb.style.width = st.pct + '%';
+  }
   var el = document.getElementById('tStatus');
-  if (!el || !sceneCuts.length) return;
+  if (!el) return;
   var h = String(el.innerHTML || '');
-  if (/t-spinner/.test(h) || /scene cut/.test(h)) return; // laufende Transkription setzt den Hinweis selbst
+  if (/t-spinner/.test(h)) return; // laufende Transkription hängt den Hinweis am Ende selbst an (sceneCutSuffix)
+  h = h.replace(/<span class="cut-note">[\s\S]*?<\/span>/g, '');
   var i = h.lastIndexOf('</span>');
   if (i > 0) el.innerHTML = h.slice(0, i) + sceneCutSuffix() + h.slice(i);
 }
@@ -5450,6 +5842,7 @@ async function tryFastExport(vid) {
 // EXPORT — VIDEO WITH BURNED-IN CAPTIONS
 // ═══════════════════════════════════════
 async function exportVideoWithCaptions() {
+  await waitForSceneCuts(20000); // Schnitterkennung läuft noch → kurz warten, sonst überspannen Blöcke Schnitte
   var vid = document.getElementById('mainVid');
   if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
   if (isExporting) return; // Doppelklick während eines laufenden Exports
