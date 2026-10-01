@@ -74,7 +74,7 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
+needsWatermark:needsWatermark,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
 splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
 loadProjects:loadProjects,restoreSavedStyle:restoreSavedStyle,setUserTemplates:function(l){userTemplates=l;},pruneTemplates:pruneTemplates,
 TPL_ROW_TITLE:TPL_ROW_TITLE,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
@@ -654,6 +654,40 @@ ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200
   T.setUserTemplates([]);
 }
 
+// 18a) Export-Zeichnen: Ring-Kontur als EIN strokeText, Layout pro Block gecacht
+{
+  const mkCtx = () => {
+    const c = { n: { fill: 0, stroke: 0, measure: 0, font: 0 }, _font: '', letterSpacing: '0px', lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000',
+      fillStyle: '#000', shadowColor: 'transparent', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none', textAlign: 'left', textBaseline: 'alphabetic',
+      strokes: [],
+      get font() { return this._font; }, set font(v) { this.n.font++; this._font = v; },
+      measureText(str) { this.n.measure++; const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+      fillText() { this.n.fill++; }, strokeText(t) { this.n.stroke++; this.strokes.push({ w: this.lineWidth, c: this.strokeStyle, j: this.lineJoin }); },
+      save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, rect() {}, roundRect() {}, ellipse() {}, fillRect() {},
+      createLinearGradient() { return { addColorStop() {} }; } };
+    return c;
+  };
+  T.setState(T.buildCaptionBlocks([{ word: 'Das', start: 0, end: 0.3 }, { word: 'ist', start: 0.35, end: 0.6 }, { word: 'echt', start: 0.65, end: 0.9 }, { word: 'gut', start: 0.95, end: 1.2 }]), [], 'karaoke');
+  const hz = T.STYLES.find(x => x.id === 'hormozi');
+  const plan = T.capShadowPlan(hz.ts);
+  ok(plan.ring && plan.ring.w === 3 && plan.ring.color === '#000' && plan.rest.length === 1, 'Hormozi: Ring erkannt, 1 Restschicht (weicher Schatten)');
+  const c1 = mkCtx();
+  T.drawCaptionsOnCtx(c1, 0.4, hz, 1080, 1920, false);
+  const words = 4, oldCalls = words * (T.parseTextShadows(hz.ts).length + 1);
+  ok(c1.n.stroke === words && c1.strokes.every(st => st.c === '#000' && st.j === 'round' && st.w > 0), 'je Wort genau ein strokeText (rund, Konturfarbe)');
+  ok(c1.n.fill <= words * 2, 'fillText pro Frame: ' + c1.n.fill + ' statt ' + oldCalls + ' (alt: eine Schicht je Ring-Punkt)');
+  const c2 = mkCtx();
+  T.drawCaptionsOnCtx(c1, 0.7, hz, 1080, 1920, false); // gleicher Block, anderes aktives Wort
+  c1.n.measure = 0; c1.n.font = 0;
+  T.drawCaptionsOnCtx(c1, 0.75, hz, 1080, 1920, false);
+  ok(c1.n.measure === 0, 'Folge-Frame im selben Block misst nicht neu (Layout-Cache)');
+  ok(c1.n.font <= 2, 'Font wird nur bei Aenderung gesetzt: ' + c1.n.font + 'x');
+  // Styles ohne Ring zeichnen wie bisher alle Schichten
+  const lift = T.STYLES.find(x => x.id === 'lift');
+  T.drawCaptionsOnCtx(c2, 0.4, lift, 1080, 1920, false);
+  ok(c2.n.stroke === 0, 'ohne Ring-Kontur kein strokeText');
+}
+
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
   { word: 'Hallo',  start: 1.0, end: 1.3 },              // 1.0s Fuehr-Stille davor
@@ -1040,6 +1074,33 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.restoreSavedStyle({ style: 'tpl_del', styleDef: { fl: 'Inter', tc: '#fedcba' } });
     ok(T.getActiveId() === 'custom' && T.STYLES.find(x => x.id === 'custom').tc === '#fedcba' && !T.STYLES.find(x => x.id === 'tpl_del'), 'geloeschtes Template → als custom, nicht wiederbelebt');
     T.setSb(null); T.setMe('anon', ''); T.setUserTemplates([]); delete global.localStorage;
+  }
+
+  // 21e) Schnellexport-Sicherheitsnetz: Datei per <video>-Metadaten prüfen
+  {
+    const origCreate = document.createElement, origURL = global.URL;
+    let revoked = 0, mode = {};
+    global.URL = { createObjectURL: () => 'blob:v', revokeObjectURL: () => { revoked++; } };
+    document.createElement = (tag) => {
+      if (tag !== 'video') return origCreate(tag);
+      const v = { muted: false, preload: '', videoWidth: 0, duration: NaN, removeAttribute() {}, load() {} };
+      Object.defineProperty(v, 'src', { set() {
+        if (mode.hang) return;
+        setTimeout(() => {
+          if (mode.error) return v.onerror && v.onerror();
+          v.videoWidth = mode.w === undefined ? 1080 : mode.w; v.duration = mode.d; v.onloadedmetadata && v.onloadedmetadata();
+        }, 1);
+      } });
+      return v;
+    };
+    mode = { d: 9.8 };        ok((await T.validateExportBlob({}, 10)).ok === true, 'Validierung: passende Dauer → ok');
+    mode = { d: 6 };          ok((await T.validateExportBlob({}, 10)).ok === false, 'Validierung: Dauer weicht ab → Fallback');
+    mode = { d: 10, w: 0 };   ok((await T.validateExportBlob({}, 10)).ok === false, 'Validierung: keine Bildbreite → Fallback');
+    mode = { error: true };   ok((await T.validateExportBlob({}, 10)).ok === false, 'Validierung: nicht abspielbar → Fallback');
+    mode = { hang: true };    const tr = await T.validateExportBlob({}, 10, 30);
+    ok(tr.ok === false && /Timeout/.test(tr.reason), 'Validierung: Timeout → Fallback');
+    ok(revoked === 5, 'Objekt-URL jedes Mal freigegeben: ' + revoked);
+    document.createElement = origCreate; global.URL = origURL;
   }
 
   // 22) Vercel-Function api/transcribe.js (gemocktes req/res + Groq-fetch)

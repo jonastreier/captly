@@ -4364,7 +4364,12 @@ async function webmToMp4(blob, onProgress) {
   // Kompressionseffizienz, NICHT die Zielqualität — die bleibt hier über die (implizite) CRF
   // 23 gleich. Ultrafast liefert also optisch identisches Ergebnis, nur etwas größere Datei,
   // dafür bei kurzen Reels spürbar schneller (single-thread ffmpeg.wasm ist sonst der Flaschenhals).
+  // MediaRecorder-WebM hat 1-ms-Zeitbasis und keine feste Bildrate → ohne Vorgabe schrieb ffmpeg das MP4
+  // mit 1000 fps und duplizierten Frames (6 s → 6111 Frames). Konstante 30 fps (= captureStream(30)):
+  // „-fps_mode cfr -r 30“ (Core 0.12.6 = FFmpeg 5.1.4, kennt -fps_mode) → Frames = Dauer × 30,
+  // CFR ist zudem für Instagram/iOS-Fotos die unproblematischste Variante.
   await ff.exec(['-i', 'in.webm',
+    '-fps_mode', 'cfr', '-r', '30',
     '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '128k',
     '-movflags', '+faststart', 'out.mp4']);
@@ -4802,6 +4807,36 @@ async function exportFastWebCodecs(file, o) {
 }
 // Versucht den Schnellexport inkl. UI. true = fertig (Download ausgelöst); false = nicht möglich oder
 // fehlgeschlagen → Aufrufer macht mit dem Echtzeit-Pfad weiter (UI ist dann wieder im Ausgangszustand).
+// Exportiertes MP4 billig prüfen: in ein losgelöstes <video> laden (nur Metadaten, 5 s Timeout) und
+// Breite > 0 sowie |Dauer − erwartet| < 0,5 s verlangen. Ohne DOM/URL (Node-Tests) → als ok werten.
+function validateExportBlob(blob, expectedDur, timeoutMs) {
+  return new Promise(function(resolve) {
+    if (typeof document === 'undefined' || typeof URL === 'undefined' || !URL.createObjectURL || !blob) { resolve({ ok: true, reason: 'skipped' }); return; }
+    var v, url, done = false, timer;
+    function finish(ok, reason) {
+      if (done) return; done = true;
+      clearTimeout(timer);
+      try { if (v) { v.removeAttribute('src'); v.load && v.load(); } } catch (e) {}
+      try { if (url) URL.revokeObjectURL(url); } catch (e2) {}
+      resolve({ ok: ok, reason: reason });
+    }
+    try {
+      v = document.createElement('video');
+      v.muted = true; v.preload = 'metadata';
+      v.onloadedmetadata = function() {
+        var d = v.duration;
+        if (!(v.videoWidth > 0)) return finish(false, 'videoWidth 0');
+        if (!isFinite(d)) return finish(false, 'Dauer unbekannt');
+        if (isFinite(expectedDur) && Math.abs(d - expectedDur) >= 0.5) return finish(false, 'Dauer ' + d.toFixed(2) + ' s statt ' + expectedDur.toFixed(2) + ' s');
+        finish(true, 'ok');
+      };
+      v.onerror = function() { finish(false, 'nicht abspielbar'); };
+      timer = setTimeout(function(){ finish(false, 'Timeout'); }, timeoutMs || 5000);
+      url = URL.createObjectURL(blob);
+      v.src = url;
+    } catch (e) { finish(false, 'Ausnahme: ' + (e && e.message)); }
+  });
+}
 async function tryFastExport(vid) {
   if (!fastExportSupported() || !isFastExportSource(currentFile)) return false;
   var recBar = document.getElementById('recBar'), recMsg = document.getElementById('recMsg');
@@ -4828,6 +4863,10 @@ async function tryFastExport(vid) {
     });
     console.info('[export] WebCodecs-Schnellexport fertig in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s (Video: '
                  + vid.duration.toFixed(1) + ' s)');
+    // Sicherheitsnetz: kaputte/abgeschnittene Datei lieber verwerfen und in Echtzeit neu rendern
+    recMsg.textContent = 'Checking video…';
+    var check = await validateExportBlob(blob, vid.duration - cutTotalSec);
+    if (!check.ok) throw new Error('Validierung fehlgeschlagen: ' + check.reason);
     dlBlob(blob, 'capivo-video.mp4');
     recProg.style.display = 'none';
     isExporting = false;
@@ -5045,6 +5084,42 @@ function parseTextShadows(str) {
   });
   return out;
 }
+// text-shadow → Zeichenplan (gecacht je String): Ring-Kontur separat, übrige Schichten in CSS-Reihenfolge.
+var _shadowPlanCache = {};
+function capShadowPlan(str) {
+  str = str || 'none';
+  var hit = _shadowPlanCache[str];
+  if (hit) return hit;
+  var sp = splitShadows(str);
+  var ringColor = sp.ringLayers.length ? sp.ringLayers[0].color : null;
+  // Alle Nicht-Ring-Schichten in Original-Reihenfolge (CSS malt die erste Schicht oben)
+  var rest = parseTextShadows(str).filter(function(l){ return !(ringColor !== null && !l.blur && (l.x || l.y) && l.color === ringColor); });
+  var plan = { ring: sp.ring ? { w: sp.ring.w, color: ringColor } : null, rest: rest };
+  if (Object.keys(_shadowPlanCache).length > 200) _shadowPlanCache = {};
+  _shadowPlanCache[str] = plan;
+  return plan;
+}
+function drawTextWithPlan(ctx, text, x, y, plan, scale) {
+  if (plan.rest.length) {
+    ctx.save();
+    // unterste Schicht zuerst (CSS: erste Schicht liegt oben)
+    for (var i = plan.rest.length - 1; i >= 0; i--) {
+      var l = plan.rest[i];
+      ctx.shadowOffsetX = l.x * scale; ctx.shadowOffsetY = l.y * scale;
+      ctx.shadowBlur = l.blur * scale; ctx.shadowColor = l.color;
+      ctx.fillText(text, x, y);
+    }
+    ctx.restore();
+  }
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  if (plan.ring && plan.ring.w > 0) {
+    var lw = ctx.lineWidth, lj = ctx.lineJoin, ml = ctx.miterLimit, ss = ctx.strokeStyle;
+    ctx.lineWidth = 2 * plan.ring.w * scale; ctx.lineJoin = 'round'; ctx.miterLimit = 2; ctx.strokeStyle = plan.ring.color;
+    ctx.strokeText(text, x, y);
+    ctx.lineWidth = lw; ctx.lineJoin = lj; ctx.miterLimit = ml; ctx.strokeStyle = ss;
+  }
+  ctx.fillText(text, x, y);
+}
 // Zeichnet Text mitsamt allen text-shadow-Schichten (skaliert), dann eine finale scharfe Kopie obenauf.
 function fillTextWithShadow(ctx, text, x, y, shadowStr, scale) {
   var layers = parseTextShadows(shadowStr);
@@ -5089,15 +5164,17 @@ function animState(anim, elapsed) {
   return out;
 }
 // Rendert den aktiven Caption-Block auf den Canvas — mit Zeilenumbruch, Highlight-Farben, Pills, Outline & Glow
-function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
-  if (!captionBlocks.length) return;
-  t = t + timeOff; // Timing-Feinschliff
-  var bi = currentBlockIdx(t);
-  if (bi < 0 && forceShow) bi = nearestBlockIdx(t);
-  if (bi < 0) return;
-  var b  = captionBlocks[bi];
-  var wi = activeWordIdx(b, t);
-
+// ── Layout-Cache für den Canvas-Export ──
+// Messen (measureText), Auto-Fit, Zeilenumbruch und Position hängen nur vom Block, Style, Format und der
+// Rahmengröße ab — nicht vom einzelnen Frame. Vorher lief das alles pro Frame (≈ 30×/s × alle Wörter).
+// Das aktive Wort fließt nur in den Key ein, wenn es die Breite ändert (hlFont/hlItalic/hlUpper).
+var _capLayoutCache = { key: null, s: null, ctx: null, val: null };
+function capLayout(ctx, b, bi, wi, s, W, H) {
+  var wiKey = (s.hlFont || s.hlItalic || s.hlUpper) ? wi : -1;
+  var key = [bi, wiKey, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
+             _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length].join('|');
+  var c = _capLayoutCache;
+  if (c.key === key && c.s === s && c.ctx === ctx) return c.val;
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
   var scale = W / previewFrameW(); // Vorschau-Rahmen ist variabel breit (Video-AR-abhängig) — NIE eine feste Zahl hier
   // Gleiches Auto-Fit wie die Vorschau (buildCap), in Vorschau-Einheiten berechnet → identisches Ergebnis.
@@ -5122,6 +5199,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
     return (tt || (fit.orig[i] === wi && s.hlUpper)) ? w.toUpperCase() : w;
   });
   ctx.font = fi + fw + ' ' + fsS + 'px "' + fn + '", sans-serif';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px'; // CSS wendet es auch auf Leerzeichen an
   var sp    = ctx.measureText(' ').width;
   var maxW  = W * 0.86;
   // idx = Index des ORIGINALWORTS (Teilwörter nach Bindestrich-Trennung teilen sich Highlight/Keyword)
@@ -5180,6 +5258,33 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
 
+  var val = { scale: scale, fsS: fsS, fn: fn, fw: fw, fi: fi, lsPxS: lsPxS, sp: sp, lines: lines, lineWs: lineWs, lh: lh, y0: y0 };
+  _capLayoutCache = { key: key, s: s, ctx: ctx, val: val };
+  return val;
+}
+function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
+  if (!captionBlocks.length) return;
+  t = t + timeOff; // Timing-Feinschliff
+  var bi = currentBlockIdx(t);
+  if (bi < 0 && forceShow) bi = nearestBlockIdx(t);
+  if (bi < 0) return;
+  var b  = captionBlocks[bi];
+  var wi = activeWordIdx(b, t);
+
+  var L0 = capLayout(ctx, b, bi, wi, s, W, H);
+  var scale = L0.scale, fsS = L0.fsS, fn = L0.fn, fw = L0.fw, fi = L0.fi, lsPxS = L0.lsPxS, sp = L0.sp;
+  var lines = L0.lines, lineWs = L0.lineWs, lh = L0.lh, y0 = L0.y0;
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  // Font/letterSpacing nur setzen, wenn sie sich ändern (Zuweisung parst den Font-String jedes Mal neu)
+  var curFont = null, curLs = null;
+  function wordFont(isHL) {
+    var f  = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
+    var it = (isHL && s.hlItalic) ? 'italic ' : fi;
+    var fs = it + fw + ' ' + fsS + 'px "' + f + '", sans-serif';
+    if (fs !== curFont) { ctx.font = fs; curFont = fs; }
+    if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
+  }
+  var shTs = capShadowPlan(s.ts), shHl = capShadowPlan(s.hls);
   // boxBg-Padding/-Radius sind im DOM (buildCap: "padding:5px 18px", s.boxBr) feste px-Werte, die bei
   // der Vorschaubreite (previewFrameW) gemeint sind — mit `scale` (== W/previewFrameW, dieselbe Umrechnung
   // wie fsS) 1:1 in den Export übertragen, statt (wie zuvor) willkürlich an fsS gekoppelt und boxBr zu ignorieren.
@@ -5269,9 +5374,10 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       } else {
         ctx.fillStyle = (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (isHL ? hlColorFor(s, wo.idx) : (s.hl || '#fff'))) : (s.tc || '#fff');
       }
-      // Text-Shadow exakt wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter) —
-      // ersetzt den früheren generischen Einheits-Schatten + strokeText-Hack.
-      fillTextWithShadow(ctx, wo.txt, x, y, (isHL || isKw) ? (s.hls || 'none') : (s.ts || 'none'), scale);
+      // Text-Shadow wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter). Eine
+      // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
+      // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
+      drawTextWithPlan(ctx, wo.txt, x, y, (isHL || isKw) ? shHl : shTs, scale);
       ctx.restore();
       x += wo.w + sp;
     });
