@@ -74,7 +74,10 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
+needsWatermark:needsWatermark,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
+splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
+loadProjects:loadProjects,restoreSavedStyle:restoreSavedStyle,setUserTemplates:function(l){userTemplates=l;},pruneTemplates:pruneTemplates,
+TPL_ROW_TITLE:TPL_ROW_TITLE,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
 countMatches:countMatches,replaceAllCaptions:replaceAllCaptions,displayWord:displayWord,togglePunct:togglePunct,setCaptionCase:setCaptionCase,
 transcriptText:transcriptText,copyTranscript:copyTranscript,exportTXT:exportTXT,seedCustomFields:seedCustomFields,buildCustomStyle:buildCustomStyle,
 setCsDirty:function(d){_csDirty=d;},saveTemplate:saveTemplate,loadTemplates:loadTemplates,getUserTemplates:function(){return userTemplates;},
@@ -583,6 +586,72 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   try { Object.defineProperty(global.navigator, 'clipboard', { value: prevClip, configurable: true }); } catch (e) {}
 }
 
+// 17a) Kürzungs-Hinweis auch beim ffmpeg-Pfad (-t MAX_AUDIO_SEC): echte Mediendauer zählt
+ok(T.audioTruncated(16000 * 1200, 1500) === true, 'Kuerzung erkannt ueber Mediendauer (ffmpeg -t)');
+ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200 + 1, NaN) === true, 'Kuerzung: normale Laenge / zu langes PCM');
+
+// 17b) text-shadow-Parser: alle Formen aus STYLES + outlineShadow (Canvas braucht eine saubere Farbe)
+{
+  const P = T.parseTextShadows;
+  const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  ok(eq(P('3px 0px 0 #000')[0], { x: 3, y: 0, blur: 0, color: '#000' }), 'Parser: "3px 0px 0 #000"');
+  ok(eq(P('-2px 0 0 #000')[0], { x: -2, y: 0, blur: 0, color: '#000' }), 'Parser: einheitslose 0 (Standard-Kontur)');
+  ok(eq(P('0 0 20px rgba(255, 255, 255, .85)')[0], { x: 0, y: 0, blur: 20, color: 'rgba(255, 255, 255, .85)' }), 'Parser: rgba mit Leerzeichen');
+  ok(eq(P('rgba(0,0,0,.5) 0 2px 4px')[0], { x: 0, y: 2, blur: 4, color: 'rgba(0,0,0,.5)' }), 'Parser: Farbe vorne');
+  ok(eq(P('1px 2px red')[0], { x: 1, y: 2, blur: 0, color: 'red' }), 'Parser: Farbname ohne Blur');
+  ok(P('none').length === 0 && P('inset 1px 1px 0 #000').length === 0, 'Parser: none / inset ignoriert');
+  const ol = P(T.outlineShadow(3, '#000'));
+  ok(ol.length === 12 && ol.every(l => l.color === '#000' && l.blur === 0), 'Parser: outlineShadow komplett lesbar');
+  let bad = [];
+  T.STYLES.forEach(st => ['ts', 'hls'].forEach(k => {
+    const v = st[k]; if (!v || v === 'none') return;
+    const parts = v.split(/,(?![^(]*\))/).length, layers = P(v);
+    if (layers.length !== parts || layers.some(l => !/^(#|rgba?\(|[a-z]+$)/i.test(l.color))) bad.push(st.id + '.' + k);
+  }));
+  ok(bad.length === 0, 'Parser: alle STYLES-Schatten sauber zerlegt: ' + bad.join(', '));
+}
+
+// 17c) Kontur-Erkennung nur für das Ring-Muster; Highlight-Farbe ändern lässt Drop-Shadows in Ruhe
+{
+  ok(T.parseOutline('1px 2px 0 #000').w === 0, 'harter Drop-Shadow ist keine Kontur');
+  ok(T.parseOutline(T.STYLES.find(x => x.id === 'hormozi').ts).w === 3, 'Ring-Kontur (outlineShadow 3px) erkannt');
+  T.STYLES.push({ id: 'tdrop', name: 'T', fl: 'Inter', font: "'Inter'", fw: '700', tc: '#fff', ts: '1px 2px 0 #000', hl: '#fff', hls: '1px 2px 0 #000,0 3px 6px rgba(0,0,0,.4)', anim: 'none', thumbBg: '#000' });
+  T.selectStyle('tdrop');
+  document.getElementById('csHl').value = '#ff00ff';
+  document.getElementById('csHlType').value = 'color';
+  T.setCsDirty({ hl: true });
+  const cs = T.buildCustomStyle();
+  ok(cs.hl === '#ff00ff' && T.parseOutline(cs.hls).w === 0 && /1px 2px 0px #000/.test(cs.hls) && /0px 3px 6px rgba/.test(cs.hls) && cs.ts === '1px 2px 0 #000',
+     'nur Highlight-Farbe: keine Fake-Kontur, Schatten bleiben: ' + cs.hls);
+  // Beast: Drop-Shadow im Highlight bleibt auch beim Farbwechsel
+  T.selectStyle('beast'); T.setCsDirty({ hl: true });
+  const cb = T.buildCustomStyle();
+  ok(T.parseOutline(cb.hls).w === 3 && /0px 5px 0px rgba\(0,0,0,\.85\)/.test(cb.hls), 'Beast: Kontur + Drop-Shadow im Highlight erhalten: ' + cb.hls.slice(-60));
+  T.setCsDirty({});
+  T.STYLES.splice(T.STYLES.findIndex(x => x.id === 'tdrop'), 1);
+  T.selectStyle('classic');
+}
+
+// 17d) Ganze-Wörter-Suche ohne Lookbehind (Safari < 16.4), auch mit Umlauten
+{
+  ok(!/\(\?<[=!]/.test(require('fs').readFileSync(htmlPath, 'utf8')), 'kein Regex-Lookbehind im Code');
+  T.setState([{ start: 0, end: 2, text: 'Grüße über alles, Rindfleisch und Rind', words: [] }], [], 'karaoke');
+  ok(T.countMatches('über', true) === 1 && T.countMatches('rind', true) === 1 && T.countMatches('rind', false) === 2, 'ganze Woerter mit Umlauten/Teilwoertern');
+  ok(T.countMatches('üß', false) === 1 && T.countMatches('(', false) === 0 && T.countMatches('ß', true) === 0 && T.countMatches('.*', false) === 0, 'Sonderzeichen-Suche wirft nicht (Regex-Zeichen woertlich)');
+}
+
+// 17e) Grabsteine verdrängen keine Live-Templates
+{
+  const now = Date.now(), list = [];
+  for (let i = 0; i < 50; i++) list.push({ id: 'tpl_l' + i, name: 'L' + i, style: { fl: 'Inter' }, layout: {}, createdAt: now - 1e6 + i, updatedAt: now - 1e6 + i });
+  for (let i = 0; i < 120; i++) list.push({ id: 'tpl_d' + i, deleted: true, updatedAt: now - i * 1000 });
+  T.setUserTemplates(list); T.pruneTemplates();
+  const ut = T.getUserTemplates();
+  ok(ut.filter(t => !t.deleted).length === 50 && ut.filter(t => t.deleted).length === 100 && !ut.some(t => t.id === 'tpl_d119'),
+     'prune: 50 live bleiben, max. 100 Grabsteine (aelteste raus)');
+  T.setUserTemplates([]);
+}
+
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
   { word: 'Hallo',  start: 1.0, end: 1.3 },              // 1.0s Fuehr-Stille davor
@@ -856,6 +925,62 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
     for (let i = 0; i < noisy.length; i++) noisy[i] = (Math.sin(i * 78.233) * 12345.678 % 1) * 0.4;
     const nz = await T.snapWordTimings([{ word: 'a', start: 0.5, end: 1 }], noisy, SRn);
     ok(nz[0].start === 0.5 && nz[0].end === 1, 'Snap: verrauschtes Audio bleibt unveraendert');
+  }
+
+  // 21d) Templates in der Cloud: reservierte projects-Zeile statt JWT-Metadaten; Migration + Ausblenden
+  {
+    const store = {};
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    store.capivo_templates = JSON.stringify([{ id: 'tpl_local', name: 'Lokal', style: { fl: 'Inter' }, layout: {}, createdAt: 1, updatedAt: 10 }]);
+    const rows = [{ id: 7, title: T.TPL_ROW_TITLE, updated_at: '2026-01-01', payload: { kind: 'capivo_templates', templates: [{ id: 'tpl_row', name: 'Zeile', style: { fl: 'Anton' }, layout: {}, createdAt: 2, updatedAt: 20 }] } },
+                  { id: 8, title: 'Mein Projekt', updated_at: '2026-01-02', payload: { blocks: [] } }];
+    const calls = [];
+    const mkQ = () => {
+      const q = { op: 'select', f: [] };
+      const api = {
+        select() { if (q.op === 'insert') q.ret = true; return api; }, eq(k, v) { q.f.push(r => r[k] === v); return api; },
+        neq(k, v) { q.f.push(r => r[k] !== v); return api; }, order() { return api; },
+        update(v) { q.op = 'update'; q.val = v; return api; }, insert(v) { q.op = 'insert'; q.val = v; return api; },
+        delete() { q.op = 'delete'; return api; }, single() { q.single = true; return api; },
+        then(res, rej) {
+          calls.push(q.op);
+          const hit = rows.filter(r => q.f.every(fn => fn(r)));
+          let out;
+          if (q.op === 'select') out = { data: q.single ? hit[0] : hit, error: null };
+          else if (q.op === 'update') { hit.forEach(r => Object.assign(r, q.val)); out = { data: null, error: null }; }
+          else if (q.op === 'insert') { const r = Object.assign({ id: 99 }, q.val); rows.push(r); out = { data: { id: 99 }, error: null }; }
+          else { out = { data: null, error: null }; }
+          return Promise.resolve(out).then(res, rej);
+        }
+      };
+      return api;
+    };
+    let metaUpdate = null;
+    T.setSb({ from: () => mkQ(), auth: { updateUser: async (u) => { metaUpdate = u; return { error: null }; } } });
+    T.setMe('free', 'a@b.c');
+    await T.syncTemplatesWithCloud({ user_metadata: { capivo_templates: [{ id: 'tpl_meta', name: 'Meta', style: { fl: 'Poppins' }, layout: {}, createdAt: 3, updatedAt: 30 }] } });
+    const ids = T.getUserTemplates().map(t => t.id).sort().join(',');
+    ok(ids === 'tpl_local,tpl_meta,tpl_row', 'Sync: lokal + Zeile + alte Metadaten zusammengefuehrt: ' + ids);
+    const tplRow = rows.find(r => r.title === T.TPL_ROW_TITLE);
+    ok(tplRow.payload.templates.length === 3 && calls.includes('update'), 'Sync: Zeile mit allen Templates aktualisiert');
+    ok(metaUpdate && metaUpdate.data && metaUpdate.data.capivo_templates === null, 'Sync: alte JWT-Metadaten geleert');
+    ok(T.STYLES.filter(x => x.id === 'tpl_row').length === 1, 'Sync: keine doppelten Picker-Eintraege');
+    // Projektliste blendet die Templates-Zeile aus
+    await T.loadProjects();
+    const opts = document.getElementById('projList').children.map(o => o.textContent);
+    ok(opts.includes('Mein Projekt') && !opts.includes(T.TPL_ROW_TITLE), 'Projektliste ohne Templates-Zeile: ' + opts.join('|'));
+    // Gespeicherte Styles wiederherstellen: custom immer, fehlendes Template einmalig anlegen, gelöschtes → custom
+    if (!T.STYLES.find(x => x.id === 'custom')) T.STYLES.push({ id: 'custom', name: 'alt', fl: 'Inter', tc: '#000', hl: '#000' });
+    T.restoreSavedStyle({ style: 'custom', styleDef: { fl: 'Anton', font: "'Anton'", tc: '#123456', hl: '#fff' } });
+    ok(T.STYLES.filter(x => x.id === 'custom').length === 1 && T.STYLES.find(x => x.id === 'custom').tc === '#123456', 'Projekt-Custom-Style ersetzt den der Sitzung');
+    T.restoreSavedStyle({ style: 'tpl_gone', styleName: 'Weg', styleDef: { fl: 'Inter', tc: '#abcdef' }, tplLayout: { pos: 'top' } });
+    T.restoreSavedStyle({ style: 'tpl_gone', styleName: 'Weg', styleDef: { fl: 'Inter', tc: '#abcdef' } });
+    ok(T.getUserTemplates().filter(t => t.id === 'tpl_gone').length === 1 && T.STYLES.filter(x => x.id === 'tpl_gone').length === 1
+       && T.STYLES.find(x => x.id === 'tpl_gone')._isTpl, 'fehlendes Template einmalig als Template angelegt (keine Dubletten)');
+    T.getUserTemplates().push({ id: 'tpl_del', deleted: true, updatedAt: Date.now() });
+    T.restoreSavedStyle({ style: 'tpl_del', styleDef: { fl: 'Inter', tc: '#fedcba' } });
+    ok(T.getActiveId() === 'custom' && T.STYLES.find(x => x.id === 'custom').tc === '#fedcba' && !T.STYLES.find(x => x.id === 'tpl_del'), 'geloeschtes Template → als custom, nicht wiederbelebt');
+    T.setSb(null); T.setMe('anon', ''); T.setUserTemplates([]); delete global.localStorage;
   }
 
   // 22) Vercel-Function api/transcribe.js (gemocktes req/res + Groq-fetch)

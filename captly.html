@@ -2381,17 +2381,36 @@ function joinShadows() {
   var parts = Array.prototype.filter.call(arguments, function(x){ return x && x !== 'none'; });
   return parts.length ? parts.join(',') : 'none';
 }
-function parseOutline(ts) {
-  var sharp = parseTextShadows(ts).filter(function(l){ return !l.blur && (l.x || l.y); });
-  if (!sharp.length) return { w: 0, c: '#000000' };
-  var w = 0; sharp.forEach(function(l){ w = Math.max(w, Math.abs(l.x), Math.abs(l.y)); });
-  return { w: Math.round(w), c: toHex6(sharp[0].color) || '#000000' };
+// text-shadow in Bestandteile zerlegen. Als KONTUR gilt nur das symmetrische Ring-Muster (wie von
+// outlineShadow bzw. den Standard-Styles: ≥ 8 scharfe Schichten einer Farbe, jede mit Gegenstück,
+// inkl. der vier Achsen-Punkte) — ein harter Drop-Shadow wie „1px 2px 0 #000“ ist KEINE Kontur.
+function shadowLayerStr(l) { return l.x + 'px ' + l.y + 'px ' + l.blur + 'px ' + l.color; }
+function splitShadows(str) {
+  var L = parseTextShadows(str), res = { ring: null, ringLayers: [], glow: [], soft: [], hard: [] };
+  var byColor = {};
+  L.forEach(function(l){ if (!l.blur && (l.x || l.y)) (byColor[l.color] = byColor[l.color] || []).push(l); });
+  var ringColor = null;
+  Object.keys(byColor).some(function(c) {
+    var g = byColor[c];
+    if (g.length < 8) return false;
+    var w = 0; g.forEach(function(l){ w = Math.max(w, Math.abs(l.x), Math.abs(l.y)); });
+    var has = function(x, y){ return g.some(function(l){ return Math.abs(l.x - x) < 0.15 && Math.abs(l.y - y) < 0.15; }); };
+    var sym = g.every(function(l){ return has(-l.x, -l.y); });
+    if (sym && has(w, 0) && has(-w, 0) && has(0, w) && has(0, -w)) { ringColor = c; res.ring = { w: Math.round(w), c: toHex6(c) || '#000000' }; return true; }
+    return false;
+  });
+  L.forEach(function(l) {
+    if (ringColor !== null && !l.blur && (l.x || l.y) && l.color === ringColor) res.ringLayers.push(l);
+    else if (l.blur > 0 && !l.x && !l.y) res.glow.push(l);
+    else if (l.blur > 0) res.soft.push(l);
+    else res.hard.push(l);
+  });
+  return res;
 }
+function shadowsStr(layers) { return layers.map(shadowLayerStr).join(','); }
+function parseOutline(ts) { return splitShadows(ts).ring || { w: 0, c: '#000000' }; }
 // Weiche Schatten (Blur > 0, nicht zentriert = kein Glow) aus einem text-shadow-String
-function softShadowPart(ts) {
-  return parseTextShadows(ts).filter(function(l){ return l.blur > 0 && (l.x || l.y); })
-    .map(function(l){ return l.x + 'px ' + l.y + 'px ' + l.blur + 'px ' + l.color; }).join(',');
-}
+function softShadowPart(ts) { return shadowsStr(splitShadows(ts).soft); }
 // '#rrggbb' oder 'rgba(r,g,b,a)' → { hex, a }
 function parseColorAlpha(c) {
   var h = toHex6(c);
@@ -2464,8 +2483,10 @@ function buildCustomStyle() {
   var ow = parseFloat((csEl('csOutlineW') || {}).value) || 0, oc = (csEl('csOutlineC') || {}).value || '#000000';
   var outline = outlineShadow(ow, oc);
   if (d.stroke) {
-    var soft = csIsOn('csShadow') ? (softShadowPart(base.ts) || CS_SOFT_SHADOW) : '';
-    cs.ts = joinShadows(outline, soft);
+    // Nur Kontur + weichen Schatten neu bauen; harte Drop-Shadows und Glows des Ausgangs-Styles bleiben.
+    var bts = splitShadows(base.ts);
+    var soft = csIsOn('csShadow') ? (shadowsStr(bts.soft) || CS_SOFT_SHADOW) : '';
+    cs.ts = joinShadows(outline, shadowsStr(bts.hard), shadowsStr(bts.glow), soft);
     if (ow > 0) cs.cstroke = oc; else delete cs.cstroke;
   }
   if (d.hl || d.stroke) {
@@ -2478,7 +2499,11 @@ function buildCustomStyle() {
       cs.hls = glowOn ? ('0 0 ' + gi + 'px ' + pcol) : 'none';
     } else {
       delete cs.hlPillBg; delete cs.hlc;
-      cs.hls = joinShadows(outline, glowOn && gi > 0 ? ('0 0 ' + gi + 'px ' + cs.hl) : '');
+      // Übrige Schichten des Ausgangs-Highlights (Drop-Shadows, weiche Schatten) unverändert lassen;
+      // Kontur nur ersetzen, wenn sie geändert wurde bzw. das Highlight vorher keine eigene hatte.
+      var bh = splitShadows(base.hls);
+      var ringPart = (d.stroke || !bh.ring) ? outline : shadowsStr(bh.ringLayers);
+      cs.hls = joinShadows(ringPart, shadowsStr(bh.hard), shadowsStr(bh.soft), glowOn && gi > 0 ? ('0 0 ' + gi + 'px ' + cs.hl) : '');
     }
   }
   if (d.box) {
@@ -2517,7 +2542,8 @@ function applyCustomStyle(group) {
 // v2-Format: { id, name, style: <kompletter Style>, layout: {pos,voff,size,mode,wpb,lines}, createdAt, updatedAt }
 // Gelöschte Templates bleiben als Grabstein ({id, deleted:true, updatedAt}), damit der Merge mit der
 // Cloud sie nicht wiederbelebt. localStorage = Offline-Cache.
-var TPL_KEY = 'capivo_templates', TPL_MAX = 50, TPL_CLOUD_BYTES = 16000;
+var TPL_KEY = 'capivo_templates', TPL_MAX = 50, TPL_TOMB_MAX = 100;
+var TPL_ROW_TITLE = '__capivo_templates__'; // reservierte Zeile in public.projects (Cloud-Speicher der Templates)
 var userTemplates = [];
 // Templates können aus fremden JSON-Dateien kommen → nur bekannte Style-Felder übernehmen und
 // Zeichen entfernen, mit denen man aus dem style="…"-Attribut (buildCap) ausbrechen könnte.
@@ -2594,15 +2620,16 @@ function persistTemplates(skipCloud) {
   try { localStorage.setItem(TPL_KEY, JSON.stringify(userTemplates)); } catch (e) {}
   if (!skipCloud) scheduleTemplateCloudPush();
 }
-// Grabsteine nach 60 Tagen vergessen; insgesamt max. TPL_MAX Einträge (neueste zuerst behalten)
+// Live-Templates und Grabsteine getrennt deckeln: max. TPL_MAX live (neueste behalten) und max.
+// TPL_TOMB_MAX Grabsteine (älteste fliegen zuerst, außerdem nach 60 Tagen) — Grabsteine verdrängen nie Live-Templates.
 function pruneTemplates() {
   var cutoff = Date.now() - 60 * 864e5;
-  userTemplates = userTemplates.filter(function(t){ return !t.deleted || t.updatedAt > cutoff; });
-  if (userTemplates.length > TPL_MAX) {
-    userTemplates.sort(function(a, b){ return b.updatedAt - a.updatedAt; });
-    userTemplates = userTemplates.slice(0, TPL_MAX);
-    userTemplates.sort(function(a, b){ return (a.createdAt || 0) - (b.createdAt || 0); });
-  }
+  var byNewest = function(a, b){ return (b.updatedAt || 0) - (a.updatedAt || 0); };
+  var live = userTemplates.filter(function(t){ return !t.deleted; });
+  var tombs = userTemplates.filter(function(t){ return t.deleted && t.updatedAt > cutoff; });
+  if (live.length > TPL_MAX) live = live.sort(byNewest).slice(0, TPL_MAX);
+  if (tombs.length > TPL_TOMB_MAX) tombs = tombs.sort(byNewest).slice(0, TPL_TOMB_MAX);
+  userTemplates = live.concat(tombs).sort(function(a, b){ return (a.createdAt || a.updatedAt || 0) - (b.createdAt || b.updatedAt || 0); });
 }
 // Union nach id, neueres updatedAt gewinnt (gilt auch für Grabsteine)
 function mergeTemplates(a, b) {
@@ -2735,37 +2762,65 @@ function importTemplates(input) {
     alert('Could not read this file — please choose a Capivo templates JSON.');
   }).then(function(){ input.value = ''; });
 }
-// ── Cloud-Sync (Supabase auth user_metadata, kein Schema nötig) ──
-// Klein halten: user_metadata landet im JWT → max. TPL_MAX Einträge und ~16 KB; ältere fallen zuerst raus.
-var _tplPushTimer = null;
-function templatesForCloud() {
-  var list = userTemplates.slice().sort(function(a, b){ return b.updatedAt - a.updatedAt; }).slice(0, TPL_MAX);
-  while (list.length && JSON.stringify(list).length > TPL_CLOUD_BYTES) list.pop();
-  return list;
-}
+// ── Cloud-Sync: EINE reservierte Zeile in public.projects (title = TPL_ROW_TITLE) ──
+// Bewusst NICHT in auth user_metadata: die landet im JWT, der bei jedem Request mitgeht (> 20 KB Header →
+// 400/431). Kein Schema-Change nötig: RLS der projects-Tabelle schützt die Zeile wie jedes Projekt; im
+// Projekt-Dropdown wird sie ausgeblendet. Ohne Unique-Constraint auf title → immer die neueste Zeile
+// benutzen und evtl. Dubletten (zwei Tabs gleichzeitig) beim nächsten Schreiben aufräumen.
+var _tplPushTimer = null, _tplRowId = null;
+function templatesForCloud() { pruneTemplates(); return userTemplates.slice(); }
 function scheduleTemplateCloudPush() {
   if (!meEmail) return;
   clearTimeout(_tplPushTimer);
-  _tplPushTimer = setTimeout(pushTemplatesToCloud, 1500);
+  _tplPushTimer = setTimeout(function(){ pushTemplatesToCloud(); }, 1500);
+}
+async function fetchTemplateRows(sb) {
+  var r = await sb.from('projects').select('id,payload,updated_at').eq('title', TPL_ROW_TITLE).order('updated_at', { ascending: false });
+  if (r.error) throw r.error;
+  return r.data || [];
 }
 async function pushTemplatesToCloud() {
   try {
     var sb = await getSb();
-    if (!sb || !meEmail) return;
-    var r = await sb.auth.updateUser({ data: { capivo_templates: templatesForCloud() } });
-    if (r && r.error) console.warn('Template-Sync fehlgeschlagen:', r.error);
-  } catch (e) { console.warn('Template-Sync fehlgeschlagen:', e); }
+    if (!sb || !meEmail) return false;
+    var payload = { kind: 'capivo_templates', v: 2, templates: templatesForCloud() };
+    var rows = await fetchTemplateRows(sb);
+    if (rows.length) {
+      _tplRowId = rows[0].id;
+      var u = await sb.from('projects').update({ payload: payload, updated_at: new Date().toISOString() }).eq('id', _tplRowId);
+      if (u.error) throw u.error;
+      for (var i = 1; i < rows.length; i++) { try { await sb.from('projects').delete().eq('id', rows[i].id); } catch (eD) {} }
+    } else {
+      var ins = await sb.from('projects').insert({ title: TPL_ROW_TITLE, payload: payload }).select('id').single();
+      if (ins.error) throw ins.error;
+      _tplRowId = ins.data && ins.data.id;
+    }
+    return true;
+  } catch (e) { console.warn('Template-Sync fehlgeschlagen:', e); return false; }
 }
-// Beim Anmelden: lokale + Cloud-Templates zusammenführen; weicht das Ergebnis von der Cloud ab → hochladen.
-function syncTemplatesFromCloud(remote) {
-  loadTemplates(); // lokalen Stand frisch lesen — fetchMe läuft evtl. vor dem ersten Öffnen des Editors
-  var merged = mergeTemplates(userTemplates, Array.isArray(remote) ? remote : []);
-  var changedForCloud = JSON.stringify(mergeTemplates(remote || [], [])) !== JSON.stringify(merged);
-  userTemplates = merged;
-  persistTemplates(true);
-  rebuildTemplateStyles();
-  buildPicker();
-  if (changedForCloud) scheduleTemplateCloudPush();
+// Beim Anmelden: lokal + Cloud-Zeile (+ einmalig alte user_metadata) zusammenführen, Ergebnis hochladen,
+// falls es von der Cloud abweicht; danach den alten Metadaten-Schlüssel leeren (JWT wieder klein).
+async function syncTemplatesWithCloud(user) {
+  try {
+    var sb = await getSb();
+    if (!sb) return;
+    loadTemplates(); // lokalen Stand frisch lesen — fetchMe läuft evtl. vor dem ersten Öffnen des Editors
+    var rows = await fetchTemplateRows(sb);
+    var remote = (rows[0] && rows[0].payload && Array.isArray(rows[0].payload.templates)) ? rows[0].payload.templates : [];
+    var meta = user && user.user_metadata && Array.isArray(user.user_metadata.capivo_templates) ? user.user_metadata.capivo_templates : null;
+    var merged = mergeTemplates(mergeTemplates(userTemplates, remote), meta || []);
+    var changedForCloud = rows.length !== 1 || JSON.stringify(mergeTemplates(remote, [])) !== JSON.stringify(merged);
+    userTemplates = merged;
+    persistTemplates(true);
+    rebuildTemplateStyles();
+    buildPicker();
+    var ok = true;
+    if (changedForCloud || meta) ok = await pushTemplatesToCloud();
+    if (meta && ok) {
+      var r = await sb.auth.updateUser({ data: { capivo_templates: null } });
+      if (r && r.error) console.warn('Alte Template-Metadaten nicht geleert:', r.error);
+    }
+  } catch (e) { console.warn('Template-Sync fehlgeschlagen:', e); }
 }
 // Eingebaute Presets können Wörter/Block bzw. Zeilen erzwingen (Pop One: ein Wort pro Block). Beim
 // Wechsel zu einem normalen Style kommt die vorherige Einstellung zurück, statt still hängen zu bleiben.
@@ -3251,7 +3306,7 @@ async function fetchMe() {
     var { data } = await sb.auth.getUser();
     if (data && data.user) {
       meEmail = data.user.email; mePlan = 'free';
-      syncTemplatesFromCloud((data.user.user_metadata || {}).capivo_templates);
+      syncTemplatesWithCloud(data.user); // async, Fehler werden intern geloggt
       document.getElementById('acctBtn').textContent = meEmail.split('@')[0];
       document.getElementById('acctInfo').textContent = meEmail + ' · signed in';
     } else { meEmail = ''; mePlan = 'anon'; }
@@ -3280,7 +3335,9 @@ async function saveProject() {
   var sb = await getSb();
   if (!sb) return;
   var payload = projectPayload();
-  var { error } = await sb.from('projects').insert({ title: document.getElementById('projTitle').value || 'Untitled', payload: payload });
+  var title = document.getElementById('projTitle').value || 'Untitled';
+  if (title === TPL_ROW_TITLE) title += ' (project)'; // reservierter Name der Templates-Zeile
+  var { error } = await sb.from('projects').insert({ title: title, payload: payload });
   if (error) { alert('Could not save the project: ' + error.message); return; }
   loadProjects();
 }
@@ -3288,8 +3345,9 @@ async function loadProjects() {
   if (!meEmail) return;
   var sb = await getSb();
   if (!sb) return;
-  var { data, error } = await sb.from('projects').select('id,title,updated_at').order('updated_at', { ascending: false });
+  var { data, error } = await sb.from('projects').select('id,title,updated_at').neq('title', TPL_ROW_TITLE).order('updated_at', { ascending: false });
   if (error || !data) return;
+  data = data.filter(function(p){ return p.title !== TPL_ROW_TITLE; }); // doppelt hält besser (Templates-Zeile)
   var sel = document.getElementById('projList');
   sel.innerHTML = '<option value="">— Load project —</option>';
   data.forEach(function(p) { var o = document.createElement('option'); o.value = p.id; o.textContent = p.title; sel.appendChild(o); });
@@ -3300,6 +3358,7 @@ async function loadProject(id) {
   if (!sb) return;
   var { data, error } = await sb.from('projects').select('payload').eq('id', id).single();
   if (error || !data) return;
+  if (data.payload && data.payload.kind === 'capivo_templates') return; // reservierte Templates-Zeile, kein Projekt
   applyProjectPayload(data.payload || {});
   setTStatus('📂', 'Project loaded — add the video again for preview & export.', false, false);
 }
@@ -3383,8 +3442,43 @@ function projectPayload() {
   // Eigener Style bzw. Template mitspeichern — die IDs allein existieren in einer neuen Sitzung/auf
   // einem anderen Gerät evtl. nicht (Custom lebt nur im Speicher, Templates im localStorage).
   var st = STYLES.find(function(x){ return x.id === activeId; });
-  if (st && (st.id === 'custom' || st._isTpl)) p.styleDef = sanitizeStyle(cloneStyle(st));
+  if (st && (st.id === 'custom' || st._isTpl)) {
+    p.styleDef = sanitizeStyle(cloneStyle(st));
+    if (st._isTpl) { p.styleName = st.name; p.tplLayout = st._tpl || {}; }
+  }
   return p;
+}
+// Gespeicherten Style eines Projekts/Autosaves wiederherstellen:
+//  - 'custom': IMMER die gespeicherte Definition (sonst zeigte das Projekt den Custom-Style der Sitzung)
+//  - Template-ID: userTemplates ist die einzige Quelle — vorhanden → so lassen; fehlt es → als Template
+//    anlegen (updatedAt uralt, damit jede Cloud-Version/Löschung im Merge gewinnt; keine doppelten IDs);
+//    lokal gelöscht (Grabstein) → Definition als 'custom' laden statt das Template wiederzubeleben
+//  - sonstige unbekannte ID ohne Definition → sauberer Fallback auf Standard
+function restoreSavedStyle(p) {
+  var id = String(p.style), def = (p.styleDef && typeof p.styleDef === 'object') ? sanitizeStyle(p.styleDef) : null;
+  function asCustom() {
+    var cs = def; cs.id = 'custom'; cs.name = 'My style'; cs.badge = '❤️';
+    if (!cs.thumbBg) cs.thumbBg = CS_THUMB_BG;
+    var i = STYLES.findIndex(function(x){ return x.id === 'custom'; });
+    if (i >= 0) STYLES[i] = cs; else STYLES.push(cs);
+    activeId = 'custom';
+  }
+  activeId = id;
+  if (id === 'custom') { if (def) asCustom(); else if (!STYLES.find(function(x){ return x.id === 'custom'; })) activeId = 'classic'; return; }
+  if (/^tpl_/.test(id)) {
+    var t = userTemplates.find(function(x){ return x.id === id; });
+    if (t && !t.deleted) { if (!STYLES.find(function(x){ return x.id === id; })) rebuildTemplateStyles(); return; }
+    if (!def) { activeId = 'classic'; return; }
+    if (t && t.deleted) { asCustom(); return; }
+    var nt = normalizeTemplate({ id: id, name: p.styleName || 'Saved style', style: def, layout: p.tplLayout || {}, createdAt: Date.now(), updatedAt: 1 });
+    if (nt) { userTemplates.push(nt); persistTemplates(); rebuildTemplateStyles(); activeId = nt.id; }
+    else activeId = 'classic';
+    return;
+  }
+  if (!STYLES.find(function(x){ return x.id === id; })) {
+    if (def) { def.id = id; def.name = 'Saved style'; def.badge = '❤️'; if (!def.thumbBg) def.thumbBg = CS_THUMB_BG; STYLES.push(def); }
+    else activeId = 'classic';
+  }
 }
 // Gemeinsamer Restore-Pfad für loadProject() und den lokalen Autosave (restoreAutosave).
 function applyProjectPayload(p) {
@@ -3395,17 +3489,7 @@ function applyProjectPayload(p) {
     wordTimestamps = [];
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
   }
-  if (p.style) {
-    activeId = p.style;
-    if (!STYLES.find(function(x){ return x.id === p.style; })) {
-      if (p.styleDef && typeof p.styleDef === 'object') {
-        var sd = sanitizeStyle(p.styleDef);
-        sd.id = p.style === 'custom' ? 'custom' : String(p.style); sd.name = p.style === 'custom' ? 'My style' : 'Saved style'; sd.badge = '❤️';
-        if (!sd.thumbBg) sd.thumbBg = CS_THUMB_BG;
-        STYLES.push(sd);
-      } else activeId = 'classic'; // unbekannter Style ohne Definition → sauberer Fallback statt leerer Vorschau
-    }
-  }
+  if (p.style) restoreSavedStyle(p);
   if (p.fontSize) { fontSize = p.fontSize; var ss = document.getElementById('szSlider'); if (ss) { ss.value = p.fontSize; document.getElementById('szDisp').textContent = p.fontSize + 'px'; } }
   if (p.wpb) { WORDS_PER_BLOCK = p.wpb; var ws = document.getElementById('wpbSlider'); if (ws) { ws.value = p.wpb; document.getElementById('wpbDisp').textContent = p.wpb; } }
   if (typeof p.lines === 'number') { CAPTION_LINES = p.lines; syncLinesButtons(); }
@@ -3724,6 +3808,9 @@ function isNoAudioFfmpegLog(log) {
   if (/Invalid data found|could not find codec parameters for stream \d+ \(audio/i.test(log)) return false;
   return /Stream #\d+:\d+.*Video:/.test(log) && !/Stream #\d+:\d+.*Audio:/.test(log);
 }
+function audioTruncated(nSamples, mediaDur) {
+  return nSamples > 16000 * MAX_AUDIO_SEC || (isFinite(mediaDur) && mediaDur > MAX_AUDIO_SEC + 0.5);
+}
 async function transcribeVideo(file) {
   // Lauf-Token: Wird währenddessen ein anderes Video geladen oder neu transkribiert (Modell/Sprache/
   // Übersetzen/Retry), darf dieser Lauf danach NICHTS mehr schreiben — sonst landen die Captions
@@ -3762,7 +3849,10 @@ async function transcribeVideo(file) {
     }
     setTProgress(60);
 
-    var truncated = audioData.length > 16000 * MAX_AUDIO_SEC;
+    // Kürzung auch erkennen, wenn ffmpeg schon mit -t MAX_AUDIO_SEC extrahiert hat (iOS/> 150 MB):
+    // dann ist audioData nie länger als das Limit → echte Mediendauer vom Video-Element nehmen.
+    var mediaDur = (file === currentFile) ? (document.getElementById('mainVid') || {}).duration : NaN;
+    var truncated = audioTruncated(audioData.length, mediaDur);
     if (truncated) audioData = audioData.slice(0, 16000 * MAX_AUDIO_SEC);
     var audioDur = audioData.length / 16000;
 
@@ -4086,14 +4176,37 @@ function onTimeOffChange(v) {
   syncTimeOffUI(); _lastKey = null; updateOverlay(); scheduleAutosave();
 }
 // ── Suchen & Ersetzen über alle Captions (Timings bleiben: gleicher Pfad wie Text-Edits) ──
-function findRegex(q, whole) {
+// Ohne Lookbehind (wirft auf Safari < 16.4 einen SyntaxError — bei jedem Tastendruck). Ganze Wörter
+// werden manuell über die Nachbarzeichen geprüft; Buchstabe = hat Groß-/Kleinform oder \p{L} (falls verfügbar).
+var _letterRe = null;
+try { _letterRe = new RegExp('[\\p{L}\\p{N}]', 'u'); } catch (e) { _letterRe = null; }
+function isWordChar(c) {
+  if (!c) return false;
+  if (_letterRe) return _letterRe.test(c);
+  return /[0-9_]/.test(c) || c.toLowerCase() !== c.toUpperCase();
+}
+function findRegex(q) {
   var esc = String(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  return whole ? new RegExp('(?<![\\p{L}\\p{N}])' + esc + '(?![\\p{L}\\p{N}])', 'giu') : new RegExp(esc, 'giu');
+  try { return new RegExp(esc, 'giu'); } catch (e) {}
+  try { return new RegExp(esc, 'gi'); } catch (e2) { return null; }
+}
+// Alle Treffer als [index, länge]; whole = nur, wenn links/rechts kein Buchstabe/keine Ziffer anschließt.
+function findMatches(text, q, whole) {
+  var out = [], re = q ? findRegex(q) : null;
+  if (!re) return out;
+  text = String(text || '');
+  var m;
+  while ((m = re.exec(text)) !== null) {
+    if (!m[0].length) { re.lastIndex++; continue; }
+    var a = m.index, b = a + m[0].length;
+    if (!whole || (!isWordChar(Array.from(text.slice(0, a)).pop()) && !isWordChar(Array.from(text.slice(b))[0]))) out.push([a, m[0].length]);
+  }
+  return out;
 }
 function countMatches(q, whole) {
   if (!q) return 0;
-  var re = findRegex(q, whole), n = 0;
-  captionBlocks.forEach(function(b){ var m = String(b.text || '').match(re); if (m) n += m.length; });
+  var n = 0;
+  captionBlocks.forEach(function(b){ n += findMatches(b.text, q, whole).length; });
   return n;
 }
 function updateFindCount() {
@@ -4105,11 +4218,15 @@ function updateFindCount() {
 }
 function replaceInCaptions(q, repl, whole) {
   if (!q) return 0;
-  var re = findRegex(q, whole), n = 0;
+  var n = 0;
   captionBlocks.forEach(function(b) {
-    var t = String(b.text || '');
-    var nt = t.replace(re, function(){ n++; return repl; }); // Funktion → „$“ im Ersatztext bleibt wörtlich
-    if (nt !== t) { b.text = nt.replace(/\s+/g, ' ').trim(); retimeEditedBlock(b); }
+    var t = String(b.text || ''), hits = findMatches(t, q, whole);
+    if (!hits.length) return;
+    var nt = '', pos = 0;
+    hits.forEach(function(h){ nt += t.slice(pos, h[0]) + repl; pos = h[0] + h[1]; n++; }); // „$“ bleibt wörtlich
+    nt += t.slice(pos);
+    b.text = nt.replace(/\s+/g, ' ').trim();
+    retimeEditedBlock(b);
   });
   return n;
 }
@@ -4488,11 +4605,25 @@ function parseTextShadows(str) {
     if (c === ',' && depth === 0) { parts.push(cur); cur = ''; } else cur += c;
   }
   if (cur.trim()) parts.push(cur);
+  // Je Schicht: 2–3 Längen (px oder einheitslose 0) + Farbe (hex, rgb[a](), hsl[a](), Name) — Farbe darf
+  // vorne oder hinten stehen. Die alte Regex verlangte „px“ an jeder Länge: „3px 0px 0 #000“ (outlineShadow)
+  // bzw. „-2px 0 0 #000“ (Standard) ergaben die Farbe „0 #000“, die der Canvas verwirft → Konturen fehlten im MP4.
   var out = [];
   parts.forEach(function(p) {
-    var m = p.trim().match(/^(-?[\d.]+)px\s+(-?[\d.]+)px(?:\s+(-?[\d.]+)px)?\s+(.+)$/);
-    if (!m) return;
-    out.push({ x: parseFloat(m[1]), y: parseFloat(m[2]), blur: m[3] ? parseFloat(m[3]) : 0, color: m[4].trim() });
+    var toks = [], d = 0, t = '';
+    p = p.trim();
+    for (var j = 0; j < p.length; j++) {
+      var ch = p[j];
+      if (ch === '(') d++; else if (ch === ')') d--;
+      if (/\s/.test(ch) && d === 0) { if (t) { toks.push(t); t = ''; } } else t += ch;
+    }
+    if (t) toks.push(t);
+    var lens = [], col = [];
+    toks.forEach(function(tk) {
+      if (/^-?(\d+\.?\d*|\.\d+)(px)?$/i.test(tk)) lens.push(parseFloat(tk)); else col.push(tk);
+    });
+    if (lens.length < 2 || lens.length > 3 || col.length !== 1 || /^inset$/i.test(col[0])) return;
+    out.push({ x: lens[0], y: lens[1], blur: lens.length > 2 ? Math.max(0, lens[2]) : 0, color: col[0] });
   });
   return out;
 }
