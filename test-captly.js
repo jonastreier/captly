@@ -74,7 +74,8 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,setMe:function(plan,email){mePlan=plan;meEmail=email;}};`;
+needsWatermark:needsWatermark,capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
+setMe:function(plan,email){mePlan=plan;meEmail=email;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -187,6 +188,37 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   ok(b6.words.length === 2 && b6.words[1].start === 1, 'ohne Wortdaten → resplitBlock-Fallback');
 }
 
+// 9b2) Referenz-Wörter (srcWords): Wort löschen und neu tippen übernimmt den ALTEN Zeit-Slot
+{
+  T.setState([], []); T.onWpbChange('6'); // genug Wörter pro Block für einen 4-Wort-Block
+  const blk = T.buildCaptionBlocks([{ word: 'Fleisch,', start: 1.97, end: 2.9 }, { word: 'es', start: 2.96, end: 3.2 },
+    { word: 'ist', start: 3.31, end: 3.6 }, { word: 'zart', start: 3.71, end: 4.2 }])[0];
+  ok(blk.srcWords && blk.srcWords.length === 4, 'Block hat srcWords');
+  blk.text = 'Fleisch, es ist'; T.retimeEditedBlock(blk);           // Strg+Backspace
+  ok(blk.words.length === 3 && blk.words[2].start === 3.31, 'nach Loeschen: Rest behaelt Timings');
+  ['W', 'Weide', 'Weideland'].forEach(t => { blk.text = 'Fleisch, es ist ' + t; T.retimeEditedBlock(blk); });
+  ok(blk.words[3].word === 'Weideland' && blk.words[3].start === 3.71 && blk.words[3].end === 4.2,
+     'neues letztes Wort uebernimmt Slot des alten: ' + JSON.stringify(blk.words[3]));
+  // Erstes Wort durch zwei ersetzen → Nachfolger behalten ihre Slots
+  blk.text = 'Das Fleisch es ist zart'; T.retimeEditedBlock(blk);
+  ok(blk.words[2].start === 2.96 && blk.words[4].start === 3.71, 'Ersetzung vorne verschiebt Rest nicht');
+}
+
+// 9b3) Wörter-pro-Block ändern behält Text-Edits (Regroup aus den aktuellen Block-Wörtern)
+{
+  T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
+  const bb = T.getBlocks()[0];
+  const firstWord = bb.words[0].word;
+  bb.text = 'Korrigiert ' + bb.words.slice(1).map(w => w.word).join(' '); T.retimeEditedBlock(bb);
+  const t0 = bb.words[0].start;
+  T.onWpbChangeT(2);
+  const all = T.getBlocks().flatMap(b => b.words);
+  ok(all[0].word === 'Korrigiert' && all[0].start === t0, 'Regroup behaelt Edit + Timing (' + firstWord + ' → Korrigiert)');
+  ok(T.getBlocks().every(b => b.words.length <= 2) && T.getBlocks()[0].text.startsWith('Korrigiert'), 'Regroup mit neuer Blockgroesse');
+  ok(T.getBlocks()[0].srcWords[0].word === 'Korrigiert', 'Regroup: srcWords = aktueller Stand');
+  T.onWpbChangeT(4);
+}
+
 // 9c) Neu-Transkription fragt nach manuellen Edits; Abbruch dreht die Sprachauswahl zurück
 {
   const prevLang = T.getLang();
@@ -229,7 +261,28 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   const capHtml = T.buildCap(['Unsere', long], st, 1, 54, [0, 1], 1);
   ok(capHtml.includes('font-size:' + (f1.px * fsMul) + 'px') || capHtml.includes('font-size:' + (T.fitCaptionWords(['Unsere', long], st, 54, maxW).px * fsMul) + 'px'),
      'Fit: Vorschau rendert mit effektiver Groesse');
-  document.getElementById('prevFrame').style.width = '';
+  // Trennqualität (Breite hier = Zeichenzahl inkl. „-“): Kompositumsfugen statt gieriger Schnitte
+  const hy = (w, max) => T.capHyphenate(w, p => p.length <= max).join(' / ');
+  ok(hy('Rindfleischverarbeitungsbetriebe', 14) === 'Rindfleisch- / verarbeitungs- / betriebe', 'Trennung an Fugen: ' + hy('Rindfleischverarbeitungsbetriebe', 14));
+  ok(hy('Weidehaltung', 9) === 'Weide- / haltung', 'Trennung vor Grundwort: ' + hy('Weidehaltung', 9));
+  ok(hy('Highland-Rinder-Weidehaltung', 10) === 'Highland- / Rinder- / Weide- / haltung', 'vorhandene Bindestriche + Fuge: ' + hy('Highland-Rinder-Weidehaltung', 10));
+  ['Rindfleischverarbeitungsbetriebe', 'Geschwindigkeitsbegrenzung', 'Bundesausbildungsförderungsgesetz', 'Schifffahrtsgesellschaft'].forEach(w => {
+    [8, 10, 12].forEach(max => {
+      const pcs = T.capHyphenate(w, p => p.length <= max);
+      ok(pcs.every(p => p.length <= max), 'Stuecke passen: ' + pcs.join('/'));
+      ok(pcs.every(p => p.replace(/-$/, '').length >= 3), 'keine Stuecke < 3 Buchstaben: ' + pcs.join('/'));
+      ok(pcs.map(p => p.replace(/-$/, '')).join('') === w, 'keine Zeichen verloren: ' + pcs.join('/'));
+      ok(!pcs.some((p, i) => i > 0 && (/^(ch|h)/.test(p) && /s?c$|s$/.test(pcs[i - 1].replace(/-$/, '')) && /sch/i.test(pcs[i - 1].replace(/-$/, '').slice(-2) + p.slice(0, 2)))),
+         'sch nie zerrissen: ' + pcs.join('/'));
+    });
+  });
+  // Höhe: viele Zeilen → weiter verkleinern (bis 55 %), Block <= 40 % der Rahmenhöhe
+  document.getElementById('prevFrame').style.height = '480px';
+  const many = 'eins zwei drei vier fuenf sechs sieben acht neun zehn elf zwoelf'.split(' ');
+  const fh = T.fitCaptionWords(many, st, 54, maxW, 3);
+  ok(fh.px < 54 && (fh.h <= 480 * 0.4 + 1e-9 || Math.abs(fh.px - 54 * 0.55) < 0.2), 'Hoehen-Fit: ' + fh.px + 'px, h=' + Math.round(fh.h));
+  ok(fh.px >= 54 * 0.55 - 1e-9, 'Hoehen-Fit respektiert 55-%-Untergrenze');
+  document.getElementById('prevFrame').style.width = ''; document.getElementById('prevFrame').style.height = '';
 }
 
 // 9f) Beta: Wasserzeichen nur für anonyme Nutzer (Pläne sind noch nicht kaufbar)
@@ -415,6 +468,14 @@ ok(T.computeCutRegions(trailW).length === 0, 'ohne totalDur keine Trail-Stille-A
 
     ok(T.isHallucinatedChunk(mkW(['Untertitel', 'der', 'Amara.org-Community'])), 'Halluzination erkannt');
     ok(!T.isHallucinatedChunk(mkW(['Das', 'ist', 'echter', 'Inhalt'])), 'echter Inhalt bleibt');
+    // Echte Outros bleiben erhalten (kurzes letztes Stück!), Untertitel-Credits fliegen weiter raus
+    ok(!T.isHallucinatedChunk(mkW(['Danke', 'fürs', 'Zuschauen,', 'bis', 'zum', 'nächsten', 'Mal!'])), 'Outro "Danke fuers Zuschauen" bleibt');
+    ok(!T.isHallucinatedChunk(mkW(['Vielen', 'Dank', 'fürs', 'Zuschauen!'])), 'Outro "Vielen Dank fuers Zuschauen" bleibt');
+    ok(!T.isHallucinatedChunk(mkW(['Thanks', 'for', 'watching!'])) && !T.isHallucinatedChunk(mkW(['Thank', 'you', 'for', 'watching'])), 'Outro "Thanks for watching" bleibt');
+    ok(!T.isHallucinatedChunk(mkW(['Abonnez-vous', 'à', 'la', 'chaîne'])), 'Outro "Abonnez-vous" bleibt');
+    ok(T.isHallucinatedChunk(mkW(['Untertitelung', 'des', 'ZDF,', '2020'])), 'ZDF-Untertitel-Credit erkannt');
+    ok(T.isHallucinatedChunk(mkW(['Sous-titres', 'réalisés', 'par', 'la', 'communauté', "d'Amara.org"])), 'Amara-Credit (FR) erkannt');
+    ok(T.isHallucinatedChunk(mkW(['Subtitles', 'by', 'the', 'Amara.org', 'community'])), 'Amara-Credit (EN) erkannt');
 
     const sw = T.sanitizeWordTimings([
       { word: 'Hallo', start: 0, end: 0.5 }, { word: 'Welt', start: 0.4, end: 9 }, { word: 'x', start: 10, end: 10 }

@@ -203,8 +203,6 @@ body.editor-open{height:100vh;overflow:hidden}
 /* Play-Overlay: dezentes Glas-Icon statt deckender weißer Scheibe — der Untertitel (z-index 10) liegt
    darüber und bleibt lesbar; positionPlayIcon() schiebt das Icon zusätzlich aus dem Untertitel-Bereich. */
 #playOverlay{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.14);cursor:pointer}
-#playOverlay.icon-top{align-items:flex-start;padding-top:22%}
-#playOverlay.icon-bottom{align-items:flex-end;padding-bottom:22%}
 .play-icon{width:44px;height:44px;border-radius:50%;background:rgba(20,16,30,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.38);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;padding-left:3px;box-shadow:0 4px 16px rgba(0,0,0,.28);transition:transform .15s,background .15s}
 #playOverlay:hover .play-icon{transform:scale(1.08);background:rgba(20,16,30,.58)}
 #frameDropZone{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
@@ -1114,7 +1112,10 @@ function chunkIsSilent(samples) {
 }
 // Typische Whisper-Halluzinationen bei Stille/Musik (YouTube-Trainingsdaten) — nur, wenn das
 // GANZE Stück aus kaum mehr besteht; echter Inhalt wird nie angetastet.
-var HALLU_RE = /amara\.org|untertitel(ung)?\s+(der|von|im auftrag|des)|thanks? for watching|thank you for watching|vielen dank f(ü|u)rs? (zu(schauen|sehen)|zuh(ö|o)ren)|subtitles? (by|from)|sous-titr|abonnez-vous|(copyright|©)\s*\w+/i;
+// Bewusst NUR Marker, die in einem Reel nie echte Sprache sind (Untertitel-Credits, Copyright).
+// „Thanks for watching“ / „Danke fürs Zuschauen“ / „Abonnez-vous“ sagen Creator tatsächlich als
+// Outro — und das letzte Stück eines Videos ist oft kurz → würde sonst still verschwinden.
+var HALLU_RE = /amara\.org|untertitel(ung)?\s+(der|von|im auftrag|des)|im auftrag des zdf|subtitles? (by|from)|sous-titr(es?|age)\s+(r[ée]alis[ée]s\s+)?par|©\s*\w+|copyright\s+(©|\d{4})/i;
 function isHallucinatedChunk(words) {
   if (!words || !words.length || words.length > 14) return false;
   return HALLU_RE.test(words.map(function(w){ return w.word; }).join(' '));
@@ -1494,14 +1495,23 @@ function capMeasureCtx() {
 // Export (drawCaptionsOnCtx) rufen DIESELBE Funktion mit denselben Vorschau-Einheiten auf → identisch.
 // Breite je Wort = max(normal, Highlight-Variante) → Größe springt nicht, wenn das Karaoke-Highlight wandert.
 var CAP_FIT_MIN = 0.55;
+var CAP_FIT_MAX_H = 0.40; // max. Anteil der Rahmenhöhe für einen Caption-Block
 var _capFitCache = {}, _capFitN = 0;
 function capFitMaxW(s) {
   // Nutzbare Breite wie clampLinesToWidth (86 % Rahmen) minus feste Deko-Innenabstände der Styles.
   return previewFrameW() * 0.86 - (s.boxBg ? 36 : 0) - (s.pill ? 18 : 0);
 }
-function fitCaptionWords(words, s, px, maxW) {
+function previewFrameH() {
+  var f = document.getElementById('prevFrame');
+  var h = f && parseFloat(f.style.height);
+  return (h > 0) ? h : 390;
+}
+// lines (optional): Ziel-Zeilenzahl (CAPTION_LINES) für die Höhen-Prüfung. Ergebnis in Vorschau-Einheiten.
+function fitCaptionWords(words, s, px, maxW, lines) {
+  var maxH = previewFrameH() * CAP_FIT_MAX_H;
   var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper,
-            s.hlPillBg ? 1 : 0, s.circle ? 1 : 0].join(',') + '|' + px + '|' + Math.round(maxW);
+            s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0].join(',') + '|' + px + '|' + Math.round(maxW)
+            + '|' + Math.round(maxH) + '|' + (lines || 0);
   if (_capFitCache[key]) return _capFitCache[key];
   var ctx   = capMeasureCtx();
   var fn    = (s.font || "'Inter'").replace(/'/g, '');
@@ -1521,53 +1531,124 @@ function fitCaptionWords(words, s, px, maxW) {
     if (s.circle)   hl += 0.6 * sz + 5;       // padding .3em + 2.5px Rahmen je Seite
     return Math.max(normal, hl) + lsPx * w.length;
   }
+  // Wörter bei Größe p auf maxW bringen (ggf. trennen) + Blockhöhe grob wie clampLinesToWidth schätzen.
+  function layoutAt(p) {
+    var outW = [], orig = [];
+    words.forEach(function(w, i) {
+      if (w.length < 4 || measure(w, p) <= maxW) { outW.push(w); orig.push(i); return; }
+      capHyphenate(w, function(piece){ return measure(piece, p) <= maxW; }).forEach(function(pc) { outW.push(pc); orig.push(i); });
+    });
+    ctx.font = fi + fw + ' ' + (p * fsMul) + 'px "' + fn + '", sans-serif';
+    var sp = ctx.measureText(' ').width, nl = 1, lw = 0;
+    outW.forEach(function(w) {
+      var ww = measure(w, p), add = (lw ? sp : 0) + ww;
+      if (lw && lw + add > maxW) { nl++; lw = ww; } else lw += add;
+    });
+    nl = Math.max(nl, Math.min(lines || 1, outW.length));
+    var h = nl * 1.3 * p * fsMul + (s.boxBg ? 10 : 0);
+    return { px: p, words: outW, orig: orig, lines: nl, h: h };
+  }
+  var floor = px * CAP_FIT_MIN;
   var widest = 0;
   words.forEach(function(w){ widest = Math.max(widest, measure(w, px)); });
   var epx = px;
-  if (widest > maxW) epx = Math.max(px * CAP_FIT_MIN, Math.floor(px * maxW / widest * 10) / 10);
-  var outW = [], orig = [];
-  words.forEach(function(w, i) {
-    if (measure(w, epx) <= maxW || w.length < 4) { outW.push(w); orig.push(i); return; }
-    // Letzter Ausweg: gierig so viele Zeichen wie passen (+ „-“), vorhandene Bindestriche bevorzugt.
-    var pos = 0;
-    while (pos < w.length) {
-      var end = pos + 1;
-      while (end < w.length) {
-        var nx = end + 1;
-        var piece = w.slice(pos, nx) + (nx < w.length && w.charAt(nx - 1) !== '-' ? '-' : '');
-        if (measure(piece, epx) > maxW) break;
-        end = nx;
-      }
-      if (end < w.length) {
-        var h = w.lastIndexOf('-', end - 1);
-        if (h >= pos + 2) end = h + 1;                        // natürliche Trennstelle
-        else {
-          if (w.length - end < 3) end = Math.max(pos + 1, w.length - 3); // keine 1–2-Zeichen-Reste
-          end = capSyllableBreak(w, pos, end);
-        }
-      }
-      outW.push(w.slice(pos, end) + (end < w.length && w.charAt(end - 1) !== '-' ? '-' : ''));
-      orig.push(i);
-      pos = end;
-    }
-  });
-  var res = { px: epx, words: outW, orig: orig };
+  if (widest > maxW) epx = Math.max(floor, Math.floor(px * maxW / widest * 10) / 10);
+  var res = layoutAt(epx);
+  // Höhe: Block darf nicht mehr als ~40 % des Rahmens belegen (sonst ragt z. B. bei Position „Bottom“
+  // die erste Zeile oben aus dem Bild) → weiter verkleinern, gleiche 55-%-Untergrenze.
+  while (res.h > maxH && epx > floor + 1e-6) {
+    epx = Math.max(floor, Math.floor(epx * 0.92 * 10) / 10);
+    res = layoutAt(epx);
+  }
   if (++_capFitN > 400) { _capFitCache = {}; _capFitN = 0; }
   _capFitCache[key] = res;
   return res;
 }
-// Grobe Silben-Heuristik für die Notfall-Trennung (keine Wörterbuch-Silbentrennung, aber deutlich
-// lesbarer als ein harter Schnitt): in den letzten 5 Zeichen vor `end` zuerst zwischen zwei Konsonanten
-// vor einem Vokal trennen („verarbeitungs-|betriebe“, „Rindfleisch-|verarbeitung“), sonst vor einem
-// einzelnen Konsonanten nach Vokal („verarbei-|tung“). Teilstück bleibt mind. 3 Zeichen lang.
+// ── Notfall-Silbentrennung für überlange Wörter ──
+// Keine Wörterbuch-Trennung, aber nach Qualität gestaffelte Trennstellen (Strafpunkte):
+//   vorhandener Bindestrich (-2) < Kompositumsfuge nach Fugen-/Suffixendung („-ungs“, „-heits“ …) bzw.
+//   vor häufigem Grundwort („-betrieb“, „-haltung“ …) oder nach Präfix am Wortanfang (0)
+//   < Silbengrenze nach deutscher Grundregel (4) < beliebige Stelle (60).
+// Verboten: Cluster sch/ch/ck/ph/th/st zerreißen, Teilstücke < 3 Buchstaben.
+// Aufteilung per DP über Stückzahl, Strafpunkte und ausgewogene Stücklängen (statt gierig die erste
+// Zeile zu füllen, was „verarbei-|tungsbet-|riebe“ erzeugte).
 var CAP_VOWEL_RE = /[aeiouyäöüàâáéèêëíìîïóòôúùûœæ]/i;
-function capSyllableBreak(w, pos, end) {
+var CAP_JOINT_AFTER = ['schafts', 'heits', 'keits', 'tions', 'ungs', 'ions', 'ings'];
+var CAP_JOINT_BEFORE = ['verarbeitung', 'betrieb', 'haltung', 'fleisch', 'arbeit', 'schaft', 'zeit', 'weide', 'rinder', 'land'];
+var CAP_PREFIXES = ['ver', 'zer', 'ent', 'be', 'ge', 'er', 'un'];
+var CAP_ONSETS = ['schl', 'schm', 'schn', 'schr', 'schw', 'spr', 'str', 'sch', 'bl', 'br', 'ch', 'ck', 'dr', 'fl', 'fr',
+                  'gl', 'gr', 'kl', 'kr', 'ph', 'pl', 'pr', 'sp', 'st', 'th', 'tr', 'zw'];
+function capBreakPenalties(w) {
+  var lw = w.toLowerCase(), n = w.length, pen = [], e, k;
   function V(c) { return !!c && CAP_VOWEL_RE.test(c); }
-  function C(c) { return !!c && /\p{L}/u.test(c) && !V(c); }
-  var lo = Math.max(pos + 3, end - 5), e;
-  for (e = end; e >= lo; e--) if (C(w.charAt(e - 1)) && C(w.charAt(e)) && V(w.charAt(e + 1))) return e;
-  for (e = end; e >= lo; e--) if (V(w.charAt(e - 1)) && C(w.charAt(e)) && V(w.charAt(e + 1))) return e;
-  return end;
+  function L(c) { return !!c && /\p{L}/u.test(c); }
+  for (e = 0; e <= n; e++) pen.push(60);
+  // Silbengrenzen: vor dem (maximalen) Anlaut-Cluster vor jedem Vokal, wenn davor wieder ein Vokal steht
+  for (var v = 1; v < n; v++) {
+    if (!V(lw.charAt(v))) continue;
+    var c0 = v; while (c0 > 0 && L(lw.charAt(c0 - 1)) && !V(lw.charAt(c0 - 1))) c0--;
+    if (c0 === v || c0 === 0 || !V(lw.charAt(c0 - 1))) continue;
+    var run = lw.slice(c0, v), b = v - 1;
+    for (k = 0; k < CAP_ONSETS.length; k++) {
+      var on = CAP_ONSETS[k];
+      if (run.length >= on.length && run.slice(run.length - on.length) === on) { b = v - on.length; break; }
+    }
+    pen[b] = Math.min(pen[b], 4);
+  }
+  CAP_JOINT_AFTER.forEach(function(sf) {
+    for (var i = lw.indexOf(sf); i >= 0; i = lw.indexOf(sf, i + 1)) { var at = i + sf.length; if (at < n) pen[at] = 0; }
+  });
+  CAP_JOINT_BEFORE.forEach(function(hd) {
+    for (var i = lw.indexOf(hd); i >= 0; i = lw.indexOf(hd, i + 1)) { if (i > 0) pen[i] = 0; }
+  });
+  CAP_PREFIXES.forEach(function(pf) { if (lw.indexOf(pf) === 0 && V(lw.charAt(pf.length))) pen[pf.length] = Math.min(pen[pf.length], 1); });
+  for (e = 1; e < n; e++) {
+    if (w.charAt(e - 1) === '-') { pen[e] = -2; continue; }
+    var two = lw.slice(e - 1, e + 1);
+    if (/^(ch|ck|ph|th|st)$/.test(two) || lw.slice(e - 2, e + 1) === 'sch' || lw.slice(e - 1, e + 2) === 'sch') pen[e] = Infinity;
+    if (!L(w.charAt(e - 1)) || !L(w.charAt(e))) pen[e] = Math.max(pen[e], 60); // nie an Ziffern/Satzzeichen bevorzugen
+  }
+  return pen;
+}
+// fits(piece) → passt das Teilstück (inkl. angehängtem „-“) in die Zeile?
+function capHyphenate(w, fits) {
+  var n = w.length, pen = capBreakPenalties(w);
+  function piece(i, j) { return w.slice(i, j) + (j < n && w.charAt(j - 1) !== '-' ? '-' : ''); }
+  function letters(i, j) { return w.slice(i, j).replace(/[^\p{L}\p{N}]/gu, '').length; }
+  function solve(strict) {
+    var minLen = strict ? 3 : 1, fitM = [], i, j;
+    for (i = 0; i < n; i++) { fitM.push([]); for (j = i + 1; j <= n; j++) fitM[i][j] = fits(piece(i, j)); }
+    function okEdge(i, j) {
+      if (!fitM[i][j]) return false;
+      if (j < n && strict && pen[j] === Infinity) return false;
+      return letters(i, j) >= minLen || (!strict && j - i >= 1);
+    }
+    // 1) minimale Stückzahl → Ziel-Stücklänge für die Ausgewogenheit
+    var cnt = [0];
+    for (j = 1; j <= n; j++) { cnt[j] = Infinity; for (i = 0; i < j; i++) if (cnt[i] + 1 < cnt[j] && okEdge(i, j)) cnt[j] = cnt[i] + 1; }
+    if (!isFinite(cnt[n])) return null;
+    var ideal = n / cnt[n];
+    // 2) Kosten je Stück (30) + Strafpunkte der Trennstelle + Abweichung von der Ziel-Länge.
+    //    Ein Stück mehr an einer guten Fuge schlägt so zwei willkürliche Schnitte („Weide-|haltung“
+    //    statt „Rinder-We-|idehaltung“); passen zwei Nachbarstücke zusammen, ist Zusammenlegen immer
+    //    billiger → nie zwei Teile eines Worts nebeneinander in einer Zeile.
+    var best = [0], from = [-1];
+    for (j = 1; j <= n; j++) {
+      best[j] = Infinity; from[j] = -1;
+      for (i = 0; i < j; i++) {
+        if (!isFinite(best[i]) || !okEdge(i, j)) continue;
+        var pj = j < n ? Math.min(pen[j], 100) : 0;
+        var d = (j - i - ideal) / ideal;
+        var cost = best[i] + 30 + pj + 6 * d * d;
+        if (cost < best[j]) { best[j] = cost; from[j] = i; }
+      }
+    }
+    if (!isFinite(best[n])) return null;
+    var cuts = [], at = n;
+    while (at > 0) { var st = from[at]; cuts.unshift([st, at]); at = st; }
+    return cuts.map(function(r){ return piece(r[0], r[1]); });
+  }
+  return solve(true) || solve(false) || [w];
 }
 // hlOf (optional): Index-Abbildung Teilwort → Originalwort (nach Bindestrich-Trennung), damit alle
 // Teile eines aktiven Worts mit der Highlight-Schrift gemessen werden.
@@ -1617,7 +1698,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   // Auto-Fit nur für die echte Vorschau (lineTarget gesetzt) — Style-Thumbnails/Showcase haben eigene Größen.
   var srcWords = words, orig = null;
   if (lineTarget && px) {
-    var fit = fitCaptionWords(words, s, px, capFitMaxW(s));
+    var fit = fitCaptionWords(words, s, px, capFitMaxW(s), lineTarget);
     px = fit.px; words = fit.words; orig = fit.orig;
   }
   var font = s.font || "'Inter'";
@@ -1746,6 +1827,7 @@ function updateOverlay(t) {
       }
       _lastKey = key; _lastBi = bi;
       if (bi >= 0) setActiveSeg(bi);
+      if (ov._capClamped) applyPos(); else clampCapVertical(); // Höhe kann sich je Block ändern
       if (showSafeZone) checkSafeZoneCollision();
     }
   }
@@ -1785,7 +1867,8 @@ function buildCaptionBlocks(wts) {
     if (!end || end <= start) end = start + Math.max(0.9, chunk.length * 0.35);
     var words = chunk.map(function(w){ return { word: w.word, start: w.start || start, end: w.end || 0 }; });
     words.forEach(function(w, k){ if (!w.end || w.end <= w.start) w.end = words[k + 1] ? words[k + 1].start : end; });
-    blocks.push({ words: words, start: start, end: end, text: words.map(function(w){ return w.word; }).join(' ') });
+    blocks.push({ words: words, srcWords: copyTimedWords(words), start: start, end: end,
+                  text: words.map(function(w){ return w.word; }).join(' ') });
     i = j;
   }
   return blocks;
@@ -1801,13 +1884,20 @@ function resplitBlock(b) {
 }
 // Nach Text-Edit: ECHTE Wort-Timings erhalten (wie Opus Clip/Descript) statt alles gleichmäßig zu verteilen —
 // sonst verschiebt ein einzelner Tippfehler-Fix sämtliche Karaoke-Highlights im Block.
-// Gleiche Wortanzahl → Timings 1:1 übernehmen. Sonst Alignment alt↔neu per LCS (normalisiert):
-// gematchte Wörter behalten ihre Zeiten, ersetzte Läufe teilen sich die Zeitspanne der alten Wörter,
-// reine Einfügungen landen zwischen den Nachbarn. Ohne brauchbare Wortdaten → resplitBlock().
+// Referenz ist b.srcWords (stabile, getimte Wörter seit Transkription/Split/Merge/Regroup/Projekt-Load),
+// NICHT der Stand vom letzten Tastendruck — sonst würde „Wort löschen, neues tippen“ über den
+// Zwischenzustand als Einfügung interpoliert statt den alten Zeit-Slot zu übernehmen.
+// Gleiche Wortanzahl → Timings 1:1 übernehmen. Sonst Alignment Referenz↔neu per LCS (normalisiert):
+// gematchte Wörter behalten ihre Zeiten, gleich lange ersetzte Läufe übernehmen die Slots 1:1, sonst
+// teilen sie sich die Zeitspanne der alten Wörter; reine Einfügungen landen zwischen den Nachbarn.
+// Ohne brauchbare Wortdaten → resplitBlock().
 function normWordKey(w) { return String(w || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''); }
+function copyTimedWords(ws) {
+  return (ws || []).map(function(w){ return { word: w.word, start: w.start, end: w.end }; });
+}
 function retimeEditedBlock(b) {
   var ws = String(b.text || '').split(/\s+/).filter(Boolean);
-  var old = b.words || [];
+  var old = (b.srcWords && b.srcWords.length) ? b.srcWords : (b.words || []);
   var valid = old.length && old.every(function(w){ return w && isFinite(w.start) && isFinite(w.end); });
   if (!valid) { resplitBlock(b); return; }
   if (!ws.length) { b.words = []; return; }
@@ -1836,11 +1926,14 @@ function retimeEditedBlock(b) {
     if (out[k]) { k++; continue; }
     var k1 = k; while (k1 < m && !out[k1]) k1++;           // Lauf ungematchter neuer Wörter [k, k1)
     var pi = k > 0 ? match[k - 1] : -1, ni = k1 < m ? match[k1] : n; // alte Anker-Indizes
-    var s0, e0;
+    var s0, e0, cnt = k1 - k;
+    if (ni - pi - 1 === cnt) {                                // gleich lang ersetzt → Slots 1:1 übernehmen
+      for (var q1 = 0; q1 < cnt; q1++) out[k + q1] = { word: ws[k + q1], start: old[pi + 1 + q1].start, end: old[pi + 1 + q1].end };
+      k = k1; continue;
+    }
     if (ni - pi > 1) { s0 = old[pi + 1].start; e0 = old[ni - 1].end; }   // Ersetzung: Spanne der alten Wörter
     else { s0 = pi >= 0 ? out[k - 1].end : bs; e0 = ni < n ? out[k1].start : be; } // reine Einfügung: Lücke
     s0 = Math.max(bs, s0); e0 = Math.min(be, Math.max(s0, e0));
-    var cnt = k1 - k;
     if (e0 - s0 < 0.06 * cnt) {
       // Keine/zu kleine Lücke (durchgehend gesprochen): zweite Hälfte des linken Nachbarn abgeben,
       // am Blockanfang ersatzweise die erste Hälfte des rechten.
@@ -1872,6 +1965,7 @@ async function splitBlockAtCursor(idx, ta) {
                  text: wordsA.map(function(w){ return w.word; }).join(' ') };
   var blockB = { words: wordsB, start: wordsB[0].start || b.start, end: wordsB[wordsB.length - 1].end || b.end,
                  text: wordsB.map(function(w){ return w.word; }).join(' ') };
+  blockA.srcWords = copyTimedWords(wordsA); blockB.srcWords = copyTimedWords(wordsB);
   captionBlocks.splice(idx, 1, blockA, blockB);
   captionsEdited = true;
   await renderSegments();
@@ -1893,6 +1987,7 @@ async function mergeBlockWithPrevious(idx, ta) {
   var cursorPos   = prevBlock.text.length + 1; // Naht zwischen altem Vorgänger-Text und eingefügtem Leerzeichen
   var mergedBlock = { words: prevBlock.words.concat(curBlock.words), start: prevBlock.start, end: curBlock.end,
                        text: prevBlock.text + ' ' + curBlock.text };
+  mergedBlock.srcWords = copyTimedWords(mergedBlock.words);
   captionBlocks.splice(idx - 1, 2, mergedBlock);
   captionsEdited = true;
   await renderSegments();
@@ -2102,7 +2197,8 @@ function applyTemplateSettings(t) {
     WORDS_PER_BLOCK = t.wpb;
     var ws = document.getElementById('wpbSlider');
     if (ws) { ws.value = t.wpb; document.getElementById('wpbDisp').textContent = t.wpb; }
-    if (wordTimestamps.length) { captionBlocks = buildCaptionBlocks(wordTimestamps); captionsEdited = false; renderSegments(); renderWPills(); }
+    syncWordsFromBlocks(); // Text-Edits beim Neu-Gruppieren behalten
+    if (wordTimestamps.length) { captionBlocks = buildCaptionBlocks(wordTimestamps); renderSegments(); renderWPills(); }
   }
   if (typeof t.lines === 'number') { CAPTION_LINES = t.lines; syncLinesButtons(); }
   applyPos();
@@ -2171,8 +2267,36 @@ function applyPos() {
     else if (off < 0) ov.style.paddingTop = (-off * 2) + '%';
   }
   else ov.style.bottom = clampPct(12 + off) + '%';
+  clampCapVertical();
   if (showSafeZone) checkSafeZoneCollision();
   positionPlayIcon();
+}
+// Letzter Ausweg nach dem Auto-Fit (fitCaptionWords): ragt der Block trotzdem aus dem Rahmen, wird er
+// so weit verschoben, dass er komplett sichtbar bleibt — gewählte Position (oben/Mitte/unten) bleibt
+// Ausgangspunkt. Gegenstück im Export: Clamp von y0 in drawCaptionsOnCtx().
+function clampCapVertical() {
+  var ov = document.getElementById('capOverlay'), frame = document.getElementById('prevFrame');
+  if (!ov || !frame) return;
+  ov._capClamped = false;
+  var child = ov.firstElementChild;
+  if (!child || !child.getBoundingClientRect) return;
+  var fr = frame.getBoundingClientRect(), r = child.getBoundingClientRect();
+  if (!fr.height || !r.height) return;
+  var z = zoomLevel || 1, pad = 4;
+  var overTop = (fr.top - r.top) / z + pad, overBot = (r.bottom - fr.bottom) / z + pad;
+  if (overTop <= 0 && overBot <= 0) return;
+  ov._capClamped = true;
+  if (capPos === 'center') {
+    ov.style.paddingTop = ''; ov.style.paddingBottom = ''; // Feinjustierung opfern, damit nichts abgeschnitten wird
+  } else if (capPos === 'top') {
+    var topPx = parseFloat(getComputedStyle(ov).top) || 0;
+    if (overBot > 0) ov.style.top = Math.max(0, topPx - overBot) + 'px';
+    else if (overTop > 0) ov.style.top = (topPx + overTop) + 'px';
+  } else {
+    var botPx = parseFloat(getComputedStyle(ov).bottom) || 0;
+    if (overTop > 0) ov.style.bottom = Math.max(0, botPx - overTop) + 'px';
+    else if (overBot > 0) ov.style.bottom = (botPx + overBot) + 'px';
+  }
 }
 // ═══════════════════════════════════════
 // SAFE ZONE (Instagram-Reels-Standard, 1080x1920-Referenz)
@@ -2312,12 +2436,23 @@ function syncLinesButtons() {
     b.classList.toggle('on', parseInt(b.dataset.lines) === CAPTION_LINES);
   });
 }
+// Vor dem Neu-Gruppieren die AKTUELLEN Block-Wörter (inkl. Text-Edits, Timings bleiben dank
+// retimeEditedBlock erhalten) zurück in die flache Wortliste schreiben — sonst baut WPB-Slider/Template
+// aus dem Original-Transkript neu und verwirft Edits stillschweigend.
+function syncWordsFromBlocks() {
+  if (!captionBlocks.length) return;
+  var flat = [];
+  captionBlocks.forEach(function(b) {
+    (b.words || []).forEach(function(w) { if (w && w.word) flat.push({ word: w.word, start: w.start, end: w.end }); });
+  });
+  wordTimestamps = flat;
+}
 function onWpbChange(v) {
   WORDS_PER_BLOCK = parseInt(v);
   document.getElementById('wpbDisp').textContent = v;
+  syncWordsFromBlocks();
   if (wordTimestamps.length) {
     captionBlocks = buildCaptionBlocks(wordTimestamps);
-    captionsEdited = false;
     renderSegments(); renderWPills();
     _lastKey = null;
     updateOverlay();
@@ -2528,6 +2663,7 @@ async function loadProject(id) {
   if (p.blocks) {
     captionBlocks = p.blocks;
     captionsEdited = false;
+    captionBlocks.forEach(function(b) { if (!b.srcWords || !b.srcWords.length) b.srcWords = copyTimedWords(b.words); });
     wordTimestamps = [];
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
   }
@@ -3041,34 +3177,39 @@ function showPlayOverlay(show) {
   if (show) positionPlayIcon();
 }
 // Play-Icon aus dem Untertitel-Bereich schieben: liegt der Untertitel (z. B. Position „Middle“ oder
-// per Drag verschoben) in der Bildmitte, wandert das Icon ins obere bzw. untere Drittel —
-// sonst verdeckt es im Pausenzustand genau den Text, den man gerade gestaltet.
+// per Drag verschoben) in der Bildmitte, wandert das Icon in den größeren freien Bereich darüber bzw.
+// darunter — mit vollem Abstand (Icon-Radius + 12px) zur Text-Box, nicht nur „ungefähr daneben“.
+var PLAY_ICON_R = 22, PLAY_ICON_GAP = 12;
 function positionPlayIcon() {
   var po = document.getElementById('playOverlay');
   var frame = document.getElementById('prevFrame');
   var ov = document.getElementById('capOverlay');
   if (!po || !frame || !ov) return;
-  po.classList.remove('icon-top', 'icon-bottom');
+  po.style.alignItems = ''; po.style.paddingTop = '';
   if (po.style.display === 'none') return;
   var fr = frame.getBoundingClientRect();
   if (!fr.height) return;
+  var z = zoomLevel || 1, H = fr.height / z; // Rects sind per Zoom skaliert → in Rahmen-px umrechnen
   // Bei „Middle“ spannt capOverlay die volle Höhe (Flex) → tatsächlichen Text-Bereich aus den Kindern nehmen.
   var top = Infinity, bot = -Infinity;
   for (var i = 0; i < ov.children.length; i++) {
     var r = ov.children[i].getBoundingClientRect();
     if (!r.height) continue;
-    top = Math.min(top, r.top); bot = Math.max(bot, r.bottom);
+    top = Math.min(top, (r.top - fr.top) / z); bot = Math.max(bot, (r.bottom - fr.top) / z);
   }
   if (top === Infinity) {
     // Noch kein Untertitel sichtbar → aus der Position schätzen (Text liegt um die Mitte nur bei „Middle“).
     if (capPos !== 'center') return;
-    top = fr.top + fr.height * 0.42; bot = fr.top + fr.height * 0.58;
+    top = H * 0.42; bot = H * 0.58;
   }
-  var icoHalf = 30; // halbe Icon-Höhe + etwas Luft
-  var mid = fr.top + fr.height / 2;
-  if (bot < mid - icoHalf || top > mid + icoHalf) return; // keine Überlappung → mittig lassen
-  // Untertitel eher in der oberen Hälfte → Icon nach unten, sonst nach oben.
-  po.classList.add(((top + bot) / 2) < mid ? 'icon-bottom' : 'icon-top');
+  var R = PLAY_ICON_R, G = PLAY_ICON_GAP, mid = H / 2;
+  if (bot <= mid - R - G || top >= mid + R + G) return; // genug Abstand → mittig lassen
+  var above = top - G, below = H - bot - G;          // freier Platz über/unter der Text-Box
+  var cy = above >= below
+    ? Math.max(R + 6, Math.min(top - G - R, above / 2))
+    : Math.min(H - R - 6, Math.max(bot + G + R, bot + G + below / 2));
+  po.style.alignItems = 'flex-start';
+  po.style.paddingTop = Math.round(cy - R) + 'px';
 }
 function doPlay() { if (isExporting) return; var v = document.getElementById('mainVid'); if (v.src) v.play().catch(function(){}); }
 function togglePlay() { if (isExporting) return; var v = document.getElementById('mainVid'); if (!v.src) return; if (v.paused) v.play().catch(function(){}); else v.pause(); }
@@ -3488,7 +3629,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
   var scale = W / previewFrameW(); // Vorschau-Rahmen ist variabel breit (Video-AR-abhängig) — NIE eine feste Zahl hier
   // Gleiches Auto-Fit wie die Vorschau (buildCap), in Vorschau-Einheiten berechnet → identisches Ergebnis.
-  var fit = fitCaptionWords(b.words.map(function(w){ return w.word; }), s, fontSize, capFitMaxW(s));
+  var fit = fitCaptionWords(b.words.map(function(w){ return w.word; }), s, fontSize, capFitMaxW(s), CAPTION_LINES);
   var fsS = Math.round(fit.px * scale * fsMul);
   var fn  = (s.font || "'Inter'").replace(/'/g,'');
   var fw  = s.fw || '400';
@@ -3555,6 +3696,13 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
     var bottomPct = clampPct(12 + off);
     y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh;
   }
+
+  // Letzter Ausweg wie clampCapVertical() in der Vorschau: Block komplett im Bild halten.
+  var padYc = (s.boxBg ? 5 * scale : 0) + 4 * scale;
+  var blkBot = y0 + (lines.length - 1) * lh + fsS * 0.45 + padYc;
+  if (blkBot > H) y0 -= (blkBot - H);
+  var blkTop = y0 - fsS * 1.05 - padYc;
+  if (blkTop < 0) y0 -= blkTop; // oben hat Vorrang (erste Zeile ist die, die gelesen wird)
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
 
