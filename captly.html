@@ -3212,9 +3212,9 @@ function selectStyle(id) {
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
   if (s) seedCustomFields(s);                        // „Eigener Style" startet vom gewählten Style/Template
-  if (s && s._tpl) applyTemplateSettings(s._tpl);    // gespeichertes Template: Position/Größe/Modus wiederherstellen
+  if (s && s._tpl) { _presetPrevLayout = null; applyTemplateSettings(s._tpl); } // Template bringt eigenes Layout mit
   else if (s && s.layout) applyPresetLayout(s.layout); // eingebaute Presets mit eigener Blockgröße (Pop One)
-  else if (s && id !== 'custom' && _presetPrevLayout) restorePresetLayout();
+  else if (s && _presetPrevLayout) restorePresetLayout(); // jeder andere Style (auch Custom): vorheriges Layout zurück
   _lastKey = null;
   updateOverlay();
 }
@@ -3984,6 +3984,7 @@ function setMode(btn) {
   scheduleAutosave();
 }
 function setLines(btn) {
+  _presetPrevLayout = null; // manuell geändert → behalten
   CAPTION_LINES = parseInt(btn.dataset.lines);
   document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.lines === btn.dataset.lines); });
   _lastKey = null;
@@ -4007,6 +4008,7 @@ function syncWordsFromBlocks() {
   wordTimestamps = flat;
 }
 function onWpbChange(v) {
+  _presetPrevLayout = null; // Nutzer hat selbst eingestellt → beim Verlassen des Presets nicht zurückdrehen
   WORDS_PER_BLOCK = parseInt(v);
   document.getElementById('wpbDisp').textContent = v;
   syncWordsFromBlocks();
@@ -5513,7 +5515,11 @@ async function ffFetchFile(input) {
   return new Uint8Array(buf);
 }
 // Kodiert einen aufgenommenen WebM-Blob nach H.264/AAC-MP4 um (Instagram/TikTok-tauglich).
-async function webmToMp4(blob, onProgress) {
+function webmToMp4Trim(durSec) {
+  return (durSec > 0 && isFinite(durSec)) ? ['-t', durSec.toFixed(3), '-shortest'] : ['-shortest'];
+}
+// durSec (optional): Zieldauer — Bild UND Ton werden darauf gekürzt (A/V enden gemeinsam, ≈ Quelldauer)
+async function webmToMp4(blob, onProgress, durSec) {
   var g = await getFFmpeg();
   var ff = g.ff;
   if (onProgress) ff.on('progress', function(e){ onProgress(Math.max(0, Math.min(1, e.progress || 0))); });
@@ -5526,11 +5532,11 @@ async function webmToMp4(blob, onProgress) {
   // mit 1000 fps und duplizierten Frames (6 s → 6111 Frames). Konstante 30 fps (= captureStream(30)):
   // „-fps_mode cfr -r 30“ (Core 0.12.6 = FFmpeg 5.1.4, kennt -fps_mode) → Frames = Dauer × 30,
   // CFR ist zudem für Instagram/iOS-Fotos die unproblematischste Variante.
-  await ff.exec(['-i', 'in.webm',
+  await ff.exec(['-i', 'in.webm'].concat(webmToMp4Trim(durSec)).concat([
     '-fps_mode', 'cfr', '-r', '30',
     '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '128k',
-    '-movflags', '+faststart', 'out.mp4']);
+    '-movflags', '+faststart', 'out.mp4']));
   var data = await ff.readFile('out.mp4');
   try { ff.off && ff.off('progress'); } catch(e) {}
   return new Blob([data.buffer], { type: 'video/mp4' });
@@ -6105,25 +6111,35 @@ function exportGeometry(srcW, srcH, fps, res, fmt) {
 }
 // Quelle (Video-Element oder VideoFrame über drawFn) in den Ausgaberahmen zeichnen.
 // drawFn(ctx, W, H, fit) zeichnet die Quelle zentriert mit fit = 'cover' | 'contain'.
-var _blurBgCanvas = null, _blurBgFrame = 0;
-// Blur-Fill-Hintergrund: winzig (27 px breit) zeichnen + direkt dort abdunkeln, dann mit Bildglättung
-// hochskalieren (= Weichzeichner ohne ctx.filter). Nur jeden 3. Frame neu — ein unscharfer Hintergrund
-// braucht keine Frame-Genauigkeit. Vorher: größerer Puffer + Vollbild-fillRect pro Frame (~1,75× Crop).
+var _blurBgCanvas = null, _blurMidCanvas = null, _blurBgFrame = 0, BLUR_BG_EVERY = 6;
+// Blur-Fill-Hintergrund ohne ctx.filter/shadowBlur. Teuer war das Herunterskalieren des VOLLEN Quellbilds
+// in den winzigen Canvas: winzige Canvases liegen in Chrome im CPU-Speicher → jedes Mal Rücklesen des
+// (YUV-)Videoframes von der GPU. Jetzt: Quelle → mittlerer Canvas (256 px breit, GPU-beschleunigt, bleibt
+// auf der GPU) → winziger Canvas (27 px, liest nur ~0,5 MB zurück) → abdunkeln. Nur jeden 6. Frame neu
+// (ein unscharfer Hintergrund braucht keine Frame-Genauigkeit), Hochskalieren mit „low“-Glättung (bilinear).
 function drawReframed(ctx, W, H, mode, drawFn) {
   if (mode !== 'blur') { drawFn(ctx, W, H, 'cover'); return; }
   if (!_blurBgCanvas) _blurBgCanvas = document.createElement('canvas');
+  if (!_blurMidCanvas) _blurMidCanvas = document.createElement('canvas');
   var bw = 27, bh = Math.max(8, Math.round(27 * H / W));
+  var mw = 256, mh = Math.max(64, Math.round(256 * H / W));
   var fresh = _blurBgCanvas.width !== bw || _blurBgCanvas.height !== bh;
   if (fresh) { _blurBgCanvas.width = bw; _blurBgCanvas.height = bh; }
-  var redraw = fresh || (++_blurBgFrame % 3 === 0);
+  if (_blurMidCanvas.width !== mw || _blurMidCanvas.height !== mh) { _blurMidCanvas.width = mw; _blurMidCanvas.height = mh; }
+  var redraw = fresh || (++_blurBgFrame % BLUR_BG_EVERY === 0);
   if (fresh) _blurBgFrame = 0;
   if (redraw) {
+    var m = _blurMidCanvas.getContext('2d');
+    drawFn(m, mw, mh, 'cover');
     var b = _blurBgCanvas.getContext('2d');
-    drawFn(b, bw, bh, 'cover');
+    b.imageSmoothingEnabled = true;
+    if ('imageSmoothingQuality' in b) b.imageSmoothingQuality = 'low';
+    b.drawImage(_blurMidCanvas, 0, 0, bw, bh);
     b.fillStyle = 'rgba(0,0,0,.45)'; b.fillRect(0, 0, bw, bh);
   }
   ctx.save();
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.imageSmoothingEnabled = true;
+  if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'low';
   ctx.drawImage(_blurBgCanvas, 0, 0, W, H);
   ctx.restore();
   drawFn(ctx, W, H, 'contain');
@@ -6207,7 +6223,15 @@ function exportBtnState(text) {
   }
 }
 async function exportVideoWithCaptions() {
-  await waitForSceneCuts(20000); // Schnitterkennung läuft noch → kurz warten, sonst überspannen Blöcke Schnitte
+  // Schnitterkennung läuft noch → kurz warten (sonst überspannen Blöcke Schnitte); die Phase direkt am
+  // Button zeigen — die Fortschrittsleiste darunter liegt auf dem Handy oft außerhalb des Bildschirms.
+  var cutTimer = null;
+  if (breakAtCuts && typeof cutsDetecting === 'function' && cutsDetecting() && !isExporting) {
+    var showCuts = function() { exportBtnState('Finding scene cuts ' + Math.max(0, Math.min(99, (_cutState && _cutState.pct) || 0)) + '%…'); };
+    showCuts(); cutTimer = setInterval(showCuts, 250);
+  }
+  try { await waitForSceneCuts(20000); }
+  finally { if (cutTimer) { clearInterval(cutTimer); exportBtnState(null); } }
   var vid = document.getElementById('mainVid');
   if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
   if (isExporting) return; // Doppelklick während eines laufenden Exports
@@ -6268,7 +6292,7 @@ async function exportVideoWithCaptions() {
           recBar.style.width = Math.round(p * 100) + '%';
           recMsg.textContent = 'Creating MP4… ' + Math.round(p * 100) + '%';
           exportBtnState('Creating MP4 ' + Math.round(p * 100) + '%…');
-        });
+        }, vid.duration - cutTotalSec); // Bild und Ton exakt auf die Ausgabedauer kürzen
         dlBlob(mp4, 'capivo-video.mp4');
       } catch (e) {
         console.error('MP4-Konvertierung fehlgeschlagen:', e);
@@ -6310,8 +6334,10 @@ async function exportVideoWithCaptions() {
   vid.onseeked = null;
   vid.muted = false; vid.volume = 1; // stummgeschaltetes Element liefert keine Tonspur
 
-  recorder.start(200);
+  // Erst aufnehmen, wenn die Wiedergabe WIRKLICH läuft — sonst landet die Anlaufzeit (Ton/Bild-Vorlauf)
+  // mit in der Datei und Bild/Ton werden länger als die Quelle.
   await vid.play().catch(function(){});
+  recorder.start(200);
 
   var totalDur = vid.duration;
   // Beendet die Aufnahme genau einmal — von MEHREREN, unabhängigen Auslösern aus aufrufbar
@@ -6319,7 +6345,10 @@ async function exportVideoWithCaptions() {
   function finishExport() {
     if (stopped) return;
     stopped = true;
-    setTimeout(function(){ recorder.stop(); }, 120); // letzte Frames/Audio flushen
+    // Sofort pausieren (kein Nachlauf von Ton/Standbild), dann nach kurzem Flush beenden
+    try { if (recorder.state === 'recording') recorder.pause(); } catch (e) {}
+    try { vid.pause(); } catch (e2) {}
+    setTimeout(function(){ try { recorder.stop(); } catch (e3) {} }, 120);
   }
   // FIX: Browser pausieren requestAnimationFrame komplett, sobald der Tab in den Hintergrund
   // gerät (Tab-Wechsel, App-Wechsel, Bildschirmschoner) — Video-Wiedergabe läuft aber weiter.

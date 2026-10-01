@@ -74,7 +74,7 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,enforceMinBlockDuration:enforceMinBlockDuration,exportBtnState:exportBtnState,
+needsWatermark:needsWatermark,webmToMp4Trim:webmToMp4Trim,enforceMinBlockDuration:enforceMinBlockDuration,exportBtnState:exportBtnState,
 revertTranscriptionSettings:revertTranscriptionSettings,getModel:function(){return whisperModel;},setLastTrMeta:function(m){_lastTrMeta=m;},pickRecorderMime:pickRecorderMime,recorderMimeIsSafeMp4:recorderMimeIsSafeMp4,
 exportGeometry:exportGeometry,exportBitrate:exportBitrate,drawReframed:drawReframed,classifyUnplayable:classifyUnplayable,
 applyPlayability:applyPlayability,setVideoPlayable:function(v){videoPlayable=v;},transcribeVideo:transcribeVideo,DEFAULT_STYLE:DEFAULT_STYLE,
@@ -972,6 +972,23 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   ok(T.revertTranscriptionSettings(null) === '', 'ohne Meta: nichts tun');
 }
 
+// 23a) WebM→MP4: Bild und Ton auf die Ausgabedauer kürzen
+ok(T.webmToMp4Trim(33.96).join(' ') === '-t 33.960 -shortest' && T.webmToMp4Trim(NaN).join(' ') === '-shortest', 'webmToMp4: -t Dauer + -shortest');
+
+// 23b) Preset-Layout (Pop One) wird beim Verlassen zu JEDEM Style zurückgesetzt — außer manuell geändert
+{
+  T.onWpbChange('3');
+  if (!T.STYLES.find(x => x.id === 'custom')) T.STYLES.push({ id: 'custom', name: 'My style', fl: 'Inter', font: "'Inter'", tc: '#fff', hl: '#ff0', ts: 'none', hls: 'none', anim: 'none', thumbBg: '#000' });
+  T.selectStyle('custom');
+  T.selectStyle('popone');
+  ok(T.getWpb() === 1, 'Pop One: 1 Wort');
+  T.selectStyle('custom');
+  ok(T.getWpb() === 3, 'zurueck zum Custom-Style: vorherige 3 Woerter/Block');
+  T.selectStyle('popone'); T.onWpbChange('2'); T.selectStyle('classic');
+  ok(T.getWpb() === 2, 'auf dem Preset manuell geaendert → Wert bleibt');
+  T.onWpbChange('4');
+}
+
 // 21b) MediaRecorder-Format: MP4 nur mit AAC (bzw. ohne Ton), sonst WebM → Umkodierung
 {
   const sup = list => m => list.includes(m);
@@ -1002,14 +1019,20 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   ok(g.W % 2 === 0 && g.H % 2 === 0 && g.mode === 'crop', 'gerade Masse');
   const calls = [];
   const fakeCtx = { save() {}, restore() {}, drawImage() { calls.push('bg'); }, fillRect() { calls.push('dim'); } };
-  const smallCtx = { fillRect() { calls.push('dim@small'); } };
+  const ctxs = [];
   const origCreate = document.createElement;
-  document.createElement = (t) => t === 'canvas' ? { width: 0, height: 0, getContext: () => smallCtx } : origCreate(t);
-  const fit = (c, w, h, f) => calls.push(f + (c === fakeCtx ? '' : '@small'));
+  document.createElement = (t) => {
+    if (t !== 'canvas') return origCreate(t);
+    const n = ctxs.length, cx = { tag: n === 0 ? 'tiny' : 'mid', drawImage() { calls.push('mid→tiny'); }, fillRect() { calls.push('dim@' + this.tag); } };
+    ctxs.push(cx); return { width: 0, height: 0, getContext: () => cx };
+  };
+  const fit = (c, w, h, f) => calls.push(f + (c === fakeCtx ? '' : '@' + c.tag + ':' + w));
   T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit);
-  ok(calls.join(',') === 'cover@small,dim@small,bg,contain', 'Blur-Fill: winziger, schon abgedunkelter Hintergrund, Video eingepasst: ' + calls.join(','));
-  calls.length = 0; T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit); T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit);
-  ok(calls.join(',') === 'bg,contain,bg,contain', 'Hintergrund nur jeden 3. Frame neu: ' + calls.join(','));
+  ok(calls.join(',') === 'cover@mid:256,mid→tiny,dim@tiny,bg,contain', 'Blur-Fill: Quelle → 256-px-Canvas → winzig + abgedunkelt → hochskaliert, Video eingepasst: ' + calls.join(','));
+  calls.length = 0; for (let k = 0; k < 5; k++) T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit);
+  ok(calls.join(',') === 'bg,contain,bg,contain,bg,contain,bg,contain,bg,contain', 'Hintergrund 5 Frames lang wiederverwendet: ' + calls.join(','));
+  calls.length = 0; T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit);
+  ok(calls[0] === 'cover@mid:256', 'jeder 6. Frame erneuert den Hintergrund');
   document.createElement = origCreate;
   const c2 = []; T.drawReframed(fakeCtx, 1080, 1920, 'crop', (c, w, h, fit) => c2.push(fit));
   ok(c2.join() === 'cover', 'Crop = Mitte fuellend');
