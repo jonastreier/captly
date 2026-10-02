@@ -214,10 +214,11 @@ body.editor-open{height:100vh;overflow:hidden}
 #playOverlay{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.14);cursor:pointer}
 .play-icon{width:44px;height:44px;border-radius:50%;background:rgba(20,16,30,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.38);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;padding-left:3px;box-shadow:0 4px 16px rgba(0,0,0,.28);transition:transform .15s,background .15s}
 #playOverlay:hover .play-icon{transform:scale(1.08);background:rgba(20,16,30,.58)}
-#frameDropZone{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+#frameDropZone{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:24%;gap:8px}
+.fdz-btn{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;font:700 12px 'Inter',sans-serif;padding:8px 16px;border-radius:20px;box-shadow:0 4px 14px rgba(124,58,237,.45)}
 #frameDropZone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:4}
 #frameDropZone span{font-size:24px}
-#frameDropZone p{font-size:10px;color:#5a5a5a;text-align:center;padding:0 12px;line-height:1.5}
+#frameDropZone p{font-size:10px;color:#b8b2c4;text-align:center;padding:0 12px;line-height:1.5}
 #capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
 #capOverlay:active{cursor:grabbing}
 #capOverlay.dragging{cursor:grabbing}
@@ -251,6 +252,52 @@ body.editor-open{height:100vh;overflow:hidden}
 .ctrl-col::-webkit-scrollbar{width:3px}
 .ctrl-col::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
 .csect{padding:11px 14px;border-bottom:1px solid #f0edf4}
+/* Tabs im Seitenpanel (Captions / Style / Export) — sticky, damit sie beim Scrollen erreichbar bleiben */
+.ed-tabs{position:sticky;top:0;z-index:6;display:flex;gap:4px;padding:8px 10px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid #eceaf0;flex-shrink:0}
+.ed-tab{flex:1;padding:7px 4px;border:none;border-radius:8px;background:transparent;color:#66616e;font:600 11.5px 'Inter',sans-serif;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
+.ed-tab:hover{background:#f4f1f8;color:#111}
+.ed-tab.on{background:rgba(124,58,237,.1);color:#6d28d9}
+.ctrl-col .csect[data-tab]{display:none}
+.ctrl-col[data-tab="captions"] .csect[data-tab="captions"],.ctrl-col[data-tab="style"] .csect[data-tab="style"],.ctrl-col[data-tab="export"] .csect[data-tab="export"]{display:block}
+.tr-set{margin-bottom:8px}
+.model-hint{font-size:10px;color:#77727f;line-height:1.45;margin:-2px 0 8px}
+.model-hint b{color:#3f3b46}
+.tr-set summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:6px;user-select:none;margin-bottom:8px;padding:6px 8px;border:1px solid #ece6f4;border-radius:8px;background:#faf8fd}
+.tr-set summary::-webkit-details-marker{display:none}
+.tr-set summary::after{content:'▾';font-size:10px;color:#94909c;margin-left:auto}
+.tr-set:not([open]) summary::after{content:'▸'}
+.tr-set:not([open]) summary{margin-bottom:0}
+.tr-set-ttl{font-size:11px;font-weight:700;color:#3f3b46;white-space:nowrap}
+.tr-set-sum{font-size:10.5px;color:#7c3aed;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cs-adv{margin-top:12px;border-top:1px solid #f0edf4;padding-top:9px}
+.cs-adv summary{font-size:10.5px;font-weight:700;color:#5f5f5f;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;user-select:none;list-style:none}
+.cs-adv summary::-webkit-details-marker{display:none}
+.cs-adv summary::before{content:'▸ '}
+.cs-adv[open] summary::before{content:'▾ '}
+.cs-adv[open] summary{margin-bottom:8px}
+.tb-export{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:8px;padding:7px 14px;font:700 12px 'Inter',sans-serif;cursor:pointer;box-shadow:0 3px 10px rgba(124,58,237,.3);transition:opacity .15s,transform .15s}
+.tb-export:hover:not(:disabled){transform:translateY(-1px)}
+.tb-export:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
+.tb-icon{width:30px;height:30px;border:1px solid #ddd6e4;border-radius:7px;background:#fff;color:#55505c;font-size:15px;line-height:1;cursor:pointer}
+.tb-icon:disabled{opacity:.35;cursor:not-allowed}
+.tb-icon:hover:not(:disabled){border-color:#a99cc0;color:#111}
+/* Inline-Editor direkt im Video (Doppelklick auf die Caption) */
+.cap-inline{position:absolute;left:5%;right:5%;z-index:30;background:rgba(20,16,32,.92);border:1px solid rgba(167,139,250,.6);border-radius:12px;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.45);backdrop-filter:blur(6px)}
+.cap-inline textarea{width:100%;background:transparent;border:none;outline:none;resize:none;color:#fff;font:700 15px/1.35 'Inter',sans-serif;text-align:center}
+.cap-inline-row{display:flex;align-items:center;gap:6px;margin-top:6px}
+.cap-inline-row span{flex:1;font-size:9.5px;color:#b9b2c9}
+.cap-inline-row button{border:1px solid rgba(255,255,255,.25);background:transparent;color:#eee;border-radius:7px;padding:5px 10px;font:600 11px 'Inter',sans-serif;cursor:pointer}
+.cap-inline-row button.ok{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent;color:#fff}
+/* Zeilen-Werkzeuge (Timing ±0.1 s, Löschen) — nur an der Zeile, die gerade bearbeitet wird */
+.cap-seg{flex-wrap:wrap}
+.seg-tools{display:none;flex-basis:100%;align-items:center;gap:3px;margin-top:5px;padding-top:5px;border-top:1px dashed #e6e0ee;font-size:10px;color:#77727f}
+.cap-seg:focus-within .seg-tools,.cap-seg.sel .seg-tools{display:flex}
+.seg-tools .stl{font-weight:600;color:#94909c;text-transform:uppercase;font-size:8.5px;letter-spacing:.05em}
+.seg-tools .stv{font-variant-numeric:tabular-nums;color:#3f3b46;min-width:30px;text-align:center}
+.seg-tools button{border:1px solid #ddd6e4;background:#fff;border-radius:5px;min-width:22px;height:20px;padding:0 4px;font:600 10px 'Inter',sans-serif;color:#55505c;cursor:pointer}
+.seg-tools button:hover{border-color:#a99cc0;color:#111}
+.seg-tools .st-del{margin-left:auto;color:#dc2626}
+.seg-tools .st-sep{width:4px}
 .clbl{font-size:9px;font-weight:700;color:#5f5f5f;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
 .mode-hint{font-size:10.5px;color:#8a8a8a;line-height:1.4;margin-top:6px}
 
@@ -320,7 +367,24 @@ input.lang-sel{cursor:text}
 .cap-editor{display:none;margin-top:7px}
 .ce-hdr{font-size:9.5px;color:#5f5f5f;margin-bottom:5px}
 .ce-hdr em{font-style:normal;color:#7c3aed}
-.cap-segs{display:flex;flex-direction:column;gap:3px;max-height:150px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.12) transparent}
+.ce-hdr b{color:#3f3b46;font-weight:700}
+.kb-help{display:inline-block;margin-left:2px}
+.fr-box{margin:2px 0 6px}
+.hint-touch{display:none}
+@media (pointer:coarse){.hint-touch{display:inline}.hint-desk,.kb-help,.cap-inline-row span{display:none}.cap-inline-row button{flex:1;min-height:40px;font-size:14px}}
+.next-steps{display:flex;align-items:center;gap:6px;margin:8px 0 2px}
+.next-steps span{font-size:9px;font-weight:700;color:#94909c;text-transform:uppercase;letter-spacing:.08em}
+.next-steps button{flex:1;padding:7px 6px;border-radius:8px;border:1px solid #ddd6e4;background:#fff;color:#3f3b46;font:600 11px 'Inter',sans-serif;cursor:pointer;transition:all .15s}
+.next-steps button:hover{border-color:#a99cc0;color:#111}
+.next-steps button.hi{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent;color:#fff}
+@media (max-width:640px), (pointer:coarse){.next-steps button{min-height:40px;font-size:13px}}
+.fr-box summary{font-size:10.5px;font-weight:600;color:#7c3aed;cursor:pointer;list-style:none;user-select:none;padding:3px 0}
+.fr-box summary::-webkit-details-marker{display:none}
+.fr-box[open] summary{margin-bottom:5px}
+.kb-help summary{display:inline;cursor:pointer;color:#7c3aed;font-weight:600;list-style:none}
+.kb-help summary::-webkit-details-marker{display:none}
+.kb-help[open]{display:block;margin-top:4px;background:#faf8fd;border:1px solid #ece6f4;border-radius:7px;padding:6px 8px;line-height:1.6}
+.cap-segs{display:flex;flex-direction:column;gap:3px;max-height:max(180px,calc(100vh - 400px));overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.12) transparent}
 .cap-segs::-webkit-scrollbar{width:3px}
 .cap-segs::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
 .cap-seg{display:flex;align-items:flex-start;gap:6px;background:#fafafb;border:1px solid #e8e4ee;border-radius:7px;padding:6px 8px;cursor:pointer;transition:border-color .15s}
@@ -329,13 +393,13 @@ input.lang-sel{cursor:text}
 .cap-seg-time{font-size:8.5px;color:#7a7a7a;min-width:30px;margin-top:1px;font-variant-numeric:tabular-nums;flex-shrink:0}
 .cap-seg-ta{flex:1;font-size:11px;color:#3f3b46;line-height:1.45;outline:none;background:transparent;border:none;font-family:'Inter',sans-serif;resize:none;word-break:break-word;min-height:14px;cursor:text}
 .cap-seg-ta:focus{color:#111}
-.wpills{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.wpills{display:none} /* Zeilenliste deckt Klick→Sprung ab; die Wort-Pillen waren doppelt */
 .wpill{font-size:10px;padding:2px 7px;border-radius:14px;cursor:pointer;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015);color:#7a7a7a;transition:all .1s}
 .wpill:hover{border-color:#b9aede;color:#111}
 .wpill.on{background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.32);color:#c4b5fd}
 
 /* STYLE PICKER */
-.style-scroll{display:flex;flex-wrap:wrap;gap:5px;max-height:290px;overflow-y:auto;padding:2px 4px 4px 0;scrollbar-width:thin;scrollbar-color:rgba(124,58,237,.35) transparent;background-color:#fff;background-repeat:no-repeat;background-image:linear-gradient(#fff 30%,rgba(255,255,255,0)),linear-gradient(rgba(255,255,255,0),#fff 70%) 0 100%,radial-gradient(farthest-side at 50% 0,rgba(30,20,45,.16),rgba(30,20,45,0)),radial-gradient(farthest-side at 50% 100%,rgba(30,20,45,.16),rgba(30,20,45,0)) 0 100%;background-size:100% 24px,100% 24px,100% 8px,100% 8px;background-attachment:local,local,scroll,scroll}
+.style-scroll{display:flex;flex-wrap:wrap;gap:5px;max-height:max(290px,min(470px,52vh));overflow-y:auto;padding:2px 4px 4px 0;scrollbar-width:thin;scrollbar-color:rgba(124,58,237,.35) transparent;background-color:#fff;background-repeat:no-repeat;background-image:linear-gradient(#fff 30%,rgba(255,255,255,0)),linear-gradient(rgba(255,255,255,0),#fff 70%) 0 100%,radial-gradient(farthest-side at 50% 0,rgba(30,20,45,.16),rgba(30,20,45,0)),radial-gradient(farthest-side at 50% 100%,rgba(30,20,45,.16),rgba(30,20,45,0)) 0 100%;background-size:100% 24px,100% 24px,100% 8px,100% 8px;background-attachment:local,local,scroll,scroll}
 .style-scroll::-webkit-scrollbar{width:6px}
 .style-scroll::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:3px}
 .stile{flex-shrink:0;width:76px;border-radius:8px;overflow:hidden;border:2px solid transparent;cursor:pointer;transition:border-color .18s,transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s;will-change:transform}
@@ -476,9 +540,14 @@ input[type=checkbox]{accent-color:#7c3aed}
   .tpl-menu{min-width:168px}
   .tpl-menu button{min-height:42px;font-size:14px}
   .exp-mini .pos-btn{min-height:42px}
+  .seg-tools button{min-width:32px;height:32px;font-size:12px}
+  .cap-inline textarea{font-size:16px}
   .fr-row .pos-btn{min-height:36px}
 }
 @media(max-width:640px){
+  .tb-mid{display:none}
+  .topbar .btn-back{padding:5px 9px}
+  .ed-tab{font-size:13px;padding:9px 4px}
   .ctrl-col{width:100%!important;height:55vh;border-left:none;border-top:1px solid rgba(255,255,255,.055)}
   .ed-body{flex-direction:column}
   .prev-col{flex:0 0 auto;height:45vh;padding:8px 14px;gap:6px} /* vorher 36vh → Vorschau nur ~139×243 px */
@@ -526,7 +595,7 @@ input[type=checkbox]{accent-color:#7c3aed}
     <input type="file" accept="video/*" id="landInput">
     <div class="upload-zone-icon"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="uzg" x1="2" y1="4" x2="22" y2="20"><stop offset="0" stop-color="#6d4aeb"/><stop offset="1" stop-color="#d84fc0"/></linearGradient></defs><path d="M7.5 17.5h9a3.5 3.5 0 001-6.85 5 5 0 00-9.6-1.6A4 4 0 007 17.5h.5z" stroke="url(#uzg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v7M9.2 12.5L12 9.7l2.8 2.8" stroke="url(#uzg)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <h3>Drop a video or click</h3>
-    <p>MP4, MOV, WebM · stays on your device</p>
+    <p>MP4, MOV, WebM · your video stays on your device</p>
   </label>
   <div class="land-cta-row">
     <button class="nav-cta" style="padding:12px 24px;font-size:14px" onclick="document.getElementById('landInput').click()">Upload video&nbsp;&nbsp;→</button>
@@ -695,8 +764,13 @@ input[type=checkbox]{accent-color:#7c3aed}
         <img src="assets/logo-lockup-light-nav.png" alt="Capivo" height="18" style="height:18px;width:auto;display:block">
       </div>
     </div>
-    <div style="font-size:10.5px;color:#555">AI Caption Studio</div>
-    <button class="btn-back" id="acctBtn" onclick="showAcct()">Sign in</button>
+    <div class="tb-mid" style="font-size:10.5px;color:#555">AI Caption Studio</div>
+    <div style="display:flex;align-items:center;gap:7px">
+      <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Undo caption edit (Ctrl/⌘+Z)" aria-label="Undo">↶</button>
+      <button type="button" class="tb-icon" id="redoBtn" onclick="redoCaptions()" disabled title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo">↷</button>
+      <button class="btn-back" id="acctBtn" onclick="showAcct()">Sign in</button>
+      <button type="button" class="tb-export" id="tbExport" onclick="topExport()" disabled title="Render the MP4 with your captions">⬇ Export</button>
+    </div>
   </div>
 
   <div class="ed-body" id="edBody">
@@ -710,9 +784,15 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon">▶</div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
-          <span>🎬</span><p>Upload video</p>
+          <span>🎬</span><b class="fdz-btn">⬆ Upload video</b><p>or drop it here · MP4, MOV, WebM<br>captions in seconds — no signup</p>
         </div>
-        <div id="capOverlay" onmousedown="capDragStart(event)" ontouchstart="capDragStart(event)"></div>
+        <div id="capOverlay" onmousedown="capDragStart(event)" ontouchstart="capDragStart(event)" ondblclick="capOverlayDbl(event)" title="Drag to move · double-click to edit the text"></div>
+        <div id="capInlineEd" class="cap-inline" style="display:none" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+          <textarea id="capInlineTa" rows="2" spellcheck="true" onkeydown="inlineKey(event)" onblur="inlineBlur()" aria-label="Edit caption text"></textarea>
+          <div class="cap-inline-row"><span>Enter = save · Esc = cancel</span>
+            <button type="button" onmousedown="event.preventDefault()" onclick="closeInlineEdit(false)">Cancel</button>
+            <button type="button" class="ok" onmousedown="event.preventDefault()" onclick="closeInlineEdit(true)">Save</button></div>
+        </div>
         <div id="safeZoneOverlay">
           <div id="safeZoneRect"></div>
           <div id="safeZoneWarn">⚠ Captions may be covered by the Reels/TikTok UI</div>
@@ -739,10 +819,18 @@ input[type=checkbox]{accent-color:#7c3aed}
     <div class="col-resize-handle" id="colResizeHandle" title="Drag to resize the panel"></div>
 
     <!-- Controls -->
-    <div class="ctrl-col" id="ctrlCol">
+    <div class="ctrl-col" id="ctrlCol" data-tab="captions">
+
+      <!-- Tabs: Captions / Style / Export — Progressive Disclosure statt einer langen Wand aus Reglern
+           (wie Submagic/Captions.ai). Alle Sektionen bleiben im DOM (IDs unverändert), der Tab blendet nur ein/aus. -->
+      <div class="ed-tabs" id="edTabs" role="tablist">
+        <button type="button" class="ed-tab on" data-tab="captions" role="tab" onclick="switchTab('captions')">✏️ Captions</button>
+        <button type="button" class="ed-tab" data-tab="style" role="tab" onclick="switchTab('style')">🎨 Style</button>
+        <button type="button" class="ed-tab" data-tab="export" role="tab" onclick="switchTab('export')">⬇️ Export</button>
+      </div>
 
       <!-- Video -->
-      <div class="csect">
+      <div class="csect" data-tab="captions">
         <div class="clbl">Video</div>
         <div class="ctrl-upload">
           <input type="file" accept="video/*" id="ctrlInput">
@@ -751,8 +839,9 @@ input[type=checkbox]{accent-color:#7c3aed}
       </div>
 
       <!-- Transcript -->
-      <div class="csect">
-        <div class="clbl">Captions · AI transcription</div>
+      <div class="csect" data-tab="captions">
+        <details class="tr-set" id="trSet" open>
+        <summary><span class="tr-set-ttl">⚙︎ Transcription</span><span class="tr-set-sum" id="trSetSum"></span></summary>
         <select id="langSel" class="lang-sel" onchange="setLang(this.value)">
           <option value="auto">🌐 Detect language automatically</option>
           <option value="english">🇬🇧 English</option>
@@ -776,6 +865,7 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
           <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
         </div>
+        <div class="model-hint"><b>⚡ Fast</b> — captions in seconds, great for clear speech. <b>💎 Perfect</b> — biggest model + AI proofreading for dialects, names &amp; punctuation (a few seconds more).</div>
         <input type="text" id="vocabInput" class="lang-sel" style="margin-bottom:0" maxlength="300" autocomplete="off" spellcheck="false"
           placeholder="Names &amp; terms to spell right (optional) — e.g. Birkenhof, Highland Beef" oninput="onVocabChange(this.value)">
         <div class="vocab-hint">
@@ -786,6 +876,7 @@ input[type=checkbox]{accent-color:#7c3aed}
           <input type="checkbox" id="trEn" onchange="setTranslate(this)"> Translate captions to English
         </label>
         <div id="quotaInfo" style="font-size:10.5px;color:#7c3aed;margin-bottom:7px"></div>
+        </details>
         <div class="t-box">
           <div class="t-status" id="tStatus">
             <span style="font-size:15px">🎙️</span>
@@ -797,6 +888,12 @@ input[type=checkbox]{accent-color:#7c3aed}
           </div>
         </div>
 
+        <div class="next-steps" id="nextSteps" style="display:none">
+          <span>Next</span>
+          <button type="button" onclick="switchTab('style')">🎨 Pick a look</button>
+          <button type="button" class="hi" onclick="topExport()">⬇ Export MP4</button>
+        </div>
+
         <div id="retryWrap" style="display:none">
           <button class="retry-btn" onclick="retryTranscribe()">↻ Try again</button>
           <div class="badge-o" style="margin-top:5px">⚠️ Tips: try again · switch language or model · check your connection.</div>
@@ -804,7 +901,11 @@ input[type=checkbox]{accent-color:#7c3aed}
 
         <!-- Caption editor — shown after transcription -->
         <div class="cap-editor" id="capEditor">
-          <div class="ce-hdr">Click a segment or word → the video jumps there &nbsp;·&nbsp; <em>text is editable</em></div>
+          <div class="ce-hdr"><span class="hint-desk">Click a line to jump &amp; edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there</span><span class="hint-touch">Tap a line to edit · <b>return</b> splits it · <b>⌫</b> at the start merges · tap the highlighted word in the video to edit it there</span>
+            <details class="kb-help"><summary>⌨ Shortcuts</summary>
+              <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field</div>
+            </details></div>
+          <details class="fr-box" id="frBox"><summary>🔍 Find &amp; replace</summary>
           <div class="fr-row">
             <input type="text" id="frFind" class="lang-sel" placeholder="Find" oninput="updateFindCount()" autocomplete="off" spellcheck="false">
             <input type="text" id="frRepl" class="lang-sel" placeholder="Replace with" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')replaceAllCaptions()">
@@ -813,19 +914,20 @@ input[type=checkbox]{accent-color:#7c3aed}
             <label class="fr-opt"><input type="checkbox" id="frWhole" onchange="updateFindCount()"> Whole word</label>
             <button class="pos-btn" id="frBtn" type="button" onclick="replaceAllCaptions()" disabled>Replace all (0)</button>
           </div>
+          </details>
           <div class="cap-segs" id="capSegs"></div>
           <div class="wpills" id="wpills"></div>
         </div>
       </div>
 
       <!-- Style -->
-      <div class="csect">
+      <div class="csect" data-tab="style">
         <div class="clbl">Style</div>
         <div class="style-scroll" id="stylePicker"></div>
       </div>
 
       <!-- Adjust -->
-      <div class="csect">
+      <div class="csect" data-tab="style">
         <div class="clbl">Position</div>
         <div class="pos-row">
           <button class="pos-btn" data-pos="top" onclick="setPos(this)">Top</button>
@@ -837,33 +939,16 @@ input[type=checkbox]{accent-color:#7c3aed}
           <input type="range" min="-30" max="30" step="2" value="20" id="voffSlider" oninput="onVOffChange(this.value)">
           <span class="sz-val" id="voffDisp" style="min-width:38px">+20%</span>
         </div>
-        <div class="clbl" style="margin-top:0">Font size</div>
+        <div class="clbl" style="margin-top:12px">Font size</div>
         <div class="sz-row">
           <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)">
           <span class="sz-val" id="szDisp">22px</span>
         </div>
-        <div class="clbl" style="margin-top:10px">Caption mode</div>
-        <div class="pos-row" id="modeRow">
-          <button class="pos-btn on" data-mode="karaoke" onclick="setMode(this)" title="Captions disappear during silence, only show while someone is actually speaking">🎤 Karaoke</button>
-          <button class="pos-btn" data-mode="all" onclick="setMode(this)" title="Captions stay on screen through pauses, until the next block starts">Continuous</button>
-        </div>
-        <div class="mode-hint">Karaoke hides captions in silent pauses. Continuous keeps the last line up until the next one starts.</div>
-        <div class="clbl" style="margin-top:0">Words per block</div>
+        <div class="clbl" style="margin-top:10px">Words per caption</div>
         <div class="sz-row">
           <input type="range" min="1" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)">
           <span class="sz-val" id="wpbDisp">4</span>
         </div>
-        <label class="sz-row" style="margin-top:8px;cursor:pointer" title="Never let a caption run across a hard cut in your video">
-          <input type="checkbox" id="cutChk" checked onchange="onBreakAtCutsChange(this.checked)" style="cursor:pointer">
-          <span style="font-size:10.5px;color:#66616e">Break captions at scene cuts</span>
-        </label>
-        <div class="clbl" style="margin-top:10px">Timing</div>
-        <div class="sz-row">
-          <span style="font-size:9px;color:#94909c;min-width:34px">Earlier</span>
-          <input type="range" min="-0.5" max="0.5" step="0.05" value="0" id="toSlider" oninput="onTimeOffChange(this.value)" title="Shift all captions earlier or later">
-          <span style="font-size:9px;color:#94909c">Later</span>
-        </div>
-        <div class="mode-hint" id="toDisp" style="margin-top:3px">Captions in sync with the audio</div>
         <div class="clbl" style="margin-top:10px">Text</div>
         <div class="pos-row">
           <button class="pos-btn" id="punctBtn" type="button" onclick="togglePunct()" title="Hide . , ! ? ; : … in the video (subtitle files keep punctuation)">Remove punctuation</button>
@@ -876,13 +961,11 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button class="pos-btn on" data-lines="1" onclick="setLines(this)">1 line</button>
           <button class="pos-btn" data-lines="2" onclick="setLines(this)">2 lines</button>
         </div>
-        <div class="clbl" style="margin-top:10px">Always highlight keywords</div>
-        <input type="text" id="kwInput" class="lang-sel" style="margin-bottom:0" placeholder="e.g. free, today, new" oninput="onKwChange(this.value)">
-        <div class="clbl" style="margin-top:10px">Custom style <span style="text-transform:none;letter-spacing:0;color:#94909c">· starts from the selected style</span></div>
+        <div class="clbl cs-head" style="margin-top:14px">Customize look <span style="text-transform:none;letter-spacing:0;color:#94909c">· edits the selected style</span></div>
         <div style="display:flex;gap:6px;align-items:center">
           <label class="cs-swatch" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
           <label class="cs-swatch" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Active</span></label>
-          <select id="csFont" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('font')" title="Font">
+          <select id="csFont" class="lang-sel cs-sel" style="flex:1" onchange="onFontPick(this)" title="Font — 55+ Google Fonts, or type any Google Font name">
             <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
             <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
             <option>Inter</option><option>Oswald</option>
@@ -910,12 +993,18 @@ input[type=checkbox]{accent-color:#7c3aed}
           <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
             <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')">
             <span class="cs-v" id="csLsDisp">0px</span></div>
+          <div class="sz-row cs-line"><span class="cs-k">Line height</span>
+            <input type="range" min="0.9" max="1.8" step="0.05" value="1.3" id="csLh" oninput="applyCustomStyle('lh')" title="Space between the two caption lines">
+            <span class="cs-v" id="csLhDisp">1.30</span></div>
           <div class="sz-row cs-line"><span class="cs-k">Background</span>
-            <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="applyCustomStyle('box')">
+            <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="onBoxModeChange(this.value)">
               <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
             </select>
             <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('boxc')">
             <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('boxc')"></div>
+          <div class="sz-row cs-line"><span class="cs-k">Corners</span>
+            <input type="range" min="0" max="30" step="1" value="8" id="csBoxR" oninput="applyCustomStyle('boxc')" title="Corner radius of the background">
+            <span class="cs-v" id="csBoxRDisp">8px</span></div>
           <div class="sz-row cs-line"><span class="cs-k">Highlight</span>
             <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hltype')" title="How the active word stands out — its color is the “Active”/“Pill” swatch above">
               <option value="color">Text color</option><option value="pill">Pill behind word</option>
@@ -926,6 +1015,28 @@ input[type=checkbox]{accent-color:#7c3aed}
               <option value="bounce">Bounce</option><option value="flash">Flash</option><option value="glow">Glow pulse</option>
               <option value="wobble">Wobble</option>
             </select></div>
+        </details>
+        <details class="cs-adv" id="advSet">
+          <summary>Timing, behaviour &amp; keywords</summary>
+        <div class="clbl" style="margin-top:4px">Caption mode</div>
+        <div class="pos-row" id="modeRow">
+          <button class="pos-btn on" data-mode="karaoke" onclick="setMode(this)" title="Captions disappear during silence, only show while someone is actually speaking">🎤 Karaoke</button>
+          <button class="pos-btn" data-mode="all" onclick="setMode(this)" title="Captions stay on screen through pauses, until the next block starts">Continuous</button>
+        </div>
+        <div class="mode-hint">Karaoke hides captions in silent pauses. Continuous keeps the last line up until the next one starts.</div>
+        <label class="sz-row" style="margin-top:8px;cursor:pointer" title="Never let a caption run across a hard cut in your video">
+          <input type="checkbox" id="cutChk" checked onchange="onBreakAtCutsChange(this.checked)" style="cursor:pointer">
+          <span style="font-size:10.5px;color:#66616e">Break captions at scene cuts</span>
+        </label>
+        <div class="clbl" style="margin-top:10px">Timing</div>
+        <div class="sz-row">
+          <span style="font-size:9px;color:#94909c;min-width:34px">Earlier</span>
+          <input type="range" min="-0.5" max="0.5" step="0.05" value="0" id="toSlider" oninput="onTimeOffChange(this.value)" title="Shift all captions earlier or later">
+          <span style="font-size:9px;color:#94909c">Later</span>
+        </div>
+        <div class="mode-hint" id="toDisp" style="margin-top:3px">Captions in sync with the audio</div>
+        <div class="clbl" style="margin-top:10px">Always highlight keywords</div>
+        <input type="text" id="kwInput" class="lang-sel" style="margin-bottom:0" placeholder="e.g. free, today, new" oninput="onKwChange(this.value)">
         </details>
         <div class="clbl" style="margin-top:10px">Save as template <span id="tplCount" style="text-transform:none;letter-spacing:0;color:#94909c"></span></div>
         <div style="display:flex;gap:6px;align-items:center">
@@ -941,20 +1052,8 @@ input[type=checkbox]{accent-color:#7c3aed}
         </div>
       </div>
 
-      <!-- Projects (cloud, with account) -->
-      <div class="csect">
-        <div class="clbl">Save project</div>
-        <div style="display:flex;gap:5px;margin-bottom:6px">
-          <input type="text" id="projTitle" class="lang-sel" style="margin:0;flex:1" placeholder="Project name">
-          <button class="pos-btn" style="flex:0 0 auto;padding:5px 10px" onclick="saveProject()">💾</button>
-        </div>
-        <select id="projList" class="lang-sel" style="margin-bottom:0" onchange="loadProject(this.value)">
-          <option value="">— Load project —</option>
-        </select>
-      </div>
-
       <!-- Export -->
-      <div class="csect">
+      <div class="csect" data-tab="export">
         <div class="clbl">Export</div>
         <label class="sz-row" style="margin-bottom:9px;cursor:pointer">
           <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)" style="cursor:pointer">
@@ -987,6 +1086,7 @@ input[type=checkbox]{accent-color:#7c3aed}
             <span class="exp-btn-sub">Web / YouTube…</span>
           </button>
         </div>
+        <button type="button" class="pos-btn" id="wmOpt" style="display:none;width:100%;margin:8px 0 0;padding:8px;border-style:dashed" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">🔓 Export without watermark — enter your email</button>
         <div class="exp-mini">
           <button class="pos-btn" id="btnTXT" type="button" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">📄 TXT transcript</button>
           <button class="pos-btn" id="btnCopy" type="button" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">📋 Copy text</button>
@@ -998,6 +1098,18 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div class="badge-g" style="margin-top:7px">
           ✅ Premiere: File → Import → choose the .srt → drag onto the timeline
         </div>
+      </div>
+
+      <!-- Projects (cloud, with account) -->
+      <div class="csect" data-tab="export">
+        <div class="clbl">Save project</div>
+        <div style="display:flex;gap:5px;margin-bottom:6px">
+          <input type="text" id="projTitle" class="lang-sel" style="margin:0;flex:1" placeholder="Project name">
+          <button class="pos-btn" style="flex:0 0 auto;padding:5px 10px" onclick="saveProject()">💾</button>
+        </div>
+        <select id="projList" class="lang-sel" style="margin-bottom:0" onchange="loadProject(this.value)">
+          <option value="">— Load project —</option>
+        </select>
       </div>
 
     </div>
@@ -2323,7 +2435,7 @@ function previewFrameH() {
 function fitCaptionWords(words, s, px, maxW, lines) {
   var maxH = previewFrameH() * CAP_FIT_MAX_H;
   var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, capWordGap(s),
-            s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0].join(',') + '|' + px + '|' + Math.round(maxW)
+            s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0, capLineH(s)].join(',') + '|' + px + '|' + Math.round(maxW)
             + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen;
   if (_capFitCache[key]) return _capFitCache[key];
   var ctx   = capMeasureCtx();
@@ -2360,7 +2472,7 @@ function fitCaptionWords(words, s, px, maxW, lines) {
       if (lw && lw + add > maxW) { nl++; lw = ww; } else lw += add;
     });
     nl = Math.max(nl, Math.min(lines || 1, outW.length));
-    var h = nl * 1.3 * p * fsMul + (s.boxBg ? 10 : 0);
+    var h = nl * capLineH(s) * p * fsMul + (s.boxBg ? 10 : 0);
     return { px: p, words: outW, orig: orig, lines: nl, h: h };
   }
   var floor = px * CAP_FIT_MIN;
@@ -2525,6 +2637,8 @@ function capWordGap(s) {
   var p = capShadowPlan(s && s.ts);
   return p.ring && p.ring.w > 0 ? 2 * p.ring.w : 0;
 }
+// Zeilenhöhe (Vielfaches der Schriftgröße) — Standard 1.3; eigene Styles: „Line height“ 0.9–1.8
+function capLineH(s) { var v = s && parseFloat(s.lh); return (v >= 0.8 && v <= 2) ? v : 1.3; }
 function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   if (!words || !words.length) return '';
   // Auto-Fit nur für die echte Vorschau (lineTarget gesetzt) — Style-Thumbnails/Showcase haben eigene Größen.
@@ -2544,7 +2658,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   // Vorschau sonst Serifenschrift, das MP4 aber serifenlos.
   var wCss = 'font-family:' + font + ',sans-serif;font-weight:' + fw + ';text-transform:' + tt
     + ';letter-spacing:' + ls + ';font-style:' + fi + ';font-size:' + sz
-    + ';line-height:1.3;display:inline-block;max-width:100%;';
+    + ';line-height:' + capLineH(s) + ';display:inline-block;max-width:100%;';
   if (lineTarget && capWordGap(s)) wCss += 'word-spacing:' + capWordGap(s) + 'px;';
   if (s.boxBg) wCss += 'background:' + s.boxBg + ';padding:5px 18px;border-radius:' + (s.boxBr || '6px') + ';';
   var hp = !!s.pill;
@@ -2577,7 +2691,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
     }
     var ck = '';
     if (seekTimes && seekTimes[oi] !== undefined) {
-      ck = ' onclick="event.stopPropagation();seekToTime(' + Number(seekTimes[oi]).toFixed(3) + ')"';
+      ck = ' data-wi="' + oi + '" onclick="event.stopPropagation();capOverlayClickWord(event,' + oi + ',' + Number(seekTimes[oi]).toFixed(3) + ')"';
       ws += 'cursor:pointer;';
     }
     return '<span' + ck + ' style="' + ws + '">' + wt + '</span>';
@@ -3439,6 +3553,7 @@ async function splitBlockAtCursor(idx, ta) {
   var b = captionBlocks[idx];
   var n = leftWords.length;
   if (!b || n <= 0 || n >= b.words.length) return; // words/Text nicht sauber synchron -> kein Split
+  pushUndo();
   var wordsA = b.words.slice(0, n);
   var wordsB = b.words.slice(n);
   var blockA = { words: wordsA, start: wordsA[0].start || b.start, end: wordsA[wordsA.length - 1].end || b.end,
@@ -3464,6 +3579,7 @@ async function mergeBlockWithPrevious(idx, ta) {
   var prevBlock = captionBlocks[idx - 1];
   var curBlock  = captionBlocks[idx];
   if (!prevBlock || !curBlock) return;
+  pushUndo();
   var cursorPos   = prevBlock.text.length + 1; // Naht zwischen altem Vorgänger-Text und eingefügtem Leerzeichen
   var mergedBlock = { words: prevBlock.words.concat(curBlock.words), start: prevBlock.start, end: curBlock.end,
                        text: prevBlock.text + ' ' + curBlock.text };
@@ -3496,7 +3612,8 @@ async function renderSegments() {
     row.className = 'cap-seg';
     row.id = 'seg' + idx;
     row.onclick = function(e) {
-      if (e.target.tagName === 'TEXTAREA') return;
+      if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
+      selectSegRow(row);
       seekToTime(b.start);
     };
     var ts = document.createElement('span');
@@ -3507,8 +3624,10 @@ async function renderSegments() {
     ta.rows = 1;
     ta.value = b.text;
     ta.onclick = function(e){ e.stopPropagation(); };
+    ta.onfocus = (function(r) { return function() { selectSegRow(r); }; })(row);
     ta.oninput = (function(i, el) {
       return function() {
+        pushUndo('seg' + i); // Tipp-Serie = ein Undo-Schritt (Schnappschuss VOR der Änderung)
         captionBlocks[i].text = el.value;
         retimeEditedBlock(captionBlocks[i]);
         markCaptionsEdited();
@@ -3535,6 +3654,7 @@ async function renderSegments() {
     })(idx, ta);
     row.appendChild(ts);
     row.appendChild(ta);
+    row.appendChild(buildSegTools(idx, b));
     frag.appendChild(row);
     rows.push(ta);
   });
@@ -3551,6 +3671,29 @@ async function renderSegments() {
   }
 }
 
+// Werkzeugleiste je Zeile: Anfang/Ende ±0.1 s, Löschen. Sichtbar an der Zeile mit Fokus bzw. zuletzt angeklickt.
+function buildSegTools(idx, b) {
+  var t = document.createElement('div');
+  t.className = 'seg-tools';
+  t.innerHTML = '<span class="stl">Start</span><button type="button" title="Start 0.1 s earlier" data-a="start:-0.1">−</button>'
+    + '<span class="stv st-start">' + fmtT1(b.start) + '</span><button type="button" title="Start 0.1 s later" data-a="start:0.1">+</button>'
+    + '<span class="st-sep"></span><span class="stl">End</span><button type="button" title="End 0.1 s earlier" data-a="end:-0.1">−</button>'
+    + '<span class="stv st-end">' + fmtT1(b.end) + '</span><button type="button" title="End 0.1 s later" data-a="end:0.1">+</button>'
+    + '<button type="button" class="st-del" title="Delete this caption (Ctrl/⌘+Z to undo)" data-a="del">🗑</button>';
+  t.onclick = function(e) {
+    e.stopPropagation();
+    var a = e.target && e.target.getAttribute && e.target.getAttribute('data-a');
+    if (!a) return;
+    if (a === 'del') { deleteSeg(idx); return; }
+    var p = a.split(':'); nudgeSeg(idx, p[0], parseFloat(p[1]));
+  };
+  t.onmousedown = function(e) { if (e.target && e.target.tagName === 'BUTTON') e.preventDefault(); }; // Fokus im Textfeld lassen
+  return t;
+}
+function selectSegRow(row) {
+  document.querySelectorAll('.cap-seg.sel').forEach(function(r){ if (r !== row) r.classList.remove('sel'); });
+  if (row && row.classList) row.classList.add('sel');
+}
 function setActiveSeg(idx) {
   document.querySelectorAll('.cap-seg').forEach(function(s, i){ s.classList.toggle('active', i === idx); });
 }
@@ -3593,6 +3736,7 @@ function selectStyle(id, fromEditor) {
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
   if (s && !fromEditor) seedCustomFields(s);         // „Eigener Style" startet vom gewählten Style/Template (auch von Custom selbst)
+  if (s) ensureCapFont(styleFontName(s));            // nicht vorgeladene Schrift (Template/eigene Wahl) nachladen
   // Erster Regler-Eingriff: die Custom-Kachel (oben in „My templates“) im Picker sichtbar machen — sonst
   // sah es aus, als bliebe das vorige Preset aktiv bzw. die Änderung käme nicht an.
   if (fromEditor && prevId !== id) scrollPickerTo(id, false);
@@ -3721,6 +3865,91 @@ function contrastText(hex) {
   var r = parseInt(h.slice(1, 3), 16), g = parseInt(h.slice(3, 5), 16), b = parseInt(h.slice(5, 7), 16);
   return (0.299 * r + 0.587 * g + 0.114 * b) > 160 ? '#111' : '#fff';
 }
+// ── Schriften: kuratierte Google-Fonts-Liste + „jede Google-Schrift“ per Name ──
+// Nur die Fonts aus dem <link> im <head> sind vorgeladen; alle anderen werden bei Bedarf nachgeladen
+// (Vorschau UND Canvas-Export). Gewichte je Font explizit, weil die css2-API bei einem nicht vorhandenen
+// Gewicht die GANZE Anfrage mit 400 ablehnt. '' = nur Regular (Display-Fonts ohne Bold-Schnitte).
+var CAP_FONT_GROUPS = [
+  ['Bold & clean', ['Montserrat|600;700;800;900', 'Poppins|600;700;800;900', 'Inter|400;600;700;800;900', 'Roboto|400;700;900',
+    'Open Sans|600;700;800', 'Lato|700;900', 'Nunito|700;800;900', 'Rubik|600;700;800;900', 'Work Sans|600;700;800;900',
+    'DM Sans|700', 'Manrope|600;700;800', 'Outfit|600;700;800;900', 'Sora|600;700;800', 'Plus Jakarta Sans|600;700;800',
+    'Archivo|600;700;800;900', 'Barlow|600;700;800;900', 'Raleway|300;700;800;900', 'Space Grotesk|700', 'Exo 2|700']],
+  ['Impact & display', ['Anton|', 'Bebas Neue|', 'Oswald|700', 'Archivo Black|', 'Bangers|', 'Luckiest Guy|', 'Lilita One|',
+    'Titan One|', 'Bungee|', 'Russo One|', 'Black Ops One|', 'Righteous|', 'Fredoka|600;700', 'Barlow Condensed|800',
+    'Teko|600;700', 'Staatliches|', 'Passion One|400;700;900', 'Paytone One|']],
+  ['Handwritten', ['Kalam|700', 'Caveat|700', 'Permanent Marker|', 'Pacifico|', 'Dancing Script|700', 'Lobster|', 'Satisfy|', 'Shadows Into Light|']],
+  ['Serif', ['Playfair Display|700', 'Merriweather|700;900', 'Lora|700', 'DM Serif Display|', 'Abril Fatface|']],
+  ['Retro & mono', ['VT323|', 'Orbitron|700', 'Press Start 2P|', 'Space Mono|700']]
+];
+var CAP_FONT_W = {};
+CAP_FONT_GROUPS.forEach(function(g){ g[1].forEach(function(f){ var p = f.split('|'); CAP_FONT_W[p[0]] = p[1]; }); });
+var PRELOADED_FONTS = ['Anton', 'Barlow Condensed', 'Bebas Neue', 'Caveat', 'DM Sans', 'Exo 2', 'Inter', 'Kalam', 'Bangers', 'Montserrat',
+  'Orbitron', 'Oswald', 'Playfair Display', 'Poppins', 'Raleway', 'Space Grotesk', 'VT323'];
+// Gültiger Google-Fonts-Name (auch Schutz fürs style-Attribut / die URL)
+function cleanFontName(n) {
+  var v = String(n || '').replace(/['"]/g, '').replace(/\s+/g, ' ').trim();
+  return /^[A-Za-z0-9][A-Za-z0-9 ]{1,48}$/.test(v) ? v : '';
+}
+function fontCssUrl(name, weights) {
+  return 'https://fonts.googleapis.com/css2?family=' + name.replace(/ /g, '+') + (weights ? ':wght@' + weights : '') + '&display=swap';
+}
+var _fontReq = {};
+// Lädt die Schrift (falls nötig) und löst auf, sobald sie benutzbar ist (max. timeoutMs) — nie reject.
+function ensureCapFont(name, timeoutMs) {
+  name = cleanFontName(name);
+  if (!name || PRELOADED_FONTS.indexOf(name) >= 0 || typeof document === 'undefined' || !document.head) return Promise.resolve();
+  if (!_fontReq[name]) {
+    var known = Object.prototype.hasOwnProperty.call(CAP_FONT_W, name);
+    // Unbekannte (frei eingetippte) Schrift: Gewichte einzeln anfragen — fehlende scheitern harmlos
+    var urls = known ? [fontCssUrl(name, CAP_FONT_W[name])] : [fontCssUrl(name, ''), fontCssUrl(name, '700'), fontCssUrl(name, '900')];
+    _fontReq[name] = Promise.all(urls.map(function(u) {
+      return new Promise(function(res) {
+        var l = document.createElement('link');
+        l.rel = 'stylesheet'; l.href = u;
+        l.onload = function(){ res(true); }; l.onerror = function(){ res(false); };
+        document.head.appendChild(l);
+      });
+    })).then(function(r) {
+      if (!r.some(Boolean)) return false;
+      var fl = document.fonts && document.fonts.load;
+      return fl ? Promise.all(['400', '700', '900'].map(function(w){ return document.fonts.load(w + ' 40px "' + name + '"').catch(function(){}); }))
+        .then(function(){ capFontsChanged(); return true; }) : true;
+    });
+  }
+  var to = timeoutMs || 6000;
+  return Promise.race([_fontReq[name], new Promise(function(r){ setTimeout(function(){ r(false); }, to); })]);
+}
+function styleFontName(s) { return s ? cleanFontName(s.fl || String(s.font || '').split(',')[0]) : ''; }
+// Font-Auswahl im Style-Editor aus der kuratierten Liste (Gruppen) + „Andere Google-Schrift…“ füllen
+function buildFontSelect() {
+  var sel = document.getElementById('csFont');
+  if (!sel || !sel.appendChild || typeof document.createElement !== 'function') return;
+  var cur = sel.value;
+  sel.innerHTML = '';
+  CAP_FONT_GROUPS.forEach(function(g) {
+    var og = document.createElement('optgroup'); og.label = g[0];
+    g[1].forEach(function(f) { var o = document.createElement('option'); o.textContent = o.value = f.split('|')[0]; og.appendChild(o); });
+    sel.appendChild(og);
+  });
+  var other = document.createElement('option'); other.value = '__other'; other.textContent = '＋ Any Google Font…';
+  sel.appendChild(other);
+  if (cur) sel.value = cur;
+}
+var _csFontPrev = 'Poppins';
+function onFontPick(sel) {
+  if (sel.value === '__other') {
+    var n = cleanFontName(typeof prompt === 'function' ? prompt('Type any Google Fonts name (as shown on fonts.google.com), e.g. "Archivo Black" or "Rubik Mono One":', '') : '');
+    if (!n) { sel.value = _csFontPrev; return; }
+    var has = Array.prototype.some.call(sel.options || [], function(o){ return o.value === n; });
+    if (!has) { var o = document.createElement('option'); o.value = o.textContent = n; sel.insertBefore(o, sel.firstChild); }
+    sel.value = n;
+    capToast('Loading “' + n + '”…');
+    ensureCapFont(n).then(function(ok){ if (ok === false) capToast('Couldn’t load “' + n + '” — check the spelling on fonts.google.com'); });
+  } else ensureCapFont(sel.value);
+  _csFontPrev = sel.value;
+  applyCustomStyle('font');
+}
+
 function csEl(id) { return document.getElementById(id); }
 function csSetVal(id, v) { var e = csEl(id); if (e && v !== undefined && v !== null) e.value = v; }
 function csSetOn(id, on) { var e = csEl(id); if (e && e.classList) e.classList.toggle('on', !!on); }
@@ -3743,6 +3972,14 @@ function syncCsUi() {
   var gi = csEl('csGlowInt'); if (gi) gi.disabled = !_cbChecked('csGlow', false);
   var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
   var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
+  var rd = csEl('csBoxRDisp'), rEl = csEl('csBoxR'); if (rd && rEl) rd.textContent = (rEl.value || 0) + 'px';
+  var hd = csEl('csLhDisp'), hEl = csEl('csLh'); if (hd && hEl) hd.textContent = (parseFloat(hEl.value) || 1.3).toFixed(2);
+}
+// Box ↔ Pill: Eckenradius auf den typischen Wert setzen (danach frei per „Corners“ einstellbar)
+function onBoxModeChange(v) {
+  var r = csEl('csBoxR');
+  if (r && v === 'pill') r.value = 22; else if (r && v === 'box') r.value = 8;
+  applyCustomStyle('box');
 }
 function seedActiveStyle() { var st = STYLES.find(function(x){ return x.id === activeId; }); if (st) seedCustomFields(st); }
 function seedCustomFields(st) {
@@ -3758,7 +3995,7 @@ function seedCustomFields(st) {
     var has = false, opts = fEl.options ? Array.prototype.slice.call(fEl.options) : [];
     opts.forEach(function(o){ if (o.value === st.fl || o.textContent === st.fl) has = true; });
     if (!has && fEl.appendChild) { var o = document.createElement('option'); o.textContent = st.fl; o.value = st.fl; fEl.appendChild(o); }
-    fEl.value = st.fl;
+    fEl.value = st.fl; _csFontPrev = st.fl;
   }
   var fw = parseInt(st.fw, 10) || 700;
   csSetVal('csWeight', String([400, 600, 700, 800, 900].reduce(function(b, v){ return Math.abs(v - fw) < Math.abs(b - fw) ? v : b; }, 700)));
@@ -3769,8 +4006,11 @@ function seedCustomFields(st) {
   csSetOn('csShadow', !!softShadowPart(st.ts));
   var ls = Math.max(-1, Math.min(4, parseFloat(st.ls) || 0));
   csSetVal('csLs', ls); var ld = csEl('csLsDisp'); if (ld) ld.textContent = ls + 'px';
+  var lhS = capLineH(st); csSetVal('csLh', lhS); var lhd = csEl('csLhDisp'); if (lhd) lhd.textContent = lhS.toFixed(2);
   var bx = st.boxBg ? parseColorAlpha(st.boxBg) : null;
   csSetVal('csBox', st.boxBg ? ((parseFloat(st.boxBr) || 0) >= 14 ? 'pill' : 'box') : 'off');
+  var brv = st.boxBg ? Math.max(0, Math.min(30, Math.round(parseFloat(st.boxBr) || 6))) : 8;
+  csSetVal('csBoxR', brv); var brd = csEl('csBoxRDisp'); if (brd) brd.textContent = brv + 'px';
   // Ohne Hintergrund neutrale Startwerte statt der Reste des vorigen Styles
   csSetVal('csBoxC', bx ? bx.hex : '#000000');
   csSetVal('csBoxO', bx ? Math.max(10, Math.min(100, Math.round(bx.a * 20) * 5)) : 70);
@@ -3791,6 +4031,7 @@ function buildCustomStyle() {
   if (d.weight) cs.fw = (csEl('csWeight') || {}).value || cs.fw || '800';
   if (d.upper)  cs.tt = csIsOn('csUpper') ? 'uppercase' : 'none';
   if (d.ls)     { var lv = parseFloat((csEl('csLs') || {}).value) || 0; cs.ls = lv ? lv + 'px' : 'normal'; }
+  if (d.lh)     { var lhv = parseFloat((csEl('csLh') || {}).value); if (lhv >= 0.8 && lhv <= 2 && Math.abs(lhv - 1.3) > 1e-6) cs.lh = Math.round(lhv * 100) / 100; else delete cs.lh; }
   if (d.text)   {
     // Halbtransparente Ausgangs-Textfarbe (z. B. Clean Minimal: rgba(255,255,255,.55)) behält ihre Deckkraft
     var tv = (csEl('csText') || {}).value || cs.tc, ta = cssColorToHexA(base.tc);
@@ -3836,7 +4077,8 @@ function buildCustomStyle() {
     else {
       var op = (parseFloat((csEl('csBoxO') || {}).value) || 70) / 100;
       cs.boxBg = hexToRgba((csEl('csBoxC') || {}).value || '#000000', op);
-      cs.boxBr = mode === 'pill' ? '22px' : '8px';
+      var br = parseFloat((csEl('csBoxR') || {}).value);
+      cs.boxBr = (isFinite(br) ? Math.max(0, Math.min(30, br)) : (mode === 'pill' ? 22 : 8)) + 'px';
     }
   }
   if (d.anim) cs.anim = (csEl('csAnim') || {}).value || 'none';
@@ -3880,7 +4122,7 @@ var TPL_ROW_TITLE = '__capivo_templates__'; // reservierte Zeile in public.proje
 var userTemplates = [];
 // Templates können aus fremden JSON-Dateien kommen → nur bekannte Style-Felder übernehmen und
 // Zeichen entfernen, mit denen man aus dem style="…"-Attribut (buildCap) ausbrechen könnte.
-var TPL_STYLE_KEYS = ['fl','font','fw','tt','ls','fs','fi','tc','ts','hl','hls','anim','cstroke','thumbBg','hlPillBg','hlc',
+var TPL_STYLE_KEYS = ['fl','font','fw','tt','ls','lh','fs','fi','tc','ts','hl','hls','anim','cstroke','thumbBg','hlPillBg','hlc',
   'boxBg','boxBr','pill','tg','hlFont','hlItalic','hlg','hlUpper','circle','hlCycle'];
 function cleanCssVal(v) { return String(v).replace(/[<>"\\;{}]/g, '').replace(/url\s*\(|expression\s*\(/gi, '').slice(0, 600); }
 function sanitizeStyle(st) {
@@ -3926,8 +4168,10 @@ function normalizeTemplate(t) {
   ['pos', 'voff', 'size', 'mode', 'wpb', 'lines'].forEach(function(k){ if (lay[k] === undefined && t[k] !== undefined) lay[k] = t[k]; });
   var layOut = {};
   if (['top', 'center', 'bottom'].indexOf(lay.pos) >= 0) layOut.pos = lay.pos;
-  ['voff', 'size', 'wpb', 'lines'].forEach(function(k){ var n = Number(lay[k]); if (lay[k] !== undefined && isFinite(n)) layOut[k] = n; });
+  ['voff', 'size', 'sizeRel', 'wpb', 'lines'].forEach(function(k){ var n = Number(lay[k]); if (lay[k] !== undefined && isFinite(n)) layOut[k] = n; });
   if (typeof lay.mode === 'string') layOut.mode = lay.mode.replace(/[^a-z]/gi, '').slice(0, 20);
+  if (['asis', 'upper', 'lower'].indexOf(lay.case) >= 0) layOut.case = lay.case;
+  if (typeof lay.punct === 'boolean') layOut.punct = lay.punct;
   return { id: tid, name: String(t.name || 'Template').slice(0, 60), style: st, layout: layOut,
            createdAt: +t.createdAt || ts0, updatedAt: ts0 };
 }
@@ -3975,7 +4219,11 @@ function mergeTemplates(a, b) {
     .sort(function(x, y){ return (x.createdAt || 0) - (y.createdAt || 0); });
 }
 function currentLayout() {
-  return { pos: capPos, voff: capVOff, size: fontSize, mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES };
+  // sizeRel = Schriftgröße relativ zur Rahmenbreite: die px-Größe allein hängt von Seitenverhältnis/Bildschirm
+  // ab (9:16 am Desktop 270 px breit, quadratisch 360 px, Handy ~240 px) — ein Template sähe sonst je Video
+  // anders groß aus. case/punct gehören zum Look (Brand-Kit) und reisen mit.
+  return { pos: capPos, voff: capVOff, size: fontSize, sizeRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
+           mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, case: capCase, punct: capNoPunct };
 }
 function newTplId() { return 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6); }
 function setTplEditing(id) {
@@ -4024,6 +4272,9 @@ function saveTemplate() {
     var ci = STYLES.findIndex(function(x){ return x.id === 'custom'; });
     if (ci >= 0) STYLES.splice(ci, 1);
   }
+  // Brand-Kit: das erste Template wird automatisch Standard für neue Videos (einmal einrichten, immer da)
+  var madeBrand = false;
+  if (!brandTplId() || !liveTemplates().some(function(x){ return x.id === brandTplId(); })) { setBrandTpl(t.id); madeBrand = true; }
   persistTemplates();
   rebuildTemplateStyles();
   nameEl.value = '';
@@ -4031,7 +4282,8 @@ function saveTemplate() {
   buildPicker();
   selectStyle(t.id);
   var verb = target ? 'Updated' : 'Saved as';
-  setTplStatus('✓ ' + verb + ' “' + t.name + '” — find it under My templates' + (meEmail ? ' (synced to your account)' : ' (saved in this browser)'));
+  setTplStatus('✓ ' + verb + ' “' + t.name + '” — find it under My templates' + (meEmail ? ' (synced to your account)' : ' (saved in this browser)')
+    + (madeBrand ? '. ★ It’s now your default look for every new video (change via ⋯).' : ''));
   capToast('✓ ' + verb + ' “' + t.name + '”');
   scrollPickerTo(t.id, true, true);
 }
@@ -4064,6 +4316,7 @@ function deleteTemplate(id) {
   var i = userTemplates.indexOf(t);
   userTemplates[i] = { id: t.id, deleted: true, updatedAt: Date.now() };
   if (_csEditingTpl === id) setTplEditing(null);
+  if (brandTplId() === id) setBrandTpl('');
   persistTemplates(); rebuildTemplateStyles();
   if (activeId === id) activeId = 'classic';
   buildPicker(); selectStyle(activeId);
@@ -4090,7 +4343,8 @@ function openTplMenu(id, btn) {
   closeTplMenu();
   var m = document.createElement('div');
   m.className = 'tpl-menu';
-  [['Edit', editTemplate], ['Rename', renameTemplate], ['Duplicate', duplicateTemplate], ['Delete', deleteTemplate]].forEach(function(it) {
+  var isBrand = brandTplId() === id;
+  [[isBrand ? '☆ Stop using as default' : '★ Use for every new video', toggleBrandTpl], ['Edit', editTemplate], ['Rename', renameTemplate], ['Duplicate', duplicateTemplate], ['Delete', deleteTemplate]].forEach(function(it) {
     var b = document.createElement('button');
     b.type = 'button'; b.textContent = it[0];
     if (it[0] === 'Delete') b.className = 'danger';
@@ -4217,6 +4471,11 @@ function restorePresetLayout() {
   var prev = _presetPrevLayout; _presetPrevLayout = null;
   if (prev) applyTemplateSettings(prev);
 }
+// Template-Schriftgröße für die aktuelle Rahmenbreite (relativ gespeichert, alte Templates: px) — 10…54 px
+function templateFontSize(t, frameW) {
+  var v = (typeof t.sizeRel === 'number' && t.sizeRel > 0 && frameW > 0) ? t.sizeRel * frameW : t.size;
+  return (typeof v === 'number' && isFinite(v) && v > 0) ? Math.max(10, Math.min(54, Math.round(v))) : 0;
+}
 function applyTemplateSettings(t) {
   if (t.pos) { capPos = t.pos; syncPosButtons(); }
   if (typeof t.voff === 'number') {
@@ -4224,11 +4483,15 @@ function applyTemplateSettings(t) {
     var vs = document.getElementById('voffSlider');
     if (vs) { vs.value = t.voff; document.getElementById('voffDisp').textContent = (t.voff > 0 ? '+' : '') + t.voff + '%'; }
   }
-  if (typeof t.size === 'number') {
-    fontSize = t.size;
+  var tsz = templateFontSize(t, previewFrameW());
+  if (tsz) {
+    fontSize = tsz;
     var ss = document.getElementById('szSlider');
-    if (ss) { ss.value = t.size; document.getElementById('szDisp').textContent = t.size + 'px'; }
+    if (ss) { ss.value = tsz; document.getElementById('szDisp').textContent = tsz + 'px'; }
   }
+  if (t.case) capCase = t.case;
+  if (typeof t.punct === 'boolean') capNoPunct = t.punct;
+  if (t.case || typeof t.punct === 'boolean') syncTextFormatUI();
   if (t.mode) {
     displayMode = t.mode;
     document.querySelectorAll('#modeRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === t.mode); });
@@ -4327,6 +4590,47 @@ function capToast(msg) {
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(function(){ if (el.classList) el.classList.remove('show'); }, 2600);
 }
+// ── Style-Kacheln als Live-Vorschau: echtes Standbild des eigenen Videos + die eigenen ersten Worte ──
+// (statt „CAPTION TEXT“ auf Schwarz) — man sieht sofort, wie der Look auf DIESEM Clip wirkt.
+var _tileFrame = null, _tileFrameRun = 0;
+function captureTileFrame(src, dur) {
+  var run = ++_tileFrameRun; _tileFrame = null;
+  if (!src || typeof document === 'undefined' || typeof document.createElement !== 'function') return;
+  var v = document.createElement('video');
+  if (!v || typeof v.load !== 'function') return;
+  v.muted = true; v.preload = 'auto'; v.playsInline = true;
+  var done = function() { try { v.removeAttribute('src'); v.load(); } catch (e) {} };
+  v.onloadeddata = function() { try { v.currentTime = Math.min(1.5, ((dur || v.duration || 3) / 3)); } catch (e) { done(); } };
+  v.onseeked = function() {
+    if (run !== _tileFrameRun) { done(); return; }
+    try {
+      var vw = v.videoWidth, vh = v.videoHeight;
+      if (vw && vh) {
+        var W = 152, H = 212, c = document.createElement('canvas'); c.width = W; c.height = H;
+        var sc = Math.max(W / vw, H / vh), dw = vw * sc, dh = vh * sc;
+        c.getContext('2d').drawImage(v, (W - dw) / 2, (H - dh) / 2, dw, dh);
+        _tileFrame = c.toDataURL('image/jpeg', 0.72);
+        buildPicker();
+      }
+    } catch (e) {}
+    done();
+  };
+  v.onerror = done;
+  v.src = src;
+}
+// Zwei kurze Wörter aus dem eigenen Transkript für die Kacheln (lange Wörter sprengen die 76-px-Kachel)
+function tileWords() {
+  var out = [];
+  for (var i = 0; i < captionBlocks.length && out.length < 2; i++) {
+    var ws = String(captionBlocks[i].text || '').split(/\s+/);
+    for (var k = 0; k < ws.length && out.length < 2; k++) {
+      var w = ws[k].replace(/[.,!?;:…"“”„]+/g, '');
+      if (w.length >= 2 && w.length <= 6) out.push(w); else out = [];
+    }
+  }
+  return out.length === 2 ? out : ['caption', 'text'];
+}
+
 function makeStyleTile(s) {
     var tile = document.createElement('div');
     tile.className = 'stile' + (s.id === activeId ? ' on' : '');
@@ -4334,11 +4638,13 @@ function makeStyleTile(s) {
     tile.onclick = function(){ selectStyle(s.id); };
     var thumb = document.createElement('div');
     thumb.className = 'stile-thumb';
-    thumb.style.background = s.thumbBg;
+    thumb.style.background = _tileFrame
+      ? ('linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(0,0,0,.42)),url(' + _tileFrame + ') center/cover')
+      : s.thumbBg;
     var inner = document.createElement('div');
     inner.className = 'stile-inner';
-    var hIdx = 1;
-    inner.innerHTML = buildCap(['caption','text'], s, hIdx, 9, null);
+    var hIdx = 1, tw = tileWords();
+    inner.innerHTML = buildCap(tw, s, hIdx, 9, null);
     thumb.appendChild(inner);
     tile.appendChild(thumb);
     // Hover: Vorschau läuft wortweise durch (mit dem echten s.anim-Effekt), wie im
@@ -4346,21 +4652,21 @@ function makeStyleTile(s) {
     tile.addEventListener('mouseenter', function(){
       if (_stileHoverTimer) clearInterval(_stileHoverTimer);
       hIdx = 0;
-      inner.innerHTML = buildCap(['caption','text'], s, hIdx, 9, null);
+      inner.innerHTML = buildCap(tw, s, hIdx, 9, null);
       _stileHoverTimer = setInterval(function(){
         hIdx = (hIdx + 1) % 2;
-        inner.innerHTML = buildCap(['caption','text'], s, hIdx, 9, null);
+        inner.innerHTML = buildCap(tw, s, hIdx, 9, null);
       }, 420);
     });
     tile.addEventListener('mouseleave', function(){
       if (_stileHoverTimer) { clearInterval(_stileHoverTimer); _stileHoverTimer = null; }
-      inner.innerHTML = buildCap(['caption','text'], s, 1, 9, null);
+      inner.innerHTML = buildCap(tw, s, 1, 9, null);
     });
     var info = document.createElement('div');
     info.className = 'stile-info';
     var badge = s.badge ? (' <span style="font-size:7px;color:#f87171">' + s.badge + '</span>') : '';
     // Custom-Entwurf klar als „noch nicht gespeichert“ kennzeichnen
-    var sub = s.id === 'custom' ? 'unsaved · edit below' : s.fl;
+    var sub = s.id === 'custom' ? 'unsaved · edit below' : (s._isTpl && s.id === brandTplId() ? '★ default' : s.fl);
     info.innerHTML = '<div class="stile-name">' + escHtml(s.id === 'custom' ? 'Custom' : s.name) + badge + '</div><div class="stile-font">' + escHtml(sub) + '</div>';
     tile.appendChild(info);
     if (s._isTpl) {
@@ -4651,7 +4957,7 @@ function isPromptEcho(words, prompt) {
 function setTranslate(cb) {
   if (cb.checked === doTranslate) return;
   if (!confirmRetranscribe()) { cb.checked = doTranslate; return; }
-  doTranslate = cb.checked;
+  doTranslate = cb.checked; updateTrSetSum();
   if (currentFile) transcribeVideo(currentFile);
 }
 function setModel(btn) {
@@ -4660,6 +4966,7 @@ function setModel(btn) {
   if (!confirmRetranscribe()) return; // Buttons wurden noch nicht umgeschaltet → nichts zurückzusetzen
   whisperModel = m;
   document.querySelectorAll('#modelRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.m === m); });
+  updateTrSetSum();
   if (currentFile) transcribeVideo(currentFile);
 }
 function setLang(v) {
@@ -4669,7 +4976,7 @@ function setLang(v) {
     if (ls) ls.value = whisperLang; // Select hat schon umgeschaltet → zurückdrehen
     return;
   }
-  whisperLang = v;
+  whisperLang = v; updateTrSetSum();
   if (currentFile) transcribeVideo(currentFile);
 }
 // Wort-Chunks von Whisper → saubere Timestamps (NaN/null abfangen)
@@ -4710,6 +5017,7 @@ function segmentsToWords(segs) {
 var SUPABASE_URL      = 'https://tghodbtdraqkfwcmedcv.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g';
 var mePlan = 'anon', _upsellShown = false, meEmail = '';
+var _authReady = Promise.resolve(), _pendingWmExport = false, _tplSyncedFor = null;
 // Lazy geladen wie ffmpeg/whisper (s. loadFFmpeg) — das Script läuft als klassisches <script>,
 // ein Top-Level-import wäre hier ein Syntaxfehler. Gibt null zurück, solange keine Credentials
 // hinterlegt sind, damit die Seite ohne Supabase voll nutzbar bleibt (Editor/Export sind gratis).
@@ -4723,6 +5031,12 @@ async function getSb() {
   try {
     var mod = await import('https://esm.sh/@supabase/supabase-js@2');
     _sb = mod.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Session-Wiederherstellung/Token-Refresh/Login/Logout laufen asynchron → Zustand immer mitführen
+    // (nur synchron setzen; keine Supabase-Calls im Callback → Deadlock-Gefahr).
+    _sb.auth.onAuthStateChange(function(ev, session) {
+      if (session && session.user) applyUser(session.user);
+      else if (ev === 'SIGNED_OUT') { meEmail = ''; mePlan = 'anon'; updateAcctUI(); }
+    });
   } catch (e) { _sbFailed = true; console.warn('Supabase konnte nicht geladen werden:', e); }
   return _sb;
 }
@@ -4754,7 +5068,15 @@ async function verifyCode() {
   if (error) { m.textContent = error.message; return; }
   m.textContent = '';
   document.getElementById('acctModal').style.display = 'none';
-  fetchMe(); loadProjects();
+  await fetchMe(); loadProjects();
+  if (_pendingWmExport && meEmail) { _pendingWmExport = false; exportVideoWithCaptions(); } // Export ohne Logo nach Login
+}
+// Anonymer Export-Button „Export without watermark“ → Login, danach startet der Export automatisch.
+function exportWithoutWatermark() {
+  if (meEmail) { exportVideoWithCaptions(); return; }
+  _pendingWmExport = true;
+  document.getElementById('acctSub').textContent = 'Enter your email to get a free login code — your video then exports without the watermark.';
+  showAcct();
 }
 async function logout() {
   var sb = await getSb();
@@ -4764,20 +5086,41 @@ async function logout() {
   document.getElementById('acctModal').style.display = 'none';
   updateAcctUI();
 }
-async function fetchMe() {
-  var sb = await getSb();
-  if (sb) {
-    var { data } = await sb.auth.getUser();
-    if (data && data.user) {
-      meEmail = data.user.email; mePlan = 'free';
-      syncTemplatesWithCloud(data.user); // async, Fehler werden intern geloggt
-      document.getElementById('acctBtn').textContent = meEmail.split('@')[0];
-      document.getElementById('acctInfo').textContent = meEmail + ' · signed in';
-    } else { meEmail = ''; mePlan = 'anon'; }
-  }
+function applyUser(user) {
+  meEmail = user.email || user.phone || 'account'; mePlan = 'free';
+  var b = document.getElementById('acctBtn'), i = document.getElementById('acctInfo');
+  if (b) b.textContent = meEmail.split('@')[0];
+  if (i) i.textContent = meEmail + ' · signed in';
   updateAcctUI();
 }
+// Ursache des Logos trotz Login: getUser() ist ein Netzwerk-Call — Fehler/Offline/Refresh-Race lieferten
+// keinen User → meEmail wurde auf '' (anonym) gesetzt, und der Export startete evtl. noch VOR der
+// Session-Wiederherstellung. Jetzt: getSession() (lokal, mit Auto-Refresh), getUser() nur als Fallback,
+// Fehler setzen niemanden auf anonym zurück, und Exporte warten auf _authReady (waitAuth).
+function fetchMe() { return (_authReady = _fetchMe()); }
+async function _fetchMe() {
+  try {
+    var sb = await getSb();
+    if (sb) {
+      var user = null, res = await sb.auth.getSession();
+      if (res && res.data && res.data.session) user = res.data.session.user;
+      else if (!(res && res.error)) { var u = await sb.auth.getUser(); user = u && u.data && u.data.user; }
+      if (user) {
+        applyUser(user);
+        // einmal pro Nutzer (onAuthStateChange setzt meEmail evtl. schon vorher → nicht daran koppeln)
+        if (_tplSyncedFor !== user.id) { _tplSyncedFor = user.id; syncTemplatesWithCloud(user); } // async, Fehler intern geloggt
+      } else if (!(res && res.error)) { meEmail = ''; mePlan = 'anon'; }
+    }
+  } catch (e) { console.warn('fetchMe:', e); }
+  updateAcctUI();
+}
+// Vor dem Ermitteln von wmOn: laufende Session-Wiederherstellung abwarten (max. 5 s).
+function waitAuth() {
+  return Promise.race([_authReady.catch(function(){}), new Promise(function(r){ setTimeout(r, 5000); })]);
+}
 function updateAcctUI() {
+  var wo = document.getElementById('wmOpt');
+  if (wo) wo.style.display = needsWatermark() ? '' : 'none';
   var qi = document.getElementById('quotaInfo');
   if (!qi) return;
   if (mePlan === 'anon') qi.textContent = '⚡ Fast & 💎 Perfect · free, no download — works on any device';
@@ -4976,6 +5319,7 @@ function applyProjectPayload(p) {
   buildPicker(); renderSegments(); renderWPills();
   document.getElementById('capEditor').style.display = 'block';
   enableExports(true); _lastKey = null; updateOverlay();
+  resetUndo(); collapseTrSettings(true); buildPicker();
 }
 // ── Wasserzeichen (nur anonym) + einmaliger Upsell nach erstem Export ──
 // Beta: Bezahlpläne sind noch nicht kaufbar (startCheckout) → ein „$9 ohne Wasserzeichen“-Angebot wäre
@@ -5606,6 +5950,8 @@ async function transcribeVideo(file) {
     _lastKey = null;
     updateOverlay();
     enableExports(true);
+    resetUndo(); collapseTrSettings(true); // neue Captions = neue Undo-Historie; Einstellungen einklappen
+    buildPicker(); // Style-Kacheln zeigen jetzt die eigenen Worte
     scheduleAutosave();
 
   } catch(err) {
@@ -5640,6 +5986,7 @@ function revertTranscriptionSettings(meta) {
   doTranslate = !!meta.translate;
   var tr = document.getElementById('trEn'); if (tr) tr.checked = doTranslate;
   if (meta.langSetting) { whisperLang = meta.langSetting; var ls = document.getElementById('langSel'); if (ls) ls.value = whisperLang; }
+  updateTrSetSum();
   return hint;
 }
 function retryTranscribe() { if (currentFile) transcribeVideo(currentFile); }
@@ -5648,6 +5995,8 @@ function enableExports(on) {
   ['btnVideo','btnSRT','btnVTT','btnTXT','btnCopy'].forEach(function(id){ var b=document.getElementById(id); if(b) b.disabled=!on; });
   // Video-Export braucht ein abspielbares Bild — SRT/VTT/TXT funktionieren trotzdem
   var bv = document.getElementById('btnVideo'); if (bv && !videoPlayable) bv.disabled = true;
+  syncTopExport(null, !!on && videoPlayable);
+  var ns = document.getElementById('nextSteps'); if (ns) ns.style.display = on ? 'flex' : 'none';
 }
 // ── Abspielbarkeit prüfen: HEVC ohne Decoder / reine Audiodatei ──
 var MSG_HEVC = 'This video uses HEVC (iPhone "High Efficiency"), which this browser can\'t play. Open Capivo in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.';
@@ -5757,6 +6106,7 @@ function loadVideo(file) {
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
   _cutRun++; sceneCuts = []; // Szenenschnitte gehören zum Video
   videoPlayable = true; showVideoWarn('');
+  resetUndo(); collapseTrSettings(false);
   openEditor();
 
   var vid = document.getElementById('mainVid');
@@ -5769,6 +6119,9 @@ function loadVideo(file) {
   vid.onloadedmetadata = function() {
     exportFormat = 'original'; syncFormatRow(); setExportFormat('original');
     var w = layoutPreviewFrame(true);
+    // Brand-/Template-Look: Auto-Startgröße (8 % der Rahmenbreite) darf die Template-Größe nicht überschreiben
+    var tplSt = STYLES.find(function(x){ return x.id === activeId; });
+    if (tplSt && tplSt._tpl) applyTemplateSettings(tplSt._tpl);
     // Mindestens 320px statt nur Rahmenbreite: sonst schrumpft die Fortschrittsleiste auf wenige Pixel
     // und die Zeitangabe bricht um. CSS max-width:100% deckelt auf die Spaltenbreite.
     document.getElementById('vidCtrls').style.width = Math.max(w, 320) + 'px';
@@ -5783,6 +6136,7 @@ function loadVideo(file) {
     showPlayOverlay(true);
     document.getElementById('ppBtn').textContent = '▶';
     updateOverlay();
+    captureTileFrame(url, vid.duration); // Style-Kacheln mit echtem Standbild
     var restored = restoreOrTranscribe(file, vid.duration);
     // Kein Bild (HEVC ohne Decoder / reine Audiodatei)? Transkription läuft trotzdem (Ton), Video-Export aus.
     var runFile = file;
@@ -5982,8 +6336,10 @@ function replaceInCaptions(q, repl, whole) {
 function replaceAllCaptions() {
   var q = (document.getElementById('frFind') || {}).value || '';
   var r = (document.getElementById('frRepl') || {}).value || '';
+  var snap = captionSnapshot();
   var n = replaceInCaptions(q, r, _cbChecked('frWhole', false));
   if (!n) return 0;
+  pushUndo(null, snap);
   markCaptionsEdited();
   renderSegments(); renderWPills();
   _lastKey = null; updateOverlay();
@@ -6793,6 +7149,7 @@ function recorderMimeIsSafeMp4(actual, requested, hasAudio) {
 // Fortschritt direkt AM Export-Button (Handy: die Fortschrittsleiste darunter liegt oft außerhalb des
 // sichtbaren Bereichs) — Button währenddessen gesperrt. text = null → zurücksetzen.
 function exportBtnState(text) {
+  syncTopExport(text, videoPlayable && captionBlocks.length > 0);
   var b = document.getElementById('btnVideo');
   if (!b) return;
   var lbl = b.querySelector ? b.querySelector('.exp-btn-label') : null;
@@ -6830,7 +7187,9 @@ async function exportVideoWithCaptions() {
   if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
   if (isExporting) return; // Doppelklick während eines laufenden Exports
   exportBtnState('Preparing…');
+  await waitAuth(); // Session-Wiederherstellung abwarten, bevor needsWatermark() entscheidet
 
+  await ensureCapFont(styleFontName(STYLES.find(function(x){ return x.id === activeId; }))); // nachgeladene Schrift
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
 
   // Schneller Weg (WebCodecs, Sekunden statt Echtzeit). Bei jedem Problem → false → Echtzeit-Pfad unten.
@@ -7144,6 +7503,15 @@ function animState(anim, elapsed) {
 var _capLayoutCache = { key: null, s: null, ctx: null, val: null };
 var _capStaticLayer = null; // { key, s, W, H, cv } — siehe drawCaptionsOnCtx
 var _wordSpriteCache = new Map(); // aktives Wort als Sprite (Glow-Styles), siehe activeWordSprite
+// Ober-/Unterlänge der Schrift als Anteil der Schriftgröße (Canvas-Fontmetrik; Fallback typische Werte)
+function capFontMetrics(ctx, fsS) {
+  try {
+    var m = ctx.measureText('Hg');
+    if (m && m.fontBoundingBoxAscent > 0 && m.fontBoundingBoxDescent > 0 && fsS > 0)
+      return { a: m.fontBoundingBoxAscent / fsS, d: m.fontBoundingBoxDescent / fsS };
+  } catch (e) {}
+  return { a: 0.93, d: 0.24 };
+}
 function capLayout(ctx, b, bi, wi, s, W, H) {
   var wiKey = (s.hlFont || s.hlItalic || s.hlUpper || s.hlPillBg) ? wi : -1;
   var key = [bi, wiKey, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
@@ -7214,14 +7582,22 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   // in wrapCaptionLines() (Editor-Vorschau), damit beide garantiert dasselbe Umbruchergebnis liefern.
   lines = clampLinesToWidth(lines, maxW, sp);
 
-  var lh   = fsS * 1.28;
+  var lh   = fsS * 1.28 * (capLineH(s) / 1.3); // gleiche Relation wie CSS line-height in der Vorschau
   // Muss exakt applyPos() (DOM-Vorschau, #capOverlay) nachbilden, sonst weicht die Position im
   // exportierten Video vom Editor ab. off = capVOff, gleiche Formeln wie dort (inkl. clampPct).
+  // CSS-Geometrie der Vorschau: die Caption ist ein inline-block (Box-Padding p, line-height L·fs); jede
+  // Zeile trägt den halben Durchschuss oben/unten → letzte Grundlinie liegt um
+  //   gapBelow = p + L·fs/2 + (Unterlänge − Oberlänge)/2 · fs
+  // ÜBER der Overlay-Unterkante (bzw. erste Grundlinie um p + L·fs/2 + (Ober − Unterlänge)/2 · fs unter der
+  // Oberkante). Früher galt Grundlinie = Overlay-Kante → Export lag ~2–3 % tiefer als die Vorschau.
+  var fm = capFontMetrics(ctx, fsS), Lh = capLineH(s), padB = s.boxBg ? 5 * scale : 0;
+  var gapBelow = padB + Lh * fsS / 2 + (fm.d - fm.a) / 2 * fsS;
+  var gapAbove = padB + Lh * fsS / 2 + (fm.a - fm.d) / 2 * fsS;
   var off = capVOff;
   var y0;
   if (capPos === 'top') {
     var topPct = clampPct(10 - off);
-    y0 = H * (topPct / 100) + fsS;
+    y0 = H * (topPct / 100) + gapAbove;
   } else if (capPos === 'center') {
     // applyPos() verschiebt die Mitte per Padding, das (CSS-Eigenheit) relativ zur Breite berechnet
     // wird, nicht zur Höhe — hier mit W statt H nachgebildet, damit es exakt übereinstimmt.
@@ -7229,11 +7605,12 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
     y0 = centerY - ((lines.length - 1) * lh) / 2 + fsS * 0.35;
   } else {
     var bottomPct = clampPct(12 + off);
-    y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh;
+    y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh - gapBelow;
   }
-
+  // Box/Akzent-Hintergrund bei eigener Zeilenhöhe ≠ 1.3 entsprechend höher (CSS: halber Durchschuss je Seite)
+  var halfLead = (Lh - 1.3) / 2 * fsS;
   // Letzter Ausweg wie clampCapVertical() in der Vorschau: Block komplett im Bild halten.
-  var padYc = (s.boxBg ? 5 * scale : 0) + 4 * scale;
+  var padYc = (s.boxBg ? 5 * scale : 0) + 4 * scale + Math.max(0, halfLead);
   var blkBot = y0 + (lines.length - 1) * lh + fsS * 0.45 + padYc;
   if (blkBot > H) y0 -= (blkBot - H);
   var blkTop = y0 - fsS * 1.05 - padYc;
@@ -7241,7 +7618,8 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
 
-  var val = { scale: scale, fsS: fsS, fn: fn, fw: fw, fi: fi, lsPxS: lsPxS, sp: sp, lines: lines, lineWs: lineWs, lh: lh, y0: y0 };
+  var val = { scale: scale, fsS: fsS, fn: fn, fw: fw, fi: fi, lsPxS: lsPxS, sp: sp, lines: lines, lineWs: lineWs, lh: lh, y0: y0,
+              capA: gapAbove - padB, capD: gapBelow - padB }; // Grundlinie → Ober-/Unterkante der CSS-Zeile
   _capLayoutCache = { key: key, s: s, ctx: ctx, val: val };
   return val;
 }
@@ -7256,7 +7634,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 
   var L0 = capLayout(ctx, b, bi, wi, s, W, H);
   var scale = L0.scale, fsS = L0.fsS, fn = L0.fn, fw = L0.fw, fi = L0.fi, lsPxS = L0.lsPxS, sp = L0.sp;
-  var lines = L0.lines, lineWs = L0.lineWs, lh = L0.lh, y0 = L0.y0;
+  var lines = L0.lines, lineWs = L0.lineWs, lh = L0.lh, y0 = L0.y0, capA = L0.capA, capD = L0.capD;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   // Statische Ebene (Box, Akzentstrich, alle NICHT aktiven Wörter mit ihren Schatten/Glows) wird je
   // (Layout, aktives Wort) EINMAL in einen Offscreen-Canvas gemalt und pro Frame nur noch per drawImage
@@ -7303,7 +7681,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
       ctx.fillStyle = s.boxBg;
       ctx.beginPath();
-      var bx = W/2 - widest/2 - padX, by = y0 - fsS * 1.05 - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + fsS * 1.5 + padY*2;
+      var bx = W/2 - widest/2 - padX, by = y0 - capA - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + capA + capD + padY*2;
       if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
       ctx.fill(); ctx.restore();
     }
@@ -7318,7 +7696,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       var borderW = 0, borderColor = null;
       var bm = s.pill.borderLeft && s.pill.borderLeft.match(/^([\d.]+)px\s+\S+\s+(.+)$/);
       if (bm) { borderW = parseFloat(bm[1]) * scale; borderColor = bm[2]; }
-      var pillT = y0 - fsS * 1.05 - pT, pillB = y0 + (lines.length - 1) * lh + fsS * 0.45 + pB;
+      var pillT = y0 - capA - pT, pillB = y0 + (lines.length - 1) * lh + capD + pB;
       var pillL = W/2 - widest2/2 - pL - borderW, pillR = W/2 + widest2/2 + pR;
       if (s.pill.bg && s.pill.bg !== 'transparent') {
         ctx.save(); ctx.fillStyle = s.pill.bg; ctx.fillRect(pillL, pillT, pillR - pillL, pillB - pillT); ctx.restore();
@@ -7458,7 +7836,9 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 // ═══════════════════════════════════════
 // EXPORT — PNG
 // ═══════════════════════════════════════
-function exportPNG() {
+async function exportPNG() {
+  await waitAuth();
+  var wmPng = needsWatermark();
   var s   = STYLES.find(function(x){ return x.id === activeId; });
   var vid = document.getElementById('mainVid');
   document.fonts.ready.then(function() {
@@ -7470,7 +7850,7 @@ function exportPNG() {
       ctx.drawImage(vid, (W-vw*sc)/2, (H-vh*sc)/2, vw*sc, vh*sc);
     } else { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0,0,W,H); }
     drawCaptionsOnCtx(ctx, vidReady ? vid.currentTime : 0, s, W, H, true);
-    drawWatermark(ctx, W, H);
+    drawWatermark(ctx, W, H, wmPng);
     var a = document.createElement('a');
     a.download = 'capivo-' + s.id + '.png';
     a.href = cv.toDataURL('image/png');
@@ -7607,6 +7987,255 @@ function updateShowcaseArrows() {
   prev.disabled = row.scrollLeft <= 4;
   next.disabled = row.scrollLeft >= max - 4;
 }
+// ═══════════════════════════════════════
+// EDITOR-UX: Tabs, Top-Export, Undo/Redo, Timing pro Zeile, Inline-Edit in der Vorschau, Brand-Kit
+// ═══════════════════════════════════════
+// Tabs statt einer langen Regler-Wand: Captions (Text) · Style (Look) · Export. Alle Sektionen bleiben im
+// DOM — der Tab setzt nur data-tab am Panel, CSS blendet den Rest aus (IDs/Funktionen unverändert).
+var edTab = 'captions';
+function switchTab(name) {
+  if (['captions', 'style', 'export'].indexOf(name) < 0) return;
+  edTab = name;
+  var col = document.getElementById('ctrlCol');
+  if (col) { col.dataset.tab = name; if (col.setAttribute) col.setAttribute('data-tab', name); col.scrollTop = 0; }
+  document.querySelectorAll('.ed-tab').forEach(function(b) {
+    var on = b.dataset.tab === name;
+    b.classList.toggle('on', on);
+    if (b.setAttribute) b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+}
+// Export-Knopf oben rechts (wie Submagic/Captions.ai): springt in den Export-Tab und startet das MP4 —
+// Auflösung/Format behalten ihre (guten) Standardwerte; wer sie ändern will, sieht sie im Tab.
+function syncTopExport(text, enabled) {
+  var tb = document.getElementById('tbExport');
+  if (!tb) return;
+  if (text) {
+    tb.disabled = true;
+    var pm = /(\d+)%/.exec(text);
+    tb.textContent = '⏳ ' + (pm ? pm[1] + '%' : 'Exporting…');
+  } else { tb.disabled = !enabled; tb.textContent = '⬇ Export'; }
+}
+function topExport() {
+  switchTab('export');
+  var b = document.getElementById('btnVideo');
+  if (b && !b.disabled && !isExporting) exportVideoWithCaptions();
+}
+// Transkriptions-Einstellungen nach erfolgreicher Transkription einklappen — Zusammenfassung bleibt sichtbar.
+function updateTrSetSum() {
+  var el = document.getElementById('trSetSum');
+  if (!el) return;
+  var lang = whisperLang === 'auto' ? 'Auto language' : (whisperLang.charAt(0).toUpperCase() + whisperLang.slice(1));
+  el.textContent = '· ' + lang + ' · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '');
+}
+function collapseTrSettings(collapse) {
+  var d = document.getElementById('trSet');
+  if (d) d.open = !collapse;
+  updateTrSetSum();
+}
+
+// ── Undo/Redo für alle Caption-Änderungen (Tippen, Split/Merge, Ersetzen, Timing, Löschen, Inline-Edit) ──
+// Schnappschüsse von captionBlocks (JSON). Eine Tipp-Serie im selben Segment = EIN Schritt (wie in jedem
+// Texteditor); nach UNDO_COALESCE_MS Pause beginnt ein neuer Schritt.
+var _undoStack = [], _redoStack = [], UNDO_MAX = 100, UNDO_COALESCE_MS = 1200, _undoTag = null, _undoAt = 0;
+function captionSnapshot() { return JSON.stringify(captionBlocks); }
+function pushUndo(tag, snap) {
+  var now = Date.now();
+  if (tag && tag === _undoTag && now - _undoAt < UNDO_COALESCE_MS) { _undoAt = now; return; }
+  if (snap === undefined) snap = captionSnapshot();
+  _undoTag = tag || null; _undoAt = now;
+  if (_undoStack.length && _undoStack[_undoStack.length - 1] === snap) return;
+  _undoStack.push(snap);
+  if (_undoStack.length > UNDO_MAX) _undoStack.shift();
+  _redoStack = [];
+  syncUndoBtns();
+}
+function resetUndo() { _undoStack = []; _redoStack = []; _undoTag = null; syncUndoBtns(); }
+function syncUndoBtns() {
+  var u = document.getElementById('undoBtn'), r = document.getElementById('redoBtn');
+  if (u) u.disabled = !_undoStack.length;
+  if (r) r.disabled = !_redoStack.length;
+}
+function refreshCaptionViews() {
+  renderSegments(); renderWPills();
+  _lastKey = null; updateOverlay();
+  if (typeof updateFindCount === 'function') updateFindCount();
+}
+function restoreCaptionSnapshot(snap) {
+  captionBlocks = JSON.parse(snap);
+  markCaptionsEdited();
+  refreshCaptionViews();
+}
+function undoCaptions() {
+  if (!_undoStack.length || isExporting) return false;
+  _redoStack.push(captionSnapshot());
+  restoreCaptionSnapshot(_undoStack.pop());
+  _undoTag = null; syncUndoBtns();
+  capToast('↶ Undone');
+  return true;
+}
+function redoCaptions() {
+  if (!_redoStack.length || isExporting) return false;
+  _undoStack.push(captionSnapshot());
+  restoreCaptionSnapshot(_redoStack.pop());
+  _undoTag = null; syncUndoBtns();
+  capToast('↷ Redone');
+  return true;
+}
+
+// ── Timing einer Zeile: Anfang/Ende in 0.1-s-Schritten verschieben ──
+// Die Wörter im Block werden linear auf die neue Spanne skaliert (Reihenfolge/Verhältnisse bleiben) —
+// so lässt sich ein Block auch über mehr als ein Wort hinweg verschieben. Nie über den Nachbarblock
+// hinaus, Mindestdauer MIN_NUDGE_DUR. Rein (testbar): ändert nur blocks[idx], true bei Änderung.
+var MIN_NUDGE_DUR = 0.2;
+function nudgeBlockEdge(blocks, idx, edge, delta, maxT) {
+  var b = blocks[idx];
+  if (!b || !isFinite(b.start) || !isFinite(b.end) || !delta) return false;
+  var prev = blocks[idx - 1], next = blocks[idx + 1];
+  var r3 = function(x){ return Math.round(x * 1000) / 1000; };
+  var s0 = b.start, e0 = b.end, ns = s0, ne = e0;
+  if (edge === 'start') {
+    var lo = prev && isFinite(prev.end) ? prev.end : 0;
+    ns = r3(Math.max(lo, Math.min(e0 - MIN_NUDGE_DUR, s0 + delta)));
+  } else {
+    var hi = next && isFinite(next.start) ? next.start : (isFinite(maxT) && maxT > 0 ? maxT : Infinity);
+    ne = r3(Math.min(hi, Math.max(s0 + MIN_NUDGE_DUR, e0 + delta)));
+  }
+  if (Math.abs(ns - s0) < 1e-4 && Math.abs(ne - e0) < 1e-4) return false;
+  var span0 = Math.max(1e-6, e0 - s0), k = (ne - ns) / span0;
+  var map = function(t){ return r3(ns + (Math.min(e0, Math.max(s0, t)) - s0) * k); };
+  (b.words || []).forEach(function(w) { w.start = map(w.start); w.end = map(w.end); });
+  b.start = ns; b.end = ne;
+  b.srcWords = copyTimedWords(b.words); // spätere Text-Edits übernehmen die NEUEN Zeiten
+  return true;
+}
+function fmtT1(t) { // 0:02.4
+  if (!isFinite(t) || t < 0) t = 0;
+  var m = Math.floor(t / 60), s = t - m * 60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+}
+function nudgeSeg(idx, edge, delta) {
+  var snap = captionSnapshot();
+  var vid = document.getElementById('mainVid');
+  if (!nudgeBlockEdge(captionBlocks, idx, edge, delta, vid && vid.duration)) return;
+  pushUndo('nudge:' + idx + ':' + edge, snap);
+  markCaptionsEdited();
+  var row = document.getElementById('seg' + idx);
+  var b = captionBlocks[idx];
+  if (row && row.querySelector) {
+    var st = row.querySelector('.st-start'), en = row.querySelector('.st-end'), ts = row.querySelector('.cap-seg-time');
+    if (st) st.textContent = fmtT1(b.start);
+    if (en) en.textContent = fmtT1(b.end);
+    if (ts) ts.textContent = fmtS(b.start);
+  }
+  _lastKey = null;
+  seekToTime(edge === 'start' ? b.start : Math.max(b.start, b.end - 0.6)); // sofort ansehen, wo der Rand jetzt liegt
+}
+function deleteSeg(idx) {
+  if (!captionBlocks[idx]) return;
+  pushUndo();
+  captionBlocks.splice(idx, 1);
+  markCaptionsEdited();
+  refreshCaptionViews();
+  capToast('Caption deleted — Ctrl/⌘+Z to undo');
+}
+
+// ── Direkt in der Vorschau bearbeiten: Doppelklick (bzw. Tippen auf das schon aktive Wort) ──
+var _inlineIdx = -1;
+function capOverlayClickWord(e, wi, t) {
+  // Pausiert + Klick auf das bereits hervorgehobene Wort → Text bearbeiten (Touch-Weg ohne Doppelklick)
+  var vid = document.getElementById('mainVid');
+  var bi = _lastBi;
+  if (vid && vid.paused && bi >= 0 && captionBlocks[bi]) {
+    var cur = activeWordIdx(captionBlocks[bi], (vid.currentTime || 0) + timeOff);
+    if (cur === wi) { openInlineEdit(bi, wi); return; }
+  }
+  // Pausiert: nur dorthin springen (Wort wird aktiv → zweiter Klick bearbeitet); läuft: springen wie bisher
+  if (vid && vid.paused && vid.duration) { vid.currentTime = t; _lastKey = null; updateOverlay(t); }
+  else seekToTime(t);
+}
+function capOverlayDbl(e) {
+  if (!captionBlocks.length || _lastBi < 0) return;
+  if (e && e.stopPropagation) e.stopPropagation();
+  var wi = -1, el = e && e.target;
+  while (el && el.getAttribute && el.id !== 'capOverlay') { var a = el.getAttribute('data-wi'); if (a !== null) { wi = parseInt(a, 10); break; } el = el.parentNode; }
+  openInlineEdit(_lastBi, wi);
+}
+function openInlineEdit(bi, wi) {
+  var b = captionBlocks[bi];
+  var box = document.getElementById('capInlineEd'), ta = document.getElementById('capInlineTa');
+  if (!b || !box || !ta || isExporting) return;
+  var vid = document.getElementById('mainVid');
+  if (vid && !vid.paused) vid.pause();
+  _inlineIdx = bi;
+  ta.value = b.text;
+  // Lage: dort, wo die Caption steht (Rahmen-relativ), damit man „im Bild“ tippt
+  var ov = document.getElementById('capOverlay'), fr = document.getElementById('prevFrame');
+  var top = 55;
+  try {
+    var orc = ov.getBoundingClientRect(), frc = fr.getBoundingClientRect();
+    if (frc.height > 0) top = Math.max(4, Math.min(78, ((orc.top + orc.height / 2) - frc.top) / frc.height * 100 - 8));
+  } catch (e) {}
+  box.style.top = top + '%';
+  box.style.display = 'block';
+  if (ta.focus) ta.focus();
+  // Angeklicktes Wort vorselektieren → direkt drübertippen
+  var ws = b.text.split(/(\s+)/), pos = 0, k = 0, s0 = 0, s1 = b.text.length;
+  for (var i = 0; i < ws.length; i++) {
+    if (!ws[i] || /^\s+$/.test(ws[i])) { pos += ws[i].length; continue; }
+    if (k === wi) { s0 = pos; s1 = pos + ws[i].length; break; }
+    k++; pos += ws[i].length;
+  }
+  try { ta.setSelectionRange(s0, s1); } catch (e) {}
+}
+function closeInlineEdit(save) {
+  var box = document.getElementById('capInlineEd'), ta = document.getElementById('capInlineTa');
+  if (!box || box.style.display === 'none') return;
+  box.style.display = 'none';
+  var bi = _inlineIdx; _inlineIdx = -1;
+  if (!save || !captionBlocks[bi]) return;
+  var v = String(ta.value || '').replace(/\s+/g, ' ').trim();
+  if (v === captionBlocks[bi].text) return;
+  pushUndo();
+  if (!v) { captionBlocks.splice(bi, 1); }
+  else { captionBlocks[bi].text = v; retimeEditedBlock(captionBlocks[bi]); }
+  markCaptionsEdited();
+  refreshCaptionViews();
+  capToast(v ? '✓ Caption updated' : 'Caption deleted — Ctrl/⌘+Z to undo');
+}
+// Klick woanders hin (andere Zeile, Tab, Player) speichert — kurz verzögert, damit ein Tipp auf
+// „Cancel“ (Touch: Fokus geht vor dem click verloren) noch zuerst ankommt.
+function inlineBlur() {
+  var idx = _inlineIdx;
+  setTimeout(function(){ if (_inlineIdx === idx && idx >= 0) closeInlineEdit(true); }, 180);
+}
+function inlineKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeInlineEdit(true); }
+  else if (e.key === 'Escape') { e.preventDefault(); closeInlineEdit(false); }
+  if (e.stopPropagation) e.stopPropagation(); // Leertaste/Pfeile nicht als Player-Shortcut werten
+}
+
+// ── Brand-Kit: ein Template als Standard für JEDES neue Video ──
+// Pro Gerät gemerkt. Das erste gespeicherte Template wird automatisch Standard (änderbar im ⋯-Menü).
+var BRAND_KEY = 'capivo.brandTpl';
+function brandTplId() { try { return (typeof localStorage !== 'undefined' && localStorage.getItem(BRAND_KEY)) || ''; } catch (e) { return ''; } }
+function setBrandTpl(id) { try { if (id) localStorage.setItem(BRAND_KEY, id); else localStorage.removeItem(BRAND_KEY); } catch (e) {} }
+function toggleBrandTpl(id) {
+  var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
+  if (!t) return;
+  if (brandTplId() === id) { setBrandTpl(''); capToast('“' + t.name + '” is no longer your default'); }
+  else { setBrandTpl(id); capToast('★ “' + t.name + '” will be used for every new video'); }
+  buildPicker();
+}
+// Beim Öffnen eines neuen Videos: Brand-Template wählen (falls vorhanden) und das Layout des aktiven
+// Templates anwenden — vorher kam nach einem Reload zwar der Template-LOOK zurück, aber Größe/Position/
+// Wörter pro Caption fielen auf die Standardwerte (Template-Layout wurde nur beim Anklicken gesetzt).
+function applyBrandOnOpen() {
+  var bid = brandTplId();
+  if (bid && STYLES.find(function(x){ return x.id === bid; })) activeId = bid;
+  var st = STYLES.find(function(x){ return x.id === activeId; });
+  if (st && st._tpl) { _presetPrevLayout = null; applyTemplateSettings(st._tpl); }
+}
+
 function openEditor() {
   document.getElementById('landing').style.display = 'none';
   document.getElementById('editor').style.display  = 'flex';
@@ -7618,6 +8247,8 @@ function openEditor() {
   if (_showcaseIO) _showcaseIO.disconnect();
   loadTemplates(); // gespeicherte Templates in den Picker einhängen
   if (!STYLES.find(function(x){ return x.id === activeId; })) activeId = DEFAULT_STYLE; // gemerkter Style existiert nicht mehr
+  applyBrandOnOpen(); // Brand-Template (bzw. Layout des gemerkten Templates) für das neue Video
+  switchTab('captions');
   seedActiveStyle(); // Custom-Regler zeigen den gemerkten Style (sonst HTML-Defaults wie gelbes „Active“)
   buildPicker(); renderWPills(); updateOverlay();
   applyPos(); // gewählte Position beibehalten
@@ -7639,6 +8270,8 @@ function openEditorClean() {
   document.getElementById('retryWrap').style.display     = 'none';
   setTStatus('🎙️', 'Upload a video to generate captions', false, false);
   enableExports(false);
+  resetUndo(); collapseTrSettings(false);
+  _tileFrameRun++; _tileFrame = null;
   openEditor();
 }
 function goBack() {
@@ -7738,7 +8371,7 @@ function zoomBy(delta) { setZoom(zoomLevel + delta); }
 enableExports(false);
 renderWPills();
 (function(){ var vi = document.getElementById('vocabInput'); if (vi && vocabText) vi.value = vocabText; })();
-syncTimeOffUI(); syncTextFormatUI();
+syncTimeOffUI(); syncTextFormatUI(); updateTrSetSum(); syncUndoBtns(); buildFontSelect();
 // Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
 renderShowcase();
@@ -7747,14 +8380,33 @@ updateAcctUI();
 fetchMe().then(function(){ if (meEmail) loadProjects(); });
 initLandingNavScroll();
 initScrollReveal();
-// Leertaste = Play/Pause im Editor (Pro-Creator-Standard), außer beim Tippen
+// Editor-Shortcuts (Pro-Creator-Standard): Leertaste = Play/Pause, ←/→ = ±1 s (Shift: ±0.1 s),
+// Ctrl/⌘+Z / Ctrl/⌘+Shift+Z (bzw. Ctrl+Y) = Undo/Redo der Caption-Edits, Esc verlässt ein Textfeld.
+// Beim Tippen in normalen Eingabefeldern (Suchen, Vokabular, Template-Name …) bleiben die nativen Tasten;
+// in den Caption-Zeilen übernimmt unser Undo (es deckt auch Split/Merge/Ersetzen ab, das native nicht).
 document.addEventListener('keydown', function(e) {
-  if (e.code !== 'Space') return;
-  var tg = e.target || {};
-  if (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.tagName === 'SELECT' || tg.isContentEditable) return;
   if (document.getElementById('editor').style.display !== 'flex') return;
-  e.preventDefault();
-  togglePlay();
+  var tg = e.target || {};
+  var typing = tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.tagName === 'SELECT' || tg.isContentEditable;
+  var capField = tg.classList && tg.classList.contains('cap-seg-ta');
+  var mod = e.ctrlKey || e.metaKey, key = (e.key || '').toLowerCase();
+  if (mod && !e.altKey && (key === 'z' || key === 'y')) {
+    if (typing && !capField) return;
+    var redo = key === 'y' || e.shiftKey;
+    if (redo ? redoCaptions() : undoCaptions()) e.preventDefault();
+    else if (capField) e.preventDefault(); // kein Schritt übrig → nicht ins native Textarea-Undo fallen
+    return;
+  }
+  if (e.key === 'Escape' && capField) { tg.blur(); return; }
+  if (typing || mod || e.altKey) return;
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); return; }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    var v = document.getElementById('mainVid');
+    if (!v || !v.duration || isExporting) return;
+    e.preventDefault();
+    var d = (e.shiftKey ? 0.1 : 1) * (e.key === 'ArrowLeft' ? -1 : 1);
+    v.currentTime = Math.max(0, Math.min(v.duration, (v.currentTime || 0) + d));
+  }
 });
 
 // ═══════════════════════════════════════
