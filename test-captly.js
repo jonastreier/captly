@@ -158,7 +158,8 @@ ok(T.activeWordIdx(bl[2], 3.5) === 2, 'aktives Wort = etwas');
 const s = T.STYLES.find(x => x.id === 'stack');
 const html = T.buildCap(['ein', 'zwei', 'drei'], s, 1, 22, [0, 0.5, 1]);
 ok(html.includes('f7c204'), 'HL-Farbe im HTML');
-ok(html.split('seekToTime').length === 4, '3 Seek-Handler, habe ' + (html.split('seekToTime').length - 1));
+ok(html.split('capOverlayClickWord').length === 4, '3 Klick-Handler (Seek/Inline-Edit), habe ' + (html.split('capOverlayClickWord').length - 1));
+ok(/data-wi="2"[^>]*capOverlayClickWord\(event,2,1\.000\)/.test(html), 'Wort-Index + Zeit am Wort-Span');
 ok((html.match(/animation:captly-/g) || []).length === 1, 'Animation nur am aktiven Wort');
 
 // 7) SRT/VTT-Export
@@ -471,13 +472,16 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   // Kontur, Großbuchstaben, Abstand, Gewicht, Hintergrund, Highlight-Typ, Animation
   E('csOutlineW').value = '4'; E('csOutlineC').value = '#112233';
   E('csUpper').classList.add('on'); E('csLs').value = '2'; E('csWeight').value = '900';
-  E('csBox').value = 'pill'; E('csBoxC').value = '#ffffff'; E('csBoxO').value = '40';
+  E('csBox').value = 'pill'; E('csBoxR').value = '22'; E('csBoxC').value = '#ffffff'; E('csBoxO').value = '40';
   E('csHlType').value = 'color'; E('csHl').value = '#00ffaa'; E('csAnim').value = 'wobble';
   T.setCsDirty({ text: true, stroke: true, upper: true, ls: true, weight: true, box: true, hl: true, anim: true });
   cs = T.buildCustomStyle();
   ok(T.parseOutline(cs.ts).w === 4 && cs.ts.includes('#112233'), 'Kontur 4px in ts: ' + cs.ts.slice(0, 40));
   ok(cs.tt === 'uppercase' && cs.ls === '2px' && cs.fw === '900' && cs.anim === 'wobble', 'Caps/Abstand/Gewicht/Animation');
   ok(cs.boxBg === 'rgba(255,255,255,0.4)' && cs.boxBr === '22px', 'Hintergrund-Pill mit Deckkraft: ' + cs.boxBg);
+  E('csBoxR').value = '13'; ok(T.buildCustomStyle().boxBr === '13px', 'Eckenradius frei einstellbar (Corners)');
+  E('csBoxR').value = '99'; ok(T.buildCustomStyle().boxBr === '30px', 'Eckenradius auf 30px gedeckelt');
+  E('csBoxR').value = '22';
   ok(!cs.hlPillBg && cs.hl === '#00ffaa' && T.parseOutline(cs.hls).w === 4, 'Highlight als Textfarbe mit Kontur');
   const html = T.buildCap(['eins', 'zwei'], cs, 1, 22, null);
   ok(html.includes('letter-spacing:2px') && html.includes('text-transform:uppercase') && html.includes('rgba(255,255,255,0.4)') && html.includes('captly-wobble'),
