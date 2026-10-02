@@ -1520,7 +1520,7 @@ function isHallucinatedChunk(words) {
 // Kombiniert zur Sprach-Wahrscheinlichkeit, Median-geglättet, Hysterese, ≥ 200 ms Sprache, Lücken < 300 ms
 // geschlossen, ±150 ms Polster. Kosten: 512er-FFT für je ZWEI Frames (Real-Trick) + NCCF bei 4 kHz →
 // 10 Min Audio deutlich unter 1 s.
-var VAD_ON = 0.5, VAD_OFF = 0.3;      // Hysterese der Sprach-Wahrscheinlichkeit
+var VAD_ON = 0.35, VAD_OFF = 0.2;      // Hysterese der Sprach-Wahrscheinlichkeit
 var VAD_MIN_SPEECH = 0.2, VAD_MERGE_GAP = 0.3, VAD_PAD = 0.15; // Sekunden
 var VAD_SKIP_GAP = 1.0;   // Nicht-Sprache länger als das wird NICHT an Whisper geschickt
 var VAD_MIN_COVER = 0.02; // < 2 % Sprache → wie bisher alles senden (z. B. Musik-Clip; Whisper soll entscheiden)
@@ -1549,7 +1549,7 @@ function vadFft(re, im, T) {
 }
 // Gefensterter Sinc-Tiefpass + Dezimierung (Ausgaberate outSr; Grenzfrequenz fc in Hz).
 function vadDecimate(x, sr, outSr, fc) {
-  var step = sr / outSr, n = Math.floor(x.length / step), out = new Float32Array(n), H = 12, len = x.length;
+  var step = sr / outSr, n = Math.floor(x.length / step), out = new Float32Array(n), H = 8, len = x.length;
   var taps = new Float64Array(2 * H + 1), sum = 0, k;
   for (k = -H; k <= H; k++) {
     var v = k === 0 ? 2 * fc / sr : Math.sin(2 * Math.PI * fc / sr * k) / (Math.PI * k);
@@ -1557,9 +1557,10 @@ function vadDecimate(x, sr, outSr, fc) {
     taps[k + H] = v; sum += v;
   }
   for (k = 0; k < taps.length; k++) taps[k] /= sum;
+  var istep = step === Math.floor(step) ? step : 0; // 16→8→4 kHz: ganzzahlig, kein Runden pro Sample
   for (var i = 0; i < n; i++) {
-    var c = Math.round(i * step), acc = 0;
-    if (c - H >= 0 && c + H < len) { for (k = 0; k <= 2 * H; k++) acc += taps[k] * x[c - H + k]; }
+    var c = istep ? i * istep : Math.round(i * step), acc = 0;
+    if (c - H >= 0 && c + H < len) { acc = taps[H] * x[c]; for (k = 1; k <= H; k++) acc += taps[H + k] * (x[c - k] + x[c + k]); }
     else { for (k = 0; k <= 2 * H; k++) { var q = c - H + k; if (q >= 0 && q < len) acc += taps[k] * x[q]; } }
     out[i] = acc;
   }
@@ -1585,92 +1586,100 @@ async function speechProbabilities(audio, sr) {
   if (nF < 5) return P;
   var x8 = sr === 8000 ? Float32Array.from(audio) : vadDecimate(audio, sr, 8000, 3700);
   await yieldToUI();
-  // ── (a) Stimmhaftigkeit: Bandpass 200 Hz (4. Ordnung) … 1800 Hz, 4 kHz ──
+  // ── (a) Stimmhaftigkeit: Bandpass 200 Hz (4. Ordnung) … 1800 Hz bei 4 kHz, NCCF alle 20 ms ──
   var hp = Float32Array.from(x8);
   vadHighpass(hp, 8000, 200, 0.5412); vadHighpass(hp, 8000, 200, 1.3066);
   var x4 = vadDecimate(hp, 8000, 4000, 1800); hp = null;
   var n4 = x4.length, cum = new Float64Array(n4 + 1);
   for (var i = 0; i < n4; i++) cum[i + 1] = cum[i] + x4[i] * x4[i];
   var W = 120, TMIN = 10, TMAX = 57, voi = new Float32Array(nF), f, k;
-  for (f = 0; f < nF; f++) {
+  function nccf(s0, e0, tau) {
+    var acc = 0, q = s0 + tau;
+    for (var m = 0; m < W; m++) acc += x4[s0 + m] * x4[q + m];
+    return acc > 0 ? acc / Math.sqrt(e0 * (cum[q + W] - cum[q]) + 1e-20) : 0;
+  }
+  for (f = 0; f < nF; f += 2) {
     var s0 = f * 40 - 40;
-    if (s0 < 0 || s0 + W + TMAX > n4) continue;
+    if (s0 < 0 || s0 + W + TMAX + 1 > n4) continue;
     var e0 = cum[s0 + W] - cum[s0];
     if (!(e0 > 1e-9 * W)) continue;
-    var best = 0;
-    for (var tau = TMIN; tau <= TMAX; tau++) {
-      var acc = 0, q = s0 + tau;
-      for (var m = 0; m < W; m++) acc += x4[s0 + m] * x4[q + m];
-      if (acc > 0) {
-        var r = acc / Math.sqrt(e0 * (cum[q + W] - cum[q]) + 1e-20);
-        if (r > best) best = r;
-      }
-    }
-    voi[f] = best;
-    if (f % 3000 === 2999) await yieldToUI();
+    // grob jede 2. Periode, dann ±1 verfeinern (halbiert die Kosten, Spitze bleibt erhalten)
+    var best = 0, bt = TMIN;
+    for (var tau = TMIN; tau <= TMAX; tau += 2) { var r = nccf(s0, e0, tau); if (r > best) { best = r; bt = tau; } }
+    var r1 = nccf(s0, e0, bt - 1 < TMIN ? TMIN : bt - 1), r2 = nccf(s0, e0, bt + 1);
+    voi[f] = Math.max(best, r1, r2);
+    if (f % 6000 === 5998) await yieldToUI();
   }
+  for (f = 1; f < nF; f += 2) voi[f] = Math.max(voi[f - 1], f + 1 < nF ? voi[f + 1] : 0);
   x4 = null; cum = null;
-  // ── (b)+(c) Spektrum: 512er-FFT (64 ms Hann) bei 8 kHz, zwei Frames pro komplexer FFT ──
+  // ── (b)+(c) Spektrum: 512er-FFT (64 ms Hann) bei 8 kHz alle 20 ms, zwei Frames pro komplexer FFT ──
   var N = 512, T = _vadFftT || (_vadFftT = vadFftTables(N)), win = new Float64Array(N);
   for (k = 0; k < N; k++) win[k] = 0.5 - 0.5 * Math.cos(2 * Math.PI * (k + 0.5) / N);
   var KLO = 19, NB = 10, BW = 20; // Bins 19..218 = 297–3406 Hz, 10 Teilbänder à 312 Hz
-  var E = new Float32Array(nF * NB), FL = new Float32Array(nF * NB), rms = new Float32Array(nF);
-  var re = new Float64Array(N), im = new Float64Array(N), n8 = x8.length;
-  for (f = 0; f < nF; f += 2) {
+  var nG = (nF + 1) >> 1;         // Spektral-Frame g gehört zu den 10-ms-Frames 2g und 2g+1
+  var E = new Float32Array(nG * NB), FL = new Float32Array(nG * NB), rms = new Float32Array(nG);
+  var re = new Float64Array(N), im = new Float64Array(N), pw = new Float64Array(BW), n8 = x8.length;
+  for (var g = 0; g < nG; g += 2) {
     for (var h = 0; h < 2; h++) {
-      var buf = h ? im : re, st = (f + h) * 80 + 40 - N / 2, ss = 0;
-      for (k = 0; k < N; k++) { var p = st + k, v = (p >= 0 && p < n8 && f + h < nF) ? x8[p] : 0; buf[k] = v * win[k]; ss += v * v; }
-      if (f + h < nF) rms[f + h] = Math.sqrt(ss / N);
+      var buf = h ? im : re, st = (g + h) * 160 + 80 - N / 2, ss = 0, inside = g + h < nG;
+      for (k = 0; k < N; k++) { var p = st + k, v = (inside && p >= 0 && p < n8) ? x8[p] : 0; buf[k] = v * win[k]; ss += v * v; }
+      if (inside) rms[g + h] = Math.sqrt(ss / N);
     }
     vadFft(re, im, T);
-    for (var b = 0; b < NB; b++) {
-      var eA = 0, lA = 0, eB = 0, lB = 0;
-      for (k = KLO + b * BW; k < KLO + (b + 1) * BW; k++) {
-        var zr = re[k], zi = im[k], yr = re[N - k], yi = im[N - k];
-        var pa = ((zr + yr) * (zr + yr) + (zi - yi) * (zi - yi)) * 0.25 + 1e-12;
-        var pb = ((zi + yi) * (zi + yi) + (zr - yr) * (zr - yr)) * 0.25 + 1e-12;
-        eA += pa; lA += Math.log(pa); eB += pb; lB += Math.log(pb);
+    for (h = 0; h < 2 && g + h < nG; h++) {
+      for (var b = 0; b < NB; b++) {
+        var eS = 0, k0 = KLO + b * BW;
+        for (k = 0; k < BW; k++) {
+          var zr = re[k0 + k], zi = im[k0 + k], yr = re[N - k0 - k], yi = im[N - k0 - k];
+          var pv = h ? ((zi + yi) * (zi + yi) + (zr - yr) * (zr - yr)) * 0.25 : ((zr + yr) * (zr + yr) + (zi - yi) * (zi - yi)) * 0.25;
+          pw[k] = pv; eS += pv;
+        }
+        // Flachheit = geom. / arithm. Mittel; Produkt der normierten Werte statt 20 Logarithmen
+        var mean = eS / BW + 1e-20, prod = 1;
+        for (k = 0; k < BW; k++) prod *= pw[k] / mean + 1e-9;
+        E[(g + h) * NB + b] = eS; FL[(g + h) * NB + b] = Math.pow(prod, 1 / BW);
       }
-      E[f * NB + b] = eA; FL[f * NB + b] = Math.exp(lA / BW) / (eA / BW);
-      if (f + 1 < nF) { E[(f + 1) * NB + b] = eB; FL[(f + 1) * NB + b] = Math.exp(lB / BW) / (eB / BW); }
     }
-    if (f % 3000 === 2998) await yieldToUI();
+    if (g % 6000 === 5998) await yieldToUI();
   }
   x8 = null;
-  // Rauschboden je Teilband: Minimum der (über 3 Frames) geglätteten Energie in 0,5-s-Blöcken, Fenster
-  // ±1 Block … ±2 Blöcke (~2,5 s), Bias-Korrektur (Minimum liegt unter dem Mittel des Rauschens).
-  var BL = 50, nBlk = Math.ceil(nF / BL), NOISE_BIAS = 1.6;
-  var Es = new Float32Array(nF * NB), bmin = new Float64Array(nBlk * NB), floor = new Float64Array(nBlk * NB);
-  for (f = 0; f < nF; f++) {
-    var fa = f > 0 ? f - 1 : f, fz = f < nF - 1 ? f + 1 : f;
-    for (b = 0; b < NB; b++) Es[f * NB + b] = (E[fa * NB + b] + E[f * NB + b] + E[fz * NB + b]) / 3;
+  // Rauschboden je Teilband: Minimum der (über 3 Spektral-Frames) geglätteten Energie in 0,5-s-Blöcken,
+  // Fenster ±2 Blöcke (~2,5 s), Bias-Korrektur (das Minimum liegt unter dem Mittel des Rauschens).
+  var BL = 25, nBlk = Math.ceil(nG / BL), NOISE_BIAS = 1.6;
+  var Es = new Float32Array(nG * NB), bmin = new Float64Array(nBlk * NB), floor = new Float64Array(nBlk * NB);
+  for (g = 0; g < nG; g++) {
+    var ga = g > 0 ? g - 1 : g, gz = g < nG - 1 ? g + 1 : g;
+    for (b = 0; b < NB; b++) Es[g * NB + b] = (E[ga * NB + b] + E[g * NB + b] + E[gz * NB + b]) / 3;
   }
   bmin.fill(Infinity);
-  for (f = 0; f < nF; f++) {
-    var j0 = Math.floor(f / BL);
-    for (b = 0; b < NB; b++) { var ev = Es[f * NB + b]; if (ev < bmin[j0 * NB + b]) bmin[j0 * NB + b] = ev; }
+  for (g = 0; g < nG; g++) {
+    var j0 = Math.floor(g / BL);
+    for (b = 0; b < NB; b++) { var ev = Es[g * NB + b]; if (ev < bmin[j0 * NB + b]) bmin[j0 * NB + b] = ev; }
   }
   for (var jb = 0; jb < nBlk; jb++) for (b = 0; b < NB; b++) {
     var mn = Infinity;
     for (var jj = Math.max(0, jb - 2); jj <= Math.min(nBlk - 1, jb + 2); jj++) if (bmin[jj * NB + b] < mn) mn = bmin[jj * NB + b];
     floor[jb * NB + b] = Math.max(mn * NOISE_BIAS, 1e-10);
   }
-  // ── Kombination ──
-  var snr = new Float64Array(NB);
-  for (f = 0; f < nF; f++) {
-    if (rms[f] < 1e-4) { P[f] = 0; continue; } // digitale Stille
-    var jf = Math.floor(f / BL), wsum = 0, fsum = 0;
+  // ── Kombination je Spektral-Frame, dann je 10-ms-Frame mit dessen Stimmhaftigkeit ──
+  var snr = new Float64Array(NB), Sg = new Float32Array(nG), Fg = new Float32Array(nG);
+  for (g = 0; g < nG; g++) {
+    if (rms[g] < 1e-4) { Sg[g] = -1; continue; } // digitale Stille
+    var jf = Math.floor(g / BL), wsum = 0, fsum = 0;
     for (b = 0; b < NB; b++) {
-      var sv = Es[f * NB + b] / floor[jf * NB + b]; snr[b] = sv;
-      var wgt = sv - 1.5; if (wgt > 0) { wsum += wgt; fsum += wgt * FL[f * NB + b]; }
+      var sv = Es[g * NB + b] / floor[jf * NB + b]; snr[b] = sv;
+      var wgt = sv - 1.5; if (wgt > 0) { wsum += wgt; fsum += wgt * FL[g * NB + b]; }
     }
     // Mittel der 3 stärksten Teilbänder (Sprache sitzt in wenigen Bändern, Rascheln ist breit)
     var t1 = 0, t2 = 0, t3 = 0;
     for (b = 0; b < NB; b++) { var x = snr[b]; if (x > t1) { t3 = t2; t2 = t1; t1 = x; } else if (x > t2) { t3 = t2; t2 = x; } else if (x > t3) t3 = x; }
     var snrDb = 10 * Math.log(Math.max(1e-6, (t1 + t2 + t3) / 3)) / Math.LN10;
     var fw = wsum > 0.5 ? fsum / wsum : 0.6;
-    var V = vadClamp01((voi[f] - 0.45) / 0.3), S = vadClamp01((snrDb - 5) / 10), F = vadClamp01((0.45 - fw) / 0.25);
-    P[f] = 0.5 * V + 0.3 * S + 0.2 * F;
+    Sg[g] = vadClamp01((snrDb - 5) / 10); Fg[g] = vadClamp01((0.45 - fw) / 0.25);
+  }
+  for (f = 0; f < nF; f++) {
+    var gi = f >> 1;
+    P[f] = Sg[gi] < 0 ? 0 : 0.5 * vadClamp01((voi[f] - 0.4) / 0.3) + 0.3 * Sg[gi] + 0.2 * Fg[gi];
   }
   return P;
 }
@@ -1757,8 +1766,8 @@ function mapTrackWord(map, w) {
 //  • Wörter komplett ausserhalb (z. B. „Hallo“ bei 0,2 s im Rascheln-Vorlauf) → als zusammenhängender
 //    Lauf in den nächsten Sprachbereich vor dessen erstes Wort (Reihenfolge + relative Abstände bleiben,
 //    gestaucht, aber ≥ 0,1 s pro Wort); passt er nicht, ans Ende des vorherigen Bereichs; passt er dort
-//    auch nicht, werden Lauf + die ersten Wörter des Folgebereichs gemeinsam gestaucht (jedes ≥ 0,1 s).
-var VAD_MIN_WORD = 0.1;
+//    auch nicht, werden Lauf + die ersten Wörter des Folgebereichs gemeinsam gestaucht (Ziel ~0,25 s, ≥ 0,1 s).
+var VAD_MIN_WORD = 0.1, VAD_TARGET_WORD = 0.25;
 function constrainWordsToSpeech(words, regions) {
   if (!words || !words.length || !regions || !regions.length) return words || [];
   var R = regions, nR = R.length, out = words.map(function(w){ return { word: w.word, start: w.start, end: w.end }; });
@@ -1800,9 +1809,10 @@ function constrainWordsToSpeech(words, regions) {
       var from = (i > 0 && reg[i - 1] === pr) ? out[i - 1].end : R[pr].start;
       if (R[pr].end - from >= need - 1e-9) { place(i, j, Math.max(from, R[pr].end - Math.max(need, out[j].end - out[i].start)), R[pr].end); done = true; }
     }
-    if (!done && nr >= 0) { // c) Lauf + erste Wörter des Folgebereichs gemeinsam stauchen
+    if (!done && nr >= 0) { // c) Lauf + erste Wörter des Folgebereichs gemeinsam stauchen — so viele, dass
+      // ~0,25 s pro Wort bleiben (bei komplett verschmierten Wortzeiten = lineares Umlegen auf die Sprache)
       var m = j + 1;
-      while (m < out.length && reg[m] === nr && out[m].end - R[nr].start < (m - i + 1) * VAD_MIN_WORD) m++;
+      while (m < out.length && reg[m] === nr && out[m].end - R[nr].start < (m - i + 1) * VAD_TARGET_WORD) m++;
       if (m >= out.length || reg[m] !== nr) m--;
       var endT = Math.max(out[m].end, R[nr].start + (m - i + 1) * VAD_MIN_WORD);
       place(i, m, R[nr].start, endT);
@@ -1832,7 +1842,13 @@ function constrainWordsToSpeech(words, regions) {
 // Frame (nie hinter Ende − 40 ms); Wortende in Stille → bis −300 ms zurück zum letzten stimmhaften Frame
 // (nie vor Start + 60 ms). Bei zu wenig Abstand Sprache/Rauschen (< 2×) wird nichts verändert.
 var SNAP_FRAME_SEC = 0.01, SNAP_START_MAX = 0.25, SNAP_END_MAX = 0.30;
-async function snapWordTimings(words, audio, sr) {
+// regions (optional, aus detectSpeechRegions): danach werden die Wörter per constrainWordsToSpeech auf die
+// Sprachbereiche beschränkt (Wörter im Rascheln-Vorlauf → an den echten Sprach-Einsatz).
+async function snapWordTimings(words, audio, sr, regions) {
+  var snapped = await snapWordEnergy(words, audio, sr);
+  return regions && regions.length ? constrainWordsToSpeech(snapped, regions) : snapped;
+}
+async function snapWordEnergy(words, audio, sr) {
   if (!words || !words.length || !audio || !audio.length) return words || [];
   sr = sr || 16000;
   var hop = Math.max(1, Math.round(sr * SNAP_FRAME_SEC)), nF = Math.floor(audio.length / hop);
@@ -1866,37 +1882,8 @@ async function snapWordTimings(words, audio, sr) {
       for (var b = fe - 1; b >= lo; b--) if (voiced(b)) { w.end = (b + 1) * SNAP_FRAME_SEC; break; }
     }
   });
-  // Wörter mitten in langer Stille (typisch: erstes Wort bei 0.0 s nach stummem Vorlauf): hat die ganze
-  // Wortspanne keinen stimmhaften Frame und liegt sie in einer Stille von ≥ 1 s, rückt sie an den nächsten
-  // Sprach-Einsatz. KONSERVATIV: nur, wenn höchstens 2 solche Wörter direkt vor dem Einsatz liegen (mehr
-  // sind eher Halluzinationen — dann bleibt alles, wie es ist), das Folgewort ≤ 1,5 s nach dem Einsatz
-  // beginnt und genug Platz ist (≥ 0,2 s pro Wort) — sonst würden Wörter auf 40 ms zusammengequetscht.
-  var silInfo = out.map(function(w) {
-    if (!(w.end > w.start)) return null;
-    var a0 = Math.floor(w.start / SNAP_FRAME_SEC), a1 = Math.min(nF - 1, Math.ceil(w.end / SNAP_FRAME_SEC) - 1);
-    if (a0 >= nF) return null;
-    for (var f2 = a0; f2 <= a1; f2++) if (voiced(f2)) return null;    // irgendwo stimmhaft → normales Wort
-    var lo2 = a0; while (lo2 > 0 && !voiced(lo2 - 1)) lo2--;
-    var hi2 = a1; while (hi2 < nF - 1 && !voiced(hi2 + 1)) hi2++;
-    if ((hi2 - lo2 + 1) * SNAP_FRAME_SEC < 1.0 || hi2 >= nF - 1) return null; // keine lange Stille / keine Sprache danach
-    return { onset: (hi2 + 1) * SNAP_FRAME_SEC };
-  });
-  for (var gi = 0; gi < out.length; ) {
-    if (!silInfo[gi]) { gi++; continue; }
-    var gEnd = gi; while (gEnd + 1 < out.length && silInfo[gEnd + 1] && silInfo[gEnd + 1].onset === silInfo[gi].onset) gEnd++;
-    var cnt = gEnd - gi + 1, onset = silInfo[gi].onset, next = out[gEnd + 1];
-    var ok = cnt <= 2
-      && (next ? (next.start >= onset - 1e-6 && next.start - onset <= 1.5 && next.start - onset >= 0.2 * cnt)
-               : (onset - out[gEnd].end <= 1.5));
-    if (ok) {
-      var room = next ? (next.start - onset) / cnt : Infinity, tcur = onset;
-      for (var k2 = gi; k2 <= gEnd; k2++) {
-        var d2 = Math.max(0.12, Math.min(out[k2].end - out[k2].start, room));
-        out[k2].start = tcur; out[k2].end = tcur + d2; tcur += d2;
-      }
-    }
-    gi = gEnd + 1;
-  }
+  // (Die frühere Regel „≤ 2 Wörter aus stummem Vorlauf an den Einsatz“ ist durch constrainWordsToSpeech in
+  // snapWordTimings ersetzt — die greift auch, wenn der „stumme“ Vorlauf lautes Rascheln ist.)
   // Monoton + überlappungsfrei halten (Snap verkürzt nur, aber Rundung auf Frames absichern)
   for (var i = 0; i < out.length; i++) {
     if (i > 0 && out[i].start < out[i - 1].end) out[i].start = out[i - 1].end;
@@ -2041,7 +2028,11 @@ async function cleanWords(words) {
 
 // Lokale Erkennung in 28s-Fenstern mit 2s Überlappung — deckt zuverlässig das GANZE Video ab
 // (das interne Chunking von transformers.js bricht bei Wort-Timestamps auf langen Videos ab)
-async function transcribeChunked(pipe, audioData, opts, isStale) {
+// spans (optional): wie beim Server nur die Sprach-Spannen als zusammengesetzte Spur erkennen lassen und
+// die Wortzeiten danach über die Spur-Map auf die Original-Zeitachse zurückrechnen.
+async function transcribeChunked(pipe, audioData, opts, isStale, spans) {
+  var track = spans && spans.length ? buildSpeechTrack(audioData, 16000, spans) : null;
+  if (track) audioData = track.samples;
   var SR = 16000, WIN = 28 * SR, STEP = 26 * SR;
   var n = Math.max(1, Math.ceil(Math.max(1, audioData.length - (WIN - STEP)) / STEP));
   var windows = [];
@@ -2063,6 +2054,7 @@ async function transcribeChunked(pipe, audioData, opts, isStale) {
     windows.push({ start: start, segLen: seg.length, words: words });
   }
   var merged = mergeChunkWords(windows);
+  if (track) merged = merged.map(function(w){ return mapTrackWord(track.map, w); });
   merged.language = detectedLang; // zusätzliche Eigenschaft auf dem Array -- .length/.map etc. bleiben unverändert nutzbar
   return merged;
 }
@@ -2590,6 +2582,7 @@ function getAllWords() {
   return captionBlocks.reduce(function(a,b){ return a.concat(b.words.map(function(w){ return w.word; })); }, []);
 }
 // Aktiver Block zum Zeitpunkt t (Karaoke: nur während Sprechzeit, Durchgehend: bis zum nächsten Block)
+var HOLD_GAP_SEC = 1.5, HOLD_TAIL_SEC = 0.6;
 function currentBlockIdx(t) {
   if (!captionBlocks.length) return -1;
   for (var i = 0; i < captionBlocks.length; i++) {
@@ -2600,6 +2593,10 @@ function currentBlockIdx(t) {
       if (captionBlocks[j].start <= t) {
         // „Continuous“ hält den letzten Block bis zum nächsten — aber nicht über einen Szenenschnitt hinweg
         if (cutBetween(activeCuts(), captionBlocks[j].end - 1e-6, t) !== null) return -1;
+        // … und nicht durch eine lange Strecke ohne Sprache (Rascheln, Musik-Outro): kommt der nächste Block
+        // erst > HOLD_GAP_SEC später (oder gar keiner), verschwindet der Block HOLD_TAIL_SEC nach seinem Ende.
+        var nb = captionBlocks[j + 1];
+        if ((!nb || nb.start - captionBlocks[j].end > HOLD_GAP_SEC) && t > captionBlocks[j].end + HOLD_TAIL_SEC) return -1;
         return j;
       }
     }
@@ -4899,11 +4896,16 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
 // Rückgabe: {words, language}; null nur, wenn gar kein Proxy da ist (→ lokaler Fallback). Alles andere ist ein klarer Fehler statt stiller Lücke.
 // isStale (optional): liefert true, sobald ein neuerer transcribeVideo-Lauf gestartet wurde → sofort
 // abbrechen (wirft {stale:true}), ohne Status/Fortschritt des aktuellen Laufs zu überschreiben.
-async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt) {
+// spans (optional, aus speechSpans): nur diese Sprach-Spannen werden gesendet — zu einer Spur mit kurzen
+// Stille-Spacern verbunden (buildSpeechTrack), Rascheln/Wind-Strecken > VAD_SKIP_GAP gehen gar nicht erst
+// raus. Jedes Stück beginnt so an einem Sprach-Einsatz; die Wortzeiten werden über die Spur-Map exakt auf
+// die Original-Zeitachse zurückgerechnet. Ohne spans: ganzes Audio wie bisher.
+async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt, spans) {
   prompt = cleanVocab(prompt);
   function checkStale() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
   var label = (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – transcribing';
-  var chunks = splitAudioChunks(audioData, 16000), n = chunks.length;
+  var track = spans && spans.length ? buildSpeechTrack(audioData, 16000, spans) : null;
+  var chunks = splitAudioChunks(track ? track.samples : audioData, 16000), n = chunks.length;
   var all = [], language = null, forced = lc, results = [], encP = [], done = 0, posted = 0, failed = null;
   var silent = chunks.map(function(c){ return chunkIsSilent(c.samples); });
   // Upload-Blob (Ogg/Opus oder WAV) je Stück genau einmal erzeugen; früh angestossen, damit das
@@ -4931,7 +4933,9 @@ async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt)
     if (!ws.length && j.segments) ws = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
     if (!ws.length && j.text)     ws = segmentsToWords([{ text: j.text, timestamp: [0, ch.samples.length / 16000] }]);
     if (isHallucinatedChunk(ws) || isPromptEcho(ws, doTranslate ? '' : prompt)) ws = [];
-    return { words: ws.map(function(w){ return { word: w.word, start: w.start + ch.offset, end: w.end + ch.offset }; }),
+    return { words: ws.map(function(w){
+               var lw = { word: w.word, start: w.start + ch.offset, end: w.end + ch.offset };
+               return track ? mapTrackWord(track.map, lw) : lw; }),
              lang: (j.language || '').toLowerCase() };
   }
   function noProxyErr(e) { return e && e.noProxy ? transcribeErr('Transcription server became unavailable — please try again.') : e; }
@@ -5245,11 +5249,19 @@ async function transcribeVideo(file) {
     if (truncated) audioData = audioData.slice(0, 16000 * MAX_AUDIO_SEC);
     var audioDur = audioData.length / 16000;
 
+    // ── 0) Sprache finden (VAD): nur Sprache an Whisper, Wortzeiten später darauf beschränken.
+    // spans = null → keine/kaum Sprache erkannt → wie bisher alles senden, nichts beschränken.
+    setTStatus('', 'Finding speech…', true, true);
+    var speech = await detectSpeechRegions(audioData, 16000);
+    bailIfStale();
+    var spans = speechSpans(speech, audioDur);
+    if (!spans) speech = null;
+
     var usedLang = whisperLang;
     var lc = (whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) ? CODE_BY_LANG[whisperLang] : '';
 
     // ── 1) Serverseitig transkribieren (Groq via transcribe.php) — kein Download für den Nutzer ──
-    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur, stale, vocab);
+    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur, stale, vocab, spans);
     bailIfStale();
 
     if (served !== null) {
@@ -5287,7 +5299,7 @@ async function transcribeVideo(file) {
         // Genauigkeit (reduzierte Decoder-Tiefe) -- selbst mit erzwungenem `language`-Parameter bleibt
         // der generierte Text bei turbo mitunter unzuverlaessig. Der Retry ist selten (nur bei
         // Verdachtsfall) und darf daher die genauere/langsamere Variante nutzen.
-        var servedF = await serverTranscribe(audioData, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur, stale, vocab);
+        var servedF = await serverTranscribe(audioData, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur, stale, vocab, spans);
         bailIfStale();
         // WICHTIG: NICHT mehr looksLikeTargetLang als Pflichtkriterium -- ein korrekter deutscher/
         // französischer/... Satz OHNE Sonderzeichen (sehr häufig, z. B. "Hallo und willkommen zu
@@ -5310,7 +5322,7 @@ async function transcribeVideo(file) {
       // Korrektur-Ziel wie `served.language` beim Server-Pfad, statt blind auf NAV_LANG zu vertrauen.
       var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe', return_language: true };
       if (whisperLang !== 'auto') wOpts.language = whisperLang;
-      var wtLocal = await transcribeChunked(pipe, audioData, wOpts, stale);
+      var wtLocal = await transcribeChunked(pipe, audioData, wOpts, stale, spans);
       bailIfStale();
       wts = wtLocal;
       var repetitiveLocal = looksRepetitive(wts);
@@ -5328,7 +5340,7 @@ async function transcribeVideo(file) {
         // 'tiny' ist bei nicht-englischer Sprache deutlich unzuverlaessiger, auch mit erzwungenem Hint.
         var pipeRetry = LOCAL_MODEL[whisperModel] === 'small' ? pipe : await getPipe('small');
         bailIfStale();
-        var wtF = await transcribeChunked(pipeRetry, audioData, Object.assign({}, wOpts, { language: retryTargetLocal }), stale);
+        var wtF = await transcribeChunked(pipeRetry, audioData, Object.assign({}, wOpts, { language: retryTargetLocal }), stale, spans);
         bailIfStale();
         // Auch hier: looksLikeTargetLang nicht mehr als Pflichtkriterium, nur als zusätzliches
         // positives Signal -- s. Server-Pfad-Kommentar oben (der eigentliche Bug-Fund).
@@ -5344,7 +5356,7 @@ async function transcribeVideo(file) {
     bailIfStale();
     wts = cleaned;
     wts = sanitizeWordTimings(wts, audioDur); // Überlappungen/gedehnte Wörter glätten
-    var snapped = await snapWordTimings(wts, audioData, 16000); // Wortgrenzen an die echte Sprache ziehen
+    var snapped = await snapWordTimings(wts, audioData, 16000, speech); // Wortgrenzen an die echte Sprache ziehen + auf Sprachbereiche beschränken
     bailIfStale();
     wts = snapped;
     var polishFixes = -1;

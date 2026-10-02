@@ -98,7 +98,8 @@ rebaseCutTime:rebaseCutTime,createAudioCutPlanner:createAudioCutPlanner,rotation
 h264CodecCandidates:h264CodecCandidates,fastExportVideoCodecs:fastExportVideoCodecs,isFastExportSource:isFastExportSource,fastExportSupported:fastExportSupported,
 oggCrc32:oggCrc32,oggLacing:oggLacing,opusPacketSamples48:opusPacketSamples48,buildOggOpus:buildOggOpus,opusPreSkipFromDesc:opusPreSkipFromDesc,
 encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSupport=null;},getOpusOff:function(){return _opusOff;},UPLOAD_CONCURRENCY:UPLOAD_CONCURRENCY,
-sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H};`;
+sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
+detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -142,6 +143,13 @@ ok(bl.length === 4, '4 Bloecke: ' + bl.length);
 ok(T.currentBlockIdx(2.0) === -1, 'Karaoke: Pause leer');
 T.setState(bl, wts, 'all');
 ok(T.currentBlockIdx(2.0) === 1, 'Durchgehend: Block haelt');
+{ // Durchgehend, aber lange Strecke ohne Sprache (> 1,5 s bis zum nächsten Block): nach Ende + 0,6 s ausblenden
+  const wl = [{ word: 'Erst.', start: 0.5, end: 1.0 }, { word: 'Dann.', start: 5.0, end: 5.5 }];
+  T.setState(T.buildCaptionBlocks(wl, []), wl, 'all');
+  ok(T.currentBlockIdx(1.4) === 0 && T.currentBlockIdx(1.7) === -1 && T.currentBlockIdx(4.0) === -1 && T.currentBlockIdx(5.2) === 1, 'Durchgehend: lange Pause → Block verschwindet nach 0,6 s');
+  ok(T.currentBlockIdx(5.9) === 1 && T.currentBlockIdx(6.3) === -1, 'Durchgehend: letzter Block bleibt nicht bis zum Videoende stehen');
+  T.setState(bl, wts, 'all');
+}
 T.setState(bl, wts, 'karaoke');
 ok(T.activeWordIdx(bl[2], 3.5) === 2, 'aktives Wort = etwas');
 
@@ -1548,23 +1556,146 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.polishSegments(Array.from({ length: 95 }, (_, i) => ({ word: 'w' + i }))).every(sg => sg.b - sg.a <= 40), 'Segmente max. 40 Woerter');
   }
 
-  // 21g) Wörter in langer Stille → an den nächsten Sprach-Einsatz (5 s Stille, dann Sprache)
+  // 21g) Sprach-Erkennung (VAD) vor der Transkription: 5 s lautes Rascheln, dann Sprache (Rascheln läuft weiter)
   {
-    const SRn = 16000, a = new Float32Array(SRn * 8);
-    for (let i = 0; i < a.length; i++) a[i] = (Math.sin(i * 12.9898) * 43758.5453 % 1) * 0.002;
-    for (let i = 5 * SRn; i < 7 * SRn; i++) a[i] = 0.5 * Math.sin(2 * Math.PI * 200 * i / SRn);
-    const sn = await T.snapWordTimings([{ word: 'Hallo', start: 0.3, end: 0.8 }, { word: 'und', start: 5.6, end: 5.9 }, { word: 'willkommen', start: 6.0, end: 6.8 }], a, SRn);
-    ok(Math.abs(sn[0].start - 5.0) < 0.03 && sn[0].end <= sn[1].start + 1e-9, 'Wort aus der Stille an den Sprach-Einsatz verschoben: ' + sn[0].start.toFixed(2) + '–' + sn[0].end.toFixed(2));
-    ok(sn[1].start === 5.6 && sn[2].start === 6.0, 'Folgewoerter unveraendert');
-    const sn2 = await T.snapWordTimings([{ word: 'weit', start: 0.3, end: 0.8 }, { word: 'weg', start: 6.8, end: 6.95 }], a, SRn);
-    ok(sn2[0].start === 0.3, 'Folgewort > 1,5 s nach Einsatz → nicht verschieben');
-    // 8 Wörter in der stummen Einleitung → wahrscheinlich Halluzination: NICHT auf 40 ms zusammenquetschen
-    const many = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((w, i) => ({ word: w, start: 0.3 + i * 0.55, end: 0.75 + i * 0.55 }));
-    const sn3 = await T.snapWordTimings(many.concat([{ word: 'echt', start: 5.2, end: 5.6 }]), a, SRn);
-    ok(sn3.slice(0, 8).every((w, i) => Math.abs(w.start - many[i].start) < 1e-9), 'mehr als 2 stumme Woerter → unveraendert');
-    // zu wenig Platz vor dem Folgewort → nicht verschieben (sonst 80-ms-Blitz)
-    const sn4 = await T.snapWordTimings([{ word: 'Weide.', start: 3.0, end: 3.4 }, { word: 'Dann', start: 5.05, end: 5.4 }], a, SRn);
-    ok(sn4[0].start === 3.0, 'kein Platz bis zum Folgewort → nicht verschieben');
+    const SRn = 16000;
+    const rng = seed => { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; };
+    const scaleTo = (o, level) => { let ss = 0; for (let i = 0; i < o.length; i++) ss += o[i] * o[i]; const g = level / Math.sqrt(ss / o.length || 1); for (let i = 0; i < o.length; i++) o[i] *= g; return o; };
+    const rmsOf = (o, a, b) => { let ss = 0; for (let i = a; i < b; i++) ss += o[i] * o[i]; return Math.sqrt(ss / (b - a)); };
+    // „Rascheln“: rosa-ähnliches + hochpass-gefiltertes Rauschen, schwankende Hüllkurve, Transienten (Schritte/Zweige)
+    const rustle = (n, seed, level) => {
+      const R = rng(seed), o = new Float32Array(n), p = [0, 0, 0]; let prev = 0, env = 1;
+      for (let i = 0; i < n; i++) {
+        const w = R() * 2 - 1;
+        p[0] = 0.99765 * p[0] + w * 0.099; p[1] = 0.963 * p[1] + w * 0.2965; p[2] = 0.57 * p[2] + w * 1.0527;
+        if (i % 160 === 0) env = 0.6 * env + 0.4 * (0.5 + R());
+        o[i] = (0.6 * (p[0] + p[1] + p[2] + w * 0.1848) * 0.25 + 0.5 * (w - prev)) * env; prev = w;
+      }
+      for (let k = 0; k < n / SRn * 3; k++) {
+        const at = Math.floor(R() * n), L = Math.floor(SRn * (0.005 + R() * 0.03)), A = 0.6 + R() * 1.2;
+        for (let i = 0; i < L && at + i < n; i++) o[at + i] += (R() * 2 - 1) * A * Math.exp(-i / (L / 3));
+      }
+      return scaleTo(o, level);
+    };
+    // „Sprache“: Harmonische eines gleitenden f0 (110–220 Hz), Formant-Gewichtung je Silbe, 4-Hz-Silben-AM
+    const voice = (n, seed, level) => {
+      const o = new Float32Array(n), F = [[700, 1200, 2600], [300, 2200, 3000], [500, 900, 2400], [400, 1900, 2550]]; let ph = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / SRn, f0 = 110 + 55 * (1 + Math.sin(2 * Math.PI * 0.3 * t + seed)), fm = F[(Math.floor(t * 4) * 3 + seed) % 4];
+        ph += 2 * Math.PI * f0 / SRn; let s = 0;
+        for (let h = 1; h * f0 < 3800; h++) { let g = 0.02; for (const fc of fm) g += 1 / (1 + Math.pow((h * f0 - fc) / 120, 2)); s += g / Math.sqrt(h) * Math.sin(h * ph); }
+        const am = 0.5 - 0.5 * Math.cos(2 * Math.PI * 4 * t); o[i] = s * am * am;
+      }
+      return scaleTo(o, level);
+    };
+    const mix = (base, add, at) => { for (let i = 0; i < add.length && at + i < base.length; i++) base[at + i] += add[i]; return base; };
+    const near = (x, y, tol) => Math.abs(x - y) <= tol;
+
+    // FFT gegen naive DFT
+    { const Tb = T.vadFftTables(16), re = new Float64Array(16), im = new Float64Array(16), xr = [], R = rng(3);
+      for (let i = 0; i < 16; i++) { re[i] = R() - 0.5; im[i] = R() - 0.5; xr.push([re[i], im[i]]); }
+      T.vadFft(re, im, Tb); let err = 0;
+      for (let k = 0; k < 16; k++) { let sr = 0, si = 0; for (let n = 0; n < 16; n++) { const a = -2 * Math.PI * k * n / 16; sr += xr[n][0] * Math.cos(a) - xr[n][1] * Math.sin(a); si += xr[n][0] * Math.sin(a) + xr[n][1] * Math.cos(a); } err = Math.max(err, Math.abs(sr - re[k]), Math.abs(si - im[k])); }
+      ok(err < 1e-9, 'VAD-FFT = DFT, Fehler ' + err); }
+
+    const a = mix(rustle(SRn * 11, 7, 0.1), voice(SRn * 6, 2, 0.07), 5 * SRn);
+    ok(rmsOf(a, 0, 5 * SRn) > rmsOf(voice(SRn * 6, 2, 0.07), 0, 6 * SRn), 'Testsignal: Rascheln lauter als die Stimme');
+    const reg = await T.detectSpeechRegions(a, SRn);
+    ok(reg.length >= 1 && near(reg[0].start, 5.0, 0.2), 'VAD: Sprache beginnt bei 5,0 s ±0,2: ' + JSON.stringify(reg));
+    ok(reg.every(r => r.start >= 4.8), 'VAD: kein Sprachbereich im Rascheln 0–4,8 s: ' + JSON.stringify(reg));
+    const cov = reg.reduce((s, r) => s + Math.max(0, Math.min(r.end, 10.8) - Math.max(r.start, 5.2)), 0) / 5.6;
+    ok(cov > 0.9, 'VAD: Sprache 5,2–10,8 s zu > 90 % abgedeckt: ' + cov.toFixed(2));
+    // Nur Geräusch / Stille / Gleichspannung / einzelner Blip → keine Sprache bzw. „wie bisher alles senden“
+    ok((await T.detectSpeechRegions(rustle(SRn * 30, 11, 0.2), SRn)).length === 0, 'VAD: 30 s Rascheln → keine Sprache');
+    ok((await T.detectSpeechRegions(new Float32Array(SRn * 5).fill(0.3), SRn)).length === 0, 'VAD: Gleichspannung → keine Sprache');
+    ok((await T.detectSpeechRegions(new Float32Array(SRn * 5), SRn)).length === 0, 'VAD: digitale Stille → keine Sprache');
+    ok(T.speechSpans([], 30) === null && T.speechSpans([{ start: 10, end: 10.4 }], 60) === null, 'speechSpans: keine / < 2 % Sprache → null (alles senden)');
+    // Musik (Akkord, stationär harmonisch): wird nicht verworfen — entweder als „Sprache“ gesendet oder null = alles senden
+    { const m = new Float32Array(SRn * 20);
+      for (let i = 0; i < m.length; i++) { const t = i / SRn; m[i] = 0.2 * (Math.sin(2 * Math.PI * 220 * t) + 0.7 * Math.sin(2 * Math.PI * 277.2 * t) + 0.6 * Math.sin(2 * Math.PI * 329.6 * t) + 0.3 * Math.sin(2 * Math.PI * 440 * t)) * (0.6 + 0.4 * Math.sin(2 * Math.PI * 0.5 * t)); }
+      const mr = await T.detectSpeechRegions(m, SRn), ms = T.speechSpans(mr, 20);
+      const sent = ms ? ms.reduce((s, r) => s + r.end - r.start, 0) : 20;
+      ok(sent > 18, 'Musik-Clip: (fast) alles wird weiter gesendet: ' + sent.toFixed(1) + ' s'); }
+    // Spannen: Pausen ≤ 1 s bleiben drin, längere Geräusch-Strecken fliegen raus
+    const sp = T.speechSpans([{ start: 1, end: 2 }, { start: 2.8, end: 3.5 }, { start: 6, end: 7 }], 10);
+    ok(JSON.stringify(sp) === JSON.stringify([{ start: 1, end: 3.5 }, { start: 6, end: 7 }]), 'speechSpans: Luecke 0,8 s bleibt, 2,5 s faellt weg: ' + JSON.stringify(sp));
+    // Spur + Map: Spacer zwischen den Stücken, Rückrechnung exakt
+    const tr = T.buildSpeechTrack(new Float32Array(SRn * 10).fill(0.5), SRn, sp);
+    ok(tr.samples.length === Math.round(SRn * (2.5 + 0.4 + 1)) && near(tr.map[1].l0, 2.9, 1e-9) && tr.map[1].g0 === 6, 'Spur: 2,5 s + 0,4 s Spacer + 1 s, Map stimmt');
+    const mw = T.mapTrackWord(tr.map, { word: 'x', start: 3.0, end: 3.3 }), ms2 = T.mapTrackWord(tr.map, { word: 'y', start: 2.7, end: 3.1 });
+    ok(near(mw.start, 6.1, 1e-9) && near(mw.end, 6.4, 1e-9), 'Spur→Original: 3,0 s → 6,1 s: ' + mw.start);
+    ok(near(ms2.start, 6.0, 1e-9) && ms2.end > ms2.start, 'Wortstart im Spacer → Anfang des Folgestuecks: ' + ms2.start);
+
+    // Server-Pfad: Mock „Whisper-Fehlermodus“ verteilt Wörter ab 0,3 s über die GANZE empfangene Dauer
+    {
+      const origBlob = global.Blob;
+      global.Blob = function (parts, o) { this.parts = parts; this.type = o && o.type; this.size = parts[0] && parts[0].byteLength; };
+      const durs = [];
+      global.fetch = async (url, opt) => {
+        const d = (opt.body.parts[0].byteLength - 44) / 32000; durs.push(d);
+        const words = []; for (let t = 0.3, k = 0; t + 0.3 <= d; t += 0.5, k++) words.push({ word: 'w' + k, start: t, end: t + 0.3 });
+        return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ language: 'german', words }) };
+      };
+      const spansA = T.speechSpans(reg, 11);
+      const rA = await T.serverTranscribe(a, 'm', '', 11, null, '', spansA);
+      ok(durs.length === 1 && durs[0] < 6.6 && durs[0] > 5.5, 'Server: nur die Sprache (~6 s) gesendet, nicht 11 s: ' + durs.join());
+      ok(rA.words.length && rA.words.every(w => w.start >= reg[0].start - 1e-9), 'Server: kein Wort im Rascheln-Vorlauf: erstes ' + (rA.words[0] && rA.words[0].start.toFixed(2)));
+      ok(near(rA.words[0].start, reg[0].start + 0.3, 1e-3), 'Server: Offset exakt (Spur 0,3 s → ' + (reg[0].start + 0.3).toFixed(2) + '): ' + rA.words[0].start.toFixed(3));
+      // ohne spans: unverändert das ganze Audio (Fehlermodus sichtbar: Wörter ab 0,3 s)
+      durs.length = 0;
+      const rOld = await T.serverTranscribe(a, 'm', '', 11, null, '');
+      ok(durs.length === 1 && near(durs[0], 11, 0.01) && rOld.words[0].start < 1, 'Server ohne VAD: altes Verhalten (ganzes Audio)');
+      // zwei Sprachstellen mit 5 s Rascheln dazwischen → EIN Request, Rascheln nicht gesendet, Wörter landen nur in Sprache
+      const b2 = mix(mix(rustle(SRn * 12, 21, 0.08), voice(SRn * 2, 1, 0.07), 2 * SRn), voice(SRn * 2.5, 3, 0.07), Math.round(8.5 * SRn));
+      const regB = await T.detectSpeechRegions(b2, SRn), spB = T.speechSpans(regB, 12);
+      durs.length = 0;
+      const rB = await T.serverTranscribe(b2, 'm', '', 12, null, '', spB);
+      ok(spB && spB.length === 2 && durs.length === 1 && durs[0] < 6, 'Server: 2 Spannen, 1 Request, Rascheln-Luecke nicht gesendet: ' + JSON.stringify(spB) + ' ' + durs.join());
+      ok(rB.words.every(w => regB.some(r => w.start >= r.start - 1e-9 && w.end <= r.end + 1e-9)), 'Server: alle Woerter in Sprachbereichen: ' + rB.words.map(w => w.start.toFixed(1)).join(','));
+      ok(rB.words.some(w => w.start > 8) && rB.words.every((w, i) => !i || w.start >= rB.words[i - 1].start), 'Server: zweite Stelle mit Offset, Reihenfolge stimmt');
+      global.Blob = origBlob;
+      // lokaler Fallback mit spans: dieselbe Spur, Rückrechnung auf Original-Zeit
+      const segLens = [];
+      const pipe = async (seg) => { segLens.push(seg.length / SRn); const ch = []; for (let t = 0.3; t + 0.3 <= seg.length / SRn; t += 0.5) ch.push({ text: ' w', timestamp: [t, t + 0.3] }); return { chunks: ch }; };
+      const lw = await T.transcribeChunked(pipe, a, {}, null, spansA);
+      ok(segLens.length === 1 && segLens[0] < 6.6, 'Lokal: nur Sprache an Whisper: ' + segLens.join());
+      ok(lw.length && near(lw[0].start, reg[0].start + 0.3, 1e-3) && lw.every(w => w.start >= reg[0].start - 1e-9), 'Lokal: Woerter ab Sprach-Einsatz: ' + (lw[0] && lw[0].start.toFixed(2)));
+    }
+
+    // Wort-Beschränkung: „Whisper“ legt 5 Wörter in 0,2–4,5 s (Rascheln) → an/nach den Einsatz, geordnet, ≥ 0,1 s
+    {
+      const early = ['Hallo', 'und', 'herzlich', 'willkommen', 'zurück'].map((w, i) => ({ word: w, start: 0.2 + i * 0.85, end: 0.6 + i * 0.85 }));
+      const later = [{ word: 'Heute', start: 7.0, end: 7.4 }, { word: 'gehen', start: 7.5, end: 7.9 }, { word: 'wir', start: 8.0, end: 8.2 }];
+      const cw = await T.snapWordTimings(early.concat(later), a, SRn, reg);
+      ok(cw.length === 8 && cw.every(w => w.start >= reg[0].start - 1e-9), 'Constraint: alle Woerter ab Sprach-Einsatz: ' + cw.map(w => w.start.toFixed(2)).join(','));
+      ok(cw.every((w, i) => !i || w.start >= cw[i - 1].end - 1e-9) && cw.every(w => w.end - w.start >= 0.1 - 1e-9), 'Constraint: geordnet, jedes Wort >= 0,1 s');
+      ok(cw.map(w => w.word).join(' ') === 'Hallo und herzlich willkommen zurück Heute gehen wir', 'Constraint: Reihenfolge der Woerter bleibt');
+      ok(cw.slice(5).every((w, i) => near(w.start, later[i].start, 0.26)), 'Constraint: korrekt platzierte Woerter bleiben (bis auf Snap)');
+      // Lauf passt nicht vor das erste Wort (Whisper hat alles verschmiert) → Lauf + erste Wörter gestaucht
+      const R1 = [{ start: 5, end: 11 }];
+      const smear = Array.from({ length: 20 }, (_, i) => ({ word: 'w' + i, start: 0.3 + i * 0.5, end: 0.7 + i * 0.5 }));
+      const cs = T.constrainWordsToSpeech(smear, R1);
+      ok(cs.every(w => w.start >= 5 - 1e-9) && cs.every((w, i) => !i || w.start >= cs[i - 1].end - 1e-9) && cs.every(w => w.end - w.start >= 0.1 - 1e-9), 'Constraint (verschmiert): alles ab 5 s, geordnet, >= 0,1 s: ' + cs.slice(0, 4).map(w => w.start.toFixed(2)).join(','));
+      // teilweise Überlappung → auf den Bereich zugeschnitten; Wörter nach der letzten Sprache → ans Ende davor
+      const cp = T.constrainWordsToSpeech([{ word: 'a', start: 4.6, end: 5.4 }, { word: 'b', start: 10.8, end: 11.6 }, { word: 'c', start: 13, end: 13.3 }], [{ start: 5, end: 11.2 }]);
+      ok(cp[0].start === 5 && cp[0].end === 5.4 && cp[1].end <= 11.2 + 1e-9, 'Constraint: teilweise Ueberlappung zugeschnitten');
+      ok(cp[2].start >= cp[1].end - 1e-9 && cp[2].end <= 11.2 + 1e-9 && cp[2].end - cp[2].start >= 0.1 - 1e-9, 'Constraint: Wort nach der Sprache ans Ende des letzten Bereichs: ' + cp[2].start.toFixed(2));
+      // ohne Bereiche (VAD-Fallback) → unverändert
+      const un = await T.snapWordTimings([{ word: 'x', start: 0.3, end: 0.7 }], a, SRn, null);
+      ok(un[0].start === 0.3 || un[0].start < 0.6, 'ohne Sprachbereiche keine Beschraenkung');
+      // Mindest-Blockdauer greift weiterhin auf den beschränkten Wörtern
+      const bl2 = T.enforceMinBlockDuration(T.buildCaptionBlocks(cw, []), []);
+      ok(bl2.length && bl2[0].start >= reg[0].start - 1e-9 && bl2.every(b => b.end > b.start), 'Bloecke aus beschraenkten Woertern: erster Block ab ' + bl2[0].start.toFixed(2));
+    }
+
+    // Performance: 10 min Audio (Rascheln + Sprachstellen)
+    {
+      const n = SRn * 600, big = rustle(n, 5, 0.1), v = voice(SRn * 20, 1, 0.08);
+      for (let k = 0; k < 600; k += 60) mix(big, v, k * SRn);
+      const t0 = Date.now(), rg = await T.detectSpeechRegions(big, SRn), ms = Date.now() - t0;
+      console.log('VAD 10 min Audio: ' + ms + ' ms, ' + rg.length + ' Bereiche');
+      ok(ms < 3000 && rg.length === 10, 'VAD-Performance: 10 min < 3 s (' + ms + ' ms), 10 Sprachstellen gefunden: ' + rg.length);
+    }
   }
 
   // 21h) Fehlgeschlagene Neu-Transkription behält die bisherigen Captions
