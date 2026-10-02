@@ -2587,12 +2587,33 @@ function fitCaptionWords(words, s, px, maxW, lines) {
     if (s.circle)   hl += 0.6 * sz + 5;       // padding .3em + 2.5px Rahmen je Seite
     return Math.max(normal, hl) + lsPx * w.length;
   }
+  // Kurzes Nachbarwort + überlanges Wort (capLongPairFits) → wie ein Einzelwort zuerst trennen statt schrumpfen
+  var pair = null;
+  if (words.length === 2 && (lines || 0) >= 2) {
+    var w0 = measure(words[0], px) > maxW, w1 = measure(words[1], px) > maxW;
+    if (w0 !== w1) {
+      var si = w0 ? 1 : 0;
+      if (Array.from(words[si]).length <= CAP_SHORT_NEIGHBOR) pair = { li: 1 - si, si: si };
+    }
+  }
   // Wörter bei Größe p auf maxW bringen (ggf. trennen) + Blockhöhe grob wie clampLinesToWidth schätzen.
   function layoutAt(p) {
     var outW = [], orig = [], hq = 0;
     words.forEach(function(w, i) {
       if (w.length < 8 || measure(w, p) <= maxW) { outW.push(w); orig.push(i); return; } // ≤ 7 Zeichen: nie trennen
       var pcs = capHyphenate(w, function(piece){ return measure(piece, p) <= maxW; });
+      // Paar „kurzes Wort + langes Wort“: Trennung so wählen, dass das kurze Wort in die Zeile des
+      // angrenzenden Wortteils passt („Das Bundes- / verfassungsgericht“) — nur wenn das die Zeilen hält.
+      if (pair && i === pair.li && pcs.length > 1) {
+        var sw = pair.si < i ? words[pair.si] : null, ew = pair.si > i ? words[pair.si] : null, spW = measure(' ', p);
+        var pcs2 = capHyphenate(w, function(piece) {
+          var core = piece.replace(/-$/, '');
+          if (sw && w.indexOf(core) === 0) return measure(sw, p) + spW + measure(piece, p) <= maxW;
+          if (ew && core.length < w.length && w.lastIndexOf(core) === w.length - core.length && !/-$/.test(piece) ) return measure(piece, p) + spW + measure(ew, p) <= maxW;
+          return measure(piece, p) <= maxW;
+        });
+        if (pcs2.length <= Math.max(1, lines || 1)) pcs = pcs2;
+      }
       if (pcs.length > 1) hq = Math.max(hq, pcs.q === undefined ? 100 : pcs.q);
       pcs.forEach(function(pc) { outW.push(pc); orig.push(i); });
     });
@@ -2614,7 +2635,7 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   // Einzelnes überlanges Wort (eigener Block dank Zeichenlimit) bei ≥ 2 Zeilen: zuerst an Wortfugen trennen
   // („Rindfleisch-/verarbeitungsbetriebe“) statt sofort auf eine Zeile zu schrumpfen — die Schleife unten
   // verkleinert nur so weit, bis die Teile in die Zeilenzahl passen.
-  var hyphFirst = words.length === 1 && (lines || 0) >= 2;
+  var hyphFirst = (words.length === 1 || !!pair) && (lines || 0) >= 2;
   if (widest > maxW) epx = Math.max(floor, Math.floor(px * Math.min(1, maxW * (hyphFirst ? lines * 0.92 : 1) / widest) * 10) / 10);
   var res = layoutAt(epx);
   // Höhe: Block darf nicht mehr als ~40 % des Rahmens belegen (sonst ragt z. B. bei Position „Bottom“
@@ -3927,9 +3948,24 @@ function capCharLen(word) {
   return Array.from(d).length;
 }
 // Passen Wörter (Längen) in lim.lines Zeilen à lim.per Zeichen? Gierig umbrechen wie ein Texteditor;
-// zusätzlich Gesamtlänge ≤ per × lines. Ein Wort länger als per passt nur allein (eigener Block).
+// zusätzlich Gesamtlänge ≤ per × lines. Ein Wort länger als per passt nur allein (eigener Block) —
+// Ausnahme ab 2 Zeilen: ein kurzes Nachbarwort (Artikel/Präposition, ≤ CAP_SHORT_NEIGHBOR Zeichen) darf mit
+// in die Caption, wenn es samt Silbentrennung in die Zeilen passt („Das / Bundesverfassungsgericht“ bzw.
+// „Das Bundes- / verfassungsgericht“) — sonst bliebe „Das“ als Einzelwort-Caption stehen.
+var CAP_SHORT_NEIGHBOR = 5;
+// Zeilen für ein (getrenntes) Wort der Länge L bei per Zeichen: jede getrennte Zeile verliert den Bindestrich
+// und ~1 Zeichen, weil Trennstellen nur an Silben liegen.
+function capLongLines(L, per) { return L <= per ? 1 : 1 + Math.ceil((L - per) / Math.max(1, per - 2)); }
+function capLongPairFits(lens, lim) {
+  if (!lim || lim.lines < 2 || lens.length !== 2) return false;
+  var li = lens[0] > lim.per ? 0 : 1, L = lens[li], sh = lens[1 - li];
+  if (!(L > lim.per) || sh > lim.per || sh > CAP_SHORT_NEIGHBOR) return false;
+  if (1 + capLongLines(L, lim.per) <= lim.lines) return true;                       // kurzes Wort eigene Zeile
+  return sh + 5 <= lim.per && capLongLines(L + sh + 1, lim.per) <= lim.lines;       // teilt sich eine Zeile mit einem Wortteil
+}
 function capCharsFit(lens, lim) {
   if (!lim || lens.length <= 1) return true;
+  if (capLongPairFits(lens, lim)) return true;
   var total = 0, nl = 1, cur = 0;
   for (var i = 0; i < lens.length; i++) {
     if (lens[i] > lim.per) return false;

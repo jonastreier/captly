@@ -300,6 +300,14 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   ok(f1.words.every(w => wStub(w, f1.px) <= maxW + 1e-9), 'Fit: jedes (Teil-)Wort passt in den Rahmen: ' + f1.words.join(' | '));
   ok(f1.words.filter((w, i) => f1.orig[i] === 1).map(w => w.replace(/-$/, '')).join('') === long, 'Fit: Trennung verliert keine Zeichen');
   ok(f1.words.includes('Highland-') && f1.orig.length === f1.words.length, 'Fit: vorhandene Bindestriche bevorzugt: ' + f1.words.join(' | '));
+  // Kurzes Wort + überlanges Wort bei 2 Zeilen: getrennt statt geschrumpft, „Das“ teilt sich die Zeile
+  {
+    const fp = T.fitCaptionWords(['Das', 'Bundesverfassungsgericht'], st, 54, maxW, 2);
+    const fl = T.fitCaptionWords(['Das', 'Bundesverfassungsgericht'], st, 54, maxW, 1);
+    ok(fp.words.length === 3 && fp.words[1].endsWith('-') && fp.g <= 2, 'Paar: Trennung in 2 Zeilen: ' + fp.words.join(' | ') + ' g=' + fp.g);
+    ok(wStub('Das ' + fp.words[1], fp.px) <= maxW + 1e-9, 'Paar: „Das“ passt neben den ersten Wortteil: ' + fp.words.join(' | '));
+    ok(fp.px > fl.px, 'Paar: größer als bei 1 Zeile (' + fp.px + ' > ' + fl.px + ')');
+  }
   // Wort, das per Verkleinerung allein passt → keine Trennung
   const f2 = T.fitCaptionWords(['Highland'], st, 54, maxW);
   ok(f2.words.length === 1 && f2.px < 54 && wStub('Highland', f2.px) <= maxW, 'Fit: nur verkleinert, nicht getrennt: ' + f2.px);
@@ -2439,7 +2447,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setCaseState('asis'); T.selectStyle('minimal'); // Satzschreibung, keine Großbuchstaben
     T.onWpbChange('6'); T.setLinesState(2); T.setMaxCharsState(12);
     ok(JSON.stringify(T.capBlockLimit()) === '{"per":12,"lines":2}', 'manuelles Limit: ' + JSON.stringify(T.capBlockLimit()));
-    ok(T.capCharsFit([3, 5, 4, 3], { per: 12, lines: 2 }) && !T.capCharsFit([3, 5, 4, 3, 5], { per: 12, lines: 2 }) && !T.capCharsFit([13, 1], { per: 12, lines: 2 }), 'capCharsFit: gierig in 2 Zeilen à 12');
+    ok(T.capCharsFit([3, 5, 4, 3], { per: 12, lines: 2 }) && !T.capCharsFit([3, 5, 4, 3, 5], { per: 12, lines: 2 }) && !T.capCharsFit([13, 6], { per: 12, lines: 2 }), 'capCharsFit: gierig in 2 Zeilen à 12');
     const lineFit = (txt, per, lines) => { let nl = 1, cur = 0; txt.split(' ').forEach(w => { const add = cur ? cur + 1 + w.length : w.length; if (cur && add > per) { nl++; cur = w.length; } else cur = add; }); return nl <= lines && txt.length <= per * lines; };
     let bl = T.buildCaptionBlocks(seq('Die Tiere sind das ganze Jahr draussen und fressen nur Gras und Heu'), []);
     ok(bl.length > 2 && bl.every(b => lineFit(b.text, 12, 2)), 'jeder Block ≤ 12 Zeichen × 2 Zeilen: ' + bl.map(b => b.text).join(' | '));
@@ -2447,6 +2455,18 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // Einzelnes überlanges Wort → eigener Block
     bl = T.buildCaptionBlocks(seq('Die Rindfleischverarbeitungsbetriebe sind gross'), []);
     ok(bl.map(b => b.text).join('|') === 'Die|Rindfleischverarbeitungsbetriebe|sind gross', 'langes Wort allein: ' + bl.map(b => b.text).join('|'));
+    // Kurzes Nachbarwort darf ab 2 Zeilen mit dem langen Wort in eine Caption, wenn es mit Trennung passt
+    ok(T.capCharsFit([3, 24], { per: 16, lines: 2 }) && T.capCharsFit([24, 3], { per: 16, lines: 2 }), 'capCharsFit: „Das“ + 24er-Wort in 2 Zeilen à 16');
+    ok(!T.capCharsFit([3, 24], { per: 16, lines: 1 }), 'capCharsFit: 1 Zeile → langes Wort bleibt allein');
+    ok(!T.capCharsFit([9, 24], { per: 16, lines: 2 }) && !T.capCharsFit([3, 3, 24], { per: 16, lines: 2 }), 'capCharsFit: nur EIN kurzes Nachbarwort');
+    ok(!T.capCharsFit([3, 35], { per: 12, lines: 2 }) && T.capCharsFit([3, 35], { per: 12, lines: 4 }), 'capCharsFit: passt nur, wenn die Zeilen reichen');
+    T.setMaxCharsState(16);
+    bl = T.buildCaptionBlocks(seq('Das Bundesverfassungsgericht hat entschieden'), []);
+    ok(bl.map(b => b.text).join('|') === 'Das Bundesverfassungsgericht|hat entschieden', 'kein verwaistes „Das“: ' + bl.map(b => b.text).join('|'));
+    T.setLinesState(1);
+    bl = T.buildCaptionBlocks(seq('Das Bundesverfassungsgericht hat entschieden'), []);
+    ok(bl.map(b => b.text).join('|') === 'Das|Bundesverfassungsgericht|hat entschieden', '1 Zeile: langes Wort weiter allein: ' + bl.map(b => b.text).join('|'));
+    T.setLinesState(2); T.setMaxCharsState(12);
     // 1 Zeile vs 2 Zeilen
     T.setLinesState(1);
     bl = T.buildCaptionBlocks(seq('Die Tiere sind das'), []);
