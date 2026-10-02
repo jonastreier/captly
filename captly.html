@@ -196,6 +196,22 @@ body.editor-open{height:100vh;overflow:hidden}
 .zoom-btn:hover{background:linear-gradient(135deg,#7c3aed,#3b82f6);color:#fff}
 .zoom-lbl{font-size:10px;color:#5f5f5f;min-width:30px;text-align:center;user-select:none}
 
+/* TIMELINE (unter der Vorschau) */
+.tl-wrap{display:none;align-self:stretch;max-width:100%;background:#fff;border:1px solid #e6e1ec;border-radius:10px;box-shadow:0 4px 14px rgba(30,20,60,.06);overflow:hidden;flex-shrink:0}
+.tl-bar{display:flex;align-items:center;gap:5px;padding:3px 6px;min-height:28px}
+.tl-tog{background:none;border:none;font:700 11px 'Inter',sans-serif;color:#3b2a6b;cursor:pointer;padding:4px 6px;border-radius:6px;white-space:nowrap;flex-shrink:0}
+.tl-tog:hover{background:#f3f0f8}
+.tl-hint{font-size:10px;color:#8a8494;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.tl-sp{flex:1 1 0;min-width:0}
+.tl-btn{border:1px solid #ddd6e4;background:#fff;color:#55505c;font:600 10.5px 'Inter',sans-serif;border-radius:6px;padding:3px 8px;cursor:pointer;min-width:26px;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.tl-btn:hover{border-color:#a99cc0;color:#111}
+.tl-btn.on{border-color:rgba(124,58,237,.45);color:#7c3aed;background:rgba(124,58,237,.08)}
+.tl-wrap:not(.open) .tl-btn,.tl-wrap:not(.open) .tl-hint,.tl-wrap:not(.open) .tl-body{display:none}
+.tl-body{border-top:1px solid #eee9f3}
+#tlCanvas{display:block;width:100%;height:84px;touch-action:none;outline:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+#tlCanvas:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.45)}
+@media (pointer:coarse){.tl-btn{min-height:32px;min-width:34px;font-size:12px}.tl-tog{min-height:32px;font-size:12px}.tl-hint{display:none}}
+
 /* PANEL RESIZE HANDLE */
 .col-resize-handle{width:7px;flex-shrink:0;cursor:col-resize;position:relative;z-index:7;touch-action:none}
 .col-resize-handle::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:#e6e1ec;transform:translateX(-50%);transition:background .15s,width .15s}
@@ -556,6 +572,11 @@ input[type=checkbox]{accent-color:#7c3aed}
   /* Mobile: Leiste über die volle Spaltenbreite (statt Rahmenbreite ~140px) — !important schlägt die
      Inline-Breite aus loadVideo(). */
   .vid-ctrls{width:100%!important;max-width:420px}
+  /* Timeline: Vorschau-Spalte wächst um Kopfzeile bzw. Kopfzeile + Canvas, statt das Video zu stauchen
+     (das Bedienpanel darunter gibt die Höhe ab). */
+  .prev-col.tl-on{height:calc(45vh + 40px)}
+  .prev-col.tl-on.tl-open{height:calc(45vh + 40px + var(--tl-h, 96px))}
+  .tl-wrap{width:100%;max-width:420px;align-self:center}
   /* Zoom-Pille vertikal an den rechten Rand: die Vorschau ist hier max. 62vw breit und zentriert,
      die horizontale Pille ragte in die obere rechte Ecke des Videos. */
   .zoom-ctrl{top:8px;right:6px;flex-direction:column;gap:2px;padding:3px 2px}
@@ -810,6 +831,22 @@ input[type=checkbox]{accent-color:#7c3aed}
         <button class="sz-btn" id="safeZoneBtn" onclick="toggleSafeZone()" title="Safe zone: shows where captions stay clear of the Reels/TikTok UI (top bar, icon column, profile/caption area)">🛡 Safe Zone</button>
       </div>
       <div class="vid-warn" id="vidWarn" role="status" style="display:none"></div>
+      <!-- Timeline: Captions zeitlich ziehen/trimmen, an Szenenschnitte fangen (Canvas, gezeichnet in tlDraw) -->
+      <div class="tl-wrap" id="tlWrap" style="display:none">
+        <div class="tl-bar">
+          <button type="button" class="tl-tog" id="tlTog" onclick="tlToggle()" aria-expanded="true" aria-controls="tlBody">▾ Timeline</button>
+          <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · double-click to edit</span>
+          <span class="tl-sp"></span>
+          <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping">🧲 Snap</button>
+          <button type="button" class="tl-btn" onclick="tlZoomBtn(1/1.6)" title="Zoom out" aria-label="Zoom timeline out">−</button>
+          <button type="button" class="tl-btn" onclick="tlZoomBtn(1.6)" title="Zoom in (Ctrl/⌘+wheel or pinch)" aria-label="Zoom timeline in">+</button>
+          <button type="button" class="tl-btn" onclick="tlFit()" title="Show the whole video">Fit</button>
+        </div>
+        <div class="tl-body" id="tlBody">
+          <canvas id="tlCanvas" tabindex="0" title="Drag to move · drag edges to trim · double-click to edit"
+            aria-label="Caption timeline. Drag captions to move them, drag their edges to trim, double-click to edit. With a caption selected, arrow keys nudge it and Delete removes it."></canvas>
+        </div>
+      </div>
       <div class="zoom-ctrl" id="zoomCtrl">
         <button class="zoom-btn" onclick="zoomBy(-0.25)" title="Zoom out" type="button">−</button>
         <span class="zoom-lbl" id="zoomLbl">100%</span>
@@ -903,7 +940,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div class="cap-editor" id="capEditor">
           <div class="ce-hdr"><span class="hint-desk">Click a line to jump &amp; edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there</span><span class="hint-touch">Tap a line to edit · <b>return</b> splits it · <b>⌫</b> at the start merges · tap the highlighted word in the video to edit it there</span>
             <details class="kb-help"><summary>⌨ Shortcuts</summary>
-              <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field</div>
+              <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field<br><b>Timeline:</b> drag a caption to move it, drag its edges to trim, double-click to edit · with a caption selected: <b>← →</b> 1 frame, <b>Shift+← →</b> 0.1 s, <b>Delete</b> removes · hold <b>Alt</b> to skip snapping · <b>Ctrl/⌘+wheel</b> zooms</div>
             </details></div>
           <details class="fr-box" id="frBox"><summary>🔍 Find &amp; replace</summary>
           <div class="fr-row">
@@ -2791,6 +2828,7 @@ function updateOverlay(t) {
   }
   document.getElementById('prevBg').style.background = vidReady ? '#000' : s.thumbBg;
   if (!vidReady || vid.paused) positionPlayIcon(); // nur im Pausenzustand sichtbar → kein Layout-Read pro Frame
+  tlRequestDraw(); // Abspielkopf + aktiver Balken (ein rAF pro Frame, egal wie oft gerufen)
 }
 function syncCaption(t) { updateOverlay(t); }
 function startCapLoop() {
@@ -3347,6 +3385,7 @@ function setSceneCuts(cuts) {
   regroupForCuts();
   noteSceneCuts();
   scheduleAutosave();
+  tlRequestDraw();
 }
 function regroupForCuts() {
   if (!captionBlocks.length) return;
@@ -3604,6 +3643,7 @@ async function mergeBlockWithPrevious(idx, ta) {
 // hunderten Blöcken blockiert das den Main-Thread spürbar (Chrome zeigt "Seite reagiert nicht").
 async function renderSegments() {
   var c = document.getElementById('capSegs');
+  tlRequestDraw(); // Blockstruktur hat sich geändert → Timeline im nächsten Frame neu
   if (!c) return;
   var frag = document.createDocumentFragment();
   var rows = [];
@@ -3693,6 +3733,8 @@ function buildSegTools(idx, b) {
 function selectSegRow(row) {
   document.querySelectorAll('.cap-seg.sel').forEach(function(r){ if (r !== row) r.classList.remove('sel'); });
   if (row && row.classList) row.classList.add('sel');
+  var m = row && /^seg(\d+)$/.exec(row.id || ''); // Zeile gewählt → derselbe Balken in der Timeline
+  if (m && tlSel !== +m[1]) { tlSel = +m[1]; tlRequestDraw(); }
 }
 function setActiveSeg(idx) {
   document.querySelectorAll('.cap-seg').forEach(function(s, i){ s.classList.toggle('active', i === idx); });
@@ -5246,6 +5288,7 @@ function projectPayload() {
   var p = { blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
            lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
            noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts };
+  if (tlSpeech.length) p.speech = tlSpeech.slice(0, 2000); // Sprachbereiche für die Timeline (klein, gerundet)
   // Eigener Style bzw. Template mitspeichern — die IDs allein existieren in einer neuen Sitzung/auf
   // einem anderen Gerät evtl. nicht (Custom lebt nur im Speicher, Templates im localStorage).
   var st = STYLES.find(function(x){ return x.id === activeId; });
@@ -5305,6 +5348,7 @@ function applyProjectPayload(p) {
   if (p.timeOff !== undefined) { timeOff = Math.max(-0.5, Math.min(0.5, +p.timeOff || 0)); syncTimeOffUI(); }
   if (typeof p.noPunct === 'boolean') capNoPunct = p.noPunct;
   if (typeof p.breakAtCuts === 'boolean') { breakAtCuts = p.breakAtCuts; var bc = document.getElementById('cutChk'); if (bc) bc.checked = breakAtCuts; }
+  if (Array.isArray(p.speech)) tlSpeech = tlCleanSpeech(p.speech);
   if (Array.isArray(p.cuts)) sceneCuts = p.cuts.map(Number).filter(function(c){ return isFinite(c) && c > 0; }).sort(function(a, b){ return a - b; });
   if (p.textCase) capCase = (p.textCase === 'upper' || p.textCase === 'lower') ? p.textCase : 'asis';
   syncTextFormatUI();
@@ -5803,6 +5847,8 @@ async function transcribeVideo(file) {
       }
     }
     setTProgress(60);
+    // Hüllkurve für die Timeline (einmal, ~100 Werte/s) — das dekodierte Audio liegt hier ohnehin vor
+    if (!stale()) { tlWave = computeWavePeaks(audioData, 16000, 100); tlRequestDraw(); }
 
     // Kürzung auch erkennen, wenn ffmpeg schon mit -t MAX_AUDIO_SEC extrahiert hat (iOS/> 150 MB):
     // dann ist audioData nie länger als das Limit → echte Mediendauer vom Video-Element nehmen.
@@ -5935,6 +5981,7 @@ async function transcribeVideo(file) {
     wordTimestamps = wts;
     captionBlocks = buildCaptionBlocks(wordTimestamps);
     captionsEdited = false;
+    tlSpeech = tlCleanSpeech(speech); tlSel = -1;
     _lastTrMeta = { model: whisperModel, lang: usedLang, langSetting: whisperLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
@@ -6074,7 +6121,7 @@ function layoutPreviewFrame(setFont) {
   if (reframeActive(vid.videoWidth, vid.videoHeight)) ar = 9 / 16;
   if (!(ar > 0) || !isFinite(ar)) ar = 9 / 16; // Video ohne Bild (HEVC/Audio-only): nie durch 0 teilen
   var pcRect = frame.parentElement ? frame.parentElement.getBoundingClientRect() : { width: 360, height: 540 };
-  var maxH = Math.min(480, Math.max(100, (pcRect.height || 540) - 56));
+  var maxH = Math.min(480, Math.max(100, (pcRect.height || 540) - 56 - tlReservedHeight()));
   var maxW = Math.min(360, Math.max(100, (pcRect.width || 360) - 4));
   var h = maxH, w = Math.round(h * ar);
   if (w > maxW) { w = maxW; h = Math.round(w / ar); }
@@ -6108,6 +6155,7 @@ function loadVideo(file) {
   videoPlayable = true; showVideoWarn('');
   resetUndo(); collapseTrSettings(false);
   openEditor();
+  tlReset(); tlShow(true); // vor layoutPreviewFrame sichtbar → Rahmenhöhe rechnet die Timeline schon ein
 
   var vid = document.getElementById('mainVid');
   if (vid.src && vid.src.startsWith('blob:')) URL.revokeObjectURL(vid.src);
@@ -8272,6 +8320,7 @@ function openEditorClean() {
   enableExports(false);
   resetUndo(); collapseTrSettings(false);
   _tileFrameRun++; _tileFrame = null;
+  tlReset(); tlShow(false);
   openEditor();
 }
 function goBack() {
@@ -8365,6 +8414,707 @@ function zoomBy(delta) { setZoom(zoomLevel + delta); }
   document.addEventListener('touchmove', onMove, { passive: false });
   document.addEventListener('mouseup', onUp);
   document.addEventListener('touchend', onUp);
+})();
+
+// ═══════════════════════════════════════
+// TIMELINE — Captions zeitlich ziehen, trimmen, an Schnitte fangen (wie CapCut/Descript)
+// ═══════════════════════════════════════
+// EIN <canvas> unter der Vorschau: Lineal, Wellenform (Hüllkurve aus dem 16-kHz-Audio der Transkription),
+// Sprachbereiche, Szenenschnitte, Abspielkopf und Caption-Balken. Gezeichnet wird nur bei Bedarf (rAF +
+// Koaleszieren) und nur der sichtbare Zeitbereich (Binärsuche) → bleibt auch mit 500+ Blöcken flüssig.
+// Achse = VIDEO-Zeit. Caption-Zeiten sind „Block-Zeit“ (die Vorschau zeigt einen Block bei Videozeit t,
+// wenn er t + timeOff abdeckt) → Balken liegen bei b.start − timeOff; Schnitte/Abspielkopf/Sprache werden
+// für Fangen & Grenzen umgekehrt um +timeOff in Block-Zeit umgerechnet. Die puren Helfer (tl*) rechnen
+// nur in Block-Zeit und sind in test-captly.js abgedeckt.
+var TL_MIN_DUR = 0.2, TL_MIN_WORD = 0.05, TL_SNAP_PX = 8, TL_FRAME = 1 / 30, TL_MIN_SPAN = 1;
+var TL_OPEN_KEY = 'capivo.tlOpen', TL_HINT_KEY = 'capivo.tlHint';
+var tlWave = null;      // { peaks: Int8Array [min,max,…], rate } — nur nach einer Transkription in dieser Sitzung
+var tlSpeech = [];      // [{start,end}] Sprachbereiche (VAD) — reisen im Projekt/Autosave mit
+var tlSnapOn = true, tlSel = -1;
+var tlView = { start: 0, pps: 0 };  // linker Rand (s) + Pixel pro Sekunde
+var _tl = { cv: null, ctx: null, raf: 0, drag: null, ptrs: {}, pinch: null, fit: true, userAt: 0, lastTap: null,
+            snap: null, tw: {}, twN: 0, open: false, shown: false, hover: '' };
+
+function tlR3(x) { return Math.round(x * 1000) / 1000; }
+function tlTimeToX(t, v) { return (t - v.start) * v.pps; }
+function tlXToTime(x, v) { return v.start + x / v.pps; }
+// Zoom-/Scroll-Grenzen: ganz raus = ganzes Video, ganz rein = ~1 s sichtbar; linker Rand nie vor 0 und
+// nie so weit rechts, dass hinter dem Videoende Leere bliebe.
+function tlClampView(v, dur, w) {
+  dur = dur > 0 ? dur : 1; w = w > 0 ? w : 1;
+  var minP = w / dur, maxP = Math.max(minP, w / TL_MIN_SPAN);
+  var pps = Math.max(minP, Math.min(maxP, v && v.pps > 0 ? v.pps : minP));
+  var maxS = Math.max(0, dur - w / pps);
+  return { start: Math.max(0, Math.min(maxS, (v && v.start) || 0)), pps: pps };
+}
+// Zoomen um einen Ankerpunkt (Mausposition/Pinch-Mitte): die Zeit unter ax bleibt unter ax.
+function tlZoomAt(v, factor, ax, dur, w) {
+  var t = tlXToTime(ax, v);
+  var nv = tlClampView({ start: v.start, pps: v.pps * factor }, dur, w);
+  return tlClampView({ start: t - ax / nv.pps, pps: nv.pps }, dur, w);
+}
+// Lineal: kleinster „runder“ Abstand, bei dem Beschriftungen mind. minPx auseinanderliegen.
+function tlTickStep(pps, minPx) {
+  var steps = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
+  for (var i = 0; i < steps.length; i++) if (steps[i] * pps >= (minPx || 64)) return steps[i];
+  return 1200;
+}
+function tlFmtTick(t, step) {
+  var m = Math.floor(t / 60 + 1e-9), s = t - m * 60;
+  if (step < 1) return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
+  return m + ':' + p2(Math.round(s) % 60);
+}
+function tlFmt2(t) { // 0:03.27
+  if (!isFinite(t) || t < 0) t = 0;
+  var m = Math.floor(t / 60), s = t - m * 60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2);
+}
+// Fangen: nächster Kandidat innerhalb thrPx Bildschirm-Pixel (→ zoomunabhängig gleich „klebrig“).
+// Gleichstand (≤ ½ px) entscheidet die Priorität p: Schnitt > Abspielkopf > Nachbar-Caption > Sprache > Wort.
+function tlSnap(t, cands, pps, thrPx) {
+  if (!cands || !(pps > 0)) return null;
+  var thr = (thrPx || TL_SNAP_PX) / pps, tie = 0.5 / pps, best = null, bd = Infinity;
+  for (var i = 0; i < cands.length; i++) {
+    var c = cands[i], d = Math.abs(c.t - t);
+    if (d > thr) continue;
+    if (d < bd - tie || (d <= bd + tie && best && (c.p || 0) > (best.p || 0))) { best = c; bd = d; }
+  }
+  return best;
+}
+// Fangpunkte für Block idx (Block-Zeit). Kanten/Wörter aus dem Stand VOR dem Ziehen (o.words = Wörter des
+// Ausgangsblocks; die mitwandernden eigenen Wörter wären als Ziel sinnlos) + Wörter der Nachbarblöcke.
+function tlSnapCands(blocks, idx, o) {
+  o = o || {};
+  var out = [], off = o.off || 0, lo = isFinite(o.t0) ? o.t0 : -Infinity, hi = isFinite(o.t1) ? o.t1 : Infinity;
+  function add(t, kind, p) { if (isFinite(t) && t >= lo && t <= hi) out.push({ t: t, kind: kind, p: p }); }
+  (o.cuts || []).forEach(function(c){ add(c + off, 'cut', 5); });
+  if (isFinite(o.playhead)) add(o.playhead + off, 'playhead', 4);
+  var pv = blocks[idx - 1], nx = blocks[idx + 1];
+  if (pv) add(pv.end, 'caption', 3);
+  if (nx) add(nx.start, 'caption', 3);
+  (o.speech || []).forEach(function(r){ add(r.start + off, 'speech', 2); add(r.end + off, 'speech', 2); });
+  var ws = (o.words || []).concat(pv ? pv.words || [] : [], nx ? nx.words || [] : []);
+  ws.forEach(function(w){ if (w) { add(w.start, 'word', 1); add(w.end, 'word', 1); } });
+  return out;
+}
+// Erlaubter Bereich [lo, hi] für Block idx: nie über die Nachbarn (kein Überlappen), Video [0, dur] und —
+// mit respectCuts — nicht über den Szenenschnitt links/rechts des AUSGANGS-Blocks (o.base). Schnitte, die
+// der Block schon überspannt (Break-at-cuts aus), bleiben unberücksichtigt.
+function tlBounds(blocks, idx, o) {
+  o = o || {};
+  var b = o.base || blocks[idx], pv = blocks[idx - 1], nx = blocks[idx + 1], off = o.off || 0;
+  var lo = Math.max(0, pv && isFinite(pv.end) ? pv.end : 0);
+  var hi = isFinite(o.dur) && o.dur > 0 ? o.dur : Infinity;
+  if (nx && isFinite(nx.start)) hi = Math.min(hi, nx.start);
+  if (o.respectCuts && b) {
+    (o.cuts || []).forEach(function(c0) {
+      var c = c0 + off;
+      if (c <= b.start + 1e-6) lo = Math.max(lo, c);
+      else if (c >= b.end - 1e-6) hi = Math.min(hi, c);
+    });
+  }
+  return { lo: lo, hi: hi };
+}
+// Neue Spanne für einen Zieh-Schritt (pur). mode 'move' | 'start' | 'end', dt = Zeigerweg in s seit Beginn.
+// Erst fangen (beim Verschieben die nähere der beiden Kanten), dann in [lo, hi] klemmen; liegt die Kante nach
+// dem Klemmen nicht mehr auf dem Fangpunkt, entfällt die Fang-Anzeige. Mindestdauer TL_MIN_DUR bzw.
+// TL_MIN_WORD je Wort. Liegt der Altbestand schon außerhalb [lo, hi], wird nie „zurückgezogen“.
+function tlDragSpan(base, mode, dt, o) {
+  o = o || {};
+  var s0 = base.start, e0 = base.end, len = e0 - s0, lo = isFinite(o.lo) ? o.lo : 0, hi = isFinite(o.hi) ? o.hi : Infinity;
+  var minD = Math.max(TL_MIN_DUR, ((base.words && base.words.length) || 0) * TL_MIN_WORD);
+  var ns = s0, ne = e0, sn = null, useSnap = o.cands && o.pps > 0;
+  if (mode === 'move') {
+    ns = s0 + dt; ne = e0 + dt;
+    if (useSnap) {
+      var a = tlSnap(ns, o.cands, o.pps, o.thr), z = tlSnap(ne, o.cands, o.pps, o.thr);
+      if (a && (!z || Math.abs(a.t - ns) <= Math.abs(z.t - ne))) { sn = a; ns = a.t; ne = a.t + len; }
+      else if (z) { sn = z; ne = z.t; ns = z.t - len; }
+    }
+    if (hi - lo >= len - 1e-9) {
+      if (ns < lo) { ns = lo; ne = lo + len; }
+      if (ne > hi) { ne = hi; ns = hi - len; }
+    } else { ns = s0; ne = e0; }
+    if (sn && Math.abs(ns - sn.t) > 1e-6 && Math.abs(ne - sn.t) > 1e-6) sn = null;
+  } else if (mode === 'start') {
+    ns = s0 + dt;
+    if (useSnap) { var c1 = tlSnap(ns, o.cands, o.pps, o.thr); if (c1) { sn = c1; ns = c1.t; } }
+    ns = Math.max(Math.min(lo, s0), Math.min(e0 - minD, ns));
+    if (sn && Math.abs(ns - sn.t) > 1e-6) sn = null;
+  } else if (mode === 'end') {
+    ne = e0 + dt;
+    if (useSnap) { var c2 = tlSnap(ne, o.cands, o.pps, o.thr); if (c2) { sn = c2; ne = c2.t; } }
+    ne = Math.min(Math.max(hi, e0), Math.max(s0 + minD, ne));
+    if (sn && Math.abs(ne - sn.t) > 1e-6) sn = null;
+  }
+  return { start: tlR3(ns), end: tlR3(ne), snap: sn };
+}
+// Wörter von [s0,e0] auf [ns,ne] abbilden. Reines Verschieben (gleiche Länge): alle Zeiten um dasselbe Delta.
+// Trimmen: linear skalieren (Reihenfolge/Verhältnisse bleiben), danach jedes Wort ≥ minW und in [ns, ne]
+// (Vorwärts- und Rückwärtslauf). Pur: liefert neue Wort-Objekte.
+function tlRetimeWords(words, s0, e0, ns, ne, minW) {
+  minW = minW === undefined ? TL_MIN_WORD : minW;
+  var span0 = e0 - s0, span1 = ne - ns, d = ns - s0;
+  if (Math.abs(span1 - span0) < 1e-9) {
+    return (words || []).map(function(w){ return { word: w.word, start: tlR3(w.start + d), end: tlR3(w.end + d) }; });
+  }
+  var k = span1 / Math.max(1e-6, span0);
+  var f = function(t){ return ns + (Math.min(e0, Math.max(s0, t)) - s0) * k; };
+  var out = (words || []).map(function(w){ return { word: w.word, start: f(w.start), end: f(w.end) }; });
+  var n = out.length, i;
+  if (n && n * minW <= span1 + 1e-9) {
+    for (i = 0; i < n; i++) { // vorwärts: Anfang hinter dem Vorgänger-Anfang, Mindestlänge
+      out[i].start = Math.max(out[i].start, i ? out[i - 1].start + minW : ns);
+      out[i].end = Math.max(out[i].end, out[i].start + minW);
+    }
+    for (i = n - 1; i >= 0; i--) { // rückwärts: nichts hinter das Blockende
+      out[i].end = Math.min(out[i].end, ne);
+      out[i].start = Math.min(out[i].start, out[i].end - minW, i < n - 1 ? out[i + 1].start - minW : Infinity);
+    }
+  }
+  out.forEach(function(w){ w.start = tlR3(w.start); w.end = tlR3(w.end); });
+  return out;
+}
+// Block auf [ns, ne] setzen — Wörter UND srcWords aus demselben Ausgangsstand (base), damit spätere
+// Text-Edits (retimeEditedBlock richtet sich nach srcWords) die neuen Zeiten behalten.
+function tlRetimeBlock(b, base, ns, ne) {
+  var src = base.srcWords && base.srcWords.length ? base.srcWords : base.words;
+  var nw = tlRetimeWords(base.words, base.start, base.end, ns, ne);
+  var nsw = tlRetimeWords(src, base.start, base.end, ns, ne);
+  b.words = nw; b.srcWords = nsw; b.start = ns; b.end = ne;
+}
+// Kompakte Hüllkurve fürs Timeline-Bild: min/max je 10 ms (100/s) als Int8 — 10 min Video ≈ 120 KB.
+function computeWavePeaks(audio, sr, rate) {
+  if (!audio || !audio.length) return null;
+  sr = sr || 16000; rate = rate || 100;
+  var hop = Math.max(1, Math.round(sr / rate)), n = Math.ceil(audio.length / hop), pk = new Int8Array(n * 2);
+  for (var i = 0; i < n; i++) {
+    var a = i * hop, e = Math.min(audio.length, a + hop), mn = 0, mx = 0;
+    for (var k = a; k < e; k++) { var s = audio[k]; if (s < mn) mn = s; else if (s > mx) mx = s; }
+    pk[2 * i] = Math.max(-127, Math.round(mn * 127)); pk[2 * i + 1] = Math.min(127, Math.round(mx * 127));
+  }
+  return { peaks: pk, rate: sr / hop };
+}
+// Sprachbereiche säubern (Projekt-Daten können von überall kommen): nur endliche, sortierte Spannen, auf ms gerundet.
+function tlCleanSpeech(list) {
+  return (Array.isArray(list) ? list : []).map(function(r) {
+    return r && { start: tlR3(+r.start), end: tlR3(+r.end) };
+  }).filter(function(r) { return r && isFinite(r.start) && isFinite(r.end) && r.end > r.start && r.start >= 0; })
+    .sort(function(a, b) { return a.start - b.start; }).slice(0, 2000);
+}
+function tlDur() {
+  var vid = document.getElementById('mainVid');
+  if (vid && isFinite(vid.duration) && vid.duration > 0) return vid.duration;
+  var l = captionBlocks[captionBlocks.length - 1];
+  return l && isFinite(l.end) ? l.end + 2 : 0;
+}
+function tlClone(b) { return JSON.parse(JSON.stringify(b)); }
+// ── EINZIGER Schreibweg der Timeline ──
+// Setzt die Spanne von Block idx (Wörter + srcWords aus base). live (während des Ziehens): nur Daten +
+// Anzeige. Sonst: EIN Undo-Schritt (undoSnap = Stand vor der Geste; ohne → Stand vor diesem Aufruf; tag
+// fasst Tastatur-Serien zusammen), markCaptionsEdited (→ Autosave), Zeile + Overlay + Timeline neu.
+// Endet eine Geste dort, wo sie begann, wird der Ausgangsstand exakt zurückgeschrieben (kein Undo-Schritt).
+function applyTimelineEdit(idx, ns, ne, base, o) {
+  o = o || {};
+  var b = captionBlocks[idx];
+  if (!b || !isFinite(ns) || !isFinite(ne) || ne <= ns) return false;
+  base = base || tlClone(b);
+  ns = tlR3(ns); ne = tlR3(ne);
+  if (!o.live && Math.abs(ns - base.start) < 1e-6 && Math.abs(ne - base.end) < 1e-6) {
+    var c = tlClone(base);
+    b.start = c.start; b.end = c.end; b.words = c.words; if (c.srcWords) b.srcWords = c.srcWords;
+    tlAfterEdit(idx);
+    return false;
+  }
+  var snap = o.live ? null : (o.undoSnap !== undefined ? o.undoSnap : captionSnapshot());
+  tlRetimeBlock(b, base, ns, ne);
+  if (!o.live) { pushUndo(o.tag || null, snap); markCaptionsEdited(); }
+  tlAfterEdit(idx);
+  return true;
+}
+function tlAfterEdit(idx) {
+  tlRefreshRow(idx);
+  _lastKey = null; updateOverlay();
+  tlRequestDraw();
+}
+// Zeile im Captions-Tab nachziehen (Zeit + Start/End-Werte) — günstiger als renderSegments() pro Zieh-Frame.
+function tlRefreshRow(idx) {
+  var b = captionBlocks[idx], row = document.getElementById('seg' + idx);
+  if (!b || !row || !row.querySelector) return;
+  var st = row.querySelector('.st-start'), en = row.querySelector('.st-end'), ts = row.querySelector('.cap-seg-time');
+  if (st) st.textContent = fmtT1(b.start);
+  if (en) en.textContent = fmtT1(b.end);
+  if (ts) ts.textContent = fmtS(b.start);
+}
+// Tastatur (Fokus in der Timeline, Block gewählt): ←/→ = 1 Frame (1/30 s), Shift = 0.1 s.
+// Gleiche Grenzen wie beim Ziehen (Nachbarn, Video, Schnitte solange Snap an); Serie = ein Undo-Schritt.
+function tlNudge(idx, delta) {
+  var b = captionBlocks[idx];
+  if (!b || !delta || isExporting) return false;
+  var base = tlClone(b);
+  var bd = tlBounds(captionBlocks, idx, { base: base, dur: tlDur(), cuts: activeCuts(), off: timeOff || 0, respectCuts: tlSnapOn });
+  var r = tlDragSpan(base, 'move', delta, bd);
+  return applyTimelineEdit(idx, r.start, r.end, base, { tag: 'tlkey:' + idx });
+}
+function tlSeekVideo(tv) {
+  var vid = document.getElementById('mainVid');
+  if (!vid || !(vid.duration > 0) || isExporting) return;
+  tv = Math.max(0, Math.min(vid.duration, tv));
+  vid.currentTime = tv;
+  if (vid.paused) { _lastKey = null; updateOverlay(tv); }
+  tlRequestDraw();
+}
+// Auswahl ↔ Zeilenliste: Balken wählen markiert die Zeile (und scrollt sie in Sicht), Zeile wählen markiert den Balken.
+function tlSelect(idx, seek) {
+  var b = captionBlocks[idx];
+  tlSel = b ? idx : -1;
+  var row = b ? document.getElementById('seg' + idx) : null;
+  selectSegRow(row && row.classList ? row : null);
+  if (row && row.scrollIntoView) { try { row.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
+  if (b && seek) tlSeekVideo(b.start - (timeOff || 0) + 0.01);
+  tlHintSeen();
+  tlRequestDraw();
+}
+// Doppelklick/Doppeltipp: denselben Inline-Editor wie in der Vorschau öffnen — vorher dorthin springen,
+// damit das Overlay genau diesen Block zeigt (der Editor setzt sich an die Caption-Position).
+function tlEditText(idx) {
+  var b = captionBlocks[idx], vid = document.getElementById('mainVid');
+  if (!b || isExporting) return;
+  if (vid && !vid.paused) vid.pause();
+  var tv = Math.max(0, b.start - (timeOff || 0) + 0.01);
+  if (vid && vid.duration > 0) vid.currentTime = tv;
+  _lastKey = null; updateOverlay(tv);
+  openInlineEdit(idx, -1);
+}
+function tlHintSeen() {
+  var h = document.getElementById('tlHint');
+  if (h && h.style && h.style.display !== 'none') { h.style.display = 'none'; try { localStorage.setItem(TL_HINT_KEY, '1'); } catch (e) {} }
+}
+function tlCoarse() { return !!(window.matchMedia && window.matchMedia('(pointer:coarse)').matches); }
+function tlGeom() {
+  var c = tlCoarse();
+  var g = { coarse: c, ruler: 18, wave: c ? 22 : 28, bar: c ? 44 : 26, font: '600 ' + (c ? 12 : 11) + 'px Inter, system-ui, sans-serif' };
+  g.barY = g.ruler + g.wave + 4; g.h = g.barY + g.bar + 6;
+  return g;
+}
+// Ein rAF pro Frame, egal wie viele Auslöser (Overlay-Loop, Zeiger, Daten) — sonst nichts zeichnen.
+function tlRequestDraw() {
+  if (!_tl || _tl.raf || !_tl.open || !_tl.shown || typeof requestAnimationFrame !== 'function') return;
+  _tl.raf = requestAnimationFrame(function(){ _tl.raf = 0; tlDraw(); }) || 0;
+}
+function tlRRect(ctx, x, y, w, h, r) {
+  r = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+// Erster Block, dessen Ende ≥ t ist (Blöcke sind sortiert und überlappen nicht → Enden monoton).
+function tlFirstEndAfter(bl, t) {
+  var a = 0, z = bl.length;
+  while (a < z) { var m = (a + z) >> 1; if (bl[m].end < t) a = m + 1; else z = m; }
+  return a;
+}
+// Text auf maxW px kürzen („…“); Messungen gecacht (pro Text und Breite), damit Abspielen nicht misst.
+function tlFitText(ctx, txt, maxW) {
+  if (maxW < 12 || !txt) return '';
+  var key = (maxW | 0) + '|' + txt;
+  if (_tl.tw[key] !== undefined) return _tl.tw[key];
+  if (_tl.twN > 4000) { _tl.tw = {}; _tl.twN = 0; }
+  var out = txt;
+  if (ctx.measureText(txt).width > maxW) {
+    var a = 0, z = txt.length;
+    while (a < z) { var m = (a + z + 1) >> 1; if (ctx.measureText(txt.slice(0, m) + '…').width <= maxW) a = m; else z = m - 1; }
+    out = a ? txt.slice(0, a).replace(/\s+$/, '') + '…' : '';
+  }
+  _tl.tw[key] = out; _tl.twN++;
+  return out;
+}
+var TL_SNAP_LBL = { cut: 'Scene cut', playhead: 'Playhead', caption: 'Caption', speech: 'Speech', word: 'Word' };
+function tlDraw() {
+  var cv = _tl.cv, ctx = _tl.ctx;
+  if (!cv || !ctx || !_tl.open || !_tl.shown) return;
+  var w = cv.clientWidth, g = tlGeom();
+  if (!w) return;
+  var dpr = Math.min(3, window.devicePixelRatio || 1), W = Math.round(w * dpr), H = Math.round(g.h * dpr);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, g.h);
+  ctx.textBaseline = 'middle';
+  var dur = tlDur();
+  if (!dur) {
+    ctx.fillStyle = '#9a94a6'; ctx.font = '500 11px Inter, system-ui, sans-serif';
+    ctx.fillText('The timeline appears once the video has loaded', 10, g.h / 2);
+    return;
+  }
+  var vid = document.getElementById('mainVid'), ph = vid && isFinite(vid.currentTime) ? vid.currentTime : 0;
+  var playing = vid && !vid.paused && !vid.ended;
+  var v = tlView = _tl.fit ? { start: 0, pps: w / dur } : tlClampView(tlView, dur, w);
+  // Beim Abspielen umblättern, damit der Abspielkopf sichtbar bleibt (nicht direkt nach manuellem Scrollen)
+  if (playing && !_tl.drag && Date.now() - _tl.userAt > 1500) {
+    var phx = tlTimeToX(ph, v);
+    if (phx > w * 0.92 || phx < 0) v = tlView = tlClampView({ start: ph - w * 0.08 / v.pps, pps: v.pps }, dur, w);
+  }
+  var t0 = v.start, t1 = v.start + w / v.pps, off = timeOff || 0, i, x, y;
+  var yW = g.ruler, hW = g.wave, yB = g.barY, hB = g.bar;
+  ctx.fillStyle = '#faf9fc'; ctx.fillRect(0, 0, w, g.ruler);
+  ctx.fillStyle = '#f7f5fb'; ctx.fillRect(0, yW, w, hW);
+  ctx.fillStyle = '#eee9f3'; ctx.fillRect(0, g.ruler - 1, w, 1);
+  // Sprachbereiche (dezent)
+  if (tlSpeech.length) {
+    ctx.fillStyle = 'rgba(16,185,129,.10)';
+    for (i = 0; i < tlSpeech.length; i++) {
+      var r = tlSpeech[i];
+      if (r.end < t0 || r.start > t1) continue;
+      var rx = tlTimeToX(r.start, v);
+      ctx.fillRect(rx, yW, Math.max(1, tlTimeToX(r.end, v) - rx), hW);
+    }
+  }
+  // Wellenform: pro Pixelspalte min/max der Hüllkurve (√-skaliert, damit leise Sprache sichtbar bleibt)
+  if (tlWave && tlWave.peaks && tlWave.peaks.length) {
+    var pk = tlWave.peaks, rate = tlWave.rate, np = pk.length >> 1, mid = yW + hW / 2, amp = hW / 2 - 2;
+    ctx.fillStyle = 'rgba(91,63,168,.42)'; ctx.beginPath();
+    for (x = 0; x < w; x++) {
+      var i0 = Math.floor(tlXToTime(x, v) * rate), i1 = Math.max(i0 + 1, Math.floor(tlXToTime(x + 1, v) * rate));
+      if (i0 >= np) break;
+      if (i1 <= 0) continue;
+      var mn = 0, mx = 0;
+      for (var q = Math.max(0, i0), qe = Math.min(np, i1); q < qe; q++) { if (pk[2 * q] < mn) mn = pk[2 * q]; if (pk[2 * q + 1] > mx) mx = pk[2 * q + 1]; }
+      var up = Math.sqrt(mx / 127) * amp, dn = Math.sqrt(-mn / 127) * amp;
+      if (up + dn < 1) { up = 0.5; dn = 0.5; }
+      ctx.rect(x, mid - up, 1, up + dn);
+    }
+    ctx.fill();
+  }
+  // Lineal mit adaptiven Abständen
+  var step = tlTickStep(v.pps, 64), sub = (step === 0.2 || step === 2 || step === 120) ? 4 : step === 15 ? 3 : 5, minor = step / sub;
+  ctx.strokeStyle = '#d6cfe1'; ctx.lineWidth = 1; ctx.beginPath();
+  for (var k = Math.floor(t0 / minor); k * minor <= t1; k++) {
+    x = Math.round(tlTimeToX(k * minor, v)) + 0.5;
+    var maj = k % sub === 0;
+    ctx.moveTo(x, g.ruler - 1); ctx.lineTo(x, g.ruler - (maj ? 7 : 3));
+  }
+  ctx.stroke();
+  ctx.fillStyle = '#8a8494'; ctx.font = '500 9.5px Inter, system-ui, sans-serif';
+  for (var k2 = Math.ceil(t0 / step - 1e-9); k2 * step <= t1; k2++) ctx.fillText(tlFmtTick(k2 * step, step), Math.round(tlTimeToX(k2 * step, v)) + 3, 7);
+  // Szenenschnitte: durchgehende Linie + Marke im Lineal (gedimmt, wenn „Break at cuts“ aus ist)
+  if (sceneCuts.length) {
+    ctx.globalAlpha = breakAtCuts ? 1 : 0.45;
+    ctx.strokeStyle = '#ec4899'; ctx.fillStyle = '#ec4899'; ctx.lineWidth = 1.5;
+    for (i = 0; i < sceneCuts.length; i++) {
+      var c = sceneCuts[i];
+      if (c < t0 || c > t1) continue;
+      x = Math.round(tlTimeToX(c, v)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(x, g.ruler - 6); ctx.lineTo(x, g.h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x - 4, g.ruler - 8); ctx.lineTo(x + 4, g.ruler - 8); ctx.lineTo(x, g.ruler - 3); ctx.closePath(); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // Caption-Balken: nur der sichtbare Bereich (Binärsuche über die Enden)
+  var bl = captionBlocks, nb = bl.length, d = _tl.drag;
+  if (tlSel >= nb) tlSel = -1;
+  var act = nb ? currentBlockIdx(ph + off) : -1, dragIdx = d && d.type === 'block' && d.base ? d.idx : -1;
+  ctx.font = g.font; ctx.lineWidth = 1;
+  for (i = tlFirstEndAfter(bl, t0 + off); i < nb; i++) {
+    var b = bl[i], xs = tlTimeToX(b.start - off, v), xe = tlTimeToX(b.end - off, v);
+    if (xs > w) break;
+    var bw = Math.max(2, xe - xs), sel = i === tlSel, isAct = i === act, isDrag = i === dragIdx;
+    ctx.beginPath(); tlRRect(ctx, xs + 0.5, yB + 0.5, bw - 1, hB - 1, Math.min(6, hB / 4));
+    ctx.fillStyle = isDrag ? '#7c3aed' : isAct ? '#c4b5fd' : sel ? '#ddd3fd' : '#ede9fe'; ctx.fill();
+    if (bw > 3) { ctx.strokeStyle = isDrag || sel ? '#6d28d9' : '#c9bdf3'; ctx.lineWidth = sel ? 2 : 1; ctx.stroke(); ctx.lineWidth = 1; }
+    if (bw > 20) {
+      var tx = tlFitText(ctx, b.text, bw - (sel ? 18 : 10));
+      if (tx) { ctx.fillStyle = isDrag ? '#fff' : '#33255e'; ctx.fillText(tx, xs + (sel ? 9 : 5), yB + hB / 2 + 0.5); }
+    }
+    if (sel && bw > 12) { // Griffe an den Kanten
+      ctx.fillStyle = isDrag ? 'rgba(255,255,255,.9)' : '#7c3aed';
+      ctx.beginPath(); tlRRect(ctx, xs + 2.5, yB + hB * 0.28, 3, hB * 0.44, 1.5); tlRRect(ctx, xe - 5.5, yB + hB * 0.28, 3, hB * 0.44, 1.5); ctx.fill();
+    }
+  }
+  // Fang-Linie + Zeitanzeige beim Ziehen
+  if (_tl.snap) {
+    x = Math.round(tlTimeToX(_tl.snap.t - off, v)) + 0.5;
+    ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 1.5; if (ctx.setLineDash) ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, g.h); ctx.stroke();
+    if (ctx.setLineDash) ctx.setLineDash([]);
+  }
+  if (dragIdx >= 0 && bl[dragIdx]) {
+    var db = bl[dragIdx];
+    var lbl = (_tl.snap ? '⇥ ' + TL_SNAP_LBL[_tl.snap.kind] + ' · ' : '') + tlFmt2(db.start - off) + ' – ' + tlFmt2(db.end - off) + '  (' + (db.end - db.start).toFixed(2) + ' s)';
+    ctx.font = '600 10px Inter, system-ui, sans-serif';
+    var lw = ctx.measureText(lbl).width + 12, lx = Math.max(2, Math.min(w - lw - 2, tlTimeToX(db.start - off, v)));
+    ctx.fillStyle = _tl.snap ? '#b45309' : '#2a2140'; ctx.beginPath(); tlRRect(ctx, lx, 1, lw, g.ruler - 3, 4); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.fillText(lbl, lx + 6, g.ruler / 2);
+  }
+  // Abspielkopf
+  x = Math.round(tlTimeToX(ph, v)) + 0.5;
+  if (x >= -6 && x <= w + 6) {
+    ctx.strokeStyle = '#2a2140'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(x, 2); ctx.lineTo(x, g.h); ctx.stroke();
+    ctx.fillStyle = '#7c3aed'; ctx.beginPath(); ctx.moveTo(x - 5, 0); ctx.lineTo(x + 5, 0); ctx.lineTo(x + 5, 6); ctx.lineTo(x, 11); ctx.lineTo(x - 5, 6); ctx.closePath(); ctx.fill();
+  }
+}
+// Trefferprüfung: Lineal (Seek) · Balken-Kante (Trimmen) · Balken (Verschieben) · leer (Scrollen/Seek).
+// Kanten: innen 6 px + außen 3 px (Maus), auf Touch 12 + 8 px (≥ 16 px Trefferfläche) und nur am gewählten Block.
+function tlHit(x, y, touch) {
+  var g = tlGeom(), v = tlView, off = timeOff || 0;
+  if (y < g.ruler) return { type: 'ruler' };
+  if (y < g.barY - (touch ? 6 : 2) || !(v.pps > 0)) return { type: 'empty' };
+  var bl = captionBlocks, t = tlXToTime(x, v) + off, inN = touch ? 12 : 6, outN = touch ? 8 : 3, tol = outN / v.pps;
+  var best = null;
+  for (var i = Math.max(0, tlFirstEndAfter(bl, t - tol) - 1); i < bl.length && bl[i].start - tol <= t; i++) {
+    var b = bl[i], xs = tlTimeToX(b.start - off, v), xe = tlTimeToX(b.end - off, v), inner = Math.min(inN, (xe - xs) / 3);
+    var edges = !touch || i === tlSel;
+    if (edges && x >= xs - outN && x <= xs + inner) { var d1 = Math.abs(x - xs); if (!best || d1 < best.d) best = { type: 'block', idx: i, mode: 'start', d: d1 }; }
+    if (edges && x >= xe - inner && x <= xe + outN) { var d2 = Math.abs(x - xe); if (!best || d2 < best.d) best = { type: 'block', idx: i, mode: 'end', d: d2 }; }
+    if (!best && x >= xs && x <= xe) best = { type: 'block', idx: i, mode: 'move', d: 99 };
+  }
+  return best || { type: 'empty' };
+}
+function tlPos(e) { var r = _tl.rect || _tl.cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function tlRevertDrag(d) {
+  if (d && d.type === 'block' && d.base && d.arr === captionBlocks && captionBlocks[d.idx]) applyTimelineEdit(d.idx, d.base.start, d.base.end, d.base, { undoSnap: d.undoSnap });
+  _tl.snap = null;
+}
+// Zieh-Geste vorbereiten (erst beim ersten echten Bewegen: ein Klick kostet keinen Schnappschuss).
+function tlBeginBlockDrag(d) {
+  var b = captionBlocks[d.idx];
+  if (!b) return false;
+  var vid = document.getElementById('mainVid'), off = timeOff || 0;
+  d.arr = captionBlocks; d.base = tlClone(b); d.undoSnap = captionSnapshot();
+  var common = { base: d.base, dur: tlDur(), cuts: activeCuts(), off: off };
+  d.bCut = tlBounds(captionBlocks, d.idx, Object.assign({ respectCuts: true }, common));
+  d.bFree = tlBounds(captionBlocks, d.idx, Object.assign({ respectCuts: false }, common));
+  d.cands = tlSnapCands(captionBlocks, d.idx, { cuts: sceneCuts, off: off, playhead: vid ? vid.currentTime : NaN, speech: tlSpeech, words: d.base.words });
+  tlSel = d.idx; tlHintSeen();
+  return true;
+}
+function tlOnDown(e) {
+  if (!_tl.cv || isExporting || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  _tl.rect = _tl.cv.getBoundingClientRect();
+  if (e.isPrimary !== false || e.pointerType === 'mouse') _tl.ptrs = {}; // erster Finger/Maus: verwaiste Zeiger vergessen
+  var p = tlPos(e);
+  _tl.ptrs[e.pointerId] = p;
+  try { _tl.cv.setPointerCapture(e.pointerId); } catch (err) {}
+  try { _tl.cv.focus({ preventScroll: true }); } catch (err) {}
+  var ids = Object.keys(_tl.ptrs);
+  if (ids.length >= 2) { // zweiter Finger → Pinch-Zoom; laufendes Ziehen verwerfen
+    if (_tl.drag) { clearTimeout(_tl.drag.lp); tlRevertDrag(_tl.drag); _tl.drag = null; }
+    var a = _tl.ptrs[ids[0]], b = _tl.ptrs[ids[1]];
+    _tl.pinch = { d0: Math.max(20, Math.abs(a.x - b.x)), pps0: tlView.pps, tm: tlXToTime((a.x + b.x) / 2, tlView) };
+    e.preventDefault(); tlRequestDraw();
+    return;
+  }
+  if (!(tlDur() > 0)) return;
+  var touch = e.pointerType === 'touch', hit = tlHit(p.x, p.y, touch);
+  var d = { id: e.pointerId, x0: p.x, y0: p.y, moved: false, touch: touch, hit: hit, tDown: tlXToTime(p.x, tlView), view0: { start: tlView.start, pps: tlView.pps } };
+  if (hit.type === 'ruler') { d.type = 'seek'; tlSeekVideo(tlXToTime(p.x, tlView)); }
+  else if (hit.type === 'block' && (!touch || hit.idx === tlSel)) { d.type = 'block'; d.idx = hit.idx; d.mode = hit.mode; }
+  else {
+    d.type = 'pan';
+    if (hit.type === 'block' && touch) { // Touch: lange drücken = auswählen und direkt weiterziehen
+      d.lp = setTimeout(function() {
+        if (_tl.drag !== d || d.moved) return;
+        tlSelect(hit.idx, false);
+        d.type = 'block'; d.idx = hit.idx; d.mode = 'move'; d.lpDone = true;
+        if (navigator.vibrate) { try { navigator.vibrate(12); } catch (err) {} }
+      }, 420);
+    }
+  }
+  _tl.drag = d;
+  if (d.type === 'block') _tl.cv.style.cursor = d.mode === 'move' ? 'grabbing' : 'ew-resize';
+  e.preventDefault();
+}
+function tlOnMove(e) {
+  if (!_tl.cv) return;
+  var p = tlPos(e), w = _tl.cv.clientWidth || 1, dur = tlDur();
+  if (_tl.ptrs[e.pointerId]) _tl.ptrs[e.pointerId] = p;
+  if (_tl.pinch) {
+    var ids = Object.keys(_tl.ptrs);
+    if (ids.length >= 2) {
+      var a = _tl.ptrs[ids[0]], b = _tl.ptrs[ids[1]], pc = _tl.pinch;
+      var pps = pc.pps0 * Math.max(20, Math.abs(a.x - b.x)) / pc.d0;
+      tlView = tlClampView({ start: pc.tm - ((a.x + b.x) / 2) / pps, pps: pps }, dur, w);
+      _tl.fit = tlView.pps <= w / dur + 1e-9; _tl.userAt = Date.now(); tlRequestDraw();
+    }
+    return;
+  }
+  var d = _tl.drag;
+  if (!d) { // Hover: Cursor + Tooltip je Bereich
+    if (e.pointerType !== 'mouse') return;
+    var h = tlHit(p.x, p.y, false), cur = h.type === 'ruler' ? 'pointer' : h.type === 'block' ? (h.mode === 'move' ? 'grab' : 'ew-resize') : 'default';
+    if (_tl.hover !== cur) {
+      _tl.hover = cur; _tl.cv.style.cursor = cur;
+      _tl.cv.title = h.type === 'ruler' ? 'Click or drag to seek' : h.type === 'block' ? 'Drag to move · drag edges to trim · double-click to edit' : 'Drag to scroll · Ctrl/⌘+wheel to zoom · click to seek';
+    }
+    return;
+  }
+  if (d.id !== e.pointerId) return;
+  var dx = p.x - d.x0;
+  if (!d.moved) {
+    if (Math.abs(dx) < (d.touch ? 8 : 3) && Math.abs(p.y - d.y0) < (d.touch ? 8 : 3)) return;
+    d.moved = true; clearTimeout(d.lp);
+    if (d.type === 'block' && !tlBeginBlockDrag(d)) { _tl.drag = null; return; }
+  }
+  if (d.type === 'seek') { tlSeekVideo(tlXToTime(p.x, tlView)); return; }
+  if (d.type === 'pan') {
+    tlView = tlClampView({ start: d.view0.start - dx / tlView.pps, pps: tlView.pps }, dur, w);
+    _tl.userAt = Date.now(); tlRequestDraw();
+    return;
+  }
+  if (d.type !== 'block' || !d.base) return;
+  if (d.arr !== captionBlocks || !captionBlocks[d.idx]) { _tl.drag = null; _tl.snap = null; tlRequestDraw(); return; } // Daten wurden ersetzt (z. B. Neu-Gruppierung)
+  // Am Rand mitscrollen (gezoomt): Zeit unter dem Zeiger zählt, nicht der Pixelweg → Block folgt dem Finger
+  var edge = 24;
+  if (!_tl.fit && (p.x < edge || p.x > w - edge)) {
+    tlView = tlClampView({ start: tlView.start + (p.x < edge ? -1 : 1) * 8 / tlView.pps, pps: tlView.pps }, dur, w);
+    _tl.userAt = Date.now();
+  }
+  var snapping = tlSnapOn && !e.altKey, bd = snapping ? d.bCut : d.bFree;
+  var r = tlDragSpan(d.base, d.mode, tlXToTime(p.x, tlView) - d.tDown, { lo: bd.lo, hi: bd.hi, cands: snapping ? d.cands : null, pps: tlView.pps, thr: TL_SNAP_PX });
+  d.cur = r; _tl.snap = r.snap;
+  applyTimelineEdit(d.idx, r.start, r.end, d.base, { live: true });
+  var vid = document.getElementById('mainVid'), off = timeOff || 0;
+  if (vid && vid.paused) { // Vorschau zeigt das Bild an der gezogenen Kante → passgenau an Schnitt/Bild anlegen
+    var tv = d.mode === 'end' ? r.end - off - 0.04 : r.start - off + 0.01;
+    if (vid.duration > 0) vid.currentTime = Math.max(0, Math.min(vid.duration, tv));
+  }
+}
+function tlOnUp(e) {
+  if (!_tl.cv) return;
+  delete _tl.ptrs[e.pointerId];
+  try { _tl.cv.releasePointerCapture(e.pointerId); } catch (err) {}
+  if (_tl.pinch) { if (Object.keys(_tl.ptrs).length < 2) _tl.pinch = null; _tl.drag = null; return; }
+  var d = _tl.drag;
+  if (!d || d.id !== e.pointerId) return;
+  clearTimeout(d.lp);
+  _tl.drag = null; _tl.hover = '';
+  _tl.cv.style.cursor = '';
+  if (e.type === 'pointercancel') { tlRevertDrag(d); tlRequestDraw(); return; }
+  if (d.type === 'block' && d.base) {
+    _tl.snap = null;
+    if (d.arr === captionBlocks && d.cur) { applyTimelineEdit(d.idx, d.cur.start, d.cur.end, d.base, { undoSnap: d.undoSnap }); tlSelect(d.idx, false); }
+    tlRequestDraw();
+    return;
+  }
+  if (d.moved || d.lpDone) { tlRequestDraw(); return; }
+  var now = Date.now();
+  if (d.hit.type === 'block') {
+    var lt = _tl.lastTap;
+    if (lt && lt.idx === d.hit.idx && now - lt.t < 380) { _tl.lastTap = null; tlEditText(d.hit.idx); return; }
+    _tl.lastTap = { idx: d.hit.idx, t: now };
+    tlSelect(d.hit.idx, true);
+  } else if (d.type === 'pan') {
+    _tl.lastTap = null;
+    tlSel = -1; selectSegRow(null);
+    tlSeekVideo(tlXToTime(d.x0, tlView));
+  }
+}
+function tlOnWheel(e) {
+  if (!_tl.cv || !_tl.open) return;
+  var dur = tlDur(), w = _tl.cv.clientWidth || 1;
+  if (!(dur > 0)) return;
+  e.preventDefault();
+  var r = _tl.cv.getBoundingClientRect(), ax = e.clientX - r.left;
+  if (e.ctrlKey || e.metaKey) { // Ctrl/⌘+Rad bzw. Trackpad-Pinch (kommt als ctrl+wheel)
+    tlView = tlZoomAt(tlView, Math.exp(-e.deltaY * (Math.abs(e.deltaY) < 40 ? 0.01 : 0.0025)), ax, dur, w);
+    _tl.fit = tlView.pps <= w / dur + 1e-9;
+  } else {
+    var dl = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+    if (e.deltaMode === 1) dl *= 16;
+    tlView = tlClampView({ start: tlView.start + dl / tlView.pps, pps: tlView.pps }, dur, w);
+  }
+  _tl.userAt = Date.now();
+  tlRequestDraw();
+}
+function tlOnKey(e) {
+  if (e.ctrlKey || e.metaKey) return; // Undo/Redo → globaler Handler
+  var b = captionBlocks[tlSel];
+  if (!b) return; // nichts gewählt → globale Shortcuts (←/→ = Seek, Leertaste)
+  var k = e.key;
+  if (k === 'ArrowLeft' || k === 'ArrowRight') {
+    e.preventDefault(); e.stopPropagation();
+    tlNudge(tlSel, (k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 0.1 : TL_FRAME));
+    var vid = document.getElementById('mainVid');
+    if (vid && vid.paused && captionBlocks[tlSel]) tlSeekVideo(captionBlocks[tlSel].start - (timeOff || 0) + 0.01);
+  } else if (k === 'Delete' || k === 'Backspace') {
+    e.preventDefault(); e.stopPropagation();
+    var i = tlSel; tlSel = -1; deleteSeg(i);
+  } else if (k === 'Enter') { e.preventDefault(); e.stopPropagation(); tlEditText(tlSel); }
+  else if (k === 'Escape') { e.stopPropagation(); tlSel = -1; selectSegRow(null); tlRequestDraw(); }
+}
+// ── Kopfzeile: Ein-/Ausklappen, Snap, Zoom, Einpassen ──
+function tlSetOpen(open, save) {
+  _tl.open = !!open;
+  var wrap = document.getElementById('tlWrap'), tog = document.getElementById('tlTog');
+  if (wrap && wrap.classList) wrap.classList.toggle('open', _tl.open);
+  if (wrap && wrap.parentElement && wrap.parentElement.classList) wrap.parentElement.classList.toggle('tl-open', _tl.open);
+  if (tog) { tog.textContent = (_tl.open ? '▾' : '▸') + ' Timeline'; if (tog.setAttribute) tog.setAttribute('aria-expanded', _tl.open ? 'true' : 'false'); }
+  if (save) { try { localStorage.setItem(TL_OPEN_KEY, _tl.open ? '1' : '0'); } catch (e) {} }
+  tlRelayout();
+  tlRequestDraw();
+}
+function tlToggle() { tlSetOpen(!_tl.open, true); }
+function tlShow(on) {
+  _tl.shown = !!on;
+  var wrap = document.getElementById('tlWrap');
+  if (wrap) {
+    wrap.style.display = on ? 'block' : 'none';
+    if (wrap.parentElement && wrap.parentElement.classList) wrap.parentElement.classList.toggle('tl-on', !!on);
+  }
+  tlRequestDraw();
+}
+function tlRelayout() { if (vidReady) { layoutPreviewFrame(false); _lastKey = null; updateOverlay(); applyPos(); } }
+// Platz, den die Timeline unter der Vorschau braucht (layoutPreviewFrame zieht ihn von der Rahmenhöhe ab)
+function tlReservedHeight() {
+  var wrap = document.getElementById('tlWrap');
+  if (!wrap || wrap.style.display === 'none' || !wrap.offsetHeight) return 0;
+  return wrap.offsetHeight + 10;
+}
+function tlToggleSnap() {
+  tlSnapOn = !tlSnapOn;
+  var b = document.getElementById('tlSnapBtn');
+  if (b) { b.classList.toggle('on', tlSnapOn); if (b.setAttribute) b.setAttribute('aria-pressed', tlSnapOn ? 'true' : 'false'); }
+}
+function tlFit() { _tl.fit = true; tlRequestDraw(); }
+function tlZoomBtn(f) {
+  var dur = tlDur(), w = (_tl.cv && _tl.cv.clientWidth) || 1;
+  if (!(dur > 0)) return;
+  var vid = document.getElementById('mainVid'), ph = vid ? vid.currentTime || 0 : 0, ax = tlTimeToX(ph, tlView);
+  if (!(ax >= 0 && ax <= w)) ax = w / 2; // Abspielkopf sichtbar → um ihn zoomen, sonst um die Mitte
+  tlView = tlZoomAt(tlView, f, ax, dur, w);
+  _tl.fit = tlView.pps <= w / dur + 1e-9;
+  tlRequestDraw();
+}
+// Neues Video: Wellenform/Sprache/Auswahl gehören zum alten
+function tlReset() {
+  tlWave = null; tlSpeech = []; tlSel = -1; _tl.fit = true; tlView = { start: 0, pps: 0 }; _tl.drag = null; _tl.snap = null; _tl.tw = {}; _tl.twN = 0;
+}
+(function tlInit() {
+  var cv = document.getElementById('tlCanvas');
+  if (!cv || !cv.getContext) return;
+  _tl.cv = cv; _tl.ctx = cv.getContext('2d');
+  var g = tlGeom(), wrap = document.getElementById('tlWrap');
+  var pcol = wrap && wrap.parentElement; // Variable an der Vorschau-Spalte (Handy: ihre Höhe rechnet die Timeline ein)
+  if (pcol && pcol.style && pcol.style.setProperty) pcol.style.setProperty('--tl-h', g.h + 'px');
+  cv.style.height = g.h + 'px';
+  cv.addEventListener('pointerdown', tlOnDown);
+  cv.addEventListener('pointermove', tlOnMove);
+  cv.addEventListener('pointerup', tlOnUp);
+  cv.addEventListener('pointercancel', tlOnUp);
+  cv.addEventListener('pointerleave', function(){ if (!_tl.drag) _tl.hover = ''; });
+  cv.addEventListener('wheel', tlOnWheel, { passive: false });
+  cv.addEventListener('keydown', tlOnKey);
+  cv.addEventListener('contextmenu', function(e){ e.preventDefault(); }); // Long-Press öffnet sonst das Kontextmenü
+  if (typeof ResizeObserver === 'function') { try { new ResizeObserver(function(){ tlRequestDraw(); }).observe(cv); } catch (e) {} }
+  var pref = null;
+  try { pref = localStorage.getItem(TL_OPEN_KEY); } catch (e) {}
+  var phone = !!(window.matchMedia && window.matchMedia('(max-width:640px)').matches);
+  tlSetOpen(pref === null ? !phone : pref === '1', false);
+  var hint = document.getElementById('tlHint'), seen = null;
+  try { seen = localStorage.getItem(TL_HINT_KEY); } catch (e) {}
+  if (hint) {
+    hint.textContent = g.coarse ? 'Tap a caption, then drag it · drag its edges to trim · double-tap to edit' : 'Drag to move · drag edges to trim · double-click to edit';
+    if (seen) hint.style.display = 'none';
+  }
 })();
 
 // INIT
