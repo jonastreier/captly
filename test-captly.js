@@ -74,8 +74,12 @@ looksRepetitive:looksRepetitive,cleanWords:cleanWords,stripNonSpeechTags:stripNo
 retimeEditedBlock:retimeEditedBlock,isNoAudioFfmpegLog:isNoAudioFfmpegLog,
 setCaptionsEdited:function(v){captionsEdited=v;},getCaptionsEdited:function(){return captionsEdited;},
 setCurrentFile:function(f){currentFile=f;},fitCaptionWords:fitCaptionWords,capFitMaxW:capFitMaxW,
-needsWatermark:needsWatermark,editListEnd:editListEnd,histDistance:histDistance,cutThreshold:cutThreshold,
-pickCutCandidates:pickCutCandidates,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
+needsWatermark:needsWatermark,webmToMp4Trim:webmToMp4Trim,enforceMinBlockDuration:enforceMinBlockDuration,exportBtnState:exportBtnState,
+revertTranscriptionSettings:revertTranscriptionSettings,getModel:function(){return whisperModel;},setLastTrMeta:function(m){_lastTrMeta=m;},pickRecorderMime:pickRecorderMime,recorderMimeIsSafeMp4:recorderMimeIsSafeMp4,
+exportGeometry:exportGeometry,exportBitrate:exportBitrate,drawReframed:drawReframed,classifyUnplayable:classifyUnplayable,
+applyPlayability:applyPlayability,setVideoPlayable:function(v){videoPlayable=v;},transcribeVideo:transcribeVideo,DEFAULT_STYLE:DEFAULT_STYLE,
+setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDistance:histDistance,
+decideSceneCuts:decideSceneCuts,cutFrame:cutFrame,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
 onBreakAtCutsChange:onBreakAtCutsChange,currentBlockIdx2:currentBlockIdx,setDisplayMode:function(m){displayMode=m;},polishWords:polishWords,
 polishEnabled:polishEnabled,setModelState:function(m){whisperModel=m;},polishSegments:polishSegments,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
 splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
@@ -93,7 +97,8 @@ setMe:function(plan,email){mePlan=plan;meEmail=email;},
 rebaseCutTime:rebaseCutTime,createAudioCutPlanner:createAudioCutPlanner,rotationFromMatrix:rotationFromMatrix,editListOffset:editListOffset,
 h264CodecCandidates:h264CodecCandidates,fastExportVideoCodecs:fastExportVideoCodecs,isFastExportSource:isFastExportSource,fastExportSupported:fastExportSupported,
 oggCrc32:oggCrc32,oggLacing:oggLacing,opusPacketSamples48:opusPacketSamples48,buildOggOpus:buildOggOpus,opusPreSkipFromDesc:opusPreSkipFromDesc,
-encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSupport=null;},getOpusOff:function(){return _opusOff;},UPLOAD_CONCURRENCY:UPLOAD_CONCURRENCY};`;
+encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSupport=null;},getOpusOff:function(){return _opusOff;},UPLOAD_CONCURRENCY:UPLOAD_CONCURRENCY,
+sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -774,16 +779,319 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   const dark = T.lumaHistogram(new Float32Array(2304).fill(0.1), 16), light = T.lumaHistogram(new Float32Array(2304).fill(0.9), 16);
   ok(T.histDistance(dark, dark) === 0 && Math.abs(T.histDistance(dark, light) - 1) < 1e-9, 'Histogramm-Distanz 0 bzw. 1');
   ok(Math.abs(T.meanAbsDiff(new Float32Array([0.1, 0.2]), new Float32Array([0.3, 0.2])) - 0.1) < 1e-6, 'mittlere Pixel-Differenz');
-  ok(T.cutThreshold([0.01, 0.02, 0.015, 0.02, 0.01]) === 0.35, 'Schwelle: Untergrenze 0.35 bei ruhigem Video');
-  const noisy = [0.2, 0.25, 0.3, 0.22, 0.28, 0.24, 0.26];
-  ok(T.cutThreshold(noisy) > 0.35, 'Schwelle adaptiv bei unruhigem Video: ' + T.cutThreshold(noisy).toFixed(3));
-  const samples = [];
-  for (let i = 0; i < 30; i++) samples.push({ t: i * 0.2, d: i === 0 ? 0 : 0.02 + (i % 3) * 0.005, p: 0.01 });
-  samples[17] = { t: 3.4, d: 0.8, p: 0.3 };            // harter Schnitt
-  samples[24] = { t: 4.8, d: 0.5, p: 0.02 };           // Helligkeitssprung ohne Pixel-Änderung (z. B. Blitz) → kein Schnitt
-  const c = T.pickCutCandidates(samples);
-  ok(c.length === 1 && c[0] === 17, 'nur der echte Schnitt erkannt: ' + JSON.stringify(c));
+  // Synthetische 64×36-Luma-Folgen @30 fps: jede Szene ein eigenes, sich bewegendes Muster
+  const FW = T.CUT_W, FH = T.CUT_H, FPS = 30;
+  const scene = (k, n, speed) => {
+    const l = new Float32Array(FW * FH), sp = speed == null ? 0.05 : speed;
+    for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++)
+      l[y * FW + x] = Math.min(1, Math.max(0, 0.2 + 0.12 * k + 0.25 * Math.sin((0.15 + 0.07 * k) * x + (0.2 + 0.05 * k) * y + sp * n + k)));
+    return l;
+  };
+  const mix = (a, b, w) => a.map((v, i) => v * (1 - w) + b[i] * w);
+  const bright = (a, add) => a.map(v => Math.min(1, v + add));
+  const feats = (lumas, dt) => { const fr = []; let pf = null, pl = null;
+    lumas.forEach((l, i) => { const f = T.cutFrame(+(i * (dt || 1 / FPS)).toFixed(4), l, pf, pl); fr.push(f); pf = f; pl = l; }); return fr; };
+  const times = (fr, o) => T.decideSceneCuts(fr, o).map(c => c.t);
+  // a) harte Schnitte (Frame 60 und 151) → framegenau
+  let L = []; for (let n = 0; n < 240; n++) L.push(scene(n < 60 ? 0 : n < 151 ? 1 : 2, n));
+  let tc = times(feats(L));
+  ok(tc.length === 2 && tc[0] === 2 && Math.abs(tc[1] - 151 / FPS) < 1e-3, 'harte Schnitte framegenau: ' + JSON.stringify(tc));
+  // b) 4-Frame-Blitz mitten in einer Szene → kein Schnitt (beide Flanken), echter Schnitt danach bleibt
+  L = []; for (let n = 0; n < 240; n++) { let l = scene(n < 180 ? 0 : 1, n); if (n >= 90 && n < 94) l = bright(l, 0.5); L.push(l); }
+  tc = times(feats(L));
+  ok(tc.length === 1 && tc[0] === 6, 'Blitz verworfen, Schnitt bei 6 s bleibt: ' + JSON.stringify(tc));
+  // c) 1-s-Überblendung (Frame 90–120) → kein Schnitt; 4-Frame-Dissolve ebenso
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 90 ? scene(0, n) : n >= 120 ? scene(1, n) : mix(scene(0, n), scene(1, n), (n - 90) / 30));
+  tc = times(feats(L));
+  ok(tc.length === 0, '1-s-Überblendung ist kein Schnitt: ' + JSON.stringify(tc));
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 100 ? scene(0, n) : n >= 104 ? scene(2, n) : mix(scene(0, n), scene(2, n), (n - 99) / 5));
+  tc = times(feats(L));
+  ok(tc.length === 0, '4-Frame-Dissolve ist kein harter Schnitt: ' + JSON.stringify(tc));
+  // d) zwei Schnitte 4 Frames (0.13 s) auseinander → EIN Schnitt (kein Mini-Block)
+  L = []; for (let n = 0; n < 240; n++) L.push(scene(n < 60 ? 0 : n < 64 ? 1 : 3, n));
+  tc = times(feats(L));
+  ok(tc.length === 1 && (tc[0] === 2 || Math.abs(tc[0] - 64 / FPS) < 1e-3), 'nahe Kandidaten zusammengeführt: ' + JSON.stringify(tc));
+  ok(T.mergeCutCands([{ t: 1, c: 0.5 }, { t: 1.2, c: 0.9 }, { t: 3, c: 0.4 }], 0.3).map(x => x.t).join() === '1.2,3', 'merge: stärkster gewinnt');
+  // e) schneller Schwenk (große Bewegung pro Frame) → keine Schnitte
+  L = []; for (let n = 0; n < 240; n++) L.push(scene(0, n, 0.6));
+  tc = times(feats(L));
+  ok(tc.length === 0, 'schnelle Bewegung ist kein Schnitt: ' + JSON.stringify(tc));
+  // e2) hohe Grundunruhe (Drohne über Gras, Wasser): Textur, deren Pixel-Differenz pro Frame GRÖSSER ist als
+  //     die des Schnitts — Schnitte hinein (Frame 60) und heraus (Frame 150) müssen trotzdem erkannt werden
+  const tex = n => { const l = new Float32Array(FW * FH);
+    for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) l[y * FW + x] = Math.sin(1.7 * x + 2.3 * y + 2.9 * n) * Math.sin(0.9 * x - 1.1 * y + 1.3 * n) > 0 ? 0.85 : 0.15;
+    return l; };
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 60 ? scene(0, n, 0) : n < 150 ? tex(n) : scene(3, n, 0.1));
+  const fT = feats(L);
+  ok(fT[100].p >= 0.9 * Math.max(fT[60].p, fT[150].p), 'Testaufbau: Bewegung ändert so viele Pixel wie die Schnitte (' + fT[100].p.toFixed(3) + ' vs ' + fT[60].p.toFixed(3) + '/' + fT[150].p.toFixed(3) + ')');
+  tc = times(fT);
+  ok(tc.length === 2 && tc[0] === 2 && tc[1] === 5, 'Schnitte neben starker Bewegung erkannt: ' + JSON.stringify(tc));
+  const fTc = feats(L.filter((l, k) => k % 4 === 0), 4 / FPS);
+  tc = times(fTc, { coarse: true });
+  ok(tc.length === 2, 'auch in groben Proben: ' + JSON.stringify(tc));
+  // e3) Belichtungssprung (+0.15, bleibt) → gleiche Szene, kein Schnitt; Zwei-Frame-Schnitt → Zeit des ersten Frames
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 100 ? scene(0, n) : bright(scene(0, n), 0.15));
+  tc = times(feats(L));
+  ok(tc.length === 0, 'Belichtungssprung ist kein Schnitt: ' + JSON.stringify(tc));
+  // …aber ein großer Sprung zwischen zwei strukturlosen Bildern (dunkle Fläche → zu Grau verschwommene
+  // Textur) bleibt ein Schnitt
+  const flat = v => new Float32Array(FW * FH).fill(v);
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 90 ? flat(0.15) : flat(0.55));
+  tc = times(feats(L));
+  ok(tc.length === 1 && tc[0] === 3, 'großer Sprung Fläche → Fläche ist ein Schnitt: ' + JSON.stringify(tc));
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 60 ? scene(0, n) : n === 60 ? mix(scene(1, n), scene(2, n), 0.5) : scene(2, n));
+  tc = times(feats(L));
+  ok(tc.length === 1 && tc[0] === 2, 'Zwei-Frame-Schnitt: Szene beginnt beim ersten geänderten Frame: ' + JSON.stringify(tc));
+  // f) grobe Proben (0.4 s, Seek-Pfad) → Kandidat im richtigen Intervall; Helligkeitssprung ohne Pixel-Änderung nicht
+  L = []; for (let n = 0; n < 40; n++) L.push(scene(n < 17 ? 0 : 1, n * 12));
+  tc = times(feats(L, 0.4), { coarse: true });
+  ok(tc.length === 1 && Math.abs(tc[0] - 6.8) < 1e-6, 'grobe Proben: Kandidat bei der ersten Probe der neuen Szene: ' + JSON.stringify(tc));
+  const fake = []; for (let i = 0; i < 30; i++) fake.push({ t: i * 0.2, d: i ? 0.02 : 0, p: 0.01, h: dark, s: new Uint8Array(144) });
+  fake[24] = { t: 4.8, d: 0.5, p: 0.02, h: light, s: new Uint8Array(144) };
+  ok(T.decideSceneCuts(fake, { coarse: true }).length === 0, 'Histogramm-Sprung ohne Pixel-Änderung ist kein Schnitt');
+  // g) Wegwahl: WebCodecs nur für MP4/MOV mit VideoDecoder, sonst Seek-Fallback
+  const mp4 = { type: 'video/mp4', name: 'a.mp4' }, webm = { type: 'video/webm', name: 'a.webm' };
+  ok(T.sceneCutPath(mp4) === 'seek', 'ohne VideoDecoder → Seek-Pfad');
+  global.VideoDecoder = function () {}; global.EncodedVideoChunk = function () {};
+  ok(T.sceneCutPath(mp4) === 'webcodecs' && T.sceneCutPath({ type: 'video/quicktime', name: 'b.mov' }) === 'webcodecs', 'MP4/MOV + VideoDecoder → WebCodecs');
+  ok(T.sceneCutPath(webm) === 'seek', 'WebM → Seek-Pfad (mp4box demuxt kein WebM)');
+  global.localStorage = { getItem: k => (k === 'capivo.fastCuts' ? 'off' : null), setItem() {}, removeItem() {} };
+  ok(T.sceneCutPath(mp4) === 'seek', 'Notschalter capivo.fastCuts=off → Seek-Pfad');
+  delete global.localStorage; delete global.VideoDecoder; delete global.EncodedVideoChunk;
 }
+
+// 21a) Pill-Highlight: Export-Layout reserviert das Pill-Padding (keine Überlappung der Nachbarn)
+{
+  const mkCtx = () => ({ _font: '', letterSpacing: '0px', calls: [], rects: [], lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
+    get font() { return this._font; }, set font(v) { this._font = v; },
+    // Leerzeichen realistisch schmal (~0,2 em) — sonst verdeckt der breite Stub-Abstand eine Überlappung
+    measureText(str) { const m = /([\d.]+)px/.exec(this._font); const px = m ? +m[1] : 16; return { width: str === ' ' ? px * 0.2 : (str || '').length * px * 0.55 }; },
+    fillText(t, x, y) { this.calls.push({ t, x, y, fs: this.fillStyle }); }, strokeText() {},
+    roundRect(x, y, w, h) { this.rects.push({ x, w }); }, rect(x, y, w, h) { this.rects.push({ x, w }); },
+    save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, ellipse() {}, fillRect() {}, createLinearGradient() { return { addColorStop() {} }; } });
+  const ws = ['auf', 'unserem', 'Hof', 'heute'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.4 }));
+  T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
+  const bad = [];
+  ['boxkara', 'focus', 'karaoke', 'marker'].map(id => T.STYLES.find(x => x.id === id)).filter(st => st && st.hlPillBg).forEach(st => {
+    [0.1, 0.6, 1.1, 1.6].forEach(t => {
+      const c = mkCtx(); T.drawCaptionsOnCtx(c, t, st, 1080, 1920, false);
+      const pill = c.rects[c.rects.length - 1];
+      const fin = {}; c.calls.forEach(k => { fin[k.t] = k; });
+      const all = Object.values(fin);
+      const px0 = +/([\d.]+)px/.exec(c._font)[1];
+      const act = all.find(k => k.x >= pill.x - 1e-6 && k.x + k.t.length * px0 * 0.55 <= pill.x + pill.w + 1e-6);
+      const words = all.filter(k => act && Math.abs(k.y - act.y) < 1).sort((a, b) => a.x - b.x); // nur die Zeile der Pill
+      // jedes Nachbarwort liegt komplett außerhalb der Pill
+      words.forEach(k => {
+        const px = +/([\d.]+)px/.exec(c._font)[1], w = k.t.length * px * 0.55;
+        const inside = k.x + w > pill.x + 1 && k.x < pill.x + pill.w - 1;
+        const isActive = k.x >= pill.x - 1e-6 && k.x + w <= pill.x + pill.w + 1e-6;
+        if (inside && !isActive) bad.push(st.id + '@' + t + ':' + k.t);
+      });
+    });
+  });
+  ok(bad.length === 0, 'Pill ueberlappt keine Nachbarwoerter: ' + bad.join(', '));
+  ok(T.STYLES.filter(x => x.hlPillBg).length >= 3, 'Pill-Styles vorhanden');
+}
+
+// 21a2) Statische Caption-Ebene: nicht aktive Wörter + Glows nur einmal je (Block, aktives Wort) zeichnen
+{
+  const mkCtx = (canvas) => ({ canvas, _font: '', letterSpacing: '0px', n: 0, imgs: 0, lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
+    get font() { return this._font; }, set font(v) { this._font = v; },
+    measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+    fillText() { this.n++; }, strokeText() {}, drawImage() { this.imgs++; }, setTransform() {}, clearRect() {},
+    roundRect() {}, rect() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, ellipse() {}, fillRect() {},
+    createLinearGradient() { return { addColorStop() {} }; } });
+  const layerCtxs = [];
+  const origCreate = document.createElement;
+  document.createElement = (t) => {
+    if (t !== 'canvas') return origCreate(t);
+    const cv = { width: 0, height: 0 }; const cx = mkCtx(cv); cv.getContext = () => cx; layerCtxs.push(cx); return cv;
+  };
+  const ws = ['Ganz', 'weiche', 'Bluete', 'heute'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.4 }));
+  T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
+  const bloom = T.STYLES.find(x => x.id === 'bloom');
+  const main = mkCtx({ width: 1080, height: 1920 });
+  T.drawCaptionsOnCtx(main, 0.1, bloom, 1080, 1920, false);
+  const layer = layerCtxs[0], after1 = layer ? layer.n : -1, main1 = main.n;
+  T.drawCaptionsOnCtx(main, 0.2, bloom, 1080, 1920, false);   // gleicher Block, gleiches aktives Wort
+  ok(layer && after1 > 0 && layer.n === after1, 'statische Ebene im Folge-Frame nicht neu gezeichnet');
+  ok(main.imgs >= 2 && main.n - main1 <= 3, 'pro Frame nur Ebene einsetzen + aktives Wort zeichnen (fillText ' + (main.n - main1) + ')');
+  T.drawCaptionsOnCtx(main, 0.7, bloom, 1080, 1920, false);   // nächstes Wort aktiv → Ebene neu
+  ok(layer.n > after1, 'neues aktives Wort → Ebene neu');
+  document.createElement = origCreate;
+}
+
+// 22a) Glow-Styles: aktives Wort als Sprite — pro Frame nur drawImage, Sprite je Animationsstufe gecacht
+{
+  let created = 0, spriteDraws = 0;
+  const mkCtx = (canvas) => ({ canvas, _font: '', letterSpacing: '0px', n: 0, imgs: 0, filter: 'none', lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1,
+    get font() { return this._font; }, set font(v) { this._font = v; },
+    measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+    fillText() { this.n++; }, strokeText() {}, drawImage() { this.imgs++; }, setTransform() {}, clearRect() {},
+    roundRect() {}, rect() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, ellipse() {}, fillRect() {},
+    createLinearGradient() { return { addColorStop() {} }; } });
+  const origCreate = document.createElement;
+  document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); created++; const cv = { width: 0, height: 0 }; const cx = mkCtx(cv); cv.getContext = () => cx; return cv; };
+  const ws = ['Weiche', 'Bluete', 'leuchtet', 'heute'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.45 }));
+  T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
+  ['bloom', 'neon'].forEach(id => {
+    const st = T.STYLES.find(x => x.id === id);
+    const main = mkCtx({ width: 1080, height: 1920 });
+    T.drawCaptionsOnCtx(main, 0.40, st, 1080, 1920, false);           // Animation vorbei → Grundstufe
+    const c1 = created, n1 = main.n;
+    for (let k = 0; k < 5; k++) T.drawCaptionsOnCtx(main, 0.41 + k * 0.005, st, 1080, 1920, false);
+    ok(created === c1, id + ': Folge-Frames bauen keine neuen Canvases');
+    ok(main.n === n1, id + ': aktives Wort per drawImage statt fillText/Schatten pro Frame');
+  });
+  document.createElement = origCreate;
+}
+
+// 22b) Mindest-Anzeigedauer je Block; Stille-Verschiebung konservativ
+{
+  T.onWpbChange('4');
+  const W = (arr) => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
+  let bl = T.buildCaptionBlocks(W([['Eins', 0, 0.5], ['zwei.', 0.55, 1.0], ['Ja.', 1.1, 1.2], ['Und', 1.3, 1.6], ['weiter', 1.65, 2.2]]), []);
+  // „Ja.“ zwischen zwei Sätzen: nie über ein Satzende verschmelzen, nur bis zum nächsten Block verlängern
+  ok(bl.length === 3 && bl[1].text === 'Ja.' && Math.abs(bl[1].end - 1.3) < 1e-9, 'kurzer Satz-Block: bis zum naechsten Block verlaengert, nicht verschmolzen: ' + bl.map(b => b.text + '(' + (b.end - b.start).toFixed(2) + ')').join(' | '));
+  ok(bl.map(b => b.text).join(' ').split(' ').length === 5, 'keine Woerter verloren');
+  // Lücke reicht → nur verlängern
+  bl = T.buildCaptionBlocks(W([['Kurz.', 0, 0.1], ['Danach', 1.0, 1.4], ['kommt', 1.45, 1.8], ['mehr', 1.85, 2.2]]), []);
+  ok(bl[0].text === 'Kurz.' && Math.abs(bl[0].end - 0.3) < 1e-9, 'kurzer Block in die Luecke verlaengert');
+  // Regression: „SIE IN DIE KOMMENTARE. HALLO“ — nie über Satzende / über „Wörter pro Block“ hinaus
+  bl = T.buildCaptionBlocks(W([['Schreibt', 0, 0.3], ['es', 0.32, 0.45], ['in', 0.47, 0.55], ['die', 0.56, 0.62], ['Kommentare.', 0.64, 1.1], ['Hallo', 1.12, 1.25], ['und', 1.4, 1.6], ['tschuess', 1.62, 2.0]]), []);
+  ok(bl.every(b => b.words.length <= 4) && !bl.some(b => /Kommentare\. Hallo/.test(b.text)), 'max. 4 Woerter, kein Verschmelzen ueber Satzende: ' + bl.map(b => b.text).join(' | '));
+  // Verschmelzen nur, wenn es innerhalb von „Wörter pro Block“ bleibt und kein Satzende dazwischen liegt
+  T.onWpbChange('2');
+  bl = T.enforceMinBlockDuration([{ words: W([['ganz', 0, 0.1]]), start: 0, end: 0.1, text: 'ganz' }, { words: W([['kurz', 0.12, 0.6]]), start: 0.12, end: 0.6, text: 'kurz' }], []);
+  ok(bl.length === 1 && bl[0].text === 'ganz kurz', 'Verschmelzen innerhalb wpb ohne Satzende');
+  T.onWpbChange('4');
+  bl = T.buildCaptionBlocks(W([['Eins', 0, 0.5], ['zwei.', 0.55, 1.0], ['Ja.', 1.1, 1.2], ['Und', 1.3, 1.6], ['weiter', 1.65, 2.2]]), [1.05, 1.25]);
+  ok(bl.some(b => b.text === 'Ja.') && !bl.some(b => /zwei\. Ja\.|Ja\. Und/.test(b.text)), 'kurzer Block wird nie ueber einen Schnitt verschmolzen');
+  const ja = bl.find(b => b.text === 'Ja.');
+  ok(ja.end <= 1.25 + 1e-9, 'Verlaengerung stoppt am Schnitt');
+  T.onWpbChange('1');
+  bl = T.buildCaptionBlocks(W([['Pop', 0, 0.1], ['eins', 0.2, 0.3], ['zwei', 0.5, 0.6]]), []);
+  ok(bl.length === 3 && bl[0].end >= 0.2 - 1e-9, '1 Wort/Block: nicht verschmelzen, nur verlaengern (bis zum naechsten Block)');
+  T.onWpbChange('4');
+}
+
+// 22c) Unabspielbares Video: Meldung nach Codec
+{
+  ok(T.classifyUnplayable({ hasVideo: true, codec: 'avc1.64001f' }, { name: 'a.mp4' }) === 'h264', 'H.264-Spur → H.264-Hinweis (nicht HEVC)');
+  ok(T.classifyUnplayable({ hasVideo: true, codec: 'hev1.1.6.L93' }, { name: 'a.mov' }) === 'hevc', 'hev1 → HEVC');
+  ok(T.classifyUnplayable({ hasVideo: true, codec: 'av01.0.08M.08' }, { name: 'a.mp4' }) === 'codec', 'anderer Codec → generisch');
+  T.applyPlayability('h264');
+  ok(/H\.264/.test(document.getElementById('vidWarn').textContent) && /H\.264/.test(document.getElementById('btnVideo').title), 'H.264-Text + Tooltip');
+  T.applyPlayability('codec');
+  ok(/video format/.test(document.getElementById('vidWarn').textContent), 'generischer Codec-Hinweis');
+  T.applyPlayability('ok');
+}
+
+// 22d) Export-Button: gut lesbarer Busy-Zustand mit Fortschritt
+{
+  const b = document.getElementById('btnVideo');
+  b.querySelector = () => document.getElementById('btnVideoLbl');
+  b.style.setProperty = function(k, v) { this[k] = v; }; b.style.removeProperty = function(k) { delete this[k]; };
+  T.exportBtnState('Rendering 42%…');
+  ok(b.classList.contains('busy') && b.style['--p'] === '42%' && document.getElementById('btnVideoLbl').textContent === 'Rendering 42%…' && b.disabled, 'Busy-Klasse, Fortschritt 42 %, gesperrt');
+  T.exportBtnState(null);
+  ok(!b.classList.contains('busy') && document.getElementById('btnVideoLbl').textContent === 'Video + captions', 'zurueckgesetzt');
+}
+
+// 22e) Fehlgeschlagener Wechsel Fast→Perfect: Einstellungen auf die der behaltenen Captions zurück
+{
+  T.setModelState('perfect');
+  const hint = T.revertTranscriptionSettings({ model: 'fast', langSetting: 'auto', translate: false });
+  ok(T.getModel() === 'fast' && /Perfect again to retry/.test(hint), 'Modell zurueck auf Fast + Hinweis: ' + hint);
+  ok(T.revertTranscriptionSettings(null) === '', 'ohne Meta: nichts tun');
+}
+
+// 23a) WebM→MP4: Bild und Ton auf die Ausgabedauer kürzen
+ok(T.webmToMp4Trim(33.96).join(' ') === '-t 33.960 -shortest' && T.webmToMp4Trim(NaN).join(' ') === '-shortest', 'webmToMp4: -t Dauer + -shortest');
+
+// 23b) Preset-Layout (Pop One) wird beim Verlassen zu JEDEM Style zurückgesetzt — außer manuell geändert
+{
+  T.onWpbChange('3');
+  if (!T.STYLES.find(x => x.id === 'custom')) T.STYLES.push({ id: 'custom', name: 'My style', fl: 'Inter', font: "'Inter'", tc: '#fff', hl: '#ff0', ts: 'none', hls: 'none', anim: 'none', thumbBg: '#000' });
+  T.selectStyle('custom');
+  T.selectStyle('popone');
+  ok(T.getWpb() === 1, 'Pop One: 1 Wort');
+  T.selectStyle('custom');
+  ok(T.getWpb() === 3, 'zurueck zum Custom-Style: vorherige 3 Woerter/Block');
+  T.selectStyle('popone'); T.onWpbChange('2'); T.selectStyle('classic');
+  ok(T.getWpb() === 2, 'auf dem Preset manuell geaendert → Wert bleibt');
+  T.onWpbChange('4');
+}
+
+// 21b) MediaRecorder-Format: MP4 nur mit AAC (bzw. ohne Ton), sonst WebM → Umkodierung
+{
+  const sup = list => m => list.includes(m);
+  ok(T.pickRecorderMime(sup(['video/mp4;codecs=avc1', 'video/webm;codecs=vp9', 'video/mp4']), true) === 'video/webm;codecs=vp9', 'Chrome ohne mp4a: mit Ton → WebM statt H.264+Opus-MP4');
+  ok(T.pickRecorderMime(sup(['video/mp4;codecs=avc1', 'video/webm;codecs=vp9']), false) === 'video/mp4;codecs=avc1', 'ohne Ton: reines avc1-MP4 ok');
+  ok(T.pickRecorderMime(sup(['video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/webm']), true) === 'video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'avc1+mp4a bevorzugt');
+  ok(T.pickRecorderMime(sup(['video/mp4']), true) === 'video/mp4', 'Safari: generisches MP4');
+  ok(T.recorderMimeIsSafeMp4('video/mp4;codecs=avc1,opus', 'video/mp4;codecs=avc1,mp4a', true) === false, 'tatsaechlich Opus im MP4 → umkodieren');
+  ok(T.recorderMimeIsSafeMp4('video/mp4;codecs=avc1,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a', true) === true, 'H.264+AAC direkt');
+  ok(T.recorderMimeIsSafeMp4('video/webm;codecs=vp9,opus', 'video/webm;codecs=vp9', true) === false, 'WebM → umkodieren');
+  ok(T.recorderMimeIsSafeMp4('video/mp4', 'video/mp4', true) === true && T.recorderMimeIsSafeMp4('video/mp4;codecs=avc1', 'video/mp4;codecs=avc1', false) === true, 'Safari-MP4 / stummes avc1 direkt');
+}
+
+// 21c) Export-Geometrie: 1080p-Deckel, nie hochskalieren, Bitrate, 9:16-Reframe
+{
+  let g = T.exportGeometry(2160, 3840, 30, '1080', 'original');
+  ok(g.W === 1080 && g.H === 1920 && g.mode === 'original', '4K hochkant → 1080×1920');
+  g = T.exportGeometry(720, 1280, 30, '1080', 'original');
+  ok(g.W === 720 && g.H === 1280, 'nie hochskalieren');
+  g = T.exportGeometry(2160, 3840, 30, 'orig', 'original');
+  ok(g.W === 2160 && g.H === 3840 && g.bitrate === 12e6, 'Original-Aufloesung, Bitrate gedeckelt 12 Mbit/s');
+  ok(T.exportBitrate(1080, 1920, 30) === Math.round(0.07 * 1080 * 1920 * 30) && T.exportBitrate(320, 240, 30) === 2e6, 'Bitrate ~0,07 bpp, min 2 Mbit/s');
+  g = T.exportGeometry(1920, 1080, 30, '1080', 'blur');
+  ok(g.W === 1080 && g.H === 1920 && g.mode === 'blur', 'Quer + 9:16-Blur → 1080×1920');
+  g = T.exportGeometry(1080, 1920, 30, '1080', 'crop');
+  ok(g.mode === 'original', 'schon 9:16 → kein Reframe');
+  g = T.exportGeometry(1001, 1001, 30, '1080', 'crop');
+  ok(g.W === 1080 && g.H === 1920 && g.mode === 'crop', 'Reframe (quadratisch) → immer 1080×1920 Leinwand');
+  g = T.exportGeometry(1080, 1080, 30, '1080', 'blur');
+  ok(g.W === 1080 && g.H === 1920, 'quadratisch 1080 + Blur-Fill → 1080×1920 (nicht 608×1080)');
+  g = T.exportGeometry(720, 720, 30, '1080', 'original');
+  ok(g.W === 720 && g.H === 720, 'Original: weiterhin nie hochskalieren');
+  const calls = [];
+  const fakeCtx = { save() {}, restore() {}, drawImage() { calls.push('bg'); }, fillRect() { calls.push('dim'); } };
+  const ctxs = [];
+  const origCreate = document.createElement;
+  document.createElement = (t) => {
+    if (t !== 'canvas') return origCreate(t);
+    const n = ctxs.length, cx = { tag: n === 0 ? 'tiny' : 'mid', drawImage() { calls.push('mid→tiny'); }, fillRect() { calls.push('dim@' + this.tag); } };
+    ctxs.push(cx); return { width: 0, height: 0, getContext: () => cx };
+  };
+  const fit = (c, w, h, f) => calls.push(f + (c === fakeCtx ? '' : '@' + c.tag + ':' + w));
+  T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit);
+  ok(calls.join(',') === 'cover@mid:256,mid→tiny,dim@tiny,bg,contain', 'Blur-Fill: Quelle → 256-px-Canvas → winzig + abgedunkelt → hochskaliert, Video eingepasst: ' + calls.join(','));
+  calls.length = 0; for (let k = 0; k < 5; k++) T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit);
+  ok(calls.join(',') === 'bg,contain,bg,contain,bg,contain,bg,contain,bg,contain', 'Hintergrund 5 Frames lang wiederverwendet: ' + calls.join(','));
+  calls.length = 0; T.drawReframed(fakeCtx, 1080, 1920, 'blur', fit);
+  ok(calls[0] === 'cover@mid:256', 'jeder 6. Frame erneuert den Hintergrund');
+  document.createElement = origCreate;
+  const c2 = []; T.drawReframed(fakeCtx, 1080, 1920, 'crop', (c, w, h, fit) => c2.push(fit));
+  ok(c2.join() === 'cover', 'Crop = Mitte fuellend');
+}
+
+// 21d) Nicht abspielbare Videos: HEVC / keine Videospur → Hinweis, Video-Export aus, SRT bleibt
+{
+  ok(T.classifyUnplayable({ hasVideo: true, codec: 'hvc1.2.4.L153' }, { name: 'IMG_1.MOV' }) === 'hevc', 'HEVC-Spur erkannt');
+  ok(T.classifyUnplayable({ hasVideo: false }, { name: 'a.mp4' }) === 'novideo', 'MP4 ohne Videospur');
+  ok(T.classifyUnplayable(null, { name: 'x.m4a', type: 'audio/mp4' }) === 'novideo' && T.classifyUnplayable(null, { name: 'clip.mov', type: 'video/quicktime' }) === 'hevc', 'Fallback nach Dateiart');
+  T.setState(T.buildCaptionBlocks([{ word: 'a', start: 0, end: 1 }]), [], 'karaoke');
+  T.applyPlayability('hevc'); T.enableExports(true);
+  ok(document.getElementById('btnVideo').disabled === true && document.getElementById('btnSRT').disabled === false, 'HEVC: Video-Export aus, SRT an');
+  ok(/HEVC/.test(document.getElementById('vidWarn').textContent) && document.getElementById('vidWarn').style.display === 'block', 'HEVC-Hinweis sichtbar');
+  T.applyPlayability('novideo');
+  ok(/no video track/.test(document.getElementById('vidWarn').textContent), 'Hinweis: keine Videospur');
+  T.applyPlayability('ok'); T.enableExports(true);
+  ok(document.getElementById('btnVideo').disabled === false && document.getElementById('vidWarn').style.display === 'none', 'abspielbar: alles normal');
+}
+ok(T.DEFAULT_STYLE === 'hormozi', 'Standard-Style fuer neue Nutzer: Hormozi');
 
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
@@ -1240,6 +1548,37 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.polishSegments(Array.from({ length: 95 }, (_, i) => ({ word: 'w' + i }))).every(sg => sg.b - sg.a <= 40), 'Segmente max. 40 Woerter');
   }
 
+  // 21g) Wörter in langer Stille → an den nächsten Sprach-Einsatz (5 s Stille, dann Sprache)
+  {
+    const SRn = 16000, a = new Float32Array(SRn * 8);
+    for (let i = 0; i < a.length; i++) a[i] = (Math.sin(i * 12.9898) * 43758.5453 % 1) * 0.002;
+    for (let i = 5 * SRn; i < 7 * SRn; i++) a[i] = 0.5 * Math.sin(2 * Math.PI * 200 * i / SRn);
+    const sn = await T.snapWordTimings([{ word: 'Hallo', start: 0.3, end: 0.8 }, { word: 'und', start: 5.6, end: 5.9 }, { word: 'willkommen', start: 6.0, end: 6.8 }], a, SRn);
+    ok(Math.abs(sn[0].start - 5.0) < 0.03 && sn[0].end <= sn[1].start + 1e-9, 'Wort aus der Stille an den Sprach-Einsatz verschoben: ' + sn[0].start.toFixed(2) + '–' + sn[0].end.toFixed(2));
+    ok(sn[1].start === 5.6 && sn[2].start === 6.0, 'Folgewoerter unveraendert');
+    const sn2 = await T.snapWordTimings([{ word: 'weit', start: 0.3, end: 0.8 }, { word: 'weg', start: 6.8, end: 6.95 }], a, SRn);
+    ok(sn2[0].start === 0.3, 'Folgewort > 1,5 s nach Einsatz → nicht verschieben');
+    // 8 Wörter in der stummen Einleitung → wahrscheinlich Halluzination: NICHT auf 40 ms zusammenquetschen
+    const many = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((w, i) => ({ word: w, start: 0.3 + i * 0.55, end: 0.75 + i * 0.55 }));
+    const sn3 = await T.snapWordTimings(many.concat([{ word: 'echt', start: 5.2, end: 5.6 }]), a, SRn);
+    ok(sn3.slice(0, 8).every((w, i) => Math.abs(w.start - many[i].start) < 1e-9), 'mehr als 2 stumme Woerter → unveraendert');
+    // zu wenig Platz vor dem Folgewort → nicht verschieben (sonst 80-ms-Blitz)
+    const sn4 = await T.snapWordTimings([{ word: 'Weide.', start: 3.0, end: 3.4 }, { word: 'Dann', start: 5.05, end: 5.4 }], a, SRn);
+    ok(sn4[0].start === 3.0, 'kein Platz bis zum Folgewort → nicht verschieben');
+  }
+
+  // 21h) Fehlgeschlagene Neu-Transkription behält die bisherigen Captions
+  {
+    T.setState(T.buildCaptionBlocks([{ word: 'Alt', start: 0, end: 0.5 }, { word: 'bleibt.', start: 0.6, end: 1 }]), [{ word: 'Alt', start: 0, end: 0.5 }, { word: 'bleibt.', start: 0.6, end: 1 }], 'karaoke');
+    T.setVideoPlayable(true); T.enableExports(true);
+    T.setFFmpeg({ ff: { on() {}, off() {}, createDir: async () => {}, mount: async () => { throw new Error('x'); }, writeFile: async () => { throw new Error('x'); }, exec: async () => {}, readFile: async () => { throw new Error('x'); }, deleteFile: async () => {}, unmount: async () => {} }, fetchFile: async () => new Uint8Array(1) });
+    await T.transcribeVideo({ name: 'x.mp4', size: 10, type: 'video/mp4', arrayBuffer: async () => { throw new Error('nope'); } });
+    ok(T.getBlocks().length === 1 && T.getBlocks()[0].text === 'Alt bleibt.', 'Captions nach Fehler unveraendert');
+    ok(/previous captions are kept/.test(document.getElementById('tStatus').innerHTML), 'Hinweis "previous captions are kept"');
+    ok(document.getElementById('btnSRT').disabled === false, 'Exporte bleiben an');
+    T.setFFmpeg(null);
+  }
+
   // 22) Vercel-Function api/transcribe.js (gemocktes req/res + Groq-fetch)
   {
     const { Readable } = require('stream');
@@ -1437,6 +1776,38 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(err && /error 400/.test(err.message) && calls.length <= 4, 'Parallel: Fehler bricht ab, kein neues Stück: ' + (err && err.message) + ' calls=' + calls.length);
     }
     global.Blob = origBlob;
+  }
+
+  // Szenenschnitte: Export-Hook waitForSceneCuts — wartet auf Abschluss, gibt nach Timeout den Zwischenstand
+  {
+    T.setExporting(false); T.onBreakAtCutsChange(true); T.setSceneCuts([]);
+    const st0 = document.getElementById('tStatus');
+    st0.innerHTML = '<span>✅</span><span>12 words</span>';
+    const btn = document.getElementById('btnVideo'); btn.disabled = false;
+    ok(await T.waitForSceneCuts(50) === true, 'waitForSceneCuts: keine Erkennung aktiv → sofort true');
+    const st = T.beginCutRun();
+    ok(T.cutsDetecting() && /Detecting scene cuts… 0%/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Fortschritt wird an Status angehängt: ' + st0.innerHTML);
+    let t0 = Date.now();
+    const p = T.waitForSceneCuts(2000);
+    ok(btn.disabled === true, 'Export-Button während des Wartens gesperrt');
+    setTimeout(() => T.finishCutRun(st, [1.5]), 30);
+    const r1 = await p;
+    ok(r1 === true && Date.now() - t0 < 1000 && T.getSceneCuts().join() === '1.5', 'waitForSceneCuts löst bei Abschluss auf: ' + r1 + ' ' + T.getSceneCuts());
+    ok(btn.disabled === false && !T.cutsDetecting(), 'Button wieder frei, Erkennung beendet');
+    ok(/1 scene cut detected/.test(st0.innerHTML) && !/Detecting/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Status: Ergebnis ersetzt Fortschritt: ' + st0.innerHTML);
+    const st2 = T.beginCutRun(); st2.partial = () => [2.5];
+    t0 = Date.now();
+    const r2 = await T.waitForSceneCuts(40);
+    ok(r2 === false && Date.now() - t0 >= 35 && T.getSceneCuts().join() === '2.5', 'Timeout → false + Zwischenstand übernommen: ' + r2 + ' ' + T.getSceneCuts());
+    T.finishCutRun(st2, [2.5, 3]);
+    ok(T.getSceneCuts().join() === '2.5,3' && !T.cutsDetecting(), 'späterer Abschluss setzt alle Schnitte');
+    const st3 = T.beginCutRun(); T.onBreakAtCutsChange(false);
+    ok(await T.waitForSceneCuts(2000) === true, 'Schalter aus → Export wartet nicht');
+    T.onBreakAtCutsChange(true);
+    T.beginCutRun(); // neuer Lauf (neues Video) → alter Lauf ist veraltet, sein Abschluss setzt nichts
+    T.finishCutRun(st3, [9]);
+    ok(T.getSceneCuts().join() === '2.5,3', 'veralteter Lauf überschreibt keine Schnitte');
+    T.setSceneCuts([]);
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

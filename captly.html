@@ -201,6 +201,13 @@ body.editor-open{height:100vh;overflow:hidden}
 .col-resize-handle::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:#e6e1ec;transform:translateX(-50%);transition:background .15s,width .15s}
 .col-resize-handle:hover::after,.col-resize-handle.dragging::after{background:#7c3aed;width:3px}
 #prevBg{position:absolute;inset:0;z-index:0;background:#111;transition:background .3s}
+#prevBlurBg{position:absolute;inset:-8%;z-index:0;width:116%;height:116%;display:none;filter:blur(14px) brightness(.55);pointer-events:none}
+.prev-frame.reframe-blur #prevBlurBg{display:block}
+.prev-frame.reframe-blur #mainVid{object-fit:contain!important}
+.vid-warn{max-width:360px;width:100%;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:9px;padding:8px 10px;font-size:11.5px;line-height:1.45}
+.exp-opts{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
+.exp-opt{display:flex;align-items:center;gap:8px;font-size:10.5px;color:#66616e}
+.exp-opt .lang-sel{margin:0;flex:1;padding:5px 7px;font-size:11px}
 #mainVid{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none}
 /* Play-Overlay: dezentes Glas-Icon statt deckender weißer Scheibe — der Untertitel (z-index 10) liegt
    darüber und bleibt lesbar; positionPlayIcon() schiebt das Icon zusätzlich aus dem Untertitel-Bereich. */
@@ -354,6 +361,13 @@ input[type=checkbox]{accent-color:#7c3aed}
 .exp-btn.hi:hover:not(:disabled){filter:brightness(1.08)}
 .exp-btn.hi .exp-btn-label{color:#fff}
 .exp-btn.hi .exp-btn-sub{color:rgba(255,255,255,.55)}
+/* Export läuft: KEIN blasser Disabled-Look — volle Farbe, Fortschritt als Füllung im Button, gut lesbar */
+.exp-btn.hi.busy,.exp-btn.hi.busy:disabled{opacity:1;cursor:wait;position:relative;overflow:hidden;
+  background:linear-gradient(90deg,#5b21b6 0%,#4f46e5 var(--p,0%),#7c3aed var(--p,0%),#6366f1 100%)}
+.exp-btn.hi.busy .exp-btn-label{color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+.exp-btn.hi.busy .exp-btn-sub{color:rgba(255,255,255,.8)}
+@media (prefers-reduced-motion:no-preference){.exp-btn.hi.busy{animation:expBusy 1.6s ease-in-out infinite}}
+@keyframes expBusy{0%,100%{filter:brightness(1)}50%{filter:brightness(1.12)}}
 .exp-mini{display:flex;gap:5px;margin-top:5px}
 .exp-mini .pos-btn{padding:6px 4px}
 .exp-mini .pos-btn:disabled{opacity:.3;cursor:default}
@@ -414,6 +428,16 @@ input[type=checkbox]{accent-color:#7c3aed}
 .foot-legal a{color:#7c3aed;text-decoration:underline;cursor:pointer}
 .foot-copy{color:#a9a4b0;font-size:11px;margin-top:12px}
 
+/* Grobe Zeiger: Video-Leiste + Kopfzeile fingertauglich (Play ≥ 36, Mute/Safe Zone/Zoom ≥ 32, Fortschritt
+   ≥ 24 px Trefferfläche bei dünner Optik, Back/Sign in ≥ 36, Checkboxen 20 px). */
+@media (pointer:coarse) {
+  .pp-btn{width:36px;height:36px;font-size:13px}
+  .mute-btn,.sz-btn{min-height:32px;padding:4px 9px;font-size:11px}
+  .zoom-btn{width:32px;height:32px;font-size:16px}
+  .prog-track::before{top:-12px;bottom:-12px}
+  .btn-back{min-height:36px;padding:6px 12px;font-size:12px}
+  input[type=checkbox]{width:20px;height:20px}
+}
 /* Touch/Handy: Tap-Ziele ≥ 36 px, Eingaben mit 16 px Schrift (kleiner → iOS Safari zoomt beim Fokus
    ungefragt in die Seite), Regler-Daumen größer. Gilt für alle Steuerelemente aus Style-Editor,
    Suchen & Ersetzen, Timing, Templates und Export. */
@@ -437,9 +461,9 @@ input[type=checkbox]{accent-color:#7c3aed}
   .fr-row .pos-btn{min-height:36px}
 }
 @media(max-width:640px){
-  .ctrl-col{width:100%!important;height:64vh;border-left:none;border-top:1px solid rgba(255,255,255,.055)}
+  .ctrl-col{width:100%!important;height:55vh;border-left:none;border-top:1px solid rgba(255,255,255,.055)}
   .ed-body{flex-direction:column}
-  .prev-col{flex:0 0 auto;height:36vh;padding:8px 14px;gap:6px}
+  .prev-col{flex:0 0 auto;height:45vh;padding:8px 14px;gap:6px} /* vorher 36vh → Vorschau nur ~139×243 px */
   .col-resize-handle{display:none}
   .prev-frame{width:auto;height:auto;flex:1 1 auto;min-height:0;aspect-ratio:9/16;max-width:62vw}
   /* Mobile: Leiste über die volle Spaltenbreite (statt Rahmenbreite ~140px) — !important schlägt die
@@ -662,6 +686,7 @@ input[type=checkbox]{accent-color:#7c3aed}
     <div class="prev-col">
       <div class="prev-frame" id="prevFrame" onclick="if(vidReady && !capDragMoved)togglePlay()">
         <div id="prevBg"></div>
+        <canvas id="prevBlurBg" width="36" height="64" aria-hidden="true"></canvas>
         <video id="mainVid" playsinline preload="auto"
           style="position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none"></video>
         <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon">▶</div></div>
@@ -686,6 +711,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <button class="mute-btn on" id="muteBtn" onclick="toggleMute()">🔊</button>
         <button class="sz-btn" id="safeZoneBtn" onclick="toggleSafeZone()" title="Safe zone: shows where captions stay clear of the Reels/TikTok UI (top bar, icon column, profile/caption area)">🛡 Safe Zone</button>
       </div>
+      <div class="vid-warn" id="vidWarn" role="status" style="display:none"></div>
       <div class="zoom-ctrl" id="zoomCtrl">
         <button class="zoom-btn" onclick="zoomBy(-0.25)" title="Zoom out" type="button">−</button>
         <span class="zoom-lbl" id="zoomLbl">100%</span>
@@ -916,6 +942,16 @@ input[type=checkbox]{accent-color:#7c3aed}
           <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)" style="cursor:pointer">
           <span style="font-size:10.5px;color:#66616e">✂️ Auto-cut silence &amp; filler words ("um", "äh"…)</span>
         </label>
+        <div class="exp-opts">
+          <label class="exp-opt"><span style="min-width:62px">Resolution</span>
+            <select id="expRes" class="lang-sel" onchange="setExportRes(this.value)">
+              <option value="1080">1080p (recommended)</option><option value="orig">Original</option>
+            </select></label>
+          <label class="exp-opt" id="fmtRow" style="display:none"><span style="min-width:62px">Format</span>
+            <select id="expFmt" class="lang-sel" onchange="setExportFormat(this.value)">
+              <option value="original">Original</option><option value="blur">9:16 · blur fill</option><option value="crop">9:16 · crop</option>
+            </select></label>
+        </div>
         <div class="exp-grid">
           <button class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
             <span class="exp-btn-icon">🎬</span>
@@ -1179,7 +1215,10 @@ var STYLES = [
 // ═══════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════
-var activeId        = 'bloom';
+// Standard-Style für neue Nutzer: Hormozi (schnell im Export, modern, sehr gut lesbar). Früher „Petal“ —
+// dessen große Blur-Glows machten den Export bis 6× langsamer. Eine bewusste frühere Wahl bleibt erhalten.
+var DEFAULT_STYLE   = 'hormozi', STYLE_KEY = 'capivo.style';
+var activeId        = (function(){ try { return (typeof localStorage !== 'undefined' && localStorage.getItem(STYLE_KEY)) || DEFAULT_STYLE; } catch (e) { return DEFAULT_STYLE; } })();
 var capPos          = 'bottom';
 var capVOff         = 20;   // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position — Default etwas höher, damit Captions nicht mit UI-Elementen der Plattformen (Beschreibung, Like-Leiste) kollidieren
 var showSafeZone     = false; // Safe-Zone-Anzeige (Reels-UI-Bereich) an/aus
@@ -1508,6 +1547,37 @@ async function snapWordTimings(words, audio, sr) {
       for (var b = fe - 1; b >= lo; b--) if (voiced(b)) { w.end = (b + 1) * SNAP_FRAME_SEC; break; }
     }
   });
+  // Wörter mitten in langer Stille (typisch: erstes Wort bei 0.0 s nach stummem Vorlauf): hat die ganze
+  // Wortspanne keinen stimmhaften Frame und liegt sie in einer Stille von ≥ 1 s, rückt sie an den nächsten
+  // Sprach-Einsatz. KONSERVATIV: nur, wenn höchstens 2 solche Wörter direkt vor dem Einsatz liegen (mehr
+  // sind eher Halluzinationen — dann bleibt alles, wie es ist), das Folgewort ≤ 1,5 s nach dem Einsatz
+  // beginnt und genug Platz ist (≥ 0,2 s pro Wort) — sonst würden Wörter auf 40 ms zusammengequetscht.
+  var silInfo = out.map(function(w) {
+    if (!(w.end > w.start)) return null;
+    var a0 = Math.floor(w.start / SNAP_FRAME_SEC), a1 = Math.min(nF - 1, Math.ceil(w.end / SNAP_FRAME_SEC) - 1);
+    if (a0 >= nF) return null;
+    for (var f2 = a0; f2 <= a1; f2++) if (voiced(f2)) return null;    // irgendwo stimmhaft → normales Wort
+    var lo2 = a0; while (lo2 > 0 && !voiced(lo2 - 1)) lo2--;
+    var hi2 = a1; while (hi2 < nF - 1 && !voiced(hi2 + 1)) hi2++;
+    if ((hi2 - lo2 + 1) * SNAP_FRAME_SEC < 1.0 || hi2 >= nF - 1) return null; // keine lange Stille / keine Sprache danach
+    return { onset: (hi2 + 1) * SNAP_FRAME_SEC };
+  });
+  for (var gi = 0; gi < out.length; ) {
+    if (!silInfo[gi]) { gi++; continue; }
+    var gEnd = gi; while (gEnd + 1 < out.length && silInfo[gEnd + 1] && silInfo[gEnd + 1].onset === silInfo[gi].onset) gEnd++;
+    var cnt = gEnd - gi + 1, onset = silInfo[gi].onset, next = out[gEnd + 1];
+    var ok = cnt <= 2
+      && (next ? (next.start >= onset - 1e-6 && next.start - onset <= 1.5 && next.start - onset >= 0.2 * cnt)
+               : (onset - out[gEnd].end <= 1.5));
+    if (ok) {
+      var room = next ? (next.start - onset) / cnt : Infinity, tcur = onset;
+      for (var k2 = gi; k2 <= gEnd; k2++) {
+        var d2 = Math.max(0.12, Math.min(out[k2].end - out[k2].start, room));
+        out[k2].start = tcur; out[k2].end = tcur + d2; tcur += d2;
+      }
+    }
+    gi = gEnd + 1;
+  }
   // Monoton + überlappungsfrei halten (Snap verkürzt nur, aber Rundung auf Frames absichern)
   for (var i = 0; i < out.length; i++) {
     if (i > 0 && out[i].start < out[i - 1].end) out[i].start = out[i - 1].end;
@@ -2085,7 +2155,7 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
     var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
     ctx.font = it + fw + ' ' + px + 'px "' + f + '", sans-serif';
     var wt   = (tt || (isHL && s.hlUpper)) ? w.toUpperCase() : w;
-    return { i: i, w: ctx.measureText(wt).width };
+    return { i: i, w: ctx.measureText(wt).width + ((isHL && s.hlPillBg) ? 18 : 0) }; // Pill-Padding wie im DOM
   });
   var n = info.length;
   var lines;
@@ -2288,12 +2358,26 @@ function startCapLoop() {
 // ═══════════════════════════════════════
 // SCENE CUTS — harte Schnitte im hochgeladenen Video erkennen (im Hintergrund)
 // ═══════════════════════════════════════
-// Verstecktes <video> (gleiche Objekt-URL) wird per Seek abgetastet (~5 fps, bei langen Videos seltener),
-// jeder Frame auf 64×36 verkleinert → Luma-Histogramm + mittlere Pixel-Differenz zum Vorgänger. Ein Schnitt
-// ist ein starker Ausreißer der Histogramm-Distanz (adaptive Schwelle: max(0.35, Median + 6·MAD)) mit
-// deutlicher Pixeländerung; die Zeit wird per Bisektion (3 Seeks) auf ~1 Frame genau bestimmt.
-// Nur Seek + 'seeked' (kein requestVideoFrameCallback) → läuft auch auf iOS Safari.
-var sceneCuts = [], breakAtCuts = true, _cutRun = 0, CUT_BINS = 16, CUT_W = 64, CUT_H = 36;
+// Zwei Wege, GLEICHE Entscheidungslogik (decideSceneCuts):
+//  • WebCodecs (MP4/MOV, wo VideoDecoder existiert): Datei häppchenweise per mp4box demuxen (wie der
+//    Schnellexport), JEDEN Frame sequenziell dekodieren (P/B-Frames brauchen ihre Referenzen; ein Seek
+//    dekodiert dagegen jedes Mal ab dem letzten Keyframe neu — bei GOP 250 ~0.4 s pro Probe, 34-s-Reel
+//    > 1 min), sofort auf 64×36 verkleinern und den VideoFrame schließen. Zeiten = Frame-Zeitstempel.
+//  • Fallback (WebM, HEVC ohne Decoder, kein WebCodecs, iOS ohne VideoDecoder): verstecktes <video> grob
+//    abtasten — stumm mit 4× abspielen + requestVideoFrameCallback, Lücken > 1 s per Seek (2.5 fps) füllen;
+//    ohne rVFC/Autoplay (z. B. iOS-Sperre) also reiner Seek-Pfad wie bisher. Nur um Kandidaten herum per
+//    Bisektion auf < ½ Frame verfeinern.
+// Pro Frame: Luma-Histogramm (16 Bins), 16×9-Mini-Thumbnail, Histogramm-Distanz d und mittlere Pixel-
+// Differenz p (64×36) zum Vorgänger. Harter Schnitt = große Änderung zwischen ZWEI Frames, die BLEIBT:
+// Blitze/Strobos (Bild 0.3 s später gleicht dem davor) und Überblendungen (Änderung verteilt sich auf
+// viele Frames) werden verworfen — sie erzeugten sonst 0.16-s-Ein-Wort-Blöcke mitten im Satz.
+var sceneCuts = [], breakAtCuts = true, _cutRun = 0, _cutState = null, CUT_BINS = 16, CUT_W = 64, CUT_H = 36, CUT_TW = 16, CUT_TH = 9;
+var CUT_FLOOR = 0.25, CUT_MIN_P = 0.04; // Mindest-Änderung über der lokalen Grundunruhe bzw. Mindest-Strukturänderung (q)
+// Sprung ohne Strukturänderung (q < CUT_MIN_P) gilt bis zu dieser mittleren Helligkeitsänderung als Belichtung
+// (gleiche Szene); darüber als Schnitt — z. B. flach Dunkelgrün → feine Textur, die bei 64×36 zu flachem Grau
+// verschwimmt (10-min-WebM-Test: p 0.37, q 0.02).
+var CUT_EXPO = 0.25;
+function cutStructural(p, q) { return q >= CUT_MIN_P || p >= CUT_EXPO; }
 function activeCuts() { return breakAtCuts ? sceneCuts : []; }
 function lumaFromRGBA(data) {
   var n = data.length >> 2, out = new Float32Array(n);
@@ -2309,39 +2393,174 @@ function lumaHistogram(luma, bins) {
 }
 function histDistance(a, b) { var d = 0; for (var i = 0; i < a.length; i++) d += Math.abs(a[i] - b[i]); return d / 2; } // 0..1
 function meanAbsDiff(a, b) { var d = 0, n = Math.min(a.length, b.length) || 1; for (var i = 0; i < n; i++) d += Math.abs(a[i] - b[i]); return d / n; }
+// Wie meanAbsDiff, aber jeweils ohne Bildmittelwert: eine gleichmäßige Helligkeitsänderung (Belichtungs-
+// sprung, Auto-Exposure) zählt nicht als Strukturänderung — ein Schnitt ändert dagegen den Bildinhalt.
+function meanAbsDiffZ(a, b) {
+  var n = Math.min(a.length, b.length) || 1, ma = 0, mb = 0, d = 0, i;
+  for (i = 0; i < n; i++) { ma += a[i]; mb += b[i]; }
+  ma /= n; mb /= n;
+  for (i = 0; i < n; i++) d += Math.abs(a[i] - ma - b[i] + mb);
+  return d / n;
+}
 function medianOf(arr) {
   if (!arr.length) return 0;
   var s2 = arr.slice().sort(function(x, y){ return x - y; }), m = s2.length >> 1;
   return s2.length % 2 ? s2[m] : (s2[m - 1] + s2[m]) / 2;
 }
-function cutThreshold(dists) {
-  var med = medianOf(dists), mad = medianOf(dists.map(function(d){ return Math.abs(d - med); }));
-  return Math.max(0.35, med + 6 * mad);
-}
-// samples: [{ t, d (Hist.-Distanz zum Vorgänger), p (Pixel-Differenz) }] → Indizes der Schnitt-Kandidaten
-function pickCutCandidates(samples) {
-  if (samples.length < 3) return [];
-  var ds = samples.slice(1).map(function(x){ return x.d; });
-  var thr = cutThreshold(ds), out = [];
-  for (var i = 1; i < samples.length; i++) {
-    var x = samples[i];
-    if (x.d > thr && x.p > 0.06 && x.d >= (samples[i - 1].d || 0) && x.d >= ((samples[i + 1] || {}).d || 0)) out.push(i);
+// Änderungsmaß: Histogramme übersehen Schnitte zwischen ähnlich hellen Szenen, die Pixel-Differenz
+// allein springt auf Bewegung an — das Maximum aus beiden (p skaliert) trägt beides. Bewusst NICHT bei 1
+// gekappt: sonst sättigen Schnitt und Blitz gleich und die Verhältnis-Tests unten verlieren Trennschärfe.
+function cutChange(d, p) { return Math.max(d, p * 4); }
+// 64×36-Luma → 16×9-Mini-Thumbnail (4×4-Blockmittel, Uint8): billig zu speichern (144 B/Frame, auch bei
+// 10 min @ 30 fps nur ~2.6 MB) und mittelt Bewegung weg → taugt zum Vergleich weiter auseinanderliegender Frames.
+function cutThumb(luma, into) {
+  var s = into || new Uint8Array(CUT_TW * CUT_TH), bx = CUT_W / CUT_TW, by = CUT_H / CUT_TH;
+  for (var y = 0; y < CUT_TH; y++) for (var x = 0; x < CUT_TW; x++) {
+    var sum = 0;
+    for (var yy = 0; yy < by; yy++) for (var xx = 0; xx < bx; xx++) sum += luma[(y * by + yy) * CUT_W + x * bx + xx];
+    s[y * CUT_TW + x] = Math.round(sum / (bx * by) * 255);
   }
-  return out;
+  return s;
 }
-function cutSampleStep(t) { return t < 120 ? 0.2 : t < 600 ? 0.5 : 1.0; } // lange Videos: Arbeit deckeln
+function thumbDiff(a, b) { var d = 0; for (var i = 0; i < a.length; i++) d += Math.abs(a[i] - b[i]); return d / ((a.length || 1) * 255); }
+function frameDist(a, b) { return cutChange(histDistance(a.h, b.h), thumbDiff(a.s, b.s)); }
+// Histogramm + Thumbnail liegen als Views in großen Blöcken ("Slabs" à 1024 Frames) statt in je eigenen
+// Typed Arrays: 10 min @ 30 fps wären sonst 36 000 einzelne ArrayBuffer — deren GC-Kosten blockierten im
+// Test die UI zunehmend (Lags bis ~0.5 s gegen Ende).
+var _cutSlab = null;
+function cutSlot() {
+  if (!_cutSlab || _cutSlab.n >= 1024) _cutSlab = { h: new Float32Array(1024 * CUT_BINS), s: new Uint8Array(1024 * CUT_TW * CUT_TH), n: 0 };
+  var k = _cutSlab.n++, ts = CUT_TW * CUT_TH;
+  return { h: _cutSlab.h.subarray(k * CUT_BINS, (k + 1) * CUT_BINS), s: _cutSlab.s.subarray(k * ts, (k + 1) * ts) };
+}
+// Merkmale eines Frames (luma: 64×36 Float32 0..1); prev/prevLuma = Vorgänger (oder null).
+// d = Histogramm-Distanz, p = Pixel-Differenz, q = Pixel-Differenz ohne Mittelwert (Struktur) zum Vorgänger.
+function cutFrame(t, luma, prev, prevLuma) {
+  var slot = cutSlot();
+  slot.h.set(lumaHistogram(luma, CUT_BINS));
+  return { t: t, h: slot.h, s: cutThumb(luma, slot.s), d: prev ? histDistance(prev.h, slot.h) : 0,
+           p: prevLuma ? meanAbsDiff(prevLuma, luma) : 0, q: prevLuma ? meanAbsDiffZ(prevLuma, luma) : 0 };
+}
+// Kandidaten < gap s auseinander → nur der stärkste bleibt (ein Schnitt, nicht zwei Mini-Blöcke)
+function mergeCutCands(cands, gap) {
+  var m = [];
+  cands.forEach(function(x) {
+    var last = m[m.length - 1];
+    if (last && x.t - last.t < gap) { if (x.c > last.c) m[m.length - 1] = x; }
+    else m.push(x);
+  });
+  return m;
+}
+// Reine Entscheidung (Node-testbar). fr: [{ t, h, s, d, p, q }] zeitlich sortiert — volle Framerate
+// (WebCodecs) oder grobe Proben (Seek-Pfad, o.coarse: dort prüft erst die Bisektion "hart vs. weich").
+// → [{ t (Zeit des ersten Frames der neuen Szene), c (Stärke), i (Index) }]
+// Kern: ein harter Schnitt ist ein EIN-Frame-Ausreißer gegenüber der LOKALEN Grundunruhe — egal wie hoch
+// die ist. Drohnenflug über Gras, rennende Tiere, Wasser: dort ändert sich jedes Bild stark (im QA-Sample
+// war die Pixel-Differenz der Bewegung sogar größer als die des Schnitts); absolute Vergleiche ließen den
+// Schnitt dann wie eine Überblendung aussehen. Darum wird d und p je Seite um den Median der letzten bzw.
+// nächsten ~1 s bereinigt ("Überschuss"); die Seite mit der höheren Grundunruhe zählt für den Kandidaten.
+function decideSceneCuts(fr, o) {
+  o = o || {};
+  var n = fr ? fr.length : 0, out = [], i, j;
+  if (n < 3) return out;
+  var steps = [];
+  for (i = 1; i < n && i < 400; i++) steps.push(fr[i].t - fr[i - 1].t);
+  var dt = Math.max(1e-3, medianOf(steps));
+  var K = Math.max(1, Math.round(0.3 / dt)), B = Math.max(3, Math.round(1 / dt));
+  // Grobe Proben sind nur Kandidaten-Generator (Bisektion prüft nach) → niedrigere Schwelle: im WebM-QA-
+  // Sample (Textur → Grün mit gleicher Helligkeit, VP9 weichgezeichnet) lag der Schnitt knapp an 0.25.
+  var floor = o.coarse ? 0.6 * CUT_FLOOR : CUT_FLOOR;
+  function base(from, to, key) { // Median von fr[from..to][key] (Grenzen geklemmt), leer → 0
+    var v = [];
+    for (var k = Math.max(1, from); k <= Math.min(n - 1, to); k++) v.push(fr[k][key]);
+    return medianOf(v);
+  }
+  function ex(k, bd, bp) { return k >= 1 && k < n ? Math.max(fr[k].d - bd, 4 * (fr[k].p - bp)) : 0; }
+  for (i = 1; i < n; i++) {
+    var f = fr[i];
+    // Vorfilter (billig): absolute Änderung groß genug und echte STRUKTUR-Änderung — ein reiner
+    // Belichtungssprung verschiebt nur das Histogramm (q bleibt klein) → kein Schnitt.
+    if (cutChange(f.d, f.p) < floor || !cutStructural(f.p, f.q != null ? f.q : f.p)) continue;
+    var lD = base(i - B, i - 1, 'd'), lP = base(i - B, i - 1, 'p'), rD = base(i + 1, i + B, 'd'), rP = base(i + 1, i + B, 'p');
+    var mD = Math.max(lD, rD), mP = Math.max(lP, rP), ci = ex(i, mD, mP);
+    // muss über der Grundunruhe herausragen und lokales Maximum sein (Nachbarn mit DERSELBEN Basis gemessen)
+    if (ci < floor || ci < ex(i - 1, mD, mP) || ci < ex(i + 1, mD, mP)) continue;
+    var l1 = ex(i - 1, lD, lP), l2 = ex(i - 2, lD, lP), r1 = ex(i + 1, rD, rP), r2 = ex(i + 2, rD, rP);
+    // Überblendung: der Überschuss steigt auf BEIDEN Seiten an (Nachbarn > 40 % des Peaks) → kein harter
+    // Schnitt. Grobe Proben: lockerer (verpasster Schnitt wäre schlimmer; die Bisektion prüft ohnehin nach).
+    if (Math.min(Math.max(l1, l2), Math.max(r1, r2)) > (o.coarse ? 0.6 : 0.4) * ci) continue;
+    // Blitz/Strobo/kurzer Einschub: kehrt das Bild binnen ~0.3 s zum Bild davor zurück (steigende Flanke)
+    // bzw. glich das Bild danach schon einem Bild ≤ 0.3 s vorher (fallende Flanke) → kein Schnitt. Jeweils
+    // gegen ALLE Frames im Fenster, damit der zeitlich nächste passt (Bewegung/Schwenk verfälscht sonst).
+    var jump = frameDist(fr[i - 1], f), rev = Infinity;
+    for (j = i + 1; j <= Math.min(n - 1, i + K); j++) rev = Math.min(rev, frameDist(fr[i - 1], fr[j]));
+    for (j = Math.max(0, i - 1 - K); j < i - 1; j++) rev = Math.min(rev, frameDist(fr[j], f));
+    if (rev < 0.5 * jump) continue;
+    // Zwei-Frame-Schnitt (der erste Frame der neuen Quelle ändert sich gleich nochmal stark, z. B. Encoder-
+    // Neustart/animierte Quelle): Szene beginnt schon beim Frame davor → dessen Zeit melden.
+    var at = l1 > 0.4 * ci && !o.coarse ? i - 1 : i;
+    out.push({ t: fr[at].t, c: ci, i: at });
+  }
+  return mergeCutCands(out, 0.3);
+}
+function cutTimes(cands) { return cands.map(function(x){ return Math.round(x.t * 1e4) / 1e4; }); }
+function cutCoarseStep(dur) { return dur <= 120 ? 0.4 : dur <= 600 ? 0.5 : 1.0; } // Seek-Pfad: Arbeit deckeln
+// true = 'seeked' kam; false = Timeout (Bild ist dann NICHT das gewünschte → Aufrufer verwirft es)
 function seekVideoTo(v, t, timeoutMs) {
   return new Promise(function(resolve) {
     var done = false;
-    function fin() { if (done) return; done = true; clearTimeout(tm); v.removeEventListener('seeked', fin); resolve(); }
-    var tm = setTimeout(fin, timeoutMs || 2500);
-    v.addEventListener('seeked', fin);
-    try { v.currentTime = t; } catch (e) { fin(); }
+    function fin(ok) { if (done) return; done = true; clearTimeout(tm); v.removeEventListener('seeked', onSeeked); resolve(ok); }
+    function onSeeked() { fin(true); }
+    var tm = setTimeout(function(){ fin(false); }, timeoutMs || 2500);
+    v.addEventListener('seeked', onSeeked);
+    try { v.currentTime = t; } catch (e) { fin(false); }
   });
 }
-async function detectSceneCuts(url, dur, isStale) {
+function lumaToU8(l) { var u = new Uint8Array(l.length); for (var i = 0; i < l.length; i++) u[i] = Math.round(l[i] * 255); return u; }
+function lumaFromU8(u) { var l = new Float32Array(u.length); for (var i = 0; i < u.length; i++) l[i] = u[i] / 255; return l; }
+// Verstecktes Video stumm mit 4× abspielen und jeden PRÄSENTIERTEN Frame (requestVideoFrameCallback,
+// mediaTime; der Canvas kann schon ein paar Frames weiter sein → Verfeinerung erweitert B) auf 64×36 greifen. Bricht ab bei Ende, Stillstand > 3 s
+// (Hintergrund-Tab, iOS-Autoplay-Sperre), Fehler oder neuem Video → Rest füllt der Seek-Pfad.
+// → [{ t, l (Uint8-Luma, spart Speicher) }]
+function scanByPlayback(v, cx, dur, stale, onProgress) {
+  return new Promise(function(resolve) {
+    var out = [];
+    if (typeof v.requestVideoFrameCallback !== 'function') { resolve(out); return; }
+    var lastWall = Date.now(), done = false, wd = null;
+    function fin() {
+      if (done) return; done = true;
+      if (wd) clearInterval(wd);
+      try { v.pause(); v.playbackRate = 1; } catch (e) {}
+      resolve(out);
+    }
+    function cb(now, meta) {
+      if (done) return;
+      if (stale()) { fin(); return; }
+      try {
+        cx.drawImage(v, 0, 0, CUT_W, CUT_H);
+        out.push({ t: meta.mediaTime, l: lumaToU8(lumaFromRGBA(cx.getImageData(0, 0, CUT_W, CUT_H).data)) });
+      } catch (e) { fin(); return; }
+      lastWall = Date.now();
+      if (onProgress) onProgress(0.8 * meta.mediaTime / dur);
+      v.requestVideoFrameCallback(cb);
+    }
+    wd = setInterval(function() { if (stale() || Date.now() - lastWall > 3000) fin(); }, 500);
+    v.addEventListener('ended', fin, { once: true });
+    v.addEventListener('error', fin, { once: true });
+    try {
+      v.requestVideoFrameCallback(cb);
+      v.playbackRate = 4;
+      var p = v.play();
+      if (p && p.catch) p.catch(fin);
+    } catch (e) { fin(); }
+  });
+}
+// o: { isStale(), onProgress(0..1), state (bekommt .partial()) } → Schnittzeiten [s]
+async function detectSceneCutsSeek(url, dur, o) {
   if (typeof document === 'undefined' || !url || !(dur > 1.5)) return [];
-  function stale() { return isStale && isStale(); }
+  o = o || {};
+  if (o.state) o.state.partial = null; // evtl. Rest eines abgebrochenen WebCodecs-Versuchs
+  function stale() { return o.isStale && o.isStale(); }
   var v = document.createElement('video');
   v.muted = true; v.playsInline = true; v.preload = 'auto';
   try { v.setAttribute('playsinline', ''); v.setAttribute('muted', ''); } catch (e) {}
@@ -2355,49 +2574,311 @@ async function detectSceneCuts(url, dur, isStale) {
     if (stale() || !(v.videoWidth > 0)) return [];
     var cv = document.createElement('canvas'); cv.width = CUT_W; cv.height = CUT_H;
     var cx = cv.getContext('2d', { willReadFrequently: true });
+    // null = Seek nicht rechtzeitig fertig. Großzügiges Timeout: ein Rückwärts-Seek dekodiert ab dem
+    // letzten Keyframe (GOP 250, 1080p: im Test bis ~3.7 s) — ein zu knappes Timeout lieferte das alte Bild.
     var grab = async function(t) {
-      await seekVideoTo(v, t);
+      var ok = await seekVideoTo(v, t, 10000);
       if (stale()) throw transcribeErr('stale', { stale: true });
+      if (!ok) return null;
       cx.drawImage(v, 0, 0, CUT_W, CUT_H);
-      var l = lumaFromRGBA(cx.getImageData(0, 0, CUT_W, CUT_H).data);
-      return { l: l, h: lumaHistogram(l, CUT_BINS) };
+      return lumaFromRGBA(cx.getImageData(0, 0, CUT_W, CUT_H).data);
     };
-    var samples = [], prev = null, end = dur - 0.05;
-    for (var t = 0.05; t < end; t += cutSampleStep(t)) {
-      var g = await grab(t);
-      samples.push({ t: t, h: g.h, d: prev ? histDistance(prev.h, g.h) : 0, p: prev ? meanAbsDiff(prev.l, g.l) : 0 });
-      prev = g;
-      if (samples.length % 25 === 0) await yieldToUI();
+    // 1) Grobe Proben. a) Wo möglich per Wiedergabe (stumm, 4×) + requestVideoFrameCallback: das dekodiert
+    //    sequenziell — jeder Seek dagegen dekodiert ab dem Keyframe davor (GOP 250, 1080p: ~0.4 s pro Probe,
+    //    auch vorwärts). b) Lücken > 1 s (Frames bei 4× verworfen, Wiedergabe blockiert/abgebrochen,
+    //    Hintergrund-Tab, kein rVFC) per Seek mit 2.5 fps füllen (lange Videos seltener).
+    var t0 = Date.now(), step = cutCoarseStep(dur), end = dur - 0.05;
+    var raw = await scanByPlayback(v, cx, dur, stale, o.onProgress);
+    var tPlay = Date.now() - t0;
+    raw.sort(function(x, y) { return x.t - y.t; });
+    var fill = [], last = 0.05 - step;
+    for (var r = 0; r <= raw.length; r++) {
+      var nextT = r < raw.length ? raw[r].t : end + step;
+      if (nextT - last > 1.0) for (var ft = last + step; ft < nextT - step / 2 && ft < end; ft += step) fill.push(ft);
+      if (r < raw.length) last = raw[r].t;
     }
-    var cuts = [];
-    var cands = pickCutCandidates(samples);
+    for (var q = 0; q < fill.length; q++) {
+      var gl0 = await grab(fill[q]);
+      if (gl0) raw.push({ t: fill[q], l: lumaToU8(gl0) });
+      if (o.onProgress) o.onProgress(Math.max(raw.length ? raw[raw.length - 1].t / dur : 0, (q + 1) / fill.length) * 0.8);
+      if (q % 10 === 9) await yieldToUI();
+    }
+    raw.sort(function(x, y) { return x.t - y.t; });
+    var fr = [], prevF = null, prevL = null;
+    for (r = 0; r < raw.length; r++) {
+      if (prevF && raw[r].t - prevF.t < 1e-4) continue; // doppelt (gleicher Frame)
+      var l = lumaFromU8(raw[r].l), f = cutFrame(raw[r].t, l, prevF, prevL);
+      fr.push(f); prevF = f; prevL = l;
+    }
+    raw = null;
+    var tCoarse = Date.now() - t0;
+    if (o.state) o.state.partial = function() { return []; }; // grobe Proben allein sind nicht framegenau
+    // 2) Nur um die Kandidaten herum verfeinern: Bisektion bis < 1/60 s. Referenzen per Seek neu holen und
+    //    B um 0.5 s nach hinten erweitern: bei 4× zeigt der Canvas im rVFC-Callback evtl. schon einen
+    //    späteren Frame als mediaTime sagt (Wiedergabe läuft weiter) — so lag der Schnitt im 10-min-Test
+    //    knapp HINTER der Probe B und wurde verworfen. Harter Schnitt ⇔ (fast) die ganze Änderung passiert
+    //    zwischen zwei benachbarten Frames; bei einer Überblendung schrumpft sie mit dem Intervall → verworfen.
+    //    Zeit = erste Probe mit der neuen Szene (Fehler < ½ Frame bei 30 fps).
+    var cands = decideSceneCuts(fr, { coarse: true }), cuts = [];
     for (var c = 0; c < cands.length; c++) {
-      var A = samples[cands[c] - 1], B = samples[cands[c]], lo = A.t, hi = B.t;
-      for (var k = 0; k < 3; k++) { // Bisektion → ~1 Frame genau
-        var mid = (lo + hi) / 2, gm = await grab(mid);
-        if (histDistance(gm.h, A.h) <= histDistance(gm.h, B.h)) lo = mid; else hi = mid;
+      var B0 = fr[cands[c].i], lo = fr[cands[c].i - 1].t, hi = Math.min(end, B0.t + 0.5), broken = false;
+      var Al = await grab(lo), Bl = Al && await grab(hi);
+      if (!Al || !Bl) broken = true;
+      else {
+        var Af = cutFrame(lo, Al, null, null), Bf = cutFrame(hi, Bl, null, null), L = Af, R = Bf, Ll = Al, Rl = Bl;
+        var nBis = Math.max(1, Math.ceil(Math.log(Math.max(1, (hi - lo) * 60)) / Math.LN2));
+        for (var k = 0; k < nBis; k++) {
+          var mid = (lo + hi) / 2, ml = await grab(mid);
+          if (!ml) { broken = true; break; }
+          var M = cutFrame(mid, ml, null, null);
+          // gegen die AKTUELLEN Intervallgrenzen vergleichen (nicht A/B): bewegt sich die neue Szene stark
+          // (Wellen, Schwenk), ähnelt ein Frame kurz nach dem Schnitt dem 0.5 s späteren B kaum mehr als A
+          if (frameDist(M, L) <= frameDist(M, R)) { lo = mid; L = M; Ll = ml; } else { hi = mid; R = M; Rl = ml; }
+        }
       }
-      var ct = Math.round(((lo + hi) / 2) * 1000) / 1000;
-      if (!cuts.length || ct - cuts[cuts.length - 1] > 0.3) cuts.push(ct);
+      if (o.onProgress) o.onProgress(0.8 + 0.2 * (c + 1) / cands.length);
+      if (broken) { cuts.push({ t: B0.t, c: cands[c].c }); continue; } // Seek hängt → grob übernehmen statt verlieren
+      var jLR = frameDist(L, R);
+      if (!cutStructural(meanAbsDiff(Ll, Rl), meanAbsDiffZ(Ll, Rl)) || jLR < 0.5 * frameDist(Af, Bf)) continue; // Belichtungssprung/Überblendung
+      // Blitz/kurzer Einschub: ≥ 0.5 s später sieht es wieder aus wie vorher (bzw. vorher schon wie nachher)
+      if (frameDist(L, Bf) < 0.5 * jLR || frameDist(Af, R) < 0.5 * jLR) continue;
+      cuts.push({ t: hi, c: jLR });
     }
-    return cuts;
-  } catch (e) {
-    if (!(e && e.stale)) console.warn('Szenenschnitt-Erkennung abgebrochen:', e);
-    return [];
+    console.info('[cuts] Seek-Pfad: ' + fr.length + ' grobe Proben in ' + (tCoarse / 1000).toFixed(1) + ' s (Wiedergabe '
+                 + (tPlay / 1000).toFixed(1) + ' s, ' + fill.length + ' Seeks), '
+                 + cands.length + ' Kandidaten verfeinert in ' + ((Date.now() - t0 - tCoarse) / 1000).toFixed(1) + ' s');
+    return cutTimes(mergeCutCands(cuts, 0.3));
   } finally {
     try { v.removeAttribute('src'); v.load(); } catch (e2) {}
   }
 }
+// 64×36-Luma direkt aus der Y-Ebene eines VideoFrames (copyTo = Speicherkopie; drawImage auf einen
+// Canvas kostete in Chrome ~10 ms/Frame für die volle YUV→RGB-Wandlung + Skalierung, copyTo < 1 ms).
+// Pro Zelle 4×4 Stichproben gemittelt (gegen Aliasing). null = Format unbekannt → Aufrufer zeichnet.
+var CUT_YUV8 = { I420: 1, I420A: 1, I422: 1, I422A: 1, I444: 1, I444A: 1, NV12: 1 };
+async function lumaFromVideoFrame(frame, bufRef) {
+  var fmt = frame.format, b16 = /^I4(20|22|44)A?P(10|12)$/.test(fmt || ''), rgb = /^(RGB|BGR)[AX]$/.test(fmt || '');
+  if (!fmt || !(CUT_YUV8[fmt] || b16 || rgb)) return null;
+  var size = frame.allocationSize();
+  if (!bufRef.buf || bufRef.buf.byteLength < size) bufRef.buf = new Uint8Array(size);
+  var buf = bufRef.buf, lay = await frame.copyTo(buf), off = lay[0].offset, st = lay[0].stride;
+  var W = frame.visibleRect ? frame.visibleRect.width : frame.codedWidth, H = frame.visibleRect ? frame.visibleRect.height : frame.codedHeight;
+  var dv = b16 ? new DataView(buf.buffer, buf.byteOffset, size) : null;
+  var full = !!(frame.colorSpace && frame.colorSpace.fullRange); // manche Handys: Full-Range-YUV
+  var lo = full ? 0 : 16, rng = full ? 255 : 219; // Video-Range (8 bit); 10/12 bit skaliert
+  if (b16) { var sh = /P12$/.test(fmt) ? 4 : 2; lo = lo << sh; rng = full ? (1 << (8 + sh)) - 1 : 219 << sh; }
+  // zwei Ziel-Puffer im Wechsel (aktueller + Vorgänger-Frame) statt pro Frame neu allozieren
+  bufRef.k = (bufRef.k || 0) ^ 1;
+  var out = (bufRef.l || (bufRef.l = [new Float32Array(CUT_W * CUT_H), new Float32Array(CUT_W * CUT_H)]))[bufRef.k], S = 4;
+  for (var y = 0; y < CUT_H; y++) for (var x = 0; x < CUT_W; x++) {
+    var acc = 0;
+    for (var sy = 0; sy < S; sy++) {
+      var row = Math.min(H - 1, Math.floor((y + (sy + 0.5) / S) * H / CUT_H)) * st + off;
+      for (var sx = 0; sx < S; sx++) {
+        var col = Math.min(W - 1, Math.floor((x + (sx + 0.5) / S) * W / CUT_W));
+        if (rgb) { var k = row + col * 4, r = buf[k], g = buf[k + 1], bl = buf[k + 2]; if (fmt[0] === 'B') { var tmp = r; r = bl; bl = tmp; } acc += (0.299 * r + 0.587 * g + 0.114 * bl) / 255; }
+        else acc += ((b16 ? dv.getUint16(row + col * 2, true) : buf[row + col]) - lo) / rng;
+      }
+    }
+    out[y * CUT_W + x] = Math.max(0, Math.min(1, acc / (S * S)));
+  }
+  return out;
+}
+// Schneller Pfad: alle Frames sequenziell dekodieren (Demux wie exportFastWebCodecs). Wirft bei JEDEM
+// Problem (Codec, fragmentiertes MP4, komplexe Edit-Liste …) → Aufrufer nimmt den Seek-Pfad.
+async function detectSceneCutsWC(file, dur, o) {
+  o = o || {};
+  function stale() { return o.isStale && o.isStale(); }
+  var MP4Box = (await getWebCodecsLibs()).MP4Box;
+  var mp4 = MP4Box.createFile(), info = null, demuxErr = null, vQ = [], vId = -1;
+  mp4.onReady = function(i) { info = i; };
+  mp4.onError = function(e) { demuxErr = e || 'mp4box error'; };
+  // Andere Spuren (Ton) werden mit extrahiert und sofort freigegeben: mp4box gibt einen 4-MB-Puffer erst frei,
+  // wenn ALLE Samples darin "benutzt" sind — sonst blieb die ganze Datei im RAM (10-min-Test: Heap = Dateigröße).
+  var otherRel = {};
+  mp4.onSamples = function(id, user, samples) {
+    if (id === vId) { for (var i = 0; i < samples.length; i++) vQ.push(samples[i]); }
+    else if (samples.length) otherRel[id] = samples[samples.length - 1].number + 1;
+  };
+  // Datei häppchenweise lesen (nie komplett in den RAM); mp4box sagt, welche Position es als Nächstes braucht
+  var CHUNK = 4 * 1024 * 1024, size = file.size, pos = 0, iter = 0, maxIter = Math.ceil(size / CHUNK) * 4 + 50;
+  async function feed() {
+    if (++iter > maxIter) throw new Error('demux: kein Fortschritt (pos ' + pos + ')');
+    var ab = await file.slice(pos, Math.min(size, pos + CHUNK)).arrayBuffer();
+    ab.fileStart = pos;
+    var next = mp4.appendBuffer(ab);
+    if (demuxErr) throw new Error('mp4box: ' + demuxErr);
+    pos = (typeof next === 'number' && isFinite(next)) ? next : pos + ab.byteLength;
+  }
+  while (!info && pos < size) await feed();
+  if (!info) throw new Error('kein moov gefunden');
+  if (info.isFragmented) throw new Error('fragmentiertes MP4 nicht unterstützt');
+  var vT = info.videoTracks && info.videoTracks[0];
+  if (!vT || !vT.nb_samples) throw new Error('keine Videospur');
+  var vEntry = mp4.getTrackById(vT.id).mdia.minf.stbl.stsd.entries[0];
+  var decCfg = { codec: vT.codec, codedWidth: vT.video.width, codedHeight: vT.video.height };
+  var cfgBox = vEntry.avcC || vEntry.hvcC;
+  if (cfgBox) decCfg.description = mp4BoxPayload(MP4Box, cfgBox);
+  else if (/^(avc|hvc|hev)/.test(vT.codec)) throw new Error('avcC/hvcC fehlt (' + vT.codec + ')');
+  var sup = await VideoDecoder.isConfigSupported(decCfg);
+  if (!sup || !sup.supported) throw new Error('VideoDecoder kann ' + vT.codec + ' nicht');
+  var vOff = editListOffset(vT.edits, info.timescale, vT.timescale);
+  if (vOff === null) throw new Error('komplexe Edit-Liste');
+  var vEnd = editListEnd(vT.edits, info.timescale);
+
+  var cv = typeof OffscreenCanvas === 'function' ? new OffscreenCanvas(CUT_W, CUT_H) : document.createElement('canvas');
+  cv.width = CUT_W; cv.height = CUT_H;
+  var cx = cv.getContext('2d', { willReadFrequently: true });
+  var fr = [], prevF = null, prevL = null, fail = null, done = 0, sent = 0, open = 0, total = vT.nb_samples;
+  var chain = Promise.resolve(), bufRef = {};
+  function setFail(e) { if (!fail) fail = e instanceof Error ? e : new Error(String(e && e.message || e)); }
+  // Pro Frame nur 64×36-Luma + Merkmale, dann SOFORT schließen (offene Frames blockieren den Decoder-
+  // Pool). copyTo ist asynchron → Frames strikt der Reihe nach über eine Promise-Kette verarbeiten.
+  async function handle(frame) {
+    try {
+      if (fail) return;
+      var t = frame.timestamp / 1e6;
+      if (t < -0.0005 || t >= vEnd - 0.0005) return; // per Edit-Liste ausgeblendet (wie im Export)
+      var l = await lumaFromVideoFrame(frame, bufRef);
+      if (!l) { cx.drawImage(frame, 0, 0, CUT_W, CUT_H); l = lumaFromRGBA(cx.getImageData(0, 0, CUT_W, CUT_H).data); }
+      var f = cutFrame(Math.max(0, t), l, prevF, prevL);
+      fr.push(f); prevF = f; prevL = l;
+    } catch (e) { setFail(e); }
+    finally { frame.close(); open--; done++; wakeUp(); }
+  }
+  // Warten, bis Decoder-Queue ODER Verarbeitungskette Platz hat ('dequeue'/Frame-Ende statt Timer: Timer
+  // werden in Hintergrund-Tabs auf ≥ 1 s gedrosselt; der Timer ist nur Sicherheitsnetz)
+  var wake = null;
+  function wakeUp() { if (wake) { var w = wake; wake = null; w(); } }
+  function tick() { return new Promise(function(res) { wake = res; decoder.ondequeue = wakeUp; setTimeout(wakeUp, 50); }); }
+  var decoder = new VideoDecoder({
+    output: function(frame) { open++; chain = chain.then(function() { return handle(frame); }); },
+    error: setFail
+  });
+  decoder.configure(decCfg);
+  // Zwischenstand für waitForSceneCuts (Timeout): alles bis 0.5 s vor dem letzten Frame ist entschieden
+  if (o.state) o.state.partial = function() {
+    var lim = fr.length ? fr[fr.length - 1].t - 0.5 : 0;
+    return cutTimes(decideSceneCuts(fr).filter(function(x){ return x.t < lim; }));
+  };
+  var lastPct = -1;
+  function progress() {
+    var p = Math.min(1, done / total);
+    if (o.onProgress && Math.floor(p * 100) !== lastPct) { lastPct = Math.floor(p * 100); o.onProgress(p); }
+  }
+  async function drain() {
+    for (var j = 0; j < vQ.length; j++) {
+      // Backpressure: nur ein paar Chunks in der Queue → Speicher beschränkt, UI bleibt flüssig
+      while (decoder.decodeQueueSize > 6 || open > 4) {
+        await tick();
+        if (fail) throw fail;
+        if (stale()) throw transcribeErr('stale', { stale: true });
+        progress();
+      }
+      var s = vQ[j];
+      decoder.decode(new EncodedVideoChunk({
+        type: s.is_sync ? 'key' : 'delta',
+        timestamp: Math.round((s.cts / s.timescale + vOff) * 1e6),
+        duration: Math.round(s.duration / s.timescale * 1e6),
+        data: s.data
+      }));
+      sent++;
+    }
+    if (vQ.length) { mp4.releaseUsedSamples(vId, vQ[vQ.length - 1].number + 1); vQ.length = 0; }
+    for (var oid in otherRel) { mp4.releaseUsedSamples(+oid, otherRel[oid]); delete otherRel[oid]; }
+    if (stale()) throw transcribeErr('stale', { stale: true });
+    progress();
+  }
+  try {
+    vId = vT.id;
+    mp4.setExtractionOptions(vId, null, { nbSamples: 60 });
+    (info.tracks || []).forEach(function(tr) { if (tr.id !== vId) mp4.setExtractionOptions(tr.id, null, { nbSamples: 500 }); });
+    pos = mp4.seek(0, true).offset;
+    mp4.start();
+    await drain();
+    while (pos < size && sent < total) { await feed(); await drain(); }
+    mp4.flush();
+    await drain();
+    await decoder.flush();
+    await chain;
+    if (fail) throw fail;
+    if (fr.length < Math.min(3, total)) throw new Error('nur ' + fr.length + '/' + total + ' Frames dekodiert');
+    return cutTimes(decideSceneCuts(fr));
+  } finally {
+    try { if (decoder.state !== 'closed') decoder.close(); } catch (e) {}
+    try { mp4.stop(); } catch (e) {}
+  }
+}
+// Wegwahl (Node-testbar): WebCodecs nur für MP4/MOV mit VideoDecoder. Notschalter für Support/Debugging:
+// localStorage['capivo.fastCuts'] = 'off'.
+function sceneCutPath(file) {
+  try { if (localStorage.getItem('capivo.fastCuts') === 'off') return 'seek'; } catch (e) {}
+  return (typeof VideoDecoder === 'function' && typeof EncodedVideoChunk === 'function' && isFastExportSource(file)) ? 'webcodecs' : 'seek';
+}
+async function detectSceneCuts(file, url, dur, o) {
+  if (sceneCutPath(file) === 'webcodecs') {
+    try { return await detectSceneCutsWC(file, dur, o); }
+    catch (e) {
+      if (e && e.stale) throw e;
+      console.warn('[cuts] WebCodecs-Erkennung nicht möglich → Seek-Pfad. Grund:', e && e.message || e);
+    }
+  }
+  return detectSceneCutsSeek(url, dur, o);
+}
+// Lauf-Status für Fortschritt + waitForSceneCuts: { run, running, pct, promise, partial() }
+function beginCutRun() {
+  var st = { run: ++_cutRun, running: true, pct: 0, partial: null, resolve: null };
+  st.promise = new Promise(function(res) { st.resolve = res; });
+  _cutState = st;
+  noteSceneCuts();
+  return st;
+}
+function finishCutRun(st, cuts) {
+  if (!st.running) return;
+  st.running = false;
+  if (st.run === _cutRun && cuts) setSceneCuts(cuts); else noteSceneCuts();
+  st.resolve(true);
+}
+function cutsDetecting() { var st = _cutState; return !!(st && st.running && st.run === _cutRun); }
 // Hintergrund-Start nach dem Laden eines Videos (verzögert, damit die Transkription zuerst Luft hat)
 function startSceneCutDetection(url, dur) {
-  var run = ++_cutRun;
+  var file = currentFile, st = beginCutRun(), run = st.run, t0 = Date.now();
+  var stale = function() { return run !== _cutRun; };
   setTimeout(function() {
-    if (run !== _cutRun) return;
-    detectSceneCuts(url, dur, function(){ return run !== _cutRun; }).then(function(cuts) {
-      if (run !== _cutRun) return;
-      setSceneCuts(cuts);
+    if (stale()) { finishCutRun(st, null); return; }
+    detectSceneCuts(file, url, dur, {
+      isStale: stale, state: st,
+      onProgress: function(p) { var pct = Math.floor(p * 100); if (pct !== st.pct) { st.pct = pct; noteSceneCuts(); } }
+    }).then(function(cuts) {
+      console.info('[cuts] ' + cuts.length + ' Szenenschnitte in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s: ' + cuts.join(', '));
+      finishCutRun(st, stale() ? null : cuts);
+    }, function(e) {
+      if (!(e && e.stale)) console.warn('Szenenschnitt-Erkennung abgebrochen:', e);
+      finishCutRun(st, null);
     });
   }, 1200);
+}
+// Export-Hook: läuft die Erkennung noch (und ist "Break captions at scene cuts" an), bis timeoutMs warten
+// — Fortschritt im Export-Balken — damit kein Block im Export über einen Schnitt läuft. Nach Timeout
+// zählt der entschiedene Zwischenstand. true = Schnitte vollständig bekannt.
+async function waitForSceneCuts(timeoutMs) {
+  var st = _cutState;
+  if (!breakAtCuts || !cutsDetecting() || isExporting || st.waiting) return true; // Export läuft/wartet schon
+  var btn = document.getElementById('btnVideo'), prog = document.getElementById('recProg');
+  var wasDis = btn ? btn.disabled : false;
+  if (btn) btn.disabled = true; // kein zweiter Export-Start während des Wartens
+  st.waiting = true; noteSceneCuts();
+  if (prog) prog.style.display = 'block';
+  var tm, ok = await Promise.race([st.promise, new Promise(function(res) { tm = setTimeout(function(){ res(false); }, timeoutMs || 20000); })]);
+  clearTimeout(tm);
+  st.waiting = false;
+  if (!ok && st.running && st.partial) {
+    try { var pc = st.partial(); if (pc.length) setSceneCuts(pc); } catch (e) {}
+    console.warn('[cuts] Export wartet nicht länger auf die Schnitterkennung (' + st.pct + '%)');
+  }
+  if (prog) prog.style.display = 'none';
+  if (btn) btn.disabled = wasDis;
+  return !!ok;
 }
 function blocksSpanCut(blocks, cuts) {
   return blocks.some(function(b) {
@@ -2423,12 +2904,26 @@ function regroupForCuts() {
   renderSegments(); renderWPills();
   _lastKey = null; updateOverlay();
 }
-function sceneCutSuffix() { return sceneCuts.length ? ' · ' + sceneCuts.length + ' scene cut' + (sceneCuts.length === 1 ? '' : 's') + ' detected' : ''; }
+// Dezenter Zusatz in der Statuszeile (eigener <span class="cut-note">, wird ersetzt statt überschrieben —
+// Erfolgs-/Fehlertext der Transkription bleibt stehen): Fortschritt während der Erkennung, danach die Anzahl.
+function sceneCutSuffix() {
+  var txt = cutsDetecting() ? 'Detecting scene cuts… ' + _cutState.pct + '%'
+    : sceneCuts.length ? sceneCuts.length + ' scene cut' + (sceneCuts.length === 1 ? '' : 's') + ' detected' : '';
+  return txt ? '<span class="cut-note"> · ' + txt + '</span>' : '';
+}
 function noteSceneCuts() {
+  if (typeof document === 'undefined') return;
+  var st = _cutState;
+  if (st && st.waiting) { // Export wartet → Fortschritt im Export-Balken
+    var rm = document.getElementById('recMsg'), rb = document.getElementById('recBar');
+    if (rm) rm.textContent = 'Detecting scene cuts… ' + st.pct + '% (so captions break at every cut)';
+    if (rb) rb.style.width = st.pct + '%';
+  }
   var el = document.getElementById('tStatus');
-  if (!el || !sceneCuts.length) return;
+  if (!el) return;
   var h = String(el.innerHTML || '');
-  if (/t-spinner/.test(h) || /scene cut/.test(h)) return; // laufende Transkription setzt den Hinweis selbst
+  if (/t-spinner/.test(h)) return; // laufende Transkription hängt den Hinweis am Ende selbst an (sceneCutSuffix)
+  h = h.replace(/<span class="cut-note">[\s\S]*?<\/span>/g, '');
   var i = h.lastIndexOf('</span>');
   if (i > 0) el.innerHTML = h.slice(0, i) + sceneCutSuffix() + h.slice(i);
 }
@@ -2447,6 +2942,45 @@ function onBreakAtCutsChange(on) {
 // den Schnitt reicht, behält sein Timing, der Block endet trotzdem am Schnitt), der Blockanfang ebenso.
 function wordMid(w) { var e = (w.end > w.start) ? w.end : w.start; return ((w.start || 0) + (e || 0)) / 2; }
 function cutBetween(cuts, a, b) { for (var k = 0; k < cuts.length; k++) if (cuts[k] > a && cuts[k] <= b) return cuts[k]; return null; }
+// Mindest-Anzeigedauer je Block (~0,3 s): sehr kurze Blöcke blitzen sonst nur auf. Zuerst nur die
+// ANZEIGE verlängern (Ende in die folgende Lücke, höchstens bis zum nächsten Block bzw. Szenenschnitt).
+// Reicht das nicht, nur dann verschmelzen, wenn das Ergebnis höchstens „Wörter pro Block“ hat, nicht über
+// ein Satzende (. ! ? …) und nicht über einen Schnitt läuft — sonst bleibt der Block, wie er ist
+// (vorher entstanden z. B. „SIE IN DIE KOMMENTARE. HALLO“ mit 5 Wörtern bei 4 pro Block).
+var MIN_BLOCK_SEC = 0.3;
+function enforceMinBlockDuration(blocks, cuts) {
+  cuts = cuts || [];
+  function canJoin(a, b2) {
+    if (!a || !b2) return false;
+    if (WORDS_PER_BLOCK <= 1 || a.words.length + b2.words.length > WORDS_PER_BLOCK) return false;
+    if (b2.start - a.end >= 0.8) return false;
+    var la = a.words[a.words.length - 1], fb = b2.words[0];
+    if (la && /[.!?…]["“”»)]*$/.test(la.word)) return false; // Satzende dazwischen
+    return !(la && fb && cutBetween(cuts, wordMid(la), wordMid(fb)) !== null);
+  }
+  function join(a, b2) {
+    var words = a.words.concat(b2.words);
+    return { words: words, srcWords: copyTimedWords(words), start: Math.min(a.start, b2.start), end: Math.max(a.end, b2.end),
+             text: words.map(function(w){ return w.word; }).join(' ') };
+  }
+  var out = blocks.slice();
+  for (var i = 0; i < out.length; i++) {
+    var b = out[i];
+    if (b.end - b.start >= MIN_BLOCK_SEC - 1e-9) continue;
+    var prev = out[i - 1], next = out[i + 1];
+    // 1) Anzeige verlängern
+    var lim = b.start + MIN_BLOCK_SEC;
+    if (next) lim = Math.min(lim, next.start);
+    var c = cutBetween(cuts, b.start + 1e-6, lim); if (c !== null) lim = Math.min(lim, c);
+    if (lim > b.end) b.end = lim;
+    if (b.end - b.start >= MIN_BLOCK_SEC - 1e-9) continue;
+    // 2) nur unter strengen Bedingungen verschmelzen
+    var okP = canJoin(prev, b), okN = canJoin(b, next);
+    if (okP && (!okN || (b.start - prev.end) <= (next.start - b.end))) { out.splice(i - 1, 2, join(prev, b)); i -= 2; continue; }
+    if (okN) { out.splice(i, 2, join(b, next)); i -= 1; continue; }
+  }
+  return out;
+}
 function buildCaptionBlocks(wts, cuts) {
   if (cuts === undefined) cuts = activeCuts();
   cuts = (cuts || []).filter(function(c){ return isFinite(c); }).sort(function(a, b){ return a - b; });
@@ -2478,7 +3012,7 @@ function buildCaptionBlocks(wts, cuts) {
                   text: words.map(function(w){ return w.word; }).join(' ') });
     i = j;
   }
-  return blocks;
+  return enforceMinBlockDuration(blocks, cuts);
 }
 // Nach Text-Edit: Wörter gleichmäßig über die Blockdauer verteilen
 function resplitBlock(b) {
@@ -2713,13 +3247,14 @@ function renderWPills() {
 // ═══════════════════════════════════════
 function selectStyle(id) {
   activeId = id;
+  if (id !== 'custom') { try { localStorage.setItem(STYLE_KEY, id); } catch (e) {} } // Custom lebt nur in der Sitzung
   scheduleAutosave();
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
   if (s) seedCustomFields(s);                        // „Eigener Style" startet vom gewählten Style/Template
-  if (s && s._tpl) applyTemplateSettings(s._tpl);    // gespeichertes Template: Position/Größe/Modus wiederherstellen
+  if (s && s._tpl) { _presetPrevLayout = null; applyTemplateSettings(s._tpl); } // Template bringt eigenes Layout mit
   else if (s && s.layout) applyPresetLayout(s.layout); // eingebaute Presets mit eigener Blockgröße (Pop One)
-  else if (s && id !== 'custom' && _presetPrevLayout) restorePresetLayout();
+  else if (s && _presetPrevLayout) restorePresetLayout(); // jeder andere Style (auch Custom): vorheriges Layout zurück
   _lastKey = null;
   updateOverlay();
 }
@@ -3489,6 +4024,7 @@ function setMode(btn) {
   scheduleAutosave();
 }
 function setLines(btn) {
+  _presetPrevLayout = null; // manuell geändert → behalten
   CAPTION_LINES = parseInt(btn.dataset.lines);
   document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.lines === btn.dataset.lines); });
   _lastKey = null;
@@ -3512,6 +4048,7 @@ function syncWordsFromBlocks() {
   wordTimestamps = flat;
 }
 function onWpbChange(v) {
+  _presetPrevLayout = null; // Nutzer hat selbst eingestellt → beim Verlassen des Presets nicht zurückdrehen
   WORDS_PER_BLOCK = parseInt(v);
   document.getElementById('wpbDisp').textContent = v;
   syncWordsFromBlocks();
@@ -4355,11 +4892,12 @@ async function transcribeVideo(file) {
   setTStatus('', 'Preparing transcription…', true, true);
   setTProgress(5);
   document.getElementById('retryWrap').style.display = 'none';
-  document.getElementById('capEditor').style.display = 'none';
-  wordTimestamps = [];
-  captionBlocks  = [];
-  captionsEdited = false; // Blöcke sind ab hier weg — Bestätigung lief (falls nötig) vorher
-  enableExports(false);
+  // Bisherige Captions bleiben stehen (Vorschau, Editor, Exporte), bis der neue Lauf ERFOLGREICH ist —
+  // ein 429 nach Fast→Perfect oder ein fehlgeschlagener Retry löschte sie sonst ersatzlos. Der Lauf
+  // arbeitet daher auf einer lokalen Wortliste (wts) und schreibt erst ganz am Ende.
+  var hadCaptions = captionBlocks.length > 0;
+  if (!hadCaptions) { document.getElementById('capEditor').style.display = 'none'; enableExports(false); }
+  var wts = [];
 
   try {
     setTProgress(10);
@@ -4396,7 +4934,7 @@ async function transcribeVideo(file) {
     bailIfStale();
 
     if (served !== null) {
-      wordTimestamps = served.words;
+      wts = served.words;
       // Server hat die Sprache selbst erkannt (Auto-Modus, Whisper liefert z.B. "german")
       // → echten Namen statt nur "auto" anzeigen.
       if (whisperLang === 'auto' && served.language && CODE_BY_LANG[served.language]) {
@@ -4414,14 +4952,14 @@ async function transcribeVideo(file) {
       //     NAV_LANG bleibt nur Rückfalloption, wenn Whisper selbst kein Gegensignal liefert
       //     (z. B. bei (a), wo `served.language` durch die Halluzination selbst unzuverlässig sein kann).
       //     Greift NICHT bei aktivem "Translate to English" (dort ist Englisch gewollt).
-      var repetitive = looksRepetitive(wordTimestamps);
+      var repetitive = looksRepetitive(wts);
       var detectedTarget = (served.language && served.language !== 'english' && CODE_BY_LANG[served.language]) ? served.language : null;
       // Trigger: benutzt looksLikeEnglishBias (Stoppwort-Anteil) statt looksLikeTargetLang, denn
       // looksLikeTargetLang verlangt sprachtypische SONDERZEICHEN (ä/ö/ü/ß etc.) -- viele echte,
       // korrekte Sätze (v. a. Deutsch) enthalten aber schlicht keine, das würde hier ständig
       // fälschlich "verdächtig" auslösen bzw. (schlimmer, siehe unten) das Ergebnis verwerfen.
       var suspiciousEnglishBias = !doTranslate && whisperLang === 'auto' && !repetitive
-        && detectedTarget && looksLikeEnglishBias(wordTimestamps);
+        && detectedTarget && looksLikeEnglishBias(wts);
       var retryTarget = detectedTarget || NAV_LANG;
       if (whisperLang === 'auto' && retryTarget && (repetitive || suspiciousEnglishBias)) {
         setTStatus('', 'Auto-detect uncertain — trying ' + retryTarget + '…', true, true);
@@ -4440,7 +4978,7 @@ async function transcribeVideo(file) {
         // zusätzliches, positives Signal erhalten, ist aber nicht mehr zwingend).
         if (servedF && servedF.words.length && !looksRepetitive(servedF.words)
             && (repetitive || !looksLikeEnglishBias(servedF.words) || looksLikeTargetLang(servedF.words, retryTarget))) {
-          wordTimestamps = servedF.words; usedLang = retryTarget;
+          wts = servedF.words; usedLang = retryTarget;
         }
       }
     } else {
@@ -4449,20 +4987,20 @@ async function transcribeVideo(file) {
       var pipe = await getPipe(LOCAL_MODEL[whisperModel] || 'base');
       bailIfStale();
       // return_language:true haengt die von Whisper selbst erkannte Audio-Sprache an die Chunks an
-      // (transcribeChunked reicht sie als wordTimestamps.language durch) -- gleiches zuverlässiges
+      // (transcribeChunked reicht sie als wts.language durch) -- gleiches zuverlässiges
       // Korrektur-Ziel wie `served.language` beim Server-Pfad, statt blind auf NAV_LANG zu vertrauen.
       var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe', return_language: true };
       if (whisperLang !== 'auto') wOpts.language = whisperLang;
       var wtLocal = await transcribeChunked(pipe, audioData, wOpts, stale);
       bailIfStale();
-      wordTimestamps = wtLocal;
-      var repetitiveLocal = looksRepetitive(wordTimestamps);
-      var detectedTargetLocal = (wordTimestamps.language && wordTimestamps.language !== 'english' && CODE_BY_LANG[wordTimestamps.language]) ? wordTimestamps.language : null;
+      wts = wtLocal;
+      var repetitiveLocal = looksRepetitive(wts);
+      var detectedTargetLocal = (wts.language && wts.language !== 'english' && CODE_BY_LANG[wts.language]) ? wts.language : null;
       // Trigger einheitlich über looksLikeEnglishBias (Stoppwort-Anteil) statt looksLikeTargetLang --
       // s. Kommentar beim Server-Pfad: Sonderzeichen-Pflicht verwirft sonst korrekte, akzentfreie
       // Sätze fälschlich.
       var suspiciousEnglishBiasLocal = !doTranslate && whisperLang === 'auto' && !repetitiveLocal
-        && looksLikeEnglishBias(wordTimestamps);
+        && looksLikeEnglishBias(wts);
       var retryTargetLocal = detectedTargetLocal || NAV_LANG;
       if (whisperLang === 'auto' && retryTargetLocal && (repetitiveLocal || suspiciousEnglishBiasLocal)) {
         setTStatus('', 'Auto-detect uncertain — trying ' + retryTargetLocal + '…', true, true);
@@ -4477,33 +5015,34 @@ async function transcribeVideo(file) {
         // positives Signal -- s. Server-Pfad-Kommentar oben (der eigentliche Bug-Fund).
         if (wtF.length && !looksRepetitive(wtF)
             && (repetitiveLocal || !looksLikeEnglishBias(wtF) || looksLikeTargetLang(wtF, retryTargetLocal))) {
-          wordTimestamps = wtF; usedLang = retryTargetLocal;
+          wts = wtF; usedLang = retryTargetLocal;
         }
       }
     }
 
-    wordTimestamps = stripNonSpeechTags(wordTimestamps); // "[Music]"/"(Applause)"-Halluzinationen raus
-    var cleaned = await cleanWords(wordTimestamps); // Stottern & Wiederholungsschleifen entfernen
+    wts = stripNonSpeechTags(wts); // "[Music]"/"(Applause)"-Halluzinationen raus
+    var cleaned = await cleanWords(wts); // Stottern & Wiederholungsschleifen entfernen
     bailIfStale();
-    wordTimestamps = cleaned;
-    wordTimestamps = sanitizeWordTimings(wordTimestamps, audioDur); // Überlappungen/gedehnte Wörter glätten
-    var snapped = await snapWordTimings(wordTimestamps, audioData, 16000); // Wortgrenzen an die echte Sprache ziehen
+    wts = cleaned;
+    wts = sanitizeWordTimings(wts, audioDur); // Überlappungen/gedehnte Wörter glätten
+    var snapped = await snapWordTimings(wts, audioData, 16000); // Wortgrenzen an die echte Sprache ziehen
     bailIfStale();
-    wordTimestamps = snapped;
+    wts = snapped;
     var polishFixes = -1;
-    if (polishEnabled() && wordTimestamps.length) {
+    if (polishEnabled() && wts.length) {
       setTStatus('', '💎 Perfect – polishing…', true, true);
-      var pol = await polishWords(wordTimestamps, CODE_BY_LANG[usedLang] || lc || '', vocab, stale);
+      var pol = await polishWords(wts, CODE_BY_LANG[usedLang] || lc || '', vocab, stale);
       bailIfStale();
-      wordTimestamps = pol.words; polishFixes = pol.fixes;
+      wts = pol.words; polishFixes = pol.fixes;
     }
 
     setTProgress(100);
-    if (!wordTimestamps.length) throw new Error('No speech detected. Tip: pick the language above manually, or try Perfect.');
+    if (!wts.length) throw new Error('No speech detected. Tip: pick the language above manually, or try Perfect.');
 
+    wordTimestamps = wts;
     captionBlocks = buildCaptionBlocks(wordTimestamps);
     captionsEdited = false;
-    _lastTrMeta = { model: whisperModel, lang: usedLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
+    _lastTrMeta = { model: whisperModel, lang: usedLang, langSetting: whisperLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
     setTStatus(qWarn ? '⚠️' : '✅',
@@ -4524,19 +5063,135 @@ async function transcribeVideo(file) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
     if (typeof fakeTimer !== 'undefined') clearInterval(fakeTimer);
     console.error(err);
-    setTStatus('❌', 'Error: ' + (err.message || err), false, false);
+    if (hadCaptions && captionBlocks.length) {
+      // Vorherige Captions unverändert lassen — Editor/Exporte bleiben benutzbar. Modell/Sprache/Übersetzen
+      // wieder auf die Werte stellen, die diese Captions erzeugt haben (sonst zeigt die UI z. B. 💎 Perfect
+      // über Fast-Captions) und sagen, wie man den Versuch wiederholt.
+      var hint = revertTranscriptionSettings(_lastTrMeta);
+      setTStatus('❌', 'Error: ' + (err.message || err) + ' Your previous captions are kept.' + (hint ? ' ' + hint : ''), false, false);
+      document.getElementById('capEditor').style.display = 'block';
+      enableExports(true);
+    } else {
+      setTStatus('❌', 'Error: ' + (err.message || err), false, false);
+    }
     document.getElementById('retryWrap').style.display = 'block';
   }
 }
 
+// Stellt Modell/Sprache/Übersetzen auf meta zurück; liefert einen Hinweis, wie der abgebrochene Wechsel
+// wiederholt werden kann (oder '').
+function revertTranscriptionSettings(meta) {
+  if (!meta || !meta.model) return '';
+  var tried = { model: whisperModel, lang: whisperLang, translate: doTranslate }, hint = '';
+  if (tried.model !== meta.model) hint = 'Switch to ' + (tried.model === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' again to retry.';
+  else if (tried.translate !== !!meta.translate) hint = (tried.translate ? 'Turn on' : 'Turn off') + ' “Translate to English” again to retry.';
+  else if (meta.langSetting && tried.lang !== meta.langSetting) hint = 'Pick the language again to retry.';
+  whisperModel = meta.model;
+  document.querySelectorAll('#modelRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.m === whisperModel); });
+  doTranslate = !!meta.translate;
+  var tr = document.getElementById('trEn'); if (tr) tr.checked = doTranslate;
+  if (meta.langSetting) { whisperLang = meta.langSetting; var ls = document.getElementById('langSel'); if (ls) ls.value = whisperLang; }
+  return hint;
+}
 function retryTranscribe() { if (currentFile) transcribeVideo(currentFile); }
+var videoPlayable = true; // false: Browser kann das Bild nicht dekodieren (HEVC) bzw. Datei hat keine Videospur
 function enableExports(on) {
   ['btnVideo','btnSRT','btnVTT','btnTXT','btnCopy'].forEach(function(id){ var b=document.getElementById(id); if(b) b.disabled=!on; });
+  // Video-Export braucht ein abspielbares Bild — SRT/VTT/TXT funktionieren trotzdem
+  var bv = document.getElementById('btnVideo'); if (bv && !videoPlayable) bv.disabled = true;
+}
+// ── Abspielbarkeit prüfen: HEVC ohne Decoder / reine Audiodatei ──
+var MSG_HEVC = 'This video uses HEVC (iPhone "High Efficiency"), which this browser can\'t play. Open Capivo in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.';
+var MSG_NOVIDEO = 'This file has no video track.';
+var MSG_H264 = 'This browser can\'t play this H.264 video — open Capivo in Chrome, Safari or Edge.';
+var MSG_CODEC = 'This browser can\'t play this video format. Try Chrome, Safari or Edge, or convert the video to MP4 (H.264).';
+function showVideoWarn(msg) {
+  var w = document.getElementById('vidWarn');
+  if (!w) return;
+  w.textContent = msg || '';
+  w.style.display = msg ? 'block' : 'none';
+}
+// Videospur aus dem MP4/MOV lesen (nur Metadaten, häppchenweise) → { hasVideo, codec } oder null
+async function probeVideoTrack(file) {
+  if (!isFastExportSource(file)) return null;
+  try {
+    var libs = await getWebCodecsLibs();
+    var mp4 = libs.MP4Box.createFile(), info = null, err = null;
+    mp4.onReady = function(i) { info = i; };
+    mp4.onError = function(e) { err = e || 'mp4box'; };
+    var CHUNK = 2 * 1024 * 1024, pos = 0, iter = 0;
+    while (!info && !err && pos < file.size && iter++ < 64) {
+      var ab = await file.slice(pos, Math.min(file.size, pos + CHUNK)).arrayBuffer();
+      ab.fileStart = pos;
+      var next = mp4.appendBuffer(ab);
+      pos = (typeof next === 'number' && isFinite(next) && next > pos) ? next : pos + ab.byteLength;
+    }
+    if (!info) return null;
+    var vt = info.videoTracks && info.videoTracks[0];
+    return { hasVideo: !!vt, codec: vt ? String(vt.codec || '') : '' };
+  } catch (e) { return null; }
+}
+// Entscheidung (rein, testbar): videoWidth > 0 → ok; sonst anhand der Spur-Info bzw. Dateiart
+function classifyUnplayable(probe, file) {
+  if (probe && probe.hasVideo === false) return 'novideo';
+  if (probe && probe.hasVideo) {
+    // Spur vorhanden, Browser kann sie nicht dekodieren → nach Codec unterscheiden
+    var cd = String(probe.codec || '').toLowerCase();
+    if (/^(hvc1|hev1)/.test(cd)) return 'hevc';
+    if (/^(avc1|avc3)/.test(cd)) return 'h264'; // z. B. Chromium ohne proprietäre Codecs
+    return 'codec';
+  }
+  var n = String(file && file.name || '').toLowerCase(), t = String(file && file.type || '').toLowerCase();
+  if (/^audio\//.test(t) || /\.(m4a|mp3|aac|wav|ogg|opus)$/.test(n)) return 'novideo';
+  return /\.(mov|mp4|m4v|hevc)$/.test(n) || /quicktime|mp4/.test(t) ? 'hevc' : 'novideo';
+}
+async function checkVideoPlayable(vid, file) {
+  if (vid.videoWidth > 0) return 'ok';
+  await new Promise(function(res) {
+    var tm = setTimeout(res, 1500);
+    vid.addEventListener('loadeddata', function(){ clearTimeout(tm); res(); }, { once: true });
+  });
+  if (vid.videoWidth > 0) return 'ok';
+  return classifyUnplayable(await probeVideoTrack(file), file);
+}
+function applyPlayability(state) {
+  videoPlayable = state === 'ok';
+  var msgs = { hevc: MSG_HEVC, h264: MSG_H264, codec: MSG_CODEC, novideo: MSG_NOVIDEO + ' Captions, SRT and TXT still work — video export needs a picture.' };
+  var tips = { hevc: 'This browser can\'t play HEVC video', h264: 'This browser can\'t play this H.264 video', codec: 'This browser can\'t play this video format', novideo: 'No video track' };
+  showVideoWarn(msgs[state] || '');
+  var bv = document.getElementById('btnVideo');
+  if (bv) { if (!videoPlayable) bv.disabled = true; bv.title = videoPlayable ? '' : (tips[state] || 'Video can\'t be played'); }
 }
 
 // ═══════════════════════════════════════
 // VIDEO LOADING
 // ═══════════════════════════════════════
+// Vorschau-Rahmen an Ausgabeformat (Video-Seitenverhältnis bzw. 9:16 beim Reframe) und verfügbaren Platz
+// anpassen. Verfügbaren Platz aus dem tatsächlich gerenderten prev-col nehmen statt aus window.innerHeight —
+// auf Mobile ist prev-col per CSS auf einen Bruchteil der Viewport-Höhe begrenzt. min()-Deckel 480/360 = Desktop.
+// setFont: Start-Schriftgröße ~8 % der Rahmenbreite (nur beim Laden eines Videos).
+function layoutPreviewFrame(setFont) {
+  var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
+  var ar = vid.videoWidth / vid.videoHeight;
+  if (reframeActive(vid.videoWidth, vid.videoHeight)) ar = 9 / 16;
+  if (!(ar > 0) || !isFinite(ar)) ar = 9 / 16; // Video ohne Bild (HEVC/Audio-only): nie durch 0 teilen
+  var pcRect = frame.parentElement ? frame.parentElement.getBoundingClientRect() : { width: 360, height: 540 };
+  var maxH = Math.min(480, Math.max(100, (pcRect.height || 540) - 56));
+  var maxW = Math.min(360, Math.max(100, (pcRect.width || 360) - 4));
+  var h = maxH, w = Math.round(h * ar);
+  if (w > maxW) { w = maxW; h = Math.round(w / ar); }
+  if (w < 120) { w = 120; h = Math.round(w / ar); }
+  frame.style.width  = w + 'px';
+  frame.style.height = h + 'px';
+  if (setFont) {
+    fontSize = Math.max(10, Math.min(54, Math.round(w * 0.08)));
+    var szSliderEl = document.getElementById('szSlider');
+    if (szSliderEl) szSliderEl.value = fontSize;
+    var szDispEl = document.getElementById('szDisp');
+    if (szDispEl) szDispEl.textContent = fontSize + 'px';
+  }
+  return w;
+}
 function loadVideo(file) {
   if (!file || !file.type.startsWith('video/')) {
     // Statt eines nativen alert() (bricht den Look-and-Feel, v.a. auf Mobile) die gleiche
@@ -4552,6 +5207,7 @@ function loadVideo(file) {
   wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1; captionsEdited = false;
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
   _cutRun++; sceneCuts = []; // Szenenschnitte gehören zum Video
+  videoPlayable = true; showVideoWarn('');
   openEditor();
 
   var vid = document.getElementById('mainVid');
@@ -4562,28 +5218,8 @@ function loadVideo(file) {
   vid.src = url; vid.muted = vidMuted;
 
   vid.onloadedmetadata = function() {
-    var ar = vid.videoWidth / vid.videoHeight;
-    var frame = document.getElementById('prevFrame');
-    // Verfügbaren Platz aus dem tatsächlich gerenderten prev-col nehmen statt aus window.innerHeight —
-    // auf Mobile ist prev-col per CSS auf einen Bruchteil der Viewport-Höhe begrenzt (Platz für die
-    // Steuerung darunter), das ignorierte die alte window.innerHeight-Formel und quetschte/verzerrte
-    // den Vorschau-Rahmen. min()-Deckel 480/360 bleiben als Desktop-Obergrenze erhalten.
-    var pcRect = frame.parentElement.getBoundingClientRect();
-    var maxH = Math.min(480, Math.max(100, pcRect.height - 56));
-    var maxW = Math.min(360, Math.max(100, pcRect.width - 4));
-    var h = maxH, w = Math.round(h * ar);
-    if (w > maxW) { w = maxW; h = Math.round(w / ar); }
-    if (w < 120) { w = 120; h = Math.round(w / ar); }
-    frame.style.width  = w + 'px';
-    frame.style.height = h + 'px';
-    // Sinnvolle Start-Schriftgröße statt fixem Wert: branchenüblich ~8% der Vorschaubreite
-    // (Reels-Untertitel wirken bei fester 22px auf schmalen/breiten Previews sonst zu klein/groß).
-    // Nutzer kann danach weiterhin frei über den Slider anpassen.
-    fontSize = Math.max(10, Math.min(54, Math.round(w * 0.08)));
-    var szSliderEl = document.getElementById('szSlider');
-    if (szSliderEl) szSliderEl.value = fontSize;
-    var szDispEl = document.getElementById('szDisp');
-    if (szDispEl) szDispEl.textContent = fontSize + 'px';
+    exportFormat = 'original'; syncFormatRow(); setExportFormat('original');
+    var w = layoutPreviewFrame(true);
     // Mindestens 320px statt nur Rahmenbreite: sonst schrumpft die Fortschrittsleiste auf wenige Pixel
     // und die Zeitangabe bricht um. CSS max-width:100% deckelt auf die Spaltenbreite.
     document.getElementById('vidCtrls').style.width = Math.max(w, 320) + 'px';
@@ -4599,6 +5235,9 @@ function loadVideo(file) {
     document.getElementById('ppBtn').textContent = '▶';
     updateOverlay();
     var restored = restoreOrTranscribe(file, vid.duration);
+    // Kein Bild (HEVC ohne Decoder / reine Audiodatei)? Transkription läuft trotzdem (Ton), Video-Export aus.
+    var runFile = file;
+    checkVideoPlayable(vid, file).then(function(st) { if (currentFile === runFile) applyPlayability(st); });
     // Szenenschnitte im Hintergrund (parallel zur Transkription); ein Autosave bringt sie schon mit
     if (!(restored && sceneCuts.length)) startSceneCutDetection(vid.src, vid.duration);
   };
@@ -4614,7 +5253,22 @@ function loadVideo(file) {
   vid.onplay  = function() { showPlayOverlay(false); document.getElementById('ppBtn').textContent = '⏸'; startCapLoop(); };
   vid.onpause = function() { showPlayOverlay(true);  document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
   vid.onended = function() { showPlayOverlay(true); document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
-  vid.onerror = function() { alert('Could not load the video.'); vidReady = false; vid.style.display = 'none'; document.getElementById('frameDropZone').style.display = 'flex'; };
+  vid.onerror = function() {
+    // In-App-Fehler statt nativem alert(): gleiche Fehlerbox wie bei anderen Problemen + Hinweis zum Weitermachen
+    vidReady = false; vid.style.display = 'none'; document.getElementById('frameDropZone').style.display = 'flex';
+    videoPlayable = false; enableExports(false);
+    setTStatus('❌', 'Couldn\'t load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone\'s Photos app, then upload it again.', false, false);
+    showVideoWarn('This video couldn\'t be opened in this browser. Tap “Upload video” to try another file.');
+    // Manche Browser (z. B. Firefox bei HEVC) melden einen Fehler statt Breite 0 — der Ton ist trotzdem
+    // lesbar: dann HEVC-Hinweis zeigen und die Captions dennoch erzeugen (SRT/TXT bleiben nutzbar).
+    var errFile = file;
+    probeVideoTrack(file).then(function(pr) {
+      if (currentFile !== errFile || !(pr && pr.hasVideo)) return;
+      applyPlayability(classifyUnplayable(pr, errFile));
+      setTStatus('', 'Preparing transcription…', true, true);
+      restoreOrTranscribe(errFile, 0);
+    });
+  };
   vid.load();
 }
 
@@ -4901,7 +5555,11 @@ async function ffFetchFile(input) {
   return new Uint8Array(buf);
 }
 // Kodiert einen aufgenommenen WebM-Blob nach H.264/AAC-MP4 um (Instagram/TikTok-tauglich).
-async function webmToMp4(blob, onProgress) {
+function webmToMp4Trim(durSec) {
+  return (durSec > 0 && isFinite(durSec)) ? ['-t', durSec.toFixed(3), '-shortest'] : ['-shortest'];
+}
+// durSec (optional): Zieldauer — Bild UND Ton werden darauf gekürzt (A/V enden gemeinsam, ≈ Quelldauer)
+async function webmToMp4(blob, onProgress, durSec) {
   var g = await getFFmpeg();
   var ff = g.ff;
   if (onProgress) ff.on('progress', function(e){ onProgress(Math.max(0, Math.min(1, e.progress || 0))); });
@@ -4914,11 +5572,11 @@ async function webmToMp4(blob, onProgress) {
   // mit 1000 fps und duplizierten Frames (6 s → 6111 Frames). Konstante 30 fps (= captureStream(30)):
   // „-fps_mode cfr -r 30“ (Core 0.12.6 = FFmpeg 5.1.4, kennt -fps_mode) → Frames = Dauer × 30,
   // CFR ist zudem für Instagram/iOS-Fotos die unproblematischste Variante.
-  await ff.exec(['-i', 'in.webm',
+  await ff.exec(['-i', 'in.webm'].concat(webmToMp4Trim(durSec)).concat([
     '-fps_mode', 'cfr', '-r', '30',
     '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '128k',
-    '-movflags', '+faststart', 'out.mp4']);
+    '-movflags', '+faststart', 'out.mp4']));
   var data = await ff.readFile('out.mp4');
   try { ff.off && ff.off('progress'); } catch(e) {}
   return new Blob([data.buffer], { type: 'video/mp4' });
@@ -5006,7 +5664,23 @@ async function getWebCodecsLibs() {
     import('/vendor/mp4-muxer/mp4-muxer.mjs?v=' + WC_LIB_VERSIONS.muxer)
   ]);
   _wcLibs = { MP4Box: r[0], Mux: r[1] };
+  quietMp4BoxLog(r[0]);
   return _wcLibs;
+}
+// mp4box loggt unbekannte (harmlose) Boxen wie Apples '©swr' in JEDER MOV-Datei als console.error.
+// Log-Level steht schon auf „error“ (höher geht nicht) → genau diese Meldungen herausfiltern; echte
+// Fehler (mit isofile → onError) laufen unverändert weiter.
+function quietMp4BoxLog(MP4Box) {
+  var L = MP4Box && MP4Box.Log;
+  if (!L || L._capivoQuiet) return;
+  try { if (L.setLogLevel) L.setLogLevel(L.error); } catch (e) {}
+  var orig = L.error;
+  L.error = function(module, msg, isofile) {
+    if (!isofile && /Invalid box type/i.test(String(msg))) return;
+    return orig.apply(this, arguments);
+  };
+  L.warn = function() {};
+  L._capivoQuiet = true;
 }
 // Reine Feature-Erkennung — muss auch ohne window/localStorage (Node-Tests) gefahrlos false liefern.
 function fastExportSupported() {
@@ -5133,10 +5807,10 @@ function mp4BoxPayload(MP4Box, box) {
   return new Uint8Array(ds.buffer, 8);
 }
 // Zeichnet einen dekodierten Frame "cover"-skaliert auf W×H — identisch zum Echtzeit-Pfad, plus Drehung.
-function drawFastFrame(ctx, frame, W, H, rot) {
+function drawFastFrame(ctx, frame, W, H, rot, fit) {
   var fw = frame.displayWidth, fh = frame.displayHeight;
   var rw = rot % 180 ? fh : fw, rh = rot % 180 ? fw : fh; // Maße NACH der Drehung
-  var sc = Math.max(W / rw, H / rh);
+  var sc = fit === 'contain' ? Math.min(W / rw, H / rh) : Math.max(W / rw, H / rh);
   if (!rot) { ctx.drawImage(frame, (W - fw * sc) / 2, (H - fh * sc) / 2, fw * sc, fh * sc); return; }
   ctx.save();
   ctx.translate(W / 2, H / 2);
@@ -5203,8 +5877,9 @@ async function exportFastWebCodecs(file, o) {
   var rotW = rot % 180 ? vT.video.height : vT.video.width, rotH = rot % 180 ? vT.video.width : vT.video.height;
   // Plausibilitätscheck gegen das, was der Player zeigt (falsch erkannte Drehung/Pixel-Seitenverhältnis
   // → lieber Echtzeit-Pfad als ein verzerrtes Video).
-  if (Math.abs(rotW / rotH - o.W / o.H) > 0.02 * (o.W / o.H)) {
-    throw new Error('Seitenverhältnis ' + rotW + 'x' + rotH + ' (rot ' + rot + ') passt nicht zum Player ' + o.W + 'x' + o.H);
+  var pW = o.srcW || o.W, pH = o.srcH || o.H; // Plausibilität gegen die PLAYER-Maße (Ausgabe kann 9:16/1080p sein)
+  if (Math.abs(rotW / rotH - pW / pH) > 0.02 * (pW / pH)) {
+    throw new Error('Seitenverhältnis ' + rotW + 'x' + rotH + ' (rot ' + rot + ') passt nicht zum Player ' + pW + 'x' + pH);
   }
   var W = o.W - (o.W % 2), H = o.H - (o.H % 2); // H.264 (4:2:0) braucht gerade Maße
   var fps = vT.samples_duration ? vT.nb_samples / (vT.samples_duration / vT.timescale) : 30;
@@ -5231,7 +5906,7 @@ async function exportFastWebCodecs(file, o) {
   // ── Encoder wählen ──
   var enc = null, cands = fastExportVideoCodecs(W, H, fps);
   for (var ci = 0; ci < cands.length && !enc; ci++) {
-    var ecfg = { codec: cands[ci].codec, width: W, height: H, bitrate: 8000000, framerate: fps, latencyMode: 'quality' };
+    var ecfg = { codec: cands[ci].codec, width: W, height: H, bitrate: exportBitrate(W, H, fps), framerate: fps, latencyMode: 'quality' };
     if (cands[ci].mux === 'avc') ecfg.avc = { format: 'avc' }; // Längen-präfixiert + avcC in den Metadaten (MP4)
     try {
       var es = await VideoEncoder.isConfigSupported(ecfg);
@@ -5281,7 +5956,7 @@ async function exportFastWebCodecs(file, o) {
         if (outT === null) return; // Auto-Cut: Frame liegt in Stille/Füllwort
         var outUs = Math.round(outT * 1e6);
         if (outUs <= lastOutUs) return;
-        drawFastFrame(ctx, frame, W, H, rot);
+        drawReframed(ctx, W, H, o.mode || 'original', function(c, w, h, fit){ drawFastFrame(c, frame, w, h, rot, fit); });
         drawCaptionsOnCtx(ctx, t, o.style, W, H, false);
         drawWatermark(ctx, W, H, o.wmOn);
         var vf = new VideoFrame(canvas, { timestamp: outUs, duration: frame.duration || defDurUs, alpha: 'discard' });
@@ -5402,6 +6077,8 @@ function validateExportBlob(blob, expectedDur, timeoutMs) {
   });
 }
 async function tryFastExport(vid) {
+  var geoF = exportGeometry(vid.videoWidth, vid.videoHeight, 30);
+  if (_blurBgCanvas) _blurBgCanvas.width = 0; // Blur-Hintergrund des vorigen Exports nicht wiederverwenden
   if (!fastExportSupported() || !isFastExportSource(currentFile)) return false;
   var recBar = document.getElementById('recBar'), recMsg = document.getElementById('recMsg');
   var recProg = document.getElementById('recProg'), ctrls = document.getElementById('vidCtrls');
@@ -5416,13 +6093,14 @@ async function tryFastExport(vid) {
   var t0 = Date.now();
   try {
     var blob = await exportFastWebCodecs(currentFile, {
-      W: vid.videoWidth || 1080, H: vid.videoHeight || 1920,
+      W: geoF.W, H: geoF.H, srcW: vid.videoWidth, srcH: vid.videoHeight, mode: geoF.mode,
       style: STYLES.find(function(x){ return x.id === activeId; }),
       wmOn: needsWatermark(), // Anmeldestatus JETZT — gilt für das ganze Video (wie im Echtzeit-Pfad)
       cutRegions: cutRegions,
       onProgress: function(p) {
         recBar.style.width = Math.round(p * 100) + '%';
         recMsg.textContent = 'Rendering ' + Math.round(p * 100) + '%…';
+        exportBtnState('Rendering ' + Math.round(p * 100) + '%…');
       }
     });
     console.info('[export] WebCodecs-Schnellexport fertig in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s (Video: '
@@ -5433,6 +6111,7 @@ async function tryFastExport(vid) {
     if (!check.ok) throw new Error('Validierung fehlgeschlagen: ' + check.reason);
     dlBlob(blob, 'capivo-video.mp4');
     recProg.style.display = 'none';
+    exportBtnState(null);
     isExporting = false;
     if (ctrls) ctrls.classList.remove('exporting');
     maybeUpsell();
@@ -5449,33 +6128,175 @@ async function tryFastExport(vid) {
 // ═══════════════════════════════════════
 // EXPORT — VIDEO WITH BURNED-IN CAPTIONS
 // ═══════════════════════════════════════
+// ═══════════════════════════════════════
+// EXPORT-GEOMETRIE — Auflösung, Bitrate, Reframe (9:16)
+// ═══════════════════════════════════════
+// 1080p (Standard): längere Seite ≤ 1920, nie hochskalieren (Instagram-Maximum ist 1080×1920; 4K-Exporte
+// waren nur größer und langsamer). Bitrate ~0,07 Bit/Pixel/Frame, 2–12 Mbit/s. Reframe: Quer-/Quadrat-
+// Videos als 9:16 — „blur“ = unscharfer, abgedunkelter Hintergrund + ganzes Video mittig, „crop“ = Mitte.
+var exportRes = '1080', exportFormat = 'original';
+try { if (typeof localStorage !== 'undefined' && localStorage.getItem('capivo.expRes') === 'orig') exportRes = 'orig'; } catch (e) {}
+function isNineSixteen(w, h) { return w > 0 && h > 0 && Math.abs(w / h - 9 / 16) < 0.02; }
+function reframeActive(srcW, srcH) { return exportFormat !== 'original' && srcW > 0 && srcH > 0 && !isNineSixteen(srcW, srcH); }
+function exportBitrate(W, H, fps) { return Math.round(Math.max(2e6, Math.min(12e6, 0.07 * W * H * (fps || 30)))); }
+function exportGeometry(srcW, srcH, fps, res, fmt) {
+  res = res || exportRes; fmt = fmt || exportFormat;
+  srcW = srcW || 1080; srcH = srcH || 1920;
+  var mode = (fmt !== 'original' && !isNineSixteen(srcW, srcH)) ? fmt : 'original';
+  var w = srcW, h = srcH;
+  if (mode !== 'original') { var L = Math.max(srcW, srcH); h = L; w = Math.round(L * 9 / 16); }
+  if (res !== 'orig') {
+    // Original: nie hochskalieren. Reframe: der 9:16-Rahmen ist eine NEUE Leinwand → immer 1080×1920
+    // (das Video darin wird nur eingepasst, nicht über seine Größe hinaus vergrößert — außer beim Crop).
+    var k = mode === 'original' ? Math.min(1, 1920 / Math.max(w, h)) : 1920 / Math.max(w, h);
+    w = Math.round(w * k); h = Math.round(h * k);
+  }
+  w -= w % 2; h -= h % 2; // H.264 (4:2:0) braucht gerade Maße
+  return { W: w, H: h, mode: mode, bitrate: exportBitrate(w, h, fps || 30) };
+}
+// Quelle (Video-Element oder VideoFrame über drawFn) in den Ausgaberahmen zeichnen.
+// drawFn(ctx, W, H, fit) zeichnet die Quelle zentriert mit fit = 'cover' | 'contain'.
+var _blurBgCanvas = null, _blurMidCanvas = null, _blurBgFrame = 0, BLUR_BG_EVERY = 6;
+// Blur-Fill-Hintergrund ohne ctx.filter/shadowBlur. Teuer war das Herunterskalieren des VOLLEN Quellbilds
+// in den winzigen Canvas: winzige Canvases liegen in Chrome im CPU-Speicher → jedes Mal Rücklesen des
+// (YUV-)Videoframes von der GPU. Jetzt: Quelle → mittlerer Canvas (256 px breit, GPU-beschleunigt, bleibt
+// auf der GPU) → winziger Canvas (27 px, liest nur ~0,5 MB zurück) → abdunkeln. Nur jeden 6. Frame neu
+// (ein unscharfer Hintergrund braucht keine Frame-Genauigkeit), Hochskalieren mit „low“-Glättung (bilinear).
+function drawReframed(ctx, W, H, mode, drawFn) {
+  if (mode !== 'blur') { drawFn(ctx, W, H, 'cover'); return; }
+  if (!_blurBgCanvas) _blurBgCanvas = document.createElement('canvas');
+  if (!_blurMidCanvas) _blurMidCanvas = document.createElement('canvas');
+  var bw = 27, bh = Math.max(8, Math.round(27 * H / W));
+  var mw = 256, mh = Math.max(64, Math.round(256 * H / W));
+  var fresh = _blurBgCanvas.width !== bw || _blurBgCanvas.height !== bh;
+  if (fresh) { _blurBgCanvas.width = bw; _blurBgCanvas.height = bh; }
+  if (_blurMidCanvas.width !== mw || _blurMidCanvas.height !== mh) { _blurMidCanvas.width = mw; _blurMidCanvas.height = mh; }
+  var redraw = fresh || (++_blurBgFrame % BLUR_BG_EVERY === 0);
+  if (fresh) _blurBgFrame = 0;
+  if (redraw) {
+    var m = _blurMidCanvas.getContext('2d');
+    drawFn(m, mw, mh, 'cover');
+    var b = _blurBgCanvas.getContext('2d');
+    b.imageSmoothingEnabled = true;
+    if ('imageSmoothingQuality' in b) b.imageSmoothingQuality = 'low';
+    b.drawImage(_blurMidCanvas, 0, 0, bw, bh);
+    b.fillStyle = 'rgba(0,0,0,.45)'; b.fillRect(0, 0, bw, bh);
+  }
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  if ('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'low';
+  ctx.drawImage(_blurBgCanvas, 0, 0, W, H);
+  ctx.restore();
+  drawFn(ctx, W, H, 'contain');
+}
+function drawVideoFit(ctx, vid, W, H, fit) {
+  var vW = vid.videoWidth, vH = vid.videoHeight;
+  if (!(vW > 0 && vH > 0)) return;
+  var sc = fit === 'contain' ? Math.min(W / vW, H / vH) : Math.max(W / vW, H / vH);
+  ctx.drawImage(vid, (W - vW * sc) / 2, (H - vH * sc) / 2, vW * sc, vH * sc);
+}
+function setExportRes(v) {
+  exportRes = v === 'orig' ? 'orig' : '1080';
+  try { localStorage.setItem('capivo.expRes', exportRes); } catch (e) {}
+}
+// Vorschau zeigt das Ausgabeformat: 9:16-Rahmen, bei „blur“ ganzes Video + unscharfer Hintergrund
+var _blurBgTimer = null;
+function setExportFormat(v) {
+  exportFormat = (v === 'blur' || v === 'crop') ? v : 'original';
+  var sel = document.getElementById('expFmt'); if (sel && sel.value !== exportFormat) sel.value = exportFormat;
+  var frame = document.getElementById('prevFrame'), vid = document.getElementById('mainVid');
+  var blur = reframeActive(vid.videoWidth, vid.videoHeight) && exportFormat === 'blur';
+  if (frame && frame.classList) frame.classList.toggle('reframe-blur', blur);
+  if (_blurBgTimer) { clearInterval(_blurBgTimer); _blurBgTimer = null; }
+  if (blur) { updatePreviewBlurBg(); _blurBgTimer = setInterval(updatePreviewBlurBg, 300); }
+  if (vidReady) { layoutPreviewFrame(false); _lastKey = null; updateOverlay(); applyPos(); }
+}
+function updatePreviewBlurBg() {
+  var c = document.getElementById('prevBlurBg'), vid = document.getElementById('mainVid');
+  if (!c || !c.getContext || !vid || !(vid.videoWidth > 0)) return;
+  try { drawVideoFit(c.getContext('2d'), vid, c.width, c.height, 'cover'); } catch (e) {}
+}
+function syncFormatRow() {
+  var vid = document.getElementById('mainVid'), row = document.getElementById('fmtRow');
+  var show = vid && vid.videoWidth > 0 && !isNineSixteen(vid.videoWidth, vid.videoHeight);
+  if (row) row.style.display = show ? '' : 'none';
+  if (!show && exportFormat !== 'original') setExportFormat('original');
+}
+// MediaRecorder-Format wählen. Ein MP4 nur dann, wenn es AAC-Ton ausdrücklich zusagt (mp4a): Chrome auf
+// Linux/Windows sagt zu 'video/mp4;codecs=avc1' ja und schreibt dann H.264 + OPUS in den MP4-Container —
+// Instagram/iOS lehnen das ab. Ohne Tonspur reicht reines avc1. Danach WebM (→ ffmpeg nach H.264/AAC),
+// generisches 'video/mp4' nur als letzter Ausweg (Safari: kann kein WebM aufnehmen, liefert H.264/AAC).
+function pickRecorderMime(isSupported, hasAudio) {
+  var mp4 = ['video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/mp4;codecs=avc1,mp4a'];
+  if (!hasAudio) mp4.push('video/mp4;codecs=avc1');
+  var list = mp4.concat(['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4']);
+  for (var i = 0; i < list.length; i++) { try { if (isSupported(list[i])) return list[i]; } catch (e) {} }
+  return 'video/webm';
+}
+function recorderMimeIsSafeMp4(actual, requested, hasAudio) {
+  var a = String(actual || ''), r = String(requested || '');
+  if (!/mp4/i.test(a || r)) return false;
+  if (/opus|vp8|vp9|av01/i.test(a)) return false;
+  if (!hasAudio) return true;
+  if (/mp4a/i.test(a) || /mp4a/i.test(r)) return true;
+  return r === 'video/mp4' && !/codecs/i.test(a); // Safari: generisches MP4 = H.264/AAC
+}
+// Fortschritt direkt AM Export-Button (Handy: die Fortschrittsleiste darunter liegt oft außerhalb des
+// sichtbaren Bereichs) — Button währenddessen gesperrt. text = null → zurücksetzen.
+function exportBtnState(text) {
+  var b = document.getElementById('btnVideo');
+  if (!b) return;
+  var lbl = b.querySelector ? b.querySelector('.exp-btn-label') : null;
+  if (text) {
+    b.disabled = true; b.setAttribute && b.setAttribute('aria-busy', 'true');
+    if (b.classList) b.classList.add('busy');
+    var pm = /(\d+)%/.exec(text);
+    if (b.style && b.style.setProperty) b.style.setProperty('--p', (pm ? Math.min(100, +pm[1]) : 0) + '%');
+    if (lbl) lbl.textContent = text;
+    if (!b._scrolled) {
+      b._scrolled = true;
+      var rp = document.getElementById('recProg');
+      try { if (rp && rp.scrollIntoView) rp.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+    }
+  } else {
+    b._scrolled = false;
+    if (b.classList) b.classList.remove('busy');
+    if (b.style && b.style.removeProperty) b.style.removeProperty('--p');
+    b.disabled = !videoPlayable || !captionBlocks.length;
+    b.removeAttribute && b.removeAttribute('aria-busy');
+    if (lbl) lbl.textContent = 'Video + captions';
+  }
+}
 async function exportVideoWithCaptions() {
+  // Schnitterkennung läuft noch → kurz warten (sonst überspannen Blöcke Schnitte); die Phase direkt am
+  // Button zeigen — die Fortschrittsleiste darunter liegt auf dem Handy oft außerhalb des Bildschirms.
+  var cutTimer = null;
+  if (breakAtCuts && typeof cutsDetecting === 'function' && cutsDetecting() && !isExporting) {
+    var showCuts = function() { exportBtnState('Finding scene cuts ' + Math.max(0, Math.min(99, (_cutState && _cutState.pct) || 0)) + '%…'); };
+    showCuts(); cutTimer = setInterval(showCuts, 250);
+  }
+  try { await waitForSceneCuts(20000); }
+  finally { if (cutTimer) { clearInterval(cutTimer); exportBtnState(null); } }
   var vid = document.getElementById('mainVid');
   if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
   if (isExporting) return; // Doppelklick während eines laufenden Exports
+  exportBtnState('Preparing…');
 
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
 
   // Schneller Weg (WebCodecs, Sekunden statt Echtzeit). Bei jedem Problem → false → Echtzeit-Pfad unten.
   if (await tryFastExport(vid)) return;
 
-  if (!window.MediaRecorder) { alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
+  if (!window.MediaRecorder) { exportBtnState(null); alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
 
-  var W = vid.videoWidth || 1080;
-  var H = vid.videoHeight || 1920;
+  var geo = exportGeometry(vid.videoWidth, vid.videoHeight, 30);
+  if (_blurBgCanvas) _blurBgCanvas.width = 0; // Blur-Hintergrund des vorigen Exports nicht wiederverwenden
+  var W = geo.W, H = geo.H;
   var s = STYLES.find(function(x){ return x.id === activeId; });
 
   var canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   var ctx = canvas.getContext('2d');
-
-  // Nur EXPLIZITES H.264-MP4 direkt nehmen (Instagram/TikTok/iOS-tauglich). Generisches 'video/mp4'
-  // akzeptieren Chromium-Builds ohne H.264 ebenfalls — und schreiben dann VP9/Opus in einen MP4-Container,
-  // den Instagram/iOS-Fotos ablehnen. Daher erst WebM (→ ffmpeg-Umkodierung nach H.264-MP4), generisches
-  // 'video/mp4' nur als letzter Ausweg (Safari kann kein WebM aufnehmen, liefert dort aber H.264).
-  var MP4_H264 = ['video/mp4;codecs="avc1.42E01E,mp4a.40.2"', 'video/mp4;codecs=avc1,mp4a', 'video/mp4;codecs=avc1'];
-  var mimeType = MP4_H264.concat(['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'])
-    .find(function(m){ return MediaRecorder.isTypeSupported(m); }) || 'video/webm';
 
   var canvasStream = canvas.captureStream(30);
   var hasAudio = false;
@@ -5488,12 +6309,13 @@ async function exportVideoWithCaptions() {
     }
   } catch(e) {}
 
+  var mimeType = pickRecorderMime(function(m){ return MediaRecorder.isTypeSupported(m); }, hasAudio);
   var recorder, chunks = [];
-  try { recorder = new MediaRecorder(canvasStream, { mimeType: mimeType, videoBitsPerSecond: 8000000 }); }
+  try { recorder = new MediaRecorder(canvasStream, { mimeType: mimeType, videoBitsPerSecond: geo.bitrate }); }
   catch(e) { recorder = new MediaRecorder(canvasStream); mimeType = recorder.mimeType || 'video/webm'; }
-  // MP4 direkt speichern: entweder explizit H.264 oder generisches MP4, das nach obiger Reihenfolge nur
-  // greift, wenn der Browser gar kein WebM aufnimmt (Safari → dort ist MP4 immer H.264). WebM → ffmpeg.
-  var isMp4 = mimeType.indexOf('mp4') >= 0;
+  // MP4 nur direkt speichern, wenn es sicher H.264 + AAC ist (bzw. ohne Ton nur H.264) — sonst WebM bzw.
+  // MP4 mit Opus → ffmpeg-Umkodierung nach H.264/AAC (webmToMp4 liest beide Container).
+  var isMp4 = recorderMimeIsSafeMp4(recorder.mimeType || mimeType, mimeType, hasAudio);
 
   var prevMuted = vidMuted;
   var prevOnEnded = vid.onended; // wird unten für die Fertig-Erkennung überschrieben, danach restaurieren
@@ -5514,7 +6336,8 @@ async function exportVideoWithCaptions() {
         var mp4 = await webmToMp4(blob, function(p){
           recBar.style.width = Math.round(p * 100) + '%';
           recMsg.textContent = 'Creating MP4… ' + Math.round(p * 100) + '%';
-        });
+          exportBtnState('Creating MP4 ' + Math.round(p * 100) + '%…');
+        }, vid.duration - cutTotalSec); // Bild und Ton exakt auf die Ausgabedauer kürzen
         dlBlob(mp4, 'capivo-video.mp4');
       } catch (e) {
         console.error('MP4-Konvertierung fehlgeschlagen:', e);
@@ -5524,6 +6347,7 @@ async function exportVideoWithCaptions() {
       }
     }
     document.getElementById('recProg').style.display = 'none';
+    exportBtnState(null);
     vid.muted = prevMuted; vid.pause();
     vid.onended = prevOnEnded; // normales onended (Play/Pause-Overlay) wiederherstellen
     isExporting = false;
@@ -5555,8 +6379,10 @@ async function exportVideoWithCaptions() {
   vid.onseeked = null;
   vid.muted = false; vid.volume = 1; // stummgeschaltetes Element liefert keine Tonspur
 
-  recorder.start(200);
+  // Erst aufnehmen, wenn die Wiedergabe WIRKLICH läuft — sonst landet die Anlaufzeit (Ton/Bild-Vorlauf)
+  // mit in der Datei und Bild/Ton werden länger als die Quelle.
   await vid.play().catch(function(){});
+  recorder.start(200);
 
   var totalDur = vid.duration;
   // Beendet die Aufnahme genau einmal — von MEHREREN, unabhängigen Auslösern aus aufrufbar
@@ -5564,7 +6390,10 @@ async function exportVideoWithCaptions() {
   function finishExport() {
     if (stopped) return;
     stopped = true;
-    setTimeout(function(){ recorder.stop(); }, 120); // letzte Frames/Audio flushen
+    // Sofort pausieren (kein Nachlauf von Ton/Standbild), dann nach kurzem Flush beenden
+    try { if (recorder.state === 'recording') recorder.pause(); } catch (e) {}
+    try { vid.pause(); } catch (e2) {}
+    setTimeout(function(){ try { recorder.stop(); } catch (e3) {} }, 120);
   }
   // FIX: Browser pausieren requestAnimationFrame komplett, sobald der Tab in den Hintergrund
   // gerät (Tab-Wechsel, App-Wechsel, Bildschirmschoner) — Video-Wiedergabe läuft aber weiter.
@@ -5598,10 +6427,9 @@ async function exportVideoWithCaptions() {
     var pct = t / totalDur;
     document.getElementById('recBar').style.width = (pct * 100) + '%';
     document.getElementById('recMsg').textContent = 'Rendering ' + Math.round(pct * 100) + '%…';
+    exportBtnState('Rendering ' + Math.round(pct * 100) + '%…');
 
-    var vW = vid.videoWidth, vH = vid.videoHeight;
-    var sc = Math.max(W / vW, H / vH);
-    ctx.drawImage(vid, (W - vW * sc) / 2, (H - vH * sc) / 2, vW * sc, vH * sc);
+    drawReframed(ctx, W, H, geo.mode, function(c, w, h, fit){ drawVideoFit(c, vid, w, h, fit); });
     drawCaptionsOnCtx(ctx, t, s, W, H, false);
     drawWatermark(ctx, W, H, wmOn); // nur anonym (beim Export-Start festgelegt)
     requestAnimationFrame(drawLoop);
@@ -5665,12 +6493,42 @@ function capShadowPlan(str) {
 }
 // strokeDiv: Skalierung der aktuellen Animations-Transformation — die Kontur wird dadurch geteilt, damit
 // sie (wie die früheren Shadow-Ringe, die der Transform nicht skaliert) gleich breit bleibt.
-function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv) {
+// fsS/tw (optional): Schriftgröße und Textbreite — dann werden große Blur-Glows (≥ 16 px) in einem auf
+// 1/4 verkleinerten Puffer gerechnet und hochskaliert eingesetzt (Gauß-Blur kostet ~Radius² → 16× billiger,
+// optisch gleich, weil der Glow ohnehin unscharf ist).
+var _glowBuf = null;
+function drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw) {
+  var q = 0.25, blur = l.blur * scale;
+  var m = Math.ceil(blur * 1.6 + Math.abs(l.x * scale) + Math.abs(l.y * scale) + 4);
+  var bw = Math.ceil(tw + 2 * m), bh = Math.ceil(fsS * 1.6 + 2 * m);
+  var sw = Math.max(1, Math.ceil(bw * q)), sh = Math.max(1, Math.ceil(bh * q));
+  if (!_glowBuf) _glowBuf = document.createElement('canvas');
+  var c = _glowBuf;
+  if (c.width < sw || c.height < sh) { c.width = Math.max(c.width, sw); c.height = Math.max(c.height, sh); }
+  var g = c.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, c.width, c.height);
+  g.font = ctx.font;
+  if ('letterSpacing' in g && 'letterSpacing' in ctx) g.letterSpacing = ctx.letterSpacing;
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic'; g.fillStyle = '#000';
+  g.setTransform(q, 0, 0, q, 0, 0);
+  // Text weit außerhalb zeichnen und nur den Schatten zurückholen → im Puffer landet NUR der Glow
+  // (Schatten-Offsets wirken im Geräteraum, unabhängig von der Transformation).
+  var OFF = 100000;
+  g.shadowColor = l.color; g.shadowBlur = blur * q;
+  g.shadowOffsetX = (l.x * scale + OFF) * q; g.shadowOffsetY = l.y * scale * q;
+  g.fillText(text, m - OFF, m + fsS * 1.05);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  ctx.drawImage(c, 0, 0, sw, sh, x - m, y - fsS * 1.05 - m, sw / q, sh / q);
+}
+function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw) {
   if (plan.rest.length) {
     ctx.save();
+    var lowRes = fsS > 0 && tw > 0 && typeof document !== 'undefined' && !!ctx.canvas;
     // unterste Schicht zuerst (CSS: erste Schicht liegt oben)
     for (var i = plan.rest.length - 1; i >= 0; i--) {
       var l = plan.rest[i];
+      if (lowRes && l.blur * scale >= 16) { drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw); continue; }
       ctx.shadowOffsetX = l.x * scale; ctx.shadowOffsetY = l.y * scale;
       ctx.shadowBlur = l.blur * scale; ctx.shadowColor = l.color;
       ctx.fillText(text, x, y);
@@ -5735,8 +6593,10 @@ function animState(anim, elapsed) {
 // Rahmengröße ab — nicht vom einzelnen Frame. Vorher lief das alles pro Frame (≈ 30×/s × alle Wörter).
 // Das aktive Wort fließt nur in den Key ein, wenn es die Breite ändert (hlFont/hlItalic/hlUpper).
 var _capLayoutCache = { key: null, s: null, ctx: null, val: null };
+var _capStaticLayer = null; // { key, s, W, H, cv } — siehe drawCaptionsOnCtx
+var _wordSpriteCache = new Map(); // aktives Wort als Sprite (Glow-Styles), siehe activeWordSprite
 function capLayout(ctx, b, bi, wi, s, W, H) {
-  var wiKey = (s.hlFont || s.hlItalic || s.hlUpper) ? wi : -1;
+  var wiKey = (s.hlFont || s.hlItalic || s.hlUpper || s.hlPillBg) ? wi : -1;
   var key = [bi, wiKey, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
              _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length].join('|');
   var c = _capLayoutCache;
@@ -5769,7 +6629,15 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   var sp    = ctx.measureText(' ').width + capWordGap(s) * scale; // gleiches Extra wie word-spacing in der Vorschau
   var maxW  = W * 0.86;
   // idx = Index des ORIGINALWORTS (Teilwörter nach Bindestrich-Trennung teilen sich Highlight/Keyword)
-  var wordInfo = words.map(function(w, i) { wordFont(fit.orig[i] === wi); return { txt: w, w: ctx.measureText(w).width, idx: fit.orig[i] }; });
+  // Pill hinter dem aktiven Wort: im DOM ist sie Padding des Wort-Spans (2px 9px) und schiebt die Nachbarn
+  // weg — hier genauso: Breite = Text + 2·9px (skaliert), Text um padL eingerückt. Sonst überlappte die
+  // Pill im Export die Nachbarwörter („au[unserem]“).
+  var pillPad = s.hlPillBg ? 9 * scale : 0;
+  var wordInfo = words.map(function(w, i) {
+    var hl = fit.orig[i] === wi; wordFont(hl);
+    var tw = ctx.measureText(w).width, pl = (hl && pillPad) ? pillPad : 0;
+    return { txt: w, w: tw + 2 * pl, tw: tw, padL: pl, idx: fit.orig[i] };
+  });
 
   // Mehrzeiliger Umbruch — bei CAPTION_LINES>1 wird möglichst gleichmäßig auf genau so viele
   // Zeilen verteilt (nicht nur bei Überlauf gebrochen), sonst würden kurze Blöcke nie umbrechen.
@@ -5841,115 +6709,201 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   var scale = L0.scale, fsS = L0.fsS, fn = L0.fn, fw = L0.fw, fi = L0.fi, lsPxS = L0.lsPxS, sp = L0.sp;
   var lines = L0.lines, lineWs = L0.lineWs, lh = L0.lh, y0 = L0.y0;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  // Font/letterSpacing nur setzen, wenn sie sich ändern (Zuweisung parst den Font-String jedes Mal neu)
-  var curFont = null, curLs = null;
-  function wordFont(isHL) {
-    var f  = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
-    var it = (isHL && s.hlItalic) ? 'italic ' : fi;
-    var fs = it + fw + ' ' + fsS + 'px "' + f + '", sans-serif';
-    if (fs !== curFont) { ctx.font = fs; curFont = fs; }
-    if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
-  }
-  var shTs = capShadowPlan(s.ts), shHl = capShadowPlan(s.hls);
-  // boxBg-Padding/-Radius sind im DOM (buildCap: "padding:5px 18px", s.boxBr) feste px-Werte, die bei
-  // der Vorschaubreite (previewFrameW) gemeint sind — mit `scale` (== W/previewFrameW, dieselbe Umrechnung
-  // wie fsS) 1:1 in den Export übertragen, statt (wie zuvor) willkürlich an fsS gekoppelt und boxBr zu ignorieren.
-  if (s.boxBg) {
-    var widest = Math.max.apply(null, lineWs);
-    var padX = 18 * scale, padY = 5 * scale;
-    var radius = parseFloat(s.boxBr || '6') * scale;
-    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
-    ctx.fillStyle = s.boxBg;
-    ctx.beginPath();
-    var bx = W/2 - widest/2 - padX, by = y0 - fsS * 1.05 - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + fsS * 1.5 + padY*2;
-    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
-    ctx.fill(); ctx.restore();
-  }
-
-  // "evo"-Style: linker Akzentstrich (s.pill, im DOM eine umschließende Box mit border-left) — fehlte
-  // im Export bisher komplett.
-  if (s.pill) {
-    var widest2 = Math.max.apply(null, lineWs);
-    var pm = String(s.pill.p || '0').split(/\s+/).map(function(v){ return parseFloat(v) || 0; });
-    var pT = (pm[0] || 0) * scale, pR = (pm.length > 1 ? pm[1] : pm[0]) * scale,
-        pB = (pm.length > 2 ? pm[2] : pm[0]) * scale, pL = (pm.length > 3 ? pm[3] : pR) * scale;
-    var borderW = 0, borderColor = null;
-    var bm = s.pill.borderLeft && s.pill.borderLeft.match(/^([\d.]+)px\s+\S+\s+(.+)$/);
-    if (bm) { borderW = parseFloat(bm[1]) * scale; borderColor = bm[2]; }
-    var pillT = y0 - fsS * 1.05 - pT, pillB = y0 + (lines.length - 1) * lh + fsS * 0.45 + pB;
-    var pillL = W/2 - widest2/2 - pL - borderW, pillR = W/2 + widest2/2 + pR;
-    if (s.pill.bg && s.pill.bg !== 'transparent') {
-      ctx.save(); ctx.fillStyle = s.pill.bg; ctx.fillRect(pillL, pillT, pillR - pillL, pillB - pillT); ctx.restore();
+  // Statische Ebene (Box, Akzentstrich, alle NICHT aktiven Wörter mit ihren Schatten/Glows) wird je
+  // (Layout, aktives Wort) EINMAL in einen Offscreen-Canvas gemalt und pro Frame nur noch per drawImage
+  // eingesetzt; live gezeichnet wird nur das aktive Wort (Animation). Große Blur-Glows (Petal, Vivid)
+  // kosteten sonst pro Wort und Frame — Export bis 6× langsamer als Standard.
+  var useLayer = !!(ctx.canvas && typeof document !== 'undefined' && document.createElement && ctx.canvas.width === W);
+  if (useLayer) {
+    var lkey = _capLayoutCache.key + '|' + wi + '|' + (s.id || '');
+    var lc = _capStaticLayer;
+    if (!lc || lc.key !== lkey || lc.s !== s || lc.W !== W || lc.H !== H) {
+      if (lc && lc.s !== s) _wordSpriteCache.clear(); // anderes Style-Objekt (z. B. geänderter Custom-Style) → Sprites verwerfen
+      var cv = (lc && lc.cv && lc.cv.width === W && lc.cv.height === H) ? lc.cv : document.createElement('canvas');
+      cv.width = W; cv.height = H; // setzt auch den Inhalt zurück
+      var lctx = cv.getContext('2d');
+      lctx.textAlign = 'left'; lctx.textBaseline = 'alphabetic';
+      paint(lctx, 'static');
+      _capStaticLayer = lc = { key: lkey, s: s, W: W, H: H, cv: cv };
     }
-    if (borderW > 0 && borderColor) {
-      ctx.save(); ctx.fillStyle = borderColor; ctx.fillRect(pillL, pillT, borderW, pillB - pillT); ctx.restore();
-    }
+    ctx.drawImage(lc.cv, 0, 0);
+    paint(ctx, 'active');
+  } else {
+    paint(ctx, 'all');
   }
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
 
-  lines.forEach(function(L, li) {
-    var x = W/2 - lineWs[li]/2;
-    var y = y0 + li * lh;
-    L.forEach(function(wo) {
-      var isHL = wo.idx === wi;
-      var isKw = !isHL && isKeywordWord(b.words[wo.idx].word);
-      wordFont(isHL);
+  function paint(ctx, mode) {
+    // Font/letterSpacing nur setzen, wenn sie sich ändern (Zuweisung parst den Font-String jedes Mal neu)
+    var curFont = null, curLs = null;
+    function wordFont(isHL) {
+      var f  = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
+      var it = (isHL && s.hlItalic) ? 'italic ' : fi;
+      var fs = it + fw + ' ' + fsS + 'px "' + f + '", sans-serif';
+      if (fs !== curFont) { ctx.font = fs; curFont = fs; }
+      if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
+    }
+    var shTs = capShadowPlan(s.ts), shHl = capShadowPlan(s.hls);
+    // boxBg-Padding/-Radius sind im DOM (buildCap: "padding:5px 18px", s.boxBr) feste px-Werte, die bei
+    // der Vorschaubreite (previewFrameW) gemeint sind — mit `scale` (== W/previewFrameW, dieselbe Umrechnung
+    // wie fsS) 1:1 in den Export übertragen, statt (wie zuvor) willkürlich an fsS gekoppelt und boxBr zu ignorieren.
+    if (mode !== 'active' && s.boxBg) {
+      var widest = Math.max.apply(null, lineWs);
+      var padX = 18 * scale, padY = 5 * scale;
+      var radius = parseFloat(s.boxBr || '6') * scale;
+      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
+      ctx.fillStyle = s.boxBg;
+      ctx.beginPath();
+      var bx = W/2 - widest/2 - padX, by = y0 - fsS * 1.05 - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + fsS * 1.5 + padY*2;
+      if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
+      ctx.fill(); ctx.restore();
+    }
 
-      // Kringel ums aktive Wort (Sketch, wie Referenz)
-      if (isHL && s.circle) {
-        ctx.save(); ctx.shadowColor = 'transparent';
-        ctx.strokeStyle = s.hl || '#fff';
-        ctx.lineWidth = Math.max(2, fsS * 0.07);
-        ctx.beginPath();
-        ctx.ellipse(x + wo.w / 2, y - fsS * 0.32, wo.w / 2 + fsS * 0.35, fsS * 0.72, 0, 0, Math.PI * 2);
-        ctx.stroke(); ctx.restore();
+    // "evo"-Style: linker Akzentstrich (s.pill, im DOM eine umschließende Box mit border-left) — fehlte
+    // im Export bisher komplett.
+    if (mode !== 'active' && s.pill) {
+      var widest2 = Math.max.apply(null, lineWs);
+      var pm = String(s.pill.p || '0').split(/\s+/).map(function(v){ return parseFloat(v) || 0; });
+      var pT = (pm[0] || 0) * scale, pR = (pm.length > 1 ? pm[1] : pm[0]) * scale,
+          pB = (pm.length > 2 ? pm[2] : pm[0]) * scale, pL = (pm.length > 3 ? pm[3] : pR) * scale;
+      var borderW = 0, borderColor = null;
+      var bm = s.pill.borderLeft && s.pill.borderLeft.match(/^([\d.]+)px\s+\S+\s+(.+)$/);
+      if (bm) { borderW = parseFloat(bm[1]) * scale; borderColor = bm[2]; }
+      var pillT = y0 - fsS * 1.05 - pT, pillB = y0 + (lines.length - 1) * lh + fsS * 0.45 + pB;
+      var pillL = W/2 - widest2/2 - pL - borderW, pillR = W/2 + widest2/2 + pR;
+      if (s.pill.bg && s.pill.bg !== 'transparent') {
+        ctx.save(); ctx.fillStyle = s.pill.bg; ctx.fillRect(pillL, pillT, pillR - pillL, pillB - pillT); ctx.restore();
       }
-
-      // Pill hinter aktivem Wort (z. B. Karaoke-Style) — Padding/Radius wie im DOM ("padding:2px 9px;
-      // border-radius:5px", feste px bei previewFrameW) via `scale` übertragen statt an fsS gekoppelt.
-      if (isHL && s.hlPillBg) {
-        var pdx = 9 * scale, pdy = 2 * scale;
-        ctx.save(); ctx.shadowColor = 'transparent';
-        ctx.fillStyle = s.hlPillBg;
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(x - pdx, y - fsS * 0.92 - pdy, wo.w + pdx*2, fsS * 1.28 + pdy*2, 5 * scale);
-        else ctx.rect(x - pdx, y - fsS * 0.92 - pdy, wo.w + pdx*2, fsS * 1.28 + pdy*2);
-        ctx.fill(); ctx.restore();
+      if (borderW > 0 && borderColor) {
+        ctx.save(); ctx.fillStyle = borderColor; ctx.fillRect(pillL, pillT, borderW, pillB - pillT); ctx.restore();
       }
+    }
 
-      // Pop-Animation des aktiven Worts (@keyframes captly-*) — im Export bisher komplett statisch.
-      var animSt = (isHL && s.anim && s.anim !== 'none') ? animState(s.anim, t - (b.words[wo.idx].start || 0)) : null;
-      ctx.save();
-      if (animSt) {
-        var pvx = x + wo.w / 2, pvy = y - fsS * 0.32 - animSt.ty * scale;
-        ctx.translate(pvx, pvy);
-        if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
-        ctx.scale(animSt.sx, animSt.sy);
-        ctx.translate(-pvx, -pvy);
-        if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
-        if (animSt.bright !== 1 || animSt.sat !== 1) ctx.filter = 'brightness(' + animSt.bright + ') saturate(' + animSt.sat + ')';
-      }
-
-      // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) verhalten sich wie im DOM
-      // genauso wie das Highlight-Wort (gleiche Farbe/Gradient/Schatten), nur ohne Pill/Kringel/Anim.
+    function wordFill(c, wo, x0, tw, isHL, isKw) {
       var fillCss = (isHL || isKw) ? (s.hlg || null) : (s.tg || null);
       if (fillCss) {
         var cols = gradColors(fillCss);
-        var g = ctx.createLinearGradient(x, 0, x + Math.max(1, wo.w), 0);
-        cols.forEach(function(c, ci){ g.addColorStop(cols.length > 1 ? ci / (cols.length - 1) : 0, c); });
-        ctx.fillStyle = g;
-      } else {
-        ctx.fillStyle = (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (isHL ? hlColorFor(s, wo.idx) : (s.hl || '#fff'))) : (s.tc || '#fff');
+        var g = c.createLinearGradient(x0, 0, x0 + Math.max(1, tw), 0);
+        cols.forEach(function(cc, ci){ g.addColorStop(cols.length > 1 ? ci / (cols.length - 1) : 0, cc); });
+        return g;
       }
-      // Text-Shadow wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter). Eine
-      // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
-      // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
-      var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
-      drawTextWithPlan(ctx, wo.txt, x, y, (isHL || isKw) ? shHl : shTs, scale, animK);
-      ctx.restore();
-      x += wo.w + sp;
+      return (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (isHL ? hlColorFor(s, wo.idx) : (s.hl || '#fff'))) : (s.tc || '#fff');
+    }
+    function activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt) {
+      // Filter-Animation (glow) in 8 Helligkeits-/Sättigungsstufen; Transformationen kommen beim Einsetzen dazu
+      var fb = animSt ? Math.round((animSt.bright || 1) * 8) / 8 : 1, fs2 = animSt ? Math.round((animSt.sat || 1) * 8) / 8 : 1;
+      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txt + '|' + fb + '|' + fs2 + '|' + ctx.font + '|' + ctx.letterSpacing;
+      var hit = _wordSpriteCache.get(key);
+      if (hit) return hit;
+      var m = 6;
+      plan.rest.forEach(function(l){ m = Math.max(m, Math.ceil(l.blur * scale * 1.6 + (Math.abs(l.x) + Math.abs(l.y)) * scale + 6)); });
+      var cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.ceil(tw + 2 * m)); cv.height = Math.max(1, Math.ceil(fsS * 1.6 + 2 * m));
+      var c = cv.getContext('2d');
+      c.font = ctx.font;
+      if ('letterSpacing' in c) c.letterSpacing = ctx.letterSpacing;
+      c.textAlign = 'left'; c.textBaseline = 'alphabetic';
+      if (fb !== 1 || fs2 !== 1) c.filter = 'brightness(' + fb + ') saturate(' + fs2 + ')';
+      c.fillStyle = wordFill(c, wo, m, tw, isHL, isKw);
+      drawTextWithPlan(c, wo.txt, m, m + fsS * 1.05, plan, scale, 1, fsS, tw);
+      var res = { cv: cv, m: m };
+      _wordSpriteCache.set(key, res);
+      if (_wordSpriteCache.size > 48) _wordSpriteCache.delete(_wordSpriteCache.keys().next().value); // klein halten
+      return res;
+    }
+
+    lines.forEach(function(L, li) {
+      var x = W/2 - lineWs[li]/2;
+      var y = y0 + li * lh;
+      L.forEach(function(wo) {
+        var isHL = wo.idx === wi;
+        if ((mode === 'static' && isHL) || (mode === 'active' && !isHL)) { x += wo.w + sp; return; }
+        var tx = x + (wo.padL || 0), tw = wo.tw || wo.w; // Textposition (Pill-Padding eingerückt)
+        var isKw = !isHL && isKeywordWord(b.words[wo.idx].word);
+        wordFont(isHL);
+
+        // Kringel ums aktive Wort (Sketch, wie Referenz)
+        if (isHL && s.circle) {
+          ctx.save(); ctx.shadowColor = 'transparent';
+          ctx.strokeStyle = s.hl || '#fff';
+          ctx.lineWidth = Math.max(2, fsS * 0.07);
+          ctx.beginPath();
+          ctx.ellipse(x + wo.w / 2, y - fsS * 0.32, wo.w / 2 + fsS * 0.35, fsS * 0.72, 0, 0, Math.PI * 2);
+          ctx.stroke(); ctx.restore();
+        }
+
+        // Pill hinter aktivem Wort (z. B. Karaoke-Style) — Padding/Radius wie im DOM ("padding:2px 9px;
+        // border-radius:5px", feste px bei previewFrameW) via `scale` übertragen statt an fsS gekoppelt.
+        if (isHL && s.hlPillBg) {
+          var pdx = 9 * scale, pdy = 2 * scale;
+          ctx.save(); ctx.shadowColor = 'transparent';
+          ctx.fillStyle = s.hlPillBg;
+          ctx.beginPath();
+          var pw = wo.padL ? wo.w : wo.w + pdx * 2, px0 = wo.padL ? x : x - pdx;
+          if (ctx.roundRect) ctx.roundRect(px0, y - fsS * 0.92 - pdy, pw, fsS * 1.28 + pdy*2, 5 * scale);
+          else ctx.rect(px0, y - fsS * 0.92 - pdy, pw, fsS * 1.28 + pdy*2);
+          ctx.fill(); ctx.restore();
+        }
+
+        // Pop-Animation des aktiven Worts (@keyframes captly-*) — im Export bisher komplett statisch.
+        var animSt = (isHL && s.anim && s.anim !== 'none') ? animState(s.anim, t - (b.words[wo.idx].start || 0)) : null;
+        var plan = (isHL || isKw) ? shHl : shTs;
+        // Teure Glows (große Blur-Schatten, Glow-Animation per Filter) des AKTIVEN Worts als Sprite: Text +
+        // Schatten (+ Filter-Stufe) einmal je (Layout, Wort, quantisierte Animationsstufe) rendern, pro Frame
+        // nur noch per drawImage unter der Animations-Transformation einsetzen. Konturierte Styles (Ring →
+        // strokeText) sind live billig und bleiben beim direkten Zeichnen (Kontur-Breite animationsstabil).
+        var hasFilter = !!(animSt && (animSt.bright !== 1 || animSt.sat !== 1));
+        if (mode === 'active' && isHL && ctx.canvas && !plan.ring && typeof document !== 'undefined'
+            && (hasFilter || plan.rest.some(function(l){ return l.blur * scale >= 8; }))) {
+          var spr = activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt);
+          ctx.save();
+          if (animSt) {
+            var pvx2 = x + wo.w / 2, pvy2 = y - fsS * 0.32 - animSt.ty * scale;
+            ctx.translate(pvx2, pvy2);
+            if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
+            ctx.scale(animSt.sx, animSt.sy);
+            ctx.translate(-pvx2, -pvy2);
+            if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
+          }
+          ctx.shadowColor = 'transparent';
+          ctx.drawImage(spr.cv, tx - spr.m, y - fsS * 1.05 - spr.m);
+          ctx.restore();
+          x += wo.w + sp;
+          return;
+        }
+        ctx.save();
+        if (animSt) {
+          var pvx = x + wo.w / 2, pvy = y - fsS * 0.32 - animSt.ty * scale;
+          ctx.translate(pvx, pvy);
+          if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
+          ctx.scale(animSt.sx, animSt.sy);
+          ctx.translate(-pvx, -pvy);
+          if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
+          if (animSt.bright !== 1 || animSt.sat !== 1) ctx.filter = 'brightness(' + animSt.bright + ') saturate(' + animSt.sat + ')';
+        }
+
+        // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) verhalten sich wie im DOM
+        // genauso wie das Highlight-Wort (gleiche Farbe/Gradient/Schatten), nur ohne Pill/Kringel/Anim.
+        var fillCss = (isHL || isKw) ? (s.hlg || null) : (s.tg || null);
+        if (fillCss) {
+          var cols = gradColors(fillCss);
+          var g = ctx.createLinearGradient(tx, 0, tx + Math.max(1, tw), 0);
+          cols.forEach(function(c, ci){ g.addColorStop(cols.length > 1 ? ci / (cols.length - 1) : 0, c); });
+          ctx.fillStyle = g;
+        } else {
+          ctx.fillStyle = (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (isHL ? hlColorFor(s, wo.idx) : (s.hl || '#fff'))) : (s.tc || '#fff');
+        }
+        // Text-Shadow wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter). Eine
+        // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
+        // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
+        var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
+        drawTextWithPlan(ctx, wo.txt, tx, y, (isHL || isKw) ? shHl : shTs, scale, animK, fsS, tw);
+        ctx.restore();
+        x += wo.w + sp;
+      });
     });
-  });
-  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  }
 }
 
 // ═══════════════════════════════════════
@@ -6114,6 +7068,7 @@ function openEditor() {
   if (_showcaseCapTimer) { clearInterval(_showcaseCapTimer); _showcaseCapTimer = null; }
   if (_showcaseIO) _showcaseIO.disconnect();
   loadTemplates(); // gespeicherte Templates in den Picker einhängen
+  if (!STYLES.find(function(x){ return x.id === activeId; })) activeId = DEFAULT_STYLE; // gemerkter Style existiert nicht mehr
   buildPicker(); renderWPills(); updateOverlay();
   applyPos(); // gewählte Position beibehalten
 }
