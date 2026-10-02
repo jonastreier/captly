@@ -405,7 +405,8 @@ ok(T.isNoAudioFfmpegLog('in_media: Invalid data found when processing input') ==
 T.setState([], []);
 T.selectStyle('stack');
 T.updateOverlay(0);
-ok(document.getElementById('capOverlay').innerHTML.toUpperCase().includes('CAPTIONS'), 'Demo-Caption ohne Transkript');
+// Bewusst geändert (UX-Vereinfachung): keine Platzhalter-Caption mehr — die Vorschau zeigt den Fortschritt
+ok(document.getElementById('capOverlay').innerHTML === '' , 'ohne Transkript keine Platzhalter-Caption');
 
 // 11) Halluzinations-Detektor
 const rep = Array.from({ length: 40 }, (_, i) => ({ word: ['we', 'worked', 'for', 'years'][i % 4], start: i * 0.3, end: i * 0.3 + 0.2 }));
@@ -909,7 +910,8 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   document.getElementById('tStatus').innerHTML = '<span>✅</span><span>4 words</span>';
   T.setSceneCuts([0.95]);
   ok(T.getBlocks().length === 2 && T.getBlocks()[1].text === 'da drüben', 'Schnitte nachtraeglich: neu gruppiert, Edit erhalten');
-  ok(/1 scene cut detected/.test(document.getElementById('tStatus').innerHTML), 'Statushinweis: ' + document.getElementById('tStatus').innerHTML);
+  // Bewusst geändert: Schnitterkennung läuft still, die Statuszeile bleibt unverändert
+  ok(document.getElementById('tStatus').innerHTML === '<span>✅</span><span>4 words</span>', 'kein Schnitt-Hinweis in der Statuszeile: ' + document.getElementById('tStatus').innerHTML);
   T.setDisplayMode('all');
   ok(T.currentBlockIdx2(0.93) === 0 && T.currentBlockIdx2(0.97) === -1 && T.currentBlockIdx2(1.2) === 1, 'Continuous: Block endet am Schnitt');
   T.setDisplayMode('karaoke');
@@ -1141,7 +1143,7 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   T.exportBtnState('Rendering 42%…');
   ok(b.classList.contains('busy') && b.style['--p'] === '42%' && document.getElementById('btnVideoLbl').textContent === 'Rendering 42%…' && b.disabled, 'Busy-Klasse, Fortschritt 42 %, gesperrt');
   T.exportBtnState(null);
-  ok(!b.classList.contains('busy') && document.getElementById('btnVideoLbl').textContent === 'Video + captions', 'zurueckgesetzt');
+  ok(!b.classList.contains('busy') && document.getElementById('btnVideoLbl').textContent === 'Download video', 'zurueckgesetzt (Label des Export-Blatts)');
 }
 
 // 22e) Fehlgeschlagener Wechsel Fast→Perfect: Einstellungen auf die der behaltenen Captions zurück
@@ -2056,7 +2058,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const btn = document.getElementById('btnVideo'); btn.disabled = false;
     ok(await T.waitForSceneCuts(50) === true, 'waitForSceneCuts: keine Erkennung aktiv → sofort true');
     const st = T.beginCutRun();
-    ok(T.cutsDetecting() && /Detecting scene cuts… 0%/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Fortschritt wird an Status angehängt: ' + st0.innerHTML);
+    // Bewusst geändert: Erkennung läuft still (kein Statustext); Warten zeigt sich nur am Export
+    ok(T.cutsDetecting() && !/Detecting|scene cut/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Erkennung ohne Status-Hinweis: ' + st0.innerHTML);
     let t0 = Date.now();
     const p = T.waitForSceneCuts(2000);
     ok(btn.disabled === true, 'Export-Button während des Wartens gesperrt');
@@ -2064,7 +2067,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const r1 = await p;
     ok(r1 === true && Date.now() - t0 < 1000 && T.getSceneCuts().join() === '1.5', 'waitForSceneCuts löst bei Abschluss auf: ' + r1 + ' ' + T.getSceneCuts());
     ok(btn.disabled === false && !T.cutsDetecting(), 'Button wieder frei, Erkennung beendet');
-    ok(/1 scene cut detected/.test(st0.innerHTML) && !/Detecting/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Status: Ergebnis ersetzt Fortschritt: ' + st0.innerHTML);
+    ok(!/scene cut|Detecting/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Status bleibt nach Abschluss unverändert: ' + st0.innerHTML);
     const st2 = T.beginCutRun(); st2.partial = () => [2.5];
     t0 = Date.now();
     const r2 = await T.waitForSceneCuts(40);
