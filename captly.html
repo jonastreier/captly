@@ -1506,6 +1506,325 @@ function isHallucinatedChunk(words) {
   if (!words || !words.length || words.length > 14) return false;
   return HALLU_RE.test(words.map(function(w){ return w.word; }).join(' '));
 }
+// ── Sprach-Erkennung (VAD) vor der Transkription ──────────────────────────────────────────────
+// Warum: Whisper (Groq wie lokal) setzt bei einem Vorlauf ohne Sprache — Gras-Rascheln, Schritte, Wind —
+// die ersten Wörter gern auf ~0 s und verschmiert Wortzeiten über das Geräusch. Reine Energie hilft da
+// nicht (Rascheln ist so laut wie die Stimme). Wie WhisperX/Profi-Tools: zuerst Sprache finden, nur die
+// Sprache transkribieren, danach Wortzeiten auf die Sprache beschränken. Merkmale je 10-ms-Frame:
+//  (a) Stimmhaftigkeit: max. normierte Kreuzkorrelation (NCCF) über Perioden 70–400 Hz auf einem
+//      200–1800-Hz-Bandpass bei 4 kHz — Vokale sind periodisch, Rascheln/Wind/Schritte nicht;
+//  (b) Energie 300–3400 Hz je Teilband relativ zu einem adaptiven Rauschboden (Minimum-Statistik über
+//      ~2,5 s) — läuft dem Geräusch nach, wenn man vom Gras auf den Weg wechselt;
+//  (c) spektrale Flachheit je Teilband (Harmonische = Spitzen/Täler → niedrig, Rauschen ≈ 0,56), nach
+//      Überschuss über dem Rauschboden gewichtet → auch farbiges Rauschen (Wind, Rosa) zählt nicht.
+// Kombiniert zur Sprach-Wahrscheinlichkeit, Median-geglättet, Hysterese, ≥ 200 ms Sprache, Lücken < 300 ms
+// geschlossen, ±150 ms Polster. Kosten: 512er-FFT für je ZWEI Frames (Real-Trick) + NCCF bei 4 kHz →
+// 10 Min Audio deutlich unter 1 s.
+var VAD_ON = 0.5, VAD_OFF = 0.3;      // Hysterese der Sprach-Wahrscheinlichkeit
+var VAD_MIN_SPEECH = 0.2, VAD_MERGE_GAP = 0.3, VAD_PAD = 0.15; // Sekunden
+var VAD_SKIP_GAP = 1.0;   // Nicht-Sprache länger als das wird NICHT an Whisper geschickt
+var VAD_MIN_COVER = 0.02; // < 2 % Sprache → wie bisher alles senden (z. B. Musik-Clip; Whisper soll entscheiden)
+var VAD_SPACER = 0.4;     // Stille zwischen aneinandergehängten Sprach-Stücken (natürliche Pause für Whisper)
+var _vadFftT = null;
+function vadFftTables(N) {
+  var bits = Math.round(Math.log(N) / Math.LN2), rev = new Uint16Array(N), cs = new Float64Array(N / 2), sn = new Float64Array(N / 2);
+  for (var i = 0; i < N; i++) { var r = 0; for (var b = 0; b < bits; b++) r |= ((i >> b) & 1) << (bits - 1 - b); rev[i] = r; }
+  for (var k = 0; k < N / 2; k++) { cs[k] = Math.cos(2 * Math.PI * k / N); sn[k] = -Math.sin(2 * Math.PI * k / N); }
+  return { N: N, rev: rev, cs: cs, sn: sn };
+}
+// In-place Radix-2-FFT (iterativ, vorberechnete Twiddles) — klein genug, um sie selbst mitzubringen.
+function vadFft(re, im, T) {
+  var N = T.N, rev = T.rev, cs = T.cs, sn = T.sn, i, j, t;
+  for (i = 0; i < N; i++) { j = rev[i]; if (j > i) { t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+  for (var size = 2; size <= N; size <<= 1) {
+    var half = size >> 1, step = N / size;
+    for (var s = 0; s < N; s += size) {
+      for (var k = 0, w = 0; k < half; k++, w += step) {
+        var a = s + k, b2 = a + half, wr = cs[w], wi = sn[w];
+        var xr = re[b2] * wr - im[b2] * wi, xi = re[b2] * wi + im[b2] * wr;
+        re[b2] = re[a] - xr; im[b2] = im[a] - xi; re[a] += xr; im[a] += xi;
+      }
+    }
+  }
+}
+// Gefensterter Sinc-Tiefpass + Dezimierung (Ausgaberate outSr; Grenzfrequenz fc in Hz).
+function vadDecimate(x, sr, outSr, fc) {
+  var step = sr / outSr, n = Math.floor(x.length / step), out = new Float32Array(n), H = 12, len = x.length;
+  var taps = new Float64Array(2 * H + 1), sum = 0, k;
+  for (k = -H; k <= H; k++) {
+    var v = k === 0 ? 2 * fc / sr : Math.sin(2 * Math.PI * fc / sr * k) / (Math.PI * k);
+    v *= 0.54 + 0.46 * Math.cos(Math.PI * k / (H + 1));
+    taps[k + H] = v; sum += v;
+  }
+  for (k = 0; k < taps.length; k++) taps[k] /= sum;
+  for (var i = 0; i < n; i++) {
+    var c = Math.round(i * step), acc = 0;
+    if (c - H >= 0 && c + H < len) { for (k = 0; k <= 2 * H; k++) acc += taps[k] * x[c - H + k]; }
+    else { for (k = 0; k <= 2 * H; k++) { var q = c - H + k; if (q >= 0 && q < len) acc += taps[k] * x[q]; } }
+    out[i] = acc;
+  }
+  return out;
+}
+// 2. Ordnung Butterworth-Hochpass (RBJ-Biquad), in place.
+function vadHighpass(x, sr, f0, Q) {
+  var w0 = 2 * Math.PI * f0 / sr, cw = Math.cos(w0), al = Math.sin(w0) / (2 * Q), a0 = 1 + al;
+  var b0 = (1 + cw) / 2 / a0, b1 = -(1 + cw) / a0, b2 = b0, a1 = -2 * cw / a0, a2 = (1 - al) / a0;
+  var x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (var i = 0; i < x.length; i++) {
+    var xi = x[i], y = b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+    x2 = x1; x1 = xi; y2 = y1; y1 = y; x[i] = y;
+  }
+}
+function vadClamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+// Pro 10-ms-Frame eine Sprach-Wahrscheinlichkeit 0..1 (exportiert für Tests/Diagnose).
+async function speechProbabilities(audio, sr) {
+  sr = sr || 16000;
+  if (!audio || sr < 8000) return new Float32Array(0);
+  var nF = Math.floor(audio.length / (sr * 0.01));
+  var P = new Float32Array(Math.max(0, nF));
+  if (nF < 5) return P;
+  var x8 = sr === 8000 ? Float32Array.from(audio) : vadDecimate(audio, sr, 8000, 3700);
+  await yieldToUI();
+  // ── (a) Stimmhaftigkeit: Bandpass 200 Hz (4. Ordnung) … 1800 Hz, 4 kHz ──
+  var hp = Float32Array.from(x8);
+  vadHighpass(hp, 8000, 200, 0.5412); vadHighpass(hp, 8000, 200, 1.3066);
+  var x4 = vadDecimate(hp, 8000, 4000, 1800); hp = null;
+  var n4 = x4.length, cum = new Float64Array(n4 + 1);
+  for (var i = 0; i < n4; i++) cum[i + 1] = cum[i] + x4[i] * x4[i];
+  var W = 120, TMIN = 10, TMAX = 57, voi = new Float32Array(nF), f, k;
+  for (f = 0; f < nF; f++) {
+    var s0 = f * 40 - 40;
+    if (s0 < 0 || s0 + W + TMAX > n4) continue;
+    var e0 = cum[s0 + W] - cum[s0];
+    if (!(e0 > 1e-9 * W)) continue;
+    var best = 0;
+    for (var tau = TMIN; tau <= TMAX; tau++) {
+      var acc = 0, q = s0 + tau;
+      for (var m = 0; m < W; m++) acc += x4[s0 + m] * x4[q + m];
+      if (acc > 0) {
+        var r = acc / Math.sqrt(e0 * (cum[q + W] - cum[q]) + 1e-20);
+        if (r > best) best = r;
+      }
+    }
+    voi[f] = best;
+    if (f % 3000 === 2999) await yieldToUI();
+  }
+  x4 = null; cum = null;
+  // ── (b)+(c) Spektrum: 512er-FFT (64 ms Hann) bei 8 kHz, zwei Frames pro komplexer FFT ──
+  var N = 512, T = _vadFftT || (_vadFftT = vadFftTables(N)), win = new Float64Array(N);
+  for (k = 0; k < N; k++) win[k] = 0.5 - 0.5 * Math.cos(2 * Math.PI * (k + 0.5) / N);
+  var KLO = 19, NB = 10, BW = 20; // Bins 19..218 = 297–3406 Hz, 10 Teilbänder à 312 Hz
+  var E = new Float32Array(nF * NB), FL = new Float32Array(nF * NB), rms = new Float32Array(nF);
+  var re = new Float64Array(N), im = new Float64Array(N), n8 = x8.length;
+  for (f = 0; f < nF; f += 2) {
+    for (var h = 0; h < 2; h++) {
+      var buf = h ? im : re, st = (f + h) * 80 + 40 - N / 2, ss = 0;
+      for (k = 0; k < N; k++) { var p = st + k, v = (p >= 0 && p < n8 && f + h < nF) ? x8[p] : 0; buf[k] = v * win[k]; ss += v * v; }
+      if (f + h < nF) rms[f + h] = Math.sqrt(ss / N);
+    }
+    vadFft(re, im, T);
+    for (var b = 0; b < NB; b++) {
+      var eA = 0, lA = 0, eB = 0, lB = 0;
+      for (k = KLO + b * BW; k < KLO + (b + 1) * BW; k++) {
+        var zr = re[k], zi = im[k], yr = re[N - k], yi = im[N - k];
+        var pa = ((zr + yr) * (zr + yr) + (zi - yi) * (zi - yi)) * 0.25 + 1e-12;
+        var pb = ((zi + yi) * (zi + yi) + (zr - yr) * (zr - yr)) * 0.25 + 1e-12;
+        eA += pa; lA += Math.log(pa); eB += pb; lB += Math.log(pb);
+      }
+      E[f * NB + b] = eA; FL[f * NB + b] = Math.exp(lA / BW) / (eA / BW);
+      if (f + 1 < nF) { E[(f + 1) * NB + b] = eB; FL[(f + 1) * NB + b] = Math.exp(lB / BW) / (eB / BW); }
+    }
+    if (f % 3000 === 2998) await yieldToUI();
+  }
+  x8 = null;
+  // Rauschboden je Teilband: Minimum der (über 3 Frames) geglätteten Energie in 0,5-s-Blöcken, Fenster
+  // ±1 Block … ±2 Blöcke (~2,5 s), Bias-Korrektur (Minimum liegt unter dem Mittel des Rauschens).
+  var BL = 50, nBlk = Math.ceil(nF / BL), NOISE_BIAS = 1.6;
+  var Es = new Float32Array(nF * NB), bmin = new Float64Array(nBlk * NB), floor = new Float64Array(nBlk * NB);
+  for (f = 0; f < nF; f++) {
+    var fa = f > 0 ? f - 1 : f, fz = f < nF - 1 ? f + 1 : f;
+    for (b = 0; b < NB; b++) Es[f * NB + b] = (E[fa * NB + b] + E[f * NB + b] + E[fz * NB + b]) / 3;
+  }
+  bmin.fill(Infinity);
+  for (f = 0; f < nF; f++) {
+    var j0 = Math.floor(f / BL);
+    for (b = 0; b < NB; b++) { var ev = Es[f * NB + b]; if (ev < bmin[j0 * NB + b]) bmin[j0 * NB + b] = ev; }
+  }
+  for (var jb = 0; jb < nBlk; jb++) for (b = 0; b < NB; b++) {
+    var mn = Infinity;
+    for (var jj = Math.max(0, jb - 2); jj <= Math.min(nBlk - 1, jb + 2); jj++) if (bmin[jj * NB + b] < mn) mn = bmin[jj * NB + b];
+    floor[jb * NB + b] = Math.max(mn * NOISE_BIAS, 1e-10);
+  }
+  // ── Kombination ──
+  var snr = new Float64Array(NB);
+  for (f = 0; f < nF; f++) {
+    if (rms[f] < 1e-4) { P[f] = 0; continue; } // digitale Stille
+    var jf = Math.floor(f / BL), wsum = 0, fsum = 0;
+    for (b = 0; b < NB; b++) {
+      var sv = Es[f * NB + b] / floor[jf * NB + b]; snr[b] = sv;
+      var wgt = sv - 1.5; if (wgt > 0) { wsum += wgt; fsum += wgt * FL[f * NB + b]; }
+    }
+    // Mittel der 3 stärksten Teilbänder (Sprache sitzt in wenigen Bändern, Rascheln ist breit)
+    var t1 = 0, t2 = 0, t3 = 0;
+    for (b = 0; b < NB; b++) { var x = snr[b]; if (x > t1) { t3 = t2; t2 = t1; t1 = x; } else if (x > t2) { t3 = t2; t2 = x; } else if (x > t3) t3 = x; }
+    var snrDb = 10 * Math.log(Math.max(1e-6, (t1 + t2 + t3) / 3)) / Math.LN10;
+    var fw = wsum > 0.5 ? fsum / wsum : 0.6;
+    var V = vadClamp01((voi[f] - 0.45) / 0.3), S = vadClamp01((snrDb - 5) / 10), F = vadClamp01((0.45 - fw) / 0.25);
+    P[f] = 0.5 * V + 0.3 * S + 0.2 * F;
+  }
+  return P;
+}
+// Sprachbereiche [{start,end}] in Sekunden (gepolstert, sortiert, überlappungsfrei).
+async function detectSpeechRegions(audio, sr) {
+  sr = sr || 16000;
+  var P = await speechProbabilities(audio, sr), nF = P.length, dur = audio ? audio.length / sr : 0;
+  if (!nF) return [];
+  // Median über 7 Frames (70 ms): einzelne Knackser/Schritte raus, kurze Vokal-Lücken zu
+  var med = new Float32Array(nF), tmp = [];
+  for (var f = 0; f < nF; f++) {
+    tmp.length = 0;
+    for (var d = -3; d <= 3; d++) { var g = f + d; tmp.push(P[g < 0 ? 0 : g >= nF ? nF - 1 : g]); }
+    tmp.sort(function(a, b){ return a - b; });
+    med[f] = tmp[3];
+  }
+  var segs = [], on = false, s0 = 0;
+  for (f = 0; f < nF; f++) {
+    if (!on && med[f] >= VAD_ON) { on = true; s0 = f; }
+    else if (on && med[f] < VAD_OFF) { on = false; segs.push({ start: s0 * 0.01, end: f * 0.01 }); }
+  }
+  if (on) segs.push({ start: s0 * 0.01, end: nF * 0.01 });
+  var merged = [];
+  segs.forEach(function(s) {
+    var l = merged[merged.length - 1];
+    if (l && s.start - l.end < VAD_MERGE_GAP) l.end = s.end; else merged.push({ start: s.start, end: s.end });
+  });
+  var out = [];
+  merged.forEach(function(s) {
+    if (s.end - s.start < VAD_MIN_SPEECH) return;
+    var a = Math.max(0, s.start - VAD_PAD), b = Math.min(dur, s.end + VAD_PAD), l = out[out.length - 1];
+    if (l && a <= l.end) l.end = Math.max(l.end, b); else out.push({ start: a, end: b });
+  });
+  return out;
+}
+// Sprachbereiche → Spannen für die Transkription (Pausen ≤ VAD_SKIP_GAP bleiben drin, damit Whisper den
+// Satzfluss sieht). null = wie bisher alles senden: keine/kaum Sprache gefunden (< 2 %, z. B. Musik-Clip)
+// — lieber Whisper entscheiden lassen als still gar nichts liefern.
+function speechSpans(regions, dur) {
+  if (!regions || !regions.length || !(dur > 0)) return null;
+  var tot = 0;
+  regions.forEach(function(r){ tot += r.end - r.start; });
+  if (tot < VAD_MIN_COVER * dur) return null;
+  var spans = [];
+  regions.forEach(function(r) {
+    var l = spans[spans.length - 1];
+    if (l && r.start - l.end <= VAD_SKIP_GAP) l.end = Math.max(l.end, r.end);
+    else spans.push({ start: r.start, end: r.end });
+  });
+  return spans;
+}
+// Hängt die Sprach-Spannen (mit VAD_SPACER Stille dazwischen, 5-ms-Blenden gegen Knackser) zu EINER
+// Spur zusammen. map: Spur-Zeit → Original-Zeit je Stück. Die leisen Spacer sind zugleich die
+// natürlichen Schnittstellen für splitAudioChunks → jedes Upload-Stück beginnt an einem Sprach-Einsatz.
+function buildSpeechTrack(audio, sr, spans) {
+  var gapN = Math.round(VAD_SPACER * sr), fadeN = Math.round(0.005 * sr), pcs = [], total = 0;
+  spans.forEach(function(s) {
+    var a = Math.max(0, Math.round(s.start * sr)), b = Math.min(audio.length, Math.round(s.end * sr));
+    if (b > a) { total += (pcs.length ? gapN : 0) + (b - a); pcs.push({ a: a, b: b }); }
+  });
+  var out = new Float32Array(total), pos = 0, map = [];
+  pcs.forEach(function(p, k) {
+    if (k) pos += gapN;
+    var len = p.b - p.a;
+    out.set(audio.subarray(p.a, p.b), pos);
+    for (var i = 0; i < fadeN && i < len / 2; i++) { var gn = i / fadeN; out[pos + i] *= gn; out[pos + len - 1 - i] *= gn; }
+    map.push({ l0: pos / sr, l1: (pos + len) / sr, g0: p.a / sr });
+    pos += len;
+  });
+  return { samples: out, map: map };
+}
+// Wort von Spur-Zeit auf Original-Zeit. Start im Spacer → an den Anfang des folgenden Stücks (Whisper
+// setzt Wortanfänge eher zu früh); Ende wird auf das Stück des Starts begrenzt (nie über eine
+// übersprungene Pause hinweg).
+function mapTrackWord(map, w) {
+  var lo = 0, hi = map.length - 1;
+  while (lo < hi) { var mid = (lo + hi) >> 1; if (w.start < map[mid].l1) hi = mid; else lo = mid + 1; }
+  var p = map[lo], ls = Math.min(Math.max(w.start, p.l0), p.l1), le = Math.min(Math.max(w.end, ls), p.l1);
+  if (le <= ls) { ls = Math.max(p.l0, Math.min(ls, p.l1 - 0.05)); le = Math.min(p.l1, ls + 0.05); }
+  return { word: w.word, start: p.g0 + (ls - p.l0), end: p.g0 + (le - p.l0) };
+}
+// Wortzeiten auf Sprachbereiche beschränken (Sicherheitsnetz nach der Transkription):
+//  • Wort teilweise in Sprache → auf den Bereich mit der grössten Überlappung zuschneiden;
+//  • Wörter komplett ausserhalb (z. B. „Hallo“ bei 0,2 s im Rascheln-Vorlauf) → als zusammenhängender
+//    Lauf in den nächsten Sprachbereich vor dessen erstes Wort (Reihenfolge + relative Abstände bleiben,
+//    gestaucht, aber ≥ 0,1 s pro Wort); passt er nicht, ans Ende des vorherigen Bereichs; passt er dort
+//    auch nicht, werden Lauf + die ersten Wörter des Folgebereichs gemeinsam gestaucht (jedes ≥ 0,1 s).
+var VAD_MIN_WORD = 0.1;
+function constrainWordsToSpeech(words, regions) {
+  if (!words || !words.length || !regions || !regions.length) return words || [];
+  var R = regions, nR = R.length, out = words.map(function(w){ return { word: w.word, start: w.start, end: w.end }; });
+  function regionOf(w) { // Bereich mit grösster Überlappung, -1 = keiner
+    var best = -1, bo = 0;
+    for (var r = 0; r < nR; r++) {
+      if (R[r].start >= w.end) break;
+      var o = Math.min(w.end, R[r].end) - Math.max(w.start, R[r].start);
+      if (o > bo + 1e-9) { bo = o; best = r; }
+    }
+    return best;
+  }
+  function nextRegion(t) { for (var r = 0; r < nR; r++) if (R[r].start >= t - 1e-9) return r; return -1; }
+  var reg = out.map(function(w) {
+    if (!(w.end > w.start)) w.end = w.start + 0.05;
+    var r = regionOf(w);
+    if (r >= 0) { w.start = Math.max(w.start, R[r].start); w.end = Math.min(w.end, R[r].end); if (w.end - w.start < 0.04) w.end = Math.min(R[r].end, w.start + 0.04); }
+    return r;
+  });
+  // Lauf [i0..i1] linear in [t0, t1] legen, relative Lage behalten; jedes Wort ≥ VAD_MIN_WORD (sonst gleichmässig)
+  function place(i0, i1, t0, t1) {
+    var a = out[i0].start, z = out[i1].end, cnt = i1 - i0 + 1, sc = z > a ? (t1 - t0) / (z - a) : 0, okLen = sc > 0;
+    for (var k = i0; k <= i1 && okLen; k++) if ((out[k].end - out[k].start) * sc < VAD_MIN_WORD - 1e-9) okLen = false;
+    for (k = i0; k <= i1; k++) {
+      if (okLen) { var s = t0 + (out[k].start - a) * sc, e = t0 + (out[k].end - a) * sc; out[k].start = s; out[k].end = e; }
+      else { var d = (t1 - t0) / cnt; out[k].start = t0 + (k - i0) * d; out[k].end = t0 + (k - i0 + 1) * d; }
+    }
+  }
+  for (var i = 0; i < out.length; ) {
+    if (reg[i] >= 0) { i++; continue; }
+    var j = i; while (j + 1 < out.length && reg[j + 1] < 0 && nextRegion(out[j + 1].start) === nextRegion(out[i].start)) j++;
+    var cnt = j - i + 1, nr = nextRegion(out[i].start), need = cnt * VAD_MIN_WORD, done = false;
+    if (nr >= 0) { // a) vor das erste Wort des Folgebereichs
+      var lim = (j + 1 < out.length && reg[j + 1] === nr) ? out[j + 1].start : R[nr].end;
+      if (lim - R[nr].start >= need - 1e-9) { place(i, j, R[nr].start, Math.min(lim, R[nr].start + Math.max(need, out[j].end - out[i].start))); done = true; }
+    }
+    var pr = nr >= 0 ? nr - 1 : nR - 1;
+    if (!done && pr >= 0) { // b) ans Ende des vorherigen Bereichs (hinter dessen letztes Wort)
+      var from = (i > 0 && reg[i - 1] === pr) ? out[i - 1].end : R[pr].start;
+      if (R[pr].end - from >= need - 1e-9) { place(i, j, Math.max(from, R[pr].end - Math.max(need, out[j].end - out[i].start)), R[pr].end); done = true; }
+    }
+    if (!done && nr >= 0) { // c) Lauf + erste Wörter des Folgebereichs gemeinsam stauchen
+      var m = j + 1;
+      while (m < out.length && reg[m] === nr && out[m].end - R[nr].start < (m - i + 1) * VAD_MIN_WORD) m++;
+      if (m >= out.length || reg[m] !== nr) m--;
+      var endT = Math.max(out[m].end, R[nr].start + (m - i + 1) * VAD_MIN_WORD);
+      place(i, m, R[nr].start, endT);
+      for (var q = j + 1; q <= m; q++) reg[q] = nr;
+      done = true;
+    }
+    if (!done && pr >= 0) { // d) nach der letzten Sprache: mit den letzten Wörtern davor gemeinsam stauchen
+      var k0 = i - 1;
+      while (k0 >= 0 && reg[k0] === pr && R[pr].end - out[k0].start < (j - k0 + 1) * VAD_MIN_WORD) k0--;
+      if (k0 < 0 || reg[k0] !== pr) k0++;
+      place(k0, j, Math.min(out[k0].start, R[pr].end - (j - k0 + 1) * VAD_MIN_WORD), R[pr].end);
+      done = true;
+    }
+    for (var q2 = i; q2 <= j; q2++) reg[q2] = done ? (nr >= 0 ? nr : pr) : -1;
+    i = j + 1;
+  }
+  for (i = 1; i < out.length; i++) {
+    if (out[i].start < out[i - 1].end) out[i].start = out[i - 1].end;
+    if (out[i].end < out[i].start + 0.04) out[i].end = out[i].start + 0.04;
+  }
+  return out;
+}
 // ── Timing-Snap an die tatsächliche Sprachenergie ──
 // Whisper-Wortzeiten beginnen oft schon in der Pause davor und „kleben“ nach dem Satzende nach. Mit dem
 // 16-kHz-Audio, das wir ohnehin haben: RMS-Hüllkurve in 10-ms-Frames, Rauschboden (20. Perzentil) und
