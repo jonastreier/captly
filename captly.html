@@ -2565,7 +2565,7 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   var maxH = previewFrameH() * CAP_FIT_MAX_H;
   var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, capWordGap(s),
             s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0, capLineH(s)].join(',') + '|' + px + '|' + Math.round(maxW)
-            + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen;
+            + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen + '|' + capHyphLang();
   if (_capFitCache[key]) return _capFitCache[key];
   var ctx   = capMeasureCtx();
   var fn    = (s.font || "'Inter'").replace(/'/g, '');
@@ -2589,10 +2589,12 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   }
   // Wörter bei Größe p auf maxW bringen (ggf. trennen) + Blockhöhe grob wie clampLinesToWidth schätzen.
   function layoutAt(p) {
-    var outW = [], orig = [];
+    var outW = [], orig = [], hq = 0;
     words.forEach(function(w, i) {
-      if (w.length < 4 || measure(w, p) <= maxW) { outW.push(w); orig.push(i); return; }
-      capHyphenate(w, function(piece){ return measure(piece, p) <= maxW; }).forEach(function(pc) { outW.push(pc); orig.push(i); });
+      if (w.length < 8 || measure(w, p) <= maxW) { outW.push(w); orig.push(i); return; } // ≤ 7 Zeichen: nie trennen
+      var pcs = capHyphenate(w, function(piece){ return measure(piece, p) <= maxW; });
+      if (pcs.length > 1) hq = Math.max(hq, pcs.q === undefined ? 100 : pcs.q);
+      pcs.forEach(function(pc) { outW.push(pc); orig.push(i); });
     });
     ctx.font = fi + fw + ' ' + (p * fsMul) + 'px "' + fn + '", sans-serif';
     var sp = ctx.measureText(' ').width + capWordGap(s) + lsPx, nl = 1, lw = 0, gw = maxW * 0.99; // 1 % Reserve: Export rundet die Schriftgröße
@@ -2603,7 +2605,7 @@ function fitCaptionWords(words, s, px, maxW, lines) {
     var g = nl; // Zeilen bei gieriger Füllung = Mindestzahl, die bei dieser Größe nötig ist
     nl = Math.max(nl, Math.min(lines || 1, outW.length));
     var h = nl * capLineH(s) * p * fsMul + (s.boxBg ? 10 : 0);
-    return { px: p, words: outW, orig: orig, lines: nl, h: h, g: g };
+    return { px: p, words: outW, orig: orig, lines: nl, h: h, g: g, hq: hq };
   }
   var floor = px * CAP_FIT_MIN;
   var widest = 0;
@@ -2632,12 +2634,22 @@ function fitCaptionWords(words, s, px, maxW, lines) {
     epx = Math.max(lineFloor, Math.floor(epx * 0.94 * 10) / 10);
     res = layoutAt(epx);
   }
+  // Trennung nur mitten in einem Wortteil („Rindfleischverar-|beitungs…“, „…schutzge-|biet“)? Dann lieber bis
+  // ~70 % dieser Größe weiter verkleinern, falls es dort eine Trennung an der Kompositumsfuge gibt.
+  if (res.hq >= 6 && res.hq < 100) {
+    var hp = epx, hFloor = Math.max(lineFloor, epx * 0.7);
+    while (hp > hFloor + 1e-6) {
+      hp = Math.max(hFloor, Math.floor(hp * 0.95 * 10) / 10);
+      var alt = layoutAt(hp);
+      if (alt.hq < 6 && alt.g <= maxLines && alt.h <= maxH) { res = alt; break; }
+    }
+  }
   if (fontPending) return res; // Fallback-Schrift gemessen → nicht cachen, nach dem Laden neu messen
   if (++_capFitN > 400) { _capFitCache = {}; _capFitN = 0; }
   _capFitCache[key] = res;
   return res;
 }
-// ── Notfall-Silbentrennung für überlange Wörter ──
+// ── Notfall-Silbentrennung (Fallback, solange die Liang-Muster unten noch laden) ──
 // Keine Wörterbuch-Trennung, aber nach Qualität gestaffelte Trennstellen (Strafpunkte):
 //   vorhandener Bindestrich (-2) < Kompositumsfuge nach Fugen-/Suffixendung („-ungs“, „-heits“ …) bzw.
 //   vor häufigem Grundwort („-betrieb“, „-haltung“ …) oder nach Präfix am Wortanfang (0)
@@ -2683,45 +2695,230 @@ function capBreakPenalties(w) {
   }
   return pen;
 }
-// fits(piece) → passt das Teilstück (inkl. angehängtem „-“) in die Zeile?
-function capHyphenate(w, fits) {
-  var n = w.length, pen = capBreakPenalties(w);
+// Gemeinsamer Löser: Wort an erlaubten Stellen (pen[j] < Infinity) in möglichst wenige, passende Stücke teilen.
+// strict: nur erlaubte Stellen, Stücke ≥ 3 Buchstaben; sonst (Notfall) beliebige Stellen.
+function capHyphSolve(w, pen, fits, strict) {
+  var n = w.length;
   function piece(i, j) { return w.slice(i, j) + (j < n && w.charAt(j - 1) !== '-' ? '-' : ''); }
   function letters(i, j) { return w.slice(i, j).replace(/[^\p{L}\p{N}]/gu, '').length; }
-  function solve(strict) {
-    var minLen = strict ? 3 : 1, fitM = [], i, j;
-    for (i = 0; i < n; i++) { fitM.push([]); for (j = i + 1; j <= n; j++) fitM[i][j] = fits(piece(i, j)); }
-    function okEdge(i, j) {
-      if (!fitM[i][j]) return false;
-      if (j < n && strict && pen[j] === Infinity) return false;
-      return letters(i, j) >= minLen || (!strict && j - i >= 1);
-    }
-    // 1) minimale Stückzahl → Ziel-Stücklänge für die Ausgewogenheit
-    var cnt = [0];
-    for (j = 1; j <= n; j++) { cnt[j] = Infinity; for (i = 0; i < j; i++) if (cnt[i] + 1 < cnt[j] && okEdge(i, j)) cnt[j] = cnt[i] + 1; }
-    if (!isFinite(cnt[n])) return null;
-    var ideal = n / cnt[n];
-    // 2) Kosten je Stück (30) + Strafpunkte der Trennstelle + Abweichung von der Ziel-Länge.
-    //    Ein Stück mehr an einer guten Fuge schlägt so zwei willkürliche Schnitte („Weide-|haltung“
-    //    statt „Rinder-We-|idehaltung“); passen zwei Nachbarstücke zusammen, ist Zusammenlegen immer
-    //    billiger → nie zwei Teile eines Worts nebeneinander in einer Zeile.
-    var best = [0], from = [-1];
-    for (j = 1; j <= n; j++) {
-      best[j] = Infinity; from[j] = -1;
-      for (i = 0; i < j; i++) {
-        if (!isFinite(best[i]) || !okEdge(i, j)) continue;
-        var pj = j < n ? Math.min(pen[j], 100) : 0;
-        var d = (j - i - ideal) / ideal;
-        var cost = best[i] + 30 + pj + 6 * d * d;
-        if (cost < best[j]) { best[j] = cost; from[j] = i; }
-      }
-    }
-    if (!isFinite(best[n])) return null;
-    var cuts = [], at = n;
-    while (at > 0) { var st = from[at]; cuts.unshift([st, at]); at = st; }
-    return cuts.map(function(r){ return piece(r[0], r[1]); });
+  var minLen = strict ? 3 : 1, fitM = [], i, j;
+  for (i = 0; i < n; i++) { fitM.push([]); for (j = i + 1; j <= n; j++) fitM[i][j] = fits(piece(i, j)); }
+  function okEdge(i, j) {
+    if (!fitM[i][j]) return false;
+    if (j < n && strict && pen[j] === Infinity) return false;
+    if (strict && i > 0 && pen[i] === Infinity) return false;
+    return letters(i, j) >= minLen || (!strict && j - i >= 1);
   }
-  return solve(true) || solve(false) || [w];
+  // 1) minimale Stückzahl → Ziel-Stücklänge für die Ausgewogenheit
+  var cnt = [0];
+  for (j = 1; j <= n; j++) { cnt[j] = Infinity; for (i = 0; i < j; i++) if (cnt[i] + 1 < cnt[j] && okEdge(i, j)) cnt[j] = cnt[i] + 1; }
+  if (!isFinite(cnt[n])) return null;
+  var ideal = n / cnt[n];
+  // 2) Kosten je Stück (30) + Strafpunkte der Trennstelle + Abweichung von der Ziel-Länge.
+  //    Ein Stück mehr an einer guten Fuge schlägt so zwei willkürliche Schnitte; passen zwei Nachbarstücke
+  //    zusammen, ist Zusammenlegen immer billiger → nie zwei Teile eines Worts nebeneinander in einer Zeile.
+  var best = [0], from = [-1];
+  for (j = 1; j <= n; j++) {
+    best[j] = Infinity; from[j] = -1;
+    for (i = 0; i < j; i++) {
+      if (!isFinite(best[i]) || !okEdge(i, j)) continue;
+      var pj = j < n ? Math.min(pen[j], 100) : 0;
+      var d = (j - i - ideal) / ideal;
+      var cost = best[i] + 30 + pj + 6 * d * d;
+      if (cost < best[j]) { best[j] = cost; from[j] = i; }
+    }
+  }
+  if (!isFinite(best[n])) return null;
+  var cuts = [], at = n, q = 0;
+  while (at > 0) { var st = from[at]; cuts.unshift([st, at]); if (at < n) q = Math.max(q, pen[at]); at = st; }
+  var out = cuts.map(function(r){ return piece(r[0], r[1]); });
+  out.q = strict ? q : 100; // schlechteste verwendete Trennstelle (fitCaptionWords: lieber etwas kleiner, dafür an der Fuge)
+  return out;
+}
+// Alte Heuristik — nur noch, solange die Muster der Sprache laden (bzw. nicht ladbar sind).
+function capHyphenateLegacy(w, fits) {
+  var pen = capBreakPenalties(w);
+  return capHyphSolve(w, pen, fits, true) || capHyphSolve(w, pen, fits, false) || [w];
+}
+// ── Silbentrennung nach Liang/TeX (wie InDesign/LaTeX) ──
+// Muster: hyph-utf8 (vendor/hyphen/hyph-<code>.js, s. scripts/fetch-hyphen-patterns.sh), lazy pro
+// Transkriptsprache geladen. Bis sie da sind, gilt die alte Heuristik (capHyphenateLegacy) — kein Absturz;
+// nach dem Laden werden Fit-/Layout-Caches verworfen (capFontsChanged) → Vorschau und Export identisch.
+var HYPH_VERSION = '1'; // bei neuen Mustern hochzählen (/vendor/* wird „immutable“ gecacht)
+var CAP_HYPH_LANGS = ['de', 'en', 'fr', 'it', 'es'];
+var _capHyph = {}, _capHyphReq = {};
+function capHyphData(code) {
+  try { return (typeof window !== 'undefined' && window.CAPIVO_HYPH && window.CAPIVO_HYPH[code]) || null; } catch (e) { return null; }
+}
+function capHyphCompile(code) {
+  if (_capHyph[code]) return _capHyph[code];
+  var d = capHyphData(code);
+  if (!d || typeof d.p !== 'string') return null;
+  var t = {}, maxL = 0, x = {};
+  d.p.split(' ').forEach(function(p) {
+    if (!p) return;
+    var letters = '', pts = '', pend = '0';
+    for (var i = 0; i < p.length; i++) {
+      var c = p.charAt(i);
+      if (c >= '0' && c <= '9') pend = c; else { pts += pend; pend = '0'; letters += c; }
+    }
+    t[letters] = pts + pend;
+    if (letters.length > maxL) maxL = letters.length;
+  });
+  String(d.x || '').split(' ').forEach(function(e) { if (e) x[e.replace(/-/g, '')] = e; });
+  return (_capHyph[code] = { t: t, maxL: maxL, x: x });
+}
+// Muster der Sprache anfordern (Browser: <script>-Tag). true = schon verfügbar.
+function capHyphEnsure(code) {
+  if (capHyphCompile(code)) return true;
+  if (_capHyphReq[code] || CAP_HYPH_LANGS.indexOf(code) < 0) return false;
+  try {
+    if (typeof document === 'undefined' || !document.head || typeof document.head.appendChild !== 'function') return false;
+    _capHyphReq[code] = new Promise(function(res) {
+      var sc = document.createElement('script');
+      sc.src = '/vendor/hyphen/hyph-' + code + '.js?v=' + HYPH_VERSION;
+      sc.async = true;
+      sc.onload = function() { res(!!capHyphCompile(code)); };
+      sc.onerror = function() { res(false); };
+      document.head.appendChild(sc);
+    });
+  } catch (e) { return false; }
+  return false;
+}
+// Für den Export: Muster der aktiven Sprache laden lassen (max. timeoutMs), damit er wie die Vorschau trennt.
+function capHyphReady(code, timeoutMs) {
+  code = code || capHyphLang();
+  if (capHyphEnsure(code) || !_capHyphReq[code]) return Promise.resolve(!!capHyphCompile(code));
+  return Promise.race([_capHyphReq[code], new Promise(function(r){ setTimeout(function(){ r(false); }, timeoutMs || 4000); })]);
+}
+// Die Vendor-Datei ruft das beim Laden auf → Caches leeren, Vorschau neu zeichnen.
+if (typeof window !== 'undefined') window.capHyphLoaded = function(code) { _capHyph[code] = null; capHyphCompile(code); capFontsChanged(); };
+// Trennstellen (Index vor dem Zeichen) eines reinen Buchstaben-Worts nach Liang; null = Muster fehlen.
+function capHyphPoints(code, word) {
+  var P = capHyphCompile(code);
+  if (!P) return null;
+  var lw = String(word).toLowerCase(), res = [], i, j, k;
+  if (lw.length !== word.length) return []; // Sonderfälle (z. B. „İ“) — lieber nicht trennen als falsch
+  var ex = P.x[lw];
+  if (ex) { for (i = 0, k = 0; i < ex.length; i++) { if (ex.charAt(i) === '-') res.push(k); else k++; } return res; }
+  var s = '.' + lw + '.', n = s.length, v = [];
+  for (i = 0; i <= n; i++) v.push(0);
+  for (i = 0; i < n; i++) {
+    for (j = i + 1; j <= n && j - i <= P.maxL; j++) {
+      var pp = P.t[s.slice(i, j)];
+      if (pp) for (k = 0; k < pp.length; k++) { var dd = pp.charCodeAt(k) - 48; if (dd > v[i + k]) v[i + k] = dd; }
+    }
+  }
+  for (i = 1; i < lw.length; i++) if (v[i + 1] & 1) res.push(i);
+  return res;
+}
+// Kompositumsfugen (nur Deutsch): Liang kennt keine Wortfugen — unter den legalen Stellen werden Fugen
+// bevorzugt (nach Fugen-/Suffixendung, an bekannten Kompositionsgliedern, vor 3-Buchstaben-Präfixen);
+// eine Vorsilbe allein am Zeilenende („…fleischver-“, „…schutzge-“) ist fast verboten.
+var CAP_DE_STEMS = ('fleisch rind rinder schwein lamm kalb wurst weide wald tier tiere hof haus land stadt dorf markt laden '
+  + 'verkauf kauf preis arbeit betrieb betriebe haltung verarbeitung zucht futter gras wiese stall garten feld bauer wirtschaft '
+  + 'gesellschaft unternehmen gericht gesetz verfassung bundes staat regierung verwaltung verkehr strasse straße bahn auto fahrt '
+  + 'fahrzeug zeit jahr woche monat nacht morgen abend sommer winter kinder familie eltern schule lehrer wasser feuer natur schutz '
+  + 'gebiet umwelt energie strom sonne wetter regen schnee berg fluss essen küche rezept gemüse milch käse brot kuchen video kamera '
+  + 'film musik bild foto sprache wort text geschichte welt leben liebe freund freunde kunden zufriedenheit qualität produkt '
+  + 'produkte service angebot termin platz stelle raum zimmer wohnung gebäude geld bank karte handy telefon internet netz seite '
+  + 'programm system technik maschine werk werkzeug geschäft firma team leiter mitarbeiter gesundheit krankheit spital pflege sport '
+  + 'spiel training fussball ausbildung förderung bildung forschung entwicklung begrenzung geschwindigkeit sicherheit versicherung '
+  + 'schifffahrt hilfe frage antwort lösung problem rinderhaltung highland bio bauernhof hofladen weidehaltung beef amt').split(' ');
+var CAP_DE_FUGE = ['schafts', 'heits', 'keits', 'tions', 'ungs', 'ions', 'ings', 'lings', 'tums', 'ts', 'rs'];
+var CAP_DE_PRE3 = ['ver', 'zer', 'ent', 'aus', 'auf', 'ein', 'unter', 'über', 'vor', 'nach', 'durch'];
+var CAP_DE_DANGLE = ['ver', 'zer', 'ent', 'be', 'ge'];
+function capJointPenalty(code, lw, b, pts) {
+  if (code !== 'de') return 4;
+  var L = lw.slice(0, b), R = lw.slice(b), k;
+  for (k = 0; k < CAP_DE_DANGLE.length; k++) {
+    var pf = CAP_DE_DANGLE[k], at = b - pf.length;
+    if (at > 0 && L.slice(at) === pf && pts.indexOf(at) >= 0) return 25;
+  }
+  for (k = 0; k < CAP_DE_FUGE.length; k++) if (L.length > CAP_DE_FUGE[k].length + 1 && L.slice(-CAP_DE_FUGE[k].length) === CAP_DE_FUGE[k]) return 0;
+  for (k = 0; k < CAP_DE_STEMS.length; k++) {
+    var st = CAP_DE_STEMS[k];
+    if (R.indexOf(st) === 0) return 0;
+    var e = L.lastIndexOf(st);
+    if (e >= 0 && /^(|s|es|n|en|er|e)$/.test(L.slice(e + st.length))) return 0;
+  }
+  for (k = 0; k < CAP_DE_PRE3.length; k++) if (L.length >= 4 && R.indexOf(CAP_DE_PRE3[k]) === 0) return 2;
+  return 6;
+}
+// Nie trennen: Zahlen, URLs/Domains/E-Mails, @Handles, #Hashtags, Wörter mit ≤ 7 Buchstaben.
+function capHyphEligible(core) {
+  if (!core || /[\d@#]/.test(core) || /[.\/:_]/.test(core)) return false;
+  return core.replace(/[^\p{L}]/gu, '').length > 7;
+}
+// fits(piece) → passt das Teilstück (inkl. angehängtem „-“) in die Zeile? lang optional (sonst Transkriptsprache).
+// Groß-/Kleinschreibung ändert die Trennstellen nicht (Muster laufen auf Kleinbuchstaben).
+function capHyphenate(w, fits, lang) {
+  w = String(w);
+  var m = /^([^\p{L}\p{N}#@]*)(.*?)([^\p{L}\p{N}]*)$/u.exec(w) || ['', '', w, ''];
+  var lead = m[1], core = m[2], off = lead.length, n = w.length, i;
+  if (!capHyphEligible(core) || /[#@]/.test(w)) return [w];
+  // 1) Wort mit Bindestrich: nur am vorhandenen Bindestrich trennen („Highland-|Rinder“)
+  var pen = [], hasHy = false;
+  for (i = 0; i <= n; i++) pen.push(Infinity);
+  for (i = 1; i < core.length - 1; i++) if (core.charAt(i) === '-') { pen[off + i + 1] = -2; hasHy = true; }
+  if (hasHy) { var r1 = capHyphSolve(w, pen, fits, true); if (r1) return r1; }
+  // 2) Liang-Stellen (in Bindestrich-Wörtern nur, wenn ein Teil allein nicht passt — sonst würde abgeschnitten)
+  var code = lang || capHyphLang();
+  if (!capHyphCompile(code)) { capHyphEnsure(code); return capHyphenateLegacy(w, fits); }
+  var segs = core.split('-'), so = off;
+  segs.forEach(function(seg) {
+    var sm = /^([^\p{L}]*)(\p{L}[\p{L}'’]*\p{L})([^\p{L}]*)$/u.exec(seg);
+    if (sm) {
+      var base = so + sm[1].length, word = sm[2], lw = word.toLowerCase(), pts = capHyphPoints(code, word) || [];
+      pts.forEach(function(b) {
+        var lb = word.slice(0, b).replace(/[^\p{L}]/gu, '').length, la = word.slice(b).replace(/[^\p{L}]/gu, '').length;
+        if (lb >= 3 && la >= 3) pen[base + b] = capJointPenalty(code, lw, b, pts);
+      });
+    }
+    so += seg.length + 1;
+  });
+  return capHyphSolve(w, pen, fits, true) || capHyphenateLegacy(w, fits);
+}
+// ── Sprache des Transkripts (Trennmuster, Stoppwörter) ──
+// Reihenfolge: Übersetzung → EN; erkannte/gewählte Sprache der Transkription; sonst Schätzung aus den Wörtern.
+var CAP_LANG_HINTS = {
+  de: 'der die das und ist nicht ich wir sie mit auf für ein eine den dem auch es zu sind hier noch',
+  en: 'the and is are you to of that this with it we for on was have be',
+  fr: 'le la les et est des une que pour dans pas nous vous avec sur',
+  it: 'il di che è per una sono non della con questo anche gli',
+  es: 'el los las que es por una para con del pero muy está como'
+};
+var _capLangGuess = { key: null, val: '' }, _capLangForce = null;
+function capGuessLang() {
+  var ws = (typeof wordTimestamps !== 'undefined' && wordTimestamps && wordTimestamps.length) ? wordTimestamps : [];
+  if (!ws.length && typeof captionBlocks !== 'undefined' && captionBlocks) captionBlocks.forEach(function(b){ ws = ws.concat(b.words || []); });
+  var key = ws.length + '|' + (ws[0] ? ws[0].word : '') + '|' + (ws.length ? ws[ws.length - 1].word : '');
+  if (_capLangGuess.key === key) return _capLangGuess.val;
+  var score = {}, best = '', bs = 2;
+  Object.keys(CAP_LANG_HINTS).forEach(function(c) { score[c] = 0; });
+  ws.slice(0, 400).forEach(function(w) {
+    var k = normWordKey(w.word);
+    Object.keys(CAP_LANG_HINTS).forEach(function(c) { if ((' ' + CAP_LANG_HINTS[c] + ' ').indexOf(' ' + k + ' ') >= 0) score[c]++; });
+  });
+  Object.keys(score).forEach(function(c) { if (score[c] > bs) { bs = score[c]; best = c; } });
+  _capLangGuess = { key: key, val: best };
+  return best;
+}
+function capLang() {
+  if (_capLangForce) return _capLangForce;
+  var meta = typeof _lastTrMeta !== 'undefined' ? _lastTrMeta : null;
+  if (meta ? meta.translate : (typeof doTranslate !== 'undefined' && doTranslate)) return 'en';
+  var name = meta && meta.lang && meta.lang !== 'auto' ? meta.lang : '';
+  if (name && CODE_BY_LANG[name]) return CODE_BY_LANG[name];
+  var g = capGuessLang();
+  if (g) return g;
+  if (typeof whisperLang !== 'undefined' && whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) return CODE_BY_LANG[whisperLang];
+  return '';
+}
+// Trennsprache: unterstützt → diese; andere bekannte Sprache → Englisch; unbekannt → Deutsch.
+function capHyphLang() {
+  var c = capLang();
+  return CAP_HYPH_LANGS.indexOf(c) >= 0 ? c : (c ? 'en' : 'de');
 }
 // hlOf (optional): Index-Abbildung Teilwort → Originalwort (nach Bindestrich-Trennung), damit alle
 // Teile eines aktiven Worts mit der Highlight-Schrift gemessen werden.
@@ -2744,10 +2941,136 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
     var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
     ctx.font = it + fw + ' ' + px + 'px "' + f + '", sans-serif';
     var wt   = (tt || (isHL && s.hlUpper)) ? w.toUpperCase() : w;
-    return { i: i, w: ctx.measureText(wt).width + lsPx * wt.length + ((isHL && s.hlPillBg) ? 18 : 0) }; // Pill-Padding wie im DOM
+    return { i: i, w: ctx.measureText(wt).width + lsPx * wt.length + ((isHL && s.hlPillBg) ? 18 : 0), // Pill-Padding wie im DOM
+             t: w, hy: !!hlOf && i + 1 < words.length && hlOf[i + 1] === hlOf[i] }; // hy: getrennter Wortteil → Zeilenende
   });
   var lines = capDistributeLines(info, targetLines, sp, previewFrameW() * 0.86);
   return lines.map(function(L){ return L.map(function(it){ return it.i; }); });
+}
+// ── Umbruch-Regeln wie Netflix/BBC-Untertitel ──
+// Nicht am Zeilen-/Caption-Ende: Artikel, Präpositionen, Konjunktionen, Possessiva (gehören zum nächsten Wort);
+// Zahl + Einheit/Nomen und Vor- + Nachname zusammenhalten; keine Zeile mit Satzzeichen beginnen; bevorzugt
+// nach Satzzeichen und vor Konjunktionen brechen.
+var CAP_FEWER_LINES = 2.5; // Strafe für weniger Zeilen als „Max lines“ (gestapelter Look ist gewollt)
+var CAP_STOP_SRC = {
+  de: 'der die das den dem des ein eine einen einem einer eines im am zum zur vom beim ins ans in an auf mit von zu für '
+    + 'bei aus nach über unter vor um und oder aber dass weil wenn als wie durch gegen ohne seit bis zwischen hinter neben '
+    + 'mein meine meinen meinem meiner meines dein deine deinen deinem deiner deines sein seine seinen seinem seiner seines '
+    + 'ihr ihre ihren ihrem ihrer ihres unser unsere unseren unserem unserer unseres euer eure euren eurem eurer eures '
+    + 'kein keine keinen keinem keiner keines dieser diese dieses diesen diesem jeder jede jedes jeden jedem',
+  en: 'the a an of to in on at for with from by and or but that my your his her its our their this these those into onto as than',
+  fr: 'le la les l un une des du de d au aux à en et ou mais que qu qui dans sur pour par avec sans sous mon ma mes ton ta '
+    + 'tes son sa ses notre nos votre vos leur leurs ce cet cette ces',
+  it: 'il lo la i gli le l un uno una di a da in con su per tra fra e ed o ma che del dello della dei degli delle al allo '
+    + 'alla ai agli alle dal dalla nel nello nella nei nelle sul sulla mio mia miei mie tuo tua suo sua nostro nostra',
+  es: 'el la los las un una unos unas de del a al en con por para sin sobre entre y e o u pero que mi mis tu tus su sus nuestro nuestra'
+};
+var CAP_CONJ_SRC = {
+  de: 'und oder aber dass weil wenn denn sondern obwohl damit während', en: 'and but or because so while although',
+  fr: 'et mais ou parce car donc quand', it: 'e ma o perché quando', es: 'y pero o porque cuando'
+};
+var CAP_UNITS = ('kg g mg t km m cm mm l dl cl ml h std min sek s % ‰ ° °c grad kilo kilos gramm liter meter metern kilometer '
+  + 'kilometern prozent franken fr fr. chf eur euro euros usd dollar dollars $ € £ stück stk mal jahre jahren jahr tage tagen tag '
+  + 'stunden stunde minuten minute sekunden wochen woche monate monaten monat hektar ha percent pounds lbs lb kilograms grams '
+  + 'miles feet ft years year days hours hour minutes weeks months times').split(' ');
+var CAP_CURRENCY = ['chf', 'fr.', 'fr', 'eur', 'usd', '$', '€', '£', 'us$'];
+var CAP_NUM_NOT_NOUN = ' ich du er sie es wir ihr i you he she it we they und and oder or ';
+var _capWordSets = {};
+function capWordSet(kind, lang) {
+  var k = kind + ':' + (lang || '*');
+  if (_capWordSets[k]) return _capWordSets[k];
+  var src = kind === 'stop' ? CAP_STOP_SRC : CAP_CONJ_SRC, set = {};
+  (lang && src[lang] ? [src[lang]] : Object.keys(src).map(function(c){ return src[c]; })).forEach(function(str) {
+    str.split(' ').forEach(function(w){ if (w) set[w] = 1; });
+  });
+  return (_capWordSets[k] = set);
+}
+// Token-Eigenschaften (Text wie angezeigt/gespeichert; Kleinschreibung nur für den Vergleich)
+function capTok(t) {
+  t = String(t || '');
+  var bare = t.replace(/["“”„«»‚‘’'()\[\]]+$/g, '').replace(/^["“”„«»‚‘’'()\[\]]+/g, '');
+  var low = bare.toLowerCase(), key = low.replace(/[^\p{L}\p{N}%‰°$€£.]/gu, '').replace(/\.$/, '');
+  var letters = bare.replace(/[^\p{L}]/gu, '');
+  return {
+    t: t, key: key, low: low.replace(/[.,;:!?…]+$/, ''),
+    punctOnly: !/[\p{L}\p{N}%‰°$€£]/u.test(t),
+    pe: /[,;:–—]$/.test(bare) || /^[–—]$/.test(t),             // Satzzeichen (Komma …) am Ende
+    se: /[.!?…]$/.test(bare),                                    // Satzende
+    num: /^[+-]?\d[\d'’.,]*%?$/.test(bare.replace(/[,;:.!?]+$/, '')),
+    cap: letters.length > 1 && letters.charAt(0) !== letters.charAt(0).toLowerCase() && letters !== letters.toUpperCase()
+  };
+}
+// Strafe für einen Umbruch zwischen a und b (capTok); level 'line' (in der Caption) oder 'block' (zwischen Captions).
+// prevA = Token vor a (Satzanfang erkennen). Negative Werte = guter Umbruch.
+function capBreakCost(a, b, prevA, lang, level) {
+  if (!a || !b) return 0;
+  var L = level === 'block';
+  var stop = capWordSet('stop', lang), conj = capWordSet('conj', lang), c = 0;
+  if (b.punctOnly && !/^[–—]$/.test(b.t)) c += L ? 12 : 10;      // Zeile/Caption nie mit Satzzeichen beginnen
+  if ((!lang || lang === 'de') && b.low === 'sich' && !a.pe && !a.se) c += L ? 3 : 1; // „lohnt | sich“ → „lohnt sich |“
+  if (a.se) c -= L ? 2.5 : 1.0;
+  else if (a.pe) c -= L ? 2 : 0.8;
+  else {
+    if (stop[a.low]) c += L ? 8 : 3;                               // „… der | Weide“
+    if (conj[b.low]) c -= L ? 1.5 : 0.3;                           // „… Gras | und Heu“
+  }
+  if (!a.pe && !a.se) {
+    // Zahl + Einheit/Nomen („5 Kilo“, „10 %“, „20 Rinder“) bzw. Währung + Zahl („CHF 20“)
+    var unit = CAP_UNITS.indexOf(b.low) >= 0 || CAP_UNITS.indexOf(b.key) >= 0 || /^[%‰°]/.test(b.t);
+    var noun = b.cap || (lang && lang !== 'de' && /^\p{L}/u.test(b.t) && !stop[b.low] && CAP_NUM_NOT_NOUN.indexOf(' ' + b.low + ' ') < 0);
+    if (a.num && (unit || noun || /^\d{3}\b/.test(b.t))) c += L ? 8 : 3;
+    if (CAP_CURRENCY.indexOf(a.key) >= 0 && /^\d/.test(b.t)) c += L ? 8 : 3;
+    // Vor- + Nachname: beide groß, a nicht am Satzanfang (best effort; im Deutschen auch Nomen-Paare)
+    if (a.cap && b.cap && prevA && !prevA.se && !stop[a.low]) c += L ? 2 : 1;
+  }
+  return c;
+}
+// Optimale Verteilung auf genau k Zeilen (alle Varianten, n ≤ 40): Zeilen ≤ maxW (ein Einzelwort darf
+// überstehen), ausgewogen mit Pyramide (untere Zeile eher länger), Umbruch-Regeln (capBreakCost), getrennte
+// Wortteile („Rind-“) immer am Zeilenende. null = keine passende Variante → bisheriges Verfahren.
+function capSmartLines(info, k, sp, maxW) {
+  var n = info.length;
+  if (k < 1 || n < k || n > 40) return null;
+  var lang = capLang(), toks = info.map(function(it){ return capTok(it.t); });
+  var pre = [0];
+  info.forEach(function(it, i){ pre.push(pre[i] + it.w); });
+  function width(a, b) { return pre[b] - pre[a] + sp * (b - a - 1); }
+  var mean = (pre[n] + sp * (n - k)) / k;
+  var bc = [];
+  for (var i = 1; i < n; i++) bc[i] = info[i - 1].hy ? -0.5 : capBreakCost(toks[i - 1], toks[i], toks[i - 2], lang, 'line');
+  var best = null, bestCost = Infinity, cuts = [];
+  function rec(start, left, cost, widths) {
+    if (cost >= bestCost) return;
+    if (left === 1) {
+      var w = width(start, n);
+      if (w > maxW && n - start > 1) return;
+      for (var q = start; q < n - 1; q++) if (info[q].hy) return;     // Wortteil mitten in der Zeile
+      var ws = widths.concat([w]), c = cost;
+      for (var z = 0; z < ws.length; z++) {
+        var dm = (ws[z] - mean) / maxW; c += 20 * dm * dm;
+        if (z < ws.length - 1 && ws[z] > ws[z + 1]) { var dp = (ws[z] - ws[z + 1]) / maxW; c += 0.5 * dp + 10 * dp * dp; }
+      }
+      if (c < bestCost) { bestCost = c; best = cuts.slice(); }
+      return;
+    }
+    for (var e = start + 1; e <= n - left + 1; e++) {
+      var lw = width(start, e);
+      if (lw > maxW && e - start > 1) break;
+      var hyIn = false;
+      for (var q2 = start; q2 < e - 1; q2++) if (info[q2].hy) { hyIn = true; break; }
+      if (hyIn) break;
+      cuts.push(e);
+      rec(e, left - 1, cost + bc[e], widths.concat([lw]));
+      cuts.pop();
+    }
+  }
+  rec(0, k, 0, []);
+  if (!best) return null;
+  var out = [], s0 = 0;
+  best.concat([n]).forEach(function(e){ out.push(info.slice(s0, e)); s0 = e; });
+  out.cost = bestCost;
+  out.rule = best.reduce(function(a, e){ return a + Math.max(0, bc[e]); }, 0); // Anteil aus Regelverstößen
+  return out;
 }
 // Gemeinsame Zeilenverteilung für Vorschau (wrapCaptionLines) UND Export (capLayout) — vorher zwei Kopien.
 // 1) bei Ziel > 1 möglichst gleichmäßig auf genau so viele Zeilen verteilen (kurze Blöcke brechen sonst nie),
@@ -2762,6 +3085,14 @@ function capDistributeLines(info, targetLines, sp, maxW) {
     lines = [info];
   } else {
     var target  = Math.min(maxLines, n);
+    // 0) professioneller Umbruch (Balance/Pyramide + Stoppwort-/Zahl-/Namen-Regeln), sonst wie bisher
+    //    Eine Zeile weniger nur, wenn die volle Zeilenzahl einen schlechten Umbruch erzwingt („für / alle.“)
+    var smart = info[0] && info[0].t !== undefined ? capSmartLines(info, target, sp, maxW) : null;
+    if (smart && smart.rule >= CAP_FEWER_LINES) {
+      var fewer = capSmartLines(info, target - 1, sp, maxW);
+      if (fewer && fewer.cost + CAP_FEWER_LINES < smart.cost) smart = fewer;
+    }
+    if (smart) return smart;
     var total   = info.reduce(function(a, it){ return a + it.w; }, 0) + sp * (n - 1);
     var perLine = total / target;
     lines = [[]]; var lw = 0, remaining = target;
@@ -3628,6 +3959,54 @@ function closeCaptionGaps(blocks, cuts) {
   }
   return n;
 }
+// ── Caption-Segmentierung innerhalb eines Satzstücks (ohne Pause > 0,8 s, Satzende, Schnitt) ──
+// Statt gierig aufzufüllen („fressen nur Gras und | Heu.“): optimale Aufteilung per DP mit möglichst wenigen
+// Captions (max. maxWords Wörter, Zeichenlimit lim), ausgewogen (5 Wörter bei 4 → 3+2 statt 4+1, keine
+// Einzelwort-Waisen) und an guten Stellen (nach Komma, vor „und/aber/dass“, an kleinen Pausen; nie nach
+// Artikel/Präposition, nie zwischen Zahl und Einheit). Rückgabe: Liste von [von, bis).
+var CAP_SEG_BLOCK = 5, CAP_SEG_ORPHAN = 4, CAP_COORD = ' und oder sowie and or et ou e o y ';
+function capSegmentRun(ws, lens, maxWords, lim) {
+  var n = ws.length, i, j, b;
+  if (n <= 1) return [[0, n]];
+  if (!(maxWords > 1)) return ws.map(function(w, k){ return [k, k + 1]; });
+  maxWords = Math.min(maxWords, n);
+  var lang = capLang(), toks = ws.map(function(w){ return capTok(w.word); });
+  var okM = [];
+  for (i = 0; i < n; i++) { okM.push([]); for (j = i + 1; j <= n && j - i <= maxWords; j++) okM[i][j] = capCharsFit(lens.slice(i, j), lim); }
+  function ok(i2, j2) { return j2 - i2 <= maxWords && !!okM[i2][j2]; }
+  var cut = [0];
+  for (j = 1; j < n; j++) {
+    var gap = (ws[j].start || 0) - (ws[j - 1].end || ws[j - 1].start || 0);
+    cut[j] = capBreakCost(toks[j - 1], toks[j], toks[j - 2], lang, 'block') - (gap > 0.15 ? Math.min(2, gap * 3) : 0);
+    // kurze Aufzählung am Satzende zusammenhalten: „… | Gras und Heu.“ statt „… Gras | und Heu.“
+    if (j + 2 === n && CAP_COORD.indexOf(' ' + toks[j].low + ' ') >= 0) cut[j] += 3;
+  }
+  var minB = [0];
+  for (j = 1; j <= n; j++) { minB[j] = Infinity; for (i = Math.max(0, j - maxWords); i < j; i++) if (ok(i, j) && minB[i] + 1 < minB[j]) minB[j] = minB[i] + 1; }
+  if (!isFinite(minB[n])) return null;
+  var bestAll = null, bestCost = Infinity;
+  for (var k = minB[n]; k <= Math.min(n, minB[n] + 1); k++) {
+    var avg = n / k, dp = [], from = [];
+    for (b = 0; b <= k; b++) { dp.push([]); from.push([]); for (j = 0; j <= n; j++) dp[b][j] = Infinity; }
+    dp[0][0] = 0;
+    for (b = 1; b <= k; b++) {
+      for (j = b; j <= n; j++) {
+        for (i = Math.max(b - 1, j - maxWords); i < j; i++) {
+          if (!isFinite(dp[b - 1][i]) || !ok(i, j)) continue;
+          var nw = j - i, d = (nw - avg) / avg;
+          var c = dp[b - 1][i] + 3 * d * d + 0.03 * (b - 1) * nw + (nw === 1 ? CAP_SEG_ORPHAN : 0) + (j < n ? cut[j] : 0);
+          if (c < dp[b][j]) { dp[b][j] = c; from[b][j] = i; }
+        }
+      }
+    }
+    var tot = dp[k][n] + CAP_SEG_BLOCK * k;
+    if (tot < bestCost - 1e-9) {
+      bestCost = tot; bestAll = [];
+      for (var at = n, bb = k; bb > 0; bb--) { var st = from[bb][at]; bestAll.unshift([st, at]); at = st; }
+    }
+  }
+  return bestAll;
+}
 // Bearbeitete Captions: nur Blöcke aufteilen, die das Zeichenlimit sprengen (Wort-Timings bleiben, die
 // Teile schließen lückenlos aneinander an); alle anderen Blöcke bleiben unangetastet. Leere Blöcke fliegen raus.
 function splitOverflowingBlocks(blocks, lim) {
@@ -3636,12 +4015,16 @@ function splitOverflowingBlocks(blocks, lim) {
     var ws = (b.words || []).filter(function(w){ return w && String(w.word || '').trim(); });
     if (!ws.length || !String(b.text || '').trim()) { changed = true; return; }
     if (!lim || capWordsFit(ws, lim)) { out.push(b); return; }
-    var parts = [], cur = [];
-    ws.forEach(function(w) {
-      if (cur.length && !capWordsFit(cur.concat([w]), lim)) { parts.push(cur); cur = []; }
-      cur.push(w);
-    });
-    if (cur.length) parts.push(cur);
+    // gleiche Segmentierung wie beim Bauen (ohne Wortzahl-Grenze: der Nutzer hat den Block so gewollt)
+    var segs = capSegmentRun(ws, ws.map(function(w){ return capCharLen(w.word); }), ws.length, lim);
+    var parts = segs ? segs.map(function(r){ return ws.slice(r[0], r[1]); }) : [], cur = [];
+    if (!segs) {
+      ws.forEach(function(w) {
+        if (cur.length && !capWordsFit(cur.concat([w]), lim)) { parts.push(cur); cur = []; }
+        cur.push(w);
+      });
+      if (cur.length) parts.push(cur);
+    }
     if (parts.length < 2) { out.push(b); return; }
     changed = true;
     parts.forEach(function(p, k) {
@@ -3701,20 +4084,30 @@ function buildCaptionBlocks(wts, cuts) {
   var lim = capBlockLimit();
   // Leere Wörter (z. B. nach Text-Edits) erzeugen sonst leere/unsichtbare Blöcke in der Timeline
   wts = (wts || []).filter(function(w){ return w && String(w.word || '').trim(); });
-  var blocks = [];
-  var i = 0;
-  while (i < wts.length) {
-    var chunk = [wts[i]], lens = [capCharLen(wts[i].word)];
-    var j = i + 1;
-    while (j < wts.length && chunk.length < WORDS_PER_BLOCK) {
-      var prev = wts[j - 1];
-      var gap  = wts[j].start - (prev.end || prev.start);
-      if (gap > 0.8 || /[.!?…]$/.test(prev.word)) break;
-      if (cuts.length && cutBetween(cuts, wordMid(prev), wordMid(wts[j])) !== null) break; // Szenenschnitt
-      var nl = capCharLen(wts[j].word);
-      if (lim && !capCharsFit(lens.concat([nl]), lim)) break; // Zeichenlimit: Block früher schließen statt Schrift schrumpfen
-      chunk.push(wts[j]); lens.push(nl); j++;
+  var blocks = [], chunks = [];
+  // 1) harte Grenzen: Pause > 0,8 s, Satzende, Szenenschnitt → Satzstücke („runs“)
+  // 2) je Satzstück optimale Aufteilung (capSegmentRun: Wortzahl, Zeichenlimit, Balance, Umbruch-Regeln) —
+  //    Zeichenlimit: Block früher schließen statt Schrift schrumpfen
+  var run = [];
+  function flushRun() {
+    if (!run.length) return;
+    var lens = run.map(function(w){ return capCharLen(w.word); });
+    var segs = capSegmentRun(run, lens, WORDS_PER_BLOCK, lim);
+    if (segs) segs.forEach(function(r){ chunks.push(run.slice(r[0], r[1])); });
+    else run.forEach(function(w){ chunks.push([w]); });
+    run = [];
+  }
+  wts.forEach(function(w, k) {
+    var prev = wts[k - 1];
+    if (prev) {
+      var gap = w.start - (prev.end || prev.start);
+      if (gap > 0.8 || /[.!?…]$/.test(prev.word)
+          || (cuts.length && cutBetween(cuts, wordMid(prev), wordMid(w)) !== null)) flushRun(); // Szenenschnitt
     }
+    run.push(w);
+  });
+  flushRun();
+  chunks.forEach(function(chunk) {
     var start = chunk[0].start || 0;
     var end   = chunk[chunk.length - 1].end;
     if (!end || end <= start) end = start + Math.max(0.9, chunk.length * 0.35);
@@ -3729,10 +4122,10 @@ function buildCaptionBlocks(wts, cuts) {
     words.forEach(function(w, k){ if (!w.end || w.end <= w.start) w.end = words[k + 1] ? words[k + 1].start : end; });
     blocks.push({ words: words, srcWords: copyTimedWords(words), start: start, end: end,
                   text: words.map(function(w){ return w.word; }).join(' ') });
-    i = j;
-  }
+  });
   blocks = enforceMinBlockDuration(blocks, cuts, lim);
   closeCaptionGaps(blocks, cuts);
+  capHyphEnsure(capHyphLang()); // Trennmuster der Sprache schon mal laden (lazy, ~120 KB gzip für Deutsch)
   _capAutoBlocks = true; _relayoutKey = capLimitKey(lim);
   return blocks;
 }
@@ -6827,7 +7220,10 @@ function stripPunct(w) {
   return out || w; // reine Satzzeichen-Token (z. B. „…“) nicht zu leeren Wörtern machen
 }
 function applyCase(t) { return capCase === 'upper' ? String(t).toUpperCase() : capCase === 'lower' ? String(t).toLowerCase() : String(t); }
-function displayWord(w) { return applyCase(capNoPunct ? stripPunct(w) : w); }   // Vorschau + Video-Export
+// Typografie nur für die Anzeige (Untertiteldateien behalten den Originaltext): „...“ → „…“,
+// gerader Apostroph zwischen/nach Buchstaben → typografischer („geht's“ → „geht’s“, „don't“ → „don’t“).
+function capTypo(w) { return String(w).replace(/\.\.\./g, '…').replace(/(\p{L})'(?=\p{L}|$)/gu, '$1’'); }
+function displayWord(w) { return applyCase(capTypo(capNoPunct ? stripPunct(w) : w)); }   // Vorschau + Video-Export
 function subtitleText(t) { return applyCase(t); }                                 // SRT/VTT/TXT: Satzzeichen bleiben
 function syncTextFormatUI() {
   var pb = document.getElementById('punctBtn'); if (pb) { pb.checked = capNoPunct; if (pb.classList) pb.classList.toggle('on', capNoPunct); }
@@ -7781,6 +8177,7 @@ async function exportVideoWithCaptions() {
 
   await ensureCapFont(styleFontName(STYLES.find(function(x){ return x.id === activeId; }))); // nachgeladene Schrift
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
+  await capHyphReady(capHyphLang(), 4000); // Trennmuster wie in der Vorschau (sonst Fallback-Trennung im Video)
 
   // Schneller Weg (WebCodecs, Sekunden statt Echtzeit). Bei jedem Problem → false → Echtzeit-Pfad unten.
   if (await tryFastExport(vid)) return;
@@ -8105,7 +8502,7 @@ function capFontMetrics(ctx, fsS) {
 function capLayout(ctx, b, bi, wi, s, W, H) {
   var wiKey = (s.hlFont || s.hlItalic || s.hlUpper || s.hlPillBg) ? wi : -1;
   var key = [bi, wiKey, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
-             _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length].join('|');
+             _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length, capHyphLang()].join('|');
   var c = _capLayoutCache;
   if (c.key === key && c.s === s && c.ctx === ctx) return c.val;
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
@@ -8143,7 +8540,8 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   var wordInfo = words.map(function(w, i) {
     var hl = fit.orig[i] === wi; wordFont(hl);
     var tw = ctx.measureText(w).width, pl = (hl && pillPad) ? pillPad : 0;
-    return { txt: w, w: tw + 2 * pl, tw: tw, padL: pl, idx: fit.orig[i] };
+    return { txt: w, w: tw + 2 * pl, tw: tw, padL: pl, idx: fit.orig[i], t: fit.words[i],
+             hy: i + 1 < words.length && fit.orig[i + 1] === fit.orig[i] }; // wie wrapCaptionLines
   });
 
   // Mehrzeiliger Umbruch — bei CAPTION_LINES>1 wird möglichst gleichmäßig auf genau so viele
@@ -8409,6 +8807,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 // ═══════════════════════════════════════
 async function exportPNG() {
   await waitAuth();
+  await capHyphReady(capHyphLang(), 4000);
   var wmPng = needsWatermark();
   var s   = STYLES.find(function(x){ return x.id === activeId; });
   var vid = document.getElementById('mainVid');

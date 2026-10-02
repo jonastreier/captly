@@ -112,7 +112,9 @@ tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomA
 tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
 resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
 tlNudge:tlNudge,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
-setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;}};`;
+setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
+capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
+wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,setCapLang:function(v){_capLangForce=v;},setWordsState:function(w){wordTimestamps=w;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setMaxCharsState(40); // Alt-Tests: großzügiges Zeichenlimit (Auto hängt von der Stub-Messung ab); eigene Tests unten
@@ -740,7 +742,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
 {
   T.togglePunct();
   ok(T.displayWord('Hallo,') === 'Hallo' && T.displayWord('wirklich?!') === 'wirklich' && T.displayWord('3.5') === '3.5'
-     && T.displayWord("rock'n'roll.") === "rock'n'roll" && T.displayWord('Weide-Land:') === 'Weide-Land' && T.displayWord('…') === '…',
+     && T.displayWord("rock'n'roll.") === "rock’n’roll" && T.displayWord('Weide-Land:') === 'Weide-Land' && T.displayWord('…') === '…',
      'Satzzeichen entfernt, Apostroph/Bindestrich/Dezimalpunkt bleiben');
   T.setCaptionCase('upper');
   ok(T.displayWord('Hallo,') === 'HALLO', 'UPPERCASE + ohne Satzzeichen');
@@ -2488,9 +2490,10 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setMaxChars('12');
     const nb = T.getBlocks();
     ok(JSON.stringify(nb[0]) === keep0 && JSON.stringify(nb[nb.length - 1]) === keep2, 'bearbeitet: nicht überlaufende Blöcke unverändert');
-    ok(nb.length === 4 && nb[1].text === 'Hallo zusammen und' && nb[2].text === 'willkommen' && nb[1].start === 0.5 && nb[1].end === 1.55 && nb[2].end === 2.2,
+    // Teilung an der besten Stelle (vor „und“, nicht nach „und“ — capSegmentRun), nicht gierig
+    ok(nb.length === 4 && nb[1].text === 'Hallo zusammen' && nb[2].text === 'und willkommen' && nb[1].start === 0.5 && nb[1].end === 1.35 && nb[2].end === 2.2,
        'bearbeitet: nur der überlaufende Block geteilt, lückenlos, Rand-Zeiten bleiben: ' + nb.map(b => b.text + '[' + b.start + '-' + b.end + ']').join(' | '));
-    ok(nb[2].words[0].start === 1.55 && nb[2].words[0].end === 2.0 && nb[1].words[2].end === 1.5, 'Wort-Timings beim Teilen erhalten');
+    ok(nb[2].words[0].start === 1.35 && nb[2].words[1].end === 2.0 && nb[1].words[1].end === 1.3, 'Wort-Timings beim Teilen erhalten');
     T.undoCaptions();
     ok(T.getBlocks().length === 3, 'Teilen rückgängig');
     // Persistenz: Template-Layout, Projekt-Payload
@@ -2525,6 +2528,134 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.getActiveId() === 'tiktok', 'Brand-Default „paper2“ → TikTok: ' + T.getActiveId());
     global.localStorage = prevLS;
     T.selectStyle('hormozi');
+  }
+
+  // ── Typografie: Liang-Silbentrennung, Zeilenumbruch, Caption-Segmentierung ──
+  {
+    ['de', 'en', 'fr', 'it', 'es'].forEach(c => require('./vendor/hyphen/hyph-' + c + '.js')); // ruft capHyphLoaded
+    T.setCapLang('de');
+    ok(T.capHyphLang() === 'de', 'Trennsprache de');
+    const hy = (w, max, l) => T.capHyphenate(w, p => p.length <= max, l).join(' / ');
+    const join = pcs => pcs.map(p => p.replace(/-$/, '')).join('');
+    // deutsche Komposita: an der Fuge, nicht „Rindfleischverar-|beitungsbetriebe“
+    ok(hy('Rindfleischverarbeitungsbetriebe', 22) === 'Rindfleisch- / verarbeitungsbetriebe', 'Liang de 2 Teile: ' + hy('Rindfleischverarbeitungsbetriebe', 22));
+    ok(hy('Rindfleischverarbeitungsbetriebe', 14) === 'Rindfleisch- / verarbeitungs- / betriebe', 'Liang de 3 Teile: ' + hy('Rindfleischverarbeitungsbetriebe', 14));
+    ok(hy('Bundesverfassungsgericht', 18) === 'Bundesverfassungs- / gericht', 'Liang Bundesverfassungsgericht: ' + hy('Bundesverfassungsgericht', 18));
+    ok(hy('Naturschutzgebiet', 12) === 'Naturschutz- / gebiet', 'nie „…schutzge-|biet“: ' + hy('Naturschutzgebiet', 12));
+    ['Rindfleischverarbeitungsbetriebe', 'Bundesverfassungsgericht', 'Geschwindigkeitsbegrenzung', 'Schifffahrtsgesellschaft'].forEach(w => {
+      [9, 12, 16, 20].forEach(max => {
+        const pcs = T.capHyphenate(w, p => p.length <= max, 'de'), pts = T.capHyphPoints('de', w);
+        ok(join(pcs) === w && pcs.every(p => p.length <= max), 'Liang: Stücke passen, nichts verloren: ' + pcs.join('/'));
+        ok(pcs.every(p => p.replace(/-$/, '').length >= 3), 'Liang: >= 3 Buchstaben je Teil: ' + pcs.join('/'));
+        let at = 0; ok(pcs.slice(0, -1).every(p => { at += p.length - 1; return pts.includes(at); }), 'Liang: nur legale Trennstellen: ' + pcs.join('/'));
+      });
+    });
+    // Groß-/Kleinschreibung ändert die Trennstelle nicht; Satzzeichen bleiben am letzten Teil
+    ok(hy('RINDFLEISCHVERARBEITUNGSBETRIEBE', 14) === hy('Rindfleischverarbeitungsbetriebe', 14).toUpperCase(), 'Versalien: gleiche Trennung');
+    ok(hy('Rindfleischverarbeitungsbetriebe,', 22) === 'Rindfleisch- / verarbeitungsbetriebe,', 'Komma bleibt am Wortende');
+    // vorhandener Bindestrich: dort trennen, kein zusätzlicher Trennstrich
+    ok(hy('Highland-Rinder', 10) === 'Highland- / Rinder', 'Bindestrich-Wort: ' + hy('Highland-Rinder', 10));
+    ok(hy('Highland-Weidehaltung', 14) === 'Highland- / Weidehaltung', 'Bindestrich-Wort nur am Bindestrich: ' + hy('Highland-Weidehaltung', 14));
+    // Englisch
+    T.setCapLang('en');
+    ok(T.capHyphLang() === 'en' && hy('communication', 9) === 'communi- / cation', 'Liang en: ' + hy('communication', 9));
+    T.setCapLang('pt'); ok(T.capHyphLang() === 'en', 'andere Sprache → englische Muster');
+    T.setCapLang('de');
+    // nie trennen: URLs, Handles, Hashtags, Zahlen, ≤ 7 Buchstaben
+    ['#Rindfleischverarbeitung', '@waldundtier_highland', 'www.waldundtier.ch', 'https://waldundtier.ch/fleischverkauf', 'info@waldundtier.ch',
+     '1234567890', '2025er-Jahrgang', 'Weiden', 'Highlan', 'Rinder.'].forEach(w => {
+      ok(T.capHyphenate(w, p => p.length <= 4, 'de').length === 1, 'nicht getrennt: ' + w);
+    });
+    ok(hy('Hofladen', 5) === 'Hof- / laden', '8 Buchstaben dürfen getrennt werden: ' + hy('Hofladen', 5));
+    // Auto-Fit (Vorschau + Export): einzelnes Kompositum auf 2 Zeilen → an der Fuge, nicht mittendrin
+    document.getElementById('prevFrame').style.width = '270px';
+    const st = T.STYLES.find(x => x.id === 'classic') || T.STYLES[0];
+    const fr = T.fitCaptionWords(['Rindfleischverarbeitungsbetriebe'], st, 40, T.capFitMaxW(st), 2);
+    ok(fr.words.join('|') === 'Rindfleisch-|verarbeitungsbetriebe', 'Fit trennt an der Fuge: ' + fr.words.join('|') + ' @' + fr.px);
+    const fb = T.fitCaptionWords(['Bundesverfassungsgericht'], st, 40, T.capFitMaxW(st), 2);
+    ok(/^(Bundes-\|verfassungsgericht|Bundesverfassungs-\|gericht)$/.test(fb.words.join('|')), 'Fit Bundesverfassungsgericht: ' + fb.words.join('|'));
+
+    // Zeilenumbruch (synthetische Breiten: 10 px je Zeichen, Leerzeichen 10 px)
+    const dl = (txt, chars, k = 2, hyAt) => {
+      const ws = txt.split(' ');
+      const info = ws.map((w, i) => ({ i, w: w.length * 10, t: w, hy: hyAt === i }));
+      return T.capDistributeLines(info, k, 10, chars * 10).map(L => L.map(it => it.t));
+    };
+    const STOP = ['der', 'die', 'das', 'auf', 'unsere', 'und', 'mit', 'the', 'a', 'of', 'to'];
+    const heute = 'Heute zeige ich euch unsere Highland Rinder auf der Weide';
+    [36, 40, 44, 50].forEach(c => {
+      const L = dl(heute, c);
+      ok(L.length === 2 && !STOP.includes(L[0][L[0].length - 1]), 'kein Stoppwort am Zeilenende (' + c + '): ' + L.map(x => x.join(' ')).join(' / '));
+    });
+    let L2 = dl(heute, 44);
+    ok(L2[0].join(' ') === 'Heute zeige ich euch' || L2[0].join(' ') === 'Heute zeige ich euch unsere Highland Rinder', 'Umbruch vor „unsere“: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('aaaa bbbb cccc dddd eeee', 30);
+    ok(L2[0].length === 2 && L2[1].length === 3, 'Pyramide: untere Zeile länger: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Wir haben heute 5 Kilo Fleisch gekauft', 30);
+    ok(!L2.some((l, i) => i < L2.length - 1 && l[l.length - 1] === '5'), 'Zahl + Einheit zusammen: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Das kostet nur CHF 20 pro Kilo', 22);
+    ok(L2[0][L2[0].length - 1] !== 'CHF', 'CHF + Betrag zusammen: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Hallo zusammen, heute geht es um Rinder', 30);
+    ok(L2[0].join(' ') === 'Hallo zusammen,', 'Umbruch nach Komma: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Er sagt das stimmt so nicht !', 30);
+    ok(L2[1][0] !== '!', 'keine Zeile beginnt mit Satzzeichen: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Unsere Rindfleisch- verarbeitungsbetriebe sind gross', 40, 2, 1);
+    ok(L2[0][L2[0].length - 1] === 'Rindfleisch-', 'Wortteil mit Trennstrich steht am Zeilenende: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('sich für alle.', 30);
+    ok(L2.length === 2 && L2[0].join(' ') === 'sich', '3 Wörter: 2 Zeilen, nicht nach „für“: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('für alle.', 30);
+    ok(L2.length === 1, 'erzwungener Stoppwort-Umbruch → lieber eine Zeile: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Gras und Heu.', 30);
+    ok(L2.length === 2, 'normaler kurzer Block bleibt gestapelt (2 Zeilen): ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('eins zwei drei vier', 3);
+    ok(L2.length >= 2 && L2.flat().join(' ') === 'eins zwei drei vier', 'passt nichts → bisheriges Verfahren, kein Absturz');
+    // Vorschau (wrapCaptionLines) und Export (capLayout) verteilen identisch
+    T.setLinesState(2);
+    const bl = { words: heute.split(' ').map((w, i) => ({ word: w, start: i * 0.3, end: i * 0.3 + 0.25 })), start: 0, end: 3, text: heute };
+    T.setState([bl], bl.words.slice(), 'karaoke');
+    const fit = T.fitCaptionWords(bl.words.map(w => T.displayWord(w.word)), st, T.getFontSize(), T.capFitMaxW(st), 2);
+    const prev = T.wrapCaptionLines(fit.words, st, 2, fit.px, 2, fit.orig).map(l => l.map(i => fit.words[i]).join(' '));
+    const lay = T.capLayout(document.createElement('canvas').getContext('2d'), bl, 0, 2, st, 1080, 1920);
+    const exp = lay.lines.map(l => l.map(it => it.t).join(' '));
+    ok(JSON.stringify(prev) === JSON.stringify(exp) && prev.length === 2, 'Vorschau = Export: ' + prev.join(' / ') + ' ‖ ' + exp.join(' / '));
+
+    // Caption-Segmentierung (automatischer Aufbau)
+    T.setMaxCharsState(40); T.setCaptionsEdited(false);
+    const seq = (txt, gap = 0.05) => { let t = 0; return txt.split(' ').map(w => { const o = { word: w, start: t, end: t + 0.3 }; t += 0.3 + gap; return o; }); };
+    const blocks = (txt, wpb, gap) => { T.onWpbChange(String(wpb)); const ws = seq(txt, gap); T.setWordsState(ws); return T.buildCaptionBlocks(ws, []).map(b => b.text); };
+    let bt = blocks('eins zwei drei vier fünf', 4);
+    ok(bt.join('|') === 'eins zwei drei|vier fünf', '5 Wörter bei 4 → 3+2: ' + bt.join('|'));
+    bt = blocks('Die Rinder fressen nur Gras und Heu.', 3);
+    ok(bt.join('|') === 'Die Rinder|fressen nur|Gras und Heu.' || !bt.some(b => / (und|der|die|das)$/.test(b)), 'kein „und |“ am Caption-Ende: ' + bt.join('|'));
+    bt = blocks('fressen nur Gras und Heu.', 4);
+    ok(bt.join('|') === 'fressen nur|Gras und Heu.', '„fressen nur | Gras und Heu.“: ' + bt.join('|'));
+    bt = blocks(heute + '.', 4);
+    ok(bt.every((b, i) => i === bt.length - 1 || !STOP.includes(b.split(' ').pop())) && bt.every(b => b.split(' ').length <= 4), 'Captions enden nicht auf Artikel/Präposition: ' + bt.join('|'));
+    bt = blocks('Wir kaufen heute 5 Kilo Fleisch und Wurst', 4);
+    ok(!bt.some((b, i) => i < bt.length - 1 && /\b5$/.test(b)), 'Zahl + Einheit in einer Caption: ' + bt.join('|'));
+    bt = blocks(heute + '.', 1);
+    ok(bt.length === 10 && bt.every(b => !b.includes(' ')), 'Words = 1 bleibt ein Wort pro Caption');
+    bt = blocks('Hallo zusammen. Heute zeige ich euch', 4);
+    ok(bt[0] === 'Hallo zusammen.', 'Satzende bleibt harte Grenze: ' + bt.join('|'));
+    bt = blocks('eins zwei drei vier fünf sechs', 4, 0.9);
+    ok(bt.length === 6, 'Pause > 0,8 s bleibt harte Grenze');
+    T.setMaxCharsState(12);
+    bt = blocks('Unsere Rinder fressen das ganze Jahr frisches Gras', 4);
+    ok(bt.every(b => T.capCharsFit(b.split(' ').map(w => w.length), T.capBlockLimit())), 'Zeichenlimit eingehalten: ' + bt.join('|'));
+    T.setMaxCharsState(40);
+    // bearbeitete Captions: nicht überlaufende Blöcke bleiben exakt (auch wenn sie auf „und“ enden)
+    const eb = [{ words: seq('fressen nur Gras und'), start: 0, end: 1.4, text: 'fressen nur Gras und' },
+                { words: seq('Heu.').map(w => ({ word: w.word, start: 1.4, end: 1.7 })), start: 1.4, end: 1.8, text: 'Heu.' }];
+    eb.forEach(b => b.srcWords = b.words.map(w => Object.assign({}, w)));
+    const ebKeep = JSON.stringify(eb);
+    T.setState(eb, [], 'karaoke'); T.setCaptionsEdited(true); T.resetUndo();
+    T.setMaxChars('30');
+    ok(JSON.stringify(T.getBlocks()) === ebKeep, 'bearbeitete Captions unverändert');
+    T.setMaxCharsState(40); T.setCaptionsEdited(false); T.resetUndo(); T.onWpbChange('4');
+    // Typografie in der Anzeige
+    ok(T.capTypo('Na...') === 'Na…' && T.capTypo("geht's") === 'geht’s' && T.capTypo("'98") === "'98", 'Ellipse + Apostroph');
+    T.setCapLang(null);
+    document.getElementById('prevFrame').style.width = '';
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

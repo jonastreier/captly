@@ -16,6 +16,11 @@ eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
   Echtzeit-Export (MediaRecorder, ggf. ffmpeg.wasm) zurück. Libs self-hosted unter `vendor/mp4box` +
   `vendor/mp4-muxer` (Versionen: [`scripts/fetch-webcodecs-libs.sh`](scripts/fetch-webcodecs-libs.sh)).
   Notschalter: `localStorage['capivo.fastExport'] = 'off'`.
+- **Caption-Typografie:** Silbentrennung nach Liang/TeX (hyph-utf8-Muster für de/en/fr/it/es, lazy pro
+  Transkriptsprache aus `vendor/hyphen/`, Quelle + Lizenzen: [`scripts/fetch-hyphen-patterns.sh`](scripts/fetch-hyphen-patterns.sh)),
+  nur als letzter Ausweg für ein einzelnes zu breites Wort, bevorzugt an Kompositumsfugen. Zeilen- und
+  Caption-Umbruch nach Untertitel-Regeln (Balance/Pyramide, nie nach Artikel/Präposition, Zahl + Einheit
+  zusammen, keine Einzelwort-Waisen) — `capSmartLines` / `capSegmentRun`, gleicher Code für Vorschau und Export.
 - **Szenenschnitte** (Captions brechen an harten Schnitten): MP4/MOV werden im Hintergrund per WebCodecs
   Frame für Frame dekodiert (gleiche mp4box-Lib) → framegenau, 34-s-Reel in ~6 s; Blitze und Überblendungen
   werden verworfen. Sonst (WebM, kein VideoDecoder) Wiedergabe-Scan + Seeks. Der Video-Export wartet bis
