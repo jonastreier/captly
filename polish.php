@@ -18,7 +18,7 @@
  * Benötigt PHP mit cURL; mbstring optional (ohne: Umlaut-Grossbuchstaben zählen als Wortänderung).
  */
 
-const POLISH_MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'];
+const POLISH_MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
 const POLISH_MAX_CHARS = 12000;
 const POLISH_MAX_SEGMENTS = 1000;
 const POLISH_MAX_BYTES = 262144;
@@ -42,6 +42,9 @@ NEVER:
 - remove filler words (äh, ähm, also, halt, quasi, gell, eh, um, like), repetitions, colloquial, Swiss or dialect phrasing — keep them exactly as spoken;
 - change numbers between digits and words;
 - change "ss" to "ß". Swiss spelling uses "ss": if the input text has no "ß", the output must not contain "ß".
+- "translate" Swiss German / dialect into Standard German: dialect words stay as written (e.g. "üsi", "zäme", "uf", "hüt", "zeig", "Weid", "willkomme" stay — only fix their capitalization);
+- join separate words with hyphens or merge/split words (e.g. never "Highland Rinder" -> "Highland-Rinder"); use only plain ASCII hyphens if a hyphen is already in the input.
+- replace a correctly recognised real word with a vocab entry just because they share a word: vocab only fixes words that SOUND like the entry and make no sense as heard ("Highland Rinder" stays "Highland Rinder"; "Highland Biff" -> "Highland Beef");
 Keep the language of the input. If you are not sure a change is needed, leave the text unchanged.
 TXT;
 
@@ -106,6 +109,9 @@ function polish_accept($orig, $cand) {
   $t = polish_clean($cand);
   if ($t === '') return null;
   if (!preg_match('/[ßẞ]/u', $orig)) $t = str_replace(['ẞ', 'ß'], ['SS', 'ss'], $t);
+  // Exotische Bindestriche → normaler; neu eingefügte Bindestriche (Original ohne '-') → Leerzeichen (Wortzahl/Timings)
+  $t = str_replace(["\u{2010}", "\u{2011}"], '-', $t);
+  if (strpos($orig, '-') === false) $t = preg_replace('/(\S)-(\S)/u', '$1 $2', $t);
   $a = polish_norm_words($orig); $b = polish_norm_words($t); $n = count($a);
   if ($n === 0 || count($b) === 0) return null;
   if (abs(count($b) - $n) > max(2, (int)floor($n * 0.15))) return null;
