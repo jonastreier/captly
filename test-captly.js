@@ -100,6 +100,11 @@ h264CodecCandidates:h264CodecCandidates,fastExportVideoCodecs:fastExportVideoCod
 oggCrc32:oggCrc32,oggLacing:oggLacing,opusPacketSamples48:opusPacketSamples48,buildOggOpus:buildOggOpus,opusPreSkipFromDesc:opusPreSkipFromDesc,
 encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSupport=null;},getOpusOff:function(){return _opusOff;},UPLOAD_CONCURRENCY:UPLOAD_CONCURRENCY,
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
+nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
+undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,fontCssUrl:fontCssUrl,
+tileWords:tileWords,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
+updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -2069,6 +2074,101 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.finishCutRun(st3, [9]);
     ok(T.getSceneCuts().join() === '2.5,3', 'veralteter Lauf überschreibt keine Schnitte');
     T.setSceneCuts([]);
+  }
+
+  // Editor-UX: Timing-Nudge, Undo/Redo, Löschen, Inline-Edit, Brand-Kit, Schriften, Tabs
+  {
+    const E = id => document.getElementById(id);
+    const mk = () => [
+      { text: 'eins zwei', start: 1, end: 2, words: [{ word: 'eins', start: 1, end: 1.4 }, { word: 'zwei', start: 1.5, end: 2 }] },
+      { text: 'drei', start: 2.5, end: 3, words: [{ word: 'drei', start: 2.5, end: 3 }] }];
+    let bl = mk();
+    ok(T.nudgeBlockEdge(bl, 0, 'start', 0.2) && bl[0].start === 1.2 && bl[0].words[0].start === 1.2 && bl[0].end === 2,
+       'Nudge Start +0.2: Block + erstes Wort: ' + JSON.stringify(bl[0].words));
+    ok(Math.abs(bl[0].words[1].start - 1.6) < 1e-6 && bl[0].words[1].end === 2, 'Wörter linear auf neue Spanne skaliert');
+    ok(bl[0].srcWords && bl[0].srcWords[0].start === 1.2, 'srcWords übernehmen neue Zeiten (Text-Edit setzt nicht zurück)');
+    bl = mk();
+    ok(T.nudgeBlockEdge(bl, 0, 'end', 5) && bl[0].end === 2.5, 'Ende nie über den nächsten Block hinaus: ' + bl[0].end);
+    ok(!T.nudgeBlockEdge(bl, 0, 'end', 0.1), 'am Nachbarn: keine Änderung → false');
+    bl = mk(); ok(T.nudgeBlockEdge(bl, 1, 'start', -5) && bl[1].start === 2, 'Start nie vor dem Ende des Vorgängers: ' + bl[1].start);
+    bl = mk(); T.nudgeBlockEdge(bl, 0, 'start', 5);
+    ok(Math.abs(bl[0].end - bl[0].start - 0.2) < 1e-6, 'Mindestdauer 0.2 s: ' + bl[0].start);
+    bl = mk(); ok(T.nudgeBlockEdge(bl, 1, 'end', 9, 4) && bl[1].end === 4, 'letzter Block: Videoende deckelt');
+    ok(T.nudgeBlockEdge(mk(), 0, 'start', -5) , 'erster Block: bis 0 s');
+
+    // Undo/Redo
+    T.setState(mk(), [], 'karaoke'); T.resetUndo();
+    ok(T.undoCaptions() === false, 'Undo ohne Historie → false');
+    T.pushUndo(); T.getBlocks()[0].text = 'X'; T.getBlocks()[0].words = [{ word: 'X', start: 1, end: 2 }];
+    ok(T.undoCaptions() === true && T.getBlocks()[0].text === 'eins zwei', 'Undo stellt Text wieder her');
+    ok(T.redoCaptions() === true && T.getBlocks()[0].text === 'X', 'Redo');
+    T.resetUndo();
+    T.pushUndo('seg0'); T.getBlocks()[0].text = 'a'; T.pushUndo('seg0'); T.getBlocks()[0].text = 'ab'; T.pushUndo('seg0');
+    ok(T.undoDepth()[0] === 1, 'Tipp-Serie im selben Segment = 1 Schritt: ' + T.undoDepth());
+    T.getBlocks()[0].text = 'abc'; T.pushUndo('seg1'); T.getBlocks()[1].text = 'vier';
+    ok(T.undoDepth()[0] === 2 && T.undoDepth()[1] === 0, 'anderes Segment = neuer Schritt, Redo geleert');
+    T.setState(mk(), [], 'karaoke'); T.resetUndo();
+    T.deleteSeg(0);
+    ok(T.getBlocks().length === 1 && T.getBlocks()[0].text === 'drei', 'Zeile löschen');
+    T.undoCaptions();
+    ok(T.getBlocks().length === 2 && T.getBlocks()[0].text === 'eins zwei', 'Löschen rückgängig');
+    // Inline-Edit speichern (DOM-Stub: Box sichtbar machen)
+    T.setState(mk(), [], 'karaoke'); T.resetUndo();
+    T.openInlineEdit(0, 1);
+    ok(E('capInlineEd').style.display === 'block' && E('capInlineTa').value === 'eins zwei', 'Inline-Editor öffnet mit Blocktext');
+    E('capInlineTa').value = 'eins  drei\n';
+    T.closeInlineEdit(true);
+    ok(T.getBlocks()[0].text === 'eins drei' && T.getBlocks()[0].words[1].start === 1.5, 'Inline-Edit: Text bereinigt, Timing erhalten: ' + JSON.stringify(T.getBlocks()[0].words));
+    ok(T.undoDepth()[0] === 1, 'Inline-Edit ist ein Undo-Schritt');
+    T.openInlineEdit(0, 0); E('capInlineTa').value = 'egal'; T.closeInlineEdit(false);
+    ok(T.getBlocks()[0].text === 'eins drei', 'Esc/Abbrechen verwirft');
+
+    // Template-Schriftgröße relativ zur Rahmenbreite
+    ok(T.templateFontSize({ size: 30, sizeRel: 0.1 }, 270) === 27 && T.templateFontSize({ size: 30 }, 270) === 30, 'sizeRel bevorzugt, px als Fallback');
+    ok(T.templateFontSize({ sizeRel: 1 }, 270) === 54 && T.templateFontSize({}, 270) === 0, 'Größe gedeckelt / fehlt → 0');
+    const nt = T.normalizeTemplate({ id: 'tpl_x', name: 'x', style: { fl: 'Inter' }, layout: { size: 30, sizeRel: 0.11, case: 'upper', punct: true, mode: 'all' } });
+    ok(nt.layout.sizeRel === 0.11 && nt.layout.case === 'upper' && nt.layout.punct === true, 'Layout behält sizeRel/case/punct');
+    ok(T.normalizeTemplate({ id: 'tpl_y', name: 'y', style: {}, layout: { case: 'evil' } }).layout.case === undefined, 'ungültiger case verworfen');
+    const lay = T.currentLayout();
+    ok(typeof lay.sizeRel === 'number' && lay.sizeRel > 0 && 'case' in lay && 'punct' in lay, 'currentLayout liefert sizeRel/case/punct');
+
+    // Brand-Kit: erstes Template wird Standard; neues Video übernimmt Look + Layout
+    const store = {};
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    T.setUserTemplates([]); T.loadTemplates();
+    T.selectStyle('beast'); T.setPosState('top'); T.setCaptionCase('upper');
+    E('tplName').value = 'Brand'; T.saveTemplate();
+    const bt = T.getUserTemplates().find(t => t.name === 'Brand');
+    ok(bt && T.brandTplId() === bt.id && /default look for every new video/.test(E('tplStatus').textContent), 'erstes Template = Brand-Standard + Hinweis');
+    E('tplName').value = 'Zweites'; T.selectStyle('classic'); T.saveTemplate();
+    ok(T.brandTplId() === bt.id, 'weiteres Template ändert den Standard nicht');
+    T.selectStyle('classic'); T.setPosState('bottom'); T.setCaptionCase('asis');
+    T.applyBrandOnOpen();
+    ok(T.getActiveId() === bt.id && T.getCase() === 'upper', 'neues Video: Brand-Template + dessen Layout (Case) aktiv: ' + T.getActiveId());
+    T.toggleBrandTpl(bt.id);
+    ok(T.brandTplId() === '', 'Standard abwählbar');
+    T.toggleBrandTpl(bt.id); global.confirm = () => true; T.deleteTemplate(bt.id);
+    ok(T.brandTplId() === '', 'gelöschtes Template ist kein Standard mehr');
+    T.setCaptionCase('asis'); T.setUserTemplates([]); T.loadTemplates(); T.selectStyle('hormozi');
+    delete global.localStorage; delete global.confirm;
+
+    // Schriften
+    ok(T.cleanFontName(' Rubik  Mono One ') === 'Rubik Mono One' && T.cleanFontName("x');}<b") === '' && T.cleanFontName('A') === '', 'Fontname validiert');
+    ok(T.fontCssUrl('Luckiest Guy', '') === 'https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap'
+       && /family=Lato:wght@700;900&/.test(T.fontCssUrl('Lato', '700;900')), 'Google-Fonts-URL');
+    // Kachel-Worte aus dem Transkript
+    T.setState([{ text: 'Grüezi Rindfleischverarbeitung, so isch es', start: 0, end: 2, words: [] }], [], 'karaoke');
+    ok(T.tileWords().join(' ') === 'so isch', 'Kachel: zwei kurze aufeinanderfolgende Wörter: ' + T.tileWords());
+    T.setState([], [], 'karaoke');
+    ok(T.tileWords().join(' ') === 'caption text', 'ohne Transkript: Platzhalter');
+    // Tabs + Top-Export
+    T.switchTab('style');
+    ok(E('ctrlCol').dataset.tab === 'style', 'Tab wechselt');
+    T.switchTab('nope'); ok(E('ctrlCol').dataset.tab === 'style', 'unbekannter Tab ignoriert');
+    T.switchTab('captions');
+    T.syncTopExport('Rendering 42%…', true); ok(E('tbExport').disabled && /42%/.test(E('tbExport').textContent), 'Top-Export zeigt Fortschritt');
+    T.syncTopExport(null, true); ok(!E('tbExport').disabled && /Export/.test(E('tbExport').textContent), 'Top-Export wieder frei');
+    T.updateTrSetSum(); ok(/Fast|Perfect/.test(E('trSetSum').textContent), 'Transkriptions-Zusammenfassung: ' + E('trSetSum').textContent);
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

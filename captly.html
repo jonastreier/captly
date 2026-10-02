@@ -366,6 +366,18 @@ input.lang-sel{cursor:text}
 .ce-hdr em{font-style:normal;color:#7c3aed}
 .ce-hdr b{color:#3f3b46;font-weight:700}
 .kb-help{display:inline-block;margin-left:2px}
+.fr-box{margin:2px 0 6px}
+.hint-touch{display:none}
+@media (pointer:coarse){.hint-touch{display:inline}.hint-desk,.kb-help,.cap-inline-row span{display:none}.cap-inline-row button{flex:1;min-height:40px;font-size:14px}}
+.next-steps{display:flex;align-items:center;gap:6px;margin:8px 0 2px}
+.next-steps span{font-size:9px;font-weight:700;color:#94909c;text-transform:uppercase;letter-spacing:.08em}
+.next-steps button{flex:1;padding:7px 6px;border-radius:8px;border:1px solid #ddd6e4;background:#fff;color:#3f3b46;font:600 11px 'Inter',sans-serif;cursor:pointer;transition:all .15s}
+.next-steps button:hover{border-color:#a99cc0;color:#111}
+.next-steps button.hi{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent;color:#fff}
+@media (max-width:640px), (pointer:coarse){.next-steps button{min-height:40px;font-size:13px}}
+.fr-box summary{font-size:10.5px;font-weight:600;color:#7c3aed;cursor:pointer;list-style:none;user-select:none;padding:3px 0}
+.fr-box summary::-webkit-details-marker{display:none}
+.fr-box[open] summary{margin-bottom:5px}
 .kb-help summary{display:inline;cursor:pointer;color:#7c3aed;font-weight:600;list-style:none}
 .kb-help summary::-webkit-details-marker{display:none}
 .kb-help[open]{display:block;margin-top:4px;background:#faf8fd;border:1px solid #ece6f4;border-radius:7px;padding:6px 8px;line-height:1.6}
@@ -872,6 +884,12 @@ input[type=checkbox]{accent-color:#7c3aed}
           </div>
         </div>
 
+        <div class="next-steps" id="nextSteps" style="display:none">
+          <span>Next</span>
+          <button type="button" onclick="switchTab('style')">🎨 Pick a look</button>
+          <button type="button" class="hi" onclick="topExport()">⬇ Export MP4</button>
+        </div>
+
         <div id="retryWrap" style="display:none">
           <button class="retry-btn" onclick="retryTranscribe()">↻ Try again</button>
           <div class="badge-o" style="margin-top:5px">⚠️ Tips: try again · switch language or model · check your connection.</div>
@@ -879,10 +897,11 @@ input[type=checkbox]{accent-color:#7c3aed}
 
         <!-- Caption editor — shown after transcription -->
         <div class="cap-editor" id="capEditor">
-          <div class="ce-hdr">Click a line to jump &amp; edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there
+          <div class="ce-hdr"><span class="hint-desk">Click a line to jump &amp; edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there</span><span class="hint-touch">Tap a line to edit · <b>return</b> splits it · <b>⌫</b> at the start merges · tap the highlighted word in the video to edit it there</span>
             <details class="kb-help"><summary>⌨ Shortcuts</summary>
               <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field</div>
             </details></div>
+          <details class="fr-box" id="frBox"><summary>🔍 Find &amp; replace</summary>
           <div class="fr-row">
             <input type="text" id="frFind" class="lang-sel" placeholder="Find" oninput="updateFindCount()" autocomplete="off" spellcheck="false">
             <input type="text" id="frRepl" class="lang-sel" placeholder="Replace with" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')replaceAllCaptions()">
@@ -891,6 +910,7 @@ input[type=checkbox]{accent-color:#7c3aed}
             <label class="fr-opt"><input type="checkbox" id="frWhole" onchange="updateFindCount()"> Whole word</label>
             <button class="pos-btn" id="frBtn" type="button" onclick="replaceAllCaptions()" disabled>Replace all (0)</button>
           </div>
+          </details>
           <div class="cap-segs" id="capSegs"></div>
           <div class="wpills" id="wpills"></div>
         </div>
@@ -915,7 +935,7 @@ input[type=checkbox]{accent-color:#7c3aed}
           <input type="range" min="-30" max="30" step="2" value="20" id="voffSlider" oninput="onVOffChange(this.value)">
           <span class="sz-val" id="voffDisp" style="min-width:38px">+20%</span>
         </div>
-        <div class="clbl" style="margin-top:0">Font size</div>
+        <div class="clbl" style="margin-top:12px">Font size</div>
         <div class="sz-row">
           <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)">
           <span class="sz-val" id="szDisp">22px</span>
@@ -4136,8 +4156,10 @@ function normalizeTemplate(t) {
   ['pos', 'voff', 'size', 'mode', 'wpb', 'lines'].forEach(function(k){ if (lay[k] === undefined && t[k] !== undefined) lay[k] = t[k]; });
   var layOut = {};
   if (['top', 'center', 'bottom'].indexOf(lay.pos) >= 0) layOut.pos = lay.pos;
-  ['voff', 'size', 'wpb', 'lines'].forEach(function(k){ var n = Number(lay[k]); if (lay[k] !== undefined && isFinite(n)) layOut[k] = n; });
+  ['voff', 'size', 'sizeRel', 'wpb', 'lines'].forEach(function(k){ var n = Number(lay[k]); if (lay[k] !== undefined && isFinite(n)) layOut[k] = n; });
   if (typeof lay.mode === 'string') layOut.mode = lay.mode.replace(/[^a-z]/gi, '').slice(0, 20);
+  if (['asis', 'upper', 'lower'].indexOf(lay.case) >= 0) layOut.case = lay.case;
+  if (typeof lay.punct === 'boolean') layOut.punct = lay.punct;
   return { id: tid, name: String(t.name || 'Template').slice(0, 60), style: st, layout: layOut,
            createdAt: +t.createdAt || ts0, updatedAt: ts0 };
 }
@@ -4185,7 +4207,11 @@ function mergeTemplates(a, b) {
     .sort(function(x, y){ return (x.createdAt || 0) - (y.createdAt || 0); });
 }
 function currentLayout() {
-  return { pos: capPos, voff: capVOff, size: fontSize, mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES };
+  // sizeRel = Schriftgröße relativ zur Rahmenbreite: die px-Größe allein hängt von Seitenverhältnis/Bildschirm
+  // ab (9:16 am Desktop 270 px breit, quadratisch 360 px, Handy ~240 px) — ein Template sähe sonst je Video
+  // anders groß aus. case/punct gehören zum Look (Brand-Kit) und reisen mit.
+  return { pos: capPos, voff: capVOff, size: fontSize, sizeRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
+           mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, case: capCase, punct: capNoPunct };
 }
 function newTplId() { return 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6); }
 function setTplEditing(id) {
@@ -4433,6 +4459,11 @@ function restorePresetLayout() {
   var prev = _presetPrevLayout; _presetPrevLayout = null;
   if (prev) applyTemplateSettings(prev);
 }
+// Template-Schriftgröße für die aktuelle Rahmenbreite (relativ gespeichert, alte Templates: px) — 10…54 px
+function templateFontSize(t, frameW) {
+  var v = (typeof t.sizeRel === 'number' && t.sizeRel > 0 && frameW > 0) ? t.sizeRel * frameW : t.size;
+  return (typeof v === 'number' && isFinite(v) && v > 0) ? Math.max(10, Math.min(54, Math.round(v))) : 0;
+}
 function applyTemplateSettings(t) {
   if (t.pos) { capPos = t.pos; syncPosButtons(); }
   if (typeof t.voff === 'number') {
@@ -4440,11 +4471,15 @@ function applyTemplateSettings(t) {
     var vs = document.getElementById('voffSlider');
     if (vs) { vs.value = t.voff; document.getElementById('voffDisp').textContent = (t.voff > 0 ? '+' : '') + t.voff + '%'; }
   }
-  if (typeof t.size === 'number') {
-    fontSize = t.size;
+  var tsz = templateFontSize(t, previewFrameW());
+  if (tsz) {
+    fontSize = tsz;
     var ss = document.getElementById('szSlider');
-    if (ss) { ss.value = t.size; document.getElementById('szDisp').textContent = t.size + 'px'; }
+    if (ss) { ss.value = tsz; document.getElementById('szDisp').textContent = tsz + 'px'; }
   }
+  if (t.case) capCase = t.case;
+  if (typeof t.punct === 'boolean') capNoPunct = t.punct;
+  if (t.case || typeof t.punct === 'boolean') syncTextFormatUI();
   if (t.mode) {
     displayMode = t.mode;
     document.querySelectorAll('#modeRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === t.mode); });
@@ -4578,7 +4613,7 @@ function tileWords() {
     var ws = String(captionBlocks[i].text || '').split(/\s+/);
     for (var k = 0; k < ws.length && out.length < 2; k++) {
       var w = ws[k].replace(/[.,!?;:…"“”„]+/g, '');
-      if (w.length >= 2 && w.length <= 8) out.push(w); else out = [];
+      if (w.length >= 2 && w.length <= 6) out.push(w); else out = [];
     }
   }
   return out.length === 2 ? out : ['caption', 'text'];
@@ -5949,6 +5984,7 @@ function enableExports(on) {
   // Video-Export braucht ein abspielbares Bild — SRT/VTT/TXT funktionieren trotzdem
   var bv = document.getElementById('btnVideo'); if (bv && !videoPlayable) bv.disabled = true;
   syncTopExport(null, !!on && videoPlayable);
+  var ns = document.getElementById('nextSteps'); if (ns) ns.style.display = on ? 'flex' : 'none';
 }
 // ── Abspielbarkeit prüfen: HEVC ohne Decoder / reine Audiodatei ──
 var MSG_HEVC = 'This video uses HEVC (iPhone "High Efficiency"), which this browser can\'t play. Open Capivo in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.';
@@ -6071,6 +6107,9 @@ function loadVideo(file) {
   vid.onloadedmetadata = function() {
     exportFormat = 'original'; syncFormatRow(); setExportFormat('original');
     var w = layoutPreviewFrame(true);
+    // Brand-/Template-Look: Auto-Startgröße (8 % der Rahmenbreite) darf die Template-Größe nicht überschreiben
+    var tplSt = STYLES.find(function(x){ return x.id === activeId; });
+    if (tplSt && tplSt._tpl) applyTemplateSettings(tplSt._tpl);
     // Mindestens 320px statt nur Rahmenbreite: sonst schrumpft die Fortschrittsleiste auf wenige Pixel
     // und die Zeitangabe bricht um. CSS max-width:100% deckelt auf die Spaltenbreite.
     document.getElementById('vidCtrls').style.width = Math.max(w, 320) + 'px';
@@ -8107,7 +8146,7 @@ function openInlineEdit(bi, wi) {
   } catch (e) {}
   box.style.top = top + '%';
   box.style.display = 'block';
-  ta.focus();
+  if (ta.focus) ta.focus();
   // Angeklicktes Wort vorselektieren → direkt drübertippen
   var ws = b.text.split(/(\s+)/), pos = 0, k = 0, s0 = 0, s1 = b.text.length;
   for (var i = 0; i < ws.length; i++) {
