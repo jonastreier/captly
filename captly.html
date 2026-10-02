@@ -4711,7 +4711,7 @@ function segmentsToWords(segs) {
 var SUPABASE_URL      = 'https://tghodbtdraqkfwcmedcv.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g';
 var mePlan = 'anon', _upsellShown = false, meEmail = '';
-var _authReady = Promise.resolve(), _pendingWmExport = false;
+var _authReady = Promise.resolve(), _pendingWmExport = false, _tplSyncedFor = null;
 // Lazy geladen wie ffmpeg/whisper (s. loadFFmpeg) — das Script läuft als klassisches <script>,
 // ein Top-Level-import wäre hier ein Syntaxfehler. Gibt null zurück, solange keine Credentials
 // hinterlegt sind, damit die Seite ohne Supabase voll nutzbar bleibt (Editor/Export sind gratis).
@@ -4800,9 +4800,9 @@ async function _fetchMe() {
       if (res && res.data && res.data.session) user = res.data.session.user;
       else if (!(res && res.error)) { var u = await sb.auth.getUser(); user = u && u.data && u.data.user; }
       if (user) {
-        var first = !meEmail;
         applyUser(user);
-        if (first) syncTemplatesWithCloud(user); // async, Fehler werden intern geloggt
+        // einmal pro Nutzer (onAuthStateChange setzt meEmail evtl. schon vorher → nicht daran koppeln)
+        if (_tplSyncedFor !== user.id) { _tplSyncedFor = user.id; syncTemplatesWithCloud(user); } // async, Fehler intern geloggt
       } else if (!(res && res.error)) { meEmail = ''; mePlan = 'anon'; }
     }
   } catch (e) { console.warn('fetchMe:', e); }
