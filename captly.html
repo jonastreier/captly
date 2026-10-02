@@ -576,6 +576,7 @@ input[type=checkbox]{accent-color:#7c3aed}
      (das Bedienpanel darunter gibt die Höhe ab). */
   .prev-col.tl-on{height:calc(45vh + 40px)}
   .prev-col.tl-on.tl-open{height:calc(45vh + 40px + var(--tl-h, 96px))}
+  .prev-col.tl-on ~ .ctrl-col{height:auto;flex:1 1 0;min-height:0} /* Rest der Höhe statt fester 55vh (sonst unten abgeschnitten) */
   .tl-wrap{width:100%;max-width:420px;align-self:center}
   /* Zoom-Pille vertikal an den rechten Rand: die Vorschau ist hier max. 62vw breit und zentriert,
      die horizontale Pille ragte in die obere rechte Ecke des Videos. */
@@ -7067,14 +7068,14 @@ async function tryFastExport(vid) {
     recProg.style.display = 'none';
     exportBtnState(null);
     isExporting = false;
-    if (ctrls) ctrls.classList.remove('exporting');
+    if (ctrls) ctrls.classList.remove('exporting'); tlRequestDraw(); // Timeline pausierte während des Exports
     maybeUpsell();
     return true;
   } catch (e) {
     console.warn('[export] WebCodecs-Schnellexport nicht möglich → Echtzeit-Export (MediaRecorder). Grund:', e && e.message || e, e);
     recBar.style.width = '0%';
     isExporting = false;
-    if (ctrls) ctrls.classList.remove('exporting');
+    if (ctrls) ctrls.classList.remove('exporting'); tlRequestDraw(); // Timeline pausierte während des Exports
     return false;
   }
 }
@@ -7309,7 +7310,7 @@ async function exportVideoWithCaptions() {
     vid.onended = prevOnEnded; // normales onended (Play/Pause-Overlay) wiederherstellen
     isExporting = false;
     var ctrls = document.getElementById('vidCtrls');
-    if (ctrls) ctrls.classList.remove('exporting');
+    if (ctrls) ctrls.classList.remove('exporting'); tlRequestDraw(); // Timeline pausierte während des Exports
     maybeUpsell(); // einmalig, erst NACH dem ersten erfolgreichen Export
   };
 
@@ -8685,10 +8686,21 @@ function tlSelect(idx, seek) {
   tlSel = b ? idx : -1;
   var row = b ? document.getElementById('seg' + idx) : null;
   selectSegRow(row && row.classList ? row : null);
-  if (row && row.scrollIntoView) { try { row.scrollIntoView({ block: 'nearest' }); } catch (e) {} }
+  if (row) tlScrollRowIntoView(row);
   if (b && seek) tlSeekVideo(b.start - (timeOff || 0) + 0.01);
   tlHintSeen();
   tlRequestDraw();
+}
+// Zeile im Bedienpanel sichtbar machen — bewusst NICHT scrollIntoView(): das scrollt auch Vorfahren mit
+// overflow:hidden (.ed-body) und verschiebt so das ganze Layout (der Kompatibilitäts-Klick eines Taps
+// landete danach auf einer Zeile statt auf der Timeline).
+function tlScrollRowIntoView(row) {
+  var col = document.getElementById('ctrlCol');
+  if (!col || !row.getBoundingClientRect || !col.getBoundingClientRect) return;
+  var cr = col.getBoundingClientRect(), rr = row.getBoundingClientRect();
+  if (!rr.height || !cr.height) return; // anderer Tab aktiv → Zeile unsichtbar
+  if (rr.top < cr.top + 4) col.scrollTop += rr.top - cr.top - 8;
+  else if (rr.bottom > cr.bottom - 4) col.scrollTop += rr.bottom - cr.bottom + 8;
 }
 // Doppelklick/Doppeltipp: denselben Inline-Editor wie in der Vorschau öffnen — vorher dorthin springen,
 // damit das Overlay genau diesen Block zeigt (der Editor setzt sich an die Caption-Position).
@@ -8714,7 +8726,9 @@ function tlGeom() {
 }
 // Ein rAF pro Frame, egal wie viele Auslöser (Overlay-Loop, Zeiger, Daten) — sonst nichts zeichnen.
 function tlRequestDraw() {
-  if (!_tl || _tl.raf || !_tl.open || !_tl.shown || typeof requestAnimationFrame !== 'function') return;
+  // Während des Echtzeit-Exports nicht zeichnen (jede ms Main-Thread fehlt dem Recorder); danach holt das
+  // nächste updateOverlay() den Stand nach.
+  if (!_tl || _tl.raf || !_tl.open || !_tl.shown || isExporting || typeof requestAnimationFrame !== 'function') return;
   _tl.raf = requestAnimationFrame(function(){ _tl.raf = 0; tlDraw(); }) || 0;
 }
 function tlRRect(ctx, x, y, w, h, r) {
@@ -8832,12 +8846,15 @@ function tlDraw() {
     var b = bl[i], xs = tlTimeToX(b.start - off, v), xe = tlTimeToX(b.end - off, v);
     if (xs > w) break;
     var bw = Math.max(2, xe - xs), sel = i === tlSel, isAct = i === act, isDrag = i === dragIdx;
-    ctx.beginPath(); tlRRect(ctx, xs + 0.5, yB + 0.5, bw - 1, hB - 1, Math.min(6, hB / 4));
+    // Stark gezoomt: Balken auf den sichtbaren Bereich kappen (riesige Pfade kosten Raster-Zeit),
+    // Beschriftung bleibt am linken Rand „kleben“, solange der Block angeschnitten ist.
+    var dxs = Math.max(xs, -12), dxe = Math.min(xe, w + 12), dw = Math.max(2, dxe - dxs);
+    ctx.beginPath(); tlRRect(ctx, dxs + 0.5, yB + 0.5, dw - 1, hB - 1, Math.min(6, hB / 4));
     ctx.fillStyle = isDrag ? '#7c3aed' : isAct ? '#c4b5fd' : sel ? '#ddd3fd' : '#ede9fe'; ctx.fill();
     if (bw > 3) { ctx.strokeStyle = isDrag || sel ? '#6d28d9' : '#c9bdf3'; ctx.lineWidth = sel ? 2 : 1; ctx.stroke(); ctx.lineWidth = 1; }
-    if (bw > 20) {
-      var tx = tlFitText(ctx, b.text, bw - (sel ? 18 : 10));
-      if (tx) { ctx.fillStyle = isDrag ? '#fff' : '#33255e'; ctx.fillText(tx, xs + (sel ? 9 : 5), yB + hB / 2 + 0.5); }
+    if (dw > 20) {
+      var tx0 = Math.max(xs, 0), tx = tlFitText(ctx, b.text, Math.min(dxe, w) - tx0 - (sel ? 18 : 10));
+      if (tx) { ctx.fillStyle = isDrag ? '#fff' : '#33255e'; ctx.fillText(tx, tx0 + (sel ? 9 : 5), yB + hB / 2 + 0.5); }
     }
     if (sel && bw > 12) { // Griffe an den Kanten
       ctx.fillStyle = isDrag ? 'rgba(255,255,255,.9)' : '#7c3aed';
