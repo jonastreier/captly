@@ -5187,13 +5187,14 @@ function syncWordsFromBlocks() {
 }
 function onWpbChange(v) {
   _presetPrevLayout = null; // Nutzer hat selbst eingestellt → beim Verlassen des Presets nicht zurückdrehen
+  var prevW = WORDS_PER_BLOCK;
   WORDS_PER_BLOCK = parseInt(v);
   document.getElementById('wpbDisp').textContent = v;
   var snap = captionBlocks.length ? captionSnapshot() : null;
   syncWordsFromBlocks();
   if (wordTimestamps.length) {
     captionBlocks = buildCaptionBlocks(wordTimestamps);
-    if (snap && captionSnapshot() !== snap) pushUndo('wpb', snap); // Slider-Zug = ein Undo-Schritt
+    if (snap && captionSnapshot() !== snap) pushUndo('wpb', layoutSnapshot(CAP_MAX_CHARS, prevW, snap)); // Slider-Zug = ein Undo-Schritt (inkl. Reglerstand)
     renderSegments(); renderWPills();
     _lastKey = null;
     updateOverlay();
@@ -5204,7 +5205,7 @@ function onWpbChange(v) {
 // Unbearbeitet (automatisch gebaut): neu gruppieren wie der Words-Regler. Bearbeitet (Text/Timing/Split,
 // geladenes Projekt): NUR überlaufende Blöcke aufteilen, alle anderen bleiben unangetastet. Ein Undo-Schritt
 // je Regler-Zug (tag fasst Serien zusammen). Gibt true zurück, wenn sich die Blöcke geändert haben.
-function relayoutCaptions(tag) {
+function relayoutCaptions(tag, prev) {
   if (!captionBlocks.length || isExporting || _processing) return false;
   var lim = capBlockLimit(), key = capLimitKey(lim);
   if (key === _relayoutKey) return false;
@@ -5218,7 +5219,7 @@ function relayoutCaptions(tag) {
     _relayoutKey = key;
   }
   if (captionSnapshot() === snap) return false;
-  pushUndo(tag || 'relayout', snap);
+  pushUndo(tag || 'relayout', prev ? layoutSnapshot(prev.mc, prev.wpb, snap) : snap);
   if (captionsEdited || !_capAutoBlocks) markCaptionsEdited(); else scheduleAutosave();
   if (typeof tlSel !== 'undefined') tlSel = -1;
   refreshCaptionViews();
@@ -5226,10 +5227,10 @@ function relayoutCaptions(tag) {
   return true;
 }
 function setMaxChars(v) {
-  var n = parseInt(v, 10);
+  var n = parseInt(v, 10), prev = { mc: CAP_MAX_CHARS, wpb: WORDS_PER_BLOCK };
   CAP_MAX_CHARS = (n >= CAP_CHARS_MIN && n <= CAP_CHARS_MAX) ? n : 0;
   syncMaxCharsUI();
-  relayoutCaptions('maxchars');
+  relayoutCaptions('maxchars', prev);
   _lastKey = null; updateOverlay();
   scheduleAutosave();
 }
@@ -8742,7 +8743,21 @@ function refreshCaptionViews() {
   _lastKey = null; updateOverlay();
   if (typeof updateFindCount === 'function') updateFindCount();
 }
+// Undo-Einträge von Regler-Änderungen (Words, Max chars) tragen den Reglerstand mit, damit Undo/Redo
+// nicht nur die Blöcke, sondern auch die Anzeige des Reglers zurückstellt. Format: {"__set":{mc,wpb},"b":[…]}.
+function layoutSnapshot(mc, wpb, blocksSnap) { return '{"__set":{"mc":' + (+mc || 0) + ',"wpb":' + (+wpb || 1) + '},"b":' + blocksSnap + '}'; }
+function isLayoutSnapshot(snap) { return String(snap).slice(0, 8) === '{"__set"'; }
+// Gegenstück für den Redo/Undo-Stapel: aktueller Stand im selben Format wie der Eintrag, der gleich angewendet wird
+function counterSnapshot(entry) { return isLayoutSnapshot(entry) ? layoutSnapshot(CAP_MAX_CHARS, WORDS_PER_BLOCK, captionSnapshot()) : captionSnapshot(); }
 function restoreCaptionSnapshot(snap) {
+  if (isLayoutSnapshot(snap)) {
+    var o = JSON.parse(snap);
+    CAP_MAX_CHARS = o.__set.mc; WORDS_PER_BLOCK = o.__set.wpb;
+    var ws = document.getElementById('wpbSlider'); if (ws) ws.value = WORDS_PER_BLOCK;
+    var wd = document.getElementById('wpbDisp'); if (wd) wd.textContent = WORDS_PER_BLOCK;
+    syncMaxCharsUI();
+    snap = JSON.stringify(o.b);
+  }
   captionBlocks = JSON.parse(snap);
   _relayoutKey = capLimitKey(capBlockLimit()); // Undo einer Anpassung nicht sofort wieder überschreiben
   markCaptionsEdited();
@@ -8750,16 +8765,18 @@ function restoreCaptionSnapshot(snap) {
 }
 function undoCaptions() {
   if (!_undoStack.length || isExporting) return false;
-  _redoStack.push(captionSnapshot());
-  restoreCaptionSnapshot(_undoStack.pop());
+  var u = _undoStack.pop();
+  _redoStack.push(counterSnapshot(u));
+  restoreCaptionSnapshot(u);
   _undoTag = null; syncUndoBtns();
   capToast('↶ Undone');
   return true;
 }
 function redoCaptions() {
   if (!_redoStack.length || isExporting) return false;
-  _undoStack.push(captionSnapshot());
-  restoreCaptionSnapshot(_redoStack.pop());
+  var r = _redoStack.pop();
+  _undoStack.push(counterSnapshot(r));
+  restoreCaptionSnapshot(r);
   _undoTag = null; syncUndoBtns();
   capToast('↷ Redone');
   return true;

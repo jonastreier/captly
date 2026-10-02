@@ -2473,6 +2473,10 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.undoDepth()[0] === 1, 'Limit-Wechsel ist ein Undo-Schritt');
     T.undoCaptions();
     ok(T.getBlocks().length === n32, 'Undo stellt die alten Blöcke wieder her');
+    ok(T.projectPayload().maxChars === 32 && document.getElementById('mcSel').value === '32', 'Undo stellt auch den Max-chars-Regler zurück');
+    T.redoCaptions();
+    ok(T.projectPayload().maxChars === 12 && T.getBlocks().length > n32, 'Redo stellt Limit + Blöcke wieder her');
+    T.undoCaptions();
     // Bearbeitet: nur überlaufende Blöcke teilen, die anderen bleiben exakt
     T.setMaxCharsState(32);
     const b0 = { words: W([['Kurz', 0, 0.4]]), start: 0, end: 0.5, text: 'Kurz' };
