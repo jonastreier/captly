@@ -2372,7 +2372,12 @@ function startCapLoop() {
 // Blitze/Strobos (Bild 0.3 s später gleicht dem davor) und Überblendungen (Änderung verteilt sich auf
 // viele Frames) werden verworfen — sie erzeugten sonst 0.16-s-Ein-Wort-Blöcke mitten im Satz.
 var sceneCuts = [], breakAtCuts = true, _cutRun = 0, _cutState = null, CUT_BINS = 16, CUT_W = 64, CUT_H = 36, CUT_TW = 16, CUT_TH = 9;
-var CUT_FLOOR = 0.25, CUT_MIN_P = 0.04; // Mindest-Änderung (cutChange) bzw. Mindest-Pixeldifferenz eines Schnitts
+var CUT_FLOOR = 0.25, CUT_MIN_P = 0.04; // Mindest-Änderung über der lokalen Grundunruhe bzw. Mindest-Strukturänderung (q)
+// Sprung ohne Strukturänderung (q < CUT_MIN_P) gilt bis zu dieser mittleren Helligkeitsänderung als Belichtung
+// (gleiche Szene); darüber als Schnitt — z. B. flach Dunkelgrün → feine Textur, die bei 64×36 zu flachem Grau
+// verschwimmt (10-min-WebM-Test: p 0.37, q 0.02).
+var CUT_EXPO = 0.25;
+function cutStructural(p, q) { return q >= CUT_MIN_P || p >= CUT_EXPO; }
 function activeCuts() { return breakAtCuts ? sceneCuts : []; }
 function lumaFromRGBA(data) {
   var n = data.length >> 2, out = new Float32Array(n);
@@ -2388,16 +2393,19 @@ function lumaHistogram(luma, bins) {
 }
 function histDistance(a, b) { var d = 0; for (var i = 0; i < a.length; i++) d += Math.abs(a[i] - b[i]); return d / 2; } // 0..1
 function meanAbsDiff(a, b) { var d = 0, n = Math.min(a.length, b.length) || 1; for (var i = 0; i < n; i++) d += Math.abs(a[i] - b[i]); return d / n; }
+// Wie meanAbsDiff, aber jeweils ohne Bildmittelwert: eine gleichmäßige Helligkeitsänderung (Belichtungs-
+// sprung, Auto-Exposure) zählt nicht als Strukturänderung — ein Schnitt ändert dagegen den Bildinhalt.
+function meanAbsDiffZ(a, b) {
+  var n = Math.min(a.length, b.length) || 1, ma = 0, mb = 0, d = 0, i;
+  for (i = 0; i < n; i++) { ma += a[i]; mb += b[i]; }
+  ma /= n; mb /= n;
+  for (i = 0; i < n; i++) d += Math.abs(a[i] - ma - b[i] + mb);
+  return d / n;
+}
 function medianOf(arr) {
   if (!arr.length) return 0;
   var s2 = arr.slice().sort(function(x, y){ return x - y; }), m = s2.length >> 1;
   return s2.length % 2 ? s2[m] : (s2[m - 1] + s2[m]) / 2;
-}
-// Adaptive Schwelle: Median + 6·MAD, mit Untergrenze (Rauschen bei ruhigem Video) und Obergrenze 0.6
-// (Dauer-Bewegung wie Handkamera/Tanz soll echte Schnitte nicht "wegnormalisieren").
-function cutThreshold(dists, floor) {
-  var med = medianOf(dists), mad = medianOf(dists.map(function(d){ return Math.abs(d - med); }));
-  return Math.max(floor == null ? 0.35 : floor, Math.min(0.6, med + 6 * mad));
 }
 // Änderungsmaß: Histogramme übersehen Schnitte zwischen ähnlich hellen Szenen, die Pixel-Differenz
 // allein springt auf Bewegung an — das Maximum aus beiden (p skaliert) trägt beides. Bewusst NICHT bei 1
@@ -2425,11 +2433,13 @@ function cutSlot() {
   var k = _cutSlab.n++, ts = CUT_TW * CUT_TH;
   return { h: _cutSlab.h.subarray(k * CUT_BINS, (k + 1) * CUT_BINS), s: _cutSlab.s.subarray(k * ts, (k + 1) * ts) };
 }
-// Merkmale eines Frames (luma: 64×36 Float32 0..1); prev/prevLuma = Vorgänger (oder null)
+// Merkmale eines Frames (luma: 64×36 Float32 0..1); prev/prevLuma = Vorgänger (oder null).
+// d = Histogramm-Distanz, p = Pixel-Differenz, q = Pixel-Differenz ohne Mittelwert (Struktur) zum Vorgänger.
 function cutFrame(t, luma, prev, prevLuma) {
   var slot = cutSlot();
   slot.h.set(lumaHistogram(luma, CUT_BINS));
-  return { t: t, h: slot.h, s: cutThumb(luma, slot.s), d: prev ? histDistance(prev.h, slot.h) : 0, p: prevLuma ? meanAbsDiff(prevLuma, luma) : 0 };
+  return { t: t, h: slot.h, s: cutThumb(luma, slot.s), d: prev ? histDistance(prev.h, slot.h) : 0,
+           p: prevLuma ? meanAbsDiff(prevLuma, luma) : 0, q: prevLuma ? meanAbsDiffZ(prevLuma, luma) : 0 };
 }
 // Kandidaten < gap s auseinander → nur der stärkste bleibt (ein Schnitt, nicht zwei Mini-Blöcke)
 function mergeCutCands(cands, gap) {
@@ -2441,37 +2451,55 @@ function mergeCutCands(cands, gap) {
   });
   return m;
 }
-// Reine Entscheidung (Node-testbar). fr: [{ t, h, s, d, p }] zeitlich sortiert — volle Framerate
+// Reine Entscheidung (Node-testbar). fr: [{ t, h, s, d, p, q }] zeitlich sortiert — volle Framerate
 // (WebCodecs) oder grobe Proben (Seek-Pfad, o.coarse: dort prüft erst die Bisektion "hart vs. weich").
 // → [{ t (Zeit des ersten Frames der neuen Szene), c (Stärke), i (Index) }]
+// Kern: ein harter Schnitt ist ein EIN-Frame-Ausreißer gegenüber der LOKALEN Grundunruhe — egal wie hoch
+// die ist. Drohnenflug über Gras, rennende Tiere, Wasser: dort ändert sich jedes Bild stark (im QA-Sample
+// war die Pixel-Differenz der Bewegung sogar größer als die des Schnitts); absolute Vergleiche ließen den
+// Schnitt dann wie eine Überblendung aussehen. Darum wird d und p je Seite um den Median der letzten bzw.
+// nächsten ~1 s bereinigt ("Überschuss"); die Seite mit der höheren Grundunruhe zählt für den Kandidaten.
 function decideSceneCuts(fr, o) {
   o = o || {};
-  var n = fr ? fr.length : 0, out = [], i;
+  var n = fr ? fr.length : 0, out = [], i, j;
   if (n < 3) return out;
-  var c = [0];
-  for (i = 1; i < n; i++) c.push(cutChange(fr[i].d, fr[i].p));
-  var thr = cutThreshold(c.slice(1), CUT_FLOOR), steps = [];
+  var steps = [];
   for (i = 1; i < n && i < 400; i++) steps.push(fr[i].t - fr[i - 1].t);
   var dt = Math.max(1e-3, medianOf(steps));
-  var K = Math.max(1, Math.round(0.3 / dt)), W = Math.max(1, Math.round(0.5 / dt));
-  function cc(j) { return j >= 1 && j < n ? c[j] : 0; }
+  var K = Math.max(1, Math.round(0.3 / dt)), B = Math.max(3, Math.round(1 / dt));
+  // Grobe Proben sind nur Kandidaten-Generator (Bisektion prüft nach) → niedrigere Schwelle: im WebM-QA-
+  // Sample (Textur → Grün mit gleicher Helligkeit, VP9 weichgezeichnet) lag der Schnitt knapp an 0.25.
+  var floor = o.coarse ? 0.6 * CUT_FLOOR : CUT_FLOOR;
+  function base(from, to, key) { // Median von fr[from..to][key] (Grenzen geklemmt), leer → 0
+    var v = [];
+    for (var k = Math.max(1, from); k <= Math.min(n - 1, to); k++) v.push(fr[k][key]);
+    return medianOf(v);
+  }
+  function ex(k, bd, bp) { return k >= 1 && k < n ? Math.max(fr[k].d - bd, 4 * (fr[k].p - bp)) : 0; }
   for (i = 1; i < n; i++) {
-    var ci = c[i];
-    if (ci < thr || fr[i].p < CUT_MIN_P || ci < cc(i - 1) || ci < cc(i + 1)) continue;
-    // Überblendung: Distanzen steigen auf BEIDEN Seiten an (Nachbarn > 40 % des Peaks) oder der Sprung
-    // ist nur ein kleiner Teil der Gesamtänderung über ±0.5 s (graduell) → kein harter Schnitt. Grobe
-    // Proben: lockerer (verpasster Schnitt wäre schlimmer; die Bisektion prüft ohnehin nach).
-    var rampF = o.coarse ? 0.6 : 0.4, spanF = o.coarse ? 0.3 : 0.4;
-    if (Math.min(Math.max(cc(i - 1), cc(i - 2)), Math.max(cc(i + 1), cc(i + 2))) > rampF * ci) continue;
-    if (frameDist(fr[i - 1], fr[i]) < spanF * frameDist(fr[Math.max(0, i - W)], fr[Math.min(n - 1, i + W)])) continue;
+    var f = fr[i];
+    // Vorfilter (billig): absolute Änderung groß genug und echte STRUKTUR-Änderung — ein reiner
+    // Belichtungssprung verschiebt nur das Histogramm (q bleibt klein) → kein Schnitt.
+    if (cutChange(f.d, f.p) < floor || !cutStructural(f.p, f.q != null ? f.q : f.p)) continue;
+    var lD = base(i - B, i - 1, 'd'), lP = base(i - B, i - 1, 'p'), rD = base(i + 1, i + B, 'd'), rP = base(i + 1, i + B, 'p');
+    var mD = Math.max(lD, rD), mP = Math.max(lP, rP), ci = ex(i, mD, mP);
+    // muss über der Grundunruhe herausragen und lokales Maximum sein (Nachbarn mit DERSELBEN Basis gemessen)
+    if (ci < floor || ci < ex(i - 1, mD, mP) || ci < ex(i + 1, mD, mP)) continue;
+    var l1 = ex(i - 1, lD, lP), l2 = ex(i - 2, lD, lP), r1 = ex(i + 1, rD, rP), r2 = ex(i + 2, rD, rP);
+    // Überblendung: der Überschuss steigt auf BEIDEN Seiten an (Nachbarn > 40 % des Peaks) → kein harter
+    // Schnitt. Grobe Proben: lockerer (verpasster Schnitt wäre schlimmer; die Bisektion prüft ohnehin nach).
+    if (Math.min(Math.max(l1, l2), Math.max(r1, r2)) > (o.coarse ? 0.6 : 0.4) * ci) continue;
     // Blitz/Strobo/kurzer Einschub: kehrt das Bild binnen ~0.3 s zum Bild davor zurück (steigende Flanke)
     // bzw. glich das Bild danach schon einem Bild ≤ 0.3 s vorher (fallende Flanke) → kein Schnitt. Jeweils
     // gegen ALLE Frames im Fenster, damit der zeitlich nächste passt (Bewegung/Schwenk verfälscht sonst).
-    var jump = frameDist(fr[i - 1], fr[i]), rev = Infinity, j;
+    var jump = frameDist(fr[i - 1], f), rev = Infinity;
     for (j = i + 1; j <= Math.min(n - 1, i + K); j++) rev = Math.min(rev, frameDist(fr[i - 1], fr[j]));
-    for (j = Math.max(0, i - 1 - K); j < i - 1; j++) rev = Math.min(rev, frameDist(fr[j], fr[i]));
+    for (j = Math.max(0, i - 1 - K); j < i - 1; j++) rev = Math.min(rev, frameDist(fr[j], f));
     if (rev < 0.5 * jump) continue;
-    out.push({ t: fr[i].t, c: ci, i: i });
+    // Zwei-Frame-Schnitt (der erste Frame der neuen Quelle ändert sich gleich nochmal stark, z. B. Encoder-
+    // Neustart/animierte Quelle): Szene beginnt schon beim Frame davor → dessen Zeit melden.
+    var at = l1 > 0.4 * ci && !o.coarse ? i - 1 : i;
+    out.push({ t: fr[at].t, c: ci, i: at });
   }
   return mergeCutCands(out, 0.3);
 }
@@ -2603,13 +2631,18 @@ async function detectSceneCutsSeek(url, dur, o) {
           var mid = (lo + hi) / 2, ml = await grab(mid);
           if (!ml) { broken = true; break; }
           var M = cutFrame(mid, ml, null, null);
-          if (frameDist(M, Af) <= frameDist(M, Bf)) { lo = mid; L = M; Ll = ml; } else { hi = mid; R = M; Rl = ml; }
+          // gegen die AKTUELLEN Intervallgrenzen vergleichen (nicht A/B): bewegt sich die neue Szene stark
+          // (Wellen, Schwenk), ähnelt ein Frame kurz nach dem Schnitt dem 0.5 s späteren B kaum mehr als A
+          if (frameDist(M, L) <= frameDist(M, R)) { lo = mid; L = M; Ll = ml; } else { hi = mid; R = M; Rl = ml; }
         }
       }
       if (o.onProgress) o.onProgress(0.8 + 0.2 * (c + 1) / cands.length);
       if (broken) { cuts.push({ t: B0.t, c: cands[c].c }); continue; } // Seek hängt → grob übernehmen statt verlieren
-      if (meanAbsDiff(Ll, Rl) < CUT_MIN_P || frameDist(L, R) < 0.5 * frameDist(Af, Bf)) continue;
-      cuts.push({ t: hi, c: frameDist(L, R) });
+      var jLR = frameDist(L, R);
+      if (!cutStructural(meanAbsDiff(Ll, Rl), meanAbsDiffZ(Ll, Rl)) || jLR < 0.5 * frameDist(Af, Bf)) continue; // Belichtungssprung/Überblendung
+      // Blitz/kurzer Einschub: ≥ 0.5 s später sieht es wieder aus wie vorher (bzw. vorher schon wie nachher)
+      if (frameDist(L, Bf) < 0.5 * jLR || frameDist(Af, R) < 0.5 * jLR) continue;
+      cuts.push({ t: hi, c: jLR });
     }
     console.info('[cuts] Seek-Pfad: ' + fr.length + ' grobe Proben in ' + (tCoarse / 1000).toFixed(1) + ' s (Wiedergabe '
                  + (tPlay / 1000).toFixed(1) + ' s, ' + fill.length + ' Seeks), '

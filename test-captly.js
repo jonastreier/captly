@@ -78,7 +78,7 @@ needsWatermark:needsWatermark,webmToMp4Trim:webmToMp4Trim,enforceMinBlockDuratio
 revertTranscriptionSettings:revertTranscriptionSettings,getModel:function(){return whisperModel;},setLastTrMeta:function(m){_lastTrMeta=m;},pickRecorderMime:pickRecorderMime,recorderMimeIsSafeMp4:recorderMimeIsSafeMp4,
 exportGeometry:exportGeometry,exportBitrate:exportBitrate,drawReframed:drawReframed,classifyUnplayable:classifyUnplayable,
 applyPlayability:applyPlayability,setVideoPlayable:function(v){videoPlayable=v;},transcribeVideo:transcribeVideo,DEFAULT_STYLE:DEFAULT_STYLE,
-setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDistance:histDistance,cutThreshold:cutThreshold,
+setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDistance:histDistance,
 decideSceneCuts:decideSceneCuts,cutFrame:cutFrame,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
 onBreakAtCutsChange:onBreakAtCutsChange,currentBlockIdx2:currentBlockIdx,setDisplayMode:function(m){displayMode=m;},polishWords:polishWords,
 polishEnabled:polishEnabled,setModelState:function(m){whisperModel=m;},polishSegments:polishSegments,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
@@ -779,9 +779,6 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   const dark = T.lumaHistogram(new Float32Array(2304).fill(0.1), 16), light = T.lumaHistogram(new Float32Array(2304).fill(0.9), 16);
   ok(T.histDistance(dark, dark) === 0 && Math.abs(T.histDistance(dark, light) - 1) < 1e-9, 'Histogramm-Distanz 0 bzw. 1');
   ok(Math.abs(T.meanAbsDiff(new Float32Array([0.1, 0.2]), new Float32Array([0.3, 0.2])) - 0.1) < 1e-6, 'mittlere Pixel-Differenz');
-  ok(T.cutThreshold([0.01, 0.02, 0.015, 0.02, 0.01]) === 0.35, 'Schwelle: Untergrenze 0.35 bei ruhigem Video');
-  const noisy = [0.2, 0.25, 0.3, 0.22, 0.28, 0.24, 0.26];
-  ok(T.cutThreshold(noisy) > 0.35, 'Schwelle adaptiv bei unruhigem Video: ' + T.cutThreshold(noisy).toFixed(3));
   // Synthetische 64×36-Luma-Folgen @30 fps: jede Szene ein eigenes, sich bewegendes Muster
   const FW = T.CUT_W, FH = T.CUT_H, FPS = 30;
   const scene = (k, n, speed) => {
@@ -819,6 +816,32 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   L = []; for (let n = 0; n < 240; n++) L.push(scene(0, n, 0.6));
   tc = times(feats(L));
   ok(tc.length === 0, 'schnelle Bewegung ist kein Schnitt: ' + JSON.stringify(tc));
+  // e2) hohe Grundunruhe (Drohne über Gras, Wasser): Textur, deren Pixel-Differenz pro Frame GRÖSSER ist als
+  //     die des Schnitts — Schnitte hinein (Frame 60) und heraus (Frame 150) müssen trotzdem erkannt werden
+  const tex = n => { const l = new Float32Array(FW * FH);
+    for (let y = 0; y < FH; y++) for (let x = 0; x < FW; x++) l[y * FW + x] = Math.sin(1.7 * x + 2.3 * y + 2.9 * n) * Math.sin(0.9 * x - 1.1 * y + 1.3 * n) > 0 ? 0.85 : 0.15;
+    return l; };
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 60 ? scene(0, n, 0) : n < 150 ? tex(n) : scene(3, n, 0.1));
+  const fT = feats(L);
+  ok(fT[100].p >= 0.9 * Math.max(fT[60].p, fT[150].p), 'Testaufbau: Bewegung ändert so viele Pixel wie die Schnitte (' + fT[100].p.toFixed(3) + ' vs ' + fT[60].p.toFixed(3) + '/' + fT[150].p.toFixed(3) + ')');
+  tc = times(fT);
+  ok(tc.length === 2 && tc[0] === 2 && tc[1] === 5, 'Schnitte neben starker Bewegung erkannt: ' + JSON.stringify(tc));
+  const fTc = feats(L.filter((l, k) => k % 4 === 0), 4 / FPS);
+  tc = times(fTc, { coarse: true });
+  ok(tc.length === 2, 'auch in groben Proben: ' + JSON.stringify(tc));
+  // e3) Belichtungssprung (+0.15, bleibt) → gleiche Szene, kein Schnitt; Zwei-Frame-Schnitt → Zeit des ersten Frames
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 100 ? scene(0, n) : bright(scene(0, n), 0.15));
+  tc = times(feats(L));
+  ok(tc.length === 0, 'Belichtungssprung ist kein Schnitt: ' + JSON.stringify(tc));
+  // …aber ein großer Sprung zwischen zwei strukturlosen Bildern (dunkle Fläche → zu Grau verschwommene
+  // Textur) bleibt ein Schnitt
+  const flat = v => new Float32Array(FW * FH).fill(v);
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 90 ? flat(0.15) : flat(0.55));
+  tc = times(feats(L));
+  ok(tc.length === 1 && tc[0] === 3, 'großer Sprung Fläche → Fläche ist ein Schnitt: ' + JSON.stringify(tc));
+  L = []; for (let n = 0; n < 240; n++) L.push(n < 60 ? scene(0, n) : n === 60 ? mix(scene(1, n), scene(2, n), 0.5) : scene(2, n));
+  tc = times(feats(L));
+  ok(tc.length === 1 && tc[0] === 2, 'Zwei-Frame-Schnitt: Szene beginnt beim ersten geänderten Frame: ' + JSON.stringify(tc));
   // f) grobe Proben (0.4 s, Seek-Pfad) → Kandidat im richtigen Intervall; Helligkeitssprung ohne Pixel-Änderung nicht
   L = []; for (let n = 0; n < 40; n++) L.push(scene(n < 17 ? 0 : 1, n * 12));
   tc = times(feats(L, 0.4), { coarse: true });
