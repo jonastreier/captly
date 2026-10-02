@@ -205,6 +205,7 @@ body.editor-open{height:100vh;overflow:hidden}
 #tlCanvas{display:block;width:100%;height:84px;touch-action:none;outline:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 #tlCanvas:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.45)}
 @media (pointer:coarse){.tl-btn{min-height:32px;min-width:34px;font-size:12.5px}.tl-tog{min-height:32px;font-size:12.5px}.tl-hint{display:none}}
+@media (max-width:520px){.tl-btn .tl-lbl{display:none}} /* Handy: Snap/„Close gaps“ nur als Icon, damit Zoom/Fit sichtbar bleiben */
 
 /* PANEL RESIZE HANDLE */
 .col-resize-handle{width:7px;flex-shrink:0;cursor:col-resize;position:relative;z-index:7;touch-action:none}
@@ -729,6 +730,7 @@ input[type=checkbox]{accent-color:#7c3aed}
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
+  <symbol id="i-gap" viewBox="0 0 24 24"><path d="M3.5 5v14M20.5 5v14"/><path d="M6.5 12h4.5M8.8 9.5l2.4 2.5-2.4 2.5M17.5 12H13M15.2 9.5L12.8 12l2.4 2.5"/></symbol>
   <symbol id="i-magnet" viewBox="0 0 24 24"><path d="M6 4.5h4v6.5a2 2 0 004 0V4.5h4V11a6 6 0 01-12 0z"/><path d="M6 8h4M14 8h4"/></symbol>
 </svg>
 <div id="app">
@@ -1073,7 +1075,8 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button type="button" class="tl-tog" id="tlTog" onclick="tlToggle()" aria-expanded="true" aria-controls="tlBody">▾ Timeline</button>
           <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · double-click to edit</span>
           <span class="tl-sp"></span>
-          <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg> Snap</button>
+          <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" aria-label="Snap" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span class="tl-lbl"> Snap</span></button>
+          <button type="button" class="tl-btn" id="tlGapBtn" onclick="tlCloseGaps()" aria-label="Close gaps" title="Close short gaps: each caption stays until the next one starts (pauses over 1 s and scene cuts are kept)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span class="tl-lbl"> Close gaps</span></button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1/1.6)" title="Zoom out" aria-label="Zoom timeline out">−</button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1.6)" title="Zoom in (Ctrl/⌘+wheel or pinch)" aria-label="Zoom timeline in">+</button>
           <button type="button" class="tl-btn" onclick="tlFit()" title="Show the whole video">Fit</button>
@@ -1206,6 +1209,14 @@ input[type=checkbox]{accent-color:#7c3aed}
           <span class="sz-val" id="wpbDisp">4</span>
         </div>
         <div class="q-row">
+          <span class="q-k" title="Maximum characters per caption line">Max chars</span>
+          <select id="mcSel" class="lang-sel cs-sel" onchange="setMaxChars(this.value)" aria-label="Maximum characters per line" title="Captions break into more, shorter captions instead of shrinking the text">
+            <option value="0">Auto (recommended)</option><option value="12">12 per line</option><option value="16">16 per line</option>
+            <option value="20">20 per line</option><option value="24">24 per line</option><option value="32">32 per line</option>
+          </select>
+        </div>
+        <p class="q-hint" id="mcHint">Recommended for Reels: 15–20 characters per line</p>
+        <div class="q-row">
           <span class="q-k">Case</span>
           <select id="caseSel" class="lang-sel cs-sel" onchange="setCaptionCase(this.value)" title="Letter case for captions and subtitle files">
             <option value="asis">Style default</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="orig">As typed</option>
@@ -1221,7 +1232,7 @@ input[type=checkbox]{accent-color:#7c3aed}
                 <button type="button" class="pos-btn" data-lines="1" onclick="setLines(this)">1</button>
                 <button type="button" class="pos-btn on" data-lines="2" onclick="setLines(this)">2</button>
               </div></div>
-            <p class="cs-note">Captions shrink to stay within the max lines. Only a single word too long for the frame (or a very long caption at the smallest size) wraps.</p>
+            <p class="cs-note">Long captions break into more, shorter captions (see Max chars) instead of shrinking. Only a single word too long for the frame gets smaller.</p>
             <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
               <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')" title="Letter spacing">
               <span class="cs-v" id="csLsDisp">0px</span></div>
@@ -2550,6 +2561,13 @@ async function safePipe(pipe, seg, opts) {
 var WORDS_PER_BLOCK = 4;
 var displayMode     = 'karaoke';   // 'karaoke' = nur aktiver Block | 'all' = Block bleibt bis zum nächsten
 var CAPTION_LINES   = 2;    // max. Zeilen pro Caption-Block — 2 verhindert, dass lange deutsche Wörter auf eine Zeile geschrumpft werden
+// „Max characters per line“ (Style-Tab): 0 = Auto (aus Schriftgröße/Style/Safe-Zone-Breite abgeleitet), sonst
+// fester Wert. Blöcke werden beim Bauen früher geschlossen, statt die Schrift zu verkleinern (wie Submagic/Captions).
+var CAP_MAX_CHARS   = 0;
+var CAP_CHARS_MIN   = 8, CAP_CHARS_MAX = 40;
+// Lücken zwischen Captions < GAP_CLOSE_SEC werden geschlossen (Blockende → Start des nächsten Blocks),
+// nie über einen Szenenschnitt; längere Pausen bleiben (Caption verschwindet wie bisher).
+var GAP_CLOSE_SEC   = 1.0;
 var _lastKey        = null;        // Render-Cache (verhindert DOM-Flackern)
 var _lastBi         = -1;
 var _rafId          = null;
@@ -3616,17 +3634,125 @@ function onBreakAtCutsChange(on) {
 // den Schnitt reicht, behält sein Timing, der Block endet trotzdem am Schnitt), der Blockanfang ebenso.
 function wordMid(w) { var e = (w.end > w.start) ? w.end : w.start; return ((w.start || 0) + (e || 0)) / 2; }
 function cutBetween(cuts, a, b) { for (var k = 0; k < cuts.length; k++) if (cuts[k] > a && cuts[k] <= b) return cuts[k]; return null; }
+// ── Zeichenlimit pro Zeile ──
+// Gemessen wird der ANGEZEIGTE Text (displayWord: Satzzeichen-/Case-Wahl + Style-Großschreibung), Zeichen inkl.
+// Leerzeichen. Auto: wie viele Zeichen bei der aktuellen Schriftgröße in die Safe-Zone-Breite (capFitMaxW)
+// passen — gemessen an einem typischen Satz (inkl. Highlight-Zugaben wie Pill/Kringel), mit 5 % Reserve.
+var _capAutoCharsCache = {};
+function capActiveStyle() {
+  var s0 = STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0];
+  return caseStyle(s0);
+}
+function capAutoChars(s) {
+  s = s || capActiveStyle();
+  var frameW = previewFrameW(), maxW = capFitMaxW(s);
+  var key = [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, s.hlPillBg ? 1 : 0, s.circle ? 1 : 0,
+             s.boxBg ? 1 : 0, s.pill ? 1 : 0, s.ts, fontSize, Math.round(frameW), capCase, _capFontGen].join('|');
+  if (_capAutoCharsCache[key]) return _capAutoCharsCache[key];
+  var ctx = capMeasureCtx();
+  var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1, sz = fontSize * fsMul;
+  var fn = (s.font || "'Inter'").replace(/'/g, ''), fw = s.fw || '700', fi = s.fi === 'italic' ? 'italic ' : '';
+  var sample = applyCase('Die Rinder sind das ganze Jahr draussen auf der Weide und fressen Gras');
+  var up = s.tt === 'uppercase';
+  ctx.font = fi + fw + ' ' + sz + 'px "' + fn + '", sans-serif';
+  var w = ctx.measureText(up ? sample.toUpperCase() : sample).width;
+  if (s.hlFont || s.hlUpper || s.hlItalic) {
+    ctx.font = (s.hlItalic ? 'italic ' : fi) + fw + ' ' + sz + 'px "' + (s.hlFont || s.font || "'Inter'").replace(/'/g, '') + '", sans-serif';
+    w = Math.max(w, ctx.measureText((up || s.hlUpper) ? sample.toUpperCase() : sample).width);
+  }
+  var nSp = (sample.match(/ /g) || []).length;
+  w += nSp * capWordGap(s) + (parseFloat(s.ls) || 0) * sample.length;
+  var avail = maxW * 0.95;
+  if (s.hlPillBg) avail -= 18;
+  if (s.circle) avail -= 0.6 * sz + 5;
+  var per = Math.floor(avail / Math.max(1, w / sample.length));
+  per = Math.max(6, Math.min(60, per));
+  _capAutoCharsCache[key] = per;
+  return per;
+}
+// Wirksames Limit { per: Zeichen pro Zeile, lines } — null = kein Limit (nur Wortzahl/Pausen/Sätze).
+function capBlockLimit() {
+  var per = CAP_MAX_CHARS > 0 ? CAP_MAX_CHARS : capAutoChars();
+  if (!(per > 0)) return null;
+  return { per: per, lines: Math.max(1, CAPTION_LINES || 1) };
+}
+function capCharLen(word) {
+  var s = capActiveStyle(), d = displayWord(String(word || ''));
+  if (s && s.tt === 'uppercase') d = d.toUpperCase();
+  return Array.from(d).length;
+}
+// Passen Wörter (Längen) in lim.lines Zeilen à lim.per Zeichen? Gierig umbrechen wie ein Texteditor;
+// zusätzlich Gesamtlänge ≤ per × lines. Ein Wort länger als per passt nur allein (eigener Block).
+function capCharsFit(lens, lim) {
+  if (!lim || lens.length <= 1) return true;
+  var total = 0, nl = 1, cur = 0;
+  for (var i = 0; i < lens.length; i++) {
+    if (lens[i] > lim.per) return false;
+    total += lens[i] + (i ? 1 : 0);
+    var add = cur ? cur + 1 + lens[i] : lens[i];
+    if (cur && add > lim.per) { nl++; cur = lens[i]; } else cur = add;
+  }
+  return nl <= lim.lines && total <= lim.per * lim.lines;
+}
+function capWordsFit(words, lim) {
+  return capCharsFit(words.map(function(w){ return capCharLen(w.word); }), lim);
+}
+// Lücken < GAP_CLOSE_SEC schließen: Blockende bis zum Start des nächsten Blocks verlängern, höchstens bis
+// zu einem Szenenschnitt dazwischen. Wort-Timings (Karaoke) bleiben unverändert. Gibt die Anzahl zurück.
+function closeCaptionGaps(blocks, cuts) {
+  cuts = cuts || [];
+  var n = 0;
+  for (var i = 0; i < blocks.length - 1; i++) {
+    var a = blocks[i], b = blocks[i + 1];
+    if (!a || !b || !isFinite(a.end) || !isFinite(b.start)) continue;
+    var gap = b.start - a.end;
+    if (gap <= 1e-3 || gap >= GAP_CLOSE_SEC) continue;
+    var lim = b.start, c = cutBetween(cuts, a.end - 1e-6, b.start - 1e-6); // Ende genau am Schnitt zählt mit
+    if (c !== null) lim = c;
+    lim = Math.round(lim * 1000) / 1000;
+    if (lim > a.end + 1e-3) { a.end = lim; n++; }
+  }
+  return n;
+}
+// Bearbeitete Captions: nur Blöcke aufteilen, die das Zeichenlimit sprengen (Wort-Timings bleiben, die
+// Teile schließen lückenlos aneinander an); alle anderen Blöcke bleiben unangetastet. Leere Blöcke fliegen raus.
+function splitOverflowingBlocks(blocks, lim) {
+  var out = [], changed = false;
+  blocks.forEach(function(b) {
+    var ws = (b.words || []).filter(function(w){ return w && String(w.word || '').trim(); });
+    if (!ws.length || !String(b.text || '').trim()) { changed = true; return; }
+    if (!lim || capWordsFit(ws, lim)) { out.push(b); return; }
+    var parts = [], cur = [];
+    ws.forEach(function(w) {
+      if (cur.length && !capWordsFit(cur.concat([w]), lim)) { parts.push(cur); cur = []; }
+      cur.push(w);
+    });
+    if (cur.length) parts.push(cur);
+    if (parts.length < 2) { out.push(b); return; }
+    changed = true;
+    parts.forEach(function(p, k) {
+      var start = k ? p[0].start : b.start;
+      var end = k < parts.length - 1 ? parts[k + 1][0].start : b.end;
+      if (!(end > start)) end = start + 0.05;
+      var words = copyTimedWords(p);
+      out.push({ words: words, srcWords: copyTimedWords(words), start: start, end: end,
+                 text: words.map(function(w){ return w.word; }).join(' ') });
+    });
+  });
+  return changed ? out : null;
+}
 // Mindest-Anzeigedauer je Block (~0,3 s): sehr kurze Blöcke blitzen sonst nur auf. Zuerst nur die
 // ANZEIGE verlängern (Ende in die folgende Lücke, höchstens bis zum nächsten Block bzw. Szenenschnitt).
 // Reicht das nicht, nur dann verschmelzen, wenn das Ergebnis höchstens „Wörter pro Block“ hat, nicht über
 // ein Satzende (. ! ? …) und nicht über einen Schnitt läuft — sonst bleibt der Block, wie er ist
 // (vorher entstanden z. B. „SIE IN DIE KOMMENTARE. HALLO“ mit 5 Wörtern bei 4 pro Block).
 var MIN_BLOCK_SEC = 0.3;
-function enforceMinBlockDuration(blocks, cuts) {
+function enforceMinBlockDuration(blocks, cuts, charLim) {
   cuts = cuts || [];
   function canJoin(a, b2) {
     if (!a || !b2) return false;
     if (WORDS_PER_BLOCK <= 1 || a.words.length + b2.words.length > WORDS_PER_BLOCK) return false;
+    if (charLim && !capWordsFit(a.words.concat(b2.words), charLim)) return false; // Zeichenlimit gilt auch beim Verschmelzen
     if (b2.start - a.end >= 0.8) return false;
     var la = a.words[a.words.length - 1], fb = b2.words[0];
     if (la && /[.!?…]["“”»)]*$/.test(la.word)) return false; // Satzende dazwischen
@@ -3658,17 +3784,22 @@ function enforceMinBlockDuration(blocks, cuts) {
 function buildCaptionBlocks(wts, cuts) {
   if (cuts === undefined) cuts = activeCuts();
   cuts = (cuts || []).filter(function(c){ return isFinite(c); }).sort(function(a, b){ return a - b; });
+  var lim = capBlockLimit();
+  // Leere Wörter (z. B. nach Text-Edits) erzeugen sonst leere/unsichtbare Blöcke in der Timeline
+  wts = (wts || []).filter(function(w){ return w && String(w.word || '').trim(); });
   var blocks = [];
   var i = 0;
   while (i < wts.length) {
-    var chunk = [wts[i]];
+    var chunk = [wts[i]], lens = [capCharLen(wts[i].word)];
     var j = i + 1;
     while (j < wts.length && chunk.length < WORDS_PER_BLOCK) {
       var prev = wts[j - 1];
       var gap  = wts[j].start - (prev.end || prev.start);
       if (gap > 0.8 || /[.!?…]$/.test(prev.word)) break;
       if (cuts.length && cutBetween(cuts, wordMid(prev), wordMid(wts[j])) !== null) break; // Szenenschnitt
-      chunk.push(wts[j]); j++;
+      var nl = capCharLen(wts[j].word);
+      if (lim && !capCharsFit(lens.concat([nl]), lim)) break; // Zeichenlimit: Block früher schließen statt Schrift schrumpfen
+      chunk.push(wts[j]); lens.push(nl); j++;
     }
     var start = chunk[0].start || 0;
     var end   = chunk[chunk.length - 1].end;
@@ -3686,8 +3817,14 @@ function buildCaptionBlocks(wts, cuts) {
                   text: words.map(function(w){ return w.word; }).join(' ') });
     i = j;
   }
-  return enforceMinBlockDuration(blocks, cuts);
+  blocks = enforceMinBlockDuration(blocks, cuts, lim);
+  closeCaptionGaps(blocks, cuts);
+  _capAutoBlocks = true; _relayoutKey = capLimitKey(lim);
+  return blocks;
 }
+// Captions wurden zuletzt automatisch gebaut (nicht aus Projekt/Undo geladen) → Neuaufbau ist verlustfrei.
+var _capAutoBlocks = false, _relayoutKey = null;
+function capLimitKey(lim) { return lim ? lim.per + 'x' + lim.lines : '-'; }
 // Nach Text-Edit: Wörter gleichmäßig über die Blockdauer verteilen
 function resplitBlock(b) {
   var ws = b.text.split(/\s+/).filter(Boolean);
@@ -3969,6 +4106,7 @@ function selectStyle(id, fromEditor) {
   if (s && s._tpl) { _presetPrevLayout = null; applyTemplateSettings(s._tpl); } // Template bringt eigenes Layout mit
   else if (s && s.layout) applyPresetLayout(s.layout); // eingebaute Presets mit eigener Blockgröße (Pop One)
   else if (s && _presetPrevLayout) restorePresetLayout(); // jeder andere Style (auch Custom): vorheriges Layout zurück
+  onCapMetricsChange('style'); // Auto-Zeichenlimit hängt von Schrift/Style ab
   _lastKey = null;
   updateOverlay();
 }
@@ -4394,7 +4532,7 @@ function normalizeTemplate(t) {
   ['pos', 'voff', 'size', 'mode', 'wpb', 'lines'].forEach(function(k){ if (lay[k] === undefined && t[k] !== undefined) lay[k] = t[k]; });
   var layOut = {};
   if (['top', 'center', 'bottom'].indexOf(lay.pos) >= 0) layOut.pos = lay.pos;
-  ['voff', 'size', 'sizeRel', 'wpb', 'lines'].forEach(function(k){ var n = Number(lay[k]); if (lay[k] !== undefined && isFinite(n)) layOut[k] = n; });
+  ['voff', 'size', 'sizeRel', 'wpb', 'lines', 'maxChars'].forEach(function(k){ var n = Number(lay[k]); if (lay[k] !== undefined && isFinite(n)) layOut[k] = n; });
   if (typeof lay.mode === 'string') layOut.mode = lay.mode.replace(/[^a-z]/gi, '').slice(0, 20);
   if (['asis', 'upper', 'lower', 'orig'].indexOf(lay.case) >= 0) layOut.case = lay.case;
   if (typeof lay.punct === 'boolean') layOut.punct = lay.punct;
@@ -4449,7 +4587,7 @@ function currentLayout() {
   // ab (9:16 am Desktop 270 px breit, quadratisch 360 px, Handy ~240 px) — ein Template sähe sonst je Video
   // anders groß aus. case/punct gehören zum Look (Brand-Kit) und reisen mit.
   return { pos: capPos, voff: capVOff, size: fontSize, sizeRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
-           mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, case: capCase, punct: capNoPunct };
+           mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, case: capCase, punct: capNoPunct };
 }
 function newTplId() { return 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6); }
 function setTplEditing(id) {
@@ -4690,7 +4828,7 @@ async function syncTemplatesWithCloud(user) {
 // Wechsel zu einem normalen Style kommt die vorherige Einstellung zurück, statt still hängen zu bleiben.
 var _presetPrevLayout = null;
 function applyPresetLayout(lay) {
-  if (!_presetPrevLayout) _presetPrevLayout = { wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES };
+  if (!_presetPrevLayout) _presetPrevLayout = { wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS };
   applyTemplateSettings(lay);
 }
 function restorePresetLayout() {
@@ -4722,6 +4860,9 @@ function applyTemplateSettings(t) {
     displayMode = t.mode;
     syncModeUI();
   }
+  if (typeof t.lines === 'number') { CAPTION_LINES = t.lines; syncLinesButtons(); }
+  if (typeof t.maxChars === 'number') { CAP_MAX_CHARS = (t.maxChars >= CAP_CHARS_MIN && t.maxChars <= CAP_CHARS_MAX) ? t.maxChars : 0; }
+  syncMaxCharsUI();
   if (typeof t.wpb === 'number') {
     WORDS_PER_BLOCK = t.wpb;
     var ws = document.getElementById('wpbSlider');
@@ -4729,7 +4870,7 @@ function applyTemplateSettings(t) {
     syncWordsFromBlocks(); // Text-Edits beim Neu-Gruppieren behalten
     if (wordTimestamps.length) { captionBlocks = buildCaptionBlocks(wordTimestamps); renderSegments(); renderWPills(); }
   }
-  if (typeof t.lines === 'number') { CAPTION_LINES = t.lines; syncLinesButtons(); }
+  relayoutCaptions('layout'); // Zeilen/Zeichenlimit ohne Wörter-Vorgabe: nur anpassen, was nötig ist
   applyPos();
 }
 function escHtml(t) {
@@ -5086,6 +5227,7 @@ function syncPosButtons() {
 function onSzChange(v) {
   fontSize = parseInt(v);
   document.getElementById('szDisp').textContent = fontSize + 'px';
+  onCapMetricsChange('size');
   _lastKey = null;
   updateOverlay();
   scheduleAutosave();
@@ -5107,6 +5249,7 @@ function setLines(btn) {
   _presetPrevLayout = null; // manuell geändert → behalten
   CAPTION_LINES = parseInt(btn.dataset.lines);
   document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.lines === btn.dataset.lines); });
+  relayoutCaptions('lines');
   _lastKey = null;
   updateOverlay();
   scheduleAutosave();
@@ -5131,14 +5274,68 @@ function onWpbChange(v) {
   _presetPrevLayout = null; // Nutzer hat selbst eingestellt → beim Verlassen des Presets nicht zurückdrehen
   WORDS_PER_BLOCK = parseInt(v);
   document.getElementById('wpbDisp').textContent = v;
+  var snap = captionBlocks.length ? captionSnapshot() : null;
   syncWordsFromBlocks();
   if (wordTimestamps.length) {
     captionBlocks = buildCaptionBlocks(wordTimestamps);
+    if (snap && captionSnapshot() !== snap) pushUndo('wpb', snap); // Slider-Zug = ein Undo-Schritt
     renderSegments(); renderWPills();
     _lastKey = null;
     updateOverlay();
     scheduleAutosave();
   }
+}
+// Zeichenlimit/Zeilen/Style/Größe/Case geändert → Blöcke an das neue Limit anpassen.
+// Unbearbeitet (automatisch gebaut): neu gruppieren wie der Words-Regler. Bearbeitet (Text/Timing/Split,
+// geladenes Projekt): NUR überlaufende Blöcke aufteilen, alle anderen bleiben unangetastet. Ein Undo-Schritt
+// je Regler-Zug (tag fasst Serien zusammen). Gibt true zurück, wenn sich die Blöcke geändert haben.
+function relayoutCaptions(tag) {
+  if (!captionBlocks.length || isExporting || _processing) return false;
+  var lim = capBlockLimit(), key = capLimitKey(lim);
+  if (key === _relayoutKey) return false;
+  var snap = captionSnapshot();
+  if (!captionsEdited && _capAutoBlocks) {
+    syncWordsFromBlocks();
+    captionBlocks = buildCaptionBlocks(wordTimestamps);
+  } else {
+    var nb = splitOverflowingBlocks(captionBlocks, lim);
+    if (nb) captionBlocks = nb;
+    _relayoutKey = key;
+  }
+  if (captionSnapshot() === snap) return false;
+  pushUndo(tag || 'relayout', snap);
+  if (captionsEdited || !_capAutoBlocks) markCaptionsEdited(); else scheduleAutosave();
+  if (typeof tlSel !== 'undefined') tlSel = -1;
+  refreshCaptionViews();
+  if (typeof tlRequestDraw === 'function') tlRequestDraw();
+  return true;
+}
+function setMaxChars(v) {
+  var n = parseInt(v, 10);
+  CAP_MAX_CHARS = (n >= CAP_CHARS_MIN && n <= CAP_CHARS_MAX) ? n : 0;
+  syncMaxCharsUI();
+  relayoutCaptions('maxchars');
+  _lastKey = null; updateOverlay();
+  scheduleAutosave();
+}
+// Auswahl + „Auto · ~N“ (aktuell abgeleiteter Wert) anzeigen
+function syncMaxCharsUI() {
+  var sel = document.getElementById('mcSel');
+  if (!sel) return;
+  var auto = 0;
+  try { auto = capAutoChars(); } catch (e) {}
+  if (sel.options && sel.options[0]) sel.options[0].textContent = 'Auto (recommended)' + (auto ? ' · ' + auto : '');
+  var val = String(CAP_MAX_CHARS || 0), has = false;
+  for (var i = 0; sel.options && i < sel.options.length; i++) if (sel.options[i].value === val) has = true;
+  if (!has && CAP_MAX_CHARS && sel.options && document.createElement) { // Wert aus Template/Projekt ohne eigene Option
+    var o = document.createElement('option'); o.value = val; o.textContent = val + ' per line'; sel.appendChild(o);
+  }
+  sel.value = val;
+}
+// Nach Style-/Größen-/Case-Wechsel: Auto-Limit neu anzeigen und Blöcke anpassen
+function onCapMetricsChange(tag) {
+  syncMaxCharsUI();
+  relayoutCaptions(tag);
 }
 function onKwChange(v) {
   hlKeywords = (v || '').toLowerCase().split(/[,;]+/).map(function(x){ return x.trim().replace(/[^\wäöüàéèêß]/g, ''); }).filter(Boolean);
@@ -5568,7 +5765,7 @@ function projectPayload() {
   // (jetzt bildschirmfüllend), absolute px würden auf einem anderen Bildschirm kleiner/größer wirken.
   var p = { title: projTitle, fontRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
            blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
-           lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
+           lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
            noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts };
   if (tlSpeech.length) p.speech = tlSpeech.slice(0, 2000); // Sprachbereiche für die Timeline (klein, gerundet)
   // Eigener Style bzw. Template mitspeichern — die IDs allein existieren in einer neuen Sitzung/auf
@@ -5617,6 +5814,7 @@ function applyProjectPayload(p) {
   if (p.blocks) {
     captionBlocks = p.blocks;
     captionsEdited = false;
+    _capAutoBlocks = false; _relayoutKey = null; // geladene Blöcke nie komplett neu gruppieren (nur Überlauf teilen)
     captionBlocks.forEach(function(b) { if (!b.srcWords || !b.srcWords.length) b.srcWords = copyTimedWords(b.words); });
     wordTimestamps = [];
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
@@ -5630,6 +5828,8 @@ function applyProjectPayload(p) {
   }
   if (p.wpb) { WORDS_PER_BLOCK = p.wpb; var ws = document.getElementById('wpbSlider'); if (ws) { ws.value = p.wpb; document.getElementById('wpbDisp').textContent = p.wpb; } }
   if (typeof p.lines === 'number') { CAPTION_LINES = p.lines; syncLinesButtons(); }
+  if (typeof p.maxChars === 'number') CAP_MAX_CHARS = (p.maxChars >= CAP_CHARS_MIN && p.maxChars <= CAP_CHARS_MAX) ? p.maxChars : 0;
+  syncMaxCharsUI();
   if (p.mode) { displayMode = p.mode; syncModeUI(); }
   if (p.keywords) hlKeywords = p.keywords;
   if (p.timeOff !== undefined) { timeOff = Math.max(-0.5, Math.min(0.5, +p.timeOff || 0)); syncTimeOffUI(); }
@@ -5651,6 +5851,9 @@ function applyProjectPayload(p) {
   document.getElementById('capEditor').style.display = 'block';
   enableExports(true); _lastKey = null; updateOverlay();
   resetUndo(); collapseTrSettings(true); buildPicker();
+  // Geladene Blöcke bleiben, wie sie gespeichert wurden — erst eine echte Änderung (Style/Größe/Limit) passt an
+  if (p.blocks) _relayoutKey = capLimitKey(capBlockLimit());
+  syncMaxCharsUI();
 }
 // ── Wasserzeichen (nur anonym) — Hinweis VOR dem Export im Blatt, Angebot danach inline (kein Modal) ──
 // Beta: Bezahlpläne sind noch nicht kaufbar (startCheckout) → ein „$9 ohne Wasserzeichen“-Angebot wäre
@@ -6524,6 +6727,7 @@ function layoutPreviewFrame(setFont) {
     var szDispEl = document.getElementById('szDisp');
     if (szDispEl) szDispEl.textContent = fontSize + 'px';
   }
+  syncMaxCharsUI(); // Auto-Zeichenlimit hängt von Rahmenbreite/Schriftgröße ab
   return w;
 }
 function loadVideo(file) {
@@ -6713,8 +6917,8 @@ function syncTextFormatUI() {
   var pb = document.getElementById('punctBtn'); if (pb) { pb.checked = capNoPunct; if (pb.classList) pb.classList.toggle('on', capNoPunct); }
   var cs = document.getElementById('caseSel'); if (cs) cs.value = capCase;
 }
-function togglePunct() { capNoPunct = !capNoPunct; syncTextFormatUI(); _lastKey = null; updateOverlay(); scheduleAutosave(); }
-function setCaptionCase(v) { capCase = (['upper', 'lower', 'orig'].indexOf(v) >= 0) ? v : 'asis'; syncTextFormatUI(); _lastKey = null; updateOverlay(); scheduleAutosave(); }
+function togglePunct() { capNoPunct = !capNoPunct; syncTextFormatUI(); onCapMetricsChange('punct'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
+function setCaptionCase(v) { capCase = (['upper', 'lower', 'orig'].indexOf(v) >= 0) ? v : 'asis'; syncTextFormatUI(); onCapMetricsChange('case'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
 // EIN Schalter für Groß/Klein: „Style default“ (asis) lässt den Style entscheiden (z. B. Hormozi = GROSS);
 // UPPERCASE/lowercase/„As typed“ überstimmen die Schreibweise des Styles (text-transform + hlUpper) in
 // Vorschau UND Export — vorher konnte „Case: as spoken“ neben einem Großbuchstaben-Style stehen
@@ -8623,6 +8827,7 @@ function refreshCaptionViews() {
 }
 function restoreCaptionSnapshot(snap) {
   captionBlocks = JSON.parse(snap);
+  _relayoutKey = capLimitKey(capBlockLimit()); // Undo einer Anpassung nicht sofort wieder überschreiben
   markCaptionsEdited();
   refreshCaptionViews();
 }
@@ -8811,6 +9016,7 @@ function openEditor() {
   applyBrandOnOpen(); // Brand-Template (bzw. Layout des gemerkten Templates) für das neue Video
   switchTab('captions');
   seedActiveStyle(); // Custom-Regler zeigen den gemerkten Style (sonst HTML-Defaults wie gelbes „Active“)
+  syncMaxCharsUI();
   buildPicker(); renderWPills(); updateOverlay();
   applyPos(); // gewählte Position beibehalten
 }
@@ -9266,7 +9472,7 @@ function tlFirstEndAfter(bl, t) {
 }
 // Text auf maxW px kürzen („…“); Messungen gecacht (pro Text und Breite), damit Abspielen nicht misst.
 function tlFitText(ctx, txt, maxW) {
-  if (maxW < 12 || !txt) return '';
+  if (maxW < 7 || !txt) return '';
   var key = (maxW | 0) + '|' + txt;
   if (_tl.tw[key] !== undefined) return _tl.tw[key];
   if (_tl.twN > 4000) { _tl.tw = {}; _tl.twN = 0; }
@@ -9373,10 +9579,13 @@ function tlDraw() {
     var dxs = Math.max(xs, -12), dxe = Math.min(xe, w + 12), dw = Math.max(2, dxe - dxs);
     ctx.beginPath(); tlRRect(ctx, dxs + 0.5, yB + 0.5, dw - 1, hB - 1, Math.min(6, hB / 4));
     ctx.fillStyle = isDrag ? '#7c3aed' : isAct ? '#c4b5fd' : sel ? '#ddd3fd' : '#ede9fe'; ctx.fill();
-    if (bw > 3) { ctx.strokeStyle = isDrag || sel ? '#6d28d9' : '#c9bdf3'; ctx.lineWidth = sel ? 2 : 1; ctx.stroke(); ctx.lineWidth = 1; }
-    if (dw > 20) {
-      var tx0 = Math.max(xs, 0), tx = tlFitText(ctx, b.text, Math.min(dxe, w) - tx0 - (sel ? 18 : 10));
-      if (tx) { ctx.fillStyle = isDrag ? '#fff' : '#33255e'; ctx.fillText(tx, tx0 + (sel ? 9 : 5), yB + hB / 2 + 0.5); }
+    var empty = !String(b.text || '').trim(); // Text gelöscht: gestrichelt (Tooltip „(empty caption)“, „Close gaps“ räumt auf)
+    if (empty && ctx.setLineDash) ctx.setLineDash([3, 2]);
+    if (bw > 3 || empty) { ctx.strokeStyle = isDrag || sel ? '#6d28d9' : empty ? '#a78bfa' : '#c9bdf3'; ctx.lineWidth = sel ? 2 : 1; ctx.stroke(); ctx.lineWidth = 1; }
+    if (empty && ctx.setLineDash) ctx.setLineDash([]);
+    if (dw > 14) {
+      var tx0 = Math.max(xs, 0), tx = tlFitText(ctx, b.text, Math.min(dxe, w) - tx0 - (sel ? 18 : dw > 20 ? 10 : 6));
+      if (tx) { ctx.fillStyle = isDrag ? '#fff' : '#33255e'; ctx.fillText(tx, tx0 + (sel ? 9 : dw > 20 ? 5 : 3), yB + hB / 2 + 0.5); }
     }
     if (sel && bw > 12) { // Griffe an den Kanten
       ctx.fillStyle = isDrag ? 'rgba(255,255,255,.9)' : '#7c3aed';
@@ -9412,17 +9621,21 @@ function tlHit(x, y, touch) {
   var g = tlGeom(), v = tlView, off = timeOff || 0;
   if (y < g.ruler) return { type: 'ruler' };
   if (y < g.barY - (touch ? 6 : 2) || !(v.pps > 0)) return { type: 'empty' };
-  var bl = captionBlocks, t = tlXToTime(x, v) + off, inN = touch ? 12 : 6, outN = touch ? 8 : 3, tol = outN / v.pps;
+  var bl = captionBlocks, t = tlXToTime(x, v) + off, inN = touch ? 12 : 6, outN = touch ? 8 : 3, tol = Math.max(outN, TL_MIN_HIT / 2) / v.pps;
   var best = null;
   for (var i = Math.max(0, tlFirstEndAfter(bl, t - tol) - 1); i < bl.length && bl[i].start - tol <= t; i++) {
     var b = bl[i], xs = tlTimeToX(b.start - off, v), xe = tlTimeToX(b.end - off, v), inner = Math.min(inN, (xe - xs) / 3);
     var edges = !touch || i === tlSel;
     if (edges && x >= xs - outN && x <= xs + inner) { var d1 = Math.abs(x - xs); if (!best || d1 < best.d) best = { type: 'block', idx: i, mode: 'start', d: d1 }; }
     if (edges && x >= xe - inner && x <= xe + outN) { var d2 = Math.abs(x - xe); if (!best || d2 < best.d) best = { type: 'block', idx: i, mode: 'end', d: d2 }; }
-    if (!best && x >= xs && x <= xe) best = { type: 'block', idx: i, mode: 'move', d: 99 };
+    // Schmale Blöcke (kurze Wörter, weit herausgezoomt): Mindest-Trefferbreite TL_MIN_HIT um die Mitte
+    var hx0 = xs, hx1 = xe;
+    if (xe - xs < TL_MIN_HIT) { var hm = (xs + xe) / 2; hx0 = hm - TL_MIN_HIT / 2; hx1 = hm + TL_MIN_HIT / 2; }
+    if (!best && x >= hx0 && x <= hx1) best = { type: 'block', idx: i, mode: 'move', d: 99 };
   }
   return best || { type: 'empty' };
 }
+var TL_MIN_HIT = 12; // px — Mindest-Trefferbreite eines Blocks in der Timeline
 function tlPos(e) { var r = _tl.rect || _tl.cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 function tlRevertDrag(d) {
   if (d && d.type === 'block' && d.base && d.arr === captionBlocks && captionBlocks[d.idx]) applyTimelineEdit(d.idx, d.base.start, d.base.end, d.base, { undoSnap: d.undoSnap });
@@ -9495,9 +9708,13 @@ function tlOnMove(e) {
   if (!d) { // Hover: Cursor + Tooltip je Bereich
     if (e.pointerType !== 'mouse') return;
     var h = tlHit(p.x, p.y, false), cur = h.type === 'ruler' ? 'pointer' : h.type === 'block' ? (h.mode === 'move' ? 'grab' : 'ew-resize') : 'default';
-    if (_tl.hover !== cur) {
-      _tl.hover = cur; _tl.cv.style.cursor = cur;
-      _tl.cv.title = h.type === 'ruler' ? 'Click or drag to seek' : h.type === 'block' ? 'Drag to move · drag edges to trim · double-click to edit' : 'Drag to scroll · Ctrl/⌘+wheel to zoom · click to seek';
+    var hb = h.type === 'block' ? captionBlocks[h.idx] : null, hk = cur + '|' + (hb ? h.idx + '|' + hb.text + '|' + hb.start + '|' + hb.end : '');
+    if (_tl.hover !== hk) {
+      _tl.hover = hk; _tl.cv.style.cursor = cur;
+      // Block-Tooltip mit Text + Zeit: schmale Balken haben keinen Platz für eine Beschriftung
+      _tl.cv.title = h.type === 'ruler' ? 'Click or drag to seek'
+        : hb ? ('“' + (String(hb.text || '').trim() || '(empty caption)') + '”  ' + fmtT1(hb.start - (timeOff || 0)) + '–' + fmtT1(hb.end - (timeOff || 0)) + '\nDrag to move · drag edges to trim · double-click to edit')
+        : 'Drag to scroll · Ctrl/⌘+wheel to zoom · click to seek';
     }
     return;
   }
@@ -9629,6 +9846,23 @@ function tlToggleSnap() {
   if (b) { b.classList.toggle('on', tlSnapOn); if (b.setAttribute) b.setAttribute('aria-pressed', tlSnapOn ? 'true' : 'false'); }
 }
 function tlFit() { _tl.fit = true; tlRequestDraw(); }
+// „Close gaps“: gleiche Regel wie beim Bauen (closeCaptionGaps) auf die aktuellen Blöcke — Starts und
+// Wort-Timings bleiben, nur Enden wachsen in kurze Lücken. Leere Blöcke (Text gelöscht) fliegen raus. Ein Undo-Schritt.
+function tlCloseGaps() {
+  if (!captionBlocks.length || isExporting) return 0;
+  var snap = captionSnapshot();
+  var kept = captionBlocks.filter(function(b){ return b && String(b.text || '').trim() && isFinite(b.start) && isFinite(b.end) && b.end > b.start; });
+  var removed = captionBlocks.length - kept.length;
+  if (removed) captionBlocks = kept;
+  var n = closeCaptionGaps(captionBlocks, activeCuts());
+  if (!n && !removed) { capToast('No short gaps to close'); return 0; }
+  pushUndo(null, snap);
+  markCaptionsEdited();
+  refreshCaptionViews();
+  tlRequestDraw();
+  capToast('Closed ' + n + ' gap' + (n === 1 ? '' : 's') + (removed ? ' · removed ' + removed + ' empty' : '') + ' — Ctrl/⌘+Z to undo');
+  return n;
+}
 function tlZoomBtn(f) {
   var dur = tlDur(), w = (_tl.cv && _tl.cv.clientWidth) || 1;
   if (!(dur > 0)) return;

@@ -110,10 +110,12 @@ updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentL
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
 tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomAt,tlTickStep:tlTickStep,tlSnap:tlSnap,tlSnapCands:tlSnapCands,
 tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
+relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
 tlNudge:tlNudge,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
+T.setMaxCharsState(40); // Alt-Tests: großzügiges Zeichenlimit (Auto hängt von der Stub-Messung ab); eigene Tests unten
 
 let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } };
@@ -175,7 +177,7 @@ ok((html.match(/animation:captly-/g) || []).length === 1, 'Animation nur am akti
 
 // 7) SRT/VTT-Export
 T.exportSRT();
-ok(global.LASTBLOB.content.startsWith('1\n00:00:00,000 --> 00:00:01,000\nHallo und willkommen.'), 'SRT-Format: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 50)));
+ok(global.LASTBLOB.content.startsWith('1\n00:00:00,000 --> 00:00:01,100\nHallo und willkommen.'), 'SRT-Format (Lücke 0,1 s geschlossen): ' + JSON.stringify(global.LASTBLOB.content.slice(0, 50)));
 T.exportVTT();
 ok(global.LASTBLOB.content.startsWith('WEBVTT'), 'VTT-Header');
 ok(global.CLICKS.length === 2, '2 Downloads ausgeloest');
@@ -1113,7 +1115,7 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   ok(bl.map(b => b.text).join(' ').split(' ').length === 5, 'keine Woerter verloren');
   // Lücke reicht → nur verlängern
   bl = T.buildCaptionBlocks(W([['Kurz.', 0, 0.1], ['Danach', 1.0, 1.4], ['kommt', 1.45, 1.8], ['mehr', 1.85, 2.2]]), []);
-  ok(bl[0].text === 'Kurz.' && Math.abs(bl[0].end - 0.3) < 1e-9, 'kurzer Block in die Luecke verlaengert');
+  ok(bl[0].text === 'Kurz.' && Math.abs(bl[0].end - 1.0) < 1e-9, 'kurzer Block in die Luecke verlaengert (Lücke < 1 s → bis zum nächsten Block)');
   // Regression: „SIE IN DIE KOMMENTARE. HALLO“ — nie über Satzende / über „Wörter pro Block“ hinaus
   bl = T.buildCaptionBlocks(W([['Schreibt', 0, 0.3], ['es', 0.32, 0.45], ['in', 0.47, 0.55], ['die', 0.56, 0.62], ['Kommentare.', 0.64, 1.1], ['Hallo', 1.12, 1.25], ['und', 1.4, 1.6], ['tschuess', 1.62, 2.0]]), []);
   ok(bl.every(b => b.words.length <= 4) && !bl.some(b => /Kommentare\. Hallo/.test(b.text)), 'max. 4 Woerter, kein Verschmelzen ueber Satzende: ' + bl.map(b => b.text).join(' | '));
@@ -2389,6 +2391,99 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(cl !== up && cl.tt === 'none' && cl.hlUpper === false && up.tt === 'uppercase' && T.caseStyle(up) === cl, 'lowercase überstimmt tt/hlUpper (stabiles Objekt, Original unverändert)');
     T.setCaseState('asis');
     T.setTitle('Mein Clip'); ok(T.projTitleOf() === 'Mein Clip', 'Titel reist im Projekt mit'); T.setTitle('');
+  }
+
+  // Lücken schließen: kurze Lücken (< GAP_CLOSE_SEC) zu, nie über Szenenschnitt, lange Pausen bleiben
+  {
+    const W = (arr) => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
+    const mk = (t, a, b) => ({ words: W([[t, a, b]]), start: a, end: b, text: t });
+    ok(T.GAP_CLOSE_SEC === 1, 'GAP_CLOSE_SEC = 1 s');
+    let bl = [mk('a', 0, 1), mk('b', 1.3, 2), mk('c', 3.5, 4)];
+    let n = T.closeCaptionGaps(bl, []);
+    ok(n === 1 && bl[0].end === 1.3 && bl[1].end === 2 && bl[0].words[0].end === 1, 'kurze Lücke zu, Wort-Timing bleibt, lange Pause (1,5 s) bleibt');
+    bl = [mk('a', 0, 1), mk('b', 1.5, 2)];
+    T.closeCaptionGaps(bl, [1.2]);
+    ok(bl[0].end === 1.2, 'Verlängerung stoppt am Szenenschnitt: ' + bl[0].end);
+    bl = [mk('a', 0, 1.2), mk('b', 1.5, 2)];
+    ok(T.closeCaptionGaps(bl, [1.2]) === 0 && bl[0].end === 1.2, 'Block endet genau am Schnitt → nicht darüber hinaus');
+    bl = [mk('a', 0, 1), mk('b', 2.0, 2.5)];
+    ok(T.closeCaptionGaps(bl, []) === 0, 'Lücke ≥ 1 s (echte Pause) bleibt');
+    T.onWpbChange('2'); T.setMaxCharsState(40);
+    bl = T.buildCaptionBlocks(W([['Eins', 0, 0.4], ['zwei', 0.5, 0.9], ['drei', 1.0, 1.4], ['vier', 1.45, 1.8], ['fünf.', 3.5, 4.0]]), []);
+    ok(bl.length === 3 && bl[0].end === bl[1].start && bl[1].end === 1.8 && bl[2].start === 3.5, 'buildCaptionBlocks: lückenlos bis zur Pause: ' + bl.map(b => b.start + '-' + b.end).join(' '));
+    ok(bl[0].words[1].end === 0.9, 'Karaoke-Wortzeiten unverändert');
+    bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.5, 0.9], ['c', 1.3, 1.6], ['d', 1.65, 1.9]]), [1.1]);
+    ok(bl[0].end === 1.1 && bl[1].start >= 1.1, 'buildCaptionBlocks: Lücke über Schnitt nur bis zum Schnitt');
+    // leere Wörter erzeugen keine leeren Blöcke
+    bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['  ', 0.5, 0.9], ['b', 1.0, 1.4]]), []);
+    ok(bl.every(b => b.text.trim() && b.end > b.start), 'keine leeren Blöcke');
+    T.onWpbChange('4');
+  }
+
+  // Zeichenlimit pro Zeile: Block früher schließen statt Schrift schrumpfen
+  {
+    const W = (arr) => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
+    const seq = (txt) => { let t = 0; return txt.split(' ').map(w => { const o = { word: w, start: +t.toFixed(2), end: +(t + 0.3).toFixed(2) }; t += 0.35; return o; }); };
+    T.setCaseState('asis'); T.selectStyle('minimal'); // Satzschreibung, keine Großbuchstaben
+    T.onWpbChange('6'); T.setLinesState(2); T.setMaxCharsState(12);
+    ok(JSON.stringify(T.capBlockLimit()) === '{"per":12,"lines":2}', 'manuelles Limit: ' + JSON.stringify(T.capBlockLimit()));
+    ok(T.capCharsFit([3, 5, 4, 3], { per: 12, lines: 2 }) && !T.capCharsFit([3, 5, 4, 3, 5], { per: 12, lines: 2 }) && !T.capCharsFit([13, 1], { per: 12, lines: 2 }), 'capCharsFit: gierig in 2 Zeilen à 12');
+    const lineFit = (txt, per, lines) => { let nl = 1, cur = 0; txt.split(' ').forEach(w => { const add = cur ? cur + 1 + w.length : w.length; if (cur && add > per) { nl++; cur = w.length; } else cur = add; }); return nl <= lines && txt.length <= per * lines; };
+    let bl = T.buildCaptionBlocks(seq('Die Tiere sind das ganze Jahr draussen und fressen nur Gras und Heu'), []);
+    ok(bl.length > 2 && bl.every(b => lineFit(b.text, 12, 2)), 'jeder Block ≤ 12 Zeichen × 2 Zeilen: ' + bl.map(b => b.text).join(' | '));
+    ok(bl.map(b => b.text).join(' ') === 'Die Tiere sind das ganze Jahr draussen und fressen nur Gras und Heu', 'keine Wörter verloren');
+    // Einzelnes überlanges Wort → eigener Block
+    bl = T.buildCaptionBlocks(seq('Die Rindfleischverarbeitungsbetriebe sind gross'), []);
+    ok(bl.map(b => b.text).join('|') === 'Die|Rindfleischverarbeitungsbetriebe|sind gross', 'langes Wort allein: ' + bl.map(b => b.text).join('|'));
+    // 1 Zeile vs 2 Zeilen
+    T.setLinesState(1);
+    bl = T.buildCaptionBlocks(seq('Die Tiere sind das'), []);
+    ok(bl.length === 2 && bl.every(b => b.text.length <= 12), '1 Zeile à 12: ' + bl.map(b => b.text).join('|'));
+    T.setLinesState(2);
+    bl = T.buildCaptionBlocks(seq('Die Tiere sind das'), []);
+    ok(bl.length === 1, '2 Zeilen à 12: ein Block');
+    // Anzeige-Text zählt: Großbuchstaben-Style macht aus ß zwei Zeichen
+    T.selectStyle('hormozi');
+    ok(T.capCharLen('Straße') === 7, 'ß → SS zählt doppelt bei Caps-Style: ' + T.capCharLen('Straße'));
+    T.selectStyle('minimal');
+    ok(T.capCharLen('Straße') === 6, 'Satzschreibung: 6 Zeichen');
+    // Auto: aus Breite abgeleitet, bei größerer Schrift weniger Zeichen
+    T.setMaxCharsState(0);
+    T.setFontSizeState(22); const a22 = T.capAutoChars();
+    T.setFontSizeState(40); const a40 = T.capAutoChars();
+    ok(a22 > a40 && a40 >= 6, 'Auto: größere Schrift → kleineres Limit (' + a22 + ' / ' + a40 + ')');
+    T.setFontSizeState(22);
+    // Unbearbeitet: Limit-Wechsel gruppiert neu (Undo-fähig)
+    T.resetUndo(); T.setCaptionsEdited(false); T.setMaxCharsState(32);
+    const ws = seq('Die Tiere sind das ganze Jahr draussen und fressen');
+    T.setState(T.buildCaptionBlocks(ws), ws.slice());
+    const n32 = T.getBlocks().length;
+    T.setMaxChars('12');
+    ok(T.getBlocks().length > n32 && T.getBlocks().every(b => lineFit(b.text, 12, 2)), 'unbearbeitet: neu gruppiert bei Limit 12: ' + T.getBlocks().map(b => b.text).join('|'));
+    ok(T.undoDepth()[0] === 1, 'Limit-Wechsel ist ein Undo-Schritt');
+    T.undoCaptions();
+    ok(T.getBlocks().length === n32, 'Undo stellt die alten Blöcke wieder her');
+    // Bearbeitet: nur überlaufende Blöcke teilen, die anderen bleiben exakt
+    T.setMaxCharsState(32);
+    const b0 = { words: W([['Kurz', 0, 0.4]]), start: 0, end: 0.5, text: 'Kurz' };
+    const b1 = { words: W([['Hallo', 0.5, 0.8], ['zusammen', 0.85, 1.3], ['und', 1.35, 1.5], ['willkommen', 1.55, 2.0]]), start: 0.5, end: 2.2, text: 'Hallo zusammen und willkommen' };
+    const b2 = { words: W([['Ende', 2.5, 2.9]]), start: 2.4, end: 3.1, text: 'Ende' }; // manuell getimt
+    [b0, b1, b2].forEach(b => b.srcWords = b.words.map(w => Object.assign({}, w)));
+    T.setState([b0, b1, b2], []); T.setCaptionsEdited(true); T.resetUndo();
+    const keep0 = JSON.stringify(b0), keep2 = JSON.stringify(b2);
+    T.setMaxChars('12');
+    const nb = T.getBlocks();
+    ok(JSON.stringify(nb[0]) === keep0 && JSON.stringify(nb[nb.length - 1]) === keep2, 'bearbeitet: nicht überlaufende Blöcke unverändert');
+    ok(nb.length === 4 && nb[1].text === 'Hallo zusammen und' && nb[2].text === 'willkommen' && nb[1].start === 0.5 && nb[1].end === 1.55 && nb[2].end === 2.2,
+       'bearbeitet: nur der überlaufende Block geteilt, lückenlos, Rand-Zeiten bleiben: ' + nb.map(b => b.text + '[' + b.start + '-' + b.end + ']').join(' | '));
+    ok(nb[2].words[0].start === 1.55 && nb[2].words[0].end === 2.0 && nb[1].words[2].end === 1.5, 'Wort-Timings beim Teilen erhalten');
+    T.undoCaptions();
+    ok(T.getBlocks().length === 3, 'Teilen rückgängig');
+    // Persistenz: Template-Layout, Projekt-Payload
+    T.setMaxCharsState(16);
+    ok(T.currentLayout().maxChars === 16 && T.projectPayload().maxChars === 16, 'maxChars in Layout + Projekt');
+    ok(T.normalizeTemplate({ id: 'tpl_x', name: 'X', style: { font: "'Inter'" }, layout: { maxChars: 20, lines: 1 } }).layout.maxChars === 20, 'Template behält maxChars');
+    T.setMaxCharsState(40); T.setLinesState(2); T.setCaptionsEdited(false); T.resetUndo(); T.onWpbChange('4');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
