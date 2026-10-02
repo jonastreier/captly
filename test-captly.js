@@ -103,7 +103,7 @@ sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCut
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
 brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,fontCssUrl:fontCssUrl,
-tileWords:tileWords,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
+tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables};`;
 const T = new Function(script + tail)();
@@ -2152,6 +2152,19 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setCaptionCase('asis'); T.setUserTemplates([]); T.loadTemplates(); T.selectStyle('hormozi');
     delete global.localStorage; delete global.confirm;
 
+    // Zeilenhöhe (Custom-Style): Vorschau-CSS + Template-Feld
+    T.selectStyle('hormozi'); E('csLh').value = '1.6'; T.setCsDirty({ lh: true });
+    let csl = T.buildCustomStyle();
+    ok(csl.lh === 1.6 && T.buildCap(['a', 'b'], csl, 0, 22, null).includes('line-height:1.6;'), 'Line height 1.6 im Style + Vorschau: ' + csl.lh);
+    E('csLh').value = '1.3'; csl = T.buildCustomStyle();
+    ok(csl.lh === undefined && T.buildCap(['a'], csl, 0, 22, null).includes('line-height:1.3;'), 'Standard 1.3 → kein Feld');
+    ok(T.normalizeTemplate({ id: 'tpl_l', name: 'l', style: { fl: 'Inter', lh: 1.5 } }).style.lh === 1.5, 'Template behält lh');
+    T.setCsDirty({}); T.selectStyle('hormozi');
+    // Fontmetrik für die Export-Grundlinie: echte Canvas-Werte, sonst typische Fallbacks
+    const fmA = T.capFontMetrics({ measureText: () => ({ fontBoundingBoxAscent: 50, fontBoundingBoxDescent: 10 }) }, 50);
+    const fmB = T.capFontMetrics({ measureText: () => ({ width: 10 }) }, 50);
+    ok(fmA.a === 1 && fmA.d === 0.2 && fmB.a === 0.93 && fmB.d === 0.24, 'capFontMetrics: Canvas-Metrik bzw. Fallback');
+    ok(T.capLineH({}) === 1.3 && T.capLineH({ lh: 1.6 }) === 1.6 && T.capLineH({ lh: 9 }) === 1.3, 'capLineH: Standard/Wert/ungültig');
     // Schriften
     ok(T.cleanFontName(' Rubik  Mono One ') === 'Rubik Mono One' && T.cleanFontName("x');}<b") === '' && T.cleanFontName('A') === '', 'Fontname validiert');
     ok(T.fontCssUrl('Luckiest Guy', '') === 'https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap'

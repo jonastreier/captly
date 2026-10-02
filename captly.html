@@ -214,10 +214,11 @@ body.editor-open{height:100vh;overflow:hidden}
 #playOverlay{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.14);cursor:pointer}
 .play-icon{width:44px;height:44px;border-radius:50%;background:rgba(20,16,30,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.38);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;padding-left:3px;box-shadow:0 4px 16px rgba(0,0,0,.28);transition:transform .15s,background .15s}
 #playOverlay:hover .play-icon{transform:scale(1.08);background:rgba(20,16,30,.58)}
-#frameDropZone{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+#frameDropZone{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:24%;gap:8px}
+.fdz-btn{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;font:700 12px 'Inter',sans-serif;padding:8px 16px;border-radius:20px;box-shadow:0 4px 14px rgba(124,58,237,.45)}
 #frameDropZone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:4}
 #frameDropZone span{font-size:24px}
-#frameDropZone p{font-size:10px;color:#5a5a5a;text-align:center;padding:0 12px;line-height:1.5}
+#frameDropZone p{font-size:10px;color:#b8b2c4;text-align:center;padding:0 12px;line-height:1.5}
 #capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
 #capOverlay:active{cursor:grabbing}
 #capOverlay.dragging{cursor:grabbing}
@@ -259,6 +260,8 @@ body.editor-open{height:100vh;overflow:hidden}
 .ctrl-col .csect[data-tab]{display:none}
 .ctrl-col[data-tab="captions"] .csect[data-tab="captions"],.ctrl-col[data-tab="style"] .csect[data-tab="style"],.ctrl-col[data-tab="export"] .csect[data-tab="export"]{display:block}
 .tr-set{margin-bottom:8px}
+.model-hint{font-size:10px;color:#77727f;line-height:1.45;margin:-2px 0 8px}
+.model-hint b{color:#3f3b46}
 .tr-set summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:6px;user-select:none;margin-bottom:8px;padding:6px 8px;border:1px solid #ece6f4;border-radius:8px;background:#faf8fd}
 .tr-set summary::-webkit-details-marker{display:none}
 .tr-set summary::after{content:'▾';font-size:10px;color:#94909c;margin-left:auto}
@@ -592,7 +595,7 @@ input[type=checkbox]{accent-color:#7c3aed}
     <input type="file" accept="video/*" id="landInput">
     <div class="upload-zone-icon"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="uzg" x1="2" y1="4" x2="22" y2="20"><stop offset="0" stop-color="#6d4aeb"/><stop offset="1" stop-color="#d84fc0"/></linearGradient></defs><path d="M7.5 17.5h9a3.5 3.5 0 001-6.85 5 5 0 00-9.6-1.6A4 4 0 007 17.5h.5z" stroke="url(#uzg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v7M9.2 12.5L12 9.7l2.8 2.8" stroke="url(#uzg)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
     <h3>Drop a video or click</h3>
-    <p>MP4, MOV, WebM · stays on your device</p>
+    <p>MP4, MOV, WebM · your video stays on your device</p>
   </label>
   <div class="land-cta-row">
     <button class="nav-cta" style="padding:12px 24px;font-size:14px" onclick="document.getElementById('landInput').click()">Upload video&nbsp;&nbsp;→</button>
@@ -781,14 +784,14 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon">▶</div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
-          <span>🎬</span><p>Upload video</p>
+          <span>🎬</span><b class="fdz-btn">⬆ Upload video</b><p>or drop it here · MP4, MOV, WebM<br>captions in seconds — no signup</p>
         </div>
         <div id="capOverlay" onmousedown="capDragStart(event)" ontouchstart="capDragStart(event)" ondblclick="capOverlayDbl(event)" title="Drag to move · double-click to edit the text"></div>
         <div id="capInlineEd" class="cap-inline" style="display:none" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
-          <textarea id="capInlineTa" rows="2" spellcheck="true" onkeydown="inlineKey(event)" aria-label="Edit caption text"></textarea>
+          <textarea id="capInlineTa" rows="2" spellcheck="true" onkeydown="inlineKey(event)" onblur="inlineBlur()" aria-label="Edit caption text"></textarea>
           <div class="cap-inline-row"><span>Enter = save · Esc = cancel</span>
-            <button type="button" onclick="closeInlineEdit(false)">Cancel</button>
-            <button type="button" class="ok" onclick="closeInlineEdit(true)">Save</button></div>
+            <button type="button" onmousedown="event.preventDefault()" onclick="closeInlineEdit(false)">Cancel</button>
+            <button type="button" class="ok" onmousedown="event.preventDefault()" onclick="closeInlineEdit(true)">Save</button></div>
         </div>
         <div id="safeZoneOverlay">
           <div id="safeZoneRect"></div>
@@ -862,6 +865,7 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
           <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
         </div>
+        <div class="model-hint"><b>⚡ Fast</b> — captions in seconds, great for clear speech. <b>💎 Perfect</b> — biggest model + AI proofreading for dialects, names &amp; punctuation (a few seconds more).</div>
         <input type="text" id="vocabInput" class="lang-sel" style="margin-bottom:0" maxlength="300" autocomplete="off" spellcheck="false"
           placeholder="Names &amp; terms to spell right (optional) — e.g. Birkenhof, Highland Beef" oninput="onVocabChange(this.value)">
         <div class="vocab-hint">
@@ -989,6 +993,9 @@ input[type=checkbox]{accent-color:#7c3aed}
           <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
             <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')">
             <span class="cs-v" id="csLsDisp">0px</span></div>
+          <div class="sz-row cs-line"><span class="cs-k">Line height</span>
+            <input type="range" min="0.9" max="1.8" step="0.05" value="1.3" id="csLh" oninput="applyCustomStyle('lh')" title="Space between the two caption lines">
+            <span class="cs-v" id="csLhDisp">1.30</span></div>
           <div class="sz-row cs-line"><span class="cs-k">Background</span>
             <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="onBoxModeChange(this.value)">
               <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
@@ -2428,7 +2435,7 @@ function previewFrameH() {
 function fitCaptionWords(words, s, px, maxW, lines) {
   var maxH = previewFrameH() * CAP_FIT_MAX_H;
   var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, capWordGap(s),
-            s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0].join(',') + '|' + px + '|' + Math.round(maxW)
+            s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0, capLineH(s)].join(',') + '|' + px + '|' + Math.round(maxW)
             + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen;
   if (_capFitCache[key]) return _capFitCache[key];
   var ctx   = capMeasureCtx();
@@ -2465,7 +2472,7 @@ function fitCaptionWords(words, s, px, maxW, lines) {
       if (lw && lw + add > maxW) { nl++; lw = ww; } else lw += add;
     });
     nl = Math.max(nl, Math.min(lines || 1, outW.length));
-    var h = nl * 1.3 * p * fsMul + (s.boxBg ? 10 : 0);
+    var h = nl * capLineH(s) * p * fsMul + (s.boxBg ? 10 : 0);
     return { px: p, words: outW, orig: orig, lines: nl, h: h };
   }
   var floor = px * CAP_FIT_MIN;
@@ -2630,6 +2637,8 @@ function capWordGap(s) {
   var p = capShadowPlan(s && s.ts);
   return p.ring && p.ring.w > 0 ? 2 * p.ring.w : 0;
 }
+// Zeilenhöhe (Vielfaches der Schriftgröße) — Standard 1.3; eigene Styles: „Line height“ 0.9–1.8
+function capLineH(s) { var v = s && parseFloat(s.lh); return (v >= 0.8 && v <= 2) ? v : 1.3; }
 function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   if (!words || !words.length) return '';
   // Auto-Fit nur für die echte Vorschau (lineTarget gesetzt) — Style-Thumbnails/Showcase haben eigene Größen.
@@ -2649,7 +2658,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   // Vorschau sonst Serifenschrift, das MP4 aber serifenlos.
   var wCss = 'font-family:' + font + ',sans-serif;font-weight:' + fw + ';text-transform:' + tt
     + ';letter-spacing:' + ls + ';font-style:' + fi + ';font-size:' + sz
-    + ';line-height:1.3;display:inline-block;max-width:100%;';
+    + ';line-height:' + capLineH(s) + ';display:inline-block;max-width:100%;';
   if (lineTarget && capWordGap(s)) wCss += 'word-spacing:' + capWordGap(s) + 'px;';
   if (s.boxBg) wCss += 'background:' + s.boxBg + ';padding:5px 18px;border-radius:' + (s.boxBr || '6px') + ';';
   var hp = !!s.pill;
@@ -3964,6 +3973,7 @@ function syncCsUi() {
   var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
   var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
   var rd = csEl('csBoxRDisp'), rEl = csEl('csBoxR'); if (rd && rEl) rd.textContent = (rEl.value || 0) + 'px';
+  var hd = csEl('csLhDisp'), hEl = csEl('csLh'); if (hd && hEl) hd.textContent = (parseFloat(hEl.value) || 1.3).toFixed(2);
 }
 // Box ↔ Pill: Eckenradius auf den typischen Wert setzen (danach frei per „Corners“ einstellbar)
 function onBoxModeChange(v) {
@@ -3996,6 +4006,7 @@ function seedCustomFields(st) {
   csSetOn('csShadow', !!softShadowPart(st.ts));
   var ls = Math.max(-1, Math.min(4, parseFloat(st.ls) || 0));
   csSetVal('csLs', ls); var ld = csEl('csLsDisp'); if (ld) ld.textContent = ls + 'px';
+  var lhS = capLineH(st); csSetVal('csLh', lhS); var lhd = csEl('csLhDisp'); if (lhd) lhd.textContent = lhS.toFixed(2);
   var bx = st.boxBg ? parseColorAlpha(st.boxBg) : null;
   csSetVal('csBox', st.boxBg ? ((parseFloat(st.boxBr) || 0) >= 14 ? 'pill' : 'box') : 'off');
   var brv = st.boxBg ? Math.max(0, Math.min(30, Math.round(parseFloat(st.boxBr) || 6))) : 8;
@@ -4020,6 +4031,7 @@ function buildCustomStyle() {
   if (d.weight) cs.fw = (csEl('csWeight') || {}).value || cs.fw || '800';
   if (d.upper)  cs.tt = csIsOn('csUpper') ? 'uppercase' : 'none';
   if (d.ls)     { var lv = parseFloat((csEl('csLs') || {}).value) || 0; cs.ls = lv ? lv + 'px' : 'normal'; }
+  if (d.lh)     { var lhv = parseFloat((csEl('csLh') || {}).value); if (lhv >= 0.8 && lhv <= 2 && Math.abs(lhv - 1.3) > 1e-6) cs.lh = Math.round(lhv * 100) / 100; else delete cs.lh; }
   if (d.text)   {
     // Halbtransparente Ausgangs-Textfarbe (z. B. Clean Minimal: rgba(255,255,255,.55)) behält ihre Deckkraft
     var tv = (csEl('csText') || {}).value || cs.tc, ta = cssColorToHexA(base.tc);
@@ -4110,7 +4122,7 @@ var TPL_ROW_TITLE = '__capivo_templates__'; // reservierte Zeile in public.proje
 var userTemplates = [];
 // Templates können aus fremden JSON-Dateien kommen → nur bekannte Style-Felder übernehmen und
 // Zeichen entfernen, mit denen man aus dem style="…"-Attribut (buildCap) ausbrechen könnte.
-var TPL_STYLE_KEYS = ['fl','font','fw','tt','ls','fs','fi','tc','ts','hl','hls','anim','cstroke','thumbBg','hlPillBg','hlc',
+var TPL_STYLE_KEYS = ['fl','font','fw','tt','ls','lh','fs','fi','tc','ts','hl','hls','anim','cstroke','thumbBg','hlPillBg','hlc',
   'boxBg','boxBr','pill','tg','hlFont','hlItalic','hlg','hlUpper','circle','hlCycle'];
 function cleanCssVal(v) { return String(v).replace(/[<>"\\;{}]/g, '').replace(/url\s*\(|expression\s*\(/gi, '').slice(0, 600); }
 function sanitizeStyle(st) {
@@ -7491,6 +7503,15 @@ function animState(anim, elapsed) {
 var _capLayoutCache = { key: null, s: null, ctx: null, val: null };
 var _capStaticLayer = null; // { key, s, W, H, cv } — siehe drawCaptionsOnCtx
 var _wordSpriteCache = new Map(); // aktives Wort als Sprite (Glow-Styles), siehe activeWordSprite
+// Ober-/Unterlänge der Schrift als Anteil der Schriftgröße (Canvas-Fontmetrik; Fallback typische Werte)
+function capFontMetrics(ctx, fsS) {
+  try {
+    var m = ctx.measureText('Hg');
+    if (m && m.fontBoundingBoxAscent > 0 && m.fontBoundingBoxDescent > 0 && fsS > 0)
+      return { a: m.fontBoundingBoxAscent / fsS, d: m.fontBoundingBoxDescent / fsS };
+  } catch (e) {}
+  return { a: 0.93, d: 0.24 };
+}
 function capLayout(ctx, b, bi, wi, s, W, H) {
   var wiKey = (s.hlFont || s.hlItalic || s.hlUpper || s.hlPillBg) ? wi : -1;
   var key = [bi, wiKey, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
@@ -7561,14 +7582,22 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   // in wrapCaptionLines() (Editor-Vorschau), damit beide garantiert dasselbe Umbruchergebnis liefern.
   lines = clampLinesToWidth(lines, maxW, sp);
 
-  var lh   = fsS * 1.28;
+  var lh   = fsS * 1.28 * (capLineH(s) / 1.3); // gleiche Relation wie CSS line-height in der Vorschau
   // Muss exakt applyPos() (DOM-Vorschau, #capOverlay) nachbilden, sonst weicht die Position im
   // exportierten Video vom Editor ab. off = capVOff, gleiche Formeln wie dort (inkl. clampPct).
+  // CSS-Geometrie der Vorschau: die Caption ist ein inline-block (Box-Padding p, line-height L·fs); jede
+  // Zeile trägt den halben Durchschuss oben/unten → letzte Grundlinie liegt um
+  //   gapBelow = p + L·fs/2 + (Unterlänge − Oberlänge)/2 · fs
+  // ÜBER der Overlay-Unterkante (bzw. erste Grundlinie um p + L·fs/2 + (Ober − Unterlänge)/2 · fs unter der
+  // Oberkante). Früher galt Grundlinie = Overlay-Kante → Export lag ~2–3 % tiefer als die Vorschau.
+  var fm = capFontMetrics(ctx, fsS), Lh = capLineH(s), padB = s.boxBg ? 5 * scale : 0;
+  var gapBelow = padB + Lh * fsS / 2 + (fm.d - fm.a) / 2 * fsS;
+  var gapAbove = padB + Lh * fsS / 2 + (fm.a - fm.d) / 2 * fsS;
   var off = capVOff;
   var y0;
   if (capPos === 'top') {
     var topPct = clampPct(10 - off);
-    y0 = H * (topPct / 100) + fsS;
+    y0 = H * (topPct / 100) + gapAbove;
   } else if (capPos === 'center') {
     // applyPos() verschiebt die Mitte per Padding, das (CSS-Eigenheit) relativ zur Breite berechnet
     // wird, nicht zur Höhe — hier mit W statt H nachgebildet, damit es exakt übereinstimmt.
@@ -7576,11 +7605,12 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
     y0 = centerY - ((lines.length - 1) * lh) / 2 + fsS * 0.35;
   } else {
     var bottomPct = clampPct(12 + off);
-    y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh;
+    y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh - gapBelow;
   }
-
+  // Box/Akzent-Hintergrund bei eigener Zeilenhöhe ≠ 1.3 entsprechend höher (CSS: halber Durchschuss je Seite)
+  var halfLead = (Lh - 1.3) / 2 * fsS;
   // Letzter Ausweg wie clampCapVertical() in der Vorschau: Block komplett im Bild halten.
-  var padYc = (s.boxBg ? 5 * scale : 0) + 4 * scale;
+  var padYc = (s.boxBg ? 5 * scale : 0) + 4 * scale + Math.max(0, halfLead);
   var blkBot = y0 + (lines.length - 1) * lh + fsS * 0.45 + padYc;
   if (blkBot > H) y0 -= (blkBot - H);
   var blkTop = y0 - fsS * 1.05 - padYc;
@@ -7588,7 +7618,8 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
 
-  var val = { scale: scale, fsS: fsS, fn: fn, fw: fw, fi: fi, lsPxS: lsPxS, sp: sp, lines: lines, lineWs: lineWs, lh: lh, y0: y0 };
+  var val = { scale: scale, fsS: fsS, fn: fn, fw: fw, fi: fi, lsPxS: lsPxS, sp: sp, lines: lines, lineWs: lineWs, lh: lh, y0: y0,
+              capA: gapAbove - padB, capD: gapBelow - padB }; // Grundlinie → Ober-/Unterkante der CSS-Zeile
   _capLayoutCache = { key: key, s: s, ctx: ctx, val: val };
   return val;
 }
@@ -7603,7 +7634,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 
   var L0 = capLayout(ctx, b, bi, wi, s, W, H);
   var scale = L0.scale, fsS = L0.fsS, fn = L0.fn, fw = L0.fw, fi = L0.fi, lsPxS = L0.lsPxS, sp = L0.sp;
-  var lines = L0.lines, lineWs = L0.lineWs, lh = L0.lh, y0 = L0.y0;
+  var lines = L0.lines, lineWs = L0.lineWs, lh = L0.lh, y0 = L0.y0, capA = L0.capA, capD = L0.capD;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
   // Statische Ebene (Box, Akzentstrich, alle NICHT aktiven Wörter mit ihren Schatten/Glows) wird je
   // (Layout, aktives Wort) EINMAL in einen Offscreen-Canvas gemalt und pro Frame nur noch per drawImage
@@ -7650,7 +7681,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
       ctx.fillStyle = s.boxBg;
       ctx.beginPath();
-      var bx = W/2 - widest/2 - padX, by = y0 - fsS * 1.05 - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + fsS * 1.5 + padY*2;
+      var bx = W/2 - widest/2 - padX, by = y0 - capA - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + capA + capD + padY*2;
       if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
       ctx.fill(); ctx.restore();
     }
@@ -7665,7 +7696,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       var borderW = 0, borderColor = null;
       var bm = s.pill.borderLeft && s.pill.borderLeft.match(/^([\d.]+)px\s+\S+\s+(.+)$/);
       if (bm) { borderW = parseFloat(bm[1]) * scale; borderColor = bm[2]; }
-      var pillT = y0 - fsS * 1.05 - pT, pillB = y0 + (lines.length - 1) * lh + fsS * 0.45 + pB;
+      var pillT = y0 - capA - pT, pillB = y0 + (lines.length - 1) * lh + capD + pB;
       var pillL = W/2 - widest2/2 - pL - borderW, pillR = W/2 + widest2/2 + pR;
       if (s.pill.bg && s.pill.bg !== 'transparent') {
         ctx.save(); ctx.fillStyle = s.pill.bg; ctx.fillRect(pillL, pillT, pillR - pillL, pillB - pillT); ctx.restore();
@@ -8170,6 +8201,12 @@ function closeInlineEdit(save) {
   markCaptionsEdited();
   refreshCaptionViews();
   capToast(v ? '✓ Caption updated' : 'Caption deleted — Ctrl/⌘+Z to undo');
+}
+// Klick woanders hin (andere Zeile, Tab, Player) speichert — kurz verzögert, damit ein Tipp auf
+// „Cancel“ (Touch: Fokus geht vor dem click verloren) noch zuerst ankommt.
+function inlineBlur() {
+  var idx = _inlineIdx;
+  setTimeout(function(){ if (_inlineIdx === idx && idx >= 0) closeInlineEdit(true); }, 180);
 }
 function inlineKey(e) {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); closeInlineEdit(true); }
