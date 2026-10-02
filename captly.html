@@ -987,6 +987,7 @@ input[type=checkbox]{accent-color:#7c3aed}
             <span class="exp-btn-sub">Web / YouTube…</span>
           </button>
         </div>
+        <button type="button" class="pos-btn" id="wmOpt" style="display:none;width:100%;margin:8px 0 0;padding:8px;border-style:dashed" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">🔓 Export without watermark — enter your email</button>
         <div class="exp-mini">
           <button class="pos-btn" id="btnTXT" type="button" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">📄 TXT transcript</button>
           <button class="pos-btn" id="btnCopy" type="button" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">📋 Copy text</button>
@@ -4710,6 +4711,7 @@ function segmentsToWords(segs) {
 var SUPABASE_URL      = 'https://tghodbtdraqkfwcmedcv.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g';
 var mePlan = 'anon', _upsellShown = false, meEmail = '';
+var _authReady = Promise.resolve(), _pendingWmExport = false;
 // Lazy geladen wie ffmpeg/whisper (s. loadFFmpeg) — das Script läuft als klassisches <script>,
 // ein Top-Level-import wäre hier ein Syntaxfehler. Gibt null zurück, solange keine Credentials
 // hinterlegt sind, damit die Seite ohne Supabase voll nutzbar bleibt (Editor/Export sind gratis).
@@ -4723,6 +4725,12 @@ async function getSb() {
   try {
     var mod = await import('https://esm.sh/@supabase/supabase-js@2');
     _sb = mod.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Session-Wiederherstellung/Token-Refresh/Login/Logout laufen asynchron → Zustand immer mitführen
+    // (nur synchron setzen; keine Supabase-Calls im Callback → Deadlock-Gefahr).
+    _sb.auth.onAuthStateChange(function(ev, session) {
+      if (session && session.user) applyUser(session.user);
+      else if (ev === 'SIGNED_OUT') { meEmail = ''; mePlan = 'anon'; updateAcctUI(); }
+    });
   } catch (e) { _sbFailed = true; console.warn('Supabase konnte nicht geladen werden:', e); }
   return _sb;
 }
@@ -4754,7 +4762,15 @@ async function verifyCode() {
   if (error) { m.textContent = error.message; return; }
   m.textContent = '';
   document.getElementById('acctModal').style.display = 'none';
-  fetchMe(); loadProjects();
+  await fetchMe(); loadProjects();
+  if (_pendingWmExport && meEmail) { _pendingWmExport = false; exportVideoWithCaptions(); } // Export ohne Logo nach Login
+}
+// Anonymer Export-Button „Export without watermark“ → Login, danach startet der Export automatisch.
+function exportWithoutWatermark() {
+  if (meEmail) { exportVideoWithCaptions(); return; }
+  _pendingWmExport = true;
+  document.getElementById('acctSub').textContent = 'Enter your email to get a free login code — your video then exports without the watermark.';
+  showAcct();
 }
 async function logout() {
   var sb = await getSb();
@@ -4764,20 +4780,41 @@ async function logout() {
   document.getElementById('acctModal').style.display = 'none';
   updateAcctUI();
 }
-async function fetchMe() {
-  var sb = await getSb();
-  if (sb) {
-    var { data } = await sb.auth.getUser();
-    if (data && data.user) {
-      meEmail = data.user.email; mePlan = 'free';
-      syncTemplatesWithCloud(data.user); // async, Fehler werden intern geloggt
-      document.getElementById('acctBtn').textContent = meEmail.split('@')[0];
-      document.getElementById('acctInfo').textContent = meEmail + ' · signed in';
-    } else { meEmail = ''; mePlan = 'anon'; }
-  }
+function applyUser(user) {
+  meEmail = user.email || user.phone || 'account'; mePlan = 'free';
+  var b = document.getElementById('acctBtn'), i = document.getElementById('acctInfo');
+  if (b) b.textContent = meEmail.split('@')[0];
+  if (i) i.textContent = meEmail + ' · signed in';
   updateAcctUI();
 }
+// Ursache des Logos trotz Login: getUser() ist ein Netzwerk-Call — Fehler/Offline/Refresh-Race lieferten
+// keinen User → meEmail wurde auf '' (anonym) gesetzt, und der Export startete evtl. noch VOR der
+// Session-Wiederherstellung. Jetzt: getSession() (lokal, mit Auto-Refresh), getUser() nur als Fallback,
+// Fehler setzen niemanden auf anonym zurück, und Exporte warten auf _authReady (waitAuth).
+function fetchMe() { return (_authReady = _fetchMe()); }
+async function _fetchMe() {
+  try {
+    var sb = await getSb();
+    if (sb) {
+      var user = null, res = await sb.auth.getSession();
+      if (res && res.data && res.data.session) user = res.data.session.user;
+      else if (!(res && res.error)) { var u = await sb.auth.getUser(); user = u && u.data && u.data.user; }
+      if (user) {
+        var first = !meEmail;
+        applyUser(user);
+        if (first) syncTemplatesWithCloud(user); // async, Fehler werden intern geloggt
+      } else if (!(res && res.error)) { meEmail = ''; mePlan = 'anon'; }
+    }
+  } catch (e) { console.warn('fetchMe:', e); }
+  updateAcctUI();
+}
+// Vor dem Ermitteln von wmOn: laufende Session-Wiederherstellung abwarten (max. 5 s).
+function waitAuth() {
+  return Promise.race([_authReady.catch(function(){}), new Promise(function(r){ setTimeout(r, 5000); })]);
+}
 function updateAcctUI() {
+  var wo = document.getElementById('wmOpt');
+  if (wo) wo.style.display = needsWatermark() ? '' : 'none';
   var qi = document.getElementById('quotaInfo');
   if (!qi) return;
   if (mePlan === 'anon') qi.textContent = '⚡ Fast & 💎 Perfect · free, no download — works on any device';
@@ -6830,6 +6867,7 @@ async function exportVideoWithCaptions() {
   if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
   if (isExporting) return; // Doppelklick während eines laufenden Exports
   exportBtnState('Preparing…');
+  await waitAuth(); // Session-Wiederherstellung abwarten, bevor needsWatermark() entscheidet
 
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
 
@@ -7458,7 +7496,9 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 // ═══════════════════════════════════════
 // EXPORT — PNG
 // ═══════════════════════════════════════
-function exportPNG() {
+async function exportPNG() {
+  await waitAuth();
+  var wmPng = needsWatermark();
   var s   = STYLES.find(function(x){ return x.id === activeId; });
   var vid = document.getElementById('mainVid');
   document.fonts.ready.then(function() {
@@ -7470,7 +7510,7 @@ function exportPNG() {
       ctx.drawImage(vid, (W-vw*sc)/2, (H-vh*sc)/2, vw*sc, vh*sc);
     } else { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0,0,W,H); }
     drawCaptionsOnCtx(ctx, vidReady ? vid.currentTime : 0, s, W, H, true);
-    drawWatermark(ctx, W, H);
+    drawWatermark(ctx, W, H, wmPng);
     var a = document.createElement('a');
     a.download = 'capivo-' + s.id + '.png';
     a.href = cv.toDataURL('image/png');

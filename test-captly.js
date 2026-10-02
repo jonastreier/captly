@@ -331,6 +331,8 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
 T.setMe('anon', ''); ok(T.needsWatermark() === true, 'anonym → Wasserzeichen');
 T.setMe('free', 'a@b.c'); ok(T.needsWatermark() === false, 'angemeldet (free, Beta) → kein Wasserzeichen');
 T.setMe('pro', 'a@b.c'); ok(T.needsWatermark() === false, 'Pro → kein Wasserzeichen');
+T.setMe('anon', 'x@y.z'); ok(T.needsWatermark() === false, 'E-Mail gesetzt → nie Wasserzeichen (auch ohne Plan-Update)');
+T.setMe('free', ''); ok(T.needsWatermark() === true, 'ohne E-Mail → Wasserzeichen');
 T.setMe('anon', '');
 
 // 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
