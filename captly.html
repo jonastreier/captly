@@ -562,6 +562,7 @@ input[type=checkbox]{accent-color:#7c3aed}
 .exp-chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#55505c;cursor:pointer;line-height:1.35}
 .es-skip{margin-top:10px;font-size:11px;color:#77727f}
 .es-done{text-align:left}
+.es-note{font-size:12.5px;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;padding:8px 10px;margin:10px 0 0;line-height:1.45}
 .es-ok{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#15803d;background:#eefaf1;border:1px solid #c8ecd2;border-radius:10px;padding:10px 12px;word-break:break-all}
 .es-ok .ic{width:18px;height:18px}
 .es-done-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -996,6 +997,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <input type="checkbox" id="expSkipChk" onchange="setExpSkip(this.checked)"><span>Skip this next time — Export downloads right away</span>
       </label>
     </div>
+    <p class="es-note" id="expNote" role="status" aria-live="polite" style="display:none"></p>
     <div class="es-done" id="expDone" style="display:none" role="status" aria-live="polite">
       <div class="es-ok"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Saved — <b id="expDoneName">capivo-video.mp4</b></span></div>
       <div class="es-done-row">
@@ -1200,8 +1202,8 @@ input[type=checkbox]{accent-color:#7c3aed}
           <div class="cs-grp"><div class="cs-gh">Layout</div>
             <div class="sz-row cs-line"><span class="cs-k">Max lines</span>
               <div class="pos-row seg" id="linesRow" style="flex:1;margin:0">
-                <button type="button" class="pos-btn on" data-lines="1" onclick="setLines(this)">1</button>
-                <button type="button" class="pos-btn" data-lines="2" onclick="setLines(this)">2</button>
+                <button type="button" class="pos-btn" data-lines="1" onclick="setLines(this)">1</button>
+                <button type="button" class="pos-btn on" data-lines="2" onclick="setLines(this)">2</button>
               </div></div>
             <p class="cs-note">Captions shrink to stay within the max lines. Only a single word too long for the frame (or a very long caption at the smallest size) wraps.</p>
             <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
@@ -2531,7 +2533,7 @@ async function safePipe(pipe, seg, opts) {
 }
 var WORDS_PER_BLOCK = 4;
 var displayMode     = 'karaoke';   // 'karaoke' = nur aktiver Block | 'all' = Block bleibt bis zum nächsten
-var CAPTION_LINES   = 1;    // max. Zeilen pro Caption-Block — 1 = das, was die meisten Nutzer wollen
+var CAPTION_LINES   = 2;    // max. Zeilen pro Caption-Block — 2 verhindert, dass lange deutsche Wörter auf eine Zeile geschrumpft werden
 var _lastKey        = null;        // Render-Cache (verhindert DOM-Flackern)
 var _lastBi         = -1;
 var _rafId          = null;
@@ -5304,34 +5306,72 @@ function showAcct() {
   document.getElementById('acctStep2').style.display = 'none';
   document.getElementById('acctStep3').style.display = meEmail ? 'block' : 'none';
 }
+// ── Anmeldung nicht erreichbar (Supabase pausiert/DNS weg, offline, CDN blockiert) ──
+// Statt roher Browser-Fehler („Failed to fetch“) eine verständliche Meldung; Netzwerkfehler erkennt man an
+// TypeError bzw. Supabase-AuthRetryableFetchError (status 0) — echte Auth-Fehler (falscher Code) bleiben.
+var SIGNIN_DOWN_MSG = 'Sign-in is temporarily unavailable — please try again later.';
+function isNetErr(e) {
+  if (!e) return false;
+  var msg = String(e.message || e), nm = String(e.name || '');
+  return nm === 'TypeError' || nm === 'AbortError' || /RetryableFetch|FetchError/i.test(nm) || e.status === 0
+    || /failed to fetch|networkerror|load failed|network request failed|fetch failed|err_name_not_resolved|timed? ?out/i.test(msg);
+}
+function authErrText(e) { return isNetErr(e) ? SIGNIN_DOWN_MSG : String((e && e.message) || e || 'Something went wrong.'); }
+// Erreichbarkeit vorab prüfen (für „Remove watermark“: kein kaputtes Formular öffnen). Health-Endpoint mit
+// 4-s-Timeout; jede HTTP-Antwort = erreichbar, Netzwerkfehler = nicht. Ergebnis 60 s gemerkt.
+var _signinCheck = null;
+function signInAvailable() {
+  if (_sbFailed) return Promise.resolve(false);
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || typeof fetch !== 'function') return Promise.resolve(true); // nichts zu prüfen → Modal erklärt es
+  if (_signinCheck && Date.now() - _signinCheck.at < 60000) return _signinCheck.p;
+  var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  var tm = setTimeout(function(){ if (ctl) ctl.abort(); }, 4000);
+  var p = fetch(SUPABASE_URL + '/auth/v1/health', { headers: { apikey: SUPABASE_ANON_KEY }, signal: ctl ? ctl.signal : undefined })
+    .then(function(){ return true; }, function(){ return false; })
+    .then(function(ok){ clearTimeout(tm); return ok; });
+  _signinCheck = { at: Date.now(), p: p };
+  return p;
+}
+// Meldung dort zeigen, wo der Nutzer gerade ist: im Export-Blatt (Hinweiszeile) bzw. als Toast
+function showSigninDown() {
+  var n = document.getElementById('expNote');
+  if (n && exportSheetOpen()) { n.textContent = SIGNIN_DOWN_MSG; n.style.display = ''; }
+  else capToast(SIGNIN_DOWN_MSG);
+}
 async function reqCode() {
   var m = document.getElementById('acctMsg');
-  var sb = await getSb();
-  if (!sb) { m.textContent = 'Accounts are not set up on this deployment yet.'; return; }
-  var { error } = await sb.auth.signInWithOtp({ email: document.getElementById('acctEmail').value.trim() });
-  if (error) { m.textContent = error.message; return; }
+  try {
+    var sb = await getSb();
+    if (!sb) { m.textContent = _sbFailed ? SIGNIN_DOWN_MSG : 'Accounts are not set up on this deployment yet.'; return; }
+    var res = await sb.auth.signInWithOtp({ email: document.getElementById('acctEmail').value.trim() });
+    if (res && res.error) { m.textContent = authErrText(res.error); return; }
+  } catch (e) { m.textContent = authErrText(e); return; }
   m.textContent = 'Code sent — check your inbox.';
   document.getElementById('acctStep1').style.display = 'none';
   document.getElementById('acctStep2').style.display = 'block';
 }
 async function verifyCode() {
   var m = document.getElementById('acctMsg');
-  var sb = await getSb();
-  if (!sb) { m.textContent = 'Accounts are not set up on this deployment yet.'; return; }
-  var { error } = await sb.auth.verifyOtp({
-    email: document.getElementById('acctEmail').value.trim(),
-    token: document.getElementById('acctCode').value.trim(),
-    type:  'email'
-  });
-  if (error) { m.textContent = error.message; return; }
+  try {
+    var sb = await getSb();
+    if (!sb) { m.textContent = _sbFailed ? SIGNIN_DOWN_MSG : 'Accounts are not set up on this deployment yet.'; return; }
+    var res = await sb.auth.verifyOtp({
+      email: document.getElementById('acctEmail').value.trim(),
+      token: document.getElementById('acctCode').value.trim(),
+      type:  'email'
+    });
+    if (res && res.error) { m.textContent = authErrText(res.error); return; }
+  } catch (e) { m.textContent = authErrText(e); return; }
   m.textContent = '';
   document.getElementById('acctModal').style.display = 'none';
   await fetchMe(); loadProjects();
   if (_pendingWmExport && meEmail) { _pendingWmExport = false; exportVideoWithCaptions(); } // Export ohne Logo nach Login
 }
 // Anonymer Export-Button „Export without watermark“ → Login, danach startet der Export automatisch.
-function exportWithoutWatermark() {
+async function exportWithoutWatermark() {
   if (meEmail) { exportVideoWithCaptions(); return; }
+  // Anmeldung nicht erreichbar → klare Meldung statt eines Formulars, das nur „Failed to fetch“ liefern kann
+  if (!(await signInAvailable())) { showSigninDown(); return; }
   _pendingWmExport = true;
   document.getElementById('acctSub').textContent = 'Enter your email to get a free login code — your video then exports without the watermark.';
   showAcct();
@@ -8388,6 +8428,7 @@ function openExportSheet() {
   if (!isExporting) showExportMain();
   var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
   syncExpSub(); updateAcctUI();
+  var nt = document.getElementById('expNote'); if (nt) nt.style.display = 'none'; // alte Hinweise (z. B. Anmeldung down) weg
   sh.style.display = 'block';
   var tb = document.getElementById('tbExport'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'true');
 }

@@ -78,6 +78,7 @@ needsWatermark:needsWatermark,webmToMp4Trim:webmToMp4Trim,enforceMinBlockDuratio
 revertTranscriptionSettings:revertTranscriptionSettings,getModel:function(){return whisperModel;},setLastTrMeta:function(m){_lastTrMeta=m;},pickRecorderMime:pickRecorderMime,recorderMimeIsSafeMp4:recorderMimeIsSafeMp4,
 exportGeometry:exportGeometry,exportBitrate:exportBitrate,drawReframed:drawReframed,classifyUnplayable:classifyUnplayable,
 applyPlayability:applyPlayability,setVideoPlayable:function(v){videoPlayable=v;},transcribeVideo:transcribeVideo,DEFAULT_STYLE:DEFAULT_STYLE,
+isNetErr:isNetErr,authErrText:authErrText,caseStyle:caseStyle,setCaseState:function(c){capCase=c;},projTitleOf:function(){return projectPayload().title;},setTitle:setTitle,
 setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDistance:histDistance,
 cssColorToHexA:cssColorToHexA,cssColorToHex:cssColorToHex,liveTemplates:liveTemplates,flushCustomStyle:flushCustomStyle,
 decideSceneCuts:decideSceneCuts,cutFrame:cutFrame,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
@@ -2335,6 +2336,20 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(JSON.stringify(T.projectPayload().speech) === '[{"start":1,"end":2}]', 'Sprachbereiche im Payload');
     T.setSpeech([]);
     ok(T.projectPayload().speech === undefined, 'ohne Sprachbereiche kein Feld');
+  }
+
+  // UX-Vereinfachung: Anmelde-Netzwerkfehler verständlich, Case-Schalter überstimmt Style-Schreibweise, Titel im Projekt
+  {
+    const down = 'Sign-in is temporarily unavailable — please try again later.';
+    ok(T.authErrText(new TypeError('Failed to fetch')) === down, 'TypeError „Failed to fetch“ → klare Meldung');
+    ok(T.authErrText({ name: 'AuthRetryableFetchError', message: 'Failed to fetch', status: 0 }) === down, 'Supabase-Netzwerkfehler → klare Meldung');
+    ok(T.authErrText({ name: 'AuthApiError', message: 'Token has expired or is invalid', status: 403 }) === 'Token has expired or is invalid', 'echter Auth-Fehler bleibt sichtbar');
+    const up = { id: 'x', tt: 'uppercase', hlUpper: true };
+    T.setCaseState('asis'); ok(T.caseStyle(up) === up, 'Style default: Style entscheidet');
+    T.setCaseState('lower'); const cl = T.caseStyle(up);
+    ok(cl !== up && cl.tt === 'none' && cl.hlUpper === false && up.tt === 'uppercase' && T.caseStyle(up) === cl, 'lowercase überstimmt tt/hlUpper (stabiles Objekt, Original unverändert)');
+    T.setCaseState('asis');
+    T.setTitle('Mein Clip'); ok(T.projTitleOf() === 'Mein Clip', 'Titel reist im Projekt mit'); T.setTitle('');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
