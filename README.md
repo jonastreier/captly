@@ -1,7 +1,7 @@
 # Capivo
 
 Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai).
-Upload → Auto-Transkript → Karaoke-Preview in 20 Styles → Export als **MP4** (mit
+Upload → Auto-Transkript → Karaoke-Preview in 15 kuratierten Styles → Export als **MP4** (mit
 eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
 - **⚡ Fast** = `whisper-large-v3-turbo`, **💎 Perfect** = `whisper-large-v3` — beide **serverseitig**

@@ -110,7 +110,7 @@ updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentL
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
 tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomAt,tlTickStep:tlTickStep,tlSnap:tlSnap,tlSnapCands:tlSnapCands,
 tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
-relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
+resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
 tlNudge:tlNudge,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;}};`;
 const T = new Function(script + tail)();
@@ -121,7 +121,7 @@ let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } };
 
 // 1) Grunddaten
-ok(T.STYLES.length === 36, '36 Styles erwartet (31 + 5 Trend-Presets): ' + T.STYLES.length);
+ok(T.STYLES.length === 15, '15 kuratierte Presets erwartet: ' + T.STYLES.length);
 
 // 2) Zeitformate
 ok(T.srtT(61.5) === '00:01:01,500', 'srtT: ' + T.srtT(61.5));
@@ -448,7 +448,7 @@ ok(initialLang === 'auto', 'Sprache startet auf Auto-Erkennung: ' + initialLang)
 // 13) Showcase-Reihe crasht nicht (Stub leert children nicht → Vielfaches von 31:
 // Auto-Init beim Skript-Load + ein Rebuild via goBack() weiter unten in Test 8)
 const showN = document.getElementById('showcaseRow').children.length;
-ok(showN >= 31 && showN % 31 === 0, 'Showcase: Vielfaches von 31 Karten erwartet, habe ' + showN);
+ok(showN >= 15 && showN % 15 === 0, 'Showcase: Vielfaches von 15 Karten erwartet, habe ' + showN);
 
 // 14) cleanWords ist jetzt async (yielded) — Assertions unten in der async IIFE (Test 20b).
 const mkW = arr => arr.map((w, i) => ({ word: w, start: i * 0.3, end: i * 0.3 + 0.25 }));
@@ -472,18 +472,27 @@ ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animat
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
 T.applyCustomStyle();
-ok(T.STYLES.length === 37 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
-// Referenz-Styles: Prime Script-Akzent, Sketch Kringel, Sonnet kursiv
-const pr = T.buildCap(['nur', 'ein', 'tipp'], T.STYLES.find(x => x.id === 'prime'), 2, 22, null);
+ok(T.STYLES.length === 16 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
+// Fixtures: frühere Presets (vor der Kuratierung) — der Custom-Editor/Glow-/Pill-/Farbwechsel-Code muss
+// diese Formen weiter verarbeiten (Templates/Projekte enthalten sie). Nur im Test als eigene IDs.
+const OS = T.outlineShadow;
+T.STYLES.push(
+  { id: 'tbox', name: 'Box Karaoke', fl: 'Inter', font: "'Inter'", fw: '800', thumbBg: '#000', tc: '#fff', ts: 'none', boxBg: 'rgba(0,0,0,.62)', boxBr: '10px', hl: '#fff', hlPillBg: '#22c55e', hlc: '#04210f', hls: 'none', anim: 'scale' },
+  { id: 'tpulse', name: 'Flux', fl: 'Montserrat', font: "'Montserrat'", fw: '900', tt: 'uppercase', thumbBg: '#000', tc: '#fff', ts: '-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000', hlPillBg: '#00ff85', hlc: '#00220f', hls: 'none', anim: 'flash', cstroke: '#000' },
+  { id: 'tamp', name: 'Jolt', fl: 'Poppins', font: "'Poppins'", fw: '900', tt: 'uppercase', fs: '1.1em', thumbBg: '#000', tc: '#fff', ts: '-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000', hl: '#d7ff1f', hls: '-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000,0 0 20px rgba(215,255,31,.85)', anim: 'punch', cstroke: '#000' },
+  { id: 'tbeast', name: 'Beast alt', fl: 'Bangers', font: "'Bangers'", fw: '400', tt: 'uppercase', ls: '1px', fs: '1.12em', thumbBg: '#000', tc: '#fff', ts: OS(3, '#000') + ',0 5px 0 rgba(0,0,0,.85)', hl: '#22e3ff', hlCycle: ['#22e3ff', '#ffd60a', '#ff4fd8', '#7cff4f'], hls: OS(3, '#000') + ',0 5px 0 rgba(0,0,0,.85)', anim: 'bounce', cstroke: '#000' },
+  { id: 'tbloom', name: 'Petal', fl: 'Playfair Display', font: "'Playfair Display'", fw: '700', tt: 'uppercase', ls: '1px', thumbBg: '#000', tc: '#fff', ts: '0 2px 18px rgba(249,168,212,.45)', hl: '#f9a8d4', hlFont: "'Caveat'", hlItalic: true, hls: '0 0 22px rgba(249,168,212,.9)', anim: 'glow' });
+// Style-Features (Templates können sie weiter nutzen): Script-Akzent, Kringel
+const pr = T.buildCap(['nur', 'ein', 'tipp'], { id: 'tprime', font: "'Poppins'", fw: '800', tc: '#fff', ts: 'none', hl: '#7df3ff', hlFont: "'Caveat'", hlItalic: true, hls: 'none', anim: 'scale' }, 2, 22, null);
 ok(pr.includes("font-family:'Caveat'") && pr.includes('font-style:italic'), 'Prime: Script-Akzent am aktiven Wort');
-const sk = T.buildCap(['mind', 'map'], T.STYLES.find(x => x.id === 'sketch'), 1, 22, null);
+const sk = T.buildCap(['mind', 'map'], { id: 'tsketch', font: "'Kalam'", fw: '700', tc: '#fff', ts: 'none', hl: '#efe7d8', hlFont: "'Barlow Condensed'", hlUpper: true, circle: true, hls: 'none', anim: 'none' }, 1, 22, null);
 ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Uppercase am aktiven Wort');
 
 // 16a) Custom-Style-Editor: startet vom gewählten Style, nur geänderte Gruppen überschreiben
 {
   const E = id => document.getElementById(id);
-  const base = T.STYLES.find(x => x.id === 'boxkara');
-  T.selectStyle('boxkara');                      // seedet die Regler + Basis
+  const base = T.STYLES.find(x => x.id === 'tbox');
+  T.selectStyle('tbox');                      // seedet die Regler + Basis
   ok(E('csBox').value === 'box' && E('csHlType').value === 'pill' && E('csAnim').value === 'scale', 'Regler aus Box Karaoke befuellt');
   E('csText').value = '#ff0000';
   T.setCsDirty({ text: true });
@@ -527,7 +536,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   const legacy = T.STYLES.find(x => x.id === 'tpl_1700000000000');
   ok(legacy && legacy.fl === 'Anton' && legacy.hl === '#ff0000' && /0 0 9px/.test(legacy.hls) && legacy._tpl.pos === 'top' && legacy._tpl.wpb === 3, 'Legacy-Template migriert');
   // Neues Template speichert den VOLLEN Style
-  T.selectStyle('boxkara');
+  T.selectStyle('tbox');
   document.getElementById('tplName').value = 'Mein Box';
   T.saveTemplate();
   let tpl = T.getUserTemplates().find(t => t.name === 'Mein Box');
@@ -576,29 +585,29 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   // Befüllen: Pill-Style (Flux) — „Active“-Feld zeigt die PILL-Farbe und heißt „Pill“
   T.setCsDirty({});
   E('csHl').value = '#facc15'; E('csGlow').checked = true; // Reste eines vorigen Styles
-  T.selectStyle('pulse');
+  T.selectStyle('tpulse');
   ok(E('csHl').value === '#00ff85' && E('csHlType').value === 'pill' && E('csHlLbl').textContent === 'Pill', 'Pill-Style: Farbfeld = Pill-Farbe, Label „Pill“: ' + E('csHl').value);
   ok(E('csText').value === '#ffffff' && E('csFont').value === 'Montserrat' && E('csWeight').value === '900' && E('csUpper').classList.contains('on'), 'Pill-Style: Text/Font/Gewicht/Caps');
   ok(E('csGlow').checked === false && E('csGlowInt').disabled === true, 'Glow aus → Regler deaktiviert');
   ok(E('csBox').value === 'off' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '70', 'kein Hintergrund → neutrale Box-Werte statt Resten');
   // Box-Style (Box Karaoke): Hintergrund aus rgba
-  T.selectStyle('boxkara');
+  T.selectStyle('tbox');
   ok(E('csBox').value === 'box' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '60' && E('csHl').value === '#22c55e', 'Box Karaoke: Box schwarz 60 %, Pill gruen');
   // Kontur-Style (Hormozi): Kontur 3 px, Schatten an, Textfarbe-Highlight
   T.selectStyle('hormozi');
   ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Active' && E('csAnim').value === 'punch',
      'Hormozi: Kontur/Schatten/Active-Farbe/Animation');
   // Glow-Style (Jolt/amplify): Glow an mit Stärke 20, Regler aktiv
-  T.selectStyle('amplify');
+  T.selectStyle('tamp');
   ok(E('csGlow').checked === true && String(E('csGlowInt').value) === '20' && E('csGlowInt').disabled === false && E('csHl').value === '#d7ff1f', 'Jolt: Glow an, Staerke 20');
   // rgba-Textfarbe (Clean Minimal) → gültiges Hex, Deckkraft bleibt beim Umfärben
   T.selectStyle('minimal');
   ok(E('csText').value === '#ffffff', 'rgba-Textfarbe → #ffffff im Farbfeld');
   E('csText').value = '#ff0000'; T.setCsDirty({ text: true });
-  ok(T.buildCustomStyle().tc === 'rgba(255,0,0,0.55)', 'Textfarbe behaelt die Deckkraft des Ausgangs-Styles: ' + T.buildCustomStyle().tc);
+  ok(T.buildCustomStyle().tc === 'rgba(255,0,0,0.6)', 'Textfarbe behaelt die Deckkraft des Ausgangs-Styles: ' + T.buildCustomStyle().tc);
 
   // Anwenden: Pill-Farbe über das EINE Farbfeld; Glow nur bei Glow-Änderung; Wechsel Pill → Textfarbe
-  T.selectStyle('pulse');
+  T.selectStyle('tpulse');
   E('csHl').value = '#ff3366'; T.setCsDirty({ hlc: true });
   let cs = T.buildCustomStyle();
   ok(cs.hlPillBg === '#ff3366' && cs.hlc === '#fff' && cs.hls === 'none' && cs.anim === 'flash', 'Pill-Farbe wirkt (vorher blieb die Pill gruen): ' + cs.hlPillBg);
@@ -608,17 +617,17 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   cs = T.buildCustomStyle();
   ok(!cs.hlPillBg && cs.hl === '#ff3366' && /0 0 20px #ff3366/.test(cs.hls), 'Pill → Textfarbe uebernimmt die Farbe: ' + cs.hls);
   // Beast: nur Glow anschalten → Farbwechsel (hlCycle) bleibt
-  T.selectStyle('beast');
+  T.selectStyle('tbeast');
   E('csGlow').checked = true; E('csGlowInt').value = '10'; T.setCsDirty({ glow: true });
   cs = T.buildCustomStyle();
   ok(cs.hlCycle && cs.hlCycle.length === 4 && /0 0 10px/.test(cs.hls) && T.parseOutline(cs.hls).w === 3, 'Beast: Glow an, Farbwechsel + Kontur bleiben');
   // Nur Kontur geändert → Glow des Ausgangs-Highlights bleibt unverändert (Jolt)
-  T.selectStyle('amplify');
+  T.selectStyle('tamp');
   E('csOutlineW').value = '4'; T.setCsDirty({ stroke: true });
   cs = T.buildCustomStyle();
   ok(/0px 0px 20px rgba\(215,255,31,\.85\)/.test(cs.hls) && T.parseOutline(cs.hls).w === 4, 'Kontur-Aenderung laesst Glow des Presets: ' + cs.hls.slice(-40));
   // Regler ohne Wirkung schalten ihren Schalter ein: Box-Farbe bei „None“, Konturfarbe bei 0 px
-  T.selectStyle('pulse');
+  T.selectStyle('tpulse');
   E('csBoxC').value = '#2040ff'; T.applyCustomStyle('boxc');
   T.flushCustomStyle();
   cs = T.STYLES.find(x => x.id === 'custom');
@@ -683,8 +692,9 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
 {
   ['hormozi', 'beast', 'boxkara', 'minimal', 'popone'].forEach(id => ok(T.STYLES.find(x => x.id === id), 'Preset vorhanden: ' + id));
   const beast = T.STYLES.find(x => x.id === 'beast');
-  ok(T.hlColorFor(beast, 0) !== T.hlColorFor(beast, 1), 'Beast: aktives Wort wechselt die Farbe');
-  ok(T.buildCap(['a', 'b'], beast, 1, 22, null).includes(beast.hlCycle[1]), 'Beast: Farbwechsel in der Vorschau');
+  ok(!beast.hlCycle && T.hlColorFor(beast, 0) === T.hlColorFor(beast, 1), 'Beast: aktives Wort in EINER Farbe (kein Farbwechsel pro Wort)');
+  const tbeast = T.STYLES.find(x => x.id === 'tbeast');
+  ok(T.hlColorFor(tbeast, 0) !== T.hlColorFor(tbeast, 1) && T.buildCap(['a', 'b'], tbeast, 1, 22, null).includes(tbeast.hlCycle[1]), 'hlCycle (alte Templates) funktioniert weiter');
   T.selectStyle('classic');
   const prevWpb = T.getWpb();
   T.selectStyle('popone');
@@ -793,7 +803,7 @@ ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200
   ok(cs.hl === '#ff00ff' && T.parseOutline(cs.hls).w === 0 && /1px 2px 0px #000/.test(cs.hls) && /0px 3px 6px rgba/.test(cs.hls) && cs.ts === '1px 2px 0 #000',
      'nur Highlight-Farbe: keine Fake-Kontur, Schatten bleiben: ' + cs.hls);
   // Beast: Drop-Shadow im Highlight bleibt auch beim Farbwechsel
-  T.selectStyle('beast'); T.setCsDirty({ hl: true });
+  T.selectStyle('tbeast'); T.setCsDirty({ hl: true });
   const cb = T.buildCustomStyle();
   ok(T.parseOutline(cb.hls).w === 3 && /0px 5px 0px rgba\(0,0,0,\.85\)/.test(cb.hls), 'Beast: Kontur + Drop-Shadow im Highlight erhalten: ' + cb.hls.slice(-60));
   T.setCsDirty({});
@@ -1068,7 +1078,7 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   };
   const ws = ['Ganz', 'weiche', 'Bluete', 'heute'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.4 }));
   T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
-  const bloom = T.STYLES.find(x => x.id === 'bloom');
+  const bloom = T.STYLES.find(x => x.id === 'tbloom');
   const main = mkCtx({ width: 1080, height: 1920 });
   T.drawCaptionsOnCtx(main, 0.1, bloom, 1080, 1920, false);
   const layer = layerCtxs[0], after1 = layer ? layer.n : -1, main1 = main.n;
@@ -1093,7 +1103,7 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); created++; const cv = { width: 0, height: 0 }; const cx = mkCtx(cv); cv.getContext = () => cx; return cv; };
   const ws = ['Weiche', 'Bluete', 'leuchtet', 'heute'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.45 }));
   T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
-  ['bloom', 'neon'].forEach(id => {
+  ['tbloom', 'neon'].forEach(id => {
     const st = T.STYLES.find(x => x.id === id);
     const main = mkCtx({ width: 1080, height: 1920 });
     T.drawCaptionsOnCtx(main, 0.40, st, 1080, 1920, false);           // Animation vorbei → Grundstufe
@@ -2484,6 +2494,33 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.currentLayout().maxChars === 16 && T.projectPayload().maxChars === 16, 'maxChars in Layout + Projekt');
     ok(T.normalizeTemplate({ id: 'tpl_x', name: 'X', style: { font: "'Inter'" }, layout: { maxChars: 20, lines: 1 } }).layout.maxChars === 20, 'Template behält maxChars');
     T.setMaxCharsState(40); T.setLinesState(2); T.setCaptionsEdited(false); T.resetUndo(); T.onWpbChange('4');
+  }
+
+  // Kuratierung: entfernte Preset-IDs → nächstliegender Look (Projekte, Autosave, gemerkter Style, Brand-Default)
+  {
+    const removed = ['amplify', 'impact2', 'volt', 'pulse', 'evo', 'prime', 'linen', 'carbon', 'tokyo', 'chrome', 'ignite', 'ember', 'y2k',
+      'prismpro', 'elevate', 'bloom', 'sonnet', 'align', 'paper2', 'muse', 'sketch', 'chalk'];
+    const ids = new Set(T.STYLES.slice(0, 15).map(x => x.id)); // eingebaute Presets stehen vorn (Custom/Templates/Fixtures danach)
+    ok(removed.every(id => T.STYLE_ALIASES[id] && ids.has(T.STYLE_ALIASES[id])), 'jede entfernte ID zeigt auf ein vorhandenes Preset');
+    ok(Object.keys(T.STYLE_ALIASES).every(id => !ids.has(id)), 'kein Alias verdeckt ein vorhandenes Preset');
+    ok(T.resolveStyleId('y2k') === 'neon' && T.resolveStyleId('pulse') === 'boxkara' && T.resolveStyleId('hormozi') === 'hormozi' && T.resolveStyleId('tpl_abc') === 'tpl_abc', 'resolveStyleId');
+    ['classic', 'hormozi', 'boxkara', 'beast', 'minimal', 'popone', 'tiktok', 'hush', 'neon', 'editorial', 'marker'].forEach(id => ok(ids.has(id), 'Standard-Look vorhanden: ' + id));
+    ok(T.STYLES.filter(x => ids.has(x.id)).every(x => ['none', 'scale', 'punch', 'bounce'].includes(x.anim) && !x.hlCycle), 'Presets: nur ruhige Animationen, kein Farbwechsel pro Wort');
+    // Projekt/Autosave mit entferntem Style
+    T.restoreSavedStyle({ style: 'chalk' });
+    ok(T.getActiveId() === 'marker', 'Projekt mit „chalk“ → Marker: ' + T.getActiveId());
+    T.restoreSavedStyle({ style: 'amplify' });
+    ok(T.getActiveId() === 'hormozi', 'Projekt mit „amplify“ → Hormozi');
+    T.selectStyle('prismpro');
+    ok(T.getActiveId() === 'neon', 'selectStyle mit alter ID → Neon');
+    // Brand-Default mit alter ID
+    const store = { 'capivo.brandTpl': 'paper2' };
+    const prevLS = global.localStorage;
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    T.applyBrandOnOpen();
+    ok(T.getActiveId() === 'tiktok', 'Brand-Default „paper2“ → TikTok: ' + T.getActiveId());
+    global.localStorage = prevLS;
+    T.selectStyle('hormozi');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

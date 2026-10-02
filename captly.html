@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Capivo — AI Auto Captions for Reels &amp; TikTok</title>
-<meta name="description" content="Add animated, word-perfect captions to Reels, TikToks & Shorts in seconds. 36 viral styles, automatic language detection, MP4/SRT/VTT export. Free, no signup.">
+<meta name="description" content="Add animated, word-perfect captions to Reels, TikToks & Shorts in seconds. 15 pro caption styles, automatic language detection, MP4/SRT/VTT export. Free, no signup.">
 <meta name="keywords" content="auto captions, AI subtitles, video captions, TikTok captions, Reels subtitles, karaoke captions, caption generator, subtitle generator, MP4 captions, SRT export">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <meta name="theme-color" content="#7c3aed">
@@ -16,17 +16,17 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Capivo">
 <meta property="og:title" content="Capivo — AI Auto Captions for Reels & TikTok">
-<meta property="og:description" content="Word-perfect animated captions in 36 viral styles. Automatic language detection. Export MP4, SRT, VTT. Free, no signup.">
+<meta property="og:description" content="Word-perfect animated captions in 15 pro styles. Automatic language detection. Export MP4, SRT, VTT. Free, no signup.">
 <meta property="og:url" content="https://captly.vercel.app/">
 <meta property="og:image" content="https://captly.vercel.app/assets/og-image.jpg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Capivo — AI Auto Captions for Reels & TikTok">
-<meta name="twitter:description" content="Word-perfect animated captions in 36 viral styles. Free, no signup.">
+<meta name="twitter:description" content="Word-perfect animated captions in 15 pro styles. Free, no signup.">
 <meta name="twitter:image" content="https://captly.vercel.app/assets/og-image.jpg">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Capivo","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"Capivo adds animated, word-perfect captions to Reels, TikToks and Shorts in seconds, with 36 viral styles, automatic language detection and MP4/SRT/VTT export.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Automatic speech-to-text captions","36 viral caption styles","Word-by-word karaoke highlighting","Automatic language detection","Export to MP4, SRT and VTT","Runs in the browser, no signup"]}
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Capivo","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"Capivo adds animated, word-perfect captions to Reels, TikToks and Shorts in seconds, with 15 pro caption styles, automatic language detection and MP4/SRT/VTT export.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Automatic speech-to-text captions","15 pro caption styles","Word-by-word karaoke highlighting","Automatic language detection","Export to MP4, SRT and VTT","Runs in the browser, no signup"]}
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is Capivo free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Capivo generates captions and exports MP4, SRT and VTT for free, with no signup. Capivo is free while in beta; Creator and Pro plans with more Perfect-transcription minutes are coming soon."}},{"@type":"Question","name":"Which languages does Capivo support?","acceptedAnswer":{"@type":"Answer","text":"Capivo auto-detects the spoken language and supports English, German, Spanish, French and 15+ more. You can also pick the language manually."}},{"@type":"Question","name":"Do I need to install anything?","acceptedAnswer":{"@type":"Answer","text":"No. Capivo runs in your browser. Upload a video, pick a style and export it."}},{"@type":"Question","name":"What's the difference between Fast and Perfect?","acceptedAnswer":{"@type":"Answer","text":"Fast uses a lighter model for near-instant transcription. Perfect uses a larger model for maximum accuracy and is a little slower. Both run server-side, so there is nothing to download."}},{"@type":"Question","name":"Is my video uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"Only the audio track is sent off to generate captions. The video itself is rendered and exported locally in your browser."}},{"@type":"Question","name":"Can I cancel anytime?","acceptedAnswer":{"@type":"Answer","text":"Paid plans aren't available yet. Capivo is free during the beta. When Creator and Pro launch, they will be month-to-month and you can cancel anytime."}}]}
@@ -39,12 +39,14 @@
 body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 body.editor-open{height:100vh;overflow:hidden}
 
-@keyframes captly-bounce{0%,100%{transform:translateY(0) scale(1)}40%{transform:translateY(-8px) scale(1.12)}70%{transform:translateY(-2px) scale(1.04)}}
-@keyframes captly-scale{0%{transform:scale(1)}40%{transform:scale(1.25)}100%{transform:scale(1)}}
-@keyframes captly-flash{0%,100%{opacity:1}40%{opacity:.1}80%{opacity:.95}}
-@keyframes captly-glow{0%,100%{filter:brightness(1)}50%{filter:brightness(2.2) saturate(1.5)}}
-@keyframes captly-punch{0%{transform:scale(1)}25%{transform:scale(.8)}60%{transform:scale(1.22)}100%{transform:scale(1)}}
-@keyframes captly-wobble{0%,100%{transform:rotate(0)}25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+/* Wort-Animationen bewusst ruhig (kein Blinken/Wackeln/Schrumpfen): Pop ≤ 1.08, Punch ≤ 1.12, Lift = sanft
+   von unten, Fade = einblenden, Glow = leichtes Aufhellen. flash/wobble bleiben als Namen für alte Templates. */
+@keyframes captly-bounce{0%{transform:translateY(4px)}60%{transform:translateY(-1px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
+@keyframes captly-scale{0%{transform:scale(1)}45%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes captly-flash{0%{opacity:.45}100%{opacity:1}}
+@keyframes captly-glow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
+@keyframes captly-punch{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
+@keyframes captly-wobble{0%{transform:translateY(4px)}60%{transform:translateY(-1px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes capIn{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -751,7 +753,7 @@ input[type=checkbox]{accent-color:#7c3aed}
     <button class="nav-cta" onclick="openEditorClean();showAcct()">Sign in</button>
   </div>
   <h1 class="land-h">Captions that <em>convert</em>.<br>In seconds.</h1>
-  <p class="land-sub">AI captions your videos word-for-word in 36 viral styles. Auto language detection, 17+ languages. Export MP4, SRT &amp; VTT — free, no signup.</p>
+  <p class="land-sub">AI captions your videos word-for-word in 15 pro caption styles. Auto language detection, 17+ languages. Export MP4, SRT &amp; VTT — free, no signup.</p>
   <label class="upload-zone" id="landZone">
     <input type="file" accept="video/*" id="landInput">
     <div class="upload-zone-icon"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="uzg" x1="2" y1="4" x2="22" y2="20"><stop offset="0" stop-color="#6d4aeb"/><stop offset="1" stop-color="#d84fc0"/></linearGradient></defs><path d="M7.5 17.5h9a3.5 3.5 0 001-6.85 5 5 0 00-9.6-1.6A4 4 0 007 17.5h.5z" stroke="url(#uzg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v7M9.2 12.5L12 9.7l2.8 2.8" stroke="url(#uzg)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -772,7 +774,7 @@ input[type=checkbox]{accent-color:#7c3aed}
 
   <!-- Template showcase -->
   <section class="showcase">
-    <h2 class="show-h">One video. <em>36 viral styles.</em></h2>
+    <h2 class="show-h">One video. <em>15 pro styles.</em></h2>
     <p class="show-sub">See your captions in every look — tap one to try it.</p>
     <div class="show-wrap">
       <button class="show-arrow show-arrow-prev" id="showPrevBtn" onclick="scrollShowcase(-1)" aria-label="Show previous styles" disabled>‹</button>
@@ -802,7 +804,7 @@ input[type=checkbox]{accent-color:#7c3aed}
     <p class="show-sub">Built for creators who just want great captions, fast.</p>
     <div class="feat-grid">
       <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg1" x1="2" y1="4" x2="22" y2="19"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs><rect x="2.5" y="5" width="19" height="13" rx="4" stroke="url(#fg1)" stroke-width="1.6"/><line x1="6" y1="10" x2="14" y2="10" stroke="url(#fg1)" stroke-width="1.6" stroke-linecap="round"/><line x1="6" y1="13.4" x2="11" y2="13.4" stroke="url(#fg1)" stroke-width="1.6" stroke-linecap="round"/><circle cx="18.3" cy="14.3" r="4.3" fill="#fff" stroke="url(#fg1)" stroke-width="1.6"/><path d="M16.6 14.3l1.1 1.1 2-2.2" stroke="url(#fg1)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h3>Word-perfect captions</h3><p>AI transcription nails every word, with fully editable text and timing.</p></div>
-      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg2a" x1="3" y1="9" x2="13" y2="19"><stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#f472b6"/></linearGradient><linearGradient id="fg2b" x1="7" y1="6" x2="17" y2="16"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#a78bfa"/></linearGradient><linearGradient id="fg2c" x1="10.5" y1="3.5" x2="20.5" y2="13.5"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs><rect x="3" y="9" width="10" height="10" rx="3" transform="rotate(-8 8 14)" fill="url(#fg2a)" opacity=".55"/><rect x="7" y="6" width="10" height="10" rx="3" transform="rotate(6 12 11)" fill="url(#fg2b)" opacity=".8"/><rect x="10.5" y="3.5" width="10" height="10" rx="3" fill="url(#fg2c)"/></svg></div><h3>36 viral styles</h3><p>From bold pop-style captions to soft cinematic looks — switch in one click.</p></div>
+      <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg2a" x1="3" y1="9" x2="13" y2="19"><stop offset="0" stop-color="#ec4899"/><stop offset="1" stop-color="#f472b6"/></linearGradient><linearGradient id="fg2b" x1="7" y1="6" x2="17" y2="16"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#a78bfa"/></linearGradient><linearGradient id="fg2c" x1="10.5" y1="3.5" x2="20.5" y2="13.5"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs><rect x="3" y="9" width="10" height="10" rx="3" transform="rotate(-8 8 14)" fill="url(#fg2a)" opacity=".55"/><rect x="7" y="6" width="10" height="10" rx="3" transform="rotate(6 12 11)" fill="url(#fg2b)" opacity=".8"/><rect x="10.5" y="3.5" width="10" height="10" rx="3" fill="url(#fg2c)"/></svg></div><h3>15 pro caption styles</h3><p>From bold pop-style captions to soft cinematic looks — switch in one click.</p></div>
       <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg3" x1="3.5" y1="4.5" x2="19.5" y2="19.5"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><circle cx="11" cy="12" r="7.5" stroke="url(#fg3)" stroke-width="1.6"/><ellipse cx="11" cy="12" rx="3.1" ry="7.5" stroke="url(#fg3)" stroke-width="1.3"/><line x1="3.5" y1="12" x2="18.5" y2="12" stroke="url(#fg3)" stroke-width="1.3"/><circle cx="19.3" cy="5.8" r="2.3" fill="url(#fg3)"/></svg></div><h3>17+ languages, auto-detected</h3><p>Capivo detects the spoken language automatically, or you can pick it yourself.</p></div>
       <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg4" x1="3" y1="4" x2="21" y2="20"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#ec4899"/></linearGradient></defs><rect x="2.5" y="13" width="3.2" height="7" rx="1.6" fill="url(#fg4)" opacity=".4"/><rect x="8.4" y="6.5" width="3.2" height="13.5" rx="1.6" fill="url(#fg4)"/><rect x="14.3" y="10" width="3.2" height="10" rx="1.6" fill="url(#fg4)" opacity=".4"/><rect x="18.3" y="3.5" width="3.2" height="16.5" rx="1.6" fill="url(#fg4)" opacity=".7"/></svg></div><h3>Karaoke highlighting</h3><p>Word-by-word highlight animation that keeps viewers watching to the end.</p></div>
       <div class="feat-card"><div class="feat-ico"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="fg5" x1="3" y1="4.5" x2="21" y2="19.5"><stop offset="0" stop-color="#7c3aed"/><stop offset="1" stop-color="#60a5fa"/></linearGradient></defs><path d="M3 6.5a2 2 0 012-2h7a2 2 0 012 2v4a2 2 0 01-2 2H8l-3 2.5v-2.5H5a2 2 0 01-2-2v-4z" stroke="url(#fg5)" stroke-width="1.5" stroke-linejoin="round"/><path d="M21 12.5a2 2 0 00-2-2h-6a2 2 0 00-2 2v3.5a2 2 0 002 2h5l2.5 2v-2h.5a2 2 0 002-2v-3.5z" fill="url(#fg5)" opacity=".85"/></svg></div><h3>Translate to English</h3><p>One toggle turns captions from any detected language into English.</p></div>
@@ -824,7 +826,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <ul class="price-list">
           <li>Unlimited Fast transcription</li>
           <li>Perfect transcription trial</li>
-          <li>All 36 caption styles</li>
+          <li>All 15 caption styles</li>
           <li>MP4, SRT &amp; VTT export</li>
           <li>Free during beta · no watermark · just your email</li>
         </ul>
@@ -837,7 +839,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <ul class="price-list">
           <li>300 Perfect-transcription min/mo</li>
           <li>Unlimited Fast transcription</li>
-          <li>All 36 caption styles</li>
+          <li>All 15 caption styles</li>
           <li>Translate captions to English</li>
           <li>Save projects to your account</li>
         </ul>
@@ -1282,9 +1284,8 @@ input[type=checkbox]{accent-color:#7c3aed}
               </select></div>
             <div class="sz-row cs-line"><span class="cs-k">Animation</span>
               <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')">
-                <option value="none">None</option><option value="punch">Punch</option><option value="scale">Pop</option>
-                <option value="bounce">Bounce</option><option value="flash">Flash</option><option value="glow">Glow pulse</option>
-                <option value="wobble">Wobble</option>
+                <option value="none">None</option><option value="scale">Pop</option><option value="punch">Punch</option>
+                <option value="bounce">Lift</option><option value="flash">Fade in</option><option value="glow">Glow</option>
               </select></div>
             <div class="sz-row cs-line"><span class="cs-k">Keywords</span>
               <input type="text" id="kwInput" class="lang-sel" style="margin:0;flex:1" placeholder="Always highlight, e.g. free, today" oninput="onKwChange(this.value)" title="Words that always appear in the highlight color"></div>
@@ -1355,203 +1356,112 @@ input[type=checkbox]{accent-color:#7c3aed}
 // ═══════════════════════════════════════
 // STYLES
 // ═══════════════════════════════════════
-// 36 Styles (captions.ai-Katalog + eigene Trend-Styles: Tokyo, Chrome, Editorial, Marker, Muse, Carbon + Creator-Presets: Amplify, Headline, Pulse, Hush)
+// 15 kuratierte Presets (2026): die gängigen Short-Form-Looks, ruhig animiert (kein Blinken/Wackeln/Farbwechsel
+// pro Wort). Reihenfolge = Häufigkeit. Entfernte/zusammengelegte IDs → STYLE_ALIASES (alte Projekte,
+// Autosaves, gemerkter Style, Brand-Default laden den nächstliegenden Look).
 var STYLES = [
-  // Reihenfolge: aktuell beliebteste Untertitel-Trends zuerst (bold outline/highlight-karaoke),
-  // dann clean/minimal, energetisch, neon/futuristisch, dezent, elegant/editorial, handschriftlich.
-  {id:'classic',  name:'Standard',   fl:'Montserrat', // Der Look, den die meisten einfach nehmen: fette weiße Großbuchstaben, harter schwarzer Rand, KEINE Wort-Hervorhebung/Animation
+  {id:'classic',  name:'Classic',    fl:'Montserrat', // Der Look, den die meisten einfach nehmen: fette weiße Großbuchstaben, harter schwarzer Rand, KEINE Wort-Hervorhebung/Animation
    font:"'Montserrat'", fw:'900', tt:'uppercase', ls:'.3px',
    thumbBg:'linear-gradient(160deg,#151515,#0a0a0a)',
    tc:'#fff', ts:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
    hl:'#fff', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
    anim:'none', cstroke:'#000'},
-  // ── Trend-Presets 2026 (Submagic/Captions.ai-Niveau) ──
-  {id:'hormozi',  name:'Hormozi',    fl:'Montserrat', // Fette weiße Caps mit dicker schwarzer Kontur, aktives Wort gelb + Punch — der meistkopierte Talking-Head-Look
+  {id:'hormozi',  name:'Hormozi',    fl:'Montserrat', // Fette weiße Caps, dicke schwarze Kontur, aktives Wort gelb + kurzer Pop — der meistkopierte Talking-Head-Look
    font:"'Montserrat'", fw:'900', tt:'uppercase',
    thumbBg:'linear-gradient(160deg,#17140a,#070604)',
    tc:'#fff', ts:outlineShadow(3, '#000') + ',0 4px 10px rgba(0,0,0,.45)',
    hl:'#FFD60A', hls:outlineShadow(3, '#000'),
-   anim:'punch', cstroke:'#000', badge:'🔥'},
-  {id:'beast',    name:'Beast',      fl:'Bangers', // Comic-Caps, schwere Kontur + harter Drop-Shadow, aktives Wort wechselt die Farbe
+   anim:'punch', cstroke:'#000'},
+  {id:'boxkara',  name:'Highlight Box', fl:'Montserrat', // Submagic-Look: konturierte Caps, farbige Box hinter dem gesprochenen Wort
+   font:"'Montserrat'", fw:'900', tt:'uppercase',
+   thumbBg:'linear-gradient(160deg,#0c1410,#060907)',
+   tc:'#fff', ts:outlineShadow(2, '#000') + ',0 3px 8px rgba(0,0,0,.4)',
+   hl:'#fff', hlPillBg:'#22c55e', hlc:'#06240f', hls:'none', anim:'scale', cstroke:'#000'},
+  {id:'beast',    name:'Beast',      fl:'Bangers', // MrBeast-Comic: Bangers-Caps, schwere Kontur + harter Drop-Shadow, aktives Wort farbig
    font:"'Bangers'", fw:'400', tt:'uppercase', ls:'1px', fs:'1.12em',
    thumbBg:'linear-gradient(160deg,#0b1730,#05070f)',
    tc:'#fff', ts:outlineShadow(3, '#000') + ',0 5px 0 rgba(0,0,0,.85)',
-   hl:'#22e3ff', hlCycle:['#22e3ff','#ffd60a','#ff4fd8','#7cff4f'], hls:outlineShadow(3, '#000') + ',0 5px 0 rgba(0,0,0,.85)',
-   anim:'bounce', cstroke:'#000', badge:'💥'},
-  {id:'boxkara',  name:'Box Karaoke', fl:'Inter', // Weiß auf halbtransparenter Box, aktives Wort in grüner Pill
-   font:"'Inter'", fw:'800',
-   thumbBg:'linear-gradient(160deg,#0c1410,#060907)',
-   tc:'#fff', ts:'none',
-   boxBg:'rgba(0,0,0,.62)', boxBr:'10px',
-   hl:'#fff', hlPillBg:'#22c55e', hlc:'#04210f', hls:'none', anim:'scale', badge:'🟩'},
-  {id:'minimal',  name:'Clean Minimal', fl:'Inter', // Satzschreibung, weicher Schatten; das aktive Wort hebt sich nur über die Deckkraft ab
+   hl:'#22e3ff', hls:outlineShadow(3, '#000') + ',0 5px 0 rgba(0,0,0,.85)',
+   anim:'bounce', cstroke:'#000'},
+  {id:'minimal',  name:'Clean',      fl:'Inter', // Ali-Abdaal-Stil: Satzschreibung, weicher Schatten; das aktive Wort hebt sich nur über die Deckkraft ab
    font:"'Inter'", fw:'600',
    thumbBg:'linear-gradient(160deg,#101114,#08090b)',
-   tc:'rgba(255,255,255,.55)', ts:'0 1px 8px rgba(0,0,0,.45)',
-   hl:'#fff', hls:'0 1px 8px rgba(0,0,0,.45)', anim:'none', badge:'◽'},
-  {id:'popone',   name:'Pop One',    fl:'Anton', // Ein großes Wort nach dem anderen (1 Wort pro Block), poppt rein
+   tc:'rgba(255,255,255,.6)', ts:'0 1px 8px rgba(0,0,0,.5)',
+   hl:'#fff', hls:'0 1px 8px rgba(0,0,0,.5)', anim:'none'},
+  {id:'lift',     name:'Clean Highlight', fl:'Inter', // Satzschreibung, fett, weicher Schatten — aktives Wort gelb (ohne Glow)
+   font:"'Inter'", fw:'800',
+   thumbBg:'linear-gradient(160deg,#07090d,#0b0e14)',
+   tc:'#fff', ts:'0 2px 8px rgba(0,0,0,.6)',
+   hl:'#FFD60A', hls:'0 2px 8px rgba(0,0,0,.6)', anim:'scale'},
+  {id:'popone',   name:'One Word',   fl:'Anton', // Ein großes Wort nach dem anderen (1 Wort pro Block), poppt sanft rein
    font:"'Anton'", fw:'400', tt:'uppercase', ls:'.5px', fs:'1.3em',
    thumbBg:'linear-gradient(160deg,#1d0b24,#0b0410)',
    tc:'#fff', ts:outlineShadow(2, '#000') + ',0 6px 14px rgba(0,0,0,.5)',
    hl:'#fff', hls:outlineShadow(2, '#000') + ',0 6px 14px rgba(0,0,0,.5)',
-   anim:'scale', cstroke:'#000', layout:{ wpb: 1, lines: 1 }, badge:'1️⃣'},
-  {id:'amplify',  name:'Jolt',       fl:'Poppins', // Huge bold black-outlined caps, bright highlight — the most-requested creator preset right now
-   font:"'Poppins'", fw:'900', tt:'uppercase', fs:'1.1em',
-   thumbBg:'linear-gradient(160deg,#1a1400,#0d0a00)',
-   tc:'#fff', ts:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
-   hl:'#d7ff1f', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000,0 0 20px rgba(215,255,31,.85)',
-   anim:'punch', cstroke:'#000', badge:'💰'},
-  {id:'headline', name:'Marquee',    fl:'Anton', // Bold white caps, thick black outline, high-contrast punch — the classic viral-thumbnail caption look
+   anim:'scale', cstroke:'#000', layout:{ wpb: 1, lines: 1 }},
+  {id:'tiktok',   name:'TikTok',     fl:'Montserrat', // TikTok-Textstil: schwarzer Text auf weißer, abgerundeter Box
+   font:"'Montserrat'", fw:'700',
+   thumbBg:'linear-gradient(160deg,#141414,#0a0a0a)',
+   tc:'#111', ts:'none',
+   boxBg:'#ffffff', boxBr:'10px',
+   hl:'#111', hls:'none', anim:'none'},
+  {id:'hush',     name:'Subtitle',   fl:'Inter', // Netflix-Untertitel: weiß, Satzschreibung, weicher Schatten auf halbtransparentem Balken
+   font:"'Inter'", fw:'600',
+   thumbBg:'linear-gradient(160deg,#171717,#0c0c0c)',
+   tc:'#fff', ts:'0 1px 3px rgba(0,0,0,.8)',
+   boxBg:'rgba(0,0,0,.5)', boxBr:'4px',
+   hl:'#fff', hls:'0 1px 3px rgba(0,0,0,.8)', anim:'none'},
+  {id:'focus',    name:'Karaoke',    fl:'Poppins', // Satzschreibung, aktives Wort in runder violetter Pill (Captions-App-Karaoke)
+   font:"'Poppins'", fw:'800',
+   thumbBg:'linear-gradient(160deg,#0e0818,#100a20)',
+   tc:'#fff', ts:'0 2px 8px rgba(0,0,0,.6)',
+   hlPillBg:'#7c3aed', hlc:'#fff', hls:'none', anim:'scale'},
+  {id:'headline', name:'Headline',   fl:'Anton', // Schmale fette Caps mit Kontur — ruhiger News-/Doku-Look ohne Wort-Hervorhebung
    font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px', fs:'1.05em',
    thumbBg:'linear-gradient(160deg,#1a0505,#0d0202)',
    tc:'#fff', ts:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
-   hl:'#fff', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000,0 0 14px rgba(255,255,255,.7)',
-   anim:'scale', cstroke:'#000', badge:'🚀'},
-  {id:'pulse',    name:'Flux',       fl:'Montserrat', // Neon-green highlight box pops behind the spoken word — the classic trending word-by-word karaoke look
-   font:"'Montserrat'", fw:'900', tt:'uppercase',
-   thumbBg:'linear-gradient(160deg,#001a10,#000d08)',
-   tc:'#fff', ts:'-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000',
-   hlPillBg:'#00ff85', hlc:'#00220f', hls:'none', anim:'flash', cstroke:'#000', badge:'🟢'},
-  {id:'impact2',  name:'Punch',      fl:'Bebas Neue', // "Punchy and dynamic"
-   font:"'Bebas Neue'", fw:'400', tt:'uppercase',
-   thumbBg:'linear-gradient(160deg,#080808,#151515)',
-   tc:'#fff', ts:'3px 3px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000',
-   hl:'#facc15', hls:'3px 3px 0 #000,0 0 18px rgba(250,204,21,.7)', anim:'punch', cstroke:'#000', badge:'🔥'},
-  {id:'stack',    name:'Ledger',     fl:'DM Sans', // "Clean, analytical edits"
+   hl:'#fff', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
+   anim:'none', cstroke:'#000'},
+  {id:'stack',    name:'Dark Box',   fl:'DM Sans', // Caps auf dunkler Box, aktives Wort gelb
    font:"'DM Sans'", fw:'700', tt:'uppercase',
    thumbBg:'linear-gradient(160deg,#050505,#111)',
    tc:'#fff', ts:'1px 1px 5px rgba(0,0,0,.9)',
    boxBg:'rgba(0,0,0,.72)', boxBr:'6px',
-   hl:'#f7c204', hls:'0 0 8px rgba(247,194,4,.5)', anim:'bounce', badge:'📊'},
-  {id:'focus',    name:'Cue',        fl:'Poppins', // "Built to convert"
-   font:"'Poppins'", fw:'900',
-   thumbBg:'linear-gradient(160deg,#0e0818,#100a20)',
-   tc:'rgba(255,255,255,.92)', ts:'0 2px 8px rgba(0,0,0,.6)',
-   hlPillBg:'#7c3aed', hlc:'#fff', hls:'none', anim:'bounce', badge:'🎯'},
-  {id:'lift',     name:'Slate',      fl:'Inter', // "Corporate and clean"
-   font:"'Inter'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#07090d,#0b0e14)',
-   tc:'#fff', ts:'0 1px 6px rgba(0,0,0,.6)',
-   hl:'#60a5fa', hls:'0 0 10px rgba(96,165,250,.5)', anim:'none'},
-  {id:'evo',      name:'Vector',     fl:'Exo 2', // "Sharp professional style"
-   font:"'Exo 2'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#040404,#0d0d0d)',
-   tc:'#fff', ts:'none',
-   pill:{bg:'transparent',br:'0',p:'3px 0 3px 12px',borderLeft:'3px solid #7c3aed'},
-   hl:'#a78bfa', hls:'none', anim:'none'},
-  {id:'elevate',  name:'Poise',      fl:'Raleway', // "A premium, refined aesthetic"
-   font:"'Raleway'", fw:'300', ls:'3px', tt:'uppercase', fs:'0.75em',
-   thumbBg:'linear-gradient(160deg,#040404,#0a0a0a)',
-   tc:'#fff', ts:'none', hl:'#d1d5db', hls:'none', anim:'none'},
-  {id:'carbon',   name:'Graphite',   fl:'Space Grotesk', // Clean mono — minimal, boxed, monochrome
-   font:"'Space Grotesk'", fw:'700', tt:'uppercase', ls:'1px', fs:'.9em',
-   thumbBg:'linear-gradient(160deg,#0a0a0a,#141414)',
-   tc:'#f4f4f5', ts:'none',
-   boxBg:'rgba(255,255,255,.08)', boxBr:'8px',
-   hl:'#a3e635', hls:'none', anim:'none'},
-  {id:'ignite',   name:'Flare',      fl:'Oswald', // "Bold, electric edits"
-   font:"'Oswald'", fw:'700', tt:'uppercase',
-   thumbBg:'linear-gradient(160deg,#180000,#0a0000)',
-   tc:'#ff4444', ts:'0 0 16px rgba(255,68,68,.65)',
-   hl:'#fbbf24', hls:'0 0 18px rgba(251,191,36,.8)', anim:'glow'},
-  {id:'volt',     name:'Surge',      fl:'Anton', // "Vivid and electric"
-   font:"'Anton'", fw:'400', tt:'uppercase',
-   thumbBg:'linear-gradient(160deg,#0a0a00,#141300)',
-   tc:'#facc15', ts:'0 0 14px rgba(250,204,21,.8)',
-   hl:'#fff', hls:'0 0 20px rgba(255,255,255,.9)', anim:'flash'},
-  {id:'ember',    name:'Kindle',     fl:'Barlow Condensed', // "Warm, golden-hour tones"
-   font:"'Barlow Condensed'", fw:'800',
-   thumbBg:'linear-gradient(160deg,#1a0800,#0f0400)',
-   tc:'#fb923c', ts:'0 0 14px rgba(251,146,60,.7)',
-   hl:'#fde68a', hls:'0 0 22px rgba(253,230,138,1)', anim:'glow'},
-  {id:'tokyo',    name:'Skyline',    fl:'Anton', // Streetwear poster — heavy condensed, amber on navy
-   font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px',
-   thumbBg:'linear-gradient(160deg,#12233b,#0a1524)',
-   tc:'#ffa649', ts:'0 3px 0 rgba(0,0,0,.35)',
-   hl:'#ffffff', hls:'0 0 18px rgba(255,166,73,.7)', anim:'punch', badge:'🗼'},
-  {id:'neon',     name:'Vivid',      fl:'Space Grotesk', // "Vibrant neon style"
+   hl:'#f7c204', hls:'1px 1px 5px rgba(0,0,0,.9)', anim:'scale'},
+  {id:'neon',     name:'Neon',       fl:'Space Grotesk', // Dezentes Neon: weißer Text mit kühlem Schein, aktives Wort hellblau (statisch, kein Pulsieren)
    font:"'Space Grotesk'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#000805,#000d0a)',
-   tc:'#00ff88', ts:'0 0 10px rgba(0,255,136,.5)',
-   hl:'#00ffcc', hls:'0 0 16px rgba(0,255,204,.9)', anim:'glow'},
-  {id:'y2k',      name:'Pixel',      fl:'VT323', // "That digicam aesthetic"
-   font:"'VT323'", fw:'400', ls:'1px', fs:'1.3em',
-   thumbBg:'linear-gradient(160deg,#000205,#00040a)',
-   tc:'#00ff88', ts:'0 0 8px rgba(0,255,136,.6)',
-   hl:'#ff00aa', hls:'0 0 14px rgba(255,0,170,.8)', anim:'flash', badge:'⚡'},
-  {id:'chrome',   name:'Mercury',    fl:'Montserrat', // Coolvetica-sleek — brushed silver gradient
-   font:"'Montserrat'", fw:'900', tt:'uppercase', ls:'.5px',
-   thumbBg:'linear-gradient(160deg,#0c0c10,#17171d)',
-   tg:'linear-gradient(180deg,#ffffff,#9aa3ad)', ts:'0 2px 10px rgba(0,0,0,.55)',
-   hl:'#ffffff', hls:'0 0 20px rgba(255,255,255,.85)', anim:'scale', badge:'🪙'},
-  {id:'prime',    name:'Nova',       fl:'Poppins', // "Futuristic and modern" — Bold + Cyan-Script-Akzent (wie Referenz)
-   font:"'Poppins'", fw:'800',
-   thumbBg:'linear-gradient(160deg,#0b1016,#10161e)',
-   tc:'#fff', ts:'0 2px 12px rgba(0,0,0,.6)',
-   hl:'#7df3ff', hlFont:"'Caveat'", hlItalic:true, hls:'0 0 16px rgba(125,243,255,.55)', anim:'scale'},
-  {id:'prismpro', name:'Aurora',     fl:'Montserrat', // "Bright, minimal aesthetic"
-   font:"'Montserrat'", fw:'900',
-   thumbBg:'linear-gradient(160deg,#040408,#080510)',
-   tg:'linear-gradient(90deg,#a78bfa,#60a5fa)', ts:'none',
-   hlg:'linear-gradient(90deg,#f9a8d4,#a78bfa)', anim:'scale'},
-  {id:'hush',     name:'Velvet',     fl:'Inter', // Soft black rounded pill, understated lower-third subtitle look
-   font:"'Inter'", fw:'600',
-   thumbBg:'linear-gradient(160deg,#171717,#0c0c0c)',
-   tc:'#fff', ts:'none',
-   boxBg:'rgba(20,20,20,.68)', boxBr:'22px',
-   hl:'#fff', hls:'none', anim:'none', badge:'📱'},
-  {id:'bloom',    name:'Petal',      fl:'Playfair Display', // "A soft, dewy aesthetic"
-   font:"'Playfair Display'", fw:'700', tt:'uppercase', ls:'1px',
-   thumbBg:'linear-gradient(160deg,#2a1620,#14090f)',
-   tc:'#fff', ts:'0 2px 18px rgba(249,168,212,.45)',
-   hl:'#f9a8d4', hlFont:"'Caveat'", hlItalic:true, hls:'0 0 22px rgba(249,168,212,.9)', anim:'glow', badge:'✨'},
-  {id:'sonnet',   name:'Verse',      fl:'Playfair Display', // "Soft, poetic style" — Serif, aktives Wort kursiv (wie Referenz)
-   font:"'Playfair Display'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#141217,#0b0a0e)',
-   tc:'#e9e4f2', ts:'0 2px 10px rgba(0,0,0,.6)',
-   hl:'#fff', hlItalic:true, hls:'0 1px 12px rgba(255,255,255,.35)', anim:'none'},
-  {id:'editorial',name:'Folio',      fl:'Playfair Display', // Magazine-minimal — elegant serif, italic accent
+   thumbBg:'linear-gradient(160deg,#03080d,#060d14)',
+   tc:'#f0f9ff', ts:'0 0 6px rgba(56,189,248,.55),0 0 16px rgba(56,189,248,.3)',
+   hl:'#7dd3fc', hls:'0 0 8px rgba(125,211,252,.85),0 0 18px rgba(56,189,248,.5)', anim:'none'},
+  {id:'editorial',name:'Elegant',    fl:'Playfair Display', // Edle Serif (Luxus/Lifestyle), aktives Wort kursiv in Gold
    font:"'Playfair Display'", fw:'700',
    thumbBg:'linear-gradient(160deg,#111114,#0a0a0c)',
    tc:'#f6f5f3', ts:'0 2px 10px rgba(0,0,0,.5)',
-   hl:'#c9a86a', hlItalic:true, hls:'none', anim:'none', badge:'✦'},
-  {id:'paper2',   name:'Parchment',  fl:'Playfair Display', // "Moody literary vibes"
-   font:"'Playfair Display'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#171310,#0b0908)',
-   tc:'#1c1917', ts:'none',
-   boxBg:'#f5f1e8', boxBr:'4px',
-   hl:'#9a3412', hls:'none', anim:'none', badge:'📖'},
-  {id:'align',    name:'Monogram',   fl:'Playfair Display', // "Polished, for luxury edits"
-   font:"'Playfair Display'", fw:'700', tt:'uppercase', ls:'2px', fs:'0.85em',
-   thumbBg:'linear-gradient(160deg,#12100a,#0a0906)',
-   tc:'#f5f5f4', ts:'none',
-   hl:'#eab308', hls:'0 0 14px rgba(234,179,8,.6)', anim:'none'},
-  {id:'muse',     name:'Ivy',        fl:'Caveat', // Elegant script — flowing, like "fonts of the week"
-   font:"'Caveat'", fw:'700', fs:'1.25em',
-   thumbBg:'linear-gradient(160deg,#160f14,#0c080b)',
-   tc:'#f4ece6', ts:'0 2px 12px rgba(0,0,0,.55)',
-   hl:'#e7b6c8', hls:'0 0 18px rgba(231,182,200,.7)', anim:'glow', badge:'🖋️'},
-  {id:'linen',    name:'Alabaster',  fl:'DM Sans', // "Calm and elevated"
-   font:"'DM Sans'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#14110c,#0b0a07)',
-   tc:'#e7e5e4', ts:'0 1px 8px rgba(0,0,0,.5)',
-   hl:'#d6b26e', hls:'none', anim:'none'},
-  {id:'sketch',   name:'Doodle',     fl:'Kalam', // "Playful and artistic" — Handschrift + Kringel ums aktive Wort (wie Referenz)
-   font:"'Kalam'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#101418,#0a0d10)',
-   tc:'#fff', ts:'1px 2px 0 rgba(0,0,0,.5)',
-   hl:'#efe7d8', hlFont:"'Barlow Condensed'", hlUpper:true, circle:true, hls:'none', anim:'none'},
-  {id:'chalk',    name:'Crayon',     fl:'Kalam', // "A hand-drawn, tactile feel"
-   font:"'Kalam'", fw:'700',
-   thumbBg:'linear-gradient(160deg,#0e0e0e,#171717)',
-   tc:'#f0f0ee', ts:'0 0 5px rgba(240,240,238,.2)',
-   hl:'#fef08a', hls:'0 0 10px rgba(254,240,138,.6)', anim:'wobble'},
-  {id:'marker',   name:'Swatch',     fl:'Kalam', // Creator-casual — handwriting + yellow marker bar
+   hl:'#d4b26f', hlItalic:true, hls:'0 2px 10px rgba(0,0,0,.5)', anim:'none'},
+  {id:'marker',   name:'Marker',     fl:'Kalam', // Handschrift, locker — gelber Textmarker hinter dem aktiven Wort
    font:"'Kalam'", fw:'700',
    thumbBg:'linear-gradient(160deg,#0f0f12,#17171b)',
    tc:'#ffffff', ts:'0 1px 6px rgba(0,0,0,.5)',
-   hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'wobble', badge:'🖍️'},
+   hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'none'},
 ];
+// Entfernte bzw. zusammengelegte Presets (Kuratierung 2026) → nächstliegender behaltener Look.
+var STYLE_ALIASES = {
+  amplify: 'hormozi', impact2: 'hormozi', volt: 'hormozi',
+  pulse: 'boxkara',
+  evo: 'lift', prime: 'lift',
+  linen: 'minimal',
+  carbon: 'stack',
+  tokyo: 'headline', chrome: 'classic',
+  ignite: 'neon', ember: 'neon', y2k: 'neon', prismpro: 'neon',
+  elevate: 'editorial', bloom: 'editorial', sonnet: 'editorial', align: 'editorial',
+  paper2: 'tiktok',
+  muse: 'marker', sketch: 'marker', chalk: 'marker'
+};
+// Style-ID beim Laden auflösen (gemerkter Style, Projekt, Autosave, Brand-Default): Aliase folgen.
+function resolveStyleId(id) {
+  id = String(id == null ? '' : id);
+  return Object.prototype.hasOwnProperty.call(STYLE_ALIASES, id) ? STYLE_ALIASES[id] : id;
+}
 
 // ═══════════════════════════════════════
 // STATE
@@ -1559,7 +1469,7 @@ var STYLES = [
 // Standard-Style für neue Nutzer: Hormozi (schnell im Export, modern, sehr gut lesbar). Früher „Petal“ —
 // dessen große Blur-Glows machten den Export bis 6× langsamer. Eine bewusste frühere Wahl bleibt erhalten.
 var DEFAULT_STYLE   = 'hormozi', STYLE_KEY = 'capivo.style';
-var activeId        = (function(){ try { return (typeof localStorage !== 'undefined' && localStorage.getItem(STYLE_KEY)) || DEFAULT_STYLE; } catch (e) { return DEFAULT_STYLE; } })();
+var activeId        = (function(){ try { return resolveStyleId((typeof localStorage !== 'undefined' && localStorage.getItem(STYLE_KEY)) || DEFAULT_STYLE); } catch (e) { return DEFAULT_STYLE; } })();
 var capPos          = 'bottom';
 var capVOff         = 20;   // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position — Default etwas höher, damit Captions nicht mit UI-Elementen der Plattformen (Beschreibung, Like-Leiste) kollidieren
 var showSafeZone     = false; // Safe-Zone-Anzeige (Reels-UI-Bereich) an/aus
@@ -2699,7 +2609,11 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   var widest = 0;
   words.forEach(function(w){ widest = Math.max(widest, measure(w, px)); });
   var epx = px;
-  if (widest > maxW) epx = Math.max(floor, Math.floor(px * maxW / widest * 10) / 10);
+  // Einzelnes überlanges Wort (eigener Block dank Zeichenlimit) bei ≥ 2 Zeilen: zuerst an Wortfugen trennen
+  // („Rindfleisch-/verarbeitungsbetriebe“) statt sofort auf eine Zeile zu schrumpfen — die Schleife unten
+  // verkleinert nur so weit, bis die Teile in die Zeilenzahl passen.
+  var hyphFirst = words.length === 1 && (lines || 0) >= 2;
+  if (widest > maxW) epx = Math.max(floor, Math.floor(px * Math.min(1, maxW * (hyphFirst ? lines * 0.92 : 1) / widest) * 10) / 10);
   var res = layoutAt(epx);
   // Höhe: Block darf nicht mehr als ~40 % des Rahmens belegen (sonst ragt z. B. bei Position „Bottom“
   // die erste Zeile oben aus dem Bild) → weiter verkleinern, gleiche 55-%-Untergrenze.
@@ -4092,6 +4006,7 @@ function renderWPills() {
 // ═══════════════════════════════════════
 // fromEditor: Aufruf aus applyCustomStyle — dann die Regler NICHT neu befüllen (sie sind die Quelle).
 function selectStyle(id, fromEditor) {
+  id = resolveStyleId(id); // entfernte Preset-IDs (alte Links/Aufrufer) → nächstliegender Look
   var prevId = activeId;
   activeId = id;
   if (id !== 'custom') { try { localStorage.setItem(STYLE_KEY, id); } catch (e) {} } // Custom lebt nur in der Sitzung
@@ -4379,7 +4294,7 @@ function seedCustomFields(st) {
   csSetVal('csBoxC', bx ? bx.hex : '#000000');
   csSetVal('csBoxO', bx ? Math.max(10, Math.min(100, Math.round(bx.a * 20) * 5)) : 70);
   csSetVal('csHlType', st.hlPillBg ? 'pill' : 'color');
-  csSetVal('csAnim', st.anim || 'none');
+  csSetVal('csAnim', st.anim === 'wobble' ? 'bounce' : (st.anim || 'none')); // „Wobble“ gibt es nicht mehr → Lift (gleiche ruhige Bewegung)
   var gl = parseTextShadows(st.hls).filter(function(l){ return l.blur > 0 && !l.x && !l.y; })[0];
   csSetVal('csGlowInt', gl ? Math.min(30, Math.round(gl.blur)) : 14);
   var gOn = csEl('csGlow'); if (gOn && typeof gOn.checked === 'boolean') gOn.checked = !!gl;
@@ -5784,7 +5699,7 @@ function projectPayload() {
 //    lokal gelöscht (Grabstein) → Definition als 'custom' laden statt das Template wiederzubeleben
 //  - sonstige unbekannte ID ohne Definition → sauberer Fallback auf Standard
 function restoreSavedStyle(p) {
-  var id = String(p.style), def = (p.styleDef && typeof p.styleDef === 'object') ? sanitizeStyle(p.styleDef) : null;
+  var id = resolveStyleId(p.style), def = (p.styleDef && typeof p.styleDef === 'object') ? sanitizeStyle(p.styleDef) : null;
   function asCustom() {
     var cs = def; cs.id = 'custom'; cs.name = 'My style'; cs.badge = '❤️';
     if (!cs.thumbBg) cs.thumbBg = CS_THUMB_BG;
@@ -8143,13 +8058,13 @@ function fillTextWithShadow(ctx, text, x, y, shadowStr, scale) {
 }
 // Keyframes der @keyframes captly-* (0.34s ease) — reproduziert die Wort-Pop-Animation beim Highlight-
 // Wechsel im Export, den der Canvas (anders als DOM/CSS) sonst komplett ignoriert.
-var ANIM_KEYFRAMES = {
-  bounce: [[0,{ty:0,sx:1,sy:1}],[40,{ty:-8,sx:1.12,sy:1.12}],[70,{ty:-2,sx:1.04,sy:1.04}],[100,{ty:0,sx:1,sy:1}]],
-  scale:  [[0,{sx:1,sy:1}],[40,{sx:1.25,sy:1.25}],[100,{sx:1,sy:1}]],
-  flash:  [[0,{op:1}],[40,{op:.1}],[80,{op:.95}],[100,{op:1}]],
-  glow:   [[0,{bright:1,sat:1}],[50,{bright:2.2,sat:1.5}],[100,{bright:1,sat:1}]],
-  punch:  [[0,{sx:1,sy:1}],[25,{sx:.8,sy:.8}],[60,{sx:1.22,sy:1.22}],[100,{sx:1,sy:1}]],
-  wobble: [[0,{rot:0}],[25,{rot:-4}],[75,{rot:4}],[100,{rot:0}]]
+var ANIM_KEYFRAMES = { // ruhig, s. CSS — Lift (bounce/wobble), Pop (scale), Punch, Fade (flash), Glow
+  bounce: [[0,{ty:4,sx:1,sy:1}],[60,{ty:-1,sx:1.03,sy:1.03}],[100,{ty:0,sx:1,sy:1}]],
+  scale:  [[0,{sx:1,sy:1}],[45,{sx:1.08,sy:1.08}],[100,{sx:1,sy:1}]],
+  flash:  [[0,{op:.45}],[100,{op:1}]],
+  glow:   [[0,{bright:1,sat:1}],[50,{bright:1.25,sat:1}],[100,{bright:1,sat:1}]],
+  punch:  [[0,{sx:1,sy:1}],[45,{sx:1.12,sy:1.12}],[100,{sx:1,sy:1}]],
+  wobble: [[0,{ty:4,sx:1,sy:1}],[60,{ty:-1,sx:1.03,sy:1.03}],[100,{ty:0,sx:1,sy:1}]]
 };
 var ANIM_DUR = 0.34;
 function animState(anim, elapsed) {
@@ -8440,8 +8355,8 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
           var spr = activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt);
           ctx.save();
           if (animSt) {
-            var pvx2 = x + wo.w / 2, pvy2 = y - fsS * 0.32 - animSt.ty * scale;
-            ctx.translate(pvx2, pvy2);
+            var pvx2 = x + wo.w / 2, pvy2 = y - fsS * 0.32;
+            ctx.translate(pvx2, pvy2 + animSt.ty * scale); // translateY wie im CSS (Lift), dann skalieren um die Wortmitte
             if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
             ctx.scale(animSt.sx, animSt.sy);
             ctx.translate(-pvx2, -pvy2);
@@ -8455,8 +8370,8 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
         }
         ctx.save();
         if (animSt) {
-          var pvx = x + wo.w / 2, pvy = y - fsS * 0.32 - animSt.ty * scale;
-          ctx.translate(pvx, pvy);
+          var pvx = x + wo.w / 2, pvy = y - fsS * 0.32;
+          ctx.translate(pvx, pvy + animSt.ty * scale); // translateY wie im CSS (Lift), dann skalieren um die Wortmitte
           if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
           ctx.scale(animSt.sx, animSt.sy);
           ctx.translate(-pvx, -pvy);
@@ -8536,6 +8451,8 @@ var SHOW_SAMPLES = ['this changes everything','wait for it','the secret nobody t
 // Liste versucht JEDE Karte beim Scrollen ihr Video zu laden — das sind ~30 vergebliche
 // 404-Anfragen, weil bisher nur ein Loop generiert ist. Neue Videos hier eintragen.
 var SHOWCASE_VIDEOS = ['bloom'];
+// Style → Foto unter assets/showcase/ (Fotos sind generisch; neue/umbenannte Presets leihen sich eins)
+var SHOWCASE_PHOTO = { hormozi: 'prismpro', boxkara: 'sketch', minimal: 'bloom', tiktok: 'chrome', beast: 'impact2', popone: 'carbon' };
 function renderShowcase() {
   var row = document.getElementById('showcaseRow');
   if (!row) return;
@@ -8548,9 +8465,8 @@ function renderShowcase() {
   // bleibt nach Trend-Popularität sortiert). Hier zählt der erste Eindruck: einladende, freundliche
   // Fotos zuerst; ein paar sehr intensive "Schock-Gesicht"-Fotos wirken sonst eher abschreckend als
   // einladend und stehen deshalb ganz hinten (weiterhin per Scroll erreichbar, nur nicht "above the fold").
-  var SHOWCASE_ORDER = ['classic','prismpro','marker','sketch','bloom','lift','chrome','carbon','elevate','impact2','editorial',
-    'paper2','align','linen','muse','hush','tokyo','ember','evo','stack','pulse','chalk','sonnet','y2k',
-    'volt','focus','prime','neon','amplify','headline','ignite'];
+  var SHOWCASE_ORDER = ['classic','hormozi','boxkara','minimal','lift','tiktok','editorial','marker','hush','stack',
+    'beast','popone','focus','neon','headline'];
   var showcaseStyles = SHOWCASE_ORDER.map(function(id){ return STYLES.find(function(s){ return s.id === id; }); })
     .filter(function(s){ return s && s.id !== 'custom' && !s._tpl; });
   showcaseStyles.forEach(function(s, i) {
@@ -8565,7 +8481,8 @@ function renderShowcase() {
     // thumbBg-Gradient + eine abstrakte Sprecher-Silhouette zurück statt kaputt zu wirken.
     var photo = document.createElement('img'); photo.className = 'show-photo';
     photo.loading = 'lazy'; photo.alt = '';
-    photo.src = 'assets/showcase/' + s.id + '.jpg';
+    var pk = SHOWCASE_PHOTO[s.id] || s.id; // Foto-Datei (kuratierte Styles nutzen Fotos ausgemusterter Presets)
+    photo.src = 'assets/showcase/' + pk + '.jpg';
     photo.onerror = function(){ this.style.display = 'none'; card.classList.add('no-photo'); };
     var face = document.createElement('div'); face.className = 'show-face';
     face.style.animationDelay = (i * 90) + 'ms';
@@ -8587,11 +8504,11 @@ function renderShowcase() {
     // Nur für Styles aus SHOWCASE_VIDEOS; ohne Loop bleibt einfach das Foto stehen.
     // Muss VOR face/vig/grain/cap/name eingehängt werden, damit die Overlays sichtbar bleiben,
     // und braucht opacity statt display:none, sonst hat es keine Geometrie fürs IntersectionObserver.
-    if (!reduceMotion && typeof IntersectionObserver !== 'undefined' && SHOWCASE_VIDEOS.indexOf(s.id) >= 0) {
+    if (!reduceMotion && typeof IntersectionObserver !== 'undefined' && SHOWCASE_VIDEOS.indexOf(pk) >= 0) {
       var video = document.createElement('video'); video.className = 'show-video';
       video.muted = true; video.loop = true; video.playsInline = true; video.preload = 'none';
-      video.setAttribute('poster', 'assets/showcase/' + s.id + '.jpg');
-      video.dataset.src = 'assets/showcase/' + s.id + '.mp4';
+      video.setAttribute('poster', 'assets/showcase/' + pk + '.jpg');
+      video.dataset.src = 'assets/showcase/' + pk + '.mp4';
       video.onerror = function(){ this.remove(); };
       video.oncanplay = function(){ this.style.opacity = '1'; photo.style.opacity = '0'; };
       card.appendChild(video);
@@ -8996,7 +8913,7 @@ function toggleBrandTpl(id) {
 // Templates anwenden — vorher kam nach einem Reload zwar der Template-LOOK zurück, aber Größe/Position/
 // Wörter pro Caption fielen auf die Standardwerte (Template-Layout wurde nur beim Anklicken gesetzt).
 function applyBrandOnOpen() {
-  var bid = brandTplId();
+  var bid = resolveStyleId(brandTplId());
   if (bid && STYLES.find(function(x){ return x.id === bid; })) activeId = bid;
   var st = STYLES.find(function(x){ return x.id === activeId; });
   if (st && st._tpl) { _presetPrevLayout = null; applyTemplateSettings(st._tpl); }
@@ -9012,6 +8929,7 @@ function openEditor() {
   if (_showcaseCapTimer) { clearInterval(_showcaseCapTimer); _showcaseCapTimer = null; }
   if (_showcaseIO) _showcaseIO.disconnect();
   loadTemplates(); // gespeicherte Templates in den Picker einhängen
+  activeId = resolveStyleId(activeId); // entferntes Preset → nächstliegender Look
   if (!STYLES.find(function(x){ return x.id === activeId; })) activeId = DEFAULT_STYLE; // gemerkter Style existiert nicht mehr
   applyBrandOnOpen(); // Brand-Template (bzw. Layout des gemerkten Templates) für das neue Video
   switchTab('captions');
