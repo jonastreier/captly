@@ -72,7 +72,7 @@ paid) ist im Proxy gekapselt → wenige Zeilen.
 
 Nach Whisper large-v3 kann das Frontend das Transkript an **`/api/polish`** (Vercel,
 [`api/polish.js`](api/polish.js)) bzw. **`polish.php`** (PHP-Hosting) schicken. Ein LLM auf Groq
-(`openai/gpt-oss-120b`, Fallback `llama-3.3-70b-versatile`, gleicher `GROQ_API_KEY`) korrigiert **nur**
+(`openai/gpt-oss-120b`, Fallback `openai/gpt-oss-20b`, gleicher `GROQ_API_KEY`) korrigiert **nur**
 offensichtliche Erkennungsfehler: verhörte Wörter (v. a. Namen/Marken/Orte aus „Names & terms“),
 Rechtschreibung, Gross-/Kleinschreibung, Satzzeichen, Satzgrenzen — kein Umformulieren, Übersetzen,
 Kürzen; Füllwörter/Dialekt bleiben, „ss“ wird nie zu „ß“.

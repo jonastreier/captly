@@ -14,7 +14,7 @@
 //     "segments": [ { "id": 0, "text": "..." }, ... ] }   // id = endliche Zahl, eindeutig; text = String
 //   Grenzen: Gesamttext (Summe aller text-Längen) ≤ 12 000 Zeichen, ≤ 1000 Segmente → sonst 413.
 // 200 → { "segments": [ { "id", "text" }, ... ],   // gleiche ids, gleiche Reihenfolge, immer vollständig
-//         "model": "openai/gpt-oss-120b" | "llama-3.3-70b-versatile" | null (nichts zu tun),
+//         "model": "openai/gpt-oss-120b" | "openai/gpt-oss-20b" | null (nichts zu tun),
 //         "changed": n,                            // Segmente mit geändertem Text
 //         "rejected": n }                          // LLM-Vorschläge, die die Prüfung nicht bestanden
 // Fehler → { "error": "..." } mit 400 (ungültiger Body), 401 login_required, 405-frei (GET = Health-Check),
@@ -22,7 +22,7 @@
 //   komplett fehlgeschlagen/unlesbar/Timeout). Bei jedem Fehler behält das Frontend das Roh-Transkript.
 // GET /api/polish → { ok: true, service: "capivo-polish", configured: bool }
 //
-// Ablauf Groq: Modell "openai/gpt-oss-120b", Fallback "llama-3.3-70b-versatile" bei 400/404/429/5xx,
+// Ablauf Groq: Modell "openai/gpt-oss-120b", Fallback "openai/gpt-oss-20b" bei 400/404/429/5xx,
 // Netzfehler oder unlesbarem JSON; temperature 0, response_format json_object; Gesamtbudget ~25 s.
 //
 // Vercel → Project → Settings → Environment Variables (dieselben wie api/transcribe.js):
@@ -31,7 +31,7 @@
 //   REQUIRE_LOGIN=1 + SUPABASE_URL + SUPABASE_ANON_KEY (optional) → nur Eingeloggte
 // Keine globalen URL/Blob nötig (die können in Tests gestubbt sein) – nur fetch + AbortSignal (Node ≥ 18).
 
-const MODELS = ['openai/gpt-oss-120b', 'llama-3.3-70b-versatile'];
+const MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MAX_BYTES = 256 * 1024;   // roher JSON-Body
 const MAX_CHARS = 12000;        // Summe aller Segment-Texte
@@ -93,6 +93,9 @@ const SYSTEM_PROMPT = [
   '- remove filler words (äh, ähm, also, halt, quasi, gell, eh, um, like), repetitions, colloquial, Swiss or dialect phrasing — keep them exactly as spoken;',
   '- change numbers between digits and words;',
   '- change "ss" to "ß". Swiss spelling uses "ss": if the input text has no "ß", the output must not contain "ß".',
+  '- "translate" Swiss German / dialect into Standard German: dialect words stay as written (e.g. "üsi", "zäme", "uf", "hüt", "zeig", "Weid", "willkomme" stay — only fix their capitalization);',
+  '- join separate words with hyphens or merge/split words (e.g. never "Highland Rinder" -> "Highland-Rinder"); use only plain ASCII hyphens if a hyphen is already in the input.',
+  '- replace a correctly recognised real word with a vocab entry just because they share a word: vocab only fixes words that SOUND like the entry and make no sense as heard ("Highland Rinder" stays "Highland Rinder"; "Highland Biff" -> "Highland Beef");',
   'Keep the language of the input. If you are not sure a change is needed, leave the text unchanged.'
 ].join('\n');
 
@@ -152,6 +155,11 @@ function acceptCorrection(orig, cand) {
   let t = cleanText(cand);
   if (!t) return null;
   if (!/[ßẞ]/.test(orig)) t = t.replace(/ẞ/g, 'SS').replace(/ß/g, 'ss');
+  // Exotische Bindestriche (U+2010/2011) → normaler; hatte das Original gar keinen Bindestrich, wird ein vom
+  // Modell neu eingefügter ("Highland Rinder" → "Highland‑Rinder") wieder zum Leerzeichen — sonst ändert sich
+  // die Wortzahl und die Wort-Timings passen nicht mehr.
+  t = t.replace(/[\u2010\u2011]/g, '-');
+  if (orig.indexOf('-') < 0) t = t.replace(/(\S)-(\S)/g, '$1 $2');
   const a = normWords(orig), b = normWords(t), n = a.length;
   if (!n || !b.length) return null;
   if (Math.abs(b.length - n) > Math.max(2, Math.floor(n * 0.15))) return null;

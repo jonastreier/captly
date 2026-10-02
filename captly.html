@@ -260,6 +260,11 @@ body.editor-open{height:100vh;overflow:hidden}
 .cs-col{width:30px;height:26px;border:none;background:none;cursor:pointer;padding:0;flex:0 0 auto}
 .cs-swatch{display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;flex:0 0 auto}
 .cs-swatch span{font-size:9px;line-height:1;color:#94909c;letter-spacing:.02em}
+/* Farbfelder immer mit sichtbarem Rand: Weiß auf weißem Panel sah sonst „leer“ aus (Nutzer-Report) */
+.cs-col::-webkit-color-swatch-wrapper{padding:2px}
+.cs-col::-webkit-color-swatch{border:1px solid #cbc4d6;border-radius:5px}
+.cs-col::-moz-color-swatch{border:1px solid #cbc4d6;border-radius:5px}
+#csGlowInt:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
 .cs-sel{margin:0!important;padding:5px 7px;font-size:11px}
 .cs-more{margin-top:8px}
 .cs-more summary{font-size:10.5px;font-weight:600;color:#7c3aed;cursor:pointer;user-select:none;list-style:none}
@@ -270,6 +275,19 @@ body.editor-open{height:100vh;overflow:hidden}
 .cs-k{font-size:10.5px;color:#66616e;min-width:64px}
 .cs-v{font-size:10px;color:#8a8494;min-width:28px;text-align:right;font-variant-numeric:tabular-nums}
 .tpl-io{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:10px}
+.tpl-status{font-size:10.5px;font-weight:600;color:#15803d;margin-top:5px;min-height:0}
+.tpl-status:empty{display:none}
+.tpl-status.warn{color:#b45309}
+/* Style-Picker-Gruppen: „My templates“ oben, darunter die Presets */
+.stile-group{flex:0 0 100%;display:flex;align-items:center;justify-content:space-between;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7c3aed;margin:4px 0 1px}
+.stile-group .sg-n{font-weight:600;color:#94909c;letter-spacing:0;text-transform:none}
+.stile-group.presets{color:#8a8494;margin-top:8px}
+.stile-empty{flex:0 0 100%;box-sizing:border-box;font-size:10.5px;line-height:1.4;color:#8a8494;border:1px dashed #d9d2e6;border-radius:8px;padding:8px 10px}
+.stile-empty a{color:#7c3aed;font-weight:600;text-decoration:none}
+.stile.just-saved{animation:stileSaved 1.6s ease}
+@keyframes stileSaved{0%,40%{box-shadow:0 0 0 4px rgba(34,197,94,.55)}100%{box-shadow:0 0 0 3px rgba(124,58,237,.18)}}
+.cap-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:1200;background:#1f1b2b;color:#fff;font:600 13px/1.3 'Inter',sans-serif;padding:10px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(20,10,40,.3);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px)}
+.cap-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .tpl-io a{color:#7c3aed;font-weight:600;text-decoration:none}
 .tpl-io a:hover{text-decoration:underline}
 #tplEditing{color:#66616e;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -863,7 +881,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div class="clbl" style="margin-top:10px">Custom style <span style="text-transform:none;letter-spacing:0;color:#94909c">· starts from the selected style</span></div>
         <div style="display:flex;gap:6px;align-items:center">
           <label class="cs-swatch" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
-          <label class="cs-swatch" title="Highlight color"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hl')"><span>Active</span></label>
+          <label class="cs-swatch" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Active</span></label>
           <select id="csFont" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('font')" title="Font">
             <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
             <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
@@ -879,16 +897,16 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button class="pos-btn" id="csShadow" type="button" onclick="toggleCsBtn(this,'stroke')" title="Soft drop shadow">Shadow</button>
         </div>
         <label class="sz-row" style="margin-top:7px;cursor:pointer">
-          <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle('hl')" style="cursor:pointer">
+          <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle('glow')" style="cursor:pointer">
           <span style="font-size:10.5px;color:#66616e;min-width:34px">Glow</span>
-          <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('hl')">
+          <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('glow')" title="Glow strength">
         </label>
         <details class="cs-more" id="csMore">
           <summary>More style options</summary>
           <div class="sz-row cs-line"><span class="cs-k">Outline</span>
             <input type="range" min="0" max="8" step="1" value="0" id="csOutlineW" oninput="applyCustomStyle('stroke')">
             <span class="cs-v" id="csOutlineDisp">0px</span>
-            <input type="color" id="csOutlineC" class="cs-col" value="#000000" title="Outline color" oninput="applyCustomStyle('stroke')"></div>
+            <input type="color" id="csOutlineC" class="cs-col" value="#000000" title="Outline color" oninput="applyCustomStyle('strokec')"></div>
           <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
             <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')">
             <span class="cs-v" id="csLsDisp">0px</span></div>
@@ -896,13 +914,12 @@ input[type=checkbox]{accent-color:#7c3aed}
             <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="applyCustomStyle('box')">
               <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
             </select>
-            <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('box')">
-            <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('box')"></div>
+            <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('boxc')">
+            <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('boxc')"></div>
           <div class="sz-row cs-line"><span class="cs-k">Highlight</span>
-            <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hl')">
+            <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hltype')" title="How the active word stands out — its color is the “Active”/“Pill” swatch above">
               <option value="color">Text color</option><option value="pill">Pill behind word</option>
-            </select>
-            <input type="color" id="csPillC" class="cs-col" value="#7c3aed" title="Pill color" oninput="applyCustomStyle('hl')"></div>
+            </select></div>
           <div class="sz-row cs-line"><span class="cs-k">Animation</span>
             <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')">
               <option value="none">None</option><option value="punch">Punch</option><option value="scale">Pop</option>
@@ -910,11 +927,12 @@ input[type=checkbox]{accent-color:#7c3aed}
               <option value="wobble">Wobble</option>
             </select></div>
         </details>
-        <div class="clbl" style="margin-top:10px">Save as template</div>
+        <div class="clbl" style="margin-top:10px">Save as template <span id="tplCount" style="text-transform:none;letter-spacing:0;color:#94909c"></span></div>
         <div style="display:flex;gap:6px;align-items:center">
-          <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)">
-          <button class="pos-btn" id="tplSaveBtn" style="flex:0 0 auto;padding:5px 10px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">💾</button>
+          <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTemplate();}">
+          <button class="pos-btn" id="tplSaveBtn" style="flex:0 0 auto;padding:5px 10px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">💾 Save</button>
         </div>
+        <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
         <div class="tpl-io">
           <span id="tplEditing" style="display:none"></span>
           <a href="#" onclick="exportTemplates(event)" title="Download your templates as a JSON file">Export templates</a>
@@ -1506,6 +1524,335 @@ function isHallucinatedChunk(words) {
   if (!words || !words.length || words.length > 14) return false;
   return HALLU_RE.test(words.map(function(w){ return w.word; }).join(' '));
 }
+// ── Sprach-Erkennung (VAD) vor der Transkription ──────────────────────────────────────────────
+// Warum: Whisper (Groq wie lokal) setzt bei einem Vorlauf ohne Sprache — Gras-Rascheln, Schritte, Wind —
+// die ersten Wörter gern auf ~0 s und verschmiert Wortzeiten über das Geräusch. Reine Energie hilft da
+// nicht (Rascheln ist so laut wie die Stimme). Wie WhisperX/Profi-Tools: zuerst Sprache finden, nur die
+// Sprache transkribieren, danach Wortzeiten auf die Sprache beschränken. Merkmale je 10-ms-Frame:
+//  (a) Stimmhaftigkeit: max. normierte Kreuzkorrelation (NCCF) über Perioden 70–400 Hz auf einem
+//      200–1800-Hz-Bandpass bei 4 kHz — Vokale sind periodisch, Rascheln/Wind/Schritte nicht;
+//  (b) Energie 300–3400 Hz je Teilband relativ zu einem adaptiven Rauschboden (Minimum-Statistik über
+//      ~2,5 s) — läuft dem Geräusch nach, wenn man vom Gras auf den Weg wechselt;
+//  (c) spektrale Flachheit je Teilband (Harmonische = Spitzen/Täler → niedrig, Rauschen ≈ 0,56), nach
+//      Überschuss über dem Rauschboden gewichtet → auch farbiges Rauschen (Wind, Rosa) zählt nicht.
+// Kombiniert zur Sprach-Wahrscheinlichkeit, Median-geglättet, Hysterese, ≥ 200 ms Sprache, Lücken < 300 ms
+// geschlossen, ±150 ms Polster. Kosten: 512er-FFT für je ZWEI Frames (Real-Trick) + NCCF bei 4 kHz →
+// 10 Min Audio deutlich unter 1 s.
+var VAD_ON = 0.35, VAD_OFF = 0.2;      // Hysterese der Sprach-Wahrscheinlichkeit
+var VAD_MIN_SPEECH = 0.2, VAD_MERGE_GAP = 0.3, VAD_PAD = 0.15; // Sekunden
+var VAD_SKIP_GAP = 1.0;   // Nicht-Sprache länger als das wird NICHT an Whisper geschickt
+var VAD_MIN_COVER = 0.02; // < 2 % Sprache → wie bisher alles senden (z. B. Musik-Clip; Whisper soll entscheiden)
+var VAD_SPACER = 0.4;     // Stille zwischen aneinandergehängten Sprach-Stücken (natürliche Pause für Whisper)
+var _vadFftT = null;
+function vadFftTables(N) {
+  var bits = Math.round(Math.log(N) / Math.LN2), rev = new Uint16Array(N), cs = new Float64Array(N / 2), sn = new Float64Array(N / 2);
+  for (var i = 0; i < N; i++) { var r = 0; for (var b = 0; b < bits; b++) r |= ((i >> b) & 1) << (bits - 1 - b); rev[i] = r; }
+  for (var k = 0; k < N / 2; k++) { cs[k] = Math.cos(2 * Math.PI * k / N); sn[k] = -Math.sin(2 * Math.PI * k / N); }
+  return { N: N, rev: rev, cs: cs, sn: sn };
+}
+// In-place Radix-2-FFT (iterativ, vorberechnete Twiddles) — klein genug, um sie selbst mitzubringen.
+function vadFft(re, im, T) {
+  var N = T.N, rev = T.rev, cs = T.cs, sn = T.sn, i, j, t;
+  for (i = 0; i < N; i++) { j = rev[i]; if (j > i) { t = re[i]; re[i] = re[j]; re[j] = t; t = im[i]; im[i] = im[j]; im[j] = t; } }
+  for (var size = 2; size <= N; size <<= 1) {
+    var half = size >> 1, step = N / size;
+    for (var s = 0; s < N; s += size) {
+      for (var k = 0, w = 0; k < half; k++, w += step) {
+        var a = s + k, b2 = a + half, wr = cs[w], wi = sn[w];
+        var xr = re[b2] * wr - im[b2] * wi, xi = re[b2] * wi + im[b2] * wr;
+        re[b2] = re[a] - xr; im[b2] = im[a] - xi; re[a] += xr; im[a] += xi;
+      }
+    }
+  }
+}
+// Gefensterter Sinc-Tiefpass + Dezimierung (Ausgaberate outSr; Grenzfrequenz fc in Hz).
+function vadDecimate(x, sr, outSr, fc) {
+  var step = sr / outSr, n = Math.floor(x.length / step), out = new Float32Array(n), H = 8, len = x.length;
+  var taps = new Float64Array(2 * H + 1), sum = 0, k;
+  for (k = -H; k <= H; k++) {
+    var v = k === 0 ? 2 * fc / sr : Math.sin(2 * Math.PI * fc / sr * k) / (Math.PI * k);
+    v *= 0.54 + 0.46 * Math.cos(Math.PI * k / (H + 1));
+    taps[k + H] = v; sum += v;
+  }
+  for (k = 0; k < taps.length; k++) taps[k] /= sum;
+  var istep = step === Math.floor(step) ? step : 0; // 16→8→4 kHz: ganzzahlig, kein Runden pro Sample
+  for (var i = 0; i < n; i++) {
+    var c = istep ? i * istep : Math.round(i * step), acc = 0;
+    if (c - H >= 0 && c + H < len) { acc = taps[H] * x[c]; for (k = 1; k <= H; k++) acc += taps[H + k] * (x[c - k] + x[c + k]); }
+    else { for (k = 0; k <= 2 * H; k++) { var q = c - H + k; if (q >= 0 && q < len) acc += taps[k] * x[q]; } }
+    out[i] = acc;
+  }
+  return out;
+}
+// 2. Ordnung Butterworth-Hochpass (RBJ-Biquad), in place.
+function vadHighpass(x, sr, f0, Q) {
+  var w0 = 2 * Math.PI * f0 / sr, cw = Math.cos(w0), al = Math.sin(w0) / (2 * Q), a0 = 1 + al;
+  var b0 = (1 + cw) / 2 / a0, b1 = -(1 + cw) / a0, b2 = b0, a1 = -2 * cw / a0, a2 = (1 - al) / a0;
+  var x1 = 0, x2 = 0, y1 = 0, y2 = 0;
+  for (var i = 0; i < x.length; i++) {
+    var xi = x[i], y = b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
+    x2 = x1; x1 = xi; y2 = y1; y1 = y; x[i] = y;
+  }
+}
+function vadClamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
+// Pro 10-ms-Frame eine Sprach-Wahrscheinlichkeit 0..1 (exportiert für Tests/Diagnose).
+async function speechProbabilities(audio, sr) {
+  sr = sr || 16000;
+  if (!audio || sr < 8000) return new Float32Array(0);
+  var nF = Math.floor(audio.length / (sr * 0.01));
+  var P = new Float32Array(Math.max(0, nF));
+  if (nF < 5) return P;
+  var x8 = sr === 8000 ? Float32Array.from(audio) : vadDecimate(audio, sr, 8000, 3700);
+  await yieldToUI();
+  // ── (a) Stimmhaftigkeit: Bandpass 200 Hz (4. Ordnung) … 1800 Hz bei 4 kHz, NCCF alle 20 ms ──
+  var hp = Float32Array.from(x8);
+  vadHighpass(hp, 8000, 200, 0.5412); vadHighpass(hp, 8000, 200, 1.3066);
+  var x4 = vadDecimate(hp, 8000, 4000, 1800); hp = null;
+  var n4 = x4.length, cum = new Float64Array(n4 + 1);
+  for (var i = 0; i < n4; i++) cum[i + 1] = cum[i] + x4[i] * x4[i];
+  var W = 120, TMIN = 10, TMAX = 57, voi = new Float32Array(nF), f, k;
+  function nccf(s0, e0, tau) {
+    var acc = 0, q = s0 + tau;
+    for (var m = 0; m < W; m++) acc += x4[s0 + m] * x4[q + m];
+    return acc > 0 ? acc / Math.sqrt(e0 * (cum[q + W] - cum[q]) + 1e-20) : 0;
+  }
+  for (f = 0; f < nF; f += 2) {
+    var s0 = f * 40 - 40;
+    if (s0 < 0 || s0 + W + TMAX + 1 > n4) continue;
+    var e0 = cum[s0 + W] - cum[s0];
+    if (!(e0 > 1e-9 * W)) continue;
+    // grob jede 2. Periode, dann ±1 verfeinern (halbiert die Kosten, Spitze bleibt erhalten)
+    var best = 0, bt = TMIN;
+    for (var tau = TMIN; tau <= TMAX; tau += 2) { var r = nccf(s0, e0, tau); if (r > best) { best = r; bt = tau; } }
+    var r1 = nccf(s0, e0, bt - 1 < TMIN ? TMIN : bt - 1), r2 = nccf(s0, e0, bt + 1);
+    voi[f] = Math.max(best, r1, r2);
+    if (f % 6000 === 5998) await yieldToUI();
+  }
+  for (f = 1; f < nF; f += 2) voi[f] = Math.max(voi[f - 1], f + 1 < nF ? voi[f + 1] : 0);
+  x4 = null; cum = null;
+  // ── (b)+(c) Spektrum: 512er-FFT (64 ms Hann) bei 8 kHz alle 20 ms, zwei Frames pro komplexer FFT ──
+  var N = 512, T = _vadFftT || (_vadFftT = vadFftTables(N)), win = new Float64Array(N);
+  for (k = 0; k < N; k++) win[k] = 0.5 - 0.5 * Math.cos(2 * Math.PI * (k + 0.5) / N);
+  var KLO = 19, NB = 10, BW = 20; // Bins 19..218 = 297–3406 Hz, 10 Teilbänder à 312 Hz
+  var nG = (nF + 1) >> 1;         // Spektral-Frame g gehört zu den 10-ms-Frames 2g und 2g+1
+  var E = new Float32Array(nG * NB), FL = new Float32Array(nG * NB), rms = new Float32Array(nG);
+  var re = new Float64Array(N), im = new Float64Array(N), pw = new Float64Array(BW), n8 = x8.length;
+  for (var g = 0; g < nG; g += 2) {
+    for (var h = 0; h < 2; h++) {
+      var buf = h ? im : re, st = (g + h) * 160 + 80 - N / 2, ss = 0, inside = g + h < nG;
+      for (k = 0; k < N; k++) { var p = st + k, v = (inside && p >= 0 && p < n8) ? x8[p] : 0; buf[k] = v * win[k]; ss += v * v; }
+      if (inside) rms[g + h] = Math.sqrt(ss / N);
+    }
+    vadFft(re, im, T);
+    for (h = 0; h < 2 && g + h < nG; h++) {
+      for (var b = 0; b < NB; b++) {
+        var eS = 0, k0 = KLO + b * BW;
+        for (k = 0; k < BW; k++) {
+          var zr = re[k0 + k], zi = im[k0 + k], yr = re[N - k0 - k], yi = im[N - k0 - k];
+          var pv = h ? ((zi + yi) * (zi + yi) + (zr - yr) * (zr - yr)) * 0.25 : ((zr + yr) * (zr + yr) + (zi - yi) * (zi - yi)) * 0.25;
+          pw[k] = pv; eS += pv;
+        }
+        // Flachheit = geom. / arithm. Mittel; Produkt der normierten Werte statt 20 Logarithmen
+        var mean = eS / BW + 1e-20, prod = 1;
+        for (k = 0; k < BW; k++) prod *= pw[k] / mean + 1e-9;
+        E[(g + h) * NB + b] = eS; FL[(g + h) * NB + b] = Math.pow(prod, 1 / BW);
+      }
+    }
+    if (g % 6000 === 5998) await yieldToUI();
+  }
+  x8 = null;
+  // Rauschboden je Teilband: Minimum der (über 3 Spektral-Frames) geglätteten Energie in 0,5-s-Blöcken,
+  // Fenster ±2 Blöcke (~2,5 s), Bias-Korrektur (das Minimum liegt unter dem Mittel des Rauschens).
+  var BL = 25, nBlk = Math.ceil(nG / BL), NOISE_BIAS = 1.6;
+  var Es = new Float32Array(nG * NB), bmin = new Float64Array(nBlk * NB), floor = new Float64Array(nBlk * NB);
+  for (g = 0; g < nG; g++) {
+    var ga = g > 0 ? g - 1 : g, gz = g < nG - 1 ? g + 1 : g;
+    for (b = 0; b < NB; b++) Es[g * NB + b] = (E[ga * NB + b] + E[g * NB + b] + E[gz * NB + b]) / 3;
+  }
+  bmin.fill(Infinity);
+  for (g = 0; g < nG; g++) {
+    var j0 = Math.floor(g / BL);
+    for (b = 0; b < NB; b++) { var ev = Es[g * NB + b]; if (ev < bmin[j0 * NB + b]) bmin[j0 * NB + b] = ev; }
+  }
+  for (var jb = 0; jb < nBlk; jb++) for (b = 0; b < NB; b++) {
+    var mn = Infinity;
+    for (var jj = Math.max(0, jb - 2); jj <= Math.min(nBlk - 1, jb + 2); jj++) if (bmin[jj * NB + b] < mn) mn = bmin[jj * NB + b];
+    floor[jb * NB + b] = Math.max(mn * NOISE_BIAS, 1e-10);
+  }
+  // ── Kombination je Spektral-Frame, dann je 10-ms-Frame mit dessen Stimmhaftigkeit ──
+  var snr = new Float64Array(NB), Sg = new Float32Array(nG), Fg = new Float32Array(nG);
+  for (g = 0; g < nG; g++) {
+    if (rms[g] < 1e-4) { Sg[g] = -1; continue; } // digitale Stille
+    var jf = Math.floor(g / BL), wsum = 0, fsum = 0;
+    for (b = 0; b < NB; b++) {
+      var sv = Es[g * NB + b] / floor[jf * NB + b]; snr[b] = sv;
+      var wgt = sv - 1.5; if (wgt > 0) { wsum += wgt; fsum += wgt * FL[g * NB + b]; }
+    }
+    // Mittel der 3 stärksten Teilbänder (Sprache sitzt in wenigen Bändern, Rascheln ist breit)
+    var t1 = 0, t2 = 0, t3 = 0;
+    for (b = 0; b < NB; b++) { var x = snr[b]; if (x > t1) { t3 = t2; t2 = t1; t1 = x; } else if (x > t2) { t3 = t2; t2 = x; } else if (x > t3) t3 = x; }
+    var snrDb = 10 * Math.log(Math.max(1e-6, (t1 + t2 + t3) / 3)) / Math.LN10;
+    var fw = wsum > 0.5 ? fsum / wsum : 0.6;
+    Sg[g] = vadClamp01((snrDb - 5) / 10); Fg[g] = vadClamp01((0.45 - fw) / 0.25);
+  }
+  for (f = 0; f < nF; f++) {
+    var gi = f >> 1;
+    P[f] = Sg[gi] < 0 ? 0 : 0.5 * vadClamp01((voi[f] - 0.4) / 0.3) + 0.3 * Sg[gi] + 0.2 * Fg[gi];
+  }
+  return P;
+}
+// Sprachbereiche [{start,end}] in Sekunden (gepolstert, sortiert, überlappungsfrei).
+async function detectSpeechRegions(audio, sr) {
+  sr = sr || 16000;
+  var P = await speechProbabilities(audio, sr), nF = P.length, dur = audio ? audio.length / sr : 0;
+  if (!nF) return [];
+  // Median über 7 Frames (70 ms): einzelne Knackser/Schritte raus, kurze Vokal-Lücken zu
+  var med = new Float32Array(nF), tmp = [];
+  for (var f = 0; f < nF; f++) {
+    tmp.length = 0;
+    for (var d = -3; d <= 3; d++) { var g = f + d; tmp.push(P[g < 0 ? 0 : g >= nF ? nF - 1 : g]); }
+    tmp.sort(function(a, b){ return a - b; });
+    med[f] = tmp[3];
+  }
+  var segs = [], on = false, s0 = 0;
+  for (f = 0; f < nF; f++) {
+    if (!on && med[f] >= VAD_ON) { on = true; s0 = f; }
+    else if (on && med[f] < VAD_OFF) { on = false; segs.push({ start: s0 * 0.01, end: f * 0.01 }); }
+  }
+  if (on) segs.push({ start: s0 * 0.01, end: nF * 0.01 });
+  var merged = [];
+  segs.forEach(function(s) {
+    var l = merged[merged.length - 1];
+    if (l && s.start - l.end < VAD_MERGE_GAP) l.end = s.end; else merged.push({ start: s.start, end: s.end });
+  });
+  var out = [];
+  merged.forEach(function(s) {
+    if (s.end - s.start < VAD_MIN_SPEECH) return;
+    var a = Math.max(0, s.start - VAD_PAD), b = Math.min(dur, s.end + VAD_PAD), l = out[out.length - 1];
+    if (l && a <= l.end) l.end = Math.max(l.end, b); else out.push({ start: a, end: b });
+  });
+  return out;
+}
+// Sprachbereiche → Spannen für die Transkription (Pausen ≤ VAD_SKIP_GAP bleiben drin, damit Whisper den
+// Satzfluss sieht). null = wie bisher alles senden: keine/kaum Sprache gefunden (< 2 %, z. B. Musik-Clip)
+// — lieber Whisper entscheiden lassen als still gar nichts liefern.
+function speechSpans(regions, dur) {
+  if (!regions || !regions.length || !(dur > 0)) return null;
+  var tot = 0;
+  regions.forEach(function(r){ tot += r.end - r.start; });
+  if (tot < VAD_MIN_COVER * dur) return null;
+  var spans = [];
+  regions.forEach(function(r) {
+    var l = spans[spans.length - 1];
+    if (l && r.start - l.end <= VAD_SKIP_GAP) l.end = Math.max(l.end, r.end);
+    else spans.push({ start: r.start, end: r.end });
+  });
+  return spans;
+}
+// Hängt die Sprach-Spannen (mit VAD_SPACER Stille dazwischen, 5-ms-Blenden gegen Knackser) zu EINER
+// Spur zusammen. map: Spur-Zeit → Original-Zeit je Stück. Die leisen Spacer sind zugleich die
+// natürlichen Schnittstellen für splitAudioChunks → jedes Upload-Stück beginnt an einem Sprach-Einsatz.
+function buildSpeechTrack(audio, sr, spans) {
+  var gapN = Math.round(VAD_SPACER * sr), fadeN = Math.round(0.005 * sr), pcs = [], total = 0;
+  spans.forEach(function(s) {
+    var a = Math.max(0, Math.round(s.start * sr)), b = Math.min(audio.length, Math.round(s.end * sr));
+    if (b > a) { total += (pcs.length ? gapN : 0) + (b - a); pcs.push({ a: a, b: b }); }
+  });
+  var out = new Float32Array(total), pos = 0, map = [];
+  pcs.forEach(function(p, k) {
+    if (k) pos += gapN;
+    var len = p.b - p.a;
+    out.set(audio.subarray(p.a, p.b), pos);
+    for (var i = 0; i < fadeN && i < len / 2; i++) { var gn = i / fadeN; out[pos + i] *= gn; out[pos + len - 1 - i] *= gn; }
+    map.push({ l0: pos / sr, l1: (pos + len) / sr, g0: p.a / sr });
+    pos += len;
+  });
+  return { samples: out, map: map };
+}
+// Wort von Spur-Zeit auf Original-Zeit. Start im Spacer → an den Anfang des folgenden Stücks (Whisper
+// setzt Wortanfänge eher zu früh); Ende wird auf das Stück des Starts begrenzt (nie über eine
+// übersprungene Pause hinweg).
+function mapTrackWord(map, w) {
+  var lo = 0, hi = map.length - 1;
+  while (lo < hi) { var mid = (lo + hi) >> 1; if (w.start < map[mid].l1) hi = mid; else lo = mid + 1; }
+  var p = map[lo], ls = Math.min(Math.max(w.start, p.l0), p.l1), le = Math.min(Math.max(w.end, ls), p.l1);
+  if (le <= ls) { ls = Math.max(p.l0, Math.min(ls, p.l1 - 0.05)); le = Math.min(p.l1, ls + 0.05); }
+  return { word: w.word, start: p.g0 + (ls - p.l0), end: p.g0 + (le - p.l0) };
+}
+// Wortzeiten auf Sprachbereiche beschränken (Sicherheitsnetz nach der Transkription):
+//  • Wort teilweise in Sprache → auf den Bereich mit der grössten Überlappung zuschneiden;
+//  • Wörter komplett ausserhalb (z. B. „Hallo“ bei 0,2 s im Rascheln-Vorlauf) → als zusammenhängender
+//    Lauf in den nächsten Sprachbereich vor dessen erstes Wort (Reihenfolge + relative Abstände bleiben,
+//    gestaucht, aber ≥ 0,1 s pro Wort); passt er nicht, ans Ende des vorherigen Bereichs; passt er dort
+//    auch nicht, werden Lauf + die ersten Wörter des Folgebereichs gemeinsam gestaucht (Ziel ~0,25 s, ≥ 0,1 s).
+var VAD_MIN_WORD = 0.1, VAD_TARGET_WORD = 0.25;
+function constrainWordsToSpeech(words, regions) {
+  if (!words || !words.length || !regions || !regions.length) return words || [];
+  var R = regions, nR = R.length, out = words.map(function(w){ return { word: w.word, start: w.start, end: w.end }; });
+  function regionOf(w) { // Bereich mit grösster Überlappung, -1 = keiner
+    var best = -1, bo = 0;
+    for (var r = 0; r < nR; r++) {
+      if (R[r].start >= w.end) break;
+      var o = Math.min(w.end, R[r].end) - Math.max(w.start, R[r].start);
+      if (o > bo + 1e-9) { bo = o; best = r; }
+    }
+    return best;
+  }
+  function nextRegion(t) { for (var r = 0; r < nR; r++) if (R[r].start >= t - 1e-9) return r; return -1; }
+  var reg = out.map(function(w) {
+    if (!(w.end > w.start)) w.end = w.start + 0.05;
+    var r = regionOf(w);
+    if (r >= 0) { w.start = Math.max(w.start, R[r].start); w.end = Math.min(w.end, R[r].end); if (w.end - w.start < 0.04) w.end = Math.min(R[r].end, w.start + 0.04); }
+    return r;
+  });
+  // Lauf [i0..i1] linear in [t0, t1] legen, relative Lage behalten; jedes Wort ≥ VAD_MIN_WORD (sonst gleichmässig)
+  function place(i0, i1, t0, t1) {
+    var a = out[i0].start, z = out[i1].end, cnt = i1 - i0 + 1, sc = z > a ? (t1 - t0) / (z - a) : 0, okLen = sc > 0;
+    for (var k = i0; k <= i1 && okLen; k++) if ((out[k].end - out[k].start) * sc < VAD_MIN_WORD - 1e-9) okLen = false;
+    for (k = i0; k <= i1; k++) {
+      if (okLen) { var s = t0 + (out[k].start - a) * sc, e = t0 + (out[k].end - a) * sc; out[k].start = s; out[k].end = e; }
+      else { var d = (t1 - t0) / cnt; out[k].start = t0 + (k - i0) * d; out[k].end = t0 + (k - i0 + 1) * d; }
+    }
+  }
+  for (var i = 0; i < out.length; ) {
+    if (reg[i] >= 0) { i++; continue; }
+    var j = i; while (j + 1 < out.length && reg[j + 1] < 0 && nextRegion(out[j + 1].start) === nextRegion(out[i].start)) j++;
+    var cnt = j - i + 1, nr = nextRegion(out[i].start), need = cnt * VAD_MIN_WORD, done = false;
+    if (nr >= 0) { // a) vor das erste Wort des Folgebereichs
+      var lim = (j + 1 < out.length && reg[j + 1] === nr) ? out[j + 1].start : R[nr].end;
+      if (lim - R[nr].start >= need - 1e-9) { place(i, j, R[nr].start, Math.min(lim, R[nr].start + Math.max(need, out[j].end - out[i].start))); done = true; }
+    }
+    var pr = nr >= 0 ? nr - 1 : nR - 1;
+    if (!done && pr >= 0) { // b) ans Ende des vorherigen Bereichs (hinter dessen letztes Wort)
+      var from = (i > 0 && reg[i - 1] === pr) ? out[i - 1].end : R[pr].start;
+      if (R[pr].end - from >= need - 1e-9) { place(i, j, Math.max(from, R[pr].end - Math.max(need, out[j].end - out[i].start)), R[pr].end); done = true; }
+    }
+    if (!done && nr >= 0) { // c) Lauf + erste Wörter des Folgebereichs gemeinsam stauchen — so viele, dass
+      // ~0,25 s pro Wort bleiben (bei komplett verschmierten Wortzeiten = lineares Umlegen auf die Sprache)
+      var m = j + 1;
+      while (m < out.length && reg[m] === nr && out[m].end - R[nr].start < (m - i + 1) * VAD_TARGET_WORD) m++;
+      if (m >= out.length || reg[m] !== nr) m--;
+      var endT = Math.max(out[m].end, R[nr].start + (m - i + 1) * VAD_MIN_WORD);
+      place(i, m, R[nr].start, endT);
+      for (var q = j + 1; q <= m; q++) reg[q] = nr;
+      done = true;
+    }
+    if (!done && pr >= 0) { // d) nach der letzten Sprache: mit den letzten Wörtern davor gemeinsam stauchen
+      var k0 = i - 1;
+      while (k0 >= 0 && reg[k0] === pr && R[pr].end - out[k0].start < (j - k0 + 1) * VAD_MIN_WORD) k0--;
+      if (k0 < 0 || reg[k0] !== pr) k0++;
+      place(k0, j, Math.min(out[k0].start, R[pr].end - (j - k0 + 1) * VAD_MIN_WORD), R[pr].end);
+      done = true;
+    }
+    for (var q2 = i; q2 <= j; q2++) reg[q2] = done ? (nr >= 0 ? nr : pr) : -1;
+    i = j + 1;
+  }
+  for (i = 1; i < out.length; i++) {
+    if (out[i].start < out[i - 1].end) out[i].start = out[i - 1].end;
+    if (out[i].end < out[i].start + 0.04) out[i].end = out[i].start + 0.04;
+  }
+  return out;
+}
 // ── Timing-Snap an die tatsächliche Sprachenergie ──
 // Whisper-Wortzeiten beginnen oft schon in der Pause davor und „kleben“ nach dem Satzende nach. Mit dem
 // 16-kHz-Audio, das wir ohnehin haben: RMS-Hüllkurve in 10-ms-Frames, Rauschboden (20. Perzentil) und
@@ -1513,7 +1860,13 @@ function isHallucinatedChunk(words) {
 // Frame (nie hinter Ende − 40 ms); Wortende in Stille → bis −300 ms zurück zum letzten stimmhaften Frame
 // (nie vor Start + 60 ms). Bei zu wenig Abstand Sprache/Rauschen (< 2×) wird nichts verändert.
 var SNAP_FRAME_SEC = 0.01, SNAP_START_MAX = 0.25, SNAP_END_MAX = 0.30;
-async function snapWordTimings(words, audio, sr) {
+// regions (optional, aus detectSpeechRegions): danach werden die Wörter per constrainWordsToSpeech auf die
+// Sprachbereiche beschränkt (Wörter im Rascheln-Vorlauf → an den echten Sprach-Einsatz).
+async function snapWordTimings(words, audio, sr, regions) {
+  var snapped = await snapWordEnergy(words, audio, sr);
+  return regions && regions.length ? constrainWordsToSpeech(snapped, regions) : snapped;
+}
+async function snapWordEnergy(words, audio, sr) {
   if (!words || !words.length || !audio || !audio.length) return words || [];
   sr = sr || 16000;
   var hop = Math.max(1, Math.round(sr * SNAP_FRAME_SEC)), nF = Math.floor(audio.length / hop);
@@ -1547,37 +1900,8 @@ async function snapWordTimings(words, audio, sr) {
       for (var b = fe - 1; b >= lo; b--) if (voiced(b)) { w.end = (b + 1) * SNAP_FRAME_SEC; break; }
     }
   });
-  // Wörter mitten in langer Stille (typisch: erstes Wort bei 0.0 s nach stummem Vorlauf): hat die ganze
-  // Wortspanne keinen stimmhaften Frame und liegt sie in einer Stille von ≥ 1 s, rückt sie an den nächsten
-  // Sprach-Einsatz. KONSERVATIV: nur, wenn höchstens 2 solche Wörter direkt vor dem Einsatz liegen (mehr
-  // sind eher Halluzinationen — dann bleibt alles, wie es ist), das Folgewort ≤ 1,5 s nach dem Einsatz
-  // beginnt und genug Platz ist (≥ 0,2 s pro Wort) — sonst würden Wörter auf 40 ms zusammengequetscht.
-  var silInfo = out.map(function(w) {
-    if (!(w.end > w.start)) return null;
-    var a0 = Math.floor(w.start / SNAP_FRAME_SEC), a1 = Math.min(nF - 1, Math.ceil(w.end / SNAP_FRAME_SEC) - 1);
-    if (a0 >= nF) return null;
-    for (var f2 = a0; f2 <= a1; f2++) if (voiced(f2)) return null;    // irgendwo stimmhaft → normales Wort
-    var lo2 = a0; while (lo2 > 0 && !voiced(lo2 - 1)) lo2--;
-    var hi2 = a1; while (hi2 < nF - 1 && !voiced(hi2 + 1)) hi2++;
-    if ((hi2 - lo2 + 1) * SNAP_FRAME_SEC < 1.0 || hi2 >= nF - 1) return null; // keine lange Stille / keine Sprache danach
-    return { onset: (hi2 + 1) * SNAP_FRAME_SEC };
-  });
-  for (var gi = 0; gi < out.length; ) {
-    if (!silInfo[gi]) { gi++; continue; }
-    var gEnd = gi; while (gEnd + 1 < out.length && silInfo[gEnd + 1] && silInfo[gEnd + 1].onset === silInfo[gi].onset) gEnd++;
-    var cnt = gEnd - gi + 1, onset = silInfo[gi].onset, next = out[gEnd + 1];
-    var ok = cnt <= 2
-      && (next ? (next.start >= onset - 1e-6 && next.start - onset <= 1.5 && next.start - onset >= 0.2 * cnt)
-               : (onset - out[gEnd].end <= 1.5));
-    if (ok) {
-      var room = next ? (next.start - onset) / cnt : Infinity, tcur = onset;
-      for (var k2 = gi; k2 <= gEnd; k2++) {
-        var d2 = Math.max(0.12, Math.min(out[k2].end - out[k2].start, room));
-        out[k2].start = tcur; out[k2].end = tcur + d2; tcur += d2;
-      }
-    }
-    gi = gEnd + 1;
-  }
+  // (Die frühere Regel „≤ 2 Wörter aus stummem Vorlauf an den Einsatz“ ist durch constrainWordsToSpeech in
+  // snapWordTimings ersetzt — die greift auch, wenn der „stumme“ Vorlauf lautes Rascheln ist.)
   // Monoton + überlappungsfrei halten (Snap verkürzt nur, aber Rundung auf Frames absichern)
   for (var i = 0; i < out.length; i++) {
     if (i > 0 && out[i].start < out[i - 1].end) out[i].start = out[i - 1].end;
@@ -1722,7 +2046,11 @@ async function cleanWords(words) {
 
 // Lokale Erkennung in 28s-Fenstern mit 2s Überlappung — deckt zuverlässig das GANZE Video ab
 // (das interne Chunking von transformers.js bricht bei Wort-Timestamps auf langen Videos ab)
-async function transcribeChunked(pipe, audioData, opts, isStale) {
+// spans (optional): wie beim Server nur die Sprach-Spannen als zusammengesetzte Spur erkennen lassen und
+// die Wortzeiten danach über die Spur-Map auf die Original-Zeitachse zurückrechnen.
+async function transcribeChunked(pipe, audioData, opts, isStale, spans) {
+  var track = spans && spans.length ? buildSpeechTrack(audioData, 16000, spans) : null;
+  if (track) audioData = track.samples;
   var SR = 16000, WIN = 28 * SR, STEP = 26 * SR;
   var n = Math.max(1, Math.ceil(Math.max(1, audioData.length - (WIN - STEP)) / STEP));
   var windows = [];
@@ -1744,6 +2072,7 @@ async function transcribeChunked(pipe, audioData, opts, isStale) {
     windows.push({ start: start, segLen: seg.length, words: words });
   }
   var merged = mergeChunkWords(windows);
+  if (track) merged = merged.map(function(w){ return mapTrackWord(track.map, w); });
   merged.language = detectedLang; // zusätzliche Eigenschaft auf dem Array -- .length/.map etc. bleiben unverändert nutzbar
   return merged;
 }
@@ -2148,14 +2477,17 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1; // muss wie in buildCap()/drawCaptionsOnCtx() angewendet werden, sonst misst der Umbruch mit der falschen Schriftgröße
   px = px * fsMul;
   ctx.font  = fi + fw + ' ' + px + 'px "' + fn + '", sans-serif';
-  var sp    = ctx.measureText(' ').width + capWordGap(s); // wie word-spacing in buildCap
+  // Buchstabenabstand („Spacing“-Regler) wie fitCaptionWords/capLayout mitmessen — sonst brach der Export
+  // (Canvas mit letterSpacing) anders um als die Vorschau (2 Zeilen im MP4, 1 Zeile in der Vorschau).
+  var lsPx  = parseFloat(s.ls) || 0;
+  var sp    = ctx.measureText(' ').width + capWordGap(s) + lsPx; // wie word-spacing in buildCap (CSS-letter-spacing gilt auch fürs Leerzeichen)
   var info  = words.map(function(w, i) {
     var isHL = (hlOf ? hlOf[i] : i) === hlIdx;
     var f    = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
     var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
     ctx.font = it + fw + ' ' + px + 'px "' + f + '", sans-serif';
     var wt   = (tt || (isHL && s.hlUpper)) ? w.toUpperCase() : w;
-    return { i: i, w: ctx.measureText(wt).width + ((isHL && s.hlPillBg) ? 18 : 0) }; // Pill-Padding wie im DOM
+    return { i: i, w: ctx.measureText(wt).width + lsPx * wt.length + ((isHL && s.hlPillBg) ? 18 : 0) }; // Pill-Padding wie im DOM
   });
   var n = info.length;
   var lines;
@@ -2208,7 +2540,9 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   var fi   = s.fi   || 'normal';
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1; // sonst weicht die Vorschau-Größe vom Export ab (Export wendet fsMul immer an, s. drawCaptionsOnCtx)
   var sz   = px ? ((px * fsMul) + 'px') : (s.fs || '1em');
-  var wCss = 'font-family:' + font + ';font-weight:' + fw + ';text-transform:' + tt
+  // Generischer Fallback wie im Canvas-Export (", sans-serif"): solange/falls die Webfont fehlt, zeigte die
+  // Vorschau sonst Serifenschrift, das MP4 aber serifenlos.
+  var wCss = 'font-family:' + font + ',sans-serif;font-weight:' + fw + ';text-transform:' + tt
     + ';letter-spacing:' + ls + ';font-style:' + fi + ';font-size:' + sz
     + ';line-height:1.3;display:inline-block;max-width:100%;';
   if (lineTarget && capWordGap(s)) wCss += 'word-spacing:' + capWordGap(s) + 'px;';
@@ -2228,7 +2562,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
     var wt   = (tt === 'uppercase' || (isHL && s.hlUpper)) ? words[i].toUpperCase() : words[i];
     var ws   = 'display:inline-block;';
     if (isHL || isKw) {
-      if (isHL && s.hlFont)   ws += 'font-family:' + s.hlFont + ';';
+      if (isHL && s.hlFont)   ws += 'font-family:' + s.hlFont + ',sans-serif;';
       if (isHL && s.hlItalic) ws += 'font-style:italic;';
       if (isHL && s.circle)   ws += 'border:2.5px solid ' + (s.hl || '#fff') + ';border-radius:50%;padding:.02em .3em;';
       if (s.hlg)                    ws += 'background:' + s.hlg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
@@ -2271,6 +2605,7 @@ function getAllWords() {
   return captionBlocks.reduce(function(a,b){ return a.concat(b.words.map(function(w){ return w.word; })); }, []);
 }
 // Aktiver Block zum Zeitpunkt t (Karaoke: nur während Sprechzeit, Durchgehend: bis zum nächsten Block)
+var HOLD_GAP_SEC = 1.5, HOLD_TAIL_SEC = 0.6;
 function currentBlockIdx(t) {
   if (!captionBlocks.length) return -1;
   for (var i = 0; i < captionBlocks.length; i++) {
@@ -2281,6 +2616,10 @@ function currentBlockIdx(t) {
       if (captionBlocks[j].start <= t) {
         // „Continuous“ hält den letzten Block bis zum nächsten — aber nicht über einen Szenenschnitt hinweg
         if (cutBetween(activeCuts(), captionBlocks[j].end - 1e-6, t) !== null) return -1;
+        // … und nicht durch eine lange Strecke ohne Sprache (Rascheln, Musik-Outro): kommt der nächste Block
+        // erst > HOLD_GAP_SEC später (oder gar keiner), verschwindet der Block HOLD_TAIL_SEC nach seinem Ende.
+        var nb = captionBlocks[j + 1];
+        if ((!nb || nb.start - captionBlocks[j].end > HOLD_GAP_SEC) && t > captionBlocks[j].end + HOLD_TAIL_SEC) return -1;
         return j;
       }
     }
@@ -3245,13 +3584,18 @@ function renderWPills() {
 // ═══════════════════════════════════════
 // STYLE
 // ═══════════════════════════════════════
-function selectStyle(id) {
+// fromEditor: Aufruf aus applyCustomStyle — dann die Regler NICHT neu befüllen (sie sind die Quelle).
+function selectStyle(id, fromEditor) {
+  var prevId = activeId;
   activeId = id;
   if (id !== 'custom') { try { localStorage.setItem(STYLE_KEY, id); } catch (e) {} } // Custom lebt nur in der Sitzung
   scheduleAutosave();
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
-  if (s) seedCustomFields(s);                        // „Eigener Style" startet vom gewählten Style/Template
+  if (s && !fromEditor) seedCustomFields(s);         // „Eigener Style" startet vom gewählten Style/Template (auch von Custom selbst)
+  // Erster Regler-Eingriff: die Custom-Kachel (oben in „My templates“) im Picker sichtbar machen — sonst
+  // sah es aus, als bliebe das vorige Preset aktiv bzw. die Änderung käme nicht an.
+  if (fromEditor && prevId !== id) scrollPickerTo(id, false);
   if (s && s._tpl) { _presetPrevLayout = null; applyTemplateSettings(s._tpl); } // Template bringt eigenes Layout mit
   else if (s && s.layout) applyPresetLayout(s.layout); // eingebaute Presets mit eigener Blockgröße (Pop One)
   else if (s && _presetPrevLayout) restorePresetLayout(); // jeder andere Style (auch Custom): vorheriges Layout zurück
@@ -3267,6 +3611,42 @@ function toHex6(c) {
   if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   return '#' + h.toLowerCase();
 }
+// Benannte CSS-Farben, die in Styles/Templates vorkommen können. <input type=color> akzeptiert NUR
+// #rrggbb — alles andere (rgba(), „white“, „#fff“) zeigt es als Schwarz/leer an (Nutzer-Report „leere Felder“).
+var CSS_NAMED = { white: '#ffffff', black: '#000000', red: '#ff0000', lime: '#00ff00', green: '#008000', blue: '#0000ff',
+  yellow: '#ffff00', cyan: '#00ffff', aqua: '#00ffff', magenta: '#ff00ff', fuchsia: '#ff00ff', orange: '#ffa500',
+  purple: '#800080', pink: '#ffc0cb', gold: '#ffd700', gray: '#808080', grey: '#808080', silver: '#c0c0c0',
+  navy: '#000080', teal: '#008080', maroon: '#800000', olive: '#808000', violet: '#ee82ee', hotpink: '#ff69b4' };
+// Beliebige CSS-Farbe → { hex: '#rrggbb', a: Deckkraft } oder null (Gradient-Strings → erste Farbstufe).
+function cssColorToHexA(c) {
+  if (!c || typeof c !== 'string') return null;
+  var v = c.trim().toLowerCase();
+  if (/gradient\(/.test(v)) { var stops = gradColors(v); return stops.length ? cssColorToHexA(stops[0]) : null; }
+  var h = toHex6(v);
+  if (h) return { hex: h, a: 1 };
+  var m8 = /^#([0-9a-f]{6})([0-9a-f]{2})$/.exec(v) || /^#([0-9a-f]{3})([0-9a-f])$/.exec(v);
+  if (m8) return { hex: toHex6('#' + m8[1]), a: Math.round(parseInt(m8[2].length === 1 ? m8[2] + m8[2] : m8[2], 16) / 2.55) / 100 };
+  var m = /^rgba?\(\s*([\d.]+)%?\s*[, ]\s*([\d.]+)%?\s*[, ]\s*([\d.]+)%?\s*(?:[,/]\s*([\d.]+)(%?)\s*)?\)$/.exec(v);
+  if (m) {
+    var hx = '#' + [m[1], m[2], m[3]].map(function(x){ return ('0' + Math.max(0, Math.min(255, Math.round(+x))).toString(16)).slice(-2); }).join('');
+    var a = m[4] === undefined ? 1 : (m[5] ? +m[4] / 100 : +m[4]);
+    return { hex: hx, a: Math.max(0, Math.min(1, a)) };
+  }
+  if (v === 'transparent') return { hex: '#000000', a: 0 };
+  if (CSS_NAMED[v]) return { hex: CSS_NAMED[v], a: 1 };
+  // Sonstige Namen/hsl(): der Browser normalisiert über einen Canvas-Kontext (im Test-Stub nicht vorhanden)
+  try {
+    var cx = capMeasureCtx && capMeasureCtx();
+    if (cx && 'fillStyle' in cx) {
+      cx.fillStyle = '#010203'; cx.fillStyle = v;
+      var n = String(cx.fillStyle);
+      if (n !== '#010203' && n.toLowerCase() !== v) return cssColorToHexA(n);
+    }
+  } catch (e) {}
+  return null;
+}
+// Für <input type=color>: immer ein gültiges #rrggbb (Fallback statt eines ungültigen/leeren Werts)
+function cssColorToHex(c, fallback) { var r = cssColorToHexA(c); return r ? r.hex : (fallback || null); }
 function _cbChecked(id, def) { var e = document.getElementById(id); return e && typeof e.checked === 'boolean' ? e.checked : def; }
 // ═══════════════════════════════════════
 // CUSTOM STYLE EDITOR
@@ -3330,14 +3710,7 @@ function parseOutline(ts) { return splitShadows(ts).ring || { w: 0, c: '#000000'
 // Weiche Schatten (Blur > 0, nicht zentriert = kein Glow) aus einem text-shadow-String
 function softShadowPart(ts) { return shadowsStr(splitShadows(ts).soft); }
 // '#rrggbb' oder 'rgba(r,g,b,a)' → { hex, a }
-function parseColorAlpha(c) {
-  var h = toHex6(c);
-  if (h) return { hex: h, a: 1 };
-  var m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/.exec(c || '');
-  if (!m) return null;
-  var hx = '#' + [m[1], m[2], m[3]].map(function(v){ return ('0' + (+v).toString(16)).slice(-2); }).join('');
-  return { hex: hx, a: m[4] === undefined ? 1 : +m[4] };
-}
+function parseColorAlpha(c) { return cssColorToHexA(c); }
 function hexToRgba(hex, a) {
   var h = toHex6(hex) || '#000000';
   return 'rgba(' + parseInt(h.slice(1, 3), 16) + ',' + parseInt(h.slice(3, 5), 16) + ',' + parseInt(h.slice(5, 7), 16) + ',' + (Math.round(a * 100) / 100) + ')';
@@ -3354,13 +3727,32 @@ function csSetOn(id, on) { var e = csEl(id); if (e && e.classList) e.classList.t
 function csIsOn(id) { var e = csEl(id); return !!(e && e.classList && e.classList.contains('on')); }
 function toggleCsBtn(btn, group) { btn.classList.toggle('on'); applyCustomStyle(group); }
 // Regler aus einem Style befüllen (ohne applyCustomStyle zu feuern) und ihn als Ausgangsbasis merken.
+// Farbe des aktiven Worts so, wie sie tatsächlich zu sehen ist: bei Pill-Styles die Pill-Farbe, sonst
+// die Textfarbe (bzw. erste Stufe von Gradient/Farbwechsel).
+function csActiveColor(st) {
+  if (st.hlPillBg) return cssColorToHex(st.hlPillBg, '#7c3aed');
+  if (st.hlCycle && st.hlCycle.length) return cssColorToHex(st.hlCycle[0], '#facc15');
+  return cssColorToHex(st.hl, null) || cssColorToHex(st.hlg, null) || '#ffffff';
+}
+// Abhängige Anzeige-Zustände der Regler: Label des Aktiv-Felds (Active ↔ Pill), Glow-Regler nur bei
+// aktivem Glow bedienbar, Pixel-Anzeigen.
+function syncCsUi() {
+  var pill = (csEl('csHlType') || {}).value === 'pill';
+  var lbl = csEl('csHlLbl'); if (lbl) lbl.textContent = pill ? 'Pill' : 'Active';
+  var sw = csEl('csHlSw'); if (sw) sw.title = pill ? 'Pill color behind the active (spoken) word' : 'Color of the active (spoken) word';
+  var gi = csEl('csGlowInt'); if (gi) gi.disabled = !_cbChecked('csGlow', false);
+  var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
+  var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
+}
+function seedActiveStyle() { var st = STYLES.find(function(x){ return x.id === activeId; }); if (st) seedCustomFields(st); }
 function seedCustomFields(st) {
-  if (!st || st.id === 'custom') return;
+  if (!st) return;
   _csBase = cloneStyle(st); _csDirty = {};
-  if (_csEditingTpl && st.id !== _csEditingTpl) setTplEditing(null);
-  var tc = toHex6(st.tc), hl = toHex6(st.hl);
-  if (tc) csSetVal('csText', tc);
-  if (hl) csSetVal('csHl', hl);
+  // Custom selbst (Kachel erneut angeklickt) beendet den Template-Edit-Modus nicht — das ist ja die Bearbeitung.
+  if (_csEditingTpl && st.id !== _csEditingTpl && st.id !== 'custom') setTplEditing(null);
+  // Immer einen gültigen Wert setzen: ein übersprungenes Feld behielt den Wert des VORIGEN Styles.
+  csSetVal('csText', cssColorToHex(st.tc, null) || cssColorToHex(st.tg, null) || '#ffffff');
+  csSetVal('csHl', csActiveColor(st));
   var fEl = csEl('csFont');
   if (fEl && st.fl) {
     var has = false, opts = fEl.options ? Array.prototype.slice.call(fEl.options) : [];
@@ -3379,13 +3771,15 @@ function seedCustomFields(st) {
   csSetVal('csLs', ls); var ld = csEl('csLsDisp'); if (ld) ld.textContent = ls + 'px';
   var bx = st.boxBg ? parseColorAlpha(st.boxBg) : null;
   csSetVal('csBox', st.boxBg ? ((parseFloat(st.boxBr) || 0) >= 14 ? 'pill' : 'box') : 'off');
-  if (bx) { csSetVal('csBoxC', bx.hex); csSetVal('csBoxO', Math.round(bx.a * 100)); }
+  // Ohne Hintergrund neutrale Startwerte statt der Reste des vorigen Styles
+  csSetVal('csBoxC', bx ? bx.hex : '#000000');
+  csSetVal('csBoxO', bx ? Math.max(10, Math.min(100, Math.round(bx.a * 20) * 5)) : 70);
   csSetVal('csHlType', st.hlPillBg ? 'pill' : 'color');
-  var pc = st.hlPillBg && toHex6(st.hlPillBg); if (pc) csSetVal('csPillC', pc);
   csSetVal('csAnim', st.anim || 'none');
   var gl = parseTextShadows(st.hls).filter(function(l){ return l.blur > 0 && !l.x && !l.y; })[0];
   csSetVal('csGlowInt', gl ? Math.min(30, Math.round(gl.blur)) : 14);
   var gOn = csEl('csGlow'); if (gOn && typeof gOn.checked === 'boolean') gOn.checked = !!gl;
+  syncCsUi();
 }
 // Baut „custom“ = Kopie der Basis + nur die vom Nutzer geänderten Gruppen.
 function buildCustomStyle() {
@@ -3397,7 +3791,11 @@ function buildCustomStyle() {
   if (d.weight) cs.fw = (csEl('csWeight') || {}).value || cs.fw || '800';
   if (d.upper)  cs.tt = csIsOn('csUpper') ? 'uppercase' : 'none';
   if (d.ls)     { var lv = parseFloat((csEl('csLs') || {}).value) || 0; cs.ls = lv ? lv + 'px' : 'normal'; }
-  if (d.text)   { cs.tc = (csEl('csText') || {}).value || cs.tc; delete cs.tg; }
+  if (d.text)   {
+    // Halbtransparente Ausgangs-Textfarbe (z. B. Clean Minimal: rgba(255,255,255,.55)) behält ihre Deckkraft
+    var tv = (csEl('csText') || {}).value || cs.tc, ta = cssColorToHexA(base.tc);
+    cs.tc = (ta && ta.a < 1 && toHex6(tv)) ? hexToRgba(tv, ta.a) : tv; delete cs.tg;
+  }
   var ow = parseFloat((csEl('csOutlineW') || {}).value) || 0, oc = (csEl('csOutlineC') || {}).value || '#000000';
   var outline = outlineShadow(ow, oc);
   if (d.stroke) {
@@ -3407,21 +3805,29 @@ function buildCustomStyle() {
     cs.ts = joinShadows(outline, shadowsStr(bts.hard), shadowsStr(bts.glow), soft);
     if (ow > 0) cs.cstroke = oc; else delete cs.cstroke;
   }
-  if (d.hl || d.stroke) {
-    if (d.hl) { cs.hl = (csEl('csHl') || {}).value || cs.hl; delete cs.hlg; delete cs.hlCycle; }
+  // Aktives Wort. Gruppen: hlc = Farbfeld „Active“/„Pill“, glow = Glow an/aus + Stärke, hltype = Textfarbe ↔ Pill;
+  // hl (Altform) = alles zusammen. Das EINE Farbfeld ist je nach Typ die Wort- bzw. die Pill-Farbe — vorher
+  // änderte „Active“ bei Pill-Styles nur die (unsichtbare) Wortfarbe und die Pill blieb grün.
+  var dCol = d.hl || d.hlc, dGlow = d.hl || d.glow, dType = d.hl || d.hltype;
+  if (dCol || dGlow || dType || d.stroke) {
+    var swatch = (csEl('csHl') || {}).value || '#facc15';
     var glowOn = _cbChecked('csGlow', false);
     var gi = parseInt((csEl('csGlowInt') || {}).value, 10); if (isNaN(gi)) gi = 14;
     if ((csEl('csHlType') || {}).value === 'pill') {
-      var pcol = (csEl('csPillC') || {}).value || '#7c3aed';
-      cs.hlPillBg = pcol; cs.hlc = contrastText(pcol);
-      cs.hls = glowOn ? ('0 0 ' + gi + 'px ' + pcol) : 'none';
+      if (dCol || dType || !cs.hlPillBg) { cs.hlPillBg = swatch; cs.hlc = contrastText(swatch); }
+      // Glow nur neu bauen, wenn er (oder der Typ) geändert wurde — sonst bleiben die Schatten des Ausgangs-Styles
+      if (dGlow || dType || !base.hlPillBg) cs.hls = glowOn && gi > 0 ? ('0 0 ' + gi + 'px ' + cs.hlPillBg) : 'none';
     } else {
+      // Wortfarbe nur übernehmen, wenn das Farbfeld angefasst wurde bzw. von Pill gewechselt wird —
+      // so bleiben z. B. der Farbwechsel von „Beast“ oder ein Gradient bei reinen Glow-/Kontur-Änderungen erhalten.
+      if (dCol || (dType && base.hlPillBg)) { cs.hl = swatch; delete cs.hlg; delete cs.hlCycle; }
       delete cs.hlPillBg; delete cs.hlc;
       // Übrige Schichten des Ausgangs-Highlights (Drop-Shadows, weiche Schatten) unverändert lassen;
       // Kontur nur ersetzen, wenn sie geändert wurde bzw. das Highlight vorher keine eigene hatte.
-      var bh = splitShadows(base.hls);
+      var bh = splitShadows(base.hlPillBg ? 'none' : base.hls);
       var ringPart = (d.stroke || !bh.ring) ? outline : shadowsStr(bh.ringLayers);
-      cs.hls = joinShadows(ringPart, shadowsStr(bh.hard), shadowsStr(bh.soft), glowOn && gi > 0 ? ('0 0 ' + gi + 'px ' + cs.hl) : '');
+      var glowPart = (dGlow || dCol || dType) ? (glowOn && gi > 0 ? ('0 0 ' + gi + 'px ' + (cs.hl || '#fff')) : '') : shadowsStr(bh.glow);
+      cs.hls = joinShadows(ringPart, shadowsStr(bh.hard), shadowsStr(bh.soft), glowPart);
     }
   }
   if (d.box) {
@@ -3438,21 +3844,30 @@ function buildCustomStyle() {
 }
 var _csLast = 0, _csTimer = null;
 function applyCustomStyle(group) {
+  // Farbe/Deckkraft bei „Background: None“ bzw. Konturfarbe bei 0 px hatten keinerlei Wirkung („Änderung
+  // kommt nicht an“) → den zugehörigen Schalter automatisch einschalten.
+  if (group === 'boxc') { var bxs = csEl('csBox'); if (bxs && (bxs.value || 'off') === 'off') bxs.value = 'box'; group = 'box'; }
+  if (group === 'strokec') { var oww = csEl('csOutlineW'); if (oww && !(parseFloat(oww.value) > 0)) oww.value = 2; group = 'stroke'; }
   if (group) _csDirty[group] = true;
-  var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
-  var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
-  // Throttled: Farbregler feuern beim Ziehen dutzende Events — Picker max. alle 200 ms neu bauen (1. Aufruf sofort)
-  function run() {
-    var cs = buildCustomStyle();
-    var i = STYLES.findIndex(function(x){ return x.id === 'custom'; });
-    if (i >= 0) STYLES[i] = cs; else STYLES.push(cs);
-    buildPicker();
-    selectStyle('custom');
-  }
+  syncCsUi();
+  // Throttled: Farbregler feuern beim Ziehen dutzende Events — max. alle 200 ms neu bauen (1. Aufruf sofort).
+  // Der nachlaufende Timer liest die Regler erst beim Ausführen → der LETZTE Wert kommt immer an.
   var now = Date.now();
-  if (now - _csLast > 200) { _csLast = now; run(); }
-  else { clearTimeout(_csTimer); _csTimer = setTimeout(function(){ _csLast = Date.now(); run(); }, 160); }
+  clearTimeout(_csTimer); _csTimer = null;
+  if (now - _csLast >= 200) runCustomStyle();
+  else _csTimer = setTimeout(runCustomStyle, 200 - (now - _csLast));
 }
+function runCustomStyle() {
+  clearTimeout(_csTimer); _csTimer = null; _csLast = Date.now();
+  var cs = buildCustomStyle();
+  var i = STYLES.findIndex(function(x){ return x.id === 'custom'; });
+  if (i >= 0) STYLES[i] = cs; else STYLES.push(cs);
+  // Nur die Custom-Kachel ersetzen statt alle 36+ Kacheln neu zu bauen (Scroll-Position bleibt, schneller)
+  if (i < 0 || !replacePickerTile(cs)) buildPicker();
+  selectStyle('custom', true);
+}
+// Noch ausstehende (gedrosselte) Regler-Änderung sofort anwenden — z. B. vor dem Speichern als Template.
+function flushCustomStyle() { if (_csTimer) runCustomStyle(); }
 
 // ═══════════════════════════════════════
 // TEMPLATES (lokal + optional Cloud-Sync über Supabase-User-Metadaten)
@@ -3568,26 +3983,57 @@ function setTplEditing(id) {
   var t = id && userTemplates.find(function(x){ return x.id === id; });
   var lbl = csEl('tplEditing'), btn = csEl('tplSaveBtn'), nm = csEl('tplName');
   if (lbl) { lbl.style.display = t ? '' : 'none'; lbl.textContent = t ? ('Editing “' + t.name + '”') : ''; }
-  if (btn) { btn.textContent = t ? 'Update' : '💾'; btn.title = t ? 'Overwrite this template with the current style + layout' : 'Save the current style + position + size + mode as a named template'; }
+  if (btn) { btn.textContent = t ? 'Update' : '💾 Save'; btn.title = t ? 'Overwrite this template with the current style + layout' : 'Save the current style + position + size + mode as a named template'; }
   if (nm && t) nm.value = t.name;
 }
+function setTplStatus(msg, warn) {
+  var el = csEl('tplStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  if (el.classList) el.classList.toggle('warn', !!warn);
+  clearTimeout(setTplStatus._t);
+  if (msg && !warn) setTplStatus._t = setTimeout(function(){ el.textContent = ''; }, 6000);
+}
 function saveTemplate() {
+  flushCustomStyle(); // eine gerade gezogene, noch gedrosselte Regler-Änderung gehört mit ins Template
   var nameEl = csEl('tplName');
-  var name = (nameEl.value || '').trim();
+  var name = (nameEl.value || '').trim().slice(0, 60);
   var editing = _csEditingTpl && userTemplates.find(function(x){ return x.id === _csEditingTpl && !x.deleted; });
   if (!name && editing) name = editing.name;
-  if (!name) { nameEl.focus && nameEl.focus(); nameEl.placeholder = 'Enter a name'; return; }
+  if (!name) {
+    if (nameEl.focus) nameEl.focus(); nameEl.placeholder = 'Enter a name';
+    setTplStatus('Give your template a name first.', true);
+    return;
+  }
+  // Gleicher Name wie ein anderes Template → überschreiben statt eine Dublette anzulegen (nach Rückfrage)
+  var same = liveTemplates().find(function(x){ return x.name.trim().toLowerCase() === name.toLowerCase() && (!editing || x.id !== editing.id); });
+  var target = editing;
+  if (same) {
+    var okOverwrite = typeof confirm !== 'function' || confirm('A template named “' + same.name + '” already exists. Overwrite it with the current style?');
+    if (!okOverwrite) { if (nameEl.select) nameEl.select(); setTplStatus('Not saved — choose another name to keep both.', true); return; }
+    target = same; name = same.name; // Überschreiben behält den bestehenden Namen (nur Groß-/Kleinschreibung getippt)
+  }
   var src = STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0];
   var st = sanitizeStyle(cloneStyle(src));
   var now = Date.now(), t;
-  if (editing) { t = editing; t.name = name; t.style = st; t.layout = currentLayout(); t.updatedAt = now; }
+  if (target) { t = target; t.name = name; t.style = st; t.layout = currentLayout(); t.updatedAt = now; }
   else { t = { id: newTplId(), name: name, style: st, layout: currentLayout(), createdAt: now, updatedAt: now }; userTemplates.push(t); }
+  // Der ungespeicherte Custom-Entwurf IST jetzt das Template → Kachel entfernen, sonst stehen zwei gleiche
+  // Kacheln nebeneinander und man weiß nicht, welche gespeichert ist.
+  if (activeId === 'custom') {
+    var ci = STYLES.findIndex(function(x){ return x.id === 'custom'; });
+    if (ci >= 0) STYLES.splice(ci, 1);
+  }
   persistTemplates();
   rebuildTemplateStyles();
   nameEl.value = '';
   setTplEditing(null);
   buildPicker();
   selectStyle(t.id);
+  var verb = target ? 'Updated' : 'Saved as';
+  setTplStatus('✓ ' + verb + ' “' + t.name + '” — find it under My templates' + (meEmail ? ' (synced to your account)' : ' (saved in this browser)'));
+  capToast('✓ ' + verb + ' “' + t.name + '”');
+  scrollPickerTo(t.id, true, true);
 }
 function renameTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
@@ -3599,6 +4045,7 @@ function renameTemplate(id) {
   t.name = nn; t.updatedAt = Date.now();
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
   if (_csEditingTpl === id) setTplEditing(id);
+  capToast('✓ Renamed to “' + nn + '”');
 }
 function duplicateTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
@@ -3608,6 +4055,8 @@ function duplicateTemplate(id) {
             layout: JSON.parse(JSON.stringify(t.layout || {})), createdAt: now, updatedAt: now };
   userTemplates.push(c);
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
+  capToast('✓ Duplicated as “' + c.name + '”');
+  scrollPickerTo(c.id, false, true);
 }
 function deleteTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
@@ -3618,12 +4067,14 @@ function deleteTemplate(id) {
   persistTemplates(); rebuildTemplateStyles();
   if (activeId === id) activeId = 'classic';
   buildPicker(); selectStyle(activeId);
+  capToast('Deleted “' + t.name + '”');
 }
 function editTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
   if (!t) return;
   selectStyle(id);           // Regler aus dem Template befüllen (seedCustomFields)
   setTplEditing(id);
+  setTplStatus('Editing “' + t.name + '”: change the style below, then click Update.');
   var more = csEl('csMore'); if (more && 'open' in more) more.open = true;
   var nm = csEl('tplName'); if (nm && nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
@@ -3650,6 +4101,11 @@ function openTplMenu(id, btn) {
   m.style.top = Math.round(r.bottom + 4) + 'px';
   m.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 150, r.left - 110))) + 'px';
   document.body.appendChild(m);
+  // Unten kein Platz (Handy: Picker am Bildschirmrand) → Menü über dem ⋯-Knopf öffnen, sonst ist „Delete“ abgeschnitten
+  if (m.getBoundingClientRect && typeof window.innerHeight === 'number') {
+    var mh = m.getBoundingClientRect().height || 0;
+    if (r.bottom + 4 + mh > window.innerHeight - 8 && r.top - 4 - mh >= 8) m.style.top = Math.round(r.top - 4 - mh) + 'px';
+  }
   _tplMenuEl = m;
   // mousedown UND touchstart: auf Touch-Geräten schließt ein Tipp daneben das Menü sofort
   setTimeout(function(){ document.addEventListener('mousedown', _tplMenuOutside, true); document.addEventListener('touchstart', _tplMenuOutside, true); }, 0);
@@ -3795,8 +4251,83 @@ function buildPicker() {
   var c = document.getElementById('stylePicker');
   if (!c) return;
   if (_stileHoverTimer) { clearInterval(_stileHoverTimer); _stileHoverTimer = null; }
+  var keepScroll = c.scrollTop || 0;
   c.innerHTML = '';
-  STYLES.forEach(function(s) {
+  // Gruppen: „My templates“ (Custom-Entwurf + eigene Templates, neueste zuerst) OBEN, dann die Presets —
+  // vorher hingen Templates hinter 36 Presets und man sah nicht, ob/was gespeichert wurde.
+  var mine = [], presets = [];
+  STYLES.forEach(function(s){ (s._isTpl || s.id === 'custom' ? mine : presets).push(s); });
+  var tplCreated = {};
+  userTemplates.forEach(function(t){ tplCreated[t.id] = t.createdAt || t.updatedAt || 0; });
+  mine.sort(function(a, b) {
+    if (a.id === 'custom') return -1; if (b.id === 'custom') return 1;
+    return (tplCreated[b.id] || 0) - (tplCreated[a.id] || 0);
+  });
+  var nTpl = mine.filter(function(s){ return s._isTpl; }).length;
+  var hdr = document.createElement('div');
+  hdr.className = 'stile-group';
+  hdr.innerHTML = 'My templates <span class="sg-n">' + (nTpl ? nTpl + ' saved' : '') + '</span>';
+  c.appendChild(hdr);
+  mine.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
+  if (!nTpl) {
+    var em = document.createElement('div');
+    em.className = 'stile-empty';
+    em.innerHTML = 'No templates yet — style your captions and <a href="#" onclick="focusTemplateSave(event)">save them as a template</a> to reuse them here.';
+    c.appendChild(em);
+  }
+  var hdr2 = document.createElement('div');
+  hdr2.className = 'stile-group presets';
+  hdr2.textContent = 'Presets';
+  c.appendChild(hdr2);
+  presets.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
+  c.scrollTop = keepScroll;
+  var cnt = document.getElementById('tplCount');
+  if (cnt) cnt.textContent = nTpl ? ('· ' + nTpl + ' saved') : '';
+}
+// Kachel ersetzen (Custom-Style beim Regler-Ziehen) — false, wenn sie (noch) nicht im Picker ist.
+function replacePickerTile(s) {
+  var c = document.getElementById('stylePicker');
+  if (!c || !c.querySelector) return false;
+  var old = c.querySelector('.stile[data-id="' + s.id + '"]');
+  if (!old || !old.parentNode) return false;
+  if (_stileHoverTimer) { clearInterval(_stileHoverTimer); _stileHoverTimer = null; } // Hover-Animation hing an der alten Kachel
+  old.parentNode.replaceChild(makeStyleTile(s), old);
+  return true;
+}
+// Kachel im Picker sichtbar machen; withPage = auch die Seite dorthin scrollen (nach dem Speichern).
+function scrollPickerTo(id, withPage, flash) {
+  var c = document.getElementById('stylePicker');
+  if (!c || !c.querySelector) return;
+  var tile = c.querySelector('.stile[data-id="' + id + '"]');
+  if (!tile) return;
+  if (withPage && tile.scrollIntoView) tile.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  else if (c.getBoundingClientRect && tile.getBoundingClientRect) {
+    var cr = c.getBoundingClientRect(), tr = tile.getBoundingClientRect();
+    if (tr.top < cr.top) c.scrollTop -= (cr.top - tr.top) + 24;
+    else if (tr.bottom > cr.bottom) c.scrollTop += (tr.bottom - cr.bottom) + 6;
+  }
+  if (flash && tile.classList) { tile.classList.remove('just-saved'); void tile.offsetWidth; tile.classList.add('just-saved'); }
+}
+function focusTemplateSave(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  var nm = csEl('tplName');
+  if (nm) { if (nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (nm.focus) nm.focus({ preventScroll: true }); }
+}
+var _toastTimer = null;
+function capToast(msg) {
+  if (typeof document === 'undefined' || !document.body) return;
+  var el = document.getElementById('capToast');
+  if (!el || !el.parentNode) {
+    el = document.createElement('div'); el.id = 'capToast'; el.className = 'cap-toast';
+    if (el.setAttribute) { el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); }
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  if (el.classList) { el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ if (el.classList) el.classList.remove('show'); }, 2600);
+}
+function makeStyleTile(s) {
     var tile = document.createElement('div');
     tile.className = 'stile' + (s.id === activeId ? ' on' : '');
     tile.dataset.id = s.id;
@@ -3828,16 +4359,19 @@ function buildPicker() {
     var info = document.createElement('div');
     info.className = 'stile-info';
     var badge = s.badge ? (' <span style="font-size:7px;color:#f87171">' + s.badge + '</span>') : '';
-    info.innerHTML = '<div class="stile-name">' + escHtml(s.name) + badge + '</div><div class="stile-font">' + escHtml(s.fl) + '</div>';
+    // Custom-Entwurf klar als „noch nicht gespeichert“ kennzeichnen
+    var sub = s.id === 'custom' ? 'unsaved · edit below' : s.fl;
+    info.innerHTML = '<div class="stile-name">' + escHtml(s.id === 'custom' ? 'Custom' : s.name) + badge + '</div><div class="stile-font">' + escHtml(sub) + '</div>';
     tile.appendChild(info);
     if (s._isTpl) {
+      tile.title = 'Your template “' + s.name + '”';
       var mb = document.createElement('button');
       mb.type = 'button'; mb.className = 'stile-menu-btn'; mb.textContent = '⋯'; mb.title = 'Template options';
+      if (mb.setAttribute) mb.setAttribute('aria-label', 'Options for template ' + s.name);
       mb.onclick = function(e){ e.stopPropagation(); openTplMenu(s.id, mb); };
       tile.appendChild(mb);
-    }
-    c.appendChild(tile);
-  });
+    } else if (s.id === 'custom') tile.title = 'Your current custom style (not saved yet)';
+    return tile;
 }
 
 // ═══════════════════════════════════════
@@ -4419,7 +4953,7 @@ function applyProjectPayload(p) {
     wordTimestamps = [];
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
   }
-  if (p.style) restoreSavedStyle(p);
+  if (p.style) { restoreSavedStyle(p); seedActiveStyle(); }
   if (p.fontSize) { fontSize = p.fontSize; var ss = document.getElementById('szSlider'); if (ss) { ss.value = p.fontSize; document.getElementById('szDisp').textContent = p.fontSize + 'px'; } }
   if (p.wpb) { WORDS_PER_BLOCK = p.wpb; var ws = document.getElementById('wpbSlider'); if (ws) { ws.value = p.wpb; document.getElementById('wpbDisp').textContent = p.wpb; } }
   if (typeof p.lines === 'number') { CAPTION_LINES = p.lines; syncLinesButtons(); }
@@ -4580,11 +5114,16 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
 // Rückgabe: {words, language}; null nur, wenn gar kein Proxy da ist (→ lokaler Fallback). Alles andere ist ein klarer Fehler statt stiller Lücke.
 // isStale (optional): liefert true, sobald ein neuerer transcribeVideo-Lauf gestartet wurde → sofort
 // abbrechen (wirft {stale:true}), ohne Status/Fortschritt des aktuellen Laufs zu überschreiben.
-async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt) {
+// spans (optional, aus speechSpans): nur diese Sprach-Spannen werden gesendet — zu einer Spur mit kurzen
+// Stille-Spacern verbunden (buildSpeechTrack), Rascheln/Wind-Strecken > VAD_SKIP_GAP gehen gar nicht erst
+// raus. Jedes Stück beginnt so an einem Sprach-Einsatz; die Wortzeiten werden über die Spur-Map exakt auf
+// die Original-Zeitachse zurückgerechnet. Ohne spans: ganzes Audio wie bisher.
+async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt, spans) {
   prompt = cleanVocab(prompt);
   function checkStale() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
   var label = (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – transcribing';
-  var chunks = splitAudioChunks(audioData, 16000), n = chunks.length;
+  var track = spans && spans.length ? buildSpeechTrack(audioData, 16000, spans) : null;
+  var chunks = splitAudioChunks(track ? track.samples : audioData, 16000), n = chunks.length;
   var all = [], language = null, forced = lc, results = [], encP = [], done = 0, posted = 0, failed = null;
   var silent = chunks.map(function(c){ return chunkIsSilent(c.samples); });
   // Upload-Blob (Ogg/Opus oder WAV) je Stück genau einmal erzeugen; früh angestossen, damit das
@@ -4612,7 +5151,9 @@ async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt)
     if (!ws.length && j.segments) ws = segmentsToWords(j.segments.map(function(g){ return { text: g.text, timestamp: [g.start, g.end] }; }));
     if (!ws.length && j.text)     ws = segmentsToWords([{ text: j.text, timestamp: [0, ch.samples.length / 16000] }]);
     if (isHallucinatedChunk(ws) || isPromptEcho(ws, doTranslate ? '' : prompt)) ws = [];
-    return { words: ws.map(function(w){ return { word: w.word, start: w.start + ch.offset, end: w.end + ch.offset }; }),
+    return { words: ws.map(function(w){
+               var lw = { word: w.word, start: w.start + ch.offset, end: w.end + ch.offset };
+               return track ? mapTrackWord(track.map, lw) : lw; }),
              lang: (j.language || '').toLowerCase() };
   }
   function noProxyErr(e) { return e && e.noProxy ? transcribeErr('Transcription server became unavailable — please try again.') : e; }
@@ -4926,11 +5467,19 @@ async function transcribeVideo(file) {
     if (truncated) audioData = audioData.slice(0, 16000 * MAX_AUDIO_SEC);
     var audioDur = audioData.length / 16000;
 
+    // ── 0) Sprache finden (VAD): nur Sprache an Whisper, Wortzeiten später darauf beschränken.
+    // spans = null → keine/kaum Sprache erkannt → wie bisher alles senden, nichts beschränken.
+    setTStatus('', 'Finding speech…', true, true);
+    var speech = await detectSpeechRegions(audioData, 16000);
+    bailIfStale();
+    var spans = speechSpans(speech, audioDur);
+    if (!spans) speech = null;
+
     var usedLang = whisperLang;
     var lc = (whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) ? CODE_BY_LANG[whisperLang] : '';
 
     // ── 1) Serverseitig transkribieren (Groq via transcribe.php) — kein Download für den Nutzer ──
-    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur, stale, vocab);
+    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur, stale, vocab, spans);
     bailIfStale();
 
     if (served !== null) {
@@ -4968,7 +5517,7 @@ async function transcribeVideo(file) {
         // Genauigkeit (reduzierte Decoder-Tiefe) -- selbst mit erzwungenem `language`-Parameter bleibt
         // der generierte Text bei turbo mitunter unzuverlaessig. Der Retry ist selten (nur bei
         // Verdachtsfall) und darf daher die genauere/langsamere Variante nutzen.
-        var servedF = await serverTranscribe(audioData, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur, stale, vocab);
+        var servedF = await serverTranscribe(audioData, SERVER_MODEL.perfect, CODE_BY_LANG[retryTarget] || '', audioDur, stale, vocab, spans);
         bailIfStale();
         // WICHTIG: NICHT mehr looksLikeTargetLang als Pflichtkriterium -- ein korrekter deutscher/
         // französischer/... Satz OHNE Sonderzeichen (sehr häufig, z. B. "Hallo und willkommen zu
@@ -4991,7 +5540,7 @@ async function transcribeVideo(file) {
       // Korrektur-Ziel wie `served.language` beim Server-Pfad, statt blind auf NAV_LANG zu vertrauen.
       var wOpts = { return_timestamps: 'word', task: doTranslate ? 'translate' : 'transcribe', return_language: true };
       if (whisperLang !== 'auto') wOpts.language = whisperLang;
-      var wtLocal = await transcribeChunked(pipe, audioData, wOpts, stale);
+      var wtLocal = await transcribeChunked(pipe, audioData, wOpts, stale, spans);
       bailIfStale();
       wts = wtLocal;
       var repetitiveLocal = looksRepetitive(wts);
@@ -5009,7 +5558,7 @@ async function transcribeVideo(file) {
         // 'tiny' ist bei nicht-englischer Sprache deutlich unzuverlaessiger, auch mit erzwungenem Hint.
         var pipeRetry = LOCAL_MODEL[whisperModel] === 'small' ? pipe : await getPipe('small');
         bailIfStale();
-        var wtF = await transcribeChunked(pipeRetry, audioData, Object.assign({}, wOpts, { language: retryTargetLocal }), stale);
+        var wtF = await transcribeChunked(pipeRetry, audioData, Object.assign({}, wOpts, { language: retryTargetLocal }), stale, spans);
         bailIfStale();
         // Auch hier: looksLikeTargetLang nicht mehr als Pflichtkriterium, nur als zusätzliches
         // positives Signal -- s. Server-Pfad-Kommentar oben (der eigentliche Bug-Fund).
@@ -5025,7 +5574,7 @@ async function transcribeVideo(file) {
     bailIfStale();
     wts = cleaned;
     wts = sanitizeWordTimings(wts, audioDur); // Überlappungen/gedehnte Wörter glätten
-    var snapped = await snapWordTimings(wts, audioData, 16000); // Wortgrenzen an die echte Sprache ziehen
+    var snapped = await snapWordTimings(wts, audioData, 16000, speech); // Wortgrenzen an die echte Sprache ziehen + auf Sprachbereiche beschränken
     bailIfStale();
     wts = snapped;
     var polishFixes = -1;
@@ -7069,6 +7618,7 @@ function openEditor() {
   if (_showcaseIO) _showcaseIO.disconnect();
   loadTemplates(); // gespeicherte Templates in den Picker einhängen
   if (!STYLES.find(function(x){ return x.id === activeId; })) activeId = DEFAULT_STYLE; // gemerkter Style existiert nicht mehr
+  seedActiveStyle(); // Custom-Regler zeigen den gemerkten Style (sonst HTML-Defaults wie gelbes „Active“)
   buildPicker(); renderWPills(); updateOverlay();
   applyPos(); // gewählte Position beibehalten
 }

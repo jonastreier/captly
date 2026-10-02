@@ -52,6 +52,8 @@ const answer = map => input => JSON.stringify({ segments: input.segments.map(s =
   ok(T.wordEditDistance(['a', 'b', 'c'], ['a', 'x', 'c']) === 1 && T.wordEditDistance([], ['a', 'b']) === 2, 'Wort-Editierdistanz');
   ok(JSON.stringify(T.normWords('Gibt\'s Straße, „Highland-Beef“!')) === '["gibts","strasse","highlandbeef"]', 'normWords: klein, ß→ss, Satzzeichen weg');
   ok(T.acceptCorrection('birkehof', 'Birkenhof.') === 'Birkenhof.', 'einzelnes Vokabular-Wort darf korrigiert werden');
+  ok(T.acceptCorrection('üsi highland rinder', 'Üsi Highland\u2011Rinder.') === 'Üsi Highland Rinder.', 'neu eingefuegter (Unicode-)Bindestrich wird wieder Leerzeichen');
+  ok(T.acceptCorrection('e-mail adresse', 'E-Mail Adresse.') === 'E-Mail Adresse.', 'vorhandene Bindestriche bleiben');
   ok(T.acceptCorrection('das ist gut', 'Das war schlecht.') === null, 'zu viele Wortersetzungen → abgelehnt');
   ok(T.acceptCorrection('hallo zusammen', '   ') === null && T.acceptCorrection('hallo', 42) === null, 'leer / kein String → abgelehnt');
   ok(T.acceptCorrection('ich weiss es', 'Ich weiß es.') === 'Ich weiss es.', 'ß-Schutz: ß → ss, wenn Original keins hatte');
@@ -97,24 +99,24 @@ const answer = map => input => JSON.stringify({ segments: input.segments.map(s =
 
   // Modell-Fallback (404 / 400 / 5xx / Netzfehler)
   for (const st of [404, 400, 503]) {
-    mockGroq({ 'openai/gpt-oss-120b': { status: st }, 'llama-3.3-70b-versatile': { status: 200, content: answer({ 0: 'Äh, willkommen auf dem Birkenhof.' }) } });
+    mockGroq({ 'openai/gpt-oss-120b': { status: st }, 'openai/gpt-oss-20b': { status: 200, content: answer({ 0: 'Äh, willkommen auf dem Birkenhof.' }) } });
     const fb = await run('POST', { lang: 'de', segments: SEGS }, KEY);
-    ok(fb.statusCode === 200 && fb.json.model === 'llama-3.3-70b-versatile' && calls.length === 2 && fb.json.changed === 1, 'Fallback auf llama bei HTTP ' + st);
+    ok(fb.statusCode === 200 && fb.json.model === 'openai/gpt-oss-20b' && calls.length === 2 && fb.json.changed === 1, 'Fallback-Modell bei HTTP ' + st);
   }
-  mockGroq({ 'openai/gpt-oss-120b': { throw: 'TypeError' }, 'llama-3.3-70b-versatile': { status: 200, content: answer({}) } });
-  ok((await run('POST', { segments: SEGS }, KEY)).json.model === 'llama-3.3-70b-versatile', 'Fallback bei Netzfehler');
-  mockGroq({ 'openai/gpt-oss-120b': { status: 401 }, 'llama-3.3-70b-versatile': { status: 200, content: answer({}) } });
+  mockGroq({ 'openai/gpt-oss-120b': { throw: 'TypeError' }, 'openai/gpt-oss-20b': { status: 200, content: answer({}) } });
+  ok((await run('POST', { segments: SEGS }, KEY)).json.model === 'openai/gpt-oss-20b', 'Fallback bei Netzfehler');
+  mockGroq({ 'openai/gpt-oss-120b': { status: 401 }, 'openai/gpt-oss-20b': { status: 200, content: answer({}) } });
   const k401 = await run('POST', { segments: SEGS }, KEY);
   ok(k401.statusCode === 502 && calls.length === 1, '401 (Key-Problem) → kein Fallback, 502');
 
   // Ungültiges JSON vom LLM: erst Fallback, beide unlesbar → 502 (Frontend behält Roh-Transkript)
-  mockGroq({ 'openai/gpt-oss-120b': { status: 200, content: 'Hier ist die Korrektur: ...' }, 'llama-3.3-70b-versatile': { status: 200, content: answer({ 1: 'Bei uns gibt\'s Highland Beef aus dem Fricktal.' }) } });
+  mockGroq({ 'openai/gpt-oss-120b': { status: 200, content: 'Hier ist die Korrektur: ...' }, 'openai/gpt-oss-20b': { status: 200, content: answer({ 1: 'Bei uns gibt\'s Highland Beef aus dem Fricktal.' }) } });
   const ij = await run('POST', { segments: SEGS }, KEY);
-  ok(ij.statusCode === 200 && ij.json.model === 'llama-3.3-70b-versatile' && ij.json.changed === 1, 'unlesbares JSON → Fallback-Modell');
-  mockGroq({ 'openai/gpt-oss-120b': { status: 200, content: '{"segments": "kaputt"}' }, 'llama-3.3-70b-versatile': { status: 200, rawBody: '<html>oops' } });
+  ok(ij.statusCode === 200 && ij.json.model === 'openai/gpt-oss-20b' && ij.json.changed === 1, 'unlesbares JSON → Fallback-Modell');
+  mockGroq({ 'openai/gpt-oss-120b': { status: 200, content: '{"segments": "kaputt"}' }, 'openai/gpt-oss-20b': { status: 200, rawBody: '<html>oops' } });
   const both = await run('POST', { segments: SEGS }, KEY);
   ok(both.statusCode === 502 && /nicht-lesbar/.test(both.json.error) && calls.length === 2, 'beide unlesbar → 502 mit error');
-  mockGroq({ 'openai/gpt-oss-120b': { throw: 'TimeoutError' }, 'llama-3.3-70b-versatile': { throw: 'TimeoutError' } });
+  mockGroq({ 'openai/gpt-oss-120b': { throw: 'TimeoutError' }, 'openai/gpt-oss-20b': { throw: 'TimeoutError' } });
   const to = await run('POST', { segments: SEGS }, KEY);
   ok(to.statusCode === 502 && /rechtzeitig/.test(to.json.error) && calls.length === 2, 'Timeout bei beiden Modellen → 502');
 
