@@ -594,6 +594,29 @@ input[type=checkbox]{accent-color:#7c3aed}
 </style>
 </head>
 <body>
+<!-- EIN Icon-Satz für alle Bedienelemente (Inline-SVG-Sprite, Strichstärke/Farbe per CSS .ic) — statt
+     gemischter Emoji/Unicode-Glyphen, die je nach System anders aussehen. Nutzung: <svg class="ic"><use href="#i-…"/></svg> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 13.5L4.5 9 9 4.5"/><path d="M4.5 9h10a5 5 0 010 10H11"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 13.5L19.5 9 15 4.5"/><path d="M19.5 9h-10a5 5 0 000 10H13"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.7" class="fill"/><circle cx="12" cy="12" r="1.7" class="fill"/><circle cx="18.5" cy="12" r="1.7" class="fill"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.5V4.5"/><path d="M7.5 9L12 4.5 16.5 9"/><path d="M5 19.5h14"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path class="fill" d="M8 5.2v13.6a.8.8 0 001.2.7l10.6-6.8a.8.8 0 000-1.4L9.2 4.5A.8.8 0 008 5.2z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect class="fill" x="6.5" y="5" width="3.8" height="14" rx="1.2"/><rect class="fill" x="13.7" y="5" width="3.8" height="14" rx="1.2"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 010 6"/><path d="M18 6.5a7.5 7.5 0 010 11"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5l7 2.8v5.4c0 4.2-3 7.5-7 8.8-4-1.3-7-4.6-7-8.8V6.3z"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 10.5h10M7 14h6"/></symbol>
+  <symbol id="i-style" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.8-.8 1.8-1.7 0-1.4-1.2-1.6-1.2-2.8 0-1 .8-1.6 1.8-1.6h2.1a4 4 0 004-4c0-3.8-3.8-6.9-8.5-6.9z"/><circle class="fill" cx="7.8" cy="11" r="1.2"/><circle class="fill" cx="10.5" cy="7.4" r="1.2"/><circle class="fill" cx="15" cy="7.6" r="1.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4"/><circle class="fill" cx="12" cy="16.8" r="1"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
+  <symbol id="i-magnet" viewBox="0 0 24 24"><path d="M6 4.5h4v6.5a2 2 0 004 0V4.5h4V11a6 6 0 01-12 0z"/><path d="M6 8h4M14 8h4"/></symbol>
+</svg>
 <div id="app">
 
 <!-- LANDING -->
@@ -616,12 +639,19 @@ input[type=checkbox]{accent-color:#7c3aed}
   <label class="upload-zone" id="landZone">
     <input type="file" accept="video/*" id="landInput">
     <div class="upload-zone-icon"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="uzg" x1="2" y1="4" x2="22" y2="20"><stop offset="0" stop-color="#6d4aeb"/><stop offset="1" stop-color="#d84fc0"/></linearGradient></defs><path d="M7.5 17.5h9a3.5 3.5 0 001-6.85 5 5 0 00-9.6-1.6A4 4 0 007 17.5h.5z" stroke="url(#uzg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v7M9.2 12.5L12 9.7l2.8 2.8" stroke="url(#uzg)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <h3>Drop a video or click</h3>
+    <h3><span class="hint-desk">Drop a video or click to choose</span><span class="hint-touch">Tap to choose a video</span></h3>
     <p>MP4, MOV, WebM · your video stays on your device</p>
   </label>
+  <!-- Sprache VOR dem Upload wählbar (synchron mit #langSel im Editor) — sonst müsste man nach falscher
+       Auto-Erkennung erst im Editor umstellen und neu transkribieren. Statt doppeltem Upload-Button
+       ein Beispielvideo, damit man den Editor ohne eigenen Clip ausprobieren kann. -->
   <div class="land-cta-row">
-    <button class="nav-cta" style="padding:12px 24px;font-size:14px" onclick="document.getElementById('landInput').click()">Upload video&nbsp;&nbsp;→</button>
-    <button class="land-try-btn" onclick="openEditorClean()">Open editor&nbsp;&nbsp;→</button>
+    <label class="land-lang">Language
+      <select id="landLang" onchange="setLandLang(this.value)" aria-label="Spoken language of your video">
+        <option value="auto">Auto</option>
+      </select>
+    </label>
+    <button type="button" class="land-try-btn" id="sampleBtn" onclick="trySample()">Try a sample video&nbsp;&nbsp;→</button>
   </div>
 
   <!-- Template showcase -->
@@ -779,34 +809,116 @@ input[type=checkbox]{accent-color:#7c3aed}
 
 <!-- EDITOR -->
 <div id="editor">
+  <!-- Kopfzeile: ← · Titel (= Dateiname, editierbar, im Projekt gespeichert) + Autosave-Anzeige · Undo/Redo ·
+       ⋯-Menü (Konto, Projekte, Tastenkürzel) · Export. Auf dem Handy nur ← · Titel · Export (Undo/Redo
+       wandern per CSS als kleine Overlay-Knöpfe auf die Vorschau, ⋯ bleibt als Icon). -->
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:9px">
-      <button class="btn-back" onclick="goBack()">← Back</button>
+    <div class="tb-left">
+      <button type="button" class="btn-back tb-back" onclick="goBack()" title="Back to start" aria-label="Back"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg><span class="tb-lbl">Back</span></button>
       <div class="topbar-logo">
         <img src="assets/logo-lockup-light-nav.png" alt="Capivo" height="18" style="height:18px;width:auto;display:block">
       </div>
     </div>
-    <div class="tb-mid" style="font-size:10.5px;color:#555">AI Caption Studio</div>
-    <div style="display:flex;align-items:center;gap:7px">
-      <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Undo caption edit (Ctrl/⌘+Z)" aria-label="Undo">↶</button>
-      <button type="button" class="tb-icon" id="redoBtn" onclick="redoCaptions()" disabled title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo">↷</button>
-      <button class="btn-back" id="acctBtn" onclick="showAcct()">Sign in</button>
-      <button type="button" class="tb-export" id="tbExport" onclick="topExport()" disabled title="Render the MP4 with your captions">⬇ Export</button>
+    <div class="tb-mid">
+      <input type="text" id="projTitle" class="tb-title" placeholder="Untitled video" maxlength="80" spellcheck="false" autocomplete="off"
+        aria-label="Video title" title="Rename this video" oninput="onTitleInput(this.value)" onkeydown="if(event.key==='Enter'||event.key==='Escape')this.blur()">
+      <span class="save-ind" id="saveInd" role="status" aria-live="polite"></span>
+    </div>
+    <div class="tb-right">
+      <div class="tb-undo" id="tbUndo">
+        <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Undo caption edit (Ctrl/⌘+Z)" aria-label="Undo"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg></button>
+        <button type="button" class="tb-icon" id="redoBtn" onclick="redoCaptions()" disabled title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo"><svg class="ic" aria-hidden="true"><use href="#i-redo"/></svg></button>
+      </div>
+      <div class="tb-more">
+        <button type="button" class="tb-icon" id="moreBtn" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu" title="Account, projects &amp; shortcuts" aria-label="More"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></button>
+        <div class="tb-menu" id="moreMenu" style="display:none" onclick="event.stopPropagation()">
+          <button type="button" class="tm-item" id="acctBtn" onclick="closeMoreMenu();showAcct()">Sign in</button>
+          <button type="button" class="tm-item" onclick="closeMoreMenu();saveProject()" title="Save captions + style to your free account">Save to account</button>
+          <label class="tm-item tm-sel">Load project
+            <select id="projList" class="lang-sel" onchange="closeMoreMenu();loadProject(this.value)">
+              <option value="">— Load project —</option>
+            </select>
+          </label>
+          <details class="kb-help tm-kb"><summary class="tm-item">Keyboard shortcuts</summary>
+            <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field<br><b>Captions:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there<br><b>Timeline:</b> drag a caption to move it, drag its edges to trim, double-click to edit · with a caption selected: <b>← →</b> 1 frame, <b>Shift+← →</b> 0.1 s, <b>Delete</b> removes · hold <b>Alt</b> to skip snapping · <b>Ctrl/⌘+wheel</b> zooms</div>
+          </details>
+        </div>
+      </div>
+      <button type="button" class="tb-export" id="tbExport" onclick="topExport()" disabled title="Download the MP4 with your captions" aria-haspopup="dialog" aria-controls="expSheet">Export</button>
+    </div>
+  </div>
+
+  <!-- EIN Export-Weg: der Export-Knopf oben öffnet dieses Blatt (Desktop: Popover unter dem Knopf, Handy:
+       Bottom-Sheet). Primär „Download video“, Untertitel-Dateien als Links, Optionen eingeklappt; nach dem
+       Rendern Erfolg inline statt Upsell-Modal. Außerhalb der .topbar, weil deren backdrop-filter sonst
+       position:fixed auf die Kopfzeile begrenzen würde. -->
+  <div class="exp-sheet" id="expSheet" role="dialog" aria-labelledby="expTtl" style="display:none">
+    <div class="es-head"><b id="expTtl">Export</b>
+      <button type="button" class="es-x" onclick="closeExportSheet()" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div id="expMain">
+      <button type="button" class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
+        <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
+        <span class="exp-btn-txt"><span class="exp-btn-label">Download video</span><span class="exp-btn-sub" id="btnVideoSub">MP4 · 1080p</span></span>
+      </button>
+      <div id="recProg">
+        <p id="recMsg">Rendering video…</p>
+        <div class="rec-bar-wrap"><div class="rec-bar" id="recBar"></div></div>
+      </div>
+      <p class="es-wm" id="wmOpt" style="display:none">Free export adds a small Capivo mark · <a href="#" onclick="exportWithoutWatermark();return false" title="Free account · Magic-Code login, no password">Sign in free to remove</a></p>
+      <div class="es-links">
+        <button type="button" class="es-link" id="btnSRT" onclick="exportSRT()" disabled title="Subtitle file for Premiere, DaVinci, CapCut… (Premiere: File → Import → choose the .srt → drag onto the timeline)">SRT</button><span aria-hidden="true">·</span>
+        <button type="button" class="es-link" id="btnVTT" onclick="exportVTT()" disabled title="Subtitle file for web players &amp; YouTube">VTT</button><span aria-hidden="true">·</span>
+        <button type="button" class="es-link" id="btnTXT" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">TXT</button><span aria-hidden="true">·</span>
+        <button type="button" class="es-link" id="btnCopy" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">Copy text</button>
+      </div>
+      <details class="es-opts" id="expOpts"><summary>Options</summary>
+        <div class="exp-opts">
+          <label class="exp-opt"><span>Resolution</span>
+            <select id="expRes" class="lang-sel" onchange="setExportRes(this.value)">
+              <option value="1080">1080p (recommended)</option><option value="orig">Original</option>
+            </select></label>
+          <label class="exp-opt" id="fmtRow" style="display:none"><span>Format</span>
+            <select id="expFmt" class="lang-sel" onchange="setExportFormat(this.value)">
+              <option value="original">Original</option><option value="blur">9:16 · blur fill</option><option value="crop">9:16 · crop</option>
+            </select></label>
+          <label class="exp-chk">
+            <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)">
+            <span>Cut silences &amp; filler words (“um”, “äh”…)</span>
+          </label>
+        </div>
+      </details>
+      <label class="exp-chk es-skip" title="Export then downloads right away with these settings — untick here to see this sheet again">
+        <input type="checkbox" id="expSkipChk" onchange="setExpSkip(this.checked)"><span>Skip this next time — Export downloads right away</span>
+      </label>
+    </div>
+    <div class="es-done" id="expDone" style="display:none" role="status" aria-live="polite">
+      <div class="es-ok"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Saved — <b id="expDoneName">capivo-video.mp4</b></span></div>
+      <div class="es-done-row">
+        <button type="button" class="pos-btn" id="expRmWm" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">Remove watermark (free)</button>
+        <button type="button" class="pos-btn" onclick="exportAgain()">Export again</button>
+      </div>
     </div>
   </div>
 
   <div class="ed-body" id="edBody">
     <!-- Preview -->
-    <div class="prev-col">
+    <div class="prev-col" id="prevCol">
       <div class="prev-frame" id="prevFrame" onclick="if(vidReady && !capDragMoved)togglePlay()">
         <div id="prevBg"></div>
         <canvas id="prevBlurBg" width="36" height="64" aria-hidden="true"></canvas>
         <video id="mainVid" playsinline preload="auto"
           style="position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none"></video>
-        <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon">▶</div></div>
+        <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
-          <span>🎬</span><b class="fdz-btn">⬆ Upload video</b><p>or drop it here · MP4, MOV, WebM<br>captions in seconds — no signup</p>
+          <b class="fdz-btn"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Choose a video</b><p>or drop it here · MP4, MOV, WebM<br>captions in seconds — no signup</p>
+        </div>
+        <!-- Verarbeitung: Fortschritt direkt auf der Vorschau (statt Platzhalter-Caption + Statustext im Panel) -->
+        <div id="procOv" class="proc-ov" style="display:none" role="status" aria-live="polite">
+          <div class="t-spinner"></div>
+          <b id="procMsg">Transcribing… 0%</b>
+          <span id="procStep"></span>
+          <div class="proc-bar"><div class="proc-fill" id="procFill"></div></div>
         </div>
         <div id="capOverlay" onmousedown="capDragStart(event)" ontouchstart="capDragStart(event)" ondblclick="capOverlayDbl(event)" title="Drag to move · double-click to edit the text"></div>
         <div id="capInlineEd" class="cap-inline" style="display:none" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
@@ -817,19 +929,19 @@ input[type=checkbox]{accent-color:#7c3aed}
         </div>
         <div id="safeZoneOverlay">
           <div id="safeZoneRect"></div>
-          <div id="safeZoneWarn">⚠ Captions may be covered by the Reels/TikTok UI</div>
+          <div id="safeZoneWarn">Captions may be covered by the Reels/TikTok UI</div>
         </div>
       </div>
       <div class="vid-ctrls" id="vidCtrls">
-        <button class="pp-btn" id="ppBtn" onclick="togglePlay()">▶</button>
+        <button type="button" class="pp-btn" id="ppBtn" onclick="togglePlay()" aria-label="Play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></button>
         <div class="prog-col">
           <div class="prog-track" id="progTrack" onclick="seekVid(event)">
             <div class="prog-fill" id="progFill"></div>
           </div>
-          <div class="prog-time" id="timeLbl">0:00 / 0:00</div>
         </div>
-        <button class="mute-btn on" id="muteBtn" onclick="toggleMute()">🔊</button>
-        <button class="sz-btn" id="safeZoneBtn" onclick="toggleSafeZone()" title="Safe zone: shows where captions stay clear of the Reels/TikTok UI (top bar, icon column, profile/caption area)">🛡 Safe Zone</button>
+        <div class="prog-time" id="timeLbl">0:00 / 0:00</div>
+        <button type="button" class="mute-btn on" id="muteBtn" onclick="toggleMute()" aria-label="Mute" title="Sound on/off"><svg class="ic" aria-hidden="true"><use href="#i-vol"/></svg></button>
+        <button type="button" class="sz-btn" id="safeZoneBtn" onclick="toggleSafeZone()" aria-label="Safe zone" title="Safe zone: shows where captions stay clear of the Reels/TikTok UI (top bar, icon column, profile/caption area)"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg></button>
       </div>
       <div class="vid-warn" id="vidWarn" role="status" style="display:none"></div>
       <!-- Timeline: Captions zeitlich ziehen/trimmen, an Szenenschnitte fangen (Canvas, gezeichnet in tlDraw) -->
@@ -838,7 +950,7 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button type="button" class="tl-tog" id="tlTog" onclick="tlToggle()" aria-expanded="true" aria-controls="tlBody">▾ Timeline</button>
           <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · double-click to edit</span>
           <span class="tl-sp"></span>
-          <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping">🧲 Snap</button>
+          <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg> Snap</button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1/1.6)" title="Zoom out" aria-label="Zoom timeline out">−</button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1.6)" title="Zoom in (Ctrl/⌘+wheel or pinch)" aria-label="Zoom timeline in">+</button>
           <button type="button" class="tl-btn" onclick="tlFit()" title="Show the whole video">Fit</button>
@@ -848,306 +960,233 @@ input[type=checkbox]{accent-color:#7c3aed}
             aria-label="Caption timeline. Drag captions to move them, drag their edges to trim, double-click to edit. With a caption selected, arrow keys nudge it and Delete removes it."></canvas>
         </div>
       </div>
-      <div class="zoom-ctrl" id="zoomCtrl">
-        <button class="zoom-btn" onclick="zoomBy(-0.25)" title="Zoom out" type="button">−</button>
-        <span class="zoom-lbl" id="zoomLbl">100%</span>
-        <button class="zoom-btn" onclick="zoomBy(0.25)" title="Zoom in" type="button">+</button>
-      </div>
     </div>
     <div class="col-resize-handle" id="colResizeHandle" title="Drag to resize the panel"></div>
 
     <!-- Controls -->
     <div class="ctrl-col" id="ctrlCol" data-tab="captions">
 
-      <!-- Tabs: Captions / Style / Export — Progressive Disclosure statt einer langen Wand aus Reglern
-           (wie Submagic/Captions.ai). Alle Sektionen bleiben im DOM (IDs unverändert), der Tab blendet nur ein/aus. -->
+      <!-- Zwei Tabs: Captions (nur Transkript) · Style (Look). Export ist EIN Blatt am Export-Knopf oben.
+           Alle Sektionen bleiben im DOM (IDs unverändert), der Tab blendet nur ein/aus. Auf dem Handy wird
+           diese Leiste per CSS zur festen Tab-Leiste am unteren Rand. -->
       <div class="ed-tabs" id="edTabs" role="tablist">
-        <button type="button" class="ed-tab on" data-tab="captions" role="tab" onclick="switchTab('captions')">✏️ Captions</button>
-        <button type="button" class="ed-tab" data-tab="style" role="tab" onclick="switchTab('style')">🎨 Style</button>
-        <button type="button" class="ed-tab" data-tab="export" role="tab" onclick="switchTab('export')">⬇️ Export</button>
+        <button type="button" class="ed-tab on" data-tab="captions" role="tab" onclick="switchTab('captions')"><svg class="ic" aria-hidden="true"><use href="#i-text"/></svg> Captions</button>
+        <button type="button" class="ed-tab" data-tab="style" role="tab" onclick="switchTab('style')"><svg class="ic" aria-hidden="true"><use href="#i-style"/></svg> Style</button>
       </div>
 
-      <!-- Video -->
+      <!-- Captions: Status in einer Zeile, Video/Sprache/Modell etc. eingeklappt, darunter nur die Zeilenliste -->
       <div class="csect" data-tab="captions">
-        <div class="clbl">Video</div>
-        <div class="ctrl-upload">
-          <input type="file" accept="video/*" id="ctrlInput">
-          <p id="uploadLabel">📁 Upload / replace video</p>
+        <div class="t-status" id="tStatus"><span id="tMsg">Upload a video to generate captions</span></div>
+        <div id="tProgWrap" style="display:none" class="t-prog-row">
+          <div class="t-prog-bar"><div class="t-prog-fill" id="tProgFill"></div></div>
+          <span class="t-prog-pct" id="tProgPct">0%</span>
         </div>
-      </div>
-
-      <!-- Transcript -->
-      <div class="csect" data-tab="captions">
-        <details class="tr-set" id="trSet" open>
-        <summary><span class="tr-set-ttl">⚙︎ Transcription</span><span class="tr-set-sum" id="trSetSum"></span></summary>
-        <select id="langSel" class="lang-sel" onchange="setLang(this.value)">
-          <option value="auto">🌐 Detect language automatically</option>
-          <option value="english">🇬🇧 English</option>
-          <option value="spanish">🇪🇸 Spanish</option>
-          <option value="german">🇩🇪 German</option>
-          <option value="french">🇫🇷 French</option>
-          <option value="portuguese">🇵🇹 Portuguese</option>
-          <option value="italian">🇮🇹 Italian</option>
-          <option value="dutch">🇳🇱 Dutch</option>
-          <option value="polish">🇵🇱 Polish</option>
-          <option value="turkish">🇹🇷 Turkish</option>
-          <option value="russian">🇷🇺 Russian</option>
-          <option value="ukrainian">🇺🇦 Ukrainian</option>
-          <option value="japanese">🇯🇵 Japanese</option>
-          <option value="korean">🇰🇷 Korean</option>
-          <option value="chinese">🇨🇳 Chinese</option>
-          <option value="arabic">🇸🇦 Arabic</option>
-          <option value="hindi">🇮🇳 Hindi</option>
-        </select>
-        <div class="pos-row" id="modelRow" style="margin-bottom:7px">
-          <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
-          <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
-        </div>
-        <div class="model-hint"><b>⚡ Fast</b> — captions in seconds, great for clear speech. <b>💎 Perfect</b> — biggest model + AI proofreading for dialects, names &amp; punctuation (a few seconds more).</div>
-        <input type="text" id="vocabInput" class="lang-sel" style="margin-bottom:0" maxlength="300" autocomplete="off" spellcheck="false"
-          placeholder="Names &amp; terms to spell right (optional) — e.g. Birkenhof, Highland Beef" oninput="onVocabChange(this.value)">
-        <div class="vocab-hint">
-          <span>Helps the AI spell names, brands &amp; places.</span>
-          <a id="vocabApply" href="#" onclick="applyVocab(event)" style="display:none">Re-transcribe to apply</a>
-        </div>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#66616e;margin-bottom:7px;cursor:pointer">
-          <input type="checkbox" id="trEn" onchange="setTranslate(this)"> Translate captions to English
-        </label>
-        <div id="quotaInfo" style="font-size:10.5px;color:#7c3aed;margin-bottom:7px"></div>
-        </details>
-        <div class="t-box">
-          <div class="t-status" id="tStatus">
-            <span style="font-size:15px">🎙️</span>
-            <span id="tMsg">Upload a video to generate captions</span>
-          </div>
-          <div id="tProgWrap" style="display:none" class="t-prog-row">
-            <div class="t-prog-bar"><div class="t-prog-fill" id="tProgFill"></div></div>
-            <span class="t-prog-pct" id="tProgPct">0%</span>
-          </div>
-        </div>
-
-        <div class="next-steps" id="nextSteps" style="display:none">
-          <span>Next</span>
-          <button type="button" onclick="switchTab('style')">🎨 Pick a look</button>
-          <button type="button" class="hi" onclick="topExport()">⬇ Export MP4</button>
-        </div>
-
         <div id="retryWrap" style="display:none">
-          <button class="retry-btn" onclick="retryTranscribe()">↻ Try again</button>
-          <div class="badge-o" style="margin-top:5px">⚠️ Tips: try again · switch language or model · check your connection.</div>
+          <button type="button" class="retry-btn" onclick="retryTranscribe()">Try again</button>
+          <div class="badge-o">Tips: try again · pick the language or switch to 💎 Perfect under “Video &amp; language” · check your connection.</div>
         </div>
 
-        <!-- Caption editor — shown after transcription -->
+        <details class="tr-set" id="trSet">
+          <summary><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span class="tr-set-ttl">Video &amp; language</span><span class="tr-set-sum" id="trSetSum"></span></summary>
+          <div class="tr-body">
+            <div class="ctrl-upload">
+              <input type="file" accept="video/*" id="ctrlInput">
+              <p id="uploadLabel"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Replace video</p>
+            </div>
+            <label class="f-lbl" for="langSel">Spoken language</label>
+            <select id="langSel" class="lang-sel" onchange="setLang(this.value)">
+              <option value="auto">Detect automatically</option>
+              <option value="english">English</option>
+              <option value="spanish">Spanish</option>
+              <option value="german">German</option>
+              <option value="french">French</option>
+              <option value="portuguese">Portuguese</option>
+              <option value="italian">Italian</option>
+              <option value="dutch">Dutch</option>
+              <option value="polish">Polish</option>
+              <option value="turkish">Turkish</option>
+              <option value="russian">Russian</option>
+              <option value="ukrainian">Ukrainian</option>
+              <option value="japanese">Japanese</option>
+              <option value="korean">Korean</option>
+              <option value="chinese">Chinese</option>
+              <option value="arabic">Arabic</option>
+              <option value="hindi">Hindi</option>
+            </select>
+            <div class="pos-row" id="modelRow">
+              <button type="button" class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
+              <button type="button" class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
+            </div>
+            <div class="model-hint">Fast: captions in seconds · Perfect: biggest model + AI proofreading for names &amp; dialects.</div>
+            <input type="text" id="vocabInput" class="lang-sel" maxlength="300" autocomplete="off" spellcheck="false"
+              placeholder="Names &amp; terms (optional) — e.g. Birkenhof" oninput="onVocabChange(this.value)" title="Helps the AI spell names, brands &amp; places">
+            <div class="vocab-hint">
+              <span>Helps the AI spell names, brands &amp; places.</span>
+              <a id="vocabApply" href="#" onclick="applyVocab(event)" style="display:none">Re-transcribe to apply</a>
+            </div>
+            <label class="chk-row">
+              <input type="checkbox" id="trEn" onchange="setTranslate(this)"> Translate captions to English
+            </label>
+            <div id="quotaInfo" class="quota-info"></div>
+            <details class="fr-box" id="frBox"><summary><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> Find &amp; replace</summary>
+              <div class="fr-row">
+                <input type="text" id="frFind" class="lang-sel" placeholder="Find" oninput="updateFindCount()" autocomplete="off" spellcheck="false">
+                <input type="text" id="frRepl" class="lang-sel" placeholder="Replace with" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')replaceAllCaptions()">
+              </div>
+              <div class="fr-row" style="justify-content:space-between">
+                <label class="fr-opt"><input type="checkbox" id="frWhole" onchange="updateFindCount()"> Whole word</label>
+                <button class="pos-btn" id="frBtn" type="button" onclick="replaceAllCaptions()" disabled>Replace all (0)</button>
+              </div>
+            </details>
+          </div>
+        </details>
+
+        <!-- Caption editor — shown after transcription. Bedien-Hinweis nur EINMAL als wegklickbarer Tipp. -->
         <div class="cap-editor" id="capEditor">
-          <div class="ce-hdr"><span class="hint-desk">Click a line to jump &amp; edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there</span><span class="hint-touch">Tap a line to edit · <b>return</b> splits it · <b>⌫</b> at the start merges · tap the highlighted word in the video to edit it there</span>
-            <details class="kb-help"><summary>⌨ Shortcuts</summary>
-              <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field<br><b>Timeline:</b> drag a caption to move it, drag its edges to trim, double-click to edit · with a caption selected: <b>← →</b> 1 frame, <b>Shift+← →</b> 0.1 s, <b>Delete</b> removes · hold <b>Alt</b> to skip snapping · <b>Ctrl/⌘+wheel</b> zooms</div>
-            </details></div>
-          <details class="fr-box" id="frBox"><summary>🔍 Find &amp; replace</summary>
-          <div class="fr-row">
-            <input type="text" id="frFind" class="lang-sel" placeholder="Find" oninput="updateFindCount()" autocomplete="off" spellcheck="false">
-            <input type="text" id="frRepl" class="lang-sel" placeholder="Replace with" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')replaceAllCaptions()">
+          <div class="coach" id="coachEdit" style="display:none" role="note">
+            <span class="hint-desk"><b>Tip:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there.</span>
+            <span class="hint-touch"><b>Tip:</b> tap a line to edit · <b>return</b> splits · <b>⌫</b> at the start merges · tap the word in the video to edit it there.</span>
+            <button type="button" class="coach-x" onclick="dismissCoach('coachEdit')" aria-label="Dismiss tip"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
           </div>
-          <div class="fr-row" style="justify-content:space-between">
-            <label class="fr-opt"><input type="checkbox" id="frWhole" onchange="updateFindCount()"> Whole word</label>
-            <button class="pos-btn" id="frBtn" type="button" onclick="replaceAllCaptions()" disabled>Replace all (0)</button>
-          </div>
-          </details>
           <div class="cap-segs" id="capSegs"></div>
           <div class="wpills" id="wpills"></div>
         </div>
       </div>
 
-      <!-- Style -->
+      <!-- Style: während der Transkription Überschrift „Choose a style…“; Preset-Raster in voller Breite -->
       <div class="csect" data-tab="style">
-        <div class="clbl">Style</div>
-        <div class="style-scroll" id="stylePicker"></div>
+        <div class="style-hdr" id="styleHdr" style="display:none">
+          <b>Choose a style while we transcribe</b>
+          <div class="sh-bar"><div class="sh-fill" id="shFill"></div></div>
+        </div>
+        <div class="style-grid" id="stylePicker"></div>
       </div>
 
-      <!-- Adjust -->
+      <!-- 4 schnelle Regler; alles Weitere hinter „Customize“ -->
       <div class="csect" data-tab="style">
-        <div class="clbl">Position</div>
-        <div class="pos-row">
-          <button class="pos-btn" data-pos="top" onclick="setPos(this)">Top</button>
-          <button class="pos-btn" data-pos="center" onclick="setPos(this)">Middle</button>
-          <button class="pos-btn on" data-pos="bottom" onclick="setPos(this)">Bottom</button>
+        <div class="q-row">
+          <span class="q-k">Position</span>
+          <div class="pos-row seg" id="posRow">
+            <button type="button" class="pos-btn" data-pos="top" onclick="setPos(this)">Top</button>
+            <button type="button" class="pos-btn" data-pos="center" onclick="setPos(this)">Middle</button>
+            <button type="button" class="pos-btn on" data-pos="bottom" onclick="setPos(this)">Bottom</button>
+          </div>
         </div>
-        <div class="sz-row" style="margin-top:7px">
-          <span style="font-size:9px;color:#94909c;min-width:34px">Height</span>
-          <input type="range" min="-30" max="30" step="2" value="20" id="voffSlider" oninput="onVOffChange(this.value)">
-          <span class="sz-val" id="voffDisp" style="min-width:38px">+20%</span>
-        </div>
-        <div class="clbl" style="margin-top:12px">Font size</div>
-        <div class="sz-row">
-          <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)">
+        <div class="q-row sz-row">
+          <span class="q-k">Size</span>
+          <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)" aria-label="Caption size">
           <span class="sz-val" id="szDisp">22px</span>
         </div>
-        <div class="clbl" style="margin-top:10px">Words per caption</div>
-        <div class="sz-row">
-          <input type="range" min="1" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)">
+        <div class="q-row sz-row">
+          <span class="q-k" title="Words per caption">Words</span>
+          <input type="range" min="1" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)" aria-label="Words per caption" title="Words per caption">
           <span class="sz-val" id="wpbDisp">4</span>
         </div>
-        <div class="clbl" style="margin-top:10px">Text</div>
-        <div class="pos-row">
-          <button class="pos-btn" id="punctBtn" type="button" onclick="togglePunct()" title="Hide . , ! ? ; : … in the video (subtitle files keep punctuation)">Remove punctuation</button>
-          <select id="caseSel" class="lang-sel cs-sel" style="flex:1" onchange="setCaptionCase(this.value)" title="Letter case for captions and subtitle files">
-            <option value="asis">Case: as spoken</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option>
+        <div class="q-row">
+          <span class="q-k">Case</span>
+          <select id="caseSel" class="lang-sel cs-sel" onchange="setCaptionCase(this.value)" title="Letter case for captions and subtitle files">
+            <option value="asis">Style default</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="orig">As typed</option>
           </select>
         </div>
-        <div class="clbl" style="margin-top:10px">Line layout</div>
-        <div class="pos-row" id="linesRow">
-          <button class="pos-btn on" data-lines="1" onclick="setLines(this)">1 line</button>
-          <button class="pos-btn" data-lines="2" onclick="setLines(this)">2 lines</button>
-        </div>
-        <div class="clbl cs-head" style="margin-top:14px">Customize look <span style="text-transform:none;letter-spacing:0;color:#94909c">· edits the selected style</span></div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <label class="cs-swatch" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
-          <label class="cs-swatch" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Active</span></label>
-          <select id="csFont" class="lang-sel cs-sel" style="flex:1" onchange="onFontPick(this)" title="Font — 55+ Google Fonts, or type any Google Font name">
-            <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
-            <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
-            <option>Inter</option><option>Oswald</option>
-          </select>
-          <select id="csWeight" class="lang-sel cs-sel" style="flex:0 0 74px" onchange="applyCustomStyle('weight')" title="Font weight">
-            <option value="400">Regular</option><option value="600">Semi</option><option value="700">Bold</option>
-            <option value="800">Extra</option><option value="900">Black</option>
-          </select>
-        </div>
-        <div style="display:flex;gap:5px;margin-top:6px">
-          <button class="pos-btn" id="csUpper" type="button" onclick="toggleCsBtn(this,'upper')" title="Uppercase letters">AA Uppercase</button>
-          <button class="pos-btn" id="csShadow" type="button" onclick="toggleCsBtn(this,'stroke')" title="Soft drop shadow">Shadow</button>
-        </div>
-        <label class="sz-row" style="margin-top:7px;cursor:pointer">
-          <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle('glow')" style="cursor:pointer">
-          <span style="font-size:10.5px;color:#66616e;min-width:34px">Glow</span>
-          <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('glow')" title="Glow strength">
-        </label>
-        <details class="cs-more" id="csMore">
-          <summary>More style options</summary>
-          <div class="sz-row cs-line"><span class="cs-k">Outline</span>
-            <input type="range" min="0" max="8" step="1" value="0" id="csOutlineW" oninput="applyCustomStyle('stroke')">
-            <span class="cs-v" id="csOutlineDisp">0px</span>
-            <input type="color" id="csOutlineC" class="cs-col" value="#000000" title="Outline color" oninput="applyCustomStyle('strokec')"></div>
-          <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
-            <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')">
-            <span class="cs-v" id="csLsDisp">0px</span></div>
-          <div class="sz-row cs-line"><span class="cs-k">Line height</span>
-            <input type="range" min="0.9" max="1.8" step="0.05" value="1.3" id="csLh" oninput="applyCustomStyle('lh')" title="Space between the two caption lines">
-            <span class="cs-v" id="csLhDisp">1.30</span></div>
-          <div class="sz-row cs-line"><span class="cs-k">Background</span>
-            <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="onBoxModeChange(this.value)">
-              <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
-            </select>
-            <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('boxc')">
-            <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('boxc')"></div>
-          <div class="sz-row cs-line"><span class="cs-k">Corners</span>
-            <input type="range" min="0" max="30" step="1" value="8" id="csBoxR" oninput="applyCustomStyle('boxc')" title="Corner radius of the background">
-            <span class="cs-v" id="csBoxRDisp">8px</span></div>
-          <div class="sz-row cs-line"><span class="cs-k">Highlight</span>
-            <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hltype')" title="How the active word stands out — its color is the “Active”/“Pill” swatch above">
-              <option value="color">Text color</option><option value="pill">Pill behind word</option>
-            </select></div>
-          <div class="sz-row cs-line"><span class="cs-k">Animation</span>
-            <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')">
-              <option value="none">None</option><option value="punch">Punch</option><option value="scale">Pop</option>
-              <option value="bounce">Bounce</option><option value="flash">Flash</option><option value="glow">Glow pulse</option>
-              <option value="wobble">Wobble</option>
-            </select></div>
-        </details>
+        <p class="q-hint">Drag the caption in the preview to fine-tune its height.</p>
+
         <details class="cs-adv" id="advSet">
-          <summary>Timing, behaviour &amp; keywords</summary>
-        <div class="clbl" style="margin-top:4px">Caption mode</div>
-        <div class="pos-row" id="modeRow">
-          <button class="pos-btn on" data-mode="karaoke" onclick="setMode(this)" title="Captions disappear during silence, only show while someone is actually speaking">🎤 Karaoke</button>
-          <button class="pos-btn" data-mode="all" onclick="setMode(this)" title="Captions stay on screen through pauses, until the next block starts">Continuous</button>
-        </div>
-        <div class="mode-hint">Karaoke hides captions in silent pauses. Continuous keeps the last line up until the next one starts.</div>
-        <label class="sz-row" style="margin-top:8px;cursor:pointer" title="Never let a caption run across a hard cut in your video">
-          <input type="checkbox" id="cutChk" checked onchange="onBreakAtCutsChange(this.checked)" style="cursor:pointer">
-          <span style="font-size:10.5px;color:#66616e">Break captions at scene cuts</span>
-        </label>
-        <div class="clbl" style="margin-top:10px">Timing</div>
-        <div class="sz-row">
-          <span style="font-size:9px;color:#94909c;min-width:34px">Earlier</span>
-          <input type="range" min="-0.5" max="0.5" step="0.05" value="0" id="toSlider" oninput="onTimeOffChange(this.value)" title="Shift all captions earlier or later">
-          <span style="font-size:9px;color:#94909c">Later</span>
-        </div>
-        <div class="mode-hint" id="toDisp" style="margin-top:3px">Captions in sync with the audio</div>
-        <div class="clbl" style="margin-top:10px">Always highlight keywords</div>
-        <input type="text" id="kwInput" class="lang-sel" style="margin-bottom:0" placeholder="e.g. free, today, new" oninput="onKwChange(this.value)">
+          <summary>Customize</summary>
+          <div class="cs-grp"><div class="cs-gh">Layout</div>
+            <div class="sz-row cs-line"><span class="cs-k">Max lines</span>
+              <div class="pos-row seg" id="linesRow" style="flex:1;margin:0">
+                <button type="button" class="pos-btn on" data-lines="1" onclick="setLines(this)">1</button>
+                <button type="button" class="pos-btn" data-lines="2" onclick="setLines(this)">2</button>
+              </div></div>
+            <p class="cs-note">Captions shrink to stay within the max lines; only a caption that still can't fit at the smallest size wraps.</p>
+            <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
+              <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')" title="Letter spacing">
+              <span class="cs-v" id="csLsDisp">0px</span></div>
+            <div class="sz-row cs-line"><span class="cs-k">Line height</span>
+              <input type="range" min="0.9" max="1.8" step="0.05" value="1.3" id="csLh" oninput="applyCustomStyle('lh')" title="Space between the two caption lines">
+              <span class="cs-v" id="csLhDisp">1.30</span></div>
+          </div>
+          <div class="cs-grp"><div class="cs-gh">Colours &amp; font <span class="cs-sub">edits the selected style</span></div>
+            <div class="cs-line" style="display:flex;gap:8px;align-items:center">
+              <label class="cs-swatch" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
+              <label class="cs-swatch" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Active</span></label>
+              <select id="csFont" class="lang-sel cs-sel" style="flex:1;min-width:0" onchange="onFontPick(this)" title="Font — 55+ Google Fonts, or type any Google Font name">
+                <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
+                <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
+                <option>Inter</option><option>Oswald</option>
+              </select>
+              <select id="csWeight" class="lang-sel cs-sel" style="flex:0 0 76px" onchange="applyCustomStyle('weight')" title="Font weight">
+                <option value="400">Regular</option><option value="600">Semi</option><option value="700">Bold</option>
+                <option value="800">Extra</option><option value="900">Black</option>
+              </select>
+            </div>
+          </div>
+          <div class="cs-grp" id="csMore"><div class="cs-gh">Outline, shadow &amp; background</div>
+            <div class="sz-row cs-line"><span class="cs-k">Outline</span>
+              <input type="range" min="0" max="8" step="1" value="0" id="csOutlineW" oninput="applyCustomStyle('stroke')">
+              <span class="cs-v" id="csOutlineDisp">0px</span>
+              <input type="color" id="csOutlineC" class="cs-col" value="#000000" title="Outline color" oninput="applyCustomStyle('strokec')"></div>
+            <div class="sz-row cs-line"><span class="cs-k">Shadow</span>
+              <button class="pos-btn" id="csShadow" type="button" onclick="toggleCsBtn(this,'stroke')" title="Soft drop shadow">Drop shadow</button></div>
+            <label class="sz-row cs-line" style="cursor:pointer"><span class="cs-k">Glow</span>
+              <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle('glow')" style="cursor:pointer" aria-label="Glow on/off">
+              <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('glow')" title="Glow strength"></label>
+            <div class="sz-row cs-line"><span class="cs-k">Background</span>
+              <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="onBoxModeChange(this.value)">
+                <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
+              </select>
+              <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('boxc')">
+              <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('boxc')"></div>
+            <div class="sz-row cs-line"><span class="cs-k">Corners</span>
+              <input type="range" min="0" max="30" step="1" value="8" id="csBoxR" oninput="applyCustomStyle('boxc')" title="Corner radius of the background">
+              <span class="cs-v" id="csBoxRDisp">8px</span></div>
+          </div>
+          <div class="cs-grp"><div class="cs-gh">Highlight &amp; animation</div>
+            <div class="sz-row cs-line"><span class="cs-k">Highlight</span>
+              <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hltype')" title="How the active word stands out — its color is the “Active”/“Pill” swatch above">
+                <option value="color">Text color</option><option value="pill">Pill behind word</option>
+              </select></div>
+            <div class="sz-row cs-line"><span class="cs-k">Animation</span>
+              <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')">
+                <option value="none">None</option><option value="punch">Punch</option><option value="scale">Pop</option>
+                <option value="bounce">Bounce</option><option value="flash">Flash</option><option value="glow">Glow pulse</option>
+                <option value="wobble">Wobble</option>
+              </select></div>
+            <div class="sz-row cs-line"><span class="cs-k">Keywords</span>
+              <input type="text" id="kwInput" class="lang-sel" style="margin:0;flex:1" placeholder="Always highlight, e.g. free, today" oninput="onKwChange(this.value)" title="Words that always appear in the highlight color"></div>
+          </div>
+          <div class="cs-grp"><div class="cs-gh">Timing &amp; text</div>
+            <label class="chk-row" title="Captions disappear during silence and only show while someone is speaking. Off: the last caption stays up until the next one starts.">
+              <input type="checkbox" id="pauseChk" checked onchange="setPauseHide(this.checked)"> Hide captions during pauses
+            </label>
+            <label class="chk-row" title="Never let a caption run across a hard cut in your video">
+              <input type="checkbox" id="cutChk" checked onchange="onBreakAtCutsChange(this.checked)"> Break captions at scene cuts
+            </label>
+            <label class="chk-row" title="Hide . , ! ? ; : … in the video (subtitle files keep punctuation)">
+              <input type="checkbox" id="punctBtn" onchange="togglePunct()"> Remove punctuation
+            </label>
+            <div class="sz-row cs-line"><span class="cs-k">Timing</span>
+              <span class="cs-v" style="min-width:0">Earlier</span>
+              <input type="range" min="-0.5" max="0.5" step="0.05" value="0" id="toSlider" oninput="onTimeOffChange(this.value)" title="Shift all captions earlier or later">
+              <span class="cs-v" style="min-width:0">Later</span>
+            </div>
+            <div class="mode-hint" id="toDisp">Captions in sync with the audio</div>
+          </div>
+          <div class="cs-grp"><div class="cs-gh">Save as template <span id="tplCount" class="cs-sub"></span></div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTemplate();}">
+              <button class="pos-btn" id="tplSaveBtn" type="button" style="flex:0 0 auto;padding:6px 12px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">Save</button>
+            </div>
+            <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
+            <div class="tpl-io">
+              <span id="tplEditing" style="display:none"></span>
+              <a href="#" onclick="exportTemplates(event)" title="Download your templates as a JSON file">Export templates</a>
+              <a href="#" onclick="document.getElementById('tplImport').click();return false" title="Load templates from a JSON file">Import</a>
+              <input type="file" id="tplImport" accept="application/json,.json" style="display:none" onchange="importTemplates(this)">
+            </div>
+            <p class="cs-note">Brand default: open a template's ⋯ menu → “Use for every new video”.</p>
+          </div>
         </details>
-        <div class="clbl" style="margin-top:10px">Save as template <span id="tplCount" style="text-transform:none;letter-spacing:0;color:#94909c"></span></div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTemplate();}">
-          <button class="pos-btn" id="tplSaveBtn" style="flex:0 0 auto;padding:5px 10px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">💾 Save</button>
-        </div>
-        <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
-        <div class="tpl-io">
-          <span id="tplEditing" style="display:none"></span>
-          <a href="#" onclick="exportTemplates(event)" title="Download your templates as a JSON file">Export templates</a>
-          <a href="#" onclick="document.getElementById('tplImport').click();return false" title="Load templates from a JSON file">Import</a>
-          <input type="file" id="tplImport" accept="application/json,.json" style="display:none" onchange="importTemplates(this)">
-        </div>
-      </div>
-
-      <!-- Export -->
-      <div class="csect" data-tab="export">
-        <div class="clbl">Export</div>
-        <label class="sz-row" style="margin-bottom:9px;cursor:pointer">
-          <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)" style="cursor:pointer">
-          <span style="font-size:10.5px;color:#66616e">✂️ Auto-cut silence &amp; filler words ("um", "äh"…)</span>
-        </label>
-        <div class="exp-opts">
-          <label class="exp-opt"><span style="min-width:62px">Resolution</span>
-            <select id="expRes" class="lang-sel" onchange="setExportRes(this.value)">
-              <option value="1080">1080p (recommended)</option><option value="orig">Original</option>
-            </select></label>
-          <label class="exp-opt" id="fmtRow" style="display:none"><span style="min-width:62px">Format</span>
-            <select id="expFmt" class="lang-sel" onchange="setExportFormat(this.value)">
-              <option value="original">Original</option><option value="blur">9:16 · blur fill</option><option value="crop">9:16 · crop</option>
-            </select></label>
-        </div>
-        <div class="exp-grid">
-          <button class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
-            <span class="exp-btn-icon">🎬</span>
-            <span class="exp-btn-label">Video + captions</span>
-            <span class="exp-btn-sub">MP4 · ready to post</span>
-          </button>
-          <button class="exp-btn" id="btnSRT" onclick="exportSRT()" disabled>
-            <span class="exp-btn-icon">📝</span>
-            <span class="exp-btn-label">SRT file</span>
-            <span class="exp-btn-sub">Premiere / DaVinci…</span>
-          </button>
-          <button class="exp-btn" id="btnVTT" onclick="exportVTT()" disabled>
-            <span class="exp-btn-icon">💬</span>
-            <span class="exp-btn-label">VTT file</span>
-            <span class="exp-btn-sub">Web / YouTube…</span>
-          </button>
-        </div>
-        <button type="button" class="pos-btn" id="wmOpt" style="display:none;width:100%;margin:8px 0 0;padding:8px;border-style:dashed" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">🔓 Export without watermark — enter your email</button>
-        <div class="exp-mini">
-          <button class="pos-btn" id="btnTXT" type="button" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">📄 TXT transcript</button>
-          <button class="pos-btn" id="btnCopy" type="button" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">📋 Copy text</button>
-        </div>
-        <div id="recProg">
-          <p id="recMsg">Rendering video…</p>
-          <div class="rec-bar-wrap"><div class="rec-bar" id="recBar"></div></div>
-        </div>
-        <div class="badge-g" style="margin-top:7px">
-          ✅ Premiere: File → Import → choose the .srt → drag onto the timeline
-        </div>
-      </div>
-
-      <!-- Projects (cloud, with account) -->
-      <div class="csect" data-tab="export">
-        <div class="clbl">Save project</div>
-        <div style="display:flex;gap:5px;margin-bottom:6px">
-          <input type="text" id="projTitle" class="lang-sel" style="margin:0;flex:1" placeholder="Project name">
-          <button class="pos-btn" style="flex:0 0 auto;padding:5px 10px" onclick="saveProject()">💾</button>
-        </div>
-        <select id="projList" class="lang-sel" style="margin-bottom:0" onchange="loadProject(this.value)">
-          <option value="">— Load project —</option>
-        </select>
       </div>
 
     </div>
@@ -5396,18 +5435,57 @@ function maybeUpsell() {
 // ═══════════════════════════════════════
 // TRANSCRIPTION
 // ═══════════════════════════════════════
-function setTStatus(icon, msg, spinner, prog) {
+// Statuszeile im Captions-Tab. Aufrufer übergeben weiterhin Emoji-Kürzel (✅/❌/⚠️ …) — hier auf den
+// einheitlichen SVG-Icon-Satz abgebildet (Erfolg = Häkchen, Fehler/Warnung = Dreieck, sonst kein Icon).
+// Läuft die Erst-Transkription (_processing), spiegelt die Vorschau-Überlagerung den Schritt.
+function setTStatus(ic, msg, spinner, prog) {
+  var kind = /✅|✓/.test(ic || '') ? 'ok' : /❌|⚠/.test(ic || '') ? 'warn' : '';
   document.getElementById('tStatus').innerHTML =
-    (spinner ? '<div class="t-spinner"></div>' : '<span style="font-size:15px">' + icon + '</span>')
+    (spinner ? '<div class="t-spinner"></div>' : kind ? '<span class="t-ic ' + kind + '">' + icon(kind === 'ok' ? 'check' : 'warn') + '</span>' : '')
     + '<span>' + msg + '</span>';
   document.getElementById('tProgWrap').style.display = prog ? 'flex' : 'none';
+  var ps = document.getElementById('procStep');
+  if (ps && spinner) ps.textContent = String(msg || '').replace(/<[^>]*>/g, '').replace(/…$/, '');
 }
 function setTProgress(pct) {
   var p = Math.max(0, Math.min(100, pct));
   document.getElementById('tProgFill').style.width = p + '%';
   var pctEl = document.getElementById('tProgPct');
   if (pctEl) pctEl.textContent = Math.round(p) + '%';
+  // Vorschau-Überlagerung + Fortschrittsbalken über dem Style-Raster
+  var pm = document.getElementById('procMsg'); if (pm) pm.textContent = 'Transcribing… ' + Math.round(p) + '%';
+  ['procFill', 'shFill'].forEach(function(id) { var f = document.getElementById(id); if (f) f.style.width = p + '%'; });
 }
+// ── Verarbeitungs-Schritt = Style-Wahl (wie Submagic/Captions.ai) ──
+// Während der ERSTEN Transkription eines Videos: Fortschritt als Überlagerung auf der Vorschau, Panel im
+// Style-Tab mit „Choose a style while we transcribe“, Transkriptions-Einstellungen bleiben verborgen.
+// Danach: Captions-Tab + einmaliger Hinweis-Toast. Re-Transkriptionen (Modell/Sprache) laufen ohne das.
+var _processing = false;
+function setProcessing(on) {
+  var was = _processing;
+  _processing = !!on;
+  var col = document.getElementById('ctrlCol');
+  if (col && col.classList) col.classList.toggle('processing', _processing);
+  var ov = document.getElementById('procOv'); if (ov) ov.style.display = _processing ? 'flex' : 'none';
+  var sh = document.getElementById('styleHdr'); if (sh) sh.style.display = _processing ? 'block' : 'none';
+  if (_processing && !was) {
+    var pm = document.getElementById('procMsg'); if (pm) pm.textContent = 'Transcribing… 0%';
+    var ps = document.getElementById('procStep'); if (ps) ps.textContent = 'Loading video';
+    ['procFill', 'shFill'].forEach(function(id) { var f = document.getElementById(id); if (f) f.style.width = '0%'; });
+    switchTab('style');
+  }
+  return was;
+}
+// Kleine, einmalige Hinweise (Coach-Marks / Toasts) — pro Browser gemerkt, damit sie nicht nerven.
+function hintSeen(key) { try { return typeof localStorage !== 'undefined' && localStorage.getItem('capivo.hint.' + key) === '1'; } catch (e) { return false; } }
+function markHintSeen(key) { try { localStorage.setItem('capivo.hint.' + key, '1'); } catch (e) {} }
+function showCoach(id) {
+  var el = document.getElementById(id);
+  if (!el || hintSeen(id)) return;
+  el.style.display = 'flex';
+  markHintSeen(id); // „einmal“: beim nächsten Video nicht wieder
+}
+function dismissCoach(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; markHintSeen(id); }
 
 function sleepMs(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 function transcribeErr(msg, flags) { var e = new Error(msg); if (flags) for (var k in flags) e[k] = flags[k]; return e; }
@@ -5828,6 +5906,9 @@ async function transcribeVideo(file) {
   // arbeitet daher auf einer lokalen Wortliste (wts) und schreibt erst ganz am Ende.
   var hadCaptions = captionBlocks.length > 0;
   if (!hadCaptions) { document.getElementById('capEditor').style.display = 'none'; enableExports(false); }
+  // Erst-Transkription → Verarbeitungs-Schritt (Overlay + Style-Tab); Re-Transkription bleibt im Captions-Tab
+  if (!hadCaptions) setProcessing(true);
+  setTProgress(5);
   var wts = [];
 
   try {
@@ -5987,12 +6068,14 @@ async function transcribeVideo(file) {
     _lastTrMeta = { model: whisperModel, lang: usedLang, langSetting: whisperLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
+    // Kurz und menschlich statt Technik-Protokoll: „✓ German · 56 words“ (+ „· polished“ bei 💎 Perfect).
+    // Modell/Sprach-Details stehen in der eingeklappten „Video & language“-Zusammenfassung.
     setTStatus(qWarn ? '⚠️' : '✅',
-      wordTimestamps.length + ' words · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '') + ' · language: ' + (usedLang === 'auto' ? 'auto' : usedLang)
+      langLabel(usedLang) + ' · ' + wordTimestamps.length + ' words' + (doTranslate ? ' · → English' : '')
+      + (polishFixes >= 0 ? ' · polished' : '')
       + (truncated ? ' · only the first ' + (MAX_AUDIO_SEC / 60) + ' min were transcribed' : '')
-      + (qWarn ? ' · quality uncertain → try 💎 Perfect' : '')
-      + (polishFixes > 0 ? ' · polished (' + polishFixes + ' fix' + (polishFixes === 1 ? '' : 'es') + ')' : '')
-      + sceneCutSuffix(), false, false);
+      + (qWarn ? ' · quality uncertain — try 💎 Perfect under “Video &amp; language”' : ''), false, false);
+    var wasProcessing = setProcessing(false);
     document.getElementById('capEditor').style.display = 'block';
     renderSegments();
     renderWPills();
@@ -6002,11 +6085,19 @@ async function transcribeVideo(file) {
     resetUndo(); collapseTrSettings(true); // neue Captions = neue Undo-Historie; Einstellungen einklappen
     buildPicker(); // Style-Kacheln zeigen jetzt die eigenen Worte
     scheduleAutosave();
+    if (wasProcessing) {
+      switchTab('captions');
+      showCoach('coachEdit');
+      if (!hintSeen('readyToast')) { markHintSeen('readyToast'); capToast('Captions ready — fix any word, then Export.'); }
+    }
 
   } catch(err) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
     if (typeof fakeTimer !== 'undefined') clearInterval(fakeTimer);
     console.error(err);
+    // Fehler: Overlay weg, Captions-Tab mit Fehlertext + „Try again“, Sprache/Modell sofort erreichbar
+    if (setProcessing(false)) switchTab('captions');
+    var trs = document.getElementById('trSet'); if (trs) trs.open = true;
     if (hadCaptions && captionBlocks.length) {
       // Vorherige Captions unverändert lassen — Editor/Exporte bleiben benutzbar. Modell/Sprache/Übersetzen
       // wieder auf die Werte stellen, die diese Captions erzeugt haben (sonst zeigt die UI z. B. 💎 Perfect
@@ -6184,7 +6275,7 @@ function loadVideo(file) {
     // Gesamtdauer sofort zeigen, nicht erst beim ersten timeupdate (sonst steht bis zum Abspielen "0:00 / 0:00")
     document.getElementById('timeLbl').textContent = fmtS(0) + ' / ' + fmtS(vid.duration);
     showPlayOverlay(true);
-    document.getElementById('ppBtn').textContent = '▶';
+    setPPIcon(false);
     updateOverlay();
     captureTileFrame(url, vid.duration); // Style-Kacheln mit echtem Standbild
     var restored = restoreOrTranscribe(file, vid.duration);
@@ -6203,9 +6294,9 @@ function loadVideo(file) {
     if (vid.paused) syncCaption(t); // Seek im Pausenzustand
   };
 
-  vid.onplay  = function() { showPlayOverlay(false); document.getElementById('ppBtn').textContent = '⏸'; startCapLoop(); };
-  vid.onpause = function() { showPlayOverlay(true);  document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
-  vid.onended = function() { showPlayOverlay(true); document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
+  vid.onplay  = function() { showPlayOverlay(false); setPPIcon(true); startCapLoop(); };
+  vid.onpause = function() { showPlayOverlay(true);  setPPIcon(false); syncCaption(vid.currentTime); };
+  vid.onended = function() { showPlayOverlay(true); setPPIcon(false); syncCaption(vid.currentTime); };
   vid.onerror = function() {
     // In-App-Fehler statt nativem alert(): gleiche Fehlerbox wie bei anderen Problemen + Hinweis zum Weitermachen
     vidReady = false; vid.style.display = 'none'; document.getElementById('frameDropZone').style.display = 'flex';
@@ -6228,6 +6319,14 @@ function loadVideo(file) {
 function showPlayOverlay(show) {
   document.getElementById('playOverlay').style.display = show ? 'flex' : 'none';
   if (show) positionPlayIcon();
+}
+// Icon aus dem SVG-Sprite (#i-…) — einheitlicher Icon-Satz statt Emoji/Unicode-Glyphen
+function icon(n) { return '<svg class="ic" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; }
+function setPPIcon(playing) {
+  var b = document.getElementById('ppBtn');
+  if (!b) return;
+  b.innerHTML = icon(playing ? 'pause' : 'play');
+  if (b.setAttribute) b.setAttribute('aria-label', playing ? 'Pause' : 'Play');
 }
 // Play-Icon aus dem Untertitel-Bereich schieben: liegt der Untertitel (z. B. Position „Middle“ oder
 // per Drag verschoben) in der Bildmitte, wandert das Icon in den größeren freien Bereich darüber bzw.
@@ -6278,7 +6377,8 @@ function toggleMute() {
   var v = document.getElementById('mainVid');
   vidMuted = !vidMuted; v.muted = vidMuted;
   var b = document.getElementById('muteBtn');
-  b.textContent = vidMuted ? '🔇' : '🔊';
+  b.innerHTML = icon(vidMuted ? 'mute' : 'vol');
+  if (b.setAttribute) b.setAttribute('aria-label', vidMuted ? 'Unmute' : 'Mute');
   b.className   = vidMuted ? 'mute-btn' : 'mute-btn on';
 }
 
