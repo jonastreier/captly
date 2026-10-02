@@ -3695,6 +3695,7 @@ async function renderSegments() {
     row.appendChild(ts);
     row.appendChild(ta);
     row.appendChild(buildSegTools(idx, b));
+    if (idx === tlSel && row.classList) row.classList.add('sel'); // Timeline-Auswahl übersteht das Neuaufbauen
     frag.appendChild(row);
     rows.push(ta);
   });
@@ -8524,18 +8525,24 @@ function tlDragSpan(base, mode, dt, o) {
   var s0 = base.start, e0 = base.end, len = e0 - s0, lo = isFinite(o.lo) ? o.lo : 0, hi = isFinite(o.hi) ? o.hi : Infinity;
   var minD = Math.max(TL_MIN_DUR, ((base.words && base.words.length) || 0) * TL_MIN_WORD);
   var ns = s0, ne = e0, sn = null, useSnap = o.cands && o.pps > 0;
+  function clampMove(x) { return hi - lo >= len - 1e-9 ? Math.max(lo, Math.min(hi - len, x)) : s0; }
   if (mode === 'move') {
-    ns = s0 + dt; ne = e0 + dt;
+    ns = s0 + dt;
+    // Beide Kanten prüfen; gewinnt der nähere Fangpunkt, der nach dem Klemmen noch an der Kante liegt
+    // (sonst „fängt“ z. B. eine Wortgrenze am Ende und der Schnitt am Anfang ginge verloren).
+    var opts = [];
     if (useSnap) {
-      var a = tlSnap(ns, o.cands, o.pps, o.thr), z = tlSnap(ne, o.cands, o.pps, o.thr);
-      if (a && (!z || Math.abs(a.t - ns) <= Math.abs(z.t - ne))) { sn = a; ns = a.t; ne = a.t + len; }
-      else if (z) { sn = z; ne = z.t; ns = z.t - len; }
+      var a = tlSnap(ns, o.cands, o.pps, o.thr), z = tlSnap(ns + len, o.cands, o.pps, o.thr);
+      if (a) opts.push({ c: a, s: a.t, d: Math.abs(a.t - ns) });
+      if (z) opts.push({ c: z, s: z.t - len, d: Math.abs(z.t - ns - len) });
+      opts.sort(function(p, q){ return (p.d - q.d) || ((q.c.p || 0) - (p.c.p || 0)); });
     }
-    if (hi - lo >= len - 1e-9) {
-      if (ns < lo) { ns = lo; ne = lo + len; }
-      if (ne > hi) { ne = hi; ns = hi - len; }
-    } else { ns = s0; ne = e0; }
-    if (sn && Math.abs(ns - sn.t) > 1e-6 && Math.abs(ne - sn.t) > 1e-6) sn = null;
+    var raw = ns; ns = clampMove(raw);
+    for (var k = 0; k < opts.length; k++) {
+      var cs = clampMove(opts[k].s);
+      if (Math.abs(cs - opts[k].c.t) < 1e-6 || Math.abs(cs + len - opts[k].c.t) < 1e-6) { ns = cs; sn = opts[k].c; break; }
+    }
+    ne = ns + len;
   } else if (mode === 'start') {
     ns = s0 + dt;
     if (useSnap) { var c1 = tlSnap(ns, o.cands, o.pps, o.thr); if (c1) { sn = c1; ns = c1.t; } }
@@ -8546,6 +8553,13 @@ function tlDragSpan(base, mode, dt, o) {
     if (useSnap) { var c2 = tlSnap(ne, o.cands, o.pps, o.thr); if (c2) { sn = c2; ne = c2.t; } }
     ne = Math.min(Math.max(hi, e0), Math.max(s0 + minD, ne));
     if (sn && Math.abs(ne - sn.t) > 1e-6) sn = null;
+  }
+  // An einer Grenze angeschlagen, die selbst ein Fangpunkt ist (Schnitt, Nachbar) → trotzdem als Fang zeigen
+  if (!sn && useSnap) {
+    var edgeT = mode === 'end' ? [ne] : mode === 'start' ? [ns] : [ns, ne];
+    o.cands.forEach(function(c) {
+      if (edgeT.some(function(t){ return Math.abs(t - c.t) < 1e-6; }) && (!sn || (c.p || 0) > (sn.p || 0))) sn = c;
+    });
   }
   return { start: tlR3(ns), end: tlR3(ne), snap: sn };
 }
@@ -8621,8 +8635,9 @@ function applyTimelineEdit(idx, ns, ne, base, o) {
   base = base || tlClone(b);
   ns = tlR3(ns); ne = tlR3(ne);
   if (!o.live && Math.abs(ns - base.start) < 1e-6 && Math.abs(ne - base.end) < 1e-6) {
-    var c = tlClone(base);
-    b.start = c.start; b.end = c.end; b.words = c.words; if (c.srcWords) b.srcWords = c.srcWords;
+    var c = tlClone(base); // exakt den Ausgangsstand zurück (auch Felder, die base nicht hatte, z. B. srcWords)
+    Object.keys(b).forEach(function(k){ if (!(k in c)) delete b[k]; });
+    Object.keys(c).forEach(function(k){ b[k] = c[k]; });
     tlAfterEdit(idx);
     return false;
   }
