@@ -180,7 +180,7 @@ body.editor-open{height:100vh;overflow:hidden}
 
 /* EDITOR */
 #editor{display:none;width:100%;height:100vh;flex-direction:column}
-.topbar{display:flex;align-items:center;justify-content:space-between;height:49px;padding:0 12px;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid #e9e4ef;flex-shrink:0;gap:10px}
+.topbar{position:relative;z-index:50;display:flex;align-items:center;justify-content:space-between;height:49px;padding:0 12px;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid #e9e4ef;flex-shrink:0;gap:10px}
 .topbar-logo{font-size:14px;font-weight:800;color:#111;display:flex;align-items:center;gap:7px;font-family:'Poppins',sans-serif}
 .btn-back{background:none;border:1px solid #ddd6e4;color:#55505c;padding:4px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;transition:all .15s}
 .btn-back:hover{border-color:#a99cc0;color:#111}
@@ -269,7 +269,7 @@ body.editor-open{height:100vh;overflow:hidden}
 .ed-tab:hover{background:#f4f1f8;color:#111}
 .ed-tab.on{background:rgba(124,58,237,.1);color:#6d28d9}
 .ctrl-col .csect[data-tab]{display:none}
-.ctrl-col[data-tab="captions"] .csect[data-tab="captions"],.ctrl-col[data-tab="style"] .csect[data-tab="style"],.ctrl-col[data-tab="export"] .csect[data-tab="export"]{display:block}
+.ctrl-col[data-tab="captions"] .csect[data-tab="captions"],.ctrl-col[data-tab="style"] .csect[data-tab="style"]{display:block}
 .tr-set{margin:10px 0 8px}
 .model-hint{font-size:11px;color:#77727f;line-height:1.45;margin:-2px 0 10px}
 .model-hint b{color:#3f3b46}
@@ -309,7 +309,6 @@ body.editor-open{height:100vh;overflow:hidden}
 .seg-tools button:hover{border-color:#a99cc0;color:#111}
 .seg-tools .st-del{margin-left:auto;color:#dc2626}
 .seg-tools .st-sep{width:4px}
-.clbl{font-size:11px;font-weight:700;color:#5f5f5f;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
 .mode-hint{font-size:11px;color:#8a8a8a;line-height:1.4;margin-top:6px}
 
 /* TRANSCRIPTION */
@@ -324,11 +323,6 @@ body.editor-open{height:100vh;overflow:hidden}
 .cs-col::-moz-color-swatch{border:1px solid #cbc4d6;border-radius:5px}
 #csGlowInt:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
 .cs-sel{margin:0!important;padding:5px 7px;font-size:11px}
-.cs-more{margin-top:8px}
-.cs-more summary{font-size:11px;font-weight:600;color:#7c3aed;cursor:pointer;user-select:none;list-style:none}
-.cs-more summary::-webkit-details-marker{display:none}
-.cs-more summary::before{content:'▸ ';display:inline-block;transition:transform .15s}
-.cs-more[open] summary::before{content:'▾ '}
 .cs-line{margin-top:7px}
 .cs-k{font-size:11px;color:#66616e;min-width:64px}
 .cs-v{font-size:11px;color:#8a8494;min-width:28px;text-align:right;font-variant-numeric:tabular-nums}
@@ -375,9 +369,6 @@ input.lang-sel{cursor:text}
 
 /* CAPTION EDITOR */
 .cap-editor{display:none;margin-top:7px}
-.ce-hdr{font-size:11px;color:#5f5f5f;margin-bottom:5px}
-.ce-hdr em{font-style:normal;color:#7c3aed}
-.ce-hdr b{color:#3f3b46;font-weight:700}
 .kb-help{display:inline-block;margin-left:2px}
 .fr-box{margin:2px 0 6px}
 .hint-touch{display:none}
@@ -435,7 +426,6 @@ input[type=checkbox]{accent-color:#7c3aed}
 .ctrl-upload p{font-size:12.5px;color:#55505c;display:flex;align-items:center;justify-content:center;gap:6px}
 
 /* EXPORT */
-.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .exp-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 14px;border-radius:9px;border:1px solid #e2dce9;background:#fff;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
 .exp-btn:hover:not(:disabled){border-color:#c9c0d6;background:#faf9fc;transform:translateY(-2px)}
 .exp-btn:disabled{opacity:.25;cursor:default}
@@ -453,9 +443,6 @@ input[type=checkbox]{accent-color:#7c3aed}
 .exp-btn.hi.busy .exp-btn-sub{color:rgba(255,255,255,.8)}
 @media (prefers-reduced-motion:no-preference){.exp-btn.hi.busy{animation:expBusy 1.6s ease-in-out infinite}}
 @keyframes expBusy{0%,100%{filter:brightness(1)}50%{filter:brightness(1.12)}}
-.exp-mini{display:flex;gap:5px;margin-top:5px}
-.exp-mini .pos-btn{padding:6px 4px}
-.exp-mini .pos-btn:disabled{opacity:.3;cursor:default}
 .fr-row{display:flex;gap:5px;align-items:center;margin-bottom:6px}
 .fr-row .lang-sel{margin:0;padding:5px 7px;font-size:11px;min-width:0;flex:1}
 .fr-row .pos-btn{flex:0 0 auto;padding:5px 8px;white-space:nowrap}
@@ -469,7 +456,6 @@ input[type=checkbox]{accent-color:#7c3aed}
 .rec-bar{height:100%;background:linear-gradient(90deg,#7c3aed,#3b82f6);border-radius:2px;width:0%;transition:width .1s}
 
 /* BADGES */
-.badge-g{background:#eefaf1;border:1px solid #c8ecd2;color:#15803d;font-size:11px;padding:6px 9px;border-radius:7px;margin-top:6px;line-height:1.5}
 .badge-o{background:#fdf3e7;border:1px solid #f3dcc0;color:#b45309;font-size:11px;padding:6px 9px;border-radius:7px;margin-top:6px;line-height:1.5}
 
 /* TEMPLATE-SHOWCASE (Landing) */
@@ -578,8 +564,8 @@ input[type=checkbox]{accent-color:#7c3aed}
 .es-done{text-align:left}
 .es-ok{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#15803d;background:#eefaf1;border:1px solid #c8ecd2;border-radius:10px;padding:10px 12px;word-break:break-all}
 .es-ok .ic{width:18px;height:18px}
-.es-done-row{display:flex;gap:8px;margin-top:10px}
-.es-done-row .pos-btn{padding:8px 6px}
+.es-done-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.es-done-row .pos-btn{flex:1 1 auto;padding:8px 10px;white-space:nowrap}
 /* Vorschau: Verarbeitungs-Overlay */
 .proc-ov{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(14,10,24,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);color:#fff;text-align:center;padding:16px}
 .proc-ov b{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -642,8 +628,7 @@ input[type=checkbox]{accent-color:#7c3aed}
    ≥ 24 px Trefferfläche bei dünner Optik, Back/Sign in ≥ 36, Checkboxen 20 px). */
 @media (pointer:coarse) {
   .pp-btn{width:36px;height:36px;font-size:12.5px}
-  .mute-btn,.sz-btn{min-height:32px;padding:4px 9px;font-size:11px}
-  .zoom-btn{width:32px;height:32px;font-size:16px}
+  .mute-btn,.sz-btn{width:36px;height:36px;padding:0}
   .prog-track::before{top:-12px;bottom:-12px}
   .btn-back{min-height:36px;padding:6px 12px;font-size:12.5px}
   input[type=checkbox]{width:20px;height:20px}
@@ -667,7 +652,6 @@ input[type=checkbox]{accent-color:#7c3aed}
   .stile-menu-btn::after{content:'';position:absolute;inset:-6px}
   .tpl-menu{min-width:168px}
   .tpl-menu button{min-height:42px;font-size:14px}
-  .exp-mini .pos-btn{min-height:42px}
   .seg-tools button{min-width:32px;height:32px;font-size:12.5px}
   .cap-inline textarea{font-size:16px}
   .fr-row .pos-btn{min-height:36px}
@@ -1032,7 +1016,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
-          <b class="fdz-btn"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Choose a video</b><p>or drop it here · MP4, MOV, WebM<br>captions in seconds — no signup</p>
+          <b class="fdz-btn"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Choose a video</b><p><span class="hint-desk">or drop it here · </span>MP4, MOV, WebM<br>captions in seconds — no signup</p>
         </div>
         <!-- Verarbeitung: Fortschritt direkt auf der Vorschau (statt Platzhalter-Caption + Statustext im Panel) -->
         <div id="procOv" class="proc-ov" style="display:none" role="status" aria-live="polite">
@@ -1219,7 +1203,7 @@ input[type=checkbox]{accent-color:#7c3aed}
                 <button type="button" class="pos-btn on" data-lines="1" onclick="setLines(this)">1</button>
                 <button type="button" class="pos-btn" data-lines="2" onclick="setLines(this)">2</button>
               </div></div>
-            <p class="cs-note">Captions shrink to stay within the max lines; only a caption that still can't fit at the smallest size wraps.</p>
+            <p class="cs-note">Captions shrink to stay within the max lines. Only a single word too long for the frame (or a very long caption at the smallest size) wraps.</p>
             <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
               <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')" title="Letter spacing">
               <span class="cs-v" id="csLsDisp">0px</span></div>
@@ -2599,6 +2583,7 @@ function capMeasureCtx() {
 // Export (drawCaptionsOnCtx) rufen DIESELBE Funktion mit denselben Vorschau-Einheiten auf → identisch.
 // Breite je Wort = max(normal, Highlight-Variante) → Größe springt nicht, wenn das Karaoke-Highlight wandert.
 var CAP_FIT_MIN = 0.55;
+var CAP_FIT_MIN_LINES = 0.35; // tiefere Untergrenze NUR für die „Max lines“-Grenze (s. fitCaptionWords)
 var CAP_FIT_MAX_H = 0.40; // max. Anteil der Rahmenhöhe für einen Caption-Block
 var _capFitCache = {}, _capFitN = 0, _capFontGen = 0;
 // Web-Fonts laden asynchron: eine Messung mit der Fallback-Schrift darf NICHT dauerhaft im Cache landen
@@ -2682,12 +2667,19 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   var res = layoutAt(epx);
   // Höhe: Block darf nicht mehr als ~40 % des Rahmens belegen (sonst ragt z. B. bei Position „Bottom“
   // die erste Zeile oben aus dem Bild) → weiter verkleinern, gleiche 55-%-Untergrenze.
-  // „Max lines“ ist eine echte Obergrenze: braucht der Block bei dieser Größe mehr Zeilen als gewählt,
-  // ebenfalls verkleinern (gleiche Untergrenze). Erst wenn selbst die Mindestgröße nicht reicht, bricht
-  // capDistributeLines in eine weitere Zeile um (besser als abschneiden) — im UI so erklärt.
+  // „Max lines“ ist eine echte Obergrenze (Nutzer-Report: „1 line“ aktiv, Vorschau zeigt 2 Zeilen): braucht
+  // der Block bei dieser Größe mehr Zeilen als gewählt, ebenfalls verkleinern — zuerst bis zur normalen
+  // 55-%-Untergrenze, für die Zeilenzahl notfalls weiter bis CAP_FIT_MIN_LINES (die Zeilenwahl ist eine
+  // ausdrückliche Entscheidung). Nur wenn selbst das nicht reicht (ein einzelnes überlanges Wort bzw.
+  // extrem viele lange Wörter), bricht capDistributeLines in eine weitere Zeile um — im UI so erklärt.
   var maxLines = lines ? Math.max(1, lines) : Infinity; // ohne Zeilenvorgabe (Kacheln/Tests): nur Breite + Höhe
   while ((res.h > maxH || res.g > maxLines) && epx > floor + 1e-6) {
     epx = Math.max(floor, Math.floor(epx * 0.92 * 10) / 10);
+    res = layoutAt(epx);
+  }
+  var lineFloor = px * CAP_FIT_MIN_LINES;
+  while (res.g > maxLines && epx > lineFloor + 1e-6) {
+    epx = Math.max(lineFloor, Math.floor(epx * 0.94 * 10) / 10);
     res = layoutAt(epx);
   }
   if (fontPending) return res; // Fallback-Schrift gemessen → nicht cachen, nach dem Laden neu messen
@@ -5458,7 +5450,7 @@ function writeAutosaves(list) {
 }
 function autosaveNow() {
   clearTimeout(_autosaveTimer); _autosaveTimer = null;
-  if (!_autosaveKey || !captionBlocks.length) return false;
+  if (!_autosaveKey || !captionBlocks.length) { setSaveInd(''); return false; }
   var data = projectPayload();
   data.words = wordTimestamps; data.edited = captionsEdited; data.meta = _lastTrMeta;
   var entry = { key: _autosaveKey, savedAt: Date.now(), data: data };

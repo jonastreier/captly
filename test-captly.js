@@ -301,7 +301,8 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   ok(f3.px === 54 && f3.words.length === 3, 'Fit: passende Woerter bleiben unveraendert');
   // Vorschau nutzt die verkleinerte Größe
   const capHtml = T.buildCap(['Unsere', long], st, 1, 54, [0, 1], 1);
-  ok(capHtml.includes('font-size:' + (f1.px * fsMul) + 'px') || capHtml.includes('font-size:' + (T.fitCaptionWords(['Unsere', long], st, 54, maxW).px * fsMul) + 'px'),
+  // Vorschau ruft fitCaptionWords mit der Zeilenvorgabe (hier 1) auf — „Max lines“ kann zusätzlich verkleinern
+  ok(capHtml.includes('font-size:' + (T.fitCaptionWords(['Unsere', long], st, 54, maxW, 1).px * fsMul) + 'px'),
      'Fit: Vorschau rendert mit effektiver Groesse');
   // Trennqualität (Breite hier = Zeichenzahl inkl. „-“): Kompositumsfugen statt gieriger Schnitte
   const hy = (w, max) => T.capHyphenate(w, p => p.length <= max).join(' / ');
@@ -321,9 +322,15 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   // Höhe: viele Zeilen → weiter verkleinern (bis 55 %), Block <= 40 % der Rahmenhöhe
   document.getElementById('prevFrame').style.height = '480px';
   const many = 'eins zwei drei vier fuenf sechs sieben acht neun zehn elf zwoelf'.split(' ');
-  const fh = T.fitCaptionWords(many, st, 54, maxW, 3);
+  // ohne Zeilenvorgabe: reiner Höhen-Fit (55-%-Untergrenze)
+  const fh = T.fitCaptionWords(many, st, 54, maxW);
   ok(fh.px < 54 && (fh.h <= 480 * 0.4 + 1e-9 || Math.abs(fh.px - 54 * 0.55) < 0.2), 'Hoehen-Fit: ' + fh.px + 'px, h=' + Math.round(fh.h));
   ok(fh.px >= 54 * 0.55 - 1e-9, 'Hoehen-Fit respektiert 55-%-Untergrenze');
+  // „Max lines“ = echte Obergrenze: mit Vorgabe 3 verkleinert der Fit weiter (bis 35 %), bis 3 Zeilen reichen
+  const fl = T.fitCaptionWords(many, st, 40, maxW, 3);
+  ok(fl.g <= 3 && fl.px >= 40 * 0.35 - 1e-9 && fl.px < 40 * 0.55, 'Max-lines-Fit (unter die 55-%-Grenze, nie unter 35 %): ' + fl.px + 'px, ' + fl.g + ' Zeilen');
+  const fl1 = T.fitCaptionWords(['Hallo', 'zusammen', 'und', 'willkommen'], st, 30, maxW, 1);
+  ok(fl1.g === 1 && fl1.words.length === 4, 'Max lines 1: vier Woerter auf einer Zeile, ohne Trennung: ' + fl1.px + 'px');
   // Font-Ladezustand: mit Fallback-Schrift gemessen → nicht cachen; nach dem Laden Cache verwerfen
   document.fonts.check = () => false;
   const pf1 = T.fitCaptionWords(['Fontcheck'], st, 54, maxW, 1), pf2 = T.fitCaptionWords(['Fontcheck'], st, 54, maxW, 1);
