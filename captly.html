@@ -427,13 +427,13 @@ input[type=checkbox]{accent-color:#7c3aed}
 
 /* EXPORT */
 .exp-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 14px;border-radius:9px;border:1px solid #e2dce9;background:#fff;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
-.exp-btn:hover:not(:disabled){border-color:#c9c0d6;background:#faf9fc;transform:translateY(-2px)}
+.exp-btn:not(.hi):hover:not(:disabled){border-color:#c9c0d6;background:#faf9fc;transform:translateY(-2px)}
 .exp-btn:disabled{opacity:.25;cursor:default}
 .exp-btn-icon{display:inline-flex;font-size:16px}
 .exp-btn-label{font-size:14px;font-weight:700;color:#3f3b46}
 .exp-btn-sub{font-size:11px;color:#5f5f5f}
 .exp-btn.hi{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent}
-.exp-btn.hi:hover:not(:disabled){filter:brightness(1.08)}
+.exp-btn.hi:hover:not(:disabled){filter:brightness(1.08);transform:translateY(-2px)}
 .exp-btn.hi .exp-btn-label{color:#fff}
 .exp-btn.hi .exp-btn-sub{color:rgba(255,255,255,.8)}
 /* Export läuft: KEIN blasser Disabled-Look — volle Farbe, Fortschritt als Füllung im Button, gut lesbar */
@@ -547,6 +547,14 @@ input[type=checkbox]{accent-color:#7c3aed}
 .exp-sheet .exp-btn:disabled{opacity:.35}
 .exp-sheet #recProg{margin-top:10px}
 .es-wm{font-size:11px;color:#66616e;line-height:1.5;margin-top:10px}
+.es-gate{margin:0 0 12px}
+.es-gate-l{display:block;font-size:12.5px;font-weight:600;color:#2a2630;margin-bottom:6px}
+.es-gate-in{width:100%;box-sizing:border-box;font:400 14px 'Inter',sans-serif;padding:10px 12px;border:1px solid #d9d4e0;border-radius:9px;background:#fff;color:#1a1720;margin-bottom:8px}
+.es-gate-in:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+.es-gate .exp-chk{align-items:flex-start;font-size:12.5px}
+.es-gate .exp-chk input{margin-top:2px}
+.es-gate-err{font-size:12.5px;color:#b91c1c;margin:6px 0 0}
+.es-gate-fine{font-size:11px;color:#77727f;line-height:1.45;margin:6px 0 0}
 .es-wm a{color:#6d28d9;font-weight:600;text-decoration:none}
 .es-wm a:hover{text-decoration:underline}
 .es-links{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin-top:12px;padding-top:12px;border-top:1px solid #f0edf4;font-size:12.5px;color:#a39fab}
@@ -816,7 +824,7 @@ input[type=checkbox]{accent-color:#7c3aed}
           <li>Perfect transcription trial</li>
           <li>All 36 caption styles</li>
           <li>MP4, SRT &amp; VTT export</li>
-          <li>No signup required · free account removes the watermark</li>
+          <li>Free during beta · no watermark · just your email</li>
         </ul>
         <button class="price-cta ghost" onclick="openEditorClean()">Start for free</button>
       </div>
@@ -962,6 +970,14 @@ input[type=checkbox]{accent-color:#7c3aed}
     <div class="es-head"><b id="expTtl">Export</b>
       <button type="button" class="es-x" onclick="closeExportSheet()" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
     <div id="expMain">
+      <!-- Beta: Download ohne Wasserzeichen gegen E-Mail-Adresse (gespeichert in Supabase „leads“). Newsletter nur mit Opt-in. -->
+      <form class="es-gate" id="expGate" style="display:none" novalidate onsubmit="event.preventDefault();exportVideoWithCaptions()">
+        <label class="es-gate-l" for="gateEmail">Your email — free download, no watermark</label>
+        <input type="email" id="gateEmail" class="es-gate-in" placeholder="you@example.com" autocomplete="email" inputmode="email" maxlength="254">
+        <label class="exp-chk"><input type="checkbox" id="gateNews"><span id="gateNewsTxt">Send me occasional tips &amp; updates about Capivo. Unsubscribe anytime.</span></label>
+        <p class="es-gate-err" id="gateErr" role="alert" style="display:none"></p>
+        <p class="es-gate-fine">Free while Capivo is in beta. We only send you news if you tick the box.</p>
+      </form>
       <button type="button" class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
         <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
         <span class="exp-btn-txt"><span class="exp-btn-label">Download video</span><span class="exp-btn-sub" id="btnVideoSub">MP4 · 1080p</span></span>
@@ -5419,7 +5435,7 @@ function waitAuth() {
 }
 function updateAcctUI() {
   var wo = document.getElementById('wmOpt');
-  if (wo) wo.style.display = needsWatermark() ? '' : 'none'; // Hinweis im Export-Blatt VOR dem Rendern (keine Überraschung)
+  if (wo) wo.style.display = needsWatermark() && !document.getElementById('expGate') ? '' : 'none'; // Beta: E-Mail-Gate statt Wasserzeichen // Hinweis im Export-Blatt VOR dem Rendern (keine Überraschung)
   var rw = document.getElementById('expRmWm');
   if (rw && !needsWatermark()) rw.style.display = 'none';
   var qi = document.getElementById('quotaInfo');
@@ -5642,7 +5658,59 @@ function applyProjectPayload(p) {
 // Wird zum Exportzeitpunkt ausgewertet (Nutzer kann sich nach dem Video-Laden noch anmelden).
 function needsWatermark() {
   if (mePlan === 'creator' || mePlan === 'pro') return false;
-  return !meEmail;
+  return !meEmail && !leadEmail();
+}
+// ── Beta-E-Mail-Gate ──
+// Download ohne Wasserzeichen gegen E-Mail-Adresse (kein Login, kein Mailversand nötig). Die Adresse wird
+// lokal gemerkt (einmal pro Gerät) und per REST in public.leads geschrieben (RLS: nur INSERT, s. schema.sql).
+// Newsletter nur mit aktivem Opt-in (Checkbox, nicht vorausgewählt) — Einwilligungstext wird mitgespeichert.
+// Schlägt das Speichern fehl (offline, Supabase pausiert), blockiert das den Export NICHT: der Eintrag
+// bleibt in LEAD_PENDING_KEY und wird beim nächsten Öffnen des Export-Blatts erneut gesendet.
+var LEAD_KEY = 'capivo.email', LEAD_PENDING_KEY = 'capivo.leadPending';
+function leadEmail() { try { return (typeof localStorage !== 'undefined' && localStorage.getItem(LEAD_KEY)) || ''; } catch (e) { return ''; } }
+function isEmail(s) { s = String(s || '').trim(); return s.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s); }
+function passEmailGate() {
+  var g = document.getElementById('expGate');
+  if (meEmail || leadEmail()) { if (g) g.style.display = 'none'; return true; }
+  if (!g) return true;
+  var inp = document.getElementById('gateEmail'), err = document.getElementById('gateErr');
+  if (g.style.display === 'none' || !exportSheetOpen()) {
+    if (!exportSheetOpen()) openExportSheet();
+    g.style.display = '';
+    if (inp && inp.focus) inp.focus();
+    return false;
+  }
+  var v = String((inp && inp.value) || '').trim();
+  if (!isEmail(v)) {
+    if (err) { err.textContent = 'Please enter a valid email address.'; err.style.display = ''; }
+    if (inp && inp.focus) inp.focus();
+    return false;
+  }
+  if (err) err.style.display = 'none';
+  var nw = document.getElementById('gateNews'), nt = document.getElementById('gateNewsTxt');
+  saveLead(v, !!(nw && nw.checked), nt ? nt.textContent : '');
+  g.style.display = 'none';
+  return true;
+}
+function saveLead(email, newsletter, consentText) {
+  var lead = { email: email.toLowerCase(), newsletter: !!newsletter, consent_text: newsletter ? String(consentText).slice(0, 300) : null,
+    source: 'export', lang: (typeof navigator !== 'undefined' && navigator.language || '').slice(0, 20) || null };
+  try { localStorage.setItem(LEAD_KEY, lead.email); localStorage.setItem(LEAD_PENDING_KEY, JSON.stringify(lead)); } catch (e) {}
+  return flushLead(lead);
+}
+// Sendet einen offenen Eintrag; Erfolg → aus der Warteschlange. Gibt true/false zurück (nie Exception).
+function flushLead(lead) {
+  if (!lead) { try { lead = JSON.parse(localStorage.getItem(LEAD_PENDING_KEY) || 'null'); } catch (e) { lead = null; } }
+  if (!lead || !SUPABASE_URL || !SUPABASE_ANON_KEY || typeof fetch !== 'function') return Promise.resolve(false);
+  return fetch(SUPABASE_URL + '/rest/v1/leads', {
+    method: 'POST',
+    headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+    body: JSON.stringify(lead)
+  }).then(function(r) {
+    if (!r.ok) { console.warn('lead: HTTP ' + r.status); return false; }
+    try { localStorage.removeItem(LEAD_PENDING_KEY); } catch (e) {}
+    return true;
+  }, function(e) { console.warn('lead:', e); return false; });
 }
 // on (optional): beim Export EINMAL zu Beginn ermittelter Wert → kein Wasserzeichen-Wechsel mitten im Video,
 // falls sich der Anmeldestatus während des Renderns ändert.
@@ -7574,6 +7642,7 @@ function exportBtnState(text) {
   }
 }
 async function exportVideoWithCaptions() {
+  if (!isExporting && !passEmailGate()) return; // Beta: erst E-Mail, dann Download (ohne Wasserzeichen)
   // Schnitterkennung läuft noch → kurz warten (sonst überspannen Blöcke Schnitte); die Phase direkt am
   // Button zeigen — die Fortschrittsleiste darunter liegt auf dem Handy oft außerhalb des Bildschirms.
   var cutTimer = null;
@@ -8427,7 +8496,8 @@ function openExportSheet() {
   closeMoreMenu();
   if (!isExporting) showExportMain();
   var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
-  syncExpSub(); updateAcctUI();
+  syncExpSub(); updateAcctUI(); flushLead();
+  var g = document.getElementById('expGate'); if (g && (meEmail || leadEmail())) g.style.display = 'none';
   var nt = document.getElementById('expNote'); if (nt) nt.style.display = 'none'; // alte Hinweise (z. B. Anmeldung down) weg
   sh.style.display = 'block';
   var tb = document.getElementById('tbExport'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'true');

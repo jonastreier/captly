@@ -148,6 +148,17 @@ funktioniert der Login also nicht** — auch nicht zum Testen.
 3. *Authentication → Rate Limits*: nach SMTP-Einrichtung stehen Auth-Mails auf ~30/Stunde —
    bei Bedarf anheben.
 
+### Beta: E-Mail statt Login für den Download
+
+Solange der Mailversand (SMTP) nicht eingerichtet ist, braucht der Download **keinen Login**: Beim
+ersten Export fragt das Export-Blatt nach der E-Mail-Adresse (plus optionales, nicht vorausgewähltes
+Newsletter-Häkchen) und exportiert dann **ohne Wasserzeichen**. Die Adresse wird pro Gerät gemerkt
+und per REST in die Tabelle `public.leads` geschrieben (Tabelle + Policy: `schema.sql`, Abschnitt
+„Leads“ — einmal im SQL Editor ausführen). Die Tabelle ist per API nur beschreibbar, nicht lesbar;
+die Liste exportiert man im Dashboard (*Table Editor → leads → Export → CSV*), z. B. für Brevo.
+Newsletter nur an Zeilen mit `newsletter = true` schicken. Ist Supabase nicht erreichbar, blockiert
+das den Export nicht — der Eintrag wird beim nächsten Öffnen des Export-Blatts erneut gesendet.
+
 ## Schnellstart (lokal)
 
 ```bash

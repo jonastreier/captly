@@ -96,6 +96,7 @@ getActiveId:function(){return activeId;},editTemplate:editTemplate,getEditingTpl
 getAutosaveTimer:function(){return _autosaveTimer;},setExporting:function(v){isExporting=v;},autosaveWhenIdle:autosaveWhenIdle,autosaveNow:autosaveNow,restoreOrTranscribe:restoreOrTranscribe,
 readAutosaves:readAutosaves,setAutosaveKey:function(k){_autosaveKey=k;},AUTOSAVE_KEY:AUTOSAVE_KEY,setTranslateState:function(v){doTranslate=v;},capHyphenate:capHyphenate,onWpbChangeT:onWpbChange,
 setMe:function(plan,email){mePlan=plan;meEmail=email;},
+isEmail:isEmail,passEmailGate:passEmailGate,leadEmail:leadEmail,flushLead:flushLead,LEAD_KEY:LEAD_KEY,LEAD_PENDING_KEY:LEAD_PENDING_KEY,
 rebaseCutTime:rebaseCutTime,createAudioCutPlanner:createAudioCutPlanner,rotationFromMatrix:rotationFromMatrix,editListOffset:editListOffset,
 h264CodecCandidates:h264CodecCandidates,fastExportVideoCodecs:fastExportVideoCodecs,isFastExportSource:isFastExportSource,fastExportSupported:fastExportSupported,
 oggCrc32:oggCrc32,oggLacing:oggLacing,opusPacketSamples48:opusPacketSamples48,buildOggOpus:buildOggOpus,opusPreSkipFromDesc:opusPreSkipFromDesc,
@@ -1329,6 +1330,44 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
 
 // 17) transcribeChunked: deckt das GANZE Video ab (async)
 (async () => {
+  // 9f2) Beta-E-Mail-Gate: Download ohne Wasserzeichen gegen E-Mail, Lead → Supabase (REST), Fehler blockieren nicht
+  await (async () => {
+    const store = {}, calls = []; let fail = false;
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    const realFetch = global.fetch;
+    global.fetch = (url, o) => { calls.push({ url, o }); return fail ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve({ ok: true, status: 201 }); };
+    ok(T.isEmail('a@b.ch') && T.isEmail(' Jonas.T+x@mail.example.com ') && !T.isEmail('a@b') && !T.isEmail('ab.ch') && !T.isEmail(''), 'isEmail');
+    T.setMe('anon', '');
+    ok(T.needsWatermark() === true, 'ohne E-Mail → Wasserzeichen-Pfad');
+    const g = document.getElementById('expGate'), sh = document.getElementById('expSheet'), inp = document.getElementById('gateEmail');
+    const nw = document.getElementById('gateNews'), err = document.getElementById('gateErr');
+    document.getElementById('gateNewsTxt').textContent = 'Send me tips';
+    g.style.display = 'none'; sh.style.display = 'none'; inp.value = '';
+    ok(T.passEmailGate() === false && g.style.display === '' && sh.style.display === 'block', 'erster Export-Klick: Blatt + E-Mail-Feld, kein Export');
+    inp.value = 'kein-mail';
+    ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent), 'ungültige Adresse → Fehlermeldung');
+    fail = true; inp.value = 'Treier@Example.CH'; nw.checked = true;
+    ok(T.passEmailGate() === true && g.style.display === 'none', 'gültige Adresse → Export läuft (auch wenn Speichern fehlschlägt)');
+    await new Promise(r => setTimeout(r, 0));
+    ok(store[T.LEAD_KEY] === 'treier@example.ch' && T.needsWatermark() === false, 'Adresse gemerkt → kein Wasserzeichen');
+    const pend = JSON.parse(store[T.LEAD_PENDING_KEY] || 'null');
+    ok(pend && pend.newsletter === true && pend.consent_text === 'Send me tips' && pend.source === 'export', 'Fehlschlag → Lead bleibt in Warteschlange (mit Einwilligungstext)');
+    ok(calls.length === 1 && /\/rest\/v1\/leads$/.test(calls[0].url) && calls[0].o.headers.apikey && calls[0].o.method === 'POST', 'POST an /rest/v1/leads mit apikey');
+    ok(T.passEmailGate() === true && calls.length === 1, 'zweiter Export: keine erneute Abfrage');
+    fail = false;
+    ok(await T.flushLead() === true && !(T.LEAD_PENDING_KEY in store), 'Retry erfolgreich → Warteschlange leer');
+    ok(await T.flushLead() === false && calls.length === 2, 'nichts offen → kein Request');
+    delete store[T.LEAD_KEY]; nw.checked = false; inp.value = 'b@c.de'; g.style.display = ''; sh.style.display = 'block';
+    T.passEmailGate(); await new Promise(r => setTimeout(r, 0));
+    const body = JSON.parse(calls[2].o.body);
+    ok(body.newsletter === false && body.consent_text === null, 'ohne Häkchen → kein Newsletter, kein Einwilligungstext');
+    delete store[T.LEAD_KEY];
+    T.setMe('free', 'x@y.z'); g.style.display = 'none';
+    ok(T.passEmailGate() === true && g.style.display === 'none', 'angemeldet → kein Gate');
+    T.setMe('anon', '');
+    global.fetch = realFetch; delete global.localStorage;
+  })();
+
   let calls = 0;
   const mockPipe = async (seg, opts) => { calls++; return { chunks: [{ text: 'wort' + calls, timestamp: [0.5, 1.2] }] }; };
   const audio = new Float32Array(16000 * 60); // 60 Sekunden
