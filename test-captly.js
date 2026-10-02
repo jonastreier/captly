@@ -952,8 +952,20 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   T.onWpbChange('4');
   const W = (arr) => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
   let bl = T.buildCaptionBlocks(W([['Eins', 0, 0.5], ['zwei.', 0.55, 1.0], ['Ja.', 1.1, 1.2], ['Und', 1.3, 1.6], ['weiter', 1.65, 2.2]]), []);
-  ok(bl.every(b => b.end - b.start >= 0.3 - 1e-9), 'kein Block kuerzer als 0,3 s: ' + bl.map(b => b.text + '(' + (b.end - b.start).toFixed(2) + ')').join(' | '));
+  // „Ja.“ zwischen zwei Sätzen: nie über ein Satzende verschmelzen, nur bis zum nächsten Block verlängern
+  ok(bl.length === 3 && bl[1].text === 'Ja.' && Math.abs(bl[1].end - 1.3) < 1e-9, 'kurzer Satz-Block: bis zum naechsten Block verlaengert, nicht verschmolzen: ' + bl.map(b => b.text + '(' + (b.end - b.start).toFixed(2) + ')').join(' | '));
   ok(bl.map(b => b.text).join(' ').split(' ').length === 5, 'keine Woerter verloren');
+  // Lücke reicht → nur verlängern
+  bl = T.buildCaptionBlocks(W([['Kurz.', 0, 0.1], ['Danach', 1.0, 1.4], ['kommt', 1.45, 1.8], ['mehr', 1.85, 2.2]]), []);
+  ok(bl[0].text === 'Kurz.' && Math.abs(bl[0].end - 0.3) < 1e-9, 'kurzer Block in die Luecke verlaengert');
+  // Regression: „SIE IN DIE KOMMENTARE. HALLO“ — nie über Satzende / über „Wörter pro Block“ hinaus
+  bl = T.buildCaptionBlocks(W([['Schreibt', 0, 0.3], ['es', 0.32, 0.45], ['in', 0.47, 0.55], ['die', 0.56, 0.62], ['Kommentare.', 0.64, 1.1], ['Hallo', 1.12, 1.25], ['und', 1.4, 1.6], ['tschuess', 1.62, 2.0]]), []);
+  ok(bl.every(b => b.words.length <= 4) && !bl.some(b => /Kommentare\. Hallo/.test(b.text)), 'max. 4 Woerter, kein Verschmelzen ueber Satzende: ' + bl.map(b => b.text).join(' | '));
+  // Verschmelzen nur, wenn es innerhalb von „Wörter pro Block“ bleibt und kein Satzende dazwischen liegt
+  T.onWpbChange('2');
+  bl = T.enforceMinBlockDuration([{ words: W([['ganz', 0, 0.1]]), start: 0, end: 0.1, text: 'ganz' }, { words: W([['kurz', 0.12, 0.6]]), start: 0.12, end: 0.6, text: 'kurz' }], []);
+  ok(bl.length === 1 && bl[0].text === 'ganz kurz', 'Verschmelzen innerhalb wpb ohne Satzende');
+  T.onWpbChange('4');
   bl = T.buildCaptionBlocks(W([['Eins', 0, 0.5], ['zwei.', 0.55, 1.0], ['Ja.', 1.1, 1.2], ['Und', 1.3, 1.6], ['weiter', 1.65, 2.2]]), [1.05, 1.25]);
   ok(bl.some(b => b.text === 'Ja.') && !bl.some(b => /zwei\. Ja\.|Ja\. Und/.test(b.text)), 'kurzer Block wird nie ueber einen Schnitt verschmolzen');
   const ja = bl.find(b => b.text === 'Ja.');
@@ -1039,7 +1051,11 @@ ok(T.webmToMp4Trim(33.96).join(' ') === '-t 33.960 -shortest' && T.webmToMp4Trim
   g = T.exportGeometry(1080, 1920, 30, '1080', 'crop');
   ok(g.mode === 'original', 'schon 9:16 → kein Reframe');
   g = T.exportGeometry(1001, 1001, 30, '1080', 'crop');
-  ok(g.W % 2 === 0 && g.H % 2 === 0 && g.mode === 'crop', 'gerade Masse');
+  ok(g.W === 1080 && g.H === 1920 && g.mode === 'crop', 'Reframe (quadratisch) → immer 1080×1920 Leinwand');
+  g = T.exportGeometry(1080, 1080, 30, '1080', 'blur');
+  ok(g.W === 1080 && g.H === 1920, 'quadratisch 1080 + Blur-Fill → 1080×1920 (nicht 608×1080)');
+  g = T.exportGeometry(720, 720, 30, '1080', 'original');
+  ok(g.W === 720 && g.H === 720, 'Original: weiterhin nie hochskalieren');
   const calls = [];
   const fakeCtx = { save() {}, restore() {}, drawImage() { calls.push('bg'); }, fillRect() { calls.push('dim'); } };
   const ctxs = [];
