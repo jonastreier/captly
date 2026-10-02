@@ -2275,6 +2275,12 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.syncTopExport('Rendering 42%…', true); ok(E('tbExport').disabled && /42%/.test(E('tbExport').textContent), 'Top-Export zeigt Fortschritt');
     T.syncTopExport(null, true); ok(!E('tbExport').disabled && /Export/.test(E('tbExport').textContent), 'Top-Export wieder frei');
     T.updateTrSetSum(); ok(/Fast|Perfect/.test(E('trSetSum').textContent), 'Transkriptions-Zusammenfassung: ' + E('trSetSum').textContent);
+    if (T.getLang() === 'auto') {
+      T.setLastTrMeta({ model: 'fast', lang: 'german', langSetting: 'auto' }); T.updateTrSetSum();
+      ok(/German \(detected\)/.test(E('trSetSum').textContent) && !/Auto/.test(E('trSetSum').textContent), 'erkannte Sprache statt „Auto“: ' + E('trSetSum').textContent);
+      T.setLastTrMeta(null); T.updateTrSetSum();
+      ok(/Auto language/.test(E('trSetSum').textContent), 'ohne Transkription: Auto language');
+    } else ok(false, 'Testannahme: Sprache auto, ist ' + T.getLang());
   }
 
   // Timeline: Zeit↔x, Zoom/Scroll, Fangen, Verschieben/Trimmen mit Grenzen, Wort-Skalierung, Undo, Export
