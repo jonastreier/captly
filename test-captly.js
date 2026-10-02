@@ -78,6 +78,7 @@ needsWatermark:needsWatermark,webmToMp4Trim:webmToMp4Trim,enforceMinBlockDuratio
 revertTranscriptionSettings:revertTranscriptionSettings,getModel:function(){return whisperModel;},setLastTrMeta:function(m){_lastTrMeta=m;},pickRecorderMime:pickRecorderMime,recorderMimeIsSafeMp4:recorderMimeIsSafeMp4,
 exportGeometry:exportGeometry,exportBitrate:exportBitrate,drawReframed:drawReframed,classifyUnplayable:classifyUnplayable,
 applyPlayability:applyPlayability,setVideoPlayable:function(v){videoPlayable=v;},transcribeVideo:transcribeVideo,DEFAULT_STYLE:DEFAULT_STYLE,
+isNetErr:isNetErr,authErrText:authErrText,caseStyle:caseStyle,setCaseState:function(c){capCase=c;},projTitleOf:function(){return projectPayload().title;},setTitle:setTitle,
 setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDistance:histDistance,
 cssColorToHexA:cssColorToHexA,cssColorToHex:cssColorToHex,liveTemplates:liveTemplates,flushCustomStyle:flushCustomStyle,
 decideSceneCuts:decideSceneCuts,cutFrame:cutFrame,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
@@ -301,7 +302,8 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   ok(f3.px === 54 && f3.words.length === 3, 'Fit: passende Woerter bleiben unveraendert');
   // Vorschau nutzt die verkleinerte Größe
   const capHtml = T.buildCap(['Unsere', long], st, 1, 54, [0, 1], 1);
-  ok(capHtml.includes('font-size:' + (f1.px * fsMul) + 'px') || capHtml.includes('font-size:' + (T.fitCaptionWords(['Unsere', long], st, 54, maxW).px * fsMul) + 'px'),
+  // Vorschau ruft fitCaptionWords mit der Zeilenvorgabe (hier 1) auf — „Max lines“ kann zusätzlich verkleinern
+  ok(capHtml.includes('font-size:' + (T.fitCaptionWords(['Unsere', long], st, 54, maxW, 1).px * fsMul) + 'px'),
      'Fit: Vorschau rendert mit effektiver Groesse');
   // Trennqualität (Breite hier = Zeichenzahl inkl. „-“): Kompositumsfugen statt gieriger Schnitte
   const hy = (w, max) => T.capHyphenate(w, p => p.length <= max).join(' / ');
@@ -321,9 +323,15 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   // Höhe: viele Zeilen → weiter verkleinern (bis 55 %), Block <= 40 % der Rahmenhöhe
   document.getElementById('prevFrame').style.height = '480px';
   const many = 'eins zwei drei vier fuenf sechs sieben acht neun zehn elf zwoelf'.split(' ');
-  const fh = T.fitCaptionWords(many, st, 54, maxW, 3);
+  // ohne Zeilenvorgabe: reiner Höhen-Fit (55-%-Untergrenze)
+  const fh = T.fitCaptionWords(many, st, 54, maxW);
   ok(fh.px < 54 && (fh.h <= 480 * 0.4 + 1e-9 || Math.abs(fh.px - 54 * 0.55) < 0.2), 'Hoehen-Fit: ' + fh.px + 'px, h=' + Math.round(fh.h));
   ok(fh.px >= 54 * 0.55 - 1e-9, 'Hoehen-Fit respektiert 55-%-Untergrenze');
+  // „Max lines“ = echte Obergrenze: mit Vorgabe 3 verkleinert der Fit weiter (bis 35 %), bis 3 Zeilen reichen
+  const fl = T.fitCaptionWords(many, st, 40, maxW, 3);
+  ok(fl.g <= 3 && fl.px >= 40 * 0.35 - 1e-9 && fl.px < 40 * 0.55, 'Max-lines-Fit (unter die 55-%-Grenze, nie unter 35 %): ' + fl.px + 'px, ' + fl.g + ' Zeilen');
+  const fl1 = T.fitCaptionWords(['Hallo', 'zusammen', 'und', 'willkommen'], st, 30, maxW, 1);
+  ok(fl1.g === 1 && fl1.words.length === 4, 'Max lines 1: vier Woerter auf einer Zeile, ohne Trennung: ' + fl1.px + 'px');
   // Font-Ladezustand: mit Fallback-Schrift gemessen → nicht cachen; nach dem Laden Cache verwerfen
   document.fonts.check = () => false;
   const pf1 = T.fitCaptionWords(['Fontcheck'], st, 54, maxW, 1), pf2 = T.fitCaptionWords(['Fontcheck'], st, 54, maxW, 1);
@@ -405,7 +413,8 @@ ok(T.isNoAudioFfmpegLog('in_media: Invalid data found when processing input') ==
 T.setState([], []);
 T.selectStyle('stack');
 T.updateOverlay(0);
-ok(document.getElementById('capOverlay').innerHTML.toUpperCase().includes('CAPTIONS'), 'Demo-Caption ohne Transkript');
+// Bewusst geändert (UX-Vereinfachung): keine Platzhalter-Caption mehr — die Vorschau zeigt den Fortschritt
+ok(document.getElementById('capOverlay').innerHTML === '' , 'ohne Transkript keine Platzhalter-Caption');
 
 // 11) Halluzinations-Detektor
 const rep = Array.from({ length: 40 }, (_, i) => ({ word: ['we', 'worked', 'for', 'years'][i % 4], start: i * 0.3, end: i * 0.3 + 0.2 }));
@@ -909,7 +918,8 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   document.getElementById('tStatus').innerHTML = '<span>✅</span><span>4 words</span>';
   T.setSceneCuts([0.95]);
   ok(T.getBlocks().length === 2 && T.getBlocks()[1].text === 'da drüben', 'Schnitte nachtraeglich: neu gruppiert, Edit erhalten');
-  ok(/1 scene cut detected/.test(document.getElementById('tStatus').innerHTML), 'Statushinweis: ' + document.getElementById('tStatus').innerHTML);
+  // Bewusst geändert: Schnitterkennung läuft still, die Statuszeile bleibt unverändert
+  ok(document.getElementById('tStatus').innerHTML === '<span>✅</span><span>4 words</span>', 'kein Schnitt-Hinweis in der Statuszeile: ' + document.getElementById('tStatus').innerHTML);
   T.setDisplayMode('all');
   ok(T.currentBlockIdx2(0.93) === 0 && T.currentBlockIdx2(0.97) === -1 && T.currentBlockIdx2(1.2) === 1, 'Continuous: Block endet am Schnitt');
   T.setDisplayMode('karaoke');
@@ -1141,7 +1151,7 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   T.exportBtnState('Rendering 42%…');
   ok(b.classList.contains('busy') && b.style['--p'] === '42%' && document.getElementById('btnVideoLbl').textContent === 'Rendering 42%…' && b.disabled, 'Busy-Klasse, Fortschritt 42 %, gesperrt');
   T.exportBtnState(null);
-  ok(!b.classList.contains('busy') && document.getElementById('btnVideoLbl').textContent === 'Video + captions', 'zurueckgesetzt');
+  ok(!b.classList.contains('busy') && document.getElementById('btnVideoLbl').textContent === 'Download video', 'zurueckgesetzt (Label des Export-Blatts)');
 }
 
 // 22e) Fehlgeschlagener Wechsel Fast→Perfect: Einstellungen auf die der behaltenen Captions zurück
@@ -2056,7 +2066,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const btn = document.getElementById('btnVideo'); btn.disabled = false;
     ok(await T.waitForSceneCuts(50) === true, 'waitForSceneCuts: keine Erkennung aktiv → sofort true');
     const st = T.beginCutRun();
-    ok(T.cutsDetecting() && /Detecting scene cuts… 0%/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Fortschritt wird an Status angehängt: ' + st0.innerHTML);
+    // Bewusst geändert: Erkennung läuft still (kein Statustext); Warten zeigt sich nur am Export
+    ok(T.cutsDetecting() && !/Detecting|scene cut/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Erkennung ohne Status-Hinweis: ' + st0.innerHTML);
     let t0 = Date.now();
     const p = T.waitForSceneCuts(2000);
     ok(btn.disabled === true, 'Export-Button während des Wartens gesperrt');
@@ -2064,7 +2075,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const r1 = await p;
     ok(r1 === true && Date.now() - t0 < 1000 && T.getSceneCuts().join() === '1.5', 'waitForSceneCuts löst bei Abschluss auf: ' + r1 + ' ' + T.getSceneCuts());
     ok(btn.disabled === false && !T.cutsDetecting(), 'Button wieder frei, Erkennung beendet');
-    ok(/1 scene cut detected/.test(st0.innerHTML) && !/Detecting/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Status: Ergebnis ersetzt Fortschritt: ' + st0.innerHTML);
+    ok(!/scene cut|Detecting/.test(st0.innerHTML) && /12 words/.test(st0.innerHTML), 'Status bleibt nach Abschluss unverändert: ' + st0.innerHTML);
     const st2 = T.beginCutRun(); st2.partial = () => [2.5];
     t0 = Date.now();
     const r2 = await T.waitForSceneCuts(40);
@@ -2325,6 +2336,20 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(JSON.stringify(T.projectPayload().speech) === '[{"start":1,"end":2}]', 'Sprachbereiche im Payload');
     T.setSpeech([]);
     ok(T.projectPayload().speech === undefined, 'ohne Sprachbereiche kein Feld');
+  }
+
+  // UX-Vereinfachung: Anmelde-Netzwerkfehler verständlich, Case-Schalter überstimmt Style-Schreibweise, Titel im Projekt
+  {
+    const down = 'Sign-in is temporarily unavailable — please try again later.';
+    ok(T.authErrText(new TypeError('Failed to fetch')) === down, 'TypeError „Failed to fetch“ → klare Meldung');
+    ok(T.authErrText({ name: 'AuthRetryableFetchError', message: 'Failed to fetch', status: 0 }) === down, 'Supabase-Netzwerkfehler → klare Meldung');
+    ok(T.authErrText({ name: 'AuthApiError', message: 'Token has expired or is invalid', status: 403 }) === 'Token has expired or is invalid', 'echter Auth-Fehler bleibt sichtbar');
+    const up = { id: 'x', tt: 'uppercase', hlUpper: true };
+    T.setCaseState('asis'); ok(T.caseStyle(up) === up, 'Style default: Style entscheidet');
+    T.setCaseState('lower'); const cl = T.caseStyle(up);
+    ok(cl !== up && cl.tt === 'none' && cl.hlUpper === false && up.tt === 'uppercase' && T.caseStyle(up) === cl, 'lowercase überstimmt tt/hlUpper (stabiles Objekt, Original unverändert)');
+    T.setCaseState('asis');
+    T.setTitle('Mein Clip'); ok(T.projTitleOf() === 'Mein Clip', 'Titel reist im Projekt mit'); T.setTitle('');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

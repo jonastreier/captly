@@ -180,7 +180,7 @@ body.editor-open{height:100vh;overflow:hidden}
 
 /* EDITOR */
 #editor{display:none;width:100%;height:100vh;flex-direction:column}
-.topbar{display:flex;align-items:center;justify-content:space-between;height:49px;padding:0 12px;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid #e9e4ef;flex-shrink:0;gap:10px}
+.topbar{position:relative;z-index:50;display:flex;align-items:center;justify-content:space-between;height:49px;padding:0 12px;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid #e9e4ef;flex-shrink:0;gap:10px}
 .topbar-logo{font-size:14px;font-weight:800;color:#111;display:flex;align-items:center;gap:7px;font-family:'Poppins',sans-serif}
 .btn-back{background:none;border:1px solid #ddd6e4;color:#55505c;padding:4px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:11px;cursor:pointer;transition:all .15s}
 .btn-back:hover{border-color:#a99cc0;color:#111}
@@ -190,27 +190,21 @@ body.editor-open{height:100vh;overflow:hidden}
 .prev-col{flex:1;min-width:0;background:#eceaf0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px;position:relative}
 .prev-frame{position:relative;border-radius:13px;overflow:hidden;border:2px solid #fff;box-shadow:0 18px 44px rgba(30,20,60,.18);width:220px;height:390px;flex-shrink:0;transform-origin:center center;transition:transform .12s ease-out}
 
-/* ZOOM CONTROL */
-.zoom-ctrl{position:absolute;top:14px;right:14px;z-index:20;display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.92);border:1px solid #e6e1ec;border-radius:20px;padding:3px;box-shadow:0 4px 14px rgba(30,20,60,.14)}
-.zoom-btn{width:22px;height:22px;border-radius:50%;border:none;background:#fff;color:#5b3fa8;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s,color .15s}
-.zoom-btn:hover{background:linear-gradient(135deg,#7c3aed,#3b82f6);color:#fff}
-.zoom-lbl{font-size:10px;color:#5f5f5f;min-width:30px;text-align:center;user-select:none}
-
 /* TIMELINE (unter der Vorschau) */
 .tl-wrap{display:none;align-self:stretch;max-width:100%;background:#fff;border:1px solid #e6e1ec;border-radius:10px;box-shadow:0 4px 14px rgba(30,20,60,.06);overflow:hidden;flex-shrink:0}
 .tl-bar{display:flex;align-items:center;gap:5px;padding:3px 6px;min-height:28px}
 .tl-tog{background:none;border:none;font:700 11px 'Inter',sans-serif;color:#3b2a6b;cursor:pointer;padding:4px 6px;border-radius:6px;white-space:nowrap;flex-shrink:0}
 .tl-tog:hover{background:#f3f0f8}
-.tl-hint{font-size:10px;color:#8a8494;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.tl-hint{font-size:11px;color:#8a8494;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
 .tl-sp{flex:1 1 0;min-width:0}
-.tl-btn{border:1px solid #ddd6e4;background:#fff;color:#55505c;font:600 10.5px 'Inter',sans-serif;border-radius:6px;padding:3px 8px;cursor:pointer;min-width:26px;white-space:nowrap;flex-shrink:0;transition:all .15s}
+.tl-btn{border:1px solid #ddd6e4;background:#fff;color:#55505c;font:600 11px 'Inter',sans-serif;border-radius:6px;padding:3px 8px;cursor:pointer;min-width:26px;white-space:nowrap;flex-shrink:0;transition:all .15s}
 .tl-btn:hover{border-color:#a99cc0;color:#111}
 .tl-btn.on{border-color:rgba(124,58,237,.45);color:#7c3aed;background:rgba(124,58,237,.08)}
 .tl-wrap:not(.open) .tl-btn,.tl-wrap:not(.open) .tl-hint,.tl-wrap:not(.open) .tl-body{display:none}
 .tl-body{border-top:1px solid #eee9f3}
 #tlCanvas{display:block;width:100%;height:84px;touch-action:none;outline:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 #tlCanvas:focus-visible{box-shadow:inset 0 0 0 2px rgba(124,58,237,.45)}
-@media (pointer:coarse){.tl-btn{min-height:32px;min-width:34px;font-size:12px}.tl-tog{min-height:32px;font-size:12px}.tl-hint{display:none}}
+@media (pointer:coarse){.tl-btn{min-height:32px;min-width:34px;font-size:12.5px}.tl-tog{min-height:32px;font-size:12.5px}.tl-hint{display:none}}
 
 /* PANEL RESIZE HANDLE */
 .col-resize-handle{width:7px;flex-shrink:0;cursor:col-resize;position:relative;z-index:7;touch-action:none}
@@ -220,153 +214,147 @@ body.editor-open{height:100vh;overflow:hidden}
 #prevBlurBg{position:absolute;inset:-8%;z-index:0;width:116%;height:116%;display:none;filter:blur(14px) brightness(.55);pointer-events:none}
 .prev-frame.reframe-blur #prevBlurBg{display:block}
 .prev-frame.reframe-blur #mainVid{object-fit:contain!important}
-.vid-warn{max-width:360px;width:100%;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:9px;padding:8px 10px;font-size:11.5px;line-height:1.45}
+.vid-warn{max-width:360px;width:100%;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:9px;padding:8px 10px;font-size:12.5px;line-height:1.45}
 .exp-opts{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
-.exp-opt{display:flex;align-items:center;gap:8px;font-size:10.5px;color:#66616e}
-.exp-opt .lang-sel{margin:0;flex:1;padding:5px 7px;font-size:11px}
+.exp-opt{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#55505c}
+.exp-opt > span{min-width:74px}
+.exp-opt .lang-sel{margin:0;flex:1;padding:6px 8px;font-size:12.5px}
 #mainVid{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none}
 /* Play-Overlay: dezentes Glas-Icon statt deckender weißer Scheibe — der Untertitel (z-index 10) liegt
    darüber und bleibt lesbar; positionPlayIcon() schiebt das Icon zusätzlich aus dem Untertitel-Bereich. */
 #playOverlay{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.14);cursor:pointer}
-.play-icon{width:44px;height:44px;border-radius:50%;background:rgba(20,16,30,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.38);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;padding-left:3px;box-shadow:0 4px 16px rgba(0,0,0,.28);transition:transform .15s,background .15s}
+.play-icon{width:44px;height:44px;border-radius:50%;background:rgba(20,16,30,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.38);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;padding-left:3px;box-shadow:0 4px 16px rgba(0,0,0,.28);transition:transform .15s,background .15s}
 #playOverlay:hover .play-icon{transform:scale(1.08);background:rgba(20,16,30,.58)}
 #frameDropZone{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:24%;gap:8px}
-.fdz-btn{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;font:700 12px 'Inter',sans-serif;padding:8px 16px;border-radius:20px;box-shadow:0 4px 14px rgba(124,58,237,.45)}
+.fdz-btn{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;font:700 12.5px 'Inter',sans-serif;padding:8px 16px;border-radius:20px;box-shadow:0 4px 14px rgba(124,58,237,.45)}
 #frameDropZone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:4}
-#frameDropZone span{font-size:24px}
-#frameDropZone p{font-size:10px;color:#b8b2c4;text-align:center;padding:0 12px;line-height:1.5}
+#frameDropZone span{font-size:16px}
+#frameDropZone p{font-size:11px;color:#b8b2c4;text-align:center;padding:0 12px;line-height:1.5}
 #capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
 #capOverlay:active{cursor:grabbing}
 #capOverlay.dragging{cursor:grabbing}
-.vid-ctrls{display:none;align-items:center;gap:7px;background:#fff;border:1px solid #e6e1ec;border-radius:8px;padding:6px 10px;width:220px;max-width:100%}
+.vid-ctrls{display:none;align-items:center;gap:8px;background:#fff;border:1px solid #e6e1ec;border-radius:10px;padding:5px 8px;width:220px;max-width:100%}
 .vid-ctrls.exporting{opacity:.5;pointer-events:none}
-.pp-btn{width:25px;height:25px;border-radius:50%;background:#111;border:none;color:#fff;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0}
+.pp-btn{width:30px;height:30px;border-radius:50%;background:#111;border:none;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0}
 .pp-btn:hover{background:#333}
 .prog-col{flex:1 1 auto;min-width:96px;display:flex;flex-direction:column;gap:3px}
 /* Sichtbar 4px, aber per ::before ~20px Trefferfläche — sonst ist Seeken per Finger kaum möglich. */
 .prog-track{position:relative;height:4px;background:#e8e4ee;border-radius:2px;cursor:pointer;touch-action:none}
 .prog-track::before{content:'';position:absolute;left:0;right:0;top:-8px;bottom:-8px}
 .prog-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#3b82f6);border-radius:2px;width:0%;pointer-events:none}
-.prog-time{font-size:9px;color:#6f6f6f;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
-.mute-btn{background:none;border:1px solid #ddd6e4;color:#66616e;font-size:9px;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
-.mute-btn:hover{border-color:rgba(255,255,255,.2);color:#aaa}
-.mute-btn.on{border-color:rgba(124,58,237,.3);color:#a78bfa}
-.sz-btn{background:none;border:1px solid #ddd6e4;color:#66616e;font-size:9px;padding:2px 6px;border-radius:4px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap;flex-shrink:0}
-.sz-btn:hover{border-color:rgba(255,255,255,.2);color:#aaa}
-.sz-btn.on{border-color:rgba(124,58,237,.35);color:#a78bfa;background:rgba(124,58,237,.08)}
+.prog-time{font-size:11px;color:#6f6f6f;text-align:right;flex-shrink:0;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mute-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:none;border:1px solid transparent;color:#66616e;font-size:11px;padding:0;border-radius:8px;flex-shrink:0;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
+.mute-btn:hover{background:#f4f1f8;color:#111}
+.mute-btn.on{color:#55505c}
+.sz-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:none;border:1px solid transparent;color:#66616e;font-size:11px;padding:0;border-radius:8px;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.sz-btn:hover{background:#f4f1f8;color:#111}
+.sz-btn.on{border-color:rgba(124,58,237,.35);color:#6d28d9;background:rgba(124,58,237,.08)}
 /* SAFE ZONE (Instagram/TikTok-Reels-UI-Bereich, 1080x1920-Referenz) */
 #safeZoneOverlay{position:absolute;inset:0;z-index:15;pointer-events:none;display:none}
 #safeZoneOverlay.on{display:block}
 #safeZoneRect{position:absolute;box-shadow:0 0 0 2000px rgba(10,8,20,.55);border:1.5px dashed rgba(167,139,250,.9);border-radius:3px;transition:border-color .2s,box-shadow .2s}
 #safeZoneRect.warn{border-color:#ef4444;box-shadow:0 0 0 2000px rgba(239,68,68,.32);animation:szWarnPulse 1s ease-in-out infinite}
 @keyframes szWarnPulse{0%,100%{border-color:#ef4444}50%{border-color:#fca5a5}}
-#safeZoneWarn{position:absolute;top:6px;left:6px;right:6px;background:rgba(239,68,68,.94);color:#fff;font-size:9px;font-weight:700;text-align:center;padding:5px 7px;border-radius:6px;display:none;line-height:1.35;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:16}
+#safeZoneWarn{position:absolute;top:6px;left:6px;right:6px;background:rgba(239,68,68,.94);color:#fff;font-size:11px;font-weight:700;text-align:center;padding:5px 7px;border-radius:6px;display:none;line-height:1.35;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:16}
 #safeZoneWarn.show{display:block}
 
 /* CONTROL COL */
-.ctrl-col{width:308px;flex-shrink:0;background:#fff;border-left:1px solid #eceaf0;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.12) transparent}
+.ctrl-col{width:380px;flex-shrink:0;background:#fff;border-left:1px solid #eceaf0;display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.12) transparent}
 .ctrl-col::-webkit-scrollbar{width:3px}
 .ctrl-col::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
 .csect{padding:11px 14px;border-bottom:1px solid #f0edf4}
 /* Tabs im Seitenpanel (Captions / Style / Export) — sticky, damit sie beim Scrollen erreichbar bleiben */
 .ed-tabs{position:sticky;top:0;z-index:6;display:flex;gap:4px;padding:8px 10px;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-bottom:1px solid #eceaf0;flex-shrink:0}
-.ed-tab{flex:1;padding:7px 4px;border:none;border-radius:8px;background:transparent;color:#66616e;font:600 11.5px 'Inter',sans-serif;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
+.ed-tab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 4px;border:none;border-radius:8px;background:transparent;color:#66616e;font:600 12.5px 'Inter',sans-serif;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
 .ed-tab:hover{background:#f4f1f8;color:#111}
 .ed-tab.on{background:rgba(124,58,237,.1);color:#6d28d9}
 .ctrl-col .csect[data-tab]{display:none}
-.ctrl-col[data-tab="captions"] .csect[data-tab="captions"],.ctrl-col[data-tab="style"] .csect[data-tab="style"],.ctrl-col[data-tab="export"] .csect[data-tab="export"]{display:block}
-.tr-set{margin-bottom:8px}
-.model-hint{font-size:10px;color:#77727f;line-height:1.45;margin:-2px 0 8px}
+.ctrl-col[data-tab="captions"] .csect[data-tab="captions"],.ctrl-col[data-tab="style"] .csect[data-tab="style"]{display:block}
+.tr-set{margin:10px 0 8px}
+.model-hint{font-size:11px;color:#77727f;line-height:1.45;margin:-2px 0 10px}
 .model-hint b{color:#3f3b46}
-.tr-set summary{cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:6px;user-select:none;margin-bottom:8px;padding:6px 8px;border:1px solid #ece6f4;border-radius:8px;background:#faf8fd}
+.tr-set summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;margin-bottom:10px;padding:7px 10px;border:1px solid #ece6f4;border-radius:9px;background:#faf8fd;color:#55505c}
 .tr-set summary::-webkit-details-marker{display:none}
-.tr-set summary::after{content:'▾';font-size:10px;color:#94909c;margin-left:auto}
+.tr-set summary::after{content:'▾';font-size:11px;color:#94909c;margin-left:auto}
 .tr-set:not([open]) summary::after{content:'▸'}
 .tr-set:not([open]) summary{margin-bottom:0}
-.tr-set-ttl{font-size:11px;font-weight:700;color:#3f3b46;white-space:nowrap}
-.tr-set-sum{font-size:10.5px;color:#7c3aed;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.cs-adv{margin-top:12px;border-top:1px solid #f0edf4;padding-top:9px}
-.cs-adv summary{font-size:10.5px;font-weight:700;color:#5f5f5f;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;user-select:none;list-style:none}
+.tr-set-ttl{font-size:12.5px;font-weight:600;color:#3f3b46;white-space:nowrap}
+.tr-set-sum{font-size:11px;color:#7c3aed;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cs-adv{margin-top:12px;border-top:1px solid #f0edf4;padding-top:10px}
+.cs-adv summary{font-size:12.5px;font-weight:600;color:#6d28d9;cursor:pointer;user-select:none;list-style:none;padding:4px 0}
 .cs-adv summary::-webkit-details-marker{display:none}
-.cs-adv summary::before{content:'▸ '}
-.cs-adv[open] summary::before{content:'▾ '}
+.cs-adv summary::after{content:' ▸'}
+.cs-adv[open] summary::after{content:' ▾'}
 .cs-adv[open] summary{margin-bottom:8px}
-.tb-export{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:8px;padding:7px 14px;font:700 12px 'Inter',sans-serif;cursor:pointer;box-shadow:0 3px 10px rgba(124,58,237,.3);transition:opacity .15s,transform .15s}
+.tb-export{background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:8px;padding:7px 14px;font:700 12.5px 'Inter',sans-serif;cursor:pointer;box-shadow:0 3px 10px rgba(124,58,237,.3);transition:opacity .15s,transform .15s}
 .tb-export:hover:not(:disabled){transform:translateY(-1px)}
 .tb-export:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
-.tb-icon{width:30px;height:30px;border:1px solid #ddd6e4;border-radius:7px;background:#fff;color:#55505c;font-size:15px;line-height:1;cursor:pointer}
+.tb-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid transparent;border-radius:8px;background:transparent;color:#55505c;font-size:14px;line-height:1;cursor:pointer;padding:0}
 .tb-icon:disabled{opacity:.35;cursor:not-allowed}
 .tb-icon:hover:not(:disabled){border-color:#a99cc0;color:#111}
 /* Inline-Editor direkt im Video (Doppelklick auf die Caption) */
 .cap-inline{position:absolute;left:5%;right:5%;z-index:30;background:rgba(20,16,32,.92);border:1px solid rgba(167,139,250,.6);border-radius:12px;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.45);backdrop-filter:blur(6px)}
-.cap-inline textarea{width:100%;background:transparent;border:none;outline:none;resize:none;color:#fff;font:700 15px/1.35 'Inter',sans-serif;text-align:center}
+.cap-inline textarea{width:100%;background:transparent;border:none;outline:none;resize:none;color:#fff;font:700 14px/1.35 'Inter',sans-serif;text-align:center}
 .cap-inline-row{display:flex;align-items:center;gap:6px;margin-top:6px}
-.cap-inline-row span{flex:1;font-size:9.5px;color:#b9b2c9}
+.cap-inline-row span{flex:1;font-size:11px;color:#b9b2c9}
 .cap-inline-row button{border:1px solid rgba(255,255,255,.25);background:transparent;color:#eee;border-radius:7px;padding:5px 10px;font:600 11px 'Inter',sans-serif;cursor:pointer}
 .cap-inline-row button.ok{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent;color:#fff}
 /* Zeilen-Werkzeuge (Timing ±0.1 s, Löschen) — nur an der Zeile, die gerade bearbeitet wird */
 .cap-seg{flex-wrap:wrap}
-.seg-tools{display:none;flex-basis:100%;align-items:center;gap:3px;margin-top:5px;padding-top:5px;border-top:1px dashed #e6e0ee;font-size:10px;color:#77727f}
+.seg-tools{display:none;flex-basis:100%;align-items:center;gap:3px;margin-top:5px;padding-top:5px;border-top:1px dashed #e6e0ee;font-size:11px;color:#77727f}
 .cap-seg:focus-within .seg-tools,.cap-seg.sel .seg-tools{display:flex}
-.seg-tools .stl{font-weight:600;color:#94909c;text-transform:uppercase;font-size:8.5px;letter-spacing:.05em}
+.seg-tools .stl{font-weight:600;color:#94909c;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
 .seg-tools .stv{font-variant-numeric:tabular-nums;color:#3f3b46;min-width:30px;text-align:center}
-.seg-tools button{border:1px solid #ddd6e4;background:#fff;border-radius:5px;min-width:22px;height:20px;padding:0 4px;font:600 10px 'Inter',sans-serif;color:#55505c;cursor:pointer}
+.seg-tools button{border:1px solid #ddd6e4;background:#fff;border-radius:5px;min-width:22px;height:20px;padding:0 4px;font:600 11px 'Inter',sans-serif;color:#55505c;cursor:pointer}
 .seg-tools button:hover{border-color:#a99cc0;color:#111}
 .seg-tools .st-del{margin-left:auto;color:#dc2626}
 .seg-tools .st-sep{width:4px}
-.clbl{font-size:9px;font-weight:700;color:#5f5f5f;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
-.mode-hint{font-size:10.5px;color:#8a8a8a;line-height:1.4;margin-top:6px}
+.mode-hint{font-size:11px;color:#8a8a8a;line-height:1.4;margin-top:6px}
 
 /* TRANSCRIPTION */
-.lang-sel{width:100%;background:#fff;border:1px solid #ddd6e4;color:#333;border-radius:8px;padding:7px 9px;font-family:'Inter',sans-serif;font-size:12px;margin-bottom:7px;outline:none;cursor:pointer}
+.lang-sel{width:100%;background:#fff;border:1px solid #ddd6e4;color:#333;border-radius:8px;padding:7px 9px;font-family:'Inter',sans-serif;font-size:12.5px;margin-bottom:7px;outline:none;cursor:pointer}
 .lang-sel:focus{border-color:rgba(124,58,237,.4)}
 .cs-col{width:30px;height:26px;border:none;background:none;cursor:pointer;padding:0;flex:0 0 auto}
 .cs-swatch{display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;flex:0 0 auto}
-.cs-swatch span{font-size:9px;line-height:1;color:#94909c;letter-spacing:.02em}
+.cs-swatch span{font-size:11px;line-height:1;color:#94909c;letter-spacing:.02em}
 /* Farbfelder immer mit sichtbarem Rand: Weiß auf weißem Panel sah sonst „leer“ aus (Nutzer-Report) */
 .cs-col::-webkit-color-swatch-wrapper{padding:2px}
 .cs-col::-webkit-color-swatch{border:1px solid #cbc4d6;border-radius:5px}
 .cs-col::-moz-color-swatch{border:1px solid #cbc4d6;border-radius:5px}
 #csGlowInt:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
 .cs-sel{margin:0!important;padding:5px 7px;font-size:11px}
-.cs-more{margin-top:8px}
-.cs-more summary{font-size:10.5px;font-weight:600;color:#7c3aed;cursor:pointer;user-select:none;list-style:none}
-.cs-more summary::-webkit-details-marker{display:none}
-.cs-more summary::before{content:'▸ ';display:inline-block;transition:transform .15s}
-.cs-more[open] summary::before{content:'▾ '}
 .cs-line{margin-top:7px}
-.cs-k{font-size:10.5px;color:#66616e;min-width:64px}
-.cs-v{font-size:10px;color:#8a8494;min-width:28px;text-align:right;font-variant-numeric:tabular-nums}
-.tpl-io{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:10px}
-.tpl-status{font-size:10.5px;font-weight:600;color:#15803d;margin-top:5px;min-height:0}
+.cs-k{font-size:11px;color:#66616e;min-width:64px}
+.cs-v{font-size:11px;color:#8a8494;min-width:28px;text-align:right;font-variant-numeric:tabular-nums}
+.tpl-io{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:11px}
+.tpl-status{font-size:11px;font-weight:600;color:#15803d;margin-top:5px;min-height:0}
 .tpl-status:empty{display:none}
 .tpl-status.warn{color:#b45309}
 /* Style-Picker-Gruppen: „My templates“ oben, darunter die Presets */
-.stile-group{flex:0 0 100%;display:flex;align-items:center;justify-content:space-between;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7c3aed;margin:4px 0 1px}
+.stile-group{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7c3aed;margin:4px 0 1px}
 .stile-group .sg-n{font-weight:600;color:#94909c;letter-spacing:0;text-transform:none}
 .stile-group.presets{color:#8a8494;margin-top:8px}
-.stile-empty{flex:0 0 100%;box-sizing:border-box;font-size:10.5px;line-height:1.4;color:#8a8494;border:1px dashed #d9d2e6;border-radius:8px;padding:8px 10px}
+.stile-empty{grid-column:1/-1;box-sizing:border-box;font-size:11px;line-height:1.4;color:#8a8494;border:1px dashed #d9d2e6;border-radius:8px;padding:8px 10px}
 .stile-empty a{color:#7c3aed;font-weight:600;text-decoration:none}
 .stile.just-saved{animation:stileSaved 1.6s ease}
 @keyframes stileSaved{0%,40%{box-shadow:0 0 0 4px rgba(34,197,94,.55)}100%{box-shadow:0 0 0 3px rgba(124,58,237,.18)}}
-.cap-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:1200;background:#1f1b2b;color:#fff;font:600 13px/1.3 'Inter',sans-serif;padding:10px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(20,10,40,.3);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px)}
+.cap-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:1200;background:#1f1b2b;color:#fff;font:600 12.5px/1.3 'Inter',sans-serif;padding:10px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(20,10,40,.3);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px)}
 .cap-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .tpl-io a{color:#7c3aed;font-weight:600;text-decoration:none}
 .tpl-io a:hover{text-decoration:underline}
 #tplEditing{color:#66616e;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stile{position:relative}
-.stile-menu-btn{position:absolute;top:3px;right:3px;z-index:4;width:20px;height:20px;border-radius:50%;border:none;background:rgba(255,255,255,.88);color:#3f3b46;font-size:12px;line-height:20px;text-align:center;cursor:pointer;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.stile-menu-btn{position:absolute;top:3px;right:3px;z-index:4;width:20px;height:20px;border-radius:50%;border:none;background:rgba(255,255,255,.88);color:#3f3b46;font-size:12.5px;line-height:20px;text-align:center;cursor:pointer;padding:0;box-shadow:0 2px 6px rgba(0,0,0,.25)}
 .stile-menu-btn:hover{background:#fff;color:#7c3aed}
 .tpl-menu{position:fixed;z-index:1000;min-width:132px;background:#fff;border:1px solid #e6e1ec;border-radius:10px;box-shadow:0 12px 30px rgba(30,20,60,.18);padding:4px}
-.tpl-menu button{display:block;width:100%;text-align:left;border:none;background:none;padding:7px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:12px;color:#3f3b46;cursor:pointer}
+.tpl-menu button{display:block;width:100%;text-align:left;border:none;background:none;padding:7px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:12.5px;color:#3f3b46;cursor:pointer}
 .tpl-menu button:hover{background:#f4f0fb;color:#5b3fa8}
 .tpl-menu button.danger{color:#c2410c}
 input.lang-sel{cursor:text}
-.vocab-hint{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:10px;color:#8a8494;margin:4px 0 8px;line-height:1.35}
+.vocab-hint{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11px;color:#8a8494;margin:4px 0 8px;line-height:1.35}
 .vocab-hint a{color:#7c3aed;font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer}
 .vocab-hint a:hover{text-decoration:underline}
-.t-box{background:linear-gradient(160deg,rgba(124,58,237,.06),rgba(236,72,153,.04));border:1px solid rgba(124,58,237,.16);border-radius:14px;padding:13px 14px;margin-bottom:7px;transition:border-color .25s}
-.t-status{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#3f3b46}
+.t-status{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#3f3b46;min-height:22px;line-height:1.4}
 .t-spinner{width:15px;height:15px;border:2.5px solid rgba(124,58,237,.18);border-top-color:#7c3aed;border-right-color:#ec4899;border-radius:50%;flex-shrink:0;animation:spin .7s linear infinite}
 .t-prog-row{display:flex;align-items:center;gap:9px;margin-top:9px}
 .t-prog-bar{flex:1;height:7px;background:rgba(124,58,237,.1);border-radius:99px;overflow:hidden}
@@ -374,27 +362,18 @@ input.lang-sel{cursor:text}
 .t-prog-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);animation:tprog-shine 1.2s ease-in-out infinite}
 @keyframes tprog-flow{to{background-position:-200% 0}}
 @keyframes tprog-shine{from{transform:translateX(-100%)}to{transform:translateX(250%)}}
-.t-prog-pct{font-size:10.5px;font-weight:700;color:#7c3aed;min-width:30px;text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0}
+.t-prog-pct{font-size:11px;font-weight:700;color:#7c3aed;min-width:30px;text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0}
 @media (prefers-reduced-motion:reduce){.t-prog-fill,.t-prog-fill::after{animation:none!important}}
-.retry-btn{background:rgba(124,58,237,.09);border:1px solid rgba(124,58,237,.22);color:#a78bfa;padding:5px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;cursor:pointer;margin-top:6px;transition:all .15s;display:block}
+.retry-btn{background:rgba(124,58,237,.09);border:1px solid rgba(124,58,237,.22);color:#6d28d9;padding:5px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;margin-top:6px;transition:all .15s;display:block}
 .retry-btn:hover{background:rgba(124,58,237,.2)}
 
 /* CAPTION EDITOR */
 .cap-editor{display:none;margin-top:7px}
-.ce-hdr{font-size:9.5px;color:#5f5f5f;margin-bottom:5px}
-.ce-hdr em{font-style:normal;color:#7c3aed}
-.ce-hdr b{color:#3f3b46;font-weight:700}
 .kb-help{display:inline-block;margin-left:2px}
 .fr-box{margin:2px 0 6px}
 .hint-touch{display:none}
 @media (pointer:coarse){.hint-touch{display:inline}.hint-desk,.kb-help,.cap-inline-row span{display:none}.cap-inline-row button{flex:1;min-height:40px;font-size:14px}}
-.next-steps{display:flex;align-items:center;gap:6px;margin:8px 0 2px}
-.next-steps span{font-size:9px;font-weight:700;color:#94909c;text-transform:uppercase;letter-spacing:.08em}
-.next-steps button{flex:1;padding:7px 6px;border-radius:8px;border:1px solid #ddd6e4;background:#fff;color:#3f3b46;font:600 11px 'Inter',sans-serif;cursor:pointer;transition:all .15s}
-.next-steps button:hover{border-color:#a99cc0;color:#111}
-.next-steps button.hi{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent;color:#fff}
-@media (max-width:640px), (pointer:coarse){.next-steps button{min-height:40px;font-size:13px}}
-.fr-box summary{font-size:10.5px;font-weight:600;color:#7c3aed;cursor:pointer;list-style:none;user-select:none;padding:3px 0}
+.fr-box summary{font-size:11px;font-weight:600;color:#7c3aed;cursor:pointer;list-style:none;user-select:none;padding:3px 0}
 .fr-box summary::-webkit-details-marker{display:none}
 .fr-box[open] summary{margin-bottom:5px}
 .kb-help summary{display:inline;cursor:pointer;color:#7c3aed;font-weight:600;list-style:none}
@@ -403,35 +382,34 @@ input.lang-sel{cursor:text}
 .cap-segs{display:flex;flex-direction:column;gap:3px;max-height:max(180px,calc(100vh - 400px));overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.12) transparent}
 .cap-segs::-webkit-scrollbar{width:3px}
 .cap-segs::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
-.cap-seg{display:flex;align-items:flex-start;gap:6px;background:#fafafb;border:1px solid #e8e4ee;border-radius:7px;padding:6px 8px;cursor:pointer;transition:border-color .15s}
+.cap-seg{display:flex;align-items:flex-start;gap:8px;background:#fafafb;border:1px solid #e8e4ee;border-radius:8px;padding:7px 10px;cursor:pointer;transition:border-color .15s}
 .cap-seg:hover{border-color:rgba(124,58,237,.28)}
 .cap-seg.active{border-color:rgba(124,58,237,.45);background:rgba(124,58,237,.06)}
-.cap-seg-time{font-size:8.5px;color:#7a7a7a;min-width:30px;margin-top:1px;font-variant-numeric:tabular-nums;flex-shrink:0}
-.cap-seg-ta{flex:1;font-size:11px;color:#3f3b46;line-height:1.45;outline:none;background:transparent;border:none;font-family:'Inter',sans-serif;resize:none;word-break:break-word;min-height:14px;cursor:text}
+.cap-seg-time{font-size:11px;color:#7a7a7a;min-width:30px;margin-top:3px;font-variant-numeric:tabular-nums;flex-shrink:0}
+.cap-seg-ta{flex:1;font-size:14px;color:#2a2633;line-height:1.45;outline:none;background:transparent;border:none;font-family:'Inter',sans-serif;resize:none;word-break:break-word;min-height:14px;cursor:text}
 .cap-seg-ta:focus{color:#111}
 .wpills{display:none} /* Zeilenliste deckt Klick→Sprung ab; die Wort-Pillen waren doppelt */
-.wpill{font-size:10px;padding:2px 7px;border-radius:14px;cursor:pointer;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015);color:#7a7a7a;transition:all .1s}
+.wpill{font-size:11px;padding:2px 7px;border-radius:14px;cursor:pointer;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.015);color:#7a7a7a;transition:all .1s}
 .wpill:hover{border-color:#b9aede;color:#111}
 .wpill.on{background:rgba(124,58,237,.16);border-color:rgba(167,139,250,.32);color:#c4b5fd}
 
 /* STYLE PICKER */
-.style-scroll{display:flex;flex-wrap:wrap;gap:5px;max-height:max(290px,min(470px,52vh));overflow-y:auto;padding:2px 4px 4px 0;scrollbar-width:thin;scrollbar-color:rgba(124,58,237,.35) transparent;background-color:#fff;background-repeat:no-repeat;background-image:linear-gradient(#fff 30%,rgba(255,255,255,0)),linear-gradient(rgba(255,255,255,0),#fff 70%) 0 100%,radial-gradient(farthest-side at 50% 0,rgba(30,20,45,.16),rgba(30,20,45,0)),radial-gradient(farthest-side at 50% 100%,rgba(30,20,45,.16),rgba(30,20,45,0)) 0 100%;background-size:100% 24px,100% 24px,100% 8px,100% 8px;background-attachment:local,local,scroll,scroll}
-.style-scroll::-webkit-scrollbar{width:6px}
-.style-scroll::-webkit-scrollbar-thumb{background:rgba(124,58,237,.3);border-radius:3px}
-.stile{flex-shrink:0;width:76px;border-radius:8px;overflow:hidden;border:2px solid transparent;cursor:pointer;transition:border-color .18s,transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s;will-change:transform}
-.stile:hover{transform:translateY(-5px) scale(1.07);box-shadow:0 12px 26px rgba(124,58,237,.24),0 0 0 1px rgba(124,58,237,.16);z-index:3}
+/* Preset-Raster in voller Panelbreite, KEIN innerer Scrollbereich (vorher verschachtelt gescrollt) */
+.style-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.stile{min-width:0;border-radius:10px;overflow:hidden;border:2px solid transparent;cursor:pointer;transition:border-color .18s,transform .22s cubic-bezier(.2,.7,.2,1),box-shadow .22s;will-change:transform}
+.stile:hover{transform:translateY(-3px);box-shadow:0 12px 26px rgba(124,58,237,.24),0 0 0 1px rgba(124,58,237,.16);z-index:3}
 .stile.on{border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.18)}
-.stile-thumb{width:76px;height:106px;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:filter .18s}
+.stile-thumb{width:100%;aspect-ratio:76/100;display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;transition:filter .18s}
 .stile:hover .stile-thumb{filter:brightness(1.12) saturate(1.15)}
 .stile-inner{text-align:center;padding:0 4px;width:100%;position:relative;z-index:2}
-.stile-info{background:#f4f2f7;padding:4px 5px 5px;text-align:center}
-.stile-name{font-size:9px;font-weight:700;color:#55505c}
-.stile.on .stile-name{color:#a78bfa}
-.stile-font{font-size:7px;color:#94909c;margin-top:1px}
+.stile-info{background:#f4f2f7;padding:5px 5px 6px;text-align:center}
+.stile-name{font-size:11px;font-weight:600;color:#3f3b46;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stile.on .stile-name{color:#6d28d9}
+.stile-font{font-size:11px;color:#94909c;margin-top:1px}
 
 /* CONTROLS */
 .pos-row{display:flex;gap:4px;margin-bottom:8px}
-.pos-btn{flex:1;padding:5px 4px;border-radius:6px;border:1px solid #ddd6e4;background:#fff;color:#66616e;font-family:'Inter',sans-serif;font-size:10.5px;font-weight:600;cursor:pointer;transition:all .15s}
+.pos-btn{flex:1;padding:5px 4px;border-radius:6px;border:1px solid #ddd6e4;background:#fff;color:#66616e;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
 .pos-btn:hover{border-color:#a99cc0;color:#111}
 .pos-btn.on{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent;color:#fff;box-shadow:0 3px 10px rgba(124,58,237,.32)}
 .sz-row{display:flex;align-items:center;gap:9px}
@@ -442,23 +420,22 @@ input.lang-sel{cursor:text}
 .sz-row input[type=range]::-moz-range-track{height:6px;border-radius:999px;background:linear-gradient(90deg,#7c3aed,#6d5cf0,#3b82f6)}
 input[type=checkbox]{accent-color:#7c3aed}
 .sz-val{font-size:11px;color:#282828;min-width:28px;text-align:right}
-.ctrl-upload{border:1.5px dashed #d9d1e2;border-radius:8px;padding:9px;text-align:center;cursor:pointer;position:relative;transition:all .15s}
+.ctrl-upload{border:1.5px dashed #d9d1e2;border-radius:8px;padding:9px;margin-bottom:10px;text-align:center;cursor:pointer;position:relative;transition:all .15s}
 .ctrl-upload:hover{border-color:rgba(124,58,237,.28);background:rgba(124,58,237,.03)}
 .ctrl-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.ctrl-upload p{font-size:11px;color:#5f5f5f}
+.ctrl-upload p{font-size:12.5px;color:#55505c;display:flex;align-items:center;justify-content:center;gap:6px}
 
 /* EXPORT */
-.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.exp-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 7px;border-radius:9px;border:1px solid #e2dce9;background:#fff;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
+.exp-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:12px 14px;border-radius:9px;border:1px solid #e2dce9;background:#fff;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s}
 .exp-btn:hover:not(:disabled){border-color:#c9c0d6;background:#faf9fc;transform:translateY(-2px)}
 .exp-btn:disabled{opacity:.25;cursor:default}
-.exp-btn-icon{font-size:17px}
-.exp-btn-label{font-size:10px;font-weight:700;color:#3f3b46}
-.exp-btn-sub{font-size:8.5px;color:#5f5f5f}
+.exp-btn-icon{display:inline-flex;font-size:16px}
+.exp-btn-label{font-size:14px;font-weight:700;color:#3f3b46}
+.exp-btn-sub{font-size:11px;color:#5f5f5f}
 .exp-btn.hi{background:linear-gradient(135deg,#7c3aed,#6366f1);border-color:transparent}
 .exp-btn.hi:hover:not(:disabled){filter:brightness(1.08)}
 .exp-btn.hi .exp-btn-label{color:#fff}
-.exp-btn.hi .exp-btn-sub{color:rgba(255,255,255,.55)}
+.exp-btn.hi .exp-btn-sub{color:rgba(255,255,255,.8)}
 /* Export läuft: KEIN blasser Disabled-Look — volle Farbe, Fortschritt als Füllung im Button, gut lesbar */
 .exp-btn.hi.busy,.exp-btn.hi.busy:disabled{opacity:1;cursor:wait;position:relative;overflow:hidden;
   background:linear-gradient(90deg,#5b21b6 0%,#4f46e5 var(--p,0%),#7c3aed var(--p,0%),#6366f1 100%)}
@@ -466,14 +443,11 @@ input[type=checkbox]{accent-color:#7c3aed}
 .exp-btn.hi.busy .exp-btn-sub{color:rgba(255,255,255,.8)}
 @media (prefers-reduced-motion:no-preference){.exp-btn.hi.busy{animation:expBusy 1.6s ease-in-out infinite}}
 @keyframes expBusy{0%,100%{filter:brightness(1)}50%{filter:brightness(1.12)}}
-.exp-mini{display:flex;gap:5px;margin-top:5px}
-.exp-mini .pos-btn{padding:6px 4px}
-.exp-mini .pos-btn:disabled{opacity:.3;cursor:default}
 .fr-row{display:flex;gap:5px;align-items:center;margin-bottom:6px}
 .fr-row .lang-sel{margin:0;padding:5px 7px;font-size:11px;min-width:0;flex:1}
 .fr-row .pos-btn{flex:0 0 auto;padding:5px 8px;white-space:nowrap}
 .fr-row .pos-btn:disabled{opacity:.35;cursor:default}
-.fr-opt{display:flex;align-items:center;gap:4px;font-size:10px;color:#66616e;white-space:nowrap;cursor:pointer}
+.fr-opt{display:flex;align-items:center;gap:4px;font-size:11px;color:#66616e;white-space:nowrap;cursor:pointer}
 
 /* REC PROGRESS */
 #recProg{display:none;background:#f7f6f9;border:1px solid rgba(124,58,237,.18);border-radius:8px;padding:10px 12px;margin-top:6px}
@@ -482,8 +456,7 @@ input[type=checkbox]{accent-color:#7c3aed}
 .rec-bar{height:100%;background:linear-gradient(90deg,#7c3aed,#3b82f6);border-radius:2px;width:0%;transition:width .1s}
 
 /* BADGES */
-.badge-g{background:#eefaf1;border:1px solid #c8ecd2;color:#15803d;font-size:10px;padding:6px 9px;border-radius:7px;margin-top:6px;line-height:1.5}
-.badge-o{background:#fdf3e7;border:1px solid #f3dcc0;color:#b45309;font-size:10px;padding:6px 9px;border-radius:7px;margin-top:6px;line-height:1.5}
+.badge-o{background:#fdf3e7;border:1px solid #f3dcc0;color:#b45309;font-size:11px;padding:6px 9px;border-radius:7px;margin-top:6px;line-height:1.5}
 
 /* TEMPLATE-SHOWCASE (Landing) */
 .showcase{position:relative;z-index:1;width:100%;max-width:1060px;margin-top:34px;padding:0 6px}
@@ -526,21 +499,146 @@ input[type=checkbox]{accent-color:#7c3aed}
 .foot-legal a{color:#7c3aed;text-decoration:underline;cursor:pointer}
 .foot-copy{color:#a9a4b0;font-size:11px;margin-top:12px}
 
+/* ═══ UX-VEREINFACHUNG (Editor) ═══
+   Schriftgrößen im Editor nur noch 11 / 12.5 / 14 / 16 px; Icons aus dem SVG-Sprite (.ic). */
+.ic{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;vertical-align:-3px;overflow:visible}
+.ic .fill,symbol .fill{fill:currentColor;stroke:none}
+.pp-btn .ic{width:14px;height:14px}
+.play-icon .ic{width:18px;height:18px;margin-left:2px}
+.play-icon{padding-left:0}
+.exp-btn-icon .ic{width:18px;height:18px}
+.tb-icon .ic{width:18px;height:18px}
+.tb-icon:hover:not(:disabled){background:#f4f1f8;border-color:transparent}
+/* Kopfzeile */
+.tb-left,.tb-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.tb-right{position:relative}
+.tb-back{display:inline-flex;align-items:center;gap:4px;padding:5px 10px 5px 6px}
+.tb-mid{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px}
+.tb-title{min-width:0;width:auto;max-width:360px;field-sizing:content;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 8px;font:600 14px 'Inter',sans-serif;color:#1a1523;text-overflow:ellipsis;outline:none;text-align:center}
+.tb-title:hover{border-color:#e6e1ec}
+.tb-title:focus{border-color:rgba(124,58,237,.45);background:#fff;text-align:left}
+.tb-title::placeholder{color:#a39fab}
+.save-ind{display:inline-flex;align-items:center;gap:3px;font-size:11px;color:#8a8494;white-space:nowrap;opacity:0;transition:opacity .25s}
+.save-ind.on{opacity:1}
+.save-ind .ic{width:13px;height:13px;color:#16a34a}
+.tb-undo{display:flex;gap:2px}
+.tb-more{position:relative}
+.tb-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:70;min-width:230px;background:#fff;border:1px solid #e6e1ec;border-radius:12px;box-shadow:0 14px 36px rgba(30,20,60,.18);padding:6px}
+.tm-item{display:block;width:100%;text-align:left;border:none;background:none;padding:8px 10px;border-radius:7px;font:500 12.5px 'Inter',sans-serif;color:#2a2633;cursor:pointer}
+.tm-item:hover{background:#f4f0fb;color:#5b3fa8}
+.tm-sel{cursor:default}
+.tm-sel:hover{background:none;color:#2a2633}
+.tm-sel .lang-sel{margin:6px 0 0;font-size:12.5px}
+.tm-kb{display:block;margin:0}
+.tm-kb summary.tm-item{display:block;color:#2a2633;font-weight:500}
+.tm-kb[open]{background:none;border:none;padding:0;margin:0}
+.tm-kb > div{font-size:11px;line-height:1.6;color:#55505c;padding:4px 10px 8px;max-width:300px}
+.tb-export{padding:8px 18px;font-size:12.5px}
+/* Export-Blatt (Desktop: Popover unter „Export“) */
+.exp-sheet{position:fixed;top:56px;right:12px;z-index:60;width:340px;max-width:calc(100vw - 24px);background:#fff;border:1px solid #e6e1ec;border-radius:14px;box-shadow:0 20px 50px rgba(30,20,60,.22);padding:14px 16px 16px;overflow-y:auto;animation:fadeUp .16s ease}
+.es-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.es-head b{font-size:16px;font-weight:700;color:#1a1523}
+.es-x{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:none;background:none;border-radius:8px;color:#66616e;cursor:pointer}
+.es-x:hover{background:#f4f1f8;color:#111}
+.exp-sheet .exp-btn{width:100%;flex-direction:row;justify-content:flex-start;gap:12px;text-align:left}
+.exp-btn-txt{display:flex;flex-direction:column;gap:1px}
+.exp-sheet .exp-btn-sub{font-size:11px}
+.exp-sheet .exp-btn.hi .exp-btn-icon{color:#fff}
+.exp-sheet .exp-btn:disabled{opacity:.35}
+.exp-sheet #recProg{margin-top:10px}
+.es-wm{font-size:11px;color:#66616e;line-height:1.5;margin-top:10px}
+.es-wm a{color:#6d28d9;font-weight:600;text-decoration:none}
+.es-wm a:hover{text-decoration:underline}
+.es-links{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin-top:12px;padding-top:12px;border-top:1px solid #f0edf4;font-size:12.5px;color:#a39fab}
+.es-link{border:none;background:none;padding:4px 2px;font:600 12.5px 'Inter',sans-serif;color:#6d28d9;cursor:pointer;border-radius:5px}
+.es-link:hover:not(:disabled){text-decoration:underline}
+.es-link:disabled{color:#b5b0bd;cursor:default}
+.es-opts{margin-top:10px}
+.es-opts summary{font-size:12.5px;font-weight:600;color:#55505c;cursor:pointer;list-style:none;user-select:none;padding:4px 0}
+.es-opts summary::-webkit-details-marker{display:none}
+.es-opts summary::after{content:' ▾';color:#94909c}
+.es-opts[open] summary::after{content:' ▴'}
+.es-opts .exp-opts{margin:8px 0 0}
+.exp-chk{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#55505c;cursor:pointer;line-height:1.35}
+.es-skip{margin-top:10px;font-size:11px;color:#77727f}
+.es-done{text-align:left}
+.es-note{font-size:12.5px;color:#9a3412;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;padding:8px 10px;margin:10px 0 0;line-height:1.45}
+.es-ok{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#15803d;background:#eefaf1;border:1px solid #c8ecd2;border-radius:10px;padding:10px 12px;word-break:break-all}
+.es-ok .ic{width:18px;height:18px}
+.es-done-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.es-done-row .pos-btn{flex:1 1 auto;padding:8px 10px;white-space:nowrap}
+/* Vorschau: Verarbeitungs-Overlay */
+.proc-ov{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(14,10,24,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);color:#fff;text-align:center;padding:16px}
+.proc-ov b{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.proc-ov span{font-size:12.5px;color:rgba(255,255,255,.78);min-height:16px}
+.proc-ov .t-spinner{width:26px;height:26px;border-width:3px}
+.proc-bar{width:min(70%,220px);height:5px;border-radius:99px;background:rgba(255,255,255,.22);overflow:hidden}
+.proc-fill{height:100%;width:0;background:linear-gradient(90deg,#a78bfa,#ec4899);border-radius:99px;transition:width .35s cubic-bezier(.2,.7,.2,1)}
+.fdz-btn{display:inline-flex;align-items:center;gap:6px}
+/* Panel */
+.ctrl-col.processing .tr-set{display:none}
+.ctrl-col.processing #capEditor{display:none!important}
+.csect{padding:14px 16px}
+.t-ic{display:inline-flex}
+.t-ic.ok{color:#16a34a}
+.t-ic.warn{color:#d97706}
+.tr-set summary .ic{color:#7c3aed}
+.tr-set-sum{font-weight:500}
+.tr-body{padding:0 2px 4px}
+.f-lbl{display:block;font-size:11px;font-weight:600;color:#77727f;margin:0 0 4px}
+.chk-row{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#3f3b46;margin:8px 0;cursor:pointer;line-height:1.35}
+.quota-info{font-size:11px;color:#6d28d9;margin-bottom:8px}
+.quota-info:empty{display:none}
+.fr-box summary{display:inline-flex;align-items:center;gap:6px;font-size:12.5px}
+.coach{display:flex;align-items:flex-start;gap:8px;background:#f5f1ff;border:1px solid #e3d9fb;color:#3f3b46;border-radius:10px;padding:8px 8px 8px 12px;margin-bottom:8px;font-size:12.5px;line-height:1.45}
+.coach > span{flex:1}
+.coach-x{flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border:none;background:none;border-radius:7px;color:#77727f;cursor:pointer}
+.coach-x:hover{background:#ebe4fb;color:#111}
+.coach-x .ic{width:14px;height:14px}
+.cap-segs{gap:4px;max-height:none;overflow:visible}
+.style-hdr{margin-bottom:12px}
+.style-hdr b{display:block;font-size:14px;font-weight:700;color:#1a1523;margin-bottom:8px}
+.sh-bar{height:5px;border-radius:99px;background:rgba(124,58,237,.12);overflow:hidden}
+.sh-fill{height:100%;width:0;background:linear-gradient(90deg,#7c3aed,#ec4899);border-radius:99px;transition:width .35s cubic-bezier(.2,.7,.2,1)}
+.stile-badge{font-size:11px}
+.q-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.q-k{flex:0 0 64px;font-size:12.5px;font-weight:600;color:#3f3b46}
+.q-row .pos-row{flex:1;margin:0}
+.q-row .cs-sel{flex:1}
+.q-hint{font-size:11px;color:#8a8494;margin:-4px 0 4px}
+.pos-row.seg{gap:0;background:#f4f2f7;border-radius:9px;padding:3px}
+.pos-row.seg .pos-btn{border:none;background:transparent;box-shadow:none;border-radius:7px;padding:6px 4px;font-size:12.5px;color:#55505c}
+.pos-row.seg .pos-btn.on{background:#fff;color:#1a1523;box-shadow:0 1px 4px rgba(30,20,60,.14)}
+.cs-grp{padding:10px 0;border-top:1px solid #f4f1f8}
+.cs-grp:first-of-type{border-top:none}
+.cs-gh{font-size:11px;font-weight:700;color:#77727f;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.cs-sub{font-weight:500;text-transform:none;letter-spacing:0;color:#a39fab}
+.cs-note{font-size:11px;color:#8a8494;line-height:1.45;margin-top:6px}
+.cs-k{font-size:12.5px}
+.cs-v{font-size:11px}
+.pos-btn{font-size:12.5px}
+.lang-sel{font-size:12.5px}
+.cs-sel{font-size:12.5px}
+.sz-val{font-size:12.5px}
+.mode-hint{font-size:11px}
+/* Startseite: Sprachwahl neben dem Upload */
+.land-lang{position:relative;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.7);border:1.5px solid #d9d1e2;border-radius:999px;padding:6px 8px 6px 16px;font-size:14px;font-weight:600;color:#3f3b46}
+.land-lang select{border:none;background:transparent;font:600 14px 'Inter',sans-serif;color:#6d28d9;cursor:pointer;outline:none;padding:4px 2px}
+.land-try-btn:disabled{opacity:.6;cursor:wait}
 /* Grobe Zeiger: Video-Leiste + Kopfzeile fingertauglich (Play ≥ 36, Mute/Safe Zone/Zoom ≥ 32, Fortschritt
    ≥ 24 px Trefferfläche bei dünner Optik, Back/Sign in ≥ 36, Checkboxen 20 px). */
 @media (pointer:coarse) {
-  .pp-btn{width:36px;height:36px;font-size:13px}
-  .mute-btn,.sz-btn{min-height:32px;padding:4px 9px;font-size:11px}
-  .zoom-btn{width:32px;height:32px;font-size:16px}
+  .pp-btn{width:36px;height:36px;font-size:12.5px}
+  .mute-btn,.sz-btn{width:36px;height:36px;padding:0}
   .prog-track::before{top:-12px;bottom:-12px}
-  .btn-back{min-height:36px;padding:6px 12px;font-size:12px}
+  .btn-back{min-height:36px;padding:6px 12px;font-size:12.5px}
   input[type=checkbox]{width:20px;height:20px}
 }
 /* Touch/Handy: Tap-Ziele ≥ 36 px, Eingaben mit 16 px Schrift (kleiner → iOS Safari zoomt beim Fokus
    ungefragt in die Seite), Regler-Daumen größer. Gilt für alle Steuerelemente aus Style-Editor,
    Suchen & Ersetzen, Timing, Templates und Export. */
 @media (max-width:640px), (pointer:coarse) {
-  .pos-btn{min-height:36px;font-size:12px}
+  .pos-btn{min-height:36px;font-size:12.5px}
   .lang-sel,.fr-row .lang-sel,.cs-sel,#tplName,#vocabInput,#kwInput{min-height:36px;font-size:16px}
   #csWeight{flex-basis:96px!important}
   .cs-col{width:36px;height:36px}
@@ -549,39 +647,47 @@ input[type=checkbox]{accent-color:#7c3aed}
   .sz-row input[type=range]{height:8px}
   .sz-row input[type=range]::-webkit-slider-thumb{width:24px;height:24px}
   .sz-row input[type=range]::-moz-range-thumb{width:24px;height:24px}
-  .cs-k{min-width:72px;font-size:12px}
+  .cs-k{min-width:72px;font-size:12.5px}
   .tpl-io a,.vocab-hint a{display:inline-block;padding:9px 2px}
-  .stile-menu-btn{width:28px;height:28px;line-height:28px;font-size:15px}
+  .stile-menu-btn{width:28px;height:28px;line-height:28px;font-size:14px}
   .stile-menu-btn::after{content:'';position:absolute;inset:-6px}
   .tpl-menu{min-width:168px}
   .tpl-menu button{min-height:42px;font-size:14px}
-  .exp-mini .pos-btn{min-height:42px}
-  .seg-tools button{min-width:32px;height:32px;font-size:12px}
+  .seg-tools button{min-width:32px;height:32px;font-size:12.5px}
   .cap-inline textarea{font-size:16px}
   .fr-row .pos-btn{min-height:36px}
 }
 @media(max-width:640px){
-  .tb-mid{display:none}
-  .topbar .btn-back{padding:5px 9px}
-  .ed-tab{font-size:13px;padding:9px 4px}
-  .ctrl-col{width:100%!important;height:55vh;border-left:none;border-top:1px solid rgba(255,255,255,.055)}
+  /* Handy-Kopfzeile: nur ← · Titel · Export. Undo/Redo und ⋯ werden kleine Overlay-Knöpfe am Rand der
+     Vorschau (fixed — dafür ohne backdrop-filter, sonst wäre die Kopfzeile ihr Bezugsrahmen). */
+  .topbar{backdrop-filter:none;background:#fff;padding:0 8px}
+  .topbar-logo,.tb-lbl,.save-ind{display:none}
+  .tb-mid{flex:1 1 auto;justify-content:center}
+  .tb-title{text-align:center;max-width:100%}
+  .tb-undo{position:fixed;top:57px;left:8px;z-index:40;flex-direction:column;gap:6px}
+  .tb-more{position:fixed;top:57px;right:8px;z-index:40}
+  .tb-undo .tb-icon,.tb-more .tb-icon{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.92);border-color:#e6e1ec;box-shadow:0 2px 8px rgba(30,20,60,.12)}
+  .tb-undo .tb-icon:disabled{opacity:.45}
+  .tb-menu{right:0;left:auto}
   .ed-body{flex-direction:column}
-  .prev-col{flex:0 0 auto;height:45vh;padding:8px 14px;gap:6px} /* vorher 36vh → Vorschau nur ~139×243 px */
+  /* Vorschau ≈ 55 % der Höhe (inkl. Video-Leiste), Panel darunter bis zur festen Tab-Leiste */
+  .prev-col{flex:0 0 auto;height:55vh;height:55dvh;padding:8px 52px 6px;gap:6px}
   .col-resize-handle{display:none}
-  .prev-frame{width:auto;height:auto;flex:1 1 auto;min-height:0;aspect-ratio:9/16;max-width:62vw}
-  /* Mobile: Leiste über die volle Spaltenbreite (statt Rahmenbreite ~140px) — !important schlägt die
-     Inline-Breite aus loadVideo(). */
+  .prev-frame{max-width:100%}
+  .ctrl-col{width:100%!important;height:auto;flex:1 1 0;min-height:0;border-left:none;border-top:1px solid #eceaf0;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+  /* Feste Tab-Leiste unten (Captions · Style), wie CapCut/Captions.ai */
+  .ed-tabs{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:45;padding:6px 12px calc(6px + env(safe-area-inset-bottom));border-bottom:none;border-top:1px solid #e6e1ec;background:rgba(255,255,255,.98);box-shadow:0 -4px 16px rgba(30,20,60,.06)}
+  .ed-tab{font-size:12.5px;padding:10px 4px;min-height:44px}
+  /* Mobile: Leiste über die volle Spaltenbreite — !important schlägt die Inline-Breite aus loadVideo(). */
   .vid-ctrls{width:100%!important;max-width:420px}
   /* Timeline: Vorschau-Spalte wächst um Kopfzeile bzw. Kopfzeile + Canvas, statt das Video zu stauchen
      (das Bedienpanel darunter gibt die Höhe ab). */
-  .prev-col.tl-on{height:calc(45vh + 40px)}
-  .prev-col.tl-on.tl-open{height:calc(45vh + 40px + var(--tl-h, 96px))}
-  .prev-col.tl-on ~ .ctrl-col{height:auto;flex:1 1 0;min-height:0} /* Rest der Höhe statt fester 55vh (sonst unten abgeschnitten) */
+  .prev-col.tl-on.tl-open{height:calc(55dvh + var(--tl-h, 96px))}
   .tl-wrap{width:100%;max-width:420px;align-self:center}
-  /* Zoom-Pille vertikal an den rechten Rand: die Vorschau ist hier max. 62vw breit und zentriert,
-     die horizontale Pille ragte in die obere rechte Ecke des Videos. */
-  .zoom-ctrl{top:8px;right:6px;flex-direction:column;gap:2px;padding:3px 2px}
-  .zoom-lbl{min-width:0;font-size:9px}
+  /* Export als Bottom-Sheet über der Tab-Leiste */
+  .cap-toast{top:62px;bottom:auto} /* nicht über Tab-Leiste/Export-Blatt */
+  .exp-sheet{left:0;right:0;top:auto;bottom:0;width:auto;max-width:none;max-height:82vh;border-radius:16px 16px 0 0;padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+  .land-lang select{font-size:16px}
   .show-card{width:150px;height:268px}
   .show-arrow{display:none}
   .land-nav-links{display:none}
@@ -594,6 +700,29 @@ input[type=checkbox]{accent-color:#7c3aed}
 </style>
 </head>
 <body>
+<!-- EIN Icon-Satz für alle Bedienelemente (Inline-SVG-Sprite, Strichstärke/Farbe per CSS .ic) — statt
+     gemischter Emoji/Unicode-Glyphen, die je nach System anders aussehen. Nutzung: <svg class="ic"><use href="#i-…"/></svg> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 13.5L4.5 9 9 4.5"/><path d="M4.5 9h10a5 5 0 010 10H11"/></symbol>
+  <symbol id="i-redo" viewBox="0 0 24 24"><path d="M15 13.5L19.5 9 15 4.5"/><path d="M19.5 9h-10a5 5 0 000 10H13"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.7" class="fill"/><circle cx="12" cy="12" r="1.7" class="fill"/><circle cx="18.5" cy="12" r="1.7" class="fill"/></symbol>
+  <symbol id="i-dl" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7.5 10.5L12 15l4.5-4.5"/><path d="M5 19.5h14"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 15.5V4.5"/><path d="M7.5 9L12 4.5 16.5 9"/><path d="M5 19.5h14"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path class="fill" d="M8 5.2v13.6a.8.8 0 001.2.7l10.6-6.8a.8.8 0 000-1.4L9.2 4.5A.8.8 0 008 5.2z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><rect class="fill" x="6.5" y="5" width="3.8" height="14" rx="1.2"/><rect class="fill" x="13.7" y="5" width="3.8" height="14" rx="1.2"/></symbol>
+  <symbol id="i-vol" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 010 6"/><path d="M18 6.5a7.5 7.5 0 010 11"/></symbol>
+  <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5l7 2.8v5.4c0 4.2-3 7.5-7 8.8-4-1.3-7-4.6-7-8.8V6.3z"/></symbol>
+  <symbol id="i-text" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 10.5h10M7 14h6"/></symbol>
+  <symbol id="i-style" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.8-.8 1.8-1.7 0-1.4-1.2-1.6-1.2-2.8 0-1 .8-1.6 1.8-1.6h2.1a4 4 0 004-4c0-3.8-3.8-6.9-8.5-6.9z"/><circle class="fill" cx="7.8" cy="11" r="1.2"/><circle class="fill" cx="10.5" cy="7.4" r="1.2"/><circle class="fill" cx="15" cy="7.6" r="1.2"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4"/><circle class="fill" cx="12" cy="16.8" r="1"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
+  <symbol id="i-magnet" viewBox="0 0 24 24"><path d="M6 4.5h4v6.5a2 2 0 004 0V4.5h4V11a6 6 0 01-12 0z"/><path d="M6 8h4M14 8h4"/></symbol>
+</svg>
 <div id="app">
 
 <!-- LANDING -->
@@ -616,12 +745,19 @@ input[type=checkbox]{accent-color:#7c3aed}
   <label class="upload-zone" id="landZone">
     <input type="file" accept="video/*" id="landInput">
     <div class="upload-zone-icon"><svg viewBox="0 0 24 24" fill="none"><defs><linearGradient id="uzg" x1="2" y1="4" x2="22" y2="20"><stop offset="0" stop-color="#6d4aeb"/><stop offset="1" stop-color="#d84fc0"/></linearGradient></defs><path d="M7.5 17.5h9a3.5 3.5 0 001-6.85 5 5 0 00-9.6-1.6A4 4 0 007 17.5h.5z" stroke="url(#uzg)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v7M9.2 12.5L12 9.7l2.8 2.8" stroke="url(#uzg)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-    <h3>Drop a video or click</h3>
+    <h3><span class="hint-desk">Drop a video or click to choose</span><span class="hint-touch">Tap to choose a video</span></h3>
     <p>MP4, MOV, WebM · your video stays on your device</p>
   </label>
+  <!-- Sprache VOR dem Upload wählbar (synchron mit #langSel im Editor) — sonst müsste man nach falscher
+       Auto-Erkennung erst im Editor umstellen und neu transkribieren. Statt doppeltem Upload-Button
+       ein Beispielvideo, damit man den Editor ohne eigenen Clip ausprobieren kann. -->
   <div class="land-cta-row">
-    <button class="nav-cta" style="padding:12px 24px;font-size:14px" onclick="document.getElementById('landInput').click()">Upload video&nbsp;&nbsp;→</button>
-    <button class="land-try-btn" onclick="openEditorClean()">Open editor&nbsp;&nbsp;→</button>
+    <label class="land-lang">Language
+      <select id="landLang" onchange="setLandLang(this.value)" aria-label="Spoken language of your video">
+        <option value="auto">Auto</option>
+      </select>
+    </label>
+    <button type="button" class="land-try-btn" id="sampleBtn" onclick="trySample()">Try a sample video&nbsp;&nbsp;→</button>
   </div>
 
   <!-- Template showcase -->
@@ -779,34 +915,117 @@ input[type=checkbox]{accent-color:#7c3aed}
 
 <!-- EDITOR -->
 <div id="editor">
+  <!-- Kopfzeile: ← · Titel (= Dateiname, editierbar, im Projekt gespeichert) + Autosave-Anzeige · Undo/Redo ·
+       ⋯-Menü (Konto, Projekte, Tastenkürzel) · Export. Auf dem Handy nur ← · Titel · Export (Undo/Redo
+       wandern per CSS als kleine Overlay-Knöpfe auf die Vorschau, ⋯ bleibt als Icon). -->
   <div class="topbar">
-    <div style="display:flex;align-items:center;gap:9px">
-      <button class="btn-back" onclick="goBack()">← Back</button>
+    <div class="tb-left">
+      <button type="button" class="btn-back tb-back" onclick="goBack()" title="Back to start" aria-label="Back"><svg class="ic" aria-hidden="true"><use href="#i-back"/></svg><span class="tb-lbl">Back</span></button>
       <div class="topbar-logo">
         <img src="assets/logo-lockup-light-nav.png" alt="Capivo" height="18" style="height:18px;width:auto;display:block">
       </div>
     </div>
-    <div class="tb-mid" style="font-size:10.5px;color:#555">AI Caption Studio</div>
-    <div style="display:flex;align-items:center;gap:7px">
-      <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Undo caption edit (Ctrl/⌘+Z)" aria-label="Undo">↶</button>
-      <button type="button" class="tb-icon" id="redoBtn" onclick="redoCaptions()" disabled title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo">↷</button>
-      <button class="btn-back" id="acctBtn" onclick="showAcct()">Sign in</button>
-      <button type="button" class="tb-export" id="tbExport" onclick="topExport()" disabled title="Render the MP4 with your captions">⬇ Export</button>
+    <div class="tb-mid">
+      <input type="text" id="projTitle" class="tb-title" placeholder="Untitled video" maxlength="80" spellcheck="false" autocomplete="off"
+        aria-label="Video title" title="Rename this video" oninput="onTitleInput(this.value)" onkeydown="if(event.key==='Enter'||event.key==='Escape')this.blur()">
+      <span class="save-ind" id="saveInd" role="status" aria-live="polite"></span>
+    </div>
+    <div class="tb-right">
+      <div class="tb-undo" id="tbUndo">
+        <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Undo caption edit (Ctrl/⌘+Z)" aria-label="Undo"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg></button>
+        <button type="button" class="tb-icon" id="redoBtn" onclick="redoCaptions()" disabled title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo"><svg class="ic" aria-hidden="true"><use href="#i-redo"/></svg></button>
+      </div>
+      <div class="tb-more">
+        <button type="button" class="tb-icon" id="moreBtn" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu" title="Account, projects &amp; shortcuts" aria-label="More"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></button>
+        <div class="tb-menu" id="moreMenu" style="display:none" onclick="event.stopPropagation()">
+          <button type="button" class="tm-item" id="acctBtn" onclick="closeMoreMenu();showAcct()">Sign in</button>
+          <button type="button" class="tm-item" onclick="closeMoreMenu();saveProject()" title="Save captions + style to your free account">Save to account</button>
+          <label class="tm-item tm-sel">Load project
+            <select id="projList" class="lang-sel" onchange="closeMoreMenu();loadProject(this.value)">
+              <option value="">— Load project —</option>
+            </select>
+          </label>
+          <details class="kb-help tm-kb"><summary class="tm-item">Keyboard shortcuts</summary>
+            <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field<br><b>Captions:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there<br><b>Timeline:</b> drag a caption to move it, drag its edges to trim, double-click to edit · with a caption selected: <b>← →</b> 1 frame, <b>Shift+← →</b> 0.1 s, <b>Delete</b> removes · hold <b>Alt</b> to skip snapping · <b>Ctrl/⌘+wheel</b> zooms</div>
+          </details>
+        </div>
+      </div>
+      <button type="button" class="tb-export" id="tbExport" onclick="topExport()" disabled title="Download the MP4 with your captions" aria-haspopup="dialog" aria-controls="expSheet">Export</button>
+    </div>
+  </div>
+
+  <!-- EIN Export-Weg: der Export-Knopf oben öffnet dieses Blatt (Desktop: Popover unter dem Knopf, Handy:
+       Bottom-Sheet). Primär „Download video“, Untertitel-Dateien als Links, Optionen eingeklappt; nach dem
+       Rendern Erfolg inline statt Upsell-Modal. Außerhalb der .topbar, weil deren backdrop-filter sonst
+       position:fixed auf die Kopfzeile begrenzen würde. -->
+  <div class="exp-sheet" id="expSheet" role="dialog" aria-labelledby="expTtl" style="display:none">
+    <div class="es-head"><b id="expTtl">Export</b>
+      <button type="button" class="es-x" onclick="closeExportSheet()" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div id="expMain">
+      <button type="button" class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
+        <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
+        <span class="exp-btn-txt"><span class="exp-btn-label">Download video</span><span class="exp-btn-sub" id="btnVideoSub">MP4 · 1080p</span></span>
+      </button>
+      <div id="recProg">
+        <p id="recMsg">Rendering video…</p>
+        <div class="rec-bar-wrap"><div class="rec-bar" id="recBar"></div></div>
+      </div>
+      <p class="es-wm" id="wmOpt" style="display:none">Free export adds a small Capivo mark · <a href="#" onclick="exportWithoutWatermark();return false" title="Free account · Magic-Code login, no password">Sign in free to remove</a></p>
+      <div class="es-links">
+        <button type="button" class="es-link" id="btnSRT" onclick="exportSRT()" disabled title="Subtitle file for Premiere, DaVinci, CapCut… (Premiere: File → Import → choose the .srt → drag onto the timeline)">SRT</button><span aria-hidden="true">·</span>
+        <button type="button" class="es-link" id="btnVTT" onclick="exportVTT()" disabled title="Subtitle file for web players &amp; YouTube">VTT</button><span aria-hidden="true">·</span>
+        <button type="button" class="es-link" id="btnTXT" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">TXT</button><span aria-hidden="true">·</span>
+        <button type="button" class="es-link" id="btnCopy" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">Copy text</button>
+      </div>
+      <details class="es-opts" id="expOpts"><summary>Options</summary>
+        <div class="exp-opts">
+          <label class="exp-opt"><span>Resolution</span>
+            <select id="expRes" class="lang-sel" onchange="setExportRes(this.value)">
+              <option value="1080">1080p (recommended)</option><option value="orig">Original</option>
+            </select></label>
+          <label class="exp-opt" id="fmtRow" style="display:none"><span>Format</span>
+            <select id="expFmt" class="lang-sel" onchange="setExportFormat(this.value)">
+              <option value="original">Original</option><option value="blur">9:16 · blur fill</option><option value="crop">9:16 · crop</option>
+            </select></label>
+          <label class="exp-chk">
+            <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)">
+            <span>Cut silences &amp; filler words (“um”, “äh”…)</span>
+          </label>
+        </div>
+      </details>
+      <label class="exp-chk es-skip" title="Export then downloads right away with these settings — untick here to see this sheet again">
+        <input type="checkbox" id="expSkipChk" onchange="setExpSkip(this.checked)"><span>Skip this next time — Export downloads right away</span>
+      </label>
+    </div>
+    <p class="es-note" id="expNote" role="status" aria-live="polite" style="display:none"></p>
+    <div class="es-done" id="expDone" style="display:none" role="status" aria-live="polite">
+      <div class="es-ok"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Saved — <b id="expDoneName">capivo-video.mp4</b></span></div>
+      <div class="es-done-row">
+        <button type="button" class="pos-btn" id="expRmWm" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">Remove watermark (free)</button>
+        <button type="button" class="pos-btn" onclick="exportAgain()">Export again</button>
+      </div>
     </div>
   </div>
 
   <div class="ed-body" id="edBody">
     <!-- Preview -->
-    <div class="prev-col">
+    <div class="prev-col" id="prevCol">
       <div class="prev-frame" id="prevFrame" onclick="if(vidReady && !capDragMoved)togglePlay()">
         <div id="prevBg"></div>
         <canvas id="prevBlurBg" width="36" height="64" aria-hidden="true"></canvas>
         <video id="mainVid" playsinline preload="auto"
           style="position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none"></video>
-        <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon">▶</div></div>
+        <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
-          <span>🎬</span><b class="fdz-btn">⬆ Upload video</b><p>or drop it here · MP4, MOV, WebM<br>captions in seconds — no signup</p>
+          <b class="fdz-btn"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Choose a video</b><p><span class="hint-desk">or drop it here · </span>MP4, MOV, WebM<br>captions in seconds — no signup</p>
+        </div>
+        <!-- Verarbeitung: Fortschritt direkt auf der Vorschau (statt Platzhalter-Caption + Statustext im Panel) -->
+        <div id="procOv" class="proc-ov" style="display:none" role="status" aria-live="polite">
+          <div class="t-spinner"></div>
+          <b id="procMsg">Transcribing… 0%</b>
+          <span id="procStep"></span>
+          <div class="proc-bar"><div class="proc-fill" id="procFill"></div></div>
         </div>
         <div id="capOverlay" onmousedown="capDragStart(event)" ontouchstart="capDragStart(event)" ondblclick="capOverlayDbl(event)" title="Drag to move · double-click to edit the text"></div>
         <div id="capInlineEd" class="cap-inline" style="display:none" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
@@ -817,19 +1036,19 @@ input[type=checkbox]{accent-color:#7c3aed}
         </div>
         <div id="safeZoneOverlay">
           <div id="safeZoneRect"></div>
-          <div id="safeZoneWarn">⚠ Captions may be covered by the Reels/TikTok UI</div>
+          <div id="safeZoneWarn">Captions may be covered by the Reels/TikTok UI</div>
         </div>
       </div>
       <div class="vid-ctrls" id="vidCtrls">
-        <button class="pp-btn" id="ppBtn" onclick="togglePlay()">▶</button>
+        <button type="button" class="pp-btn" id="ppBtn" onclick="togglePlay()" aria-label="Play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></button>
         <div class="prog-col">
           <div class="prog-track" id="progTrack" onclick="seekVid(event)">
             <div class="prog-fill" id="progFill"></div>
           </div>
-          <div class="prog-time" id="timeLbl">0:00 / 0:00</div>
         </div>
-        <button class="mute-btn on" id="muteBtn" onclick="toggleMute()">🔊</button>
-        <button class="sz-btn" id="safeZoneBtn" onclick="toggleSafeZone()" title="Safe zone: shows where captions stay clear of the Reels/TikTok UI (top bar, icon column, profile/caption area)">🛡 Safe Zone</button>
+        <div class="prog-time" id="timeLbl">0:00 / 0:00</div>
+        <button type="button" class="mute-btn on" id="muteBtn" onclick="toggleMute()" aria-label="Mute" title="Sound on/off"><svg class="ic" aria-hidden="true"><use href="#i-vol"/></svg></button>
+        <button type="button" class="sz-btn" id="safeZoneBtn" onclick="toggleSafeZone()" aria-label="Safe zone" title="Safe zone: shows where captions stay clear of the Reels/TikTok UI (top bar, icon column, profile/caption area)"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg></button>
       </div>
       <div class="vid-warn" id="vidWarn" role="status" style="display:none"></div>
       <!-- Timeline: Captions zeitlich ziehen/trimmen, an Szenenschnitte fangen (Canvas, gezeichnet in tlDraw) -->
@@ -838,7 +1057,7 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button type="button" class="tl-tog" id="tlTog" onclick="tlToggle()" aria-expanded="true" aria-controls="tlBody">▾ Timeline</button>
           <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · double-click to edit</span>
           <span class="tl-sp"></span>
-          <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping">🧲 Snap</button>
+          <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg> Snap</button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1/1.6)" title="Zoom out" aria-label="Zoom timeline out">−</button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1.6)" title="Zoom in (Ctrl/⌘+wheel or pinch)" aria-label="Zoom timeline in">+</button>
           <button type="button" class="tl-btn" onclick="tlFit()" title="Show the whole video">Fit</button>
@@ -848,306 +1067,233 @@ input[type=checkbox]{accent-color:#7c3aed}
             aria-label="Caption timeline. Drag captions to move them, drag their edges to trim, double-click to edit. With a caption selected, arrow keys nudge it and Delete removes it."></canvas>
         </div>
       </div>
-      <div class="zoom-ctrl" id="zoomCtrl">
-        <button class="zoom-btn" onclick="zoomBy(-0.25)" title="Zoom out" type="button">−</button>
-        <span class="zoom-lbl" id="zoomLbl">100%</span>
-        <button class="zoom-btn" onclick="zoomBy(0.25)" title="Zoom in" type="button">+</button>
-      </div>
     </div>
     <div class="col-resize-handle" id="colResizeHandle" title="Drag to resize the panel"></div>
 
     <!-- Controls -->
     <div class="ctrl-col" id="ctrlCol" data-tab="captions">
 
-      <!-- Tabs: Captions / Style / Export — Progressive Disclosure statt einer langen Wand aus Reglern
-           (wie Submagic/Captions.ai). Alle Sektionen bleiben im DOM (IDs unverändert), der Tab blendet nur ein/aus. -->
+      <!-- Zwei Tabs: Captions (nur Transkript) · Style (Look). Export ist EIN Blatt am Export-Knopf oben.
+           Alle Sektionen bleiben im DOM (IDs unverändert), der Tab blendet nur ein/aus. Auf dem Handy wird
+           diese Leiste per CSS zur festen Tab-Leiste am unteren Rand. -->
       <div class="ed-tabs" id="edTabs" role="tablist">
-        <button type="button" class="ed-tab on" data-tab="captions" role="tab" onclick="switchTab('captions')">✏️ Captions</button>
-        <button type="button" class="ed-tab" data-tab="style" role="tab" onclick="switchTab('style')">🎨 Style</button>
-        <button type="button" class="ed-tab" data-tab="export" role="tab" onclick="switchTab('export')">⬇️ Export</button>
+        <button type="button" class="ed-tab on" data-tab="captions" role="tab" onclick="switchTab('captions')"><svg class="ic" aria-hidden="true"><use href="#i-text"/></svg> Captions</button>
+        <button type="button" class="ed-tab" data-tab="style" role="tab" onclick="switchTab('style')"><svg class="ic" aria-hidden="true"><use href="#i-style"/></svg> Style</button>
       </div>
 
-      <!-- Video -->
+      <!-- Captions: Status in einer Zeile, Video/Sprache/Modell etc. eingeklappt, darunter nur die Zeilenliste -->
       <div class="csect" data-tab="captions">
-        <div class="clbl">Video</div>
-        <div class="ctrl-upload">
-          <input type="file" accept="video/*" id="ctrlInput">
-          <p id="uploadLabel">📁 Upload / replace video</p>
+        <div class="t-status" id="tStatus"><span id="tMsg">Upload a video to generate captions</span></div>
+        <div id="tProgWrap" style="display:none" class="t-prog-row">
+          <div class="t-prog-bar"><div class="t-prog-fill" id="tProgFill"></div></div>
+          <span class="t-prog-pct" id="tProgPct">0%</span>
         </div>
-      </div>
-
-      <!-- Transcript -->
-      <div class="csect" data-tab="captions">
-        <details class="tr-set" id="trSet" open>
-        <summary><span class="tr-set-ttl">⚙︎ Transcription</span><span class="tr-set-sum" id="trSetSum"></span></summary>
-        <select id="langSel" class="lang-sel" onchange="setLang(this.value)">
-          <option value="auto">🌐 Detect language automatically</option>
-          <option value="english">🇬🇧 English</option>
-          <option value="spanish">🇪🇸 Spanish</option>
-          <option value="german">🇩🇪 German</option>
-          <option value="french">🇫🇷 French</option>
-          <option value="portuguese">🇵🇹 Portuguese</option>
-          <option value="italian">🇮🇹 Italian</option>
-          <option value="dutch">🇳🇱 Dutch</option>
-          <option value="polish">🇵🇱 Polish</option>
-          <option value="turkish">🇹🇷 Turkish</option>
-          <option value="russian">🇷🇺 Russian</option>
-          <option value="ukrainian">🇺🇦 Ukrainian</option>
-          <option value="japanese">🇯🇵 Japanese</option>
-          <option value="korean">🇰🇷 Korean</option>
-          <option value="chinese">🇨🇳 Chinese</option>
-          <option value="arabic">🇸🇦 Arabic</option>
-          <option value="hindi">🇮🇳 Hindi</option>
-        </select>
-        <div class="pos-row" id="modelRow" style="margin-bottom:7px">
-          <button class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
-          <button class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
-        </div>
-        <div class="model-hint"><b>⚡ Fast</b> — captions in seconds, great for clear speech. <b>💎 Perfect</b> — biggest model + AI proofreading for dialects, names &amp; punctuation (a few seconds more).</div>
-        <input type="text" id="vocabInput" class="lang-sel" style="margin-bottom:0" maxlength="300" autocomplete="off" spellcheck="false"
-          placeholder="Names &amp; terms to spell right (optional) — e.g. Birkenhof, Highland Beef" oninput="onVocabChange(this.value)">
-        <div class="vocab-hint">
-          <span>Helps the AI spell names, brands &amp; places.</span>
-          <a id="vocabApply" href="#" onclick="applyVocab(event)" style="display:none">Re-transcribe to apply</a>
-        </div>
-        <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#66616e;margin-bottom:7px;cursor:pointer">
-          <input type="checkbox" id="trEn" onchange="setTranslate(this)"> Translate captions to English
-        </label>
-        <div id="quotaInfo" style="font-size:10.5px;color:#7c3aed;margin-bottom:7px"></div>
-        </details>
-        <div class="t-box">
-          <div class="t-status" id="tStatus">
-            <span style="font-size:15px">🎙️</span>
-            <span id="tMsg">Upload a video to generate captions</span>
-          </div>
-          <div id="tProgWrap" style="display:none" class="t-prog-row">
-            <div class="t-prog-bar"><div class="t-prog-fill" id="tProgFill"></div></div>
-            <span class="t-prog-pct" id="tProgPct">0%</span>
-          </div>
-        </div>
-
-        <div class="next-steps" id="nextSteps" style="display:none">
-          <span>Next</span>
-          <button type="button" onclick="switchTab('style')">🎨 Pick a look</button>
-          <button type="button" class="hi" onclick="topExport()">⬇ Export MP4</button>
-        </div>
-
         <div id="retryWrap" style="display:none">
-          <button class="retry-btn" onclick="retryTranscribe()">↻ Try again</button>
-          <div class="badge-o" style="margin-top:5px">⚠️ Tips: try again · switch language or model · check your connection.</div>
+          <button type="button" class="retry-btn" onclick="retryTranscribe()">Try again</button>
+          <div class="badge-o">Tips: try again · pick the language or switch to 💎 Perfect under “Video &amp; language” · check your connection.</div>
         </div>
 
-        <!-- Caption editor — shown after transcription -->
+        <details class="tr-set" id="trSet">
+          <summary><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span class="tr-set-ttl">Video &amp; language</span><span class="tr-set-sum" id="trSetSum"></span></summary>
+          <div class="tr-body">
+            <div class="ctrl-upload">
+              <input type="file" accept="video/*" id="ctrlInput">
+              <p id="uploadLabel"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Replace video</p>
+            </div>
+            <label class="f-lbl" for="langSel">Spoken language</label>
+            <select id="langSel" class="lang-sel" onchange="setLang(this.value)">
+              <option value="auto">Detect automatically</option>
+              <option value="english">English</option>
+              <option value="spanish">Spanish</option>
+              <option value="german">German</option>
+              <option value="french">French</option>
+              <option value="portuguese">Portuguese</option>
+              <option value="italian">Italian</option>
+              <option value="dutch">Dutch</option>
+              <option value="polish">Polish</option>
+              <option value="turkish">Turkish</option>
+              <option value="russian">Russian</option>
+              <option value="ukrainian">Ukrainian</option>
+              <option value="japanese">Japanese</option>
+              <option value="korean">Korean</option>
+              <option value="chinese">Chinese</option>
+              <option value="arabic">Arabic</option>
+              <option value="hindi">Hindi</option>
+            </select>
+            <div class="pos-row" id="modelRow">
+              <button type="button" class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
+              <button type="button" class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
+            </div>
+            <div class="model-hint">Fast: captions in seconds · Perfect: biggest model + AI proofreading for names &amp; dialects.</div>
+            <input type="text" id="vocabInput" class="lang-sel" maxlength="300" autocomplete="off" spellcheck="false"
+              placeholder="Names &amp; terms (optional) — e.g. Birkenhof" oninput="onVocabChange(this.value)" title="Helps the AI spell names, brands &amp; places">
+            <div class="vocab-hint">
+              <span>Helps the AI spell names, brands &amp; places.</span>
+              <a id="vocabApply" href="#" onclick="applyVocab(event)" style="display:none">Re-transcribe to apply</a>
+            </div>
+            <label class="chk-row">
+              <input type="checkbox" id="trEn" onchange="setTranslate(this)"> Translate captions to English
+            </label>
+            <div id="quotaInfo" class="quota-info"></div>
+            <details class="fr-box" id="frBox"><summary><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> Find &amp; replace</summary>
+              <div class="fr-row">
+                <input type="text" id="frFind" class="lang-sel" placeholder="Find" oninput="updateFindCount()" autocomplete="off" spellcheck="false">
+                <input type="text" id="frRepl" class="lang-sel" placeholder="Replace with" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')replaceAllCaptions()">
+              </div>
+              <div class="fr-row" style="justify-content:space-between">
+                <label class="fr-opt"><input type="checkbox" id="frWhole" onchange="updateFindCount()"> Whole word</label>
+                <button class="pos-btn" id="frBtn" type="button" onclick="replaceAllCaptions()" disabled>Replace all (0)</button>
+              </div>
+            </details>
+          </div>
+        </details>
+
+        <!-- Caption editor — shown after transcription. Bedien-Hinweis nur EINMAL als wegklickbarer Tipp. -->
         <div class="cap-editor" id="capEditor">
-          <div class="ce-hdr"><span class="hint-desk">Click a line to jump &amp; edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there</span><span class="hint-touch">Tap a line to edit · <b>return</b> splits it · <b>⌫</b> at the start merges · tap the highlighted word in the video to edit it there</span>
-            <details class="kb-help"><summary>⌨ Shortcuts</summary>
-              <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field<br><b>Timeline:</b> drag a caption to move it, drag its edges to trim, double-click to edit · with a caption selected: <b>← →</b> 1 frame, <b>Shift+← →</b> 0.1 s, <b>Delete</b> removes · hold <b>Alt</b> to skip snapping · <b>Ctrl/⌘+wheel</b> zooms</div>
-            </details></div>
-          <details class="fr-box" id="frBox"><summary>🔍 Find &amp; replace</summary>
-          <div class="fr-row">
-            <input type="text" id="frFind" class="lang-sel" placeholder="Find" oninput="updateFindCount()" autocomplete="off" spellcheck="false">
-            <input type="text" id="frRepl" class="lang-sel" placeholder="Replace with" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')replaceAllCaptions()">
+          <div class="coach" id="coachEdit" style="display:none" role="note">
+            <span class="hint-desk"><b>Tip:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there.</span>
+            <span class="hint-touch"><b>Tip:</b> tap a line to edit · <b>return</b> splits · <b>⌫</b> at the start merges · tap the word in the video to edit it there.</span>
+            <button type="button" class="coach-x" onclick="dismissCoach('coachEdit')" aria-label="Dismiss tip"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
           </div>
-          <div class="fr-row" style="justify-content:space-between">
-            <label class="fr-opt"><input type="checkbox" id="frWhole" onchange="updateFindCount()"> Whole word</label>
-            <button class="pos-btn" id="frBtn" type="button" onclick="replaceAllCaptions()" disabled>Replace all (0)</button>
-          </div>
-          </details>
           <div class="cap-segs" id="capSegs"></div>
           <div class="wpills" id="wpills"></div>
         </div>
       </div>
 
-      <!-- Style -->
+      <!-- Style: während der Transkription Überschrift „Choose a style…“; Preset-Raster in voller Breite -->
       <div class="csect" data-tab="style">
-        <div class="clbl">Style</div>
-        <div class="style-scroll" id="stylePicker"></div>
+        <div class="style-hdr" id="styleHdr" style="display:none">
+          <b>Choose a style while we transcribe</b>
+          <div class="sh-bar"><div class="sh-fill" id="shFill"></div></div>
+        </div>
+        <div class="style-grid" id="stylePicker"></div>
       </div>
 
-      <!-- Adjust -->
+      <!-- 4 schnelle Regler; alles Weitere hinter „Customize“ -->
       <div class="csect" data-tab="style">
-        <div class="clbl">Position</div>
-        <div class="pos-row">
-          <button class="pos-btn" data-pos="top" onclick="setPos(this)">Top</button>
-          <button class="pos-btn" data-pos="center" onclick="setPos(this)">Middle</button>
-          <button class="pos-btn on" data-pos="bottom" onclick="setPos(this)">Bottom</button>
+        <div class="q-row">
+          <span class="q-k">Position</span>
+          <div class="pos-row seg" id="posRow">
+            <button type="button" class="pos-btn" data-pos="top" onclick="setPos(this)">Top</button>
+            <button type="button" class="pos-btn" data-pos="center" onclick="setPos(this)">Middle</button>
+            <button type="button" class="pos-btn on" data-pos="bottom" onclick="setPos(this)">Bottom</button>
+          </div>
         </div>
-        <div class="sz-row" style="margin-top:7px">
-          <span style="font-size:9px;color:#94909c;min-width:34px">Height</span>
-          <input type="range" min="-30" max="30" step="2" value="20" id="voffSlider" oninput="onVOffChange(this.value)">
-          <span class="sz-val" id="voffDisp" style="min-width:38px">+20%</span>
-        </div>
-        <div class="clbl" style="margin-top:12px">Font size</div>
-        <div class="sz-row">
-          <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)">
+        <div class="q-row sz-row">
+          <span class="q-k">Size</span>
+          <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)" aria-label="Caption size">
           <span class="sz-val" id="szDisp">22px</span>
         </div>
-        <div class="clbl" style="margin-top:10px">Words per caption</div>
-        <div class="sz-row">
-          <input type="range" min="1" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)">
+        <div class="q-row sz-row">
+          <span class="q-k" title="Words per caption">Words</span>
+          <input type="range" min="1" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)" aria-label="Words per caption" title="Words per caption">
           <span class="sz-val" id="wpbDisp">4</span>
         </div>
-        <div class="clbl" style="margin-top:10px">Text</div>
-        <div class="pos-row">
-          <button class="pos-btn" id="punctBtn" type="button" onclick="togglePunct()" title="Hide . , ! ? ; : … in the video (subtitle files keep punctuation)">Remove punctuation</button>
-          <select id="caseSel" class="lang-sel cs-sel" style="flex:1" onchange="setCaptionCase(this.value)" title="Letter case for captions and subtitle files">
-            <option value="asis">Case: as spoken</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option>
+        <div class="q-row">
+          <span class="q-k">Case</span>
+          <select id="caseSel" class="lang-sel cs-sel" onchange="setCaptionCase(this.value)" title="Letter case for captions and subtitle files">
+            <option value="asis">Style default</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="orig">As typed</option>
           </select>
         </div>
-        <div class="clbl" style="margin-top:10px">Line layout</div>
-        <div class="pos-row" id="linesRow">
-          <button class="pos-btn on" data-lines="1" onclick="setLines(this)">1 line</button>
-          <button class="pos-btn" data-lines="2" onclick="setLines(this)">2 lines</button>
-        </div>
-        <div class="clbl cs-head" style="margin-top:14px">Customize look <span style="text-transform:none;letter-spacing:0;color:#94909c">· edits the selected style</span></div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <label class="cs-swatch" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
-          <label class="cs-swatch" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Active</span></label>
-          <select id="csFont" class="lang-sel cs-sel" style="flex:1" onchange="onFontPick(this)" title="Font — 55+ Google Fonts, or type any Google Font name">
-            <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
-            <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
-            <option>Inter</option><option>Oswald</option>
-          </select>
-          <select id="csWeight" class="lang-sel cs-sel" style="flex:0 0 74px" onchange="applyCustomStyle('weight')" title="Font weight">
-            <option value="400">Regular</option><option value="600">Semi</option><option value="700">Bold</option>
-            <option value="800">Extra</option><option value="900">Black</option>
-          </select>
-        </div>
-        <div style="display:flex;gap:5px;margin-top:6px">
-          <button class="pos-btn" id="csUpper" type="button" onclick="toggleCsBtn(this,'upper')" title="Uppercase letters">AA Uppercase</button>
-          <button class="pos-btn" id="csShadow" type="button" onclick="toggleCsBtn(this,'stroke')" title="Soft drop shadow">Shadow</button>
-        </div>
-        <label class="sz-row" style="margin-top:7px;cursor:pointer">
-          <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle('glow')" style="cursor:pointer">
-          <span style="font-size:10.5px;color:#66616e;min-width:34px">Glow</span>
-          <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('glow')" title="Glow strength">
-        </label>
-        <details class="cs-more" id="csMore">
-          <summary>More style options</summary>
-          <div class="sz-row cs-line"><span class="cs-k">Outline</span>
-            <input type="range" min="0" max="8" step="1" value="0" id="csOutlineW" oninput="applyCustomStyle('stroke')">
-            <span class="cs-v" id="csOutlineDisp">0px</span>
-            <input type="color" id="csOutlineC" class="cs-col" value="#000000" title="Outline color" oninput="applyCustomStyle('strokec')"></div>
-          <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
-            <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')">
-            <span class="cs-v" id="csLsDisp">0px</span></div>
-          <div class="sz-row cs-line"><span class="cs-k">Line height</span>
-            <input type="range" min="0.9" max="1.8" step="0.05" value="1.3" id="csLh" oninput="applyCustomStyle('lh')" title="Space between the two caption lines">
-            <span class="cs-v" id="csLhDisp">1.30</span></div>
-          <div class="sz-row cs-line"><span class="cs-k">Background</span>
-            <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="onBoxModeChange(this.value)">
-              <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
-            </select>
-            <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('boxc')">
-            <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('boxc')"></div>
-          <div class="sz-row cs-line"><span class="cs-k">Corners</span>
-            <input type="range" min="0" max="30" step="1" value="8" id="csBoxR" oninput="applyCustomStyle('boxc')" title="Corner radius of the background">
-            <span class="cs-v" id="csBoxRDisp">8px</span></div>
-          <div class="sz-row cs-line"><span class="cs-k">Highlight</span>
-            <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hltype')" title="How the active word stands out — its color is the “Active”/“Pill” swatch above">
-              <option value="color">Text color</option><option value="pill">Pill behind word</option>
-            </select></div>
-          <div class="sz-row cs-line"><span class="cs-k">Animation</span>
-            <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')">
-              <option value="none">None</option><option value="punch">Punch</option><option value="scale">Pop</option>
-              <option value="bounce">Bounce</option><option value="flash">Flash</option><option value="glow">Glow pulse</option>
-              <option value="wobble">Wobble</option>
-            </select></div>
-        </details>
+        <p class="q-hint">Drag the caption in the preview to fine-tune its height.</p>
+
         <details class="cs-adv" id="advSet">
-          <summary>Timing, behaviour &amp; keywords</summary>
-        <div class="clbl" style="margin-top:4px">Caption mode</div>
-        <div class="pos-row" id="modeRow">
-          <button class="pos-btn on" data-mode="karaoke" onclick="setMode(this)" title="Captions disappear during silence, only show while someone is actually speaking">🎤 Karaoke</button>
-          <button class="pos-btn" data-mode="all" onclick="setMode(this)" title="Captions stay on screen through pauses, until the next block starts">Continuous</button>
-        </div>
-        <div class="mode-hint">Karaoke hides captions in silent pauses. Continuous keeps the last line up until the next one starts.</div>
-        <label class="sz-row" style="margin-top:8px;cursor:pointer" title="Never let a caption run across a hard cut in your video">
-          <input type="checkbox" id="cutChk" checked onchange="onBreakAtCutsChange(this.checked)" style="cursor:pointer">
-          <span style="font-size:10.5px;color:#66616e">Break captions at scene cuts</span>
-        </label>
-        <div class="clbl" style="margin-top:10px">Timing</div>
-        <div class="sz-row">
-          <span style="font-size:9px;color:#94909c;min-width:34px">Earlier</span>
-          <input type="range" min="-0.5" max="0.5" step="0.05" value="0" id="toSlider" oninput="onTimeOffChange(this.value)" title="Shift all captions earlier or later">
-          <span style="font-size:9px;color:#94909c">Later</span>
-        </div>
-        <div class="mode-hint" id="toDisp" style="margin-top:3px">Captions in sync with the audio</div>
-        <div class="clbl" style="margin-top:10px">Always highlight keywords</div>
-        <input type="text" id="kwInput" class="lang-sel" style="margin-bottom:0" placeholder="e.g. free, today, new" oninput="onKwChange(this.value)">
+          <summary>Customize</summary>
+          <div class="cs-grp"><div class="cs-gh">Layout</div>
+            <div class="sz-row cs-line"><span class="cs-k">Max lines</span>
+              <div class="pos-row seg" id="linesRow" style="flex:1;margin:0">
+                <button type="button" class="pos-btn" data-lines="1" onclick="setLines(this)">1</button>
+                <button type="button" class="pos-btn on" data-lines="2" onclick="setLines(this)">2</button>
+              </div></div>
+            <p class="cs-note">Captions shrink to stay within the max lines. Only a single word too long for the frame (or a very long caption at the smallest size) wraps.</p>
+            <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
+              <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')" title="Letter spacing">
+              <span class="cs-v" id="csLsDisp">0px</span></div>
+            <div class="sz-row cs-line"><span class="cs-k">Line height</span>
+              <input type="range" min="0.9" max="1.8" step="0.05" value="1.3" id="csLh" oninput="applyCustomStyle('lh')" title="Space between the two caption lines">
+              <span class="cs-v" id="csLhDisp">1.30</span></div>
+          </div>
+          <div class="cs-grp"><div class="cs-gh">Colours &amp; font <span class="cs-sub">edits the selected style</span></div>
+            <div class="cs-line" style="display:flex;gap:8px;align-items:center">
+              <label class="cs-swatch" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
+              <label class="cs-swatch" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Active</span></label>
+              <select id="csFont" class="lang-sel cs-sel" style="flex:1;min-width:0" onchange="onFontPick(this)" title="Font — 55+ Google Fonts, or type any Google Font name">
+                <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
+                <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
+                <option>Inter</option><option>Oswald</option>
+              </select>
+              <select id="csWeight" class="lang-sel cs-sel" style="flex:0 0 76px" onchange="applyCustomStyle('weight')" title="Font weight">
+                <option value="400">Regular</option><option value="600">Semi</option><option value="700">Bold</option>
+                <option value="800">Extra</option><option value="900">Black</option>
+              </select>
+            </div>
+          </div>
+          <div class="cs-grp" id="csMore"><div class="cs-gh">Outline, shadow &amp; background</div>
+            <div class="sz-row cs-line"><span class="cs-k">Outline</span>
+              <input type="range" min="0" max="8" step="1" value="0" id="csOutlineW" oninput="applyCustomStyle('stroke')">
+              <span class="cs-v" id="csOutlineDisp">0px</span>
+              <input type="color" id="csOutlineC" class="cs-col" value="#000000" title="Outline color" oninput="applyCustomStyle('strokec')"></div>
+            <div class="sz-row cs-line"><span class="cs-k">Shadow</span>
+              <button class="pos-btn" id="csShadow" type="button" onclick="toggleCsBtn(this,'stroke')" title="Soft drop shadow">Drop shadow</button></div>
+            <label class="sz-row cs-line" style="cursor:pointer"><span class="cs-k">Glow</span>
+              <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle('glow')" style="cursor:pointer" aria-label="Glow on/off">
+              <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('glow')" title="Glow strength"></label>
+            <div class="sz-row cs-line"><span class="cs-k">Background</span>
+              <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="onBoxModeChange(this.value)">
+                <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
+              </select>
+              <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('boxc')">
+              <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('boxc')"></div>
+            <div class="sz-row cs-line"><span class="cs-k">Corners</span>
+              <input type="range" min="0" max="30" step="1" value="8" id="csBoxR" oninput="applyCustomStyle('boxc')" title="Corner radius of the background">
+              <span class="cs-v" id="csBoxRDisp">8px</span></div>
+          </div>
+          <div class="cs-grp"><div class="cs-gh">Highlight &amp; animation</div>
+            <div class="sz-row cs-line"><span class="cs-k">Highlight</span>
+              <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hltype')" title="How the active word stands out — its color is the “Active”/“Pill” swatch above">
+                <option value="color">Text color</option><option value="pill">Pill behind word</option>
+              </select></div>
+            <div class="sz-row cs-line"><span class="cs-k">Animation</span>
+              <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')">
+                <option value="none">None</option><option value="punch">Punch</option><option value="scale">Pop</option>
+                <option value="bounce">Bounce</option><option value="flash">Flash</option><option value="glow">Glow pulse</option>
+                <option value="wobble">Wobble</option>
+              </select></div>
+            <div class="sz-row cs-line"><span class="cs-k">Keywords</span>
+              <input type="text" id="kwInput" class="lang-sel" style="margin:0;flex:1" placeholder="Always highlight, e.g. free, today" oninput="onKwChange(this.value)" title="Words that always appear in the highlight color"></div>
+          </div>
+          <div class="cs-grp"><div class="cs-gh">Timing &amp; text</div>
+            <label class="chk-row" title="Captions disappear during silence and only show while someone is speaking. Off: the last caption stays up until the next one starts.">
+              <input type="checkbox" id="pauseChk" checked onchange="setPauseHide(this.checked)"> Hide captions during pauses
+            </label>
+            <label class="chk-row" title="Never let a caption run across a hard cut in your video">
+              <input type="checkbox" id="cutChk" checked onchange="onBreakAtCutsChange(this.checked)"> Break captions at scene cuts
+            </label>
+            <label class="chk-row" title="Hide . , ! ? ; : … in the video (subtitle files keep punctuation)">
+              <input type="checkbox" id="punctBtn" onchange="togglePunct()"> Remove punctuation
+            </label>
+            <div class="sz-row cs-line"><span class="cs-k">Timing</span>
+              <span class="cs-v" style="min-width:0">Earlier</span>
+              <input type="range" min="-0.5" max="0.5" step="0.05" value="0" id="toSlider" oninput="onTimeOffChange(this.value)" title="Shift all captions earlier or later">
+              <span class="cs-v" style="min-width:0">Later</span>
+            </div>
+            <div class="mode-hint" id="toDisp">Captions in sync with the audio</div>
+          </div>
+          <div class="cs-grp"><div class="cs-gh">Save as template <span id="tplCount" class="cs-sub"></span></div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTemplate();}">
+              <button class="pos-btn" id="tplSaveBtn" type="button" style="flex:0 0 auto;padding:6px 12px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">Save</button>
+            </div>
+            <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
+            <div class="tpl-io">
+              <span id="tplEditing" style="display:none"></span>
+              <a href="#" onclick="exportTemplates(event)" title="Download your templates as a JSON file">Export templates</a>
+              <a href="#" onclick="document.getElementById('tplImport').click();return false" title="Load templates from a JSON file">Import</a>
+              <input type="file" id="tplImport" accept="application/json,.json" style="display:none" onchange="importTemplates(this)">
+            </div>
+            <p class="cs-note">Brand default: open a template's ⋯ menu → “Use for every new video”.</p>
+          </div>
         </details>
-        <div class="clbl" style="margin-top:10px">Save as template <span id="tplCount" style="text-transform:none;letter-spacing:0;color:#94909c"></span></div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTemplate();}">
-          <button class="pos-btn" id="tplSaveBtn" style="flex:0 0 auto;padding:5px 10px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">💾 Save</button>
-        </div>
-        <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
-        <div class="tpl-io">
-          <span id="tplEditing" style="display:none"></span>
-          <a href="#" onclick="exportTemplates(event)" title="Download your templates as a JSON file">Export templates</a>
-          <a href="#" onclick="document.getElementById('tplImport').click();return false" title="Load templates from a JSON file">Import</a>
-          <input type="file" id="tplImport" accept="application/json,.json" style="display:none" onchange="importTemplates(this)">
-        </div>
-      </div>
-
-      <!-- Export -->
-      <div class="csect" data-tab="export">
-        <div class="clbl">Export</div>
-        <label class="sz-row" style="margin-bottom:9px;cursor:pointer">
-          <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)" style="cursor:pointer">
-          <span style="font-size:10.5px;color:#66616e">✂️ Auto-cut silence &amp; filler words ("um", "äh"…)</span>
-        </label>
-        <div class="exp-opts">
-          <label class="exp-opt"><span style="min-width:62px">Resolution</span>
-            <select id="expRes" class="lang-sel" onchange="setExportRes(this.value)">
-              <option value="1080">1080p (recommended)</option><option value="orig">Original</option>
-            </select></label>
-          <label class="exp-opt" id="fmtRow" style="display:none"><span style="min-width:62px">Format</span>
-            <select id="expFmt" class="lang-sel" onchange="setExportFormat(this.value)">
-              <option value="original">Original</option><option value="blur">9:16 · blur fill</option><option value="crop">9:16 · crop</option>
-            </select></label>
-        </div>
-        <div class="exp-grid">
-          <button class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
-            <span class="exp-btn-icon">🎬</span>
-            <span class="exp-btn-label">Video + captions</span>
-            <span class="exp-btn-sub">MP4 · ready to post</span>
-          </button>
-          <button class="exp-btn" id="btnSRT" onclick="exportSRT()" disabled>
-            <span class="exp-btn-icon">📝</span>
-            <span class="exp-btn-label">SRT file</span>
-            <span class="exp-btn-sub">Premiere / DaVinci…</span>
-          </button>
-          <button class="exp-btn" id="btnVTT" onclick="exportVTT()" disabled>
-            <span class="exp-btn-icon">💬</span>
-            <span class="exp-btn-label">VTT file</span>
-            <span class="exp-btn-sub">Web / YouTube…</span>
-          </button>
-        </div>
-        <button type="button" class="pos-btn" id="wmOpt" style="display:none;width:100%;margin:8px 0 0;padding:8px;border-style:dashed" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">🔓 Export without watermark — enter your email</button>
-        <div class="exp-mini">
-          <button class="pos-btn" id="btnTXT" type="button" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">📄 TXT transcript</button>
-          <button class="pos-btn" id="btnCopy" type="button" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">📋 Copy text</button>
-        </div>
-        <div id="recProg">
-          <p id="recMsg">Rendering video…</p>
-          <div class="rec-bar-wrap"><div class="rec-bar" id="recBar"></div></div>
-        </div>
-        <div class="badge-g" style="margin-top:7px">
-          ✅ Premiere: File → Import → choose the .srt → drag onto the timeline
-        </div>
-      </div>
-
-      <!-- Projects (cloud, with account) -->
-      <div class="csect" data-tab="export">
-        <div class="clbl">Save project</div>
-        <div style="display:flex;gap:5px;margin-bottom:6px">
-          <input type="text" id="projTitle" class="lang-sel" style="margin:0;flex:1" placeholder="Project name">
-          <button class="pos-btn" style="flex:0 0 auto;padding:5px 10px" onclick="saveProject()">💾</button>
-        </div>
-        <select id="projList" class="lang-sel" style="margin-bottom:0" onchange="loadProject(this.value)">
-          <option value="">— Load project —</option>
-        </select>
       </div>
 
     </div>
@@ -1157,8 +1303,8 @@ input[type=checkbox]{accent-color:#7c3aed}
 <!-- Konto-Modal -->
 <div id="acctModal" style="display:none;position:fixed;inset:0;background:rgba(20,15,35,.45);z-index:100;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:16px;padding:22px;width:320px;box-shadow:0 24px 80px rgba(0,0,0,.25)">
-    <div style="font-weight:800;font-size:15px;margin-bottom:4px">Capivo account</div>
-    <p style="font-size:11.5px;color:#66616e;margin-bottom:10px" id="acctSub">⚡ Fast &amp; 💎 Perfect are free — no download, on any device. Sign in to save projects.</p>
+    <div style="font-weight:800;font-size:16px;margin-bottom:4px">Capivo account</div>
+    <p style="font-size:12.5px;color:#66616e;margin-bottom:10px" id="acctSub">⚡ Fast &amp; 💎 Perfect are free — no download, on any device. Sign in to save projects.</p>
     <div id="acctStep1">
       <input type="email" id="acctEmail" class="lang-sel" placeholder="you@email.com" onkeydown="if(event.key==='Enter')reqCode()">
       <button class="pos-btn on" style="width:100%;padding:8px" onclick="reqCode()">Send login code</button>
@@ -1168,7 +1314,7 @@ input[type=checkbox]{accent-color:#7c3aed}
       <button class="pos-btn on" style="width:100%;padding:8px" onclick="verifyCode()">Sign in</button>
     </div>
     <div id="acctStep3" style="display:none">
-      <p style="font-size:12px;margin-bottom:10px" id="acctInfo"></p>
+      <p style="font-size:12.5px;margin-bottom:10px" id="acctInfo"></p>
       <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('creator')" title="Paid plans are coming soon">Creator · 300 min/mo · $9 — coming soon</button>
       <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('pro')" title="Paid plans are coming soon">Pro · 1500 min/mo · $24 — coming soon</button>
       <button class="pos-btn" style="width:100%;padding:8px" onclick="logout()">Sign out</button>
@@ -2387,7 +2533,7 @@ async function safePipe(pipe, seg, opts) {
 }
 var WORDS_PER_BLOCK = 4;
 var displayMode     = 'karaoke';   // 'karaoke' = nur aktiver Block | 'all' = Block bleibt bis zum nächsten
-var CAPTION_LINES   = 1;    // max. Zeilen pro Caption-Block — 1 = das, was die meisten Nutzer wollen
+var CAPTION_LINES   = 2;    // max. Zeilen pro Caption-Block — 2 verhindert, dass lange deutsche Wörter auf eine Zeile geschrumpft werden
 var _lastKey        = null;        // Render-Cache (verhindert DOM-Flackern)
 var _lastBi         = -1;
 var _rafId          = null;
@@ -2439,6 +2585,7 @@ function capMeasureCtx() {
 // Export (drawCaptionsOnCtx) rufen DIESELBE Funktion mit denselben Vorschau-Einheiten auf → identisch.
 // Breite je Wort = max(normal, Highlight-Variante) → Größe springt nicht, wenn das Karaoke-Highlight wandert.
 var CAP_FIT_MIN = 0.55;
+var CAP_FIT_MIN_LINES = 0.35; // tiefere Untergrenze NUR für die „Max lines“-Grenze (s. fitCaptionWords)
 var CAP_FIT_MAX_H = 0.40; // max. Anteil der Rahmenhöhe für einen Caption-Block
 var _capFitCache = {}, _capFitN = 0, _capFontGen = 0;
 // Web-Fonts laden asynchron: eine Messung mit der Fallback-Schrift darf NICHT dauerhaft im Cache landen
@@ -2504,14 +2651,15 @@ function fitCaptionWords(words, s, px, maxW, lines) {
       capHyphenate(w, function(piece){ return measure(piece, p) <= maxW; }).forEach(function(pc) { outW.push(pc); orig.push(i); });
     });
     ctx.font = fi + fw + ' ' + (p * fsMul) + 'px "' + fn + '", sans-serif';
-    var sp = ctx.measureText(' ').width + capWordGap(s), nl = 1, lw = 0;
+    var sp = ctx.measureText(' ').width + capWordGap(s) + lsPx, nl = 1, lw = 0, gw = maxW * 0.99; // 1 % Reserve: Export rundet die Schriftgröße
     outW.forEach(function(w) {
       var ww = measure(w, p), add = (lw ? sp : 0) + ww;
-      if (lw && lw + add > maxW) { nl++; lw = ww; } else lw += add;
+      if (lw && lw + add > gw) { nl++; lw = ww; } else lw += add;
     });
+    var g = nl; // Zeilen bei gieriger Füllung = Mindestzahl, die bei dieser Größe nötig ist
     nl = Math.max(nl, Math.min(lines || 1, outW.length));
     var h = nl * capLineH(s) * p * fsMul + (s.boxBg ? 10 : 0);
-    return { px: p, words: outW, orig: orig, lines: nl, h: h };
+    return { px: p, words: outW, orig: orig, lines: nl, h: h, g: g };
   }
   var floor = px * CAP_FIT_MIN;
   var widest = 0;
@@ -2521,8 +2669,19 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   var res = layoutAt(epx);
   // Höhe: Block darf nicht mehr als ~40 % des Rahmens belegen (sonst ragt z. B. bei Position „Bottom“
   // die erste Zeile oben aus dem Bild) → weiter verkleinern, gleiche 55-%-Untergrenze.
-  while (res.h > maxH && epx > floor + 1e-6) {
+  // „Max lines“ ist eine echte Obergrenze (Nutzer-Report: „1 line“ aktiv, Vorschau zeigt 2 Zeilen): braucht
+  // der Block bei dieser Größe mehr Zeilen als gewählt, ebenfalls verkleinern — zuerst bis zur normalen
+  // 55-%-Untergrenze, für die Zeilenzahl notfalls weiter bis CAP_FIT_MIN_LINES (die Zeilenwahl ist eine
+  // ausdrückliche Entscheidung). Nur wenn selbst das nicht reicht (ein einzelnes überlanges Wort bzw.
+  // extrem viele lange Wörter), bricht capDistributeLines in eine weitere Zeile um — im UI so erklärt.
+  var maxLines = lines ? Math.max(1, lines) : Infinity; // ohne Zeilenvorgabe (Kacheln/Tests): nur Breite + Höhe
+  while ((res.h > maxH || res.g > maxLines) && epx > floor + 1e-6) {
     epx = Math.max(floor, Math.floor(epx * 0.92 * 10) / 10);
+    res = layoutAt(epx);
+  }
+  var lineFloor = px * CAP_FIT_MIN_LINES;
+  while (res.g > maxLines && epx > lineFloor + 1e-6) {
+    epx = Math.max(lineFloor, Math.floor(epx * 0.94 * 10) / 10);
     res = layoutAt(epx);
   }
   if (fontPending) return res; // Fallback-Schrift gemessen → nicht cachen, nach dem Laden neu messen
@@ -2639,12 +2798,22 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
     var wt   = (tt || (isHL && s.hlUpper)) ? w.toUpperCase() : w;
     return { i: i, w: ctx.measureText(wt).width + lsPx * wt.length + ((isHL && s.hlPillBg) ? 18 : 0) }; // Pill-Padding wie im DOM
   });
-  var n = info.length;
-  var lines;
-  if (targetLines <= 1 || n <= 1) {
+  var lines = capDistributeLines(info, targetLines, sp, previewFrameW() * 0.86);
+  return lines.map(function(L){ return L.map(function(it){ return it.i; }); });
+}
+// Gemeinsame Zeilenverteilung für Vorschau (wrapCaptionLines) UND Export (capLayout) — vorher zwei Kopien.
+// 1) bei Ziel > 1 möglichst gleichmäßig auf genau so viele Zeilen verteilen (kurze Blöcke brechen sonst nie),
+// 2) harte Breitenbegrenzung (Safe-Zone geht vor),
+// 3) ergäbe das MEHR Zeilen als „Max lines“ (z. B. zu breite letzte Zeile), gierig füllen — das passt,
+//    weil fitCaptionWords die Schrift dafür verkleinert hat. Nur wenn selbst die Mindestgröße nicht reicht,
+//    bleibt es bei mehr Zeilen (besser umbrechen als abschneiden).
+function capDistributeLines(info, targetLines, sp, maxW) {
+  var n = info.length, lines;
+  var maxLines = Math.max(1, targetLines || 1);
+  if (maxLines <= 1 || n <= 1) {
     lines = [info];
   } else {
-    var target  = Math.min(targetLines, n);
+    var target  = Math.min(maxLines, n);
     var total   = info.reduce(function(a, it){ return a + it.w; }, 0) + sp * (n - 1);
     var perLine = total / target;
     lines = [[]]; var lw = 0, remaining = target;
@@ -2657,10 +2826,12 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
       lw += add;
     });
   }
-  // Harte Breitenbegrenzung NACH der Zielzeilen-Verteilung — verhindert, dass eine einzelne Zeile
-  // (insbesondere bei CAPTION_LINES=1 oder die letzte Zeile) über die Safe-Zone hinausragt.
-  lines = clampLinesToWidth(lines, previewFrameW() * 0.86, sp);
-  return lines.map(function(L){ return L.map(function(it){ return it.i; }); });
+  lines = clampLinesToWidth(lines, maxW, sp);
+  if (lines.length > maxLines && n > 1) {
+    var greedy = clampLinesToWidth([info], maxW, sp);
+    if (greedy.length < lines.length) lines = greedy;
+  }
+  return lines;
 }
 // Aktive-Wort-Farbe; s.hlCycle (z. B. „Beast“) wechselt die Farbe von Wort zu Wort.
 function hlColorFor(s, idx) {
@@ -2790,8 +2961,9 @@ function activeWordIdx(b, t) {
   return idx < 0 ? 0 : idx;
 }
 function updateOverlay(t) {
-  var s = STYLES.find(function(x){ return x.id === activeId; });
-  if (!s) return;
+  var s0 = STYLES.find(function(x){ return x.id === activeId; });
+  if (!s0) return;
+  var s = caseStyle(s0); // Case-Wahl überstimmt die Schreibweise des Styles (s. caseStyle)
   var ov  = document.getElementById('capOverlay');
   var vid = document.getElementById('mainVid');
   if (t === undefined) t = (vidReady && vid.currentTime) || 0;
@@ -2799,9 +2971,11 @@ function updateOverlay(t) {
   var key;
 
   if (!captionBlocks.length) {
-    key = 'demo:' + activeId + ':' + fontSize;
+    // Keine Platzhalter-Caption („Captions appear here“) mehr — während der Transkription zeigt die
+    // Vorschau den echten Fortschritt (procOv), den Look zeigen die Style-Kacheln.
+    key = 'empty';
     if (key !== _lastKey) {
-      ov.innerHTML = buildCap(['Captions','appear','here'], s, 1, fontSize, null, CAPTION_LINES);
+      ov.innerHTML = '';
       _lastKey = key; _lastBi = -1;
       if (showSafeZone) checkSafeZoneCollision();
     }
@@ -3397,28 +3571,19 @@ function regroupForCuts() {
   renderSegments(); renderWPills();
   _lastKey = null; updateOverlay();
 }
-// Dezenter Zusatz in der Statuszeile (eigener <span class="cut-note">, wird ersetzt statt überschrieben —
-// Erfolgs-/Fehlertext der Transkription bleibt stehen): Fortschritt während der Erkennung, danach die Anzahl.
-function sceneCutSuffix() {
-  var txt = cutsDetecting() ? 'Detecting scene cuts… ' + _cutState.pct + '%'
-    : sceneCuts.length ? sceneCuts.length + ' scene cut' + (sceneCuts.length === 1 ? '' : 's') + ' detected' : '';
-  return txt ? '<span class="cut-note"> · ' + txt + '</span>' : '';
-}
+// Szenenschnitt-Erkennung läuft STILL im Hintergrund (kein Statustext mehr — „Detecting scene cuts… 5%“
+// war für Nutzer bedeutungslose Technik). Sichtbar wird sie nur, wenn ein Export auf sie wartet: dann am
+// Export-Knopf („Preparing …%“) und in der Fortschrittszeile des Export-Blatts. Die Schnitte selbst zeigt
+// die Timeline. sceneCutSuffix bleibt als (leerer) Haken für ältere Aufrufer.
+function sceneCutSuffix() { return ''; }
 function noteSceneCuts() {
   if (typeof document === 'undefined') return;
   var st = _cutState;
-  if (st && st.waiting) { // Export wartet → Fortschritt im Export-Balken
+  if (st && st.waiting) { // Export wartet → Fortschritt im Export-Blatt
     var rm = document.getElementById('recMsg'), rb = document.getElementById('recBar');
-    if (rm) rm.textContent = 'Detecting scene cuts… ' + st.pct + '% (so captions break at every cut)';
+    if (rm) rm.textContent = 'Preparing… ' + st.pct + '%';
     if (rb) rb.style.width = st.pct + '%';
   }
-  var el = document.getElementById('tStatus');
-  if (!el) return;
-  var h = String(el.innerHTML || '');
-  if (/t-spinner/.test(h)) return; // laufende Transkription hängt den Hinweis am Ende selbst an (sceneCutSuffix)
-  h = h.replace(/<span class="cut-note">[\s\S]*?<\/span>/g, '');
-  var i = h.lastIndexOf('</span>');
-  if (i > 0) el.innerHTML = h.slice(0, i) + sceneCutSuffix() + h.slice(i);
 }
 function onBreakAtCutsChange(on) {
   breakAtCuts = !!on;
@@ -3721,15 +3886,16 @@ function buildSegTools(idx, b) {
     + '<span class="stv st-start">' + fmtT1(b.start) + '</span><button type="button" title="Start 0.1 s later" data-a="start:0.1">+</button>'
     + '<span class="st-sep"></span><span class="stl">End</span><button type="button" title="End 0.1 s earlier" data-a="end:-0.1">−</button>'
     + '<span class="stv st-end">' + fmtT1(b.end) + '</span><button type="button" title="End 0.1 s later" data-a="end:0.1">+</button>'
-    + '<button type="button" class="st-del" title="Delete this caption (Ctrl/⌘+Z to undo)" data-a="del">🗑</button>';
+    + '<button type="button" class="st-del" title="Delete this caption (Ctrl/⌘+Z to undo)" data-a="del" aria-label="Delete caption">' + icon('trash') + '</button>';
   t.onclick = function(e) {
     e.stopPropagation();
-    var a = e.target && e.target.getAttribute && e.target.getAttribute('data-a');
+    var tg = e.target && e.target.closest ? (e.target.closest('[data-a]') || e.target) : e.target; // Klick auf das SVG im Knopf
+    var a = tg && tg.getAttribute && tg.getAttribute('data-a');
     if (!a) return;
     if (a === 'del') { deleteSeg(idx); return; }
     var p = a.split(':'); nudgeSeg(idx, p[0], parseFloat(p[1]));
   };
-  t.onmousedown = function(e) { if (e.target && e.target.tagName === 'BUTTON') e.preventDefault(); }; // Fokus im Textfeld lassen
+  t.onmousedown = function(e) { if (e.target && (e.target.tagName === 'BUTTON' || (e.target.closest && e.target.closest('button')))) e.preventDefault(); }; // Fokus im Textfeld lassen
   return t;
 }
 function selectSegRow(row) {
@@ -4214,7 +4380,7 @@ function normalizeTemplate(t) {
   if (['top', 'center', 'bottom'].indexOf(lay.pos) >= 0) layOut.pos = lay.pos;
   ['voff', 'size', 'sizeRel', 'wpb', 'lines'].forEach(function(k){ var n = Number(lay[k]); if (lay[k] !== undefined && isFinite(n)) layOut[k] = n; });
   if (typeof lay.mode === 'string') layOut.mode = lay.mode.replace(/[^a-z]/gi, '').slice(0, 20);
-  if (['asis', 'upper', 'lower'].indexOf(lay.case) >= 0) layOut.case = lay.case;
+  if (['asis', 'upper', 'lower', 'orig'].indexOf(lay.case) >= 0) layOut.case = lay.case;
   if (typeof lay.punct === 'boolean') layOut.punct = lay.punct;
   return { id: tid, name: String(t.name || 'Template').slice(0, 60), style: st, layout: layOut,
            createdAt: +t.createdAt || ts0, updatedAt: ts0 };
@@ -4372,7 +4538,7 @@ function editTemplate(id) {
   selectStyle(id);           // Regler aus dem Template befüllen (seedCustomFields)
   setTplEditing(id);
   setTplStatus('Editing “' + t.name + '”: change the style below, then click Update.');
-  var more = csEl('csMore'); if (more && 'open' in more) more.open = true;
+  var more = csEl('advSet'); if (more && 'open' in more) more.open = true; // Regler liegen unter „Customize“
   var nm = csEl('tplName'); if (nm && nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 var _tplMenuEl = null;
@@ -4525,7 +4691,7 @@ function applyTemplateSettings(t) {
   if (typeof t.voff === 'number') {
     capVOff = t.voff;
     var vs = document.getElementById('voffSlider');
-    if (vs) { vs.value = t.voff; document.getElementById('voffDisp').textContent = (t.voff > 0 ? '+' : '') + t.voff + '%'; }
+    if (vs) { vs.value = t.voff; var vd1 = document.getElementById('voffDisp'); if (vd1) vd1.textContent = (t.voff > 0 ? '+' : '') + t.voff + '%'; }
   }
   var tsz = templateFontSize(t, previewFrameW());
   if (tsz) {
@@ -4538,7 +4704,7 @@ function applyTemplateSettings(t) {
   if (t.case || typeof t.punct === 'boolean') syncTextFormatUI();
   if (t.mode) {
     displayMode = t.mode;
-    document.querySelectorAll('#modeRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === t.mode); });
+    syncModeUI();
   }
   if (typeof t.wpb === 'number') {
     WORDS_PER_BLOCK = t.wpb;
@@ -4571,21 +4737,25 @@ function buildPicker() {
     return (tplCreated[b.id] || 0) - (tplCreated[a.id] || 0);
   });
   var nTpl = mine.filter(function(s){ return s._isTpl; }).length;
-  var hdr = document.createElement('div');
-  hdr.className = 'stile-group';
-  hdr.innerHTML = 'My templates <span class="sg-n">' + (nTpl ? nTpl + ' saved' : '') + '</span>';
-  c.appendChild(hdr);
-  mine.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
-  if (!nTpl) {
-    var em = document.createElement('div');
-    em.className = 'stile-empty';
-    em.innerHTML = 'No templates yet — style your captions and <a href="#" onclick="focusTemplateSave(event)">save them as a template</a> to reuse them here.';
-    c.appendChild(em);
+  // Neue Nutzer (keine Templates, kein eigener Entwurf): nur das Preset-Raster, ohne Gruppen-Überschriften
+  // und Leer-Hinweis — weniger Text vor dem ersten Klick. Sonst „My templates“ oben wie bisher.
+  if (mine.length) {
+    var hdr = document.createElement('div');
+    hdr.className = 'stile-group';
+    hdr.innerHTML = 'My templates <span class="sg-n">' + (nTpl ? nTpl + ' saved' : '') + '</span>';
+    c.appendChild(hdr);
+    mine.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
+    if (!nTpl) {
+      var em = document.createElement('div');
+      em.className = 'stile-empty';
+      em.innerHTML = 'Like your custom look? <a href="#" onclick="focusTemplateSave(event)">Save it as a template</a> to reuse it.';
+      c.appendChild(em);
+    }
+    var hdr2 = document.createElement('div');
+    hdr2.className = 'stile-group presets';
+    hdr2.textContent = 'Presets';
+    c.appendChild(hdr2);
   }
-  var hdr2 = document.createElement('div');
-  hdr2.className = 'stile-group presets';
-  hdr2.textContent = 'Presets';
-  c.appendChild(hdr2);
   presets.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
   c.scrollTop = keepScroll;
   var cnt = document.getElementById('tplCount');
@@ -4617,6 +4787,7 @@ function scrollPickerTo(id, withPage, flash) {
 }
 function focusTemplateSave(e) {
   if (e && e.preventDefault) e.preventDefault();
+  var adv = csEl('advSet'); if (adv && 'open' in adv) adv.open = true; // liegt jetzt unter „Customize“
   var nm = csEl('tplName');
   if (nm) { if (nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (nm.focus) nm.focus({ preventScroll: true }); }
 }
@@ -4708,10 +4879,11 @@ function makeStyleTile(s) {
     });
     var info = document.createElement('div');
     info.className = 'stile-info';
-    var badge = s.badge ? (' <span style="font-size:7px;color:#f87171">' + s.badge + '</span>') : '';
-    // Custom-Entwurf klar als „noch nicht gespeichert“ kennzeichnen
-    var sub = s.id === 'custom' ? 'unsaved · edit below' : (s._isTpl && s.id === brandTplId() ? '★ default' : s.fl);
-    info.innerHTML = '<div class="stile-name">' + escHtml(s.id === 'custom' ? 'Custom' : s.name) + badge + '</div><div class="stile-font">' + escHtml(sub) + '</div>';
+    var badge = s.badge ? (' <span class="stile-badge">' + s.badge + '</span>') : '';
+    // Nur Name (+ Badge) — die Schriftart-Zeile in 7 px war unlesbar und für die Wahl unwichtig. Status
+    // (eigener Entwurf / Standard-Template) bleibt als zweite Zeile.
+    var sub = s.id === 'custom' ? 'unsaved' : (s._isTpl && s.id === brandTplId() ? '★ default' : '');
+    info.innerHTML = '<div class="stile-name">' + escHtml(s.id === 'custom' ? 'Custom' : s.name) + badge + '</div>' + (sub ? '<div class="stile-font">' + escHtml(sub) + '</div>' : '');
     tile.appendChild(info);
     if (s._isTpl) {
       tile.title = 'Your template “' + s.name + '”';
@@ -4824,9 +4996,11 @@ function setPos(btn) {
   applyPos();
   scheduleAutosave(); // nur echte Nutzer-Änderungen — applyPos() selbst läuft auch beim Re-Layout (Playback/Export)
 }
+// Höhen-Regler gibt es nicht mehr (doppelt zu Position + Ziehen in der Vorschau); capVOff bleibt als Zustand
+// für gespeicherte Projekte/Templates und wird beim Ziehen gesetzt. Funktion bleibt für ältere Aufrufer.
 function onVOffChange(v) {
   capVOff = parseInt(v);
-  document.getElementById('voffDisp').textContent = (capVOff > 0 ? '+' : '') + capVOff + '%';
+  var vd = document.getElementById('voffDisp'); if (vd) vd.textContent = (capVOff > 0 ? '+' : '') + capVOff + '%';
   applyPos();
   scheduleAutosave();
 }
@@ -4900,9 +5074,15 @@ function onSzChange(v) {
   updateOverlay();
   scheduleAutosave();
 }
+// „Hide captions during pauses“ (an = 'karaoke': nur während gesprochen wird; aus = 'all': letzte Caption
+// bleibt bis zur nächsten stehen) — ersetzt die Knöpfe „Karaoke/Continuous“, gleiche Logik.
+function syncModeUI() {
+  var c = document.getElementById('pauseChk'); if (c) c.checked = displayMode !== 'all';
+}
+function setPauseHide(on) { setMode({ dataset: { mode: on ? 'karaoke' : 'all' } }); }
 function setMode(btn) {
   displayMode = btn.dataset.mode;
-  document.querySelectorAll('#modeRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === displayMode); });
+  syncModeUI();
   _lastKey = null;
   updateOverlay();
   scheduleAutosave();
@@ -5021,7 +5201,43 @@ function setLang(v) {
     return;
   }
   whisperLang = v; updateTrSetSum();
+  var ll = document.getElementById('landLang'); if (ll) ll.value = v; // Startseiten-Auswahl synchron halten
   if (currentFile) transcribeVideo(currentFile);
+}
+// Sprache auf der Startseite VOR dem Upload: nur merken (kein Re-Transkribieren eines evtl. noch offenen
+// Videos) — gilt für das nächste Video, Editor-Auswahl wird synchronisiert.
+function setLandLang(v) {
+  whisperLang = CODE_BY_LANG[v] || v === 'auto' ? v : 'auto';
+  var ls = document.getElementById('langSel'); if (ls) ls.value = whisperLang;
+  updateTrSetSum();
+}
+// Optionen der Startseiten-Auswahl aus #langSel übernehmen (eine Quelle für die Sprachliste)
+(function initLandLang() {
+  var ll = document.getElementById('landLang'), ls = document.getElementById('langSel');
+  if (!ll || !ls || !ls.options || !ll.appendChild) return;
+  ll.innerHTML = '';
+  for (var i = 0; i < ls.options.length; i++) {
+    var o = document.createElement('option');
+    o.value = ls.options[i].value; o.textContent = ls.options[i].value === 'auto' ? 'Auto' : ls.options[i].textContent;
+    ll.appendChild(o);
+  }
+  ll.value = whisperLang;
+})();
+// „Try a sample video“: kurzer eingebauter Clip (Showcase-Asset) → derselbe Weg wie ein eigener Upload.
+// Fehlt die Datei (z. B. anderes Hosting), verschwindet der Knopf statt eines leeren Editors.
+function trySample() {
+  var b = document.getElementById('sampleBtn');
+  if (b) { b.disabled = true; b.textContent = 'Loading sample…'; }
+  fetch('assets/showcase/bloom.mp4').then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.blob();
+  }).then(function(bl) {
+    if (b) { b.disabled = false; b.innerHTML = 'Try a sample video&nbsp;&nbsp;→'; }
+    loadVideo(new File([bl], 'Sample video.mp4', { type: 'video/mp4' }));
+  }).catch(function(e) {
+    console.warn('Beispielvideo nicht verfügbar:', e);
+    if (b) b.style.display = 'none';
+  });
 }
 // Wort-Chunks von Whisper → saubere Timestamps (NaN/null abfangen)
 function chunksToWords(chunks) {
@@ -5060,7 +5276,7 @@ function segmentsToWords(segs) {
 // Setup: README → "Login & Projekte (Supabase)".
 var SUPABASE_URL      = 'https://tghodbtdraqkfwcmedcv.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g';
-var mePlan = 'anon', _upsellShown = false, meEmail = '';
+var mePlan = 'anon', meEmail = '';
 var _authReady = Promise.resolve(), _pendingWmExport = false, _tplSyncedFor = null;
 // Lazy geladen wie ffmpeg/whisper (s. loadFFmpeg) — das Script läuft als klassisches <script>,
 // ein Top-Level-import wäre hier ein Syntaxfehler. Gibt null zurück, solange keine Credentials
@@ -5090,34 +5306,72 @@ function showAcct() {
   document.getElementById('acctStep2').style.display = 'none';
   document.getElementById('acctStep3').style.display = meEmail ? 'block' : 'none';
 }
+// ── Anmeldung nicht erreichbar (Supabase pausiert/DNS weg, offline, CDN blockiert) ──
+// Statt roher Browser-Fehler („Failed to fetch“) eine verständliche Meldung; Netzwerkfehler erkennt man an
+// TypeError bzw. Supabase-AuthRetryableFetchError (status 0) — echte Auth-Fehler (falscher Code) bleiben.
+var SIGNIN_DOWN_MSG = 'Sign-in is temporarily unavailable — please try again later.';
+function isNetErr(e) {
+  if (!e) return false;
+  var msg = String(e.message || e), nm = String(e.name || '');
+  return nm === 'TypeError' || nm === 'AbortError' || /RetryableFetch|FetchError/i.test(nm) || e.status === 0
+    || /failed to fetch|networkerror|load failed|network request failed|fetch failed|err_name_not_resolved|timed? ?out/i.test(msg);
+}
+function authErrText(e) { return isNetErr(e) ? SIGNIN_DOWN_MSG : String((e && e.message) || e || 'Something went wrong.'); }
+// Erreichbarkeit vorab prüfen (für „Remove watermark“: kein kaputtes Formular öffnen). Health-Endpoint mit
+// 4-s-Timeout; jede HTTP-Antwort = erreichbar, Netzwerkfehler = nicht. Ergebnis 60 s gemerkt.
+var _signinCheck = null;
+function signInAvailable() {
+  if (_sbFailed) return Promise.resolve(false);
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || typeof fetch !== 'function') return Promise.resolve(true); // nichts zu prüfen → Modal erklärt es
+  if (_signinCheck && Date.now() - _signinCheck.at < 60000) return _signinCheck.p;
+  var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+  var tm = setTimeout(function(){ if (ctl) ctl.abort(); }, 4000);
+  var p = fetch(SUPABASE_URL + '/auth/v1/health', { headers: { apikey: SUPABASE_ANON_KEY }, signal: ctl ? ctl.signal : undefined })
+    .then(function(){ return true; }, function(){ return false; })
+    .then(function(ok){ clearTimeout(tm); return ok; });
+  _signinCheck = { at: Date.now(), p: p };
+  return p;
+}
+// Meldung dort zeigen, wo der Nutzer gerade ist: im Export-Blatt (Hinweiszeile) bzw. als Toast
+function showSigninDown() {
+  var n = document.getElementById('expNote');
+  if (n && exportSheetOpen()) { n.textContent = SIGNIN_DOWN_MSG; n.style.display = ''; }
+  else capToast(SIGNIN_DOWN_MSG);
+}
 async function reqCode() {
   var m = document.getElementById('acctMsg');
-  var sb = await getSb();
-  if (!sb) { m.textContent = 'Accounts are not set up on this deployment yet.'; return; }
-  var { error } = await sb.auth.signInWithOtp({ email: document.getElementById('acctEmail').value.trim() });
-  if (error) { m.textContent = error.message; return; }
+  try {
+    var sb = await getSb();
+    if (!sb) { m.textContent = _sbFailed ? SIGNIN_DOWN_MSG : 'Accounts are not set up on this deployment yet.'; return; }
+    var res = await sb.auth.signInWithOtp({ email: document.getElementById('acctEmail').value.trim() });
+    if (res && res.error) { m.textContent = authErrText(res.error); return; }
+  } catch (e) { m.textContent = authErrText(e); return; }
   m.textContent = 'Code sent — check your inbox.';
   document.getElementById('acctStep1').style.display = 'none';
   document.getElementById('acctStep2').style.display = 'block';
 }
 async function verifyCode() {
   var m = document.getElementById('acctMsg');
-  var sb = await getSb();
-  if (!sb) { m.textContent = 'Accounts are not set up on this deployment yet.'; return; }
-  var { error } = await sb.auth.verifyOtp({
-    email: document.getElementById('acctEmail').value.trim(),
-    token: document.getElementById('acctCode').value.trim(),
-    type:  'email'
-  });
-  if (error) { m.textContent = error.message; return; }
+  try {
+    var sb = await getSb();
+    if (!sb) { m.textContent = _sbFailed ? SIGNIN_DOWN_MSG : 'Accounts are not set up on this deployment yet.'; return; }
+    var res = await sb.auth.verifyOtp({
+      email: document.getElementById('acctEmail').value.trim(),
+      token: document.getElementById('acctCode').value.trim(),
+      type:  'email'
+    });
+    if (res && res.error) { m.textContent = authErrText(res.error); return; }
+  } catch (e) { m.textContent = authErrText(e); return; }
   m.textContent = '';
   document.getElementById('acctModal').style.display = 'none';
   await fetchMe(); loadProjects();
   if (_pendingWmExport && meEmail) { _pendingWmExport = false; exportVideoWithCaptions(); } // Export ohne Logo nach Login
 }
 // Anonymer Export-Button „Export without watermark“ → Login, danach startet der Export automatisch.
-function exportWithoutWatermark() {
+async function exportWithoutWatermark() {
   if (meEmail) { exportVideoWithCaptions(); return; }
+  // Anmeldung nicht erreichbar → klare Meldung statt eines Formulars, das nur „Failed to fetch“ liefern kann
+  if (!(await signInAvailable())) { showSigninDown(); return; }
   _pendingWmExport = true;
   document.getElementById('acctSub').textContent = 'Enter your email to get a free login code — your video then exports without the watermark.';
   showAcct();
@@ -5128,12 +5382,13 @@ async function logout() {
   mePlan = 'anon'; meEmail = '';
   document.getElementById('acctBtn').textContent = 'Sign in';
   document.getElementById('acctModal').style.display = 'none';
+  var pl = document.getElementById('projList'); if (pl) pl.innerHTML = '<option value="">— Load project —</option>';
   updateAcctUI();
 }
 function applyUser(user) {
   meEmail = user.email || user.phone || 'account'; mePlan = 'free';
   var b = document.getElementById('acctBtn'), i = document.getElementById('acctInfo');
-  if (b) b.textContent = meEmail.split('@')[0];
+  if (b) b.textContent = 'Account · ' + meEmail.split('@')[0];
   if (i) i.textContent = meEmail + ' · signed in';
   updateAcctUI();
 }
@@ -5164,7 +5419,9 @@ function waitAuth() {
 }
 function updateAcctUI() {
   var wo = document.getElementById('wmOpt');
-  if (wo) wo.style.display = needsWatermark() ? '' : 'none';
+  if (wo) wo.style.display = needsWatermark() ? '' : 'none'; // Hinweis im Export-Blatt VOR dem Rendern (keine Überraschung)
+  var rw = document.getElementById('expRmWm');
+  if (rw && !needsWatermark()) rw.style.display = 'none';
   var qi = document.getElementById('quotaInfo');
   if (!qi) return;
   if (mePlan === 'anon') qi.textContent = '⚡ Fast & 💎 Perfect · free, no download — works on any device';
@@ -5190,6 +5447,7 @@ async function saveProject() {
   if (title === TPL_ROW_TITLE) title += ' (project)'; // reservierter Name der Templates-Zeile
   var { error } = await sb.from('projects').insert({ title: title, payload: payload });
   if (error) { alert('Could not save the project: ' + error.message); return; }
+  capToast('✓ Saved to your account');
   loadProjects();
 }
 async function loadProjects() {
@@ -5232,19 +5490,21 @@ function writeAutosaves(list) {
 }
 function autosaveNow() {
   clearTimeout(_autosaveTimer); _autosaveTimer = null;
-  if (!_autosaveKey || !captionBlocks.length) return false;
+  if (!_autosaveKey || !captionBlocks.length) { setSaveInd(''); return false; }
   var data = projectPayload();
   data.words = wordTimestamps; data.edited = captionsEdited; data.meta = _lastTrMeta;
   var entry = { key: _autosaveKey, savedAt: Date.now(), data: data };
   var list = [entry].concat(readAutosaves().filter(function(e){ return e.key !== _autosaveKey; })).slice(0, AUTOSAVE_MAX);
-  if (writeAutosaves(list)) return true;
   // Quota voll: ältere Videos opfern (nur den aktuellen Stand behalten) und genau einmal neu versuchen.
-  return writeAutosaves([entry]);
+  var ok = writeAutosaves(list) || writeAutosaves([entry]);
+  setSaveInd(ok ? 'saved' : '');
+  return ok;
 }
 function scheduleAutosave() {
   if (!_autosaveKey) return;
   clearTimeout(_autosaveTimer);
   _autosaveTimer = setTimeout(autosaveWhenIdle, 800);
+  setSaveInd('saving');
 }
 // Während des Echtzeit-Exports nie serialisieren (JSON.stringify des ganzen Projekts blockiert den
 // Main-Thread → Ruckler/verlorene Frames im Video) — stattdessen nach dem Export nachholen.
@@ -5277,8 +5537,9 @@ function restoreAutosave(entry) {
   _vocabUsed = (d.meta && typeof d.meta.vocab === 'string') ? d.meta.vocab : cleanVocab(vocabText);
   syncVocabApply();
   document.getElementById('retryWrap').style.display = 'none';
-  setTStatus('↩︎', 'Restored your last session · <a href="#" onclick="retranscribeFromStatus(event)" '
+  setTStatus('✅', 'Restored your last session · <a href="#" onclick="retranscribeFromStatus(event)" '
     + 'style="color:#7c3aed;font-weight:600;text-decoration:none">Re-transcribe</a>', false, false);
+  if (setProcessing(false)) switchTab('captions'); // nichts zu transkribieren → direkt zum Text
   return true;
 }
 function retranscribeFromStatus(e) {
@@ -5287,7 +5548,10 @@ function retranscribeFromStatus(e) {
 }
 // Gemeinsame Payload-Form für Cloud-Projekte (saveProject) und lokale Autosaves.
 function projectPayload() {
-  var p = { blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
+  // fontRel: Größe relativ zur Vorschau-Breite — die Vorschau ist je nach Fenster unterschiedlich groß
+  // (jetzt bildschirmfüllend), absolute px würden auf einem anderen Bildschirm kleiner/größer wirken.
+  var p = { title: projTitle, fontRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
+           blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
            lines: CAPTION_LINES, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
            noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts };
   if (tlSpeech.length) p.speech = tlSpeech.slice(0, 2000); // Sprachbereiche für die Timeline (klein, gerundet)
@@ -5342,23 +5606,28 @@ function applyProjectPayload(p) {
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
   }
   if (p.style) { restoreSavedStyle(p); seedActiveStyle(); }
-  if (p.fontSize) { fontSize = p.fontSize; var ss = document.getElementById('szSlider'); if (ss) { ss.value = p.fontSize; document.getElementById('szDisp').textContent = p.fontSize + 'px'; } }
+  if (typeof p.title === 'string' && p.title) setTitle(p.title);
+  if (p.fontSize) {
+    var fsz = p.fontSize;
+    if (typeof p.fontRel === 'number' && p.fontRel > 0 && vidReady) fsz = Math.max(10, Math.min(54, Math.round(p.fontRel * previewFrameW())));
+    fontSize = fsz; var ss = document.getElementById('szSlider'); if (ss) { ss.value = fsz; document.getElementById('szDisp').textContent = fsz + 'px'; }
+  }
   if (p.wpb) { WORDS_PER_BLOCK = p.wpb; var ws = document.getElementById('wpbSlider'); if (ws) { ws.value = p.wpb; document.getElementById('wpbDisp').textContent = p.wpb; } }
   if (typeof p.lines === 'number') { CAPTION_LINES = p.lines; syncLinesButtons(); }
-  if (p.mode) { displayMode = p.mode; document.querySelectorAll('#modeRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === displayMode); }); }
+  if (p.mode) { displayMode = p.mode; syncModeUI(); }
   if (p.keywords) hlKeywords = p.keywords;
   if (p.timeOff !== undefined) { timeOff = Math.max(-0.5, Math.min(0.5, +p.timeOff || 0)); syncTimeOffUI(); }
   if (typeof p.noPunct === 'boolean') capNoPunct = p.noPunct;
   if (typeof p.breakAtCuts === 'boolean') { breakAtCuts = p.breakAtCuts; var bc = document.getElementById('cutChk'); if (bc) bc.checked = breakAtCuts; }
   if (Array.isArray(p.speech)) tlSpeech = tlCleanSpeech(p.speech);
   if (Array.isArray(p.cuts)) sceneCuts = p.cuts.map(Number).filter(function(c){ return isFinite(c) && c > 0; }).sort(function(a, b){ return a - b; });
-  if (p.textCase) capCase = (p.textCase === 'upper' || p.textCase === 'lower') ? p.textCase : 'asis';
+  if (p.textCase) capCase = (['upper', 'lower', 'orig'].indexOf(p.textCase) >= 0) ? p.textCase : 'asis';
   syncTextFormatUI();
   if (p.pos) capPos = p.pos;
   if (typeof p.voff === 'number') {
     capVOff = p.voff;
     var vs = document.getElementById('voffSlider');
-    if (vs) { vs.value = p.voff; document.getElementById('voffDisp').textContent = (p.voff > 0 ? '+' : '') + p.voff + '%'; }
+    if (vs) { vs.value = p.voff; var vd0 = document.getElementById('voffDisp'); if (vd0) vd0.textContent = (p.voff > 0 ? '+' : '') + p.voff + '%'; }
   }
   syncPosButtons();
   applyPos();
@@ -5367,7 +5636,7 @@ function applyProjectPayload(p) {
   enableExports(true); _lastKey = null; updateOverlay();
   resetUndo(); collapseTrSettings(true); buildPicker();
 }
-// ── Wasserzeichen (nur anonym) + einmaliger Upsell nach erstem Export ──
+// ── Wasserzeichen (nur anonym) — Hinweis VOR dem Export im Blatt, Angebot danach inline (kein Modal) ──
 // Beta: Bezahlpläne sind noch nicht kaufbar (startCheckout) → ein „$9 ohne Wasserzeichen“-Angebot wäre
 // eine Sackgasse. Stattdessen: Anmelden (kostenlos) entfernt das Wasserzeichen. Creator/Pro bleiben frei.
 // Wird zum Exportzeitpunkt ausgewertet (Nutzer kann sich nach dem Video-Laden noch anmelden).
@@ -5384,30 +5653,61 @@ function drawWatermark(ctx, W, H, on) {
   ctx.font = '700 ' + fsW + 'px Inter, sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'right';
   ctx.fillText('⚡ Capivo', W - fsW, H - fsW); ctx.restore();
 }
-function maybeUpsell() {
-  if (_upsellShown || !needsWatermark()) return; // Angemeldete exportieren ohnehin ohne Wasserzeichen
-  _upsellShown = true;
-  setTimeout(function() {
-    document.getElementById('acctSub').textContent = 'Like the result? Sign in (free during beta) to export without the watermark.';
-    showAcct();
-  }, 900);
-}
 
 // ═══════════════════════════════════════
 // TRANSCRIPTION
 // ═══════════════════════════════════════
-function setTStatus(icon, msg, spinner, prog) {
+// Statuszeile im Captions-Tab. Aufrufer übergeben weiterhin Emoji-Kürzel (✅/❌/⚠️ …) — hier auf den
+// einheitlichen SVG-Icon-Satz abgebildet (Erfolg = Häkchen, Fehler/Warnung = Dreieck, sonst kein Icon).
+// Läuft die Erst-Transkription (_processing), spiegelt die Vorschau-Überlagerung den Schritt.
+function setTStatus(ic, msg, spinner, prog) {
+  var kind = /✅|✓/.test(ic || '') ? 'ok' : /❌|⚠/.test(ic || '') ? 'warn' : '';
   document.getElementById('tStatus').innerHTML =
-    (spinner ? '<div class="t-spinner"></div>' : '<span style="font-size:15px">' + icon + '</span>')
+    (spinner ? '<div class="t-spinner"></div>' : kind ? '<span class="t-ic ' + kind + '">' + icon(kind === 'ok' ? 'check' : 'warn') + '</span>' : '')
     + '<span>' + msg + '</span>';
   document.getElementById('tProgWrap').style.display = prog ? 'flex' : 'none';
+  var ps = document.getElementById('procStep');
+  if (ps && spinner) ps.textContent = String(msg || '').replace(/<[^>]*>/g, '').replace(/…$/, '');
 }
 function setTProgress(pct) {
   var p = Math.max(0, Math.min(100, pct));
   document.getElementById('tProgFill').style.width = p + '%';
   var pctEl = document.getElementById('tProgPct');
   if (pctEl) pctEl.textContent = Math.round(p) + '%';
+  // Vorschau-Überlagerung + Fortschrittsbalken über dem Style-Raster
+  var pm = document.getElementById('procMsg'); if (pm) pm.textContent = 'Transcribing… ' + Math.round(p) + '%';
+  ['procFill', 'shFill'].forEach(function(id) { var f = document.getElementById(id); if (f) f.style.width = p + '%'; });
 }
+// ── Verarbeitungs-Schritt = Style-Wahl (wie Submagic/Captions.ai) ──
+// Während der ERSTEN Transkription eines Videos: Fortschritt als Überlagerung auf der Vorschau, Panel im
+// Style-Tab mit „Choose a style while we transcribe“, Transkriptions-Einstellungen bleiben verborgen.
+// Danach: Captions-Tab + einmaliger Hinweis-Toast. Re-Transkriptionen (Modell/Sprache) laufen ohne das.
+var _processing = false;
+function setProcessing(on) {
+  var was = _processing;
+  _processing = !!on;
+  var col = document.getElementById('ctrlCol');
+  if (col && col.classList) col.classList.toggle('processing', _processing);
+  var ov = document.getElementById('procOv'); if (ov) ov.style.display = _processing ? 'flex' : 'none';
+  var sh = document.getElementById('styleHdr'); if (sh) sh.style.display = _processing ? 'block' : 'none';
+  if (_processing && !was) {
+    var pm = document.getElementById('procMsg'); if (pm) pm.textContent = 'Transcribing… 0%';
+    var ps = document.getElementById('procStep'); if (ps) ps.textContent = 'Loading video';
+    ['procFill', 'shFill'].forEach(function(id) { var f = document.getElementById(id); if (f) f.style.width = '0%'; });
+    switchTab('style');
+  }
+  return was;
+}
+// Kleine, einmalige Hinweise (Coach-Marks / Toasts) — pro Browser gemerkt, damit sie nicht nerven.
+function hintSeen(key) { try { return typeof localStorage !== 'undefined' && localStorage.getItem('capivo.hint.' + key) === '1'; } catch (e) { return false; } }
+function markHintSeen(key) { try { localStorage.setItem('capivo.hint.' + key, '1'); } catch (e) {} }
+function showCoach(id) {
+  var el = document.getElementById(id);
+  if (!el || hintSeen(id)) return;
+  el.style.display = 'flex';
+  markHintSeen(id); // „einmal“: beim nächsten Video nicht wieder
+}
+function dismissCoach(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; markHintSeen(id); }
 
 function sleepMs(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
 function transcribeErr(msg, flags) { var e = new Error(msg); if (flags) for (var k in flags) e[k] = flags[k]; return e; }
@@ -5828,6 +6128,9 @@ async function transcribeVideo(file) {
   // arbeitet daher auf einer lokalen Wortliste (wts) und schreibt erst ganz am Ende.
   var hadCaptions = captionBlocks.length > 0;
   if (!hadCaptions) { document.getElementById('capEditor').style.display = 'none'; enableExports(false); }
+  // Erst-Transkription → Verarbeitungs-Schritt (Overlay + Style-Tab); Re-Transkription bleibt im Captions-Tab
+  if (!hadCaptions) setProcessing(true);
+  setTProgress(5);
   var wts = [];
 
   try {
@@ -5987,12 +6290,15 @@ async function transcribeVideo(file) {
     _lastTrMeta = { model: whisperModel, lang: usedLang, langSetting: whisperLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
+    // Kurz und menschlich statt Technik-Protokoll: „✓ German · 56 words“ (+ „· polished“ bei 💎 Perfect).
+    // Modell/Sprach-Details stehen in der eingeklappten „Video & language“-Zusammenfassung.
     setTStatus(qWarn ? '⚠️' : '✅',
-      wordTimestamps.length + ' words · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '') + ' · language: ' + (usedLang === 'auto' ? 'auto' : usedLang)
+      langLabel(usedLang) + ' · ' + wordTimestamps.length + ' words' + (doTranslate ? ' · → English' : '')
+      + (polishFixes >= 0 ? ' · polished' : '')
       + (truncated ? ' · only the first ' + (MAX_AUDIO_SEC / 60) + ' min were transcribed' : '')
-      + (qWarn ? ' · quality uncertain → try 💎 Perfect' : '')
-      + (polishFixes > 0 ? ' · polished (' + polishFixes + ' fix' + (polishFixes === 1 ? '' : 'es') + ')' : '')
-      + sceneCutSuffix(), false, false);
+      + (qWarn ? ' · quality uncertain — try 💎 Perfect under “Video &amp; language”' : ''), false, false);
+    var wasProcessing = setProcessing(false);
+    if (wasProcessing) switchTab('captions'); // VOR renderSegments: Zeilenhöhen lassen sich nur sichtbar messen
     document.getElementById('capEditor').style.display = 'block';
     renderSegments();
     renderWPills();
@@ -6002,11 +6308,18 @@ async function transcribeVideo(file) {
     resetUndo(); collapseTrSettings(true); // neue Captions = neue Undo-Historie; Einstellungen einklappen
     buildPicker(); // Style-Kacheln zeigen jetzt die eigenen Worte
     scheduleAutosave();
+    if (wasProcessing) {
+      showCoach('coachEdit');
+      if (!hintSeen('readyToast')) { markHintSeen('readyToast'); capToast('Captions ready — fix any word, then Export.'); }
+    }
 
   } catch(err) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
     if (typeof fakeTimer !== 'undefined') clearInterval(fakeTimer);
     console.error(err);
+    // Fehler: Overlay weg, Captions-Tab mit Fehlertext + „Try again“, Sprache/Modell sofort erreichbar
+    if (setProcessing(false)) switchTab('captions');
+    var trs = document.getElementById('trSet'); if (trs) trs.open = true;
     if (hadCaptions && captionBlocks.length) {
       // Vorherige Captions unverändert lassen — Editor/Exporte bleiben benutzbar. Modell/Sprache/Übersetzen
       // wieder auf die Werte stellen, die diese Captions erzeugt haben (sonst zeigt die UI z. B. 💎 Perfect
@@ -6045,7 +6358,6 @@ function enableExports(on) {
   // Video-Export braucht ein abspielbares Bild — SRT/VTT/TXT funktionieren trotzdem
   var bv = document.getElementById('btnVideo'); if (bv && !videoPlayable) bv.disabled = true;
   syncTopExport(null, !!on && videoPlayable);
-  var ns = document.getElementById('nextSteps'); if (ns) ns.style.display = on ? 'flex' : 'none';
 }
 // ── Abspielbarkeit prüfen: HEVC ohne Decoder / reine Audiodatei ──
 var MSG_HEVC = 'This video uses HEVC (iPhone "High Efficiency"), which this browser can\'t play. Open Capivo in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.';
@@ -6122,9 +6434,16 @@ function layoutPreviewFrame(setFont) {
   var ar = vid.videoWidth / vid.videoHeight;
   if (reframeActive(vid.videoWidth, vid.videoHeight)) ar = 9 / 16;
   if (!(ar > 0) || !isFinite(ar)) ar = 9 / 16; // Video ohne Bild (HEVC/Audio-only): nie durch 0 teilen
+  // Vorschau so groß wie der Platz erlaubt (vorher fest max. 480×360 → auf 1440×900 nur 270×480 mit
+  // ~800 px leerem Grau): Höhe = Spalte − Video-Leiste − Timeline − Abstände. Breite gedeckelt (720), damit
+  // Querformat-Videos nicht riesig werden und die Startschrift (8 % der Breite, max. 54 px) passt.
   var pcRect = frame.parentElement ? frame.parentElement.getBoundingClientRect() : { width: 360, height: 540 };
-  var maxH = Math.min(480, Math.max(100, (pcRect.height || 540) - 56 - tlReservedHeight()));
-  var maxW = Math.min(360, Math.max(100, (pcRect.width || 360) - 4));
+  var ctrls = document.getElementById('vidCtrls');
+  var ctrlH = (ctrls && ctrls.offsetHeight) || 40;
+  var padX = 28, padY = 28;
+  try { var pcs = getComputedStyle(frame.parentElement); padX = (parseFloat(pcs.paddingLeft) || 0) + (parseFloat(pcs.paddingRight) || 0); padY = (parseFloat(pcs.paddingTop) || 0) + (parseFloat(pcs.paddingBottom) || 0); } catch (e) {}
+  var maxH = Math.max(100, (pcRect.height || 540) - padY - ctrlH - 12 - tlReservedHeight()); // 12 = Abstand Rahmen↔Leiste
+  var maxW = Math.min(720, Math.max(100, (pcRect.width || 360) - padX));
   var h = maxH, w = Math.round(h * ar);
   if (w > maxW) { w = maxW; h = Math.round(w / ar); }
   if (w < 120) { w = 120; h = Math.round(w / ar); }
@@ -6155,8 +6474,13 @@ function loadVideo(file) {
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
   _cutRun++; sceneCuts = []; // Szenenschnitte gehören zum Video
   videoPlayable = true; showVideoWarn('');
-  resetUndo(); collapseTrSettings(false);
+  resetUndo(); collapseTrSettings(true);
   openEditor();
+  setTitle(titleFromFile(file.name)); setSaveInd(''); closeExportSheet();
+  // Sofort in den Verarbeitungs-Schritt (Overlay + Style-Tab) — nicht erst nach den Metadaten, sonst
+  // blitzt kurz der leere „Choose a video“-Zustand auf. Ein Autosave-Restore beendet ihn gleich wieder.
+  document.getElementById('frameDropZone').style.display = 'none';
+  setProcessing(true);
   tlReset(); tlShow(true); // vor layoutPreviewFrame sichtbar → Rahmenhöhe rechnet die Timeline schon ein
 
   var vid = document.getElementById('mainVid');
@@ -6179,12 +6503,12 @@ function loadVideo(file) {
     document.getElementById('frameDropZone').style.display = 'none';
     document.getElementById('prevBg').style.background    = '#000';
     document.getElementById('vidCtrls').style.display     = 'flex';
-    document.getElementById('uploadLabel').textContent     = '📁 Replace video';
+    document.getElementById('uploadLabel').innerHTML       = icon('upload') + ' Replace video';
     vidReady = true;
     // Gesamtdauer sofort zeigen, nicht erst beim ersten timeupdate (sonst steht bis zum Abspielen "0:00 / 0:00")
     document.getElementById('timeLbl').textContent = fmtS(0) + ' / ' + fmtS(vid.duration);
     showPlayOverlay(true);
-    document.getElementById('ppBtn').textContent = '▶';
+    setPPIcon(false);
     updateOverlay();
     captureTileFrame(url, vid.duration); // Style-Kacheln mit echtem Standbild
     var restored = restoreOrTranscribe(file, vid.duration);
@@ -6203,13 +6527,14 @@ function loadVideo(file) {
     if (vid.paused) syncCaption(t); // Seek im Pausenzustand
   };
 
-  vid.onplay  = function() { showPlayOverlay(false); document.getElementById('ppBtn').textContent = '⏸'; startCapLoop(); };
-  vid.onpause = function() { showPlayOverlay(true);  document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
-  vid.onended = function() { showPlayOverlay(true); document.getElementById('ppBtn').textContent = '▶'; syncCaption(vid.currentTime); };
+  vid.onplay  = function() { showPlayOverlay(false); setPPIcon(true); startCapLoop(); };
+  vid.onpause = function() { showPlayOverlay(true);  setPPIcon(false); syncCaption(vid.currentTime); };
+  vid.onended = function() { showPlayOverlay(true); setPPIcon(false); syncCaption(vid.currentTime); };
   vid.onerror = function() {
     // In-App-Fehler statt nativem alert(): gleiche Fehlerbox wie bei anderen Problemen + Hinweis zum Weitermachen
     vidReady = false; vid.style.display = 'none'; document.getElementById('frameDropZone').style.display = 'flex';
     videoPlayable = false; enableExports(false);
+    if (setProcessing(false)) switchTab('captions'); // Fehlertext steht im Captions-Tab
     setTStatus('❌', 'Couldn\'t load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone\'s Photos app, then upload it again.', false, false);
     showVideoWarn('This video couldn\'t be opened in this browser. Tap “Upload video” to try another file.');
     // Manche Browser (z. B. Firefox bei HEVC) melden einen Fehler statt Breite 0 — der Ton ist trotzdem
@@ -6228,6 +6553,14 @@ function loadVideo(file) {
 function showPlayOverlay(show) {
   document.getElementById('playOverlay').style.display = show ? 'flex' : 'none';
   if (show) positionPlayIcon();
+}
+// Icon aus dem SVG-Sprite (#i-…) — einheitlicher Icon-Satz statt Emoji/Unicode-Glyphen
+function icon(n) { return '<svg class="ic" aria-hidden="true"><use href="#i-' + n + '"/></svg>'; }
+function setPPIcon(playing) {
+  var b = document.getElementById('ppBtn');
+  if (!b) return;
+  b.innerHTML = icon(playing ? 'pause' : 'play');
+  if (b.setAttribute) b.setAttribute('aria-label', playing ? 'Pause' : 'Play');
 }
 // Play-Icon aus dem Untertitel-Bereich schieben: liegt der Untertitel (z. B. Position „Middle“ oder
 // per Drag verschoben) in der Bildmitte, wandert das Icon in den größeren freien Bereich darüber bzw.
@@ -6278,7 +6611,8 @@ function toggleMute() {
   var v = document.getElementById('mainVid');
   vidMuted = !vidMuted; v.muted = vidMuted;
   var b = document.getElementById('muteBtn');
-  b.textContent = vidMuted ? '🔇' : '🔊';
+  b.innerHTML = icon(vidMuted ? 'mute' : 'vol');
+  if (b.setAttribute) b.setAttribute('aria-label', vidMuted ? 'Unmute' : 'Mute');
   b.className   = vidMuted ? 'mute-btn' : 'mute-btn on';
 }
 
@@ -6308,11 +6642,25 @@ function applyCase(t) { return capCase === 'upper' ? String(t).toUpperCase() : c
 function displayWord(w) { return applyCase(capNoPunct ? stripPunct(w) : w); }   // Vorschau + Video-Export
 function subtitleText(t) { return applyCase(t); }                                 // SRT/VTT/TXT: Satzzeichen bleiben
 function syncTextFormatUI() {
-  var pb = document.getElementById('punctBtn'); if (pb && pb.classList) pb.classList.toggle('on', capNoPunct);
+  var pb = document.getElementById('punctBtn'); if (pb) { pb.checked = capNoPunct; if (pb.classList) pb.classList.toggle('on', capNoPunct); }
   var cs = document.getElementById('caseSel'); if (cs) cs.value = capCase;
 }
 function togglePunct() { capNoPunct = !capNoPunct; syncTextFormatUI(); _lastKey = null; updateOverlay(); scheduleAutosave(); }
-function setCaptionCase(v) { capCase = (v === 'upper' || v === 'lower') ? v : 'asis'; syncTextFormatUI(); _lastKey = null; updateOverlay(); scheduleAutosave(); }
+function setCaptionCase(v) { capCase = (['upper', 'lower', 'orig'].indexOf(v) >= 0) ? v : 'asis'; syncTextFormatUI(); _lastKey = null; updateOverlay(); scheduleAutosave(); }
+// EIN Schalter für Groß/Klein: „Style default“ (asis) lässt den Style entscheiden (z. B. Hormozi = GROSS);
+// UPPERCASE/lowercase/„As typed“ überstimmen die Schreibweise des Styles (text-transform + hlUpper) in
+// Vorschau UND Export — vorher konnte „Case: as spoken“ neben einem Großbuchstaben-Style stehen
+// (Widerspruch) und der doppelte „AA Uppercase“-Knopf im Customize-Bereich verwirrte. Stabiles Objekt je
+// Style+Case, weil Layout-Caches (capLayout/_capStaticLayer) die Style-Identität vergleichen.
+var _caseStyleCache = { s: null, c: null, v: null };
+function caseStyle(s) {
+  if (!s || capCase === 'asis' || (s.tt !== 'uppercase' && !s.hlUpper)) return s;
+  var c = _caseStyleCache;
+  if (c.s === s && c.c === capCase) return c.v;
+  var v = Object.assign({}, s, { tt: 'none', hlUpper: false });
+  _caseStyleCache = { s: s, c: capCase, v: v };
+  return v;
+}
 // ── Globaler Timing-Versatz ──
 // Konvention überall: timeOff > 0 = Captions FRÜHER (Vorschau/Export rechnen t + timeOff, SRT/VTT offT()).
 // Der Regler zeigt die intuitive Zeitachse (links früher, rechts später) → Wert = −timeOff.
@@ -6458,6 +6806,7 @@ function dlText(content, name) {
   setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
 }
 function dlBlob(blob, name) {
+  if (/\.(mp4|webm)$/i.test(name)) _lastDlName = name; // für „✓ Saved — …“ im Export-Blatt
   var url = URL.createObjectURL(blob);
   var a   = document.createElement('a');
   a.href = url; a.download = name; a.click();
@@ -7045,12 +7394,12 @@ async function tryFastExport(vid) {
   recProg.style.display = 'block';
   recBar.style.width = '0%';
   recMsg.textContent = 'Rendering video…' + (cutTotalSec > 0.05 ? ' · ✂️ cutting ' + cutTotalSec.toFixed(1) + 's of silence/filler words' : '');
-  var t0 = Date.now();
+  var t0 = Date.now(), wmF = needsWatermark();
   try {
     var blob = await exportFastWebCodecs(currentFile, {
       W: geoF.W, H: geoF.H, srcW: vid.videoWidth, srcH: vid.videoHeight, mode: geoF.mode,
       style: STYLES.find(function(x){ return x.id === activeId; }),
-      wmOn: needsWatermark(), // Anmeldestatus JETZT — gilt für das ganze Video (wie im Echtzeit-Pfad)
+      wmOn: wmF, // Anmeldestatus JETZT — gilt für das ganze Video (wie im Echtzeit-Pfad)
       cutRegions: cutRegions,
       onProgress: function(p) {
         recBar.style.width = Math.round(p * 100) + '%';
@@ -7069,7 +7418,7 @@ async function tryFastExport(vid) {
     exportBtnState(null);
     isExporting = false;
     if (ctrls) ctrls.classList.remove('exporting'); tlRequestDraw(); // Timeline pausierte während des Exports
-    maybeUpsell();
+    exportDone(wmF);
     return true;
   } catch (e) {
     console.warn('[export] WebCodecs-Schnellexport nicht möglich → Echtzeit-Export (MediaRecorder). Grund:', e && e.message || e, e);
@@ -7153,6 +7502,7 @@ function drawVideoFit(ctx, vid, W, H, fit) {
 function setExportRes(v) {
   exportRes = v === 'orig' ? 'orig' : '1080';
   try { localStorage.setItem('capivo.expRes', exportRes); } catch (e) {}
+  syncExpSub();
 }
 // Vorschau zeigt das Ausgabeformat: 9:16-Rahmen, bei „blur“ ganzes Video + unscharfer Hintergrund
 var _blurBgTimer = null;
@@ -7220,7 +7570,7 @@ function exportBtnState(text) {
     if (b.style && b.style.removeProperty) b.style.removeProperty('--p');
     b.disabled = !videoPlayable || !captionBlocks.length;
     b.removeAttribute && b.removeAttribute('aria-busy');
-    if (lbl) lbl.textContent = 'Video + captions';
+    if (lbl) lbl.textContent = 'Download video';
   }
 }
 async function exportVideoWithCaptions() {
@@ -7228,7 +7578,7 @@ async function exportVideoWithCaptions() {
   // Button zeigen — die Fortschrittsleiste darunter liegt auf dem Handy oft außerhalb des Bildschirms.
   var cutTimer = null;
   if (breakAtCuts && typeof cutsDetecting === 'function' && cutsDetecting() && !isExporting) {
-    var showCuts = function() { exportBtnState('Finding scene cuts ' + Math.max(0, Math.min(99, (_cutState && _cutState.pct) || 0)) + '%…'); };
+    var showCuts = function() { exportBtnState('Preparing ' + Math.max(0, Math.min(99, (_cutState && _cutState.pct) || 0)) + '%…'); };
     showCuts(); cutTimer = setInterval(showCuts, 250);
   }
   try { await waitForSceneCuts(20000); }
@@ -7236,6 +7586,7 @@ async function exportVideoWithCaptions() {
   var vid = document.getElementById('mainVid');
   if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
   if (isExporting) return; // Doppelklick während eines laufenden Exports
+  showExportMain(); // „Export again“/neuer Export: Erfolgszeile weg, Fortschritt sichtbar
   exportBtnState('Preparing…');
   await waitAuth(); // Session-Wiederherstellung abwarten, bevor needsWatermark() entscheidet
 
@@ -7311,7 +7662,7 @@ async function exportVideoWithCaptions() {
     isExporting = false;
     var ctrls = document.getElementById('vidCtrls');
     if (ctrls) ctrls.classList.remove('exporting'); tlRequestDraw(); // Timeline pausierte während des Exports
-    maybeUpsell(); // einmalig, erst NACH dem ersten erfolgreichen Export
+    exportDone(wmOn); // Erfolg inline im Export-Blatt (statt Upsell-Modal)
   };
 
   // Play/Pause/Seek/Mute während des Renderns sperren — sonst hängt die Fertig-Erkennung für immer,
@@ -7608,29 +7959,9 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
 
   // Mehrzeiliger Umbruch — bei CAPTION_LINES>1 wird möglichst gleichmäßig auf genau so viele
   // Zeilen verteilt (nicht nur bei Überlauf gebrochen), sonst würden kurze Blöcke nie umbrechen.
-  var lines;
-  if (CAPTION_LINES <= 1 || wordInfo.length <= 1) {
-    lines = [wordInfo];
-  } else {
-    var n = wordInfo.length;
-    var target = Math.min(CAPTION_LINES, n);
-    var total  = wordInfo.reduce(function(a, it){ return a + it.w; }, 0) + sp * (n - 1);
-    var perLine = total / target;
-    lines = [[]]; var lw = 0, remaining = target;
-    wordInfo.forEach(function(it, i) {
-      var add = (lines[lines.length - 1].length ? sp : 0) + it.w;
-      var remainingWords = n - i;
-      var shouldBreak = lines[lines.length - 1].length && remaining > 1 && remainingWords >= remaining
-        && (lw + add > perLine);
-      if (shouldBreak) { lines.push([]); lw = 0; add = it.w; remaining--; }
-      lines[lines.length - 1].push(it);
-      lw += add;
-    });
-  }
-  // Harte Breitenbegrenzung NACH der Zielzeilen-Verteilung — verhindert, dass eine Zeile (auch die
-  // letzte, oder die einzige bei CAPTION_LINES=1) über die Safe-Zone hinausragt. Identische Logik wie
-  // in wrapCaptionLines() (Editor-Vorschau), damit beide garantiert dasselbe Umbruchergebnis liefern.
-  lines = clampLinesToWidth(lines, maxW, sp);
+  // Identische Verteilung wie die Vorschau (wrapCaptionLines) — gemeinsame Funktion, nie mehr Zeilen als
+  // „Max lines“, solange die Mindestgröße reicht.
+  var lines = capDistributeLines(wordInfo, CAPTION_LINES, sp, maxW);
 
   var lh   = fsS * 1.28 * (capLineH(s) / 1.3); // gleiche Relation wie CSS line-height in der Vorschau
   // Muss exakt applyPos() (DOM-Vorschau, #capOverlay) nachbilden, sonst weicht die Position im
@@ -7675,6 +8006,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
 }
 function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   if (!captionBlocks.length) return;
+  s = caseStyle(s); // gleiche Case-Regel wie die Vorschau (updateOverlay)
   t = t + timeOff; // Timing-Feinschliff
   var bi = currentBlockIdx(t);
   if (bi < 0 && forceShow) bi = nearestBlockIdx(t);
@@ -8040,11 +8372,13 @@ function updateShowcaseArrows() {
 // ═══════════════════════════════════════
 // EDITOR-UX: Tabs, Top-Export, Undo/Redo, Timing pro Zeile, Inline-Edit in der Vorschau, Brand-Kit
 // ═══════════════════════════════════════
-// Tabs statt einer langen Regler-Wand: Captions (Text) · Style (Look) · Export. Alle Sektionen bleiben im
-// DOM — der Tab setzt nur data-tab am Panel, CSS blendet den Rest aus (IDs/Funktionen unverändert).
+// Zwei Tabs: Captions (Transkript) · Style (Look). Alle Sektionen bleiben im DOM — der Tab setzt nur
+// data-tab am Panel, CSS blendet den Rest aus (IDs/Funktionen unverändert). Der frühere Export-Tab ist das
+// Export-Blatt am Knopf oben → switchTab('export') öffnet aus Kompatibilität dieses Blatt.
 var edTab = 'captions';
 function switchTab(name) {
-  if (['captions', 'style', 'export'].indexOf(name) < 0) return;
+  if (name === 'export') { openExportSheet(); return; }
+  if (['captions', 'style'].indexOf(name) < 0) return;
   edTab = name;
   var col = document.getElementById('ctrlCol');
   if (col) { col.dataset.tab = name; if (col.setAttribute) col.setAttribute('data-tab', name); col.scrollTop = 0; }
@@ -8053,33 +8387,140 @@ function switchTab(name) {
     b.classList.toggle('on', on);
     if (b.setAttribute) b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
+  if (name === 'captions') fitSegHeights();
 }
-// Export-Knopf oben rechts (wie Submagic/Captions.ai): springt in den Export-Tab und startet das MP4 —
-// Auflösung/Format behalten ihre (guten) Standardwerte; wer sie ändern will, sieht sie im Tab.
+// Zeilen, die im verborgenen Tab gerendert wurden (scrollHeight 0 → Notfallhöhe), beim Sichtbarwerden
+// nachmessen — alle Reads zuerst, dann alle Writes (ein Reflow).
+function fitSegHeights() {
+  if (typeof document === 'undefined' || !document.querySelectorAll) return;
+  var tas = [], hs = [];
+  document.querySelectorAll('.cap-seg-ta').forEach(function(t) { tas.push(t); });
+  tas.forEach(function(t, i) { hs[i] = t.scrollHeight; });
+  tas.forEach(function(t, i) { if (hs[i] > (parseFloat(t.style.height) || 0)) t.style.height = hs[i] + 'px'; }); // nur zu niedrige wachsen
+}
+// Export-Knopf oben rechts: Fortschritt direkt am Knopf (auch das Warten auf die Schnitterkennung —
+// als neutrales „Preparing“, nicht als Technik-Status).
 function syncTopExport(text, enabled) {
   var tb = document.getElementById('tbExport');
   if (!tb) return;
   if (text) {
     tb.disabled = true;
     var pm = /(\d+)%/.exec(text);
-    tb.textContent = '⏳ ' + (pm ? pm[1] + '%' : 'Exporting…');
-  } else { tb.disabled = !enabled; tb.textContent = '⬇ Export'; }
+    var prep = /scene cuts|Preparing|Checking/i.test(text);
+    tb.textContent = (prep ? 'Preparing' : 'Exporting') + (pm ? ' ' + pm[1] + '%' : '…');
+  } else { tb.disabled = !enabled; tb.textContent = 'Export'; }
+}
+// ── Export-Blatt ──
+// Klick 1 = Blatt öffnen, Klick 2 = „Download video“ (Datei → MP4 bleibt bei 2 Klicks: Upload + Download,
+// wenn man „Skip this next time“ gesetzt hat; sonst Upload + Export + Download). „Skip“ wird pro Gerät
+// gemerkt: Export lädt dann sofort herunter, das Blatt öffnet sich nur noch zur Fortschrittsanzeige.
+var EXP_SKIP_KEY = 'capivo.expSkip';
+function expSkip() { try { return typeof localStorage !== 'undefined' && localStorage.getItem(EXP_SKIP_KEY) === '1'; } catch (e) { return false; } }
+function setExpSkip(on) {
+  try { if (on) localStorage.setItem(EXP_SKIP_KEY, '1'); else localStorage.removeItem(EXP_SKIP_KEY); } catch (e) {}
+  var c = document.getElementById('expSkipChk'); if (c) c.checked = !!on;
+}
+function exportSheetOpen() { var sh = document.getElementById('expSheet'); return !!(sh && sh.style.display !== 'none'); }
+function openExportSheet() {
+  var sh = document.getElementById('expSheet');
+  if (!sh) return;
+  closeMoreMenu();
+  if (!isExporting) showExportMain();
+  var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
+  syncExpSub(); updateAcctUI();
+  var nt = document.getElementById('expNote'); if (nt) nt.style.display = 'none'; // alte Hinweise (z. B. Anmeldung down) weg
+  sh.style.display = 'block';
+  var tb = document.getElementById('tbExport'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'true');
+}
+function closeExportSheet() {
+  var sh = document.getElementById('expSheet');
+  if (sh) sh.style.display = 'none';
+  var tb = document.getElementById('tbExport'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'false');
+}
+function showExportMain() {
+  var m = document.getElementById('expMain'), d = document.getElementById('expDone');
+  if (m) m.style.display = ''; if (d) d.style.display = 'none';
+}
+// Unterzeile des Download-Knopfs: Format + Auflösung, damit man ohne „Options“ sieht, was man bekommt
+function syncExpSub() {
+  var el = document.getElementById('btnVideoSub');
+  if (el) el.textContent = 'MP4 · ' + (exportRes === 'orig' ? 'original size' : '1080p');
+  var r = document.getElementById('expRes'); if (r && r.value !== exportRes) r.value = exportRes; // gemerkte Wahl anzeigen
 }
 function topExport() {
-  switchTab('export');
+  if (isExporting) { openExportSheet(); return; }
   var b = document.getElementById('btnVideo');
-  if (b && !b.disabled && !isExporting) exportVideoWithCaptions();
+  if (expSkip() && b && !b.disabled) { openExportSheet(); exportVideoWithCaptions(); return; }
+  if (exportSheetOpen()) closeExportSheet(); else openExportSheet();
 }
-// Transkriptions-Einstellungen nach erfolgreicher Transkription einklappen — Zusammenfassung bleibt sichtbar.
+// Nach dem Speichern: Erfolg INLINE im Blatt (kein blockierendes Modal mehr) + „Remove watermark (free)“
+// nur, wenn dieses Video mit Wasserzeichen gerendert wurde.
+var _lastDlName = 'capivo-video.mp4';
+function exportDone(wmOn) {
+  var m = document.getElementById('expMain'), d = document.getElementById('expDone');
+  var nm = document.getElementById('expDoneName'); if (nm) nm.textContent = _lastDlName;
+  var rw = document.getElementById('expRmWm'); if (rw) rw.style.display = wmOn ? '' : 'none';
+  if (m) m.style.display = 'none'; if (d) d.style.display = '';
+  if (!exportSheetOpen()) capToast('✓ Saved — ' + _lastDlName);
+}
+function exportAgain() { showExportMain(); exportVideoWithCaptions(); }
+// ⋯-Menü in der Kopfzeile (Konto, Projekte, Tastenkürzel)
+function toggleMoreMenu(e) {
+  if (e && e.stopPropagation) e.stopPropagation();
+  var m = document.getElementById('moreMenu');
+  if (!m) return;
+  var open = m.style.display === 'none';
+  m.style.display = open ? 'block' : 'none';
+  var b = document.getElementById('moreBtn'); if (b && b.setAttribute) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (open) closeExportSheet();
+}
+function closeMoreMenu() {
+  var m = document.getElementById('moreMenu'); if (m) m.style.display = 'none';
+  var b = document.getElementById('moreBtn'); if (b && b.setAttribute) b.setAttribute('aria-expanded', 'false');
+}
+// Klick/Tipp daneben schließt Menü und Export-Blatt (das Blatt nicht während eines Exports — Fortschritt)
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener('mousedown', function(e) {
+    var t = e.target;
+    if (!t || !t.closest) return;
+    if (!t.closest('#moreMenu') && !t.closest('#moreBtn')) closeMoreMenu();
+    if (!t.closest('#expSheet') && !t.closest('#tbExport') && !t.closest('#acctModal') && !isExporting) closeExportSheet();
+  }, true);
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') { closeMoreMenu(); if (!isExporting) closeExportSheet(); }
+  });
+}
+// Titel = Dateiname (ohne Endung), umbenennbar; wird in Autosave/Projekt gespeichert
+var projTitle = '';
+function titleFromFile(name) { return String(name || '').replace(/\.[a-z0-9]{2,5}$/i, '').replace(/[_]+/g, ' ').trim().slice(0, 80); }
+function setTitle(t) {
+  projTitle = String(t || '').slice(0, 80);
+  var el = document.getElementById('projTitle'); if (el && el.value !== projTitle) el.value = projTitle;
+}
+function onTitleInput(v) { projTitle = String(v || '').slice(0, 80); scheduleAutosave(); }
+// Autosave-Anzeige („Saved ✓“) in der Kopfzeile statt eines Speichern-Knopfs
+var _saveIndTimer = null;
+function setSaveInd(state) {
+  var el = document.getElementById('saveInd');
+  if (!el) return;
+  clearTimeout(_saveIndTimer);
+  if (state === 'saved') el.innerHTML = icon('check') + 'Saved';
+  else if (state === 'saving') el.textContent = 'Saving…';
+  else el.textContent = '';
+  if (el.classList) el.classList.toggle('on', !!state);
+}
+// Sprache als Wort für Status/Zusammenfassung: 'german' → 'German'
+function langLabel(l) { return (!l || l === 'auto') ? 'Auto language' : l.charAt(0).toUpperCase() + l.slice(1); }
+// Zusammenfassung der eingeklappten „Video & language“-Sektion
 function updateTrSetSum() {
   var el = document.getElementById('trSetSum');
   if (!el) return;
-  var lang = whisperLang === 'auto' ? 'Auto language' : (whisperLang.charAt(0).toUpperCase() + whisperLang.slice(1));
-  el.textContent = '· ' + lang + ' · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '');
+  el.textContent = '· ' + langLabel(whisperLang) + ' · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '');
 }
+// „Video & language“ ist standardmäßig zu (Sprache wählt man schon auf der Startseite); nur Fehler öffnen sie.
 function collapseTrSettings(collapse) {
   var d = document.getElementById('trSet');
-  if (d) d.open = !collapse;
+  if (d && collapse) d.open = false;
   updateTrSetSum();
 }
 
@@ -8318,9 +8759,10 @@ function openEditorClean() {
   if (typeof setZoom === 'function') setZoom(1);
   document.getElementById('capEditor').style.display     = 'none';
   document.getElementById('retryWrap').style.display     = 'none';
-  setTStatus('🎙️', 'Upload a video to generate captions', false, false);
+  setTStatus('', 'Upload a video to generate captions', false, false);
   enableExports(false);
-  resetUndo(); collapseTrSettings(false);
+  resetUndo(); collapseTrSettings(true);
+  setProcessing(false); setTitle(''); setSaveInd(''); closeExportSheet();
   _tileFrameRun++; _tileFrame = null;
   tlReset(); tlShow(false);
   openEditor();
@@ -8328,6 +8770,7 @@ function openEditorClean() {
 function goBack() {
   var v = document.getElementById('mainVid');
   if (!v.paused) v.pause();
+  closeExportSheet(); closeMoreMenu();
   document.getElementById('editor').style.display  = 'none';
   document.getElementById('landing').style.display = 'flex';
   document.body.classList.remove('editor-open');
@@ -8371,11 +8814,20 @@ function zoomBy(delta) { setZoom(zoomLevel + delta); }
 (function(){
   var frame = document.getElementById('prevFrame');
   if (!frame) return;
+  // Zoom-Widget entfernt (Standard 100 %); Zoom nur noch per Pinch/Ctrl+Mausrad — normales Scrollen über
+  // der Vorschau zoomte sonst unbemerkt, ohne sichtbare Rückstellmöglichkeit.
   frame.addEventListener('wheel', function(e){
+    if (!e.ctrlKey && !e.metaKey) return;
     e.preventDefault();
     zoomBy(e.deltaY < 0 ? 0.1 : -0.1);
   }, { passive: false });
 })();
+// Fenstergröße/Drehung ändert den Platz → Vorschau neu einpassen (vorher blieb sie in der Startgröße)
+var _relayoutTimer = null;
+if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', function() {
+  clearTimeout(_relayoutTimer);
+  _relayoutTimer = setTimeout(function() { if (typeof tlRelayout === 'function') tlRelayout(); }, 120);
+});
 
 // ═══════════════════════════════════════
 // BEDIENPANEL-BREITE PER DRAG ANPASSEN
