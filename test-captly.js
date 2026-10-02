@@ -105,7 +105,11 @@ undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFont
 brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,fontCssUrl:fontCssUrl,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
-detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables};`;
+detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
+tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomAt,tlTickStep:tlTickStep,tlSnap:tlSnap,tlSnapCands:tlSnapCands,
+tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
+tlNudge:tlNudge,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
+setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 
@@ -2182,6 +2186,145 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.syncTopExport('Rendering 42%…', true); ok(E('tbExport').disabled && /42%/.test(E('tbExport').textContent), 'Top-Export zeigt Fortschritt');
     T.syncTopExport(null, true); ok(!E('tbExport').disabled && /Export/.test(E('tbExport').textContent), 'Top-Export wieder frei');
     T.updateTrSetSum(); ok(/Fast|Perfect/.test(E('trSetSum').textContent), 'Transkriptions-Zusammenfassung: ' + E('trSetSum').textContent);
+  }
+
+  // Timeline: Zeit↔x, Zoom/Scroll, Fangen, Verschieben/Trimmen mit Grenzen, Wort-Skalierung, Undo, Export
+  {
+    const near = (a, b, e) => Math.abs(a - b) <= (e || 1e-6);
+    // Zeit ↔ x mit Zoom/Scroll
+    const v = { start: 10, pps: 50 };
+    ok(T.tlTimeToX(12, v) === 100 && T.tlXToTime(100, v) === 12, 'Zeit↔x: ' + T.tlTimeToX(12, v));
+    ok(near(T.tlXToTime(T.tlTimeToX(33.3, v), v), 33.3), 'Zeit↔x Rundreise');
+    let cv = T.tlClampView({ start: 0, pps: 1 }, 60, 600);
+    ok(cv.pps === 10 && cv.start === 0, 'ganz raus = ganzes Video: ' + JSON.stringify(cv));
+    cv = T.tlClampView({ start: 0, pps: 5000 }, 60, 600);
+    ok(cv.pps === 600, 'ganz rein = 1 s sichtbar: ' + cv.pps);
+    cv = T.tlClampView({ start: 58, pps: 100 }, 60, 600);
+    ok(cv.start === 54, 'Scroll nie hinter das Videoende: ' + cv.start);
+    ok(T.tlClampView({ start: -5, pps: 100 }, 60, 600).start === 0, 'Scroll nie vor 0');
+    const z = T.tlZoomAt({ start: 10, pps: 20 }, 2, 300, 60, 600);
+    ok(z.pps === 40 && near(T.tlXToTime(300, z), 25), 'Zoom um Anker: Zeit unter dem Zeiger bleibt: ' + JSON.stringify(z));
+    ok(T.tlTickStep(10, 64) === 10 && T.tlTickStep(600, 64) === 0.2 && T.tlTickStep(100, 64) === 1, 'adaptive Lineal-Abstände');
+    // Fangen: Schwelle in Pixeln, Priorität bei Gleichstand
+    const cands = [{ t: 5, kind: 'word', p: 1 }, { t: 5.001, kind: 'cut', p: 5 }, { t: 7, kind: 'playhead', p: 4 }];
+    ok(T.tlSnap(5.1, cands, 100, 8) === null, '10 px entfernt (> 8 px) → kein Fang');
+    ok(T.tlSnap(5.07, cands, 100, 8).kind === 'cut', 'innerhalb 8 px; Gleichstand (< ½ px) → Schnitt vor Wort');
+    ok(T.tlSnap(6.95, cands, 100, 8).kind === 'playhead', 'nächster Kandidat gewinnt');
+    ok(T.tlSnap(5.1, cands, 1000, 8) === null && T.tlSnap(5.005, cands, 1000, 8).kind === 'cut', 'Schwelle skaliert mit dem Zoom');
+    const mkB = () => [
+      { text: 'eins zwei', start: 1, end: 2, words: [{ word: 'eins', start: 1, end: 1.4 }, { word: 'zwei', start: 1.6, end: 2 }] },
+      { text: 'drei vier', start: 3, end: 4, words: [{ word: 'drei', start: 3, end: 3.5 }, { word: 'vier', start: 3.5, end: 4 }] },
+      { text: 'fünf', start: 6, end: 6.5, words: [{ word: 'fünf', start: 6, end: 6.5 }] }];
+    mkB().forEach(b => { b.srcWords = JSON.parse(JSON.stringify(b.words)); });
+    let bl = mkB();
+    const cs = T.tlSnapCands(bl, 1, { cuts: [2.5], off: 0, playhead: 4.8, speech: [{ start: 2.9, end: 4.2 }], words: bl[1].words });
+    const kinds = cs.map(c => c.kind + '@' + c.t).join(',');
+    ok(/cut@2.5/.test(kinds) && /playhead@4.8/.test(kinds) && /caption@2,/.test(kinds) && /caption@6/.test(kinds)
+       && /speech@2.9/.test(kinds) && /word@3.5/.test(kinds) && /word@1.6/.test(kinds), 'Fangpunkte: Schnitt/Kopf/Nachbarn/Sprache/Wörter: ' + kinds);
+    ok(T.tlSnapCands(bl, 1, { cuts: [2.5], off: 0.2 })[0].t === 2.7, 'timeOff: Schnitt in Block-Zeit umgerechnet');
+    // Grenzen: Nachbarn, Videoende, Szenenschnitt
+    ok(JSON.stringify(T.tlBounds(bl, 1, { dur: 10 })) === '{"lo":2,"hi":6}', 'Grenzen = Nachbarn');
+    ok(JSON.stringify(T.tlBounds(bl, 1, { dur: 10, cuts: [2.5, 5], respectCuts: true })) === '{"lo":2.5,"hi":5}', 'mit Schnitten: links/rechts begrenzt');
+    ok(JSON.stringify(T.tlBounds(bl, 1, { dur: 10, cuts: [2.5, 5], respectCuts: false })) === '{"lo":2,"hi":6}', 'Snap aus: Schnitte frei');
+    ok(T.tlBounds(bl, 2, { dur: 7 }).hi === 7 && T.tlBounds(bl, 0, { dur: 7 }).lo === 0, 'Video [0, dur]');
+    // Verschieben mit Klemmen + Schnitt
+    let r = T.tlDragSpan(bl[1], 'move', 0.4, T.tlBounds(bl, 1, { dur: 10 }));
+    ok(r.start === 3.4 && r.end === 4.4 && !r.snap, 'Verschieben um +0.4: ' + JSON.stringify(r));
+    r = T.tlDragSpan(bl[1], 'move', 5, T.tlBounds(bl, 1, { dur: 10 }));
+    ok(r.start === 5 && r.end === 6, 'nie in den nächsten Block (geklemmt, Länge bleibt): ' + JSON.stringify(r));
+    r = T.tlDragSpan(bl[1], 'move', -5, T.tlBounds(bl, 1, { dur: 10, cuts: [2.5], respectCuts: true }));
+    ok(r.start === 2.5 && r.end === 3.5, 'Schnitt links stoppt den Block: ' + JSON.stringify(r));
+    r = T.tlDragSpan(bl[1], 'move', -0.8, T.tlBounds(bl, 1, { dur: 10, cuts: [2.5], respectCuts: false }));
+    ok(r.start === 2.2 && r.end === 3.2, 'Snap aus + bewusst gezogen: über den Schnitt erlaubt: ' + JSON.stringify(r));
+    // Verschieben mit Fangen: Endkante auf Schnitt
+    const bd = T.tlBounds(bl, 1, { dur: 10 });
+    r = T.tlDragSpan(bl[1], 'move', 0.46, Object.assign({ cands: [{ t: 4.5, kind: 'cut', p: 5 }], pps: 100, thr: 8 }, bd));
+    ok(r.end === 4.5 && r.start === 3.5 && r.snap && r.snap.kind === 'cut', 'Endkante rastet am Schnitt ein: ' + JSON.stringify(r));
+    // Startkante am Schnitt, Endkante zufällig nahe einer Wortgrenze → die Wortgrenze würde weggeklemmt: Schnitt gewinnt
+    const bdc = T.tlBounds(bl, 1, { dur: 10, cuts: [2.5], respectCuts: true });
+    r = T.tlDragSpan(bl[1], 'move', -0.54, Object.assign({ cands: [{ t: 2.5, kind: 'cut', p: 5 }, { t: 3.47, kind: 'word', p: 1 }], pps: 100, thr: 8 }, bdc));
+    ok(r.start === 2.5 && r.snap && r.snap.kind === 'cut', 'Fang überlebt das Klemmen: Schnitt statt Wortgrenze: ' + JSON.stringify(r));
+    r = T.tlDragSpan(bl[1], 'move', -3, Object.assign({ cands: [{ t: 2.5, kind: 'cut', p: 5 }], pps: 100, thr: 8 }, bdc));
+    ok(r.start === 2.5 && r.snap && r.snap.kind === 'cut', 'am Schnitt angeschlagen → als Fang angezeigt');
+    r = T.tlDragSpan(bl[1], 'move', 0.46, Object.assign({ cands: [{ t: 6.2, kind: 'cut', p: 5 }], pps: 1000, thr: 8 }, bd));
+    ok(!r.snap && r.end === 4.46, 'zu weit weg → frei: ' + JSON.stringify(r));
+    // Trimmen
+    r = T.tlDragSpan(bl[1], 'start', -0.5, bd);
+    ok(r.start === 2.5 && r.end === 4, 'Start früher: ' + JSON.stringify(r));
+    r = T.tlDragSpan(bl[1], 'start', -3, bd);
+    ok(r.start === 2, 'Start nie vor dem Vorgänger: ' + r.start);
+    r = T.tlDragSpan(bl[1], 'start', 3, bd);
+    ok(near(r.end - r.start, 0.2), 'Mindestdauer 0.2 s beim Trimmen: ' + JSON.stringify(r));
+    r = T.tlDragSpan(bl[1], 'end', 9, bd);
+    ok(r.end === 6, 'Ende nie über den Nachfolger: ' + r.end);
+    r = T.tlDragSpan(bl[1], 'end', -0.27, Object.assign({ cands: [{ t: 3.7, kind: 'speech', p: 2 }], pps: 100, thr: 8 }, bd));
+    ok(r.end === 3.7 && r.snap.kind === 'speech', 'Endkante fängt am Sprachende: ' + JSON.stringify(r));
+    const many = { start: 0, end: 1, words: Array.from({ length: 8 }, (_, i) => ({ word: 'w' + i, start: i / 8, end: (i + 1) / 8 })) };
+    r = T.tlDragSpan(many, 'end', -0.9, { lo: 0, hi: 5 });
+    ok(near(r.end, 0.4), '8 Wörter: Mindestdauer 8 × 0.05 s: ' + r.end);
+    // Wort-Skalierung
+    let ws = T.tlRetimeWords(bl[1].words, 3, 4, 3, 5);
+    ok(ws[0].start === 3 && ws[0].end === 4 && ws[1].start === 4 && ws[1].end === 5, 'Trimmen skaliert proportional: ' + JSON.stringify(ws));
+    ws = T.tlRetimeWords(bl[0].words, 1, 2, 1.25, 2.25);
+    ok(ws[0].start === 1.25 && ws[0].end === 1.65 && ws[1].start === 1.85, 'Verschieben: alle Wörter um dasselbe Delta: ' + JSON.stringify(ws));
+    ws = T.tlRetimeWords(many.words, 0, 1, 0, 0.4);
+    ok(ws.every(w => w.end - w.start >= 0.05 - 1e-9 && w.start >= 0 && w.end <= 0.4 + 1e-9), 'Mindestlänge je Wort 0.05 s im Block: ' + JSON.stringify(ws.map(w => [w.start, w.end])));
+    ok(ws.every((w, i) => !i || w.start >= ws[i - 1].start), 'Reihenfolge bleibt');
+    // Wellenform-Hüllkurve
+    const aud = new Float32Array(16000); aud[100] = 0.5; aud[200] = -1; aud[8000] = 0.25;
+    const wp = T.computeWavePeaks(aud, 16000, 100);
+    ok(wp.rate === 100 && wp.peaks.length === 200 && wp.peaks[1] === 64 && wp.peaks[2] === -127 && wp.peaks[101] === 32, 'Hüllkurve min/max je 10 ms');
+    ok(T.tlCleanSpeech([{ start: 2, end: 1 }, { start: 'x' }, { start: 1.23456, end: 2 }, null]).length === 1, 'Sprachbereiche gesäubert');
+    // Ein Schreibweg: Undo-Schritt pro Geste, exakt rückgängig
+    T.setState(mkB(), [], 'karaoke'); T.resetUndo(); T.setCaptionsEdited(false); T.setSceneCuts([]);
+    T.getBlocks().forEach(b => { b.srcWords = JSON.parse(JSON.stringify(b.words)); });
+    const before = T.captionSnapshot(), base = JSON.parse(JSON.stringify(T.getBlocks()[1]));
+    ok(T.applyTimelineEdit(1, 3.3, 4.3, base, { live: true }) && T.undoDepth()[0] === 0, 'live: kein Undo-Schritt');
+    T.applyTimelineEdit(1, 3.6, 4.6, base, { live: true });
+    ok(T.applyTimelineEdit(1, 3.5, 4.5, base, { undoSnap: before }) && T.undoDepth()[0] === 1, 'Gestenende: genau EIN Undo-Schritt');
+    let b1 = T.getBlocks()[1];
+    ok(b1.start === 3.5 && b1.words[0].start === 3.5 && b1.words[1].end === 4.5 && b1.srcWords[1].start === 4, 'Wörter + srcWords verschoben: ' + JSON.stringify(b1.srcWords));
+    ok(T.getCaptionsEdited() === true, 'markCaptionsEdited');
+    T.exportSRT();
+    ok(/2\n00:00:03,500 --> 00:00:04,500\ndrei vier/.test(global.LASTBLOB.content), 'SRT nutzt die neuen Zeiten: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 90)));
+    T.undoCaptions();
+    ok(T.captionSnapshot() === before, 'Undo stellt den Stand vor dem Ziehen exakt her');
+    T.redoCaptions(); ok(T.getBlocks()[1].start === 3.5, 'Redo');
+    // Geste endet am Ausgangspunkt → kein Schritt, Daten exakt wie vorher
+    T.setState(mkB(), [], 'karaoke'); T.resetUndo();
+    const snap2 = T.captionSnapshot(), base2 = JSON.parse(JSON.stringify(T.getBlocks()[0]));
+    T.applyTimelineEdit(0, 1.3, 1.9, base2, { live: true });
+    ok(T.applyTimelineEdit(0, 1, 2, base2, { undoSnap: snap2 }) === false && T.undoDepth()[0] === 0 && T.captionSnapshot() === snap2, 'zurück an den Start → unverändert, kein Undo');
+    // Text-Edit danach behält die neue Zeit (srcWords)
+    T.setState(mkB(), [], 'karaoke'); T.resetUndo();
+    T.getBlocks().forEach(b => { b.srcWords = JSON.parse(JSON.stringify(b.words)); });
+    T.applyTimelineEdit(1, 3.2, 4.2, null, {});
+    const eb = T.getBlocks()[1]; eb.text = 'drei fünf'; T.retimeEditedBlock(eb);
+    ok(eb.words[0].start === 3.2 && eb.words[1].end === 4.2, 'Text-Edit nach Verschieben behält Timing: ' + JSON.stringify(eb.words));
+    // Neu-Gruppieren (Wörter pro Block) behält verschobene Zeiten — sie stecken in den Wörtern
+    T.setState(mkB(), [], 'karaoke'); T.resetUndo();
+    T.applyTimelineEdit(2, 7, 7.5, null, {});
+    T.onWpbChange(2);
+    const rg = T.getBlocks(), last = rg[rg.length - 1];
+    ok(last.text === 'fünf' && last.start === 7 && last.words[0].start === 7, 'Regroup behält verschobene Zeit: ' + JSON.stringify(last));
+    T.onWpbChange(4);
+    // Tastatur-Nudge: 1 Frame, Serie = ein Undo-Schritt, Schnitt bremst bei Snap an
+    T.setState(mkB(), [], 'karaoke'); T.resetUndo(); T.setTlSnapOn(true);
+    ok(T.tlNudge(1, 1 / 30) && T.getBlocks()[1].start === 3.033, '→ = 1 Frame: ' + T.getBlocks()[1].start);
+    T.tlNudge(1, 1 / 30);
+    ok(T.undoDepth()[0] === 1 && near(T.getBlocks()[1].start, 3.0667, 0.001), 'Nudge-Serie = ein Undo-Schritt: ' + T.getBlocks()[1].start);
+    T.setState(mkB(), [], 'karaoke'); T.resetUndo(); T.setSceneCuts([4.05]);
+    T.getBlocks().forEach(b => { b.srcWords = JSON.parse(JSON.stringify(b.words)); });
+    T.tlNudge(1, 0.1);
+    ok(T.getBlocks()[1].end === 4.05, 'Nudge stoppt am Schnitt (Snap an): ' + T.getBlocks()[1].end);
+    T.setTlSnapOn(false); T.tlNudge(1, 0.1);
+    ok(T.getBlocks()[1].end === 4.15, 'Snap aus: Nudge darf über den Schnitt: ' + T.getBlocks()[1].end);
+    T.setTlSnapOn(true); T.setSceneCuts([]);
+    // Sprachbereiche reisen im Projekt mit
+    T.setSpeech([{ start: 1, end: 2 }]);
+    ok(JSON.stringify(T.projectPayload().speech) === '[{"start":1,"end":2}]', 'Sprachbereiche im Payload');
+    T.setSpeech([]);
+    ok(T.projectPayload().speech === undefined, 'ohne Sprachbereiche kein Feld');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
