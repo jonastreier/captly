@@ -114,7 +114,8 @@ resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relay
 tlNudge:tlNudge,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
 capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
-wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,setCapLang:function(v){_capLangForce=v;},setWordsState:function(w){wordTimestamps=w;}};`;
+wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBaseName:exportBaseName,openExportSheet:openExportSheet,closeExportSheet:closeExportSheet,
+exportDone:exportDone,dlBlob:dlBlob,shareLastExport:shareLastExport,topExport:topExport,setCapLang:function(v){_capLangForce=v;},setWordsState:function(w){wordTimestamps=w;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setMaxCharsState(40); // Alt-Tests: großzügiges Zeichenlimit (Auto hängt von der Stub-Messung ab); eigene Tests unten
@@ -1365,7 +1366,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const nw = document.getElementById('gateNews'), err = document.getElementById('gateErr');
     document.getElementById('gateNewsTxt').textContent = 'Send me tips';
     g.style.display = 'none'; sh.style.display = 'none'; inp.value = '';
-    ok(T.passEmailGate() === false && g.style.display === '' && sh.style.display === 'block', 'erster Export-Klick: Blatt + E-Mail-Feld, kein Export');
+    ok(T.passEmailGate() === false && g.style.display === '' && sh.style.display === 'block', 'Export ohne offenes Blatt: Blatt + E-Mail-Feld, kein Export');
+    // Blatt öffnen → E-Mail-Feld sofort sichtbar; gültige Adresse + Download = EIN Klick
+    g.style.display = 'none'; sh.style.display = 'none';
+    T.openExportSheet();
+    ok(g.style.display === '' && sh.style.display === 'block', 'Export-Blatt zeigt das E-Mail-Feld sofort');
     inp.value = 'kein-mail';
     ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent), 'ungültige Adresse → Fehlermeldung');
     fail = true; inp.value = 'Treier@Example.CH'; nw.checked = true;
@@ -1384,8 +1389,20 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const body = JSON.parse(calls[2].o.body);
     ok(body.newsletter === false && body.consent_text === null, 'ohne Häkchen → kein Newsletter, kein Einwilligungstext');
     delete store[T.LEAD_KEY];
+    // Blatt offen, Feld sichtbar, gültige Adresse → erster Download-Klick exportiert direkt
+    T.openExportSheet(); inp.value = 'eins@klick.ch';
+    ok(g.style.display === '' && T.passEmailGate() === true && g.style.display === 'none', 'ein Klick: Blatt offen + Adresse → Export startet');
+    T.closeExportSheet();
+    ok(store[T.LEAD_KEY] === 'eins@klick.ch', 'Adresse aus dem Ein-Klick-Weg gemerkt');
+    T.openExportSheet();
+    ok(g.style.display === 'none', 'bekannte Adresse → Feld beim Öffnen versteckt');
+    T.closeExportSheet();
+    delete store[T.LEAD_KEY];
     T.setMe('free', 'x@y.z'); g.style.display = 'none';
     ok(T.passEmailGate() === true && g.style.display === 'none', 'angemeldet → kein Gate');
+    T.openExportSheet();
+    ok(g.style.display === 'none', 'angemeldet → Feld beim Öffnen versteckt');
+    T.closeExportSheet();
     T.setMe('anon', '');
     global.fetch = realFetch; delete global.localStorage;
   })();
@@ -2411,6 +2428,42 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(cl !== up && cl.tt === 'none' && cl.hlUpper === false && up.tt === 'uppercase' && T.caseStyle(up) === cl, 'lowercase überstimmt tt/hlUpper (stabiles Objekt, Original unverändert)');
     T.setCaseState('asis');
     T.setTitle('Mein Clip'); ok(T.projTitleOf() === 'Mein Clip', 'Titel reist im Projekt mit'); T.setTitle('');
+    // Dateiname aus dem Titel
+    ok(T.fileSlug('Grüße aus der Schweiz!') === 'gruesse-aus-der-schweiz', 'Slug: Umlaute + Satzzeichen: ' + T.fileSlug('Grüße aus der Schweiz!'));
+    ok(T.fileSlug('  Ölmühle – Café & Bär  ') === 'oelmuehle-cafe-baer', 'Slug: ö/ü/ä, Akzente, Ränder: ' + T.fileSlug('  Ölmühle – Café & Bär  '));
+    ok(T.fileSlug('IMG 1234') === 'img-1234' && T.fileSlug('') === '' && T.fileSlug('!!!') === '' && T.fileSlug('🙂🙂') === '', 'Slug: Zahlen, leer, nur Sonderzeichen');
+    const longSlug = T.fileSlug('Das ist ein sehr langer Titel für ein Video über Highland Rinder');
+    ok(longSlug.length <= 40 && !/-$/.test(longSlug) && longSlug.indexOf('das-ist-ein-sehr-langer') === 0, 'Slug: max. 40 Zeichen, kein Strich am Ende: ' + longSlug);
+    ok(T.exportBaseName() === 'capivo-video', 'ohne Titel: capivo-video');
+    T.setTitle('Mein Reel #1'); ok(T.exportBaseName() === 'mein-reel-1-capivo', 'Basis aus Titel: ' + T.exportBaseName());
+    global.CLICKS = []; T.exportSRT(); T.exportVTT(); T.exportTXT();
+    ok(global.CLICKS.map(c => c.download).join(',') === 'mein-reel-1-capivo.srt,mein-reel-1-capivo.vtt,mein-reel-1-capivo.txt', 'SRT/VTT/TXT mit gleicher Basis: ' + global.CLICKS.map(c => c.download).join(','));
+    T.setTitle('');
+  }
+  // Export fertig: Handy mit Teilen-Blatt → „Save to Photos / Share“ primär (erst auf Tipp), sonst „Caption another video“
+  {
+    const nav = global.navigator, prevMM = global.matchMedia, prevFile = global.File; let shared = null, rejectWith = null;
+    global.File = function (parts, name, o) { this.name = name; this.type = o && o.type; };
+    nav.canShare = () => true; nav.share = d => { shared = d; return rejectWith ? Promise.reject(rejectWith) : Promise.resolve(); };
+    const sb = document.getElementById('expShare'), an = document.getElementById('expAnother'), dlf = document.getElementById('expDlFile');
+    an.classList.add('hi');
+    global.matchMedia = q => ({ matches: /fine/.test(q) });           // Desktop
+    global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-capivo.mp4'); T.exportDone(false);
+    ok(sb.style.display === 'none' && an.classList.contains('hi') && dlf.style.display === 'none', 'Desktop: kein Teilen, „Caption another video“ primär');
+    ok(document.getElementById('expDoneName').textContent === 'mein-reel-capivo.mp4', 'Fertig-Zeile zeigt den Dateinamen');
+    global.matchMedia = q => ({ matches: /coarse/.test(q) });         // Handy
+    T.exportDone(false);
+    ok(sb.style.display === '' && !an.classList.contains('hi') && dlf.style.display === '' && !shared, 'Handy: Teilen primär, nichts automatisch geteilt');
+    T.shareLastExport(); await new Promise(r => setTimeout(r, 0));
+    ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-capivo.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
+    const nClicks = global.CLICKS.length; rejectWith = { name: 'AbortError' };
+    ok(await T.shareLastExport() === false && global.CLICKS.length === nClicks, 'Abbrechen (AbortError) → still, kein Download');
+    rejectWith = { name: 'NotAllowedError' };
+    await T.shareLastExport();
+    ok(global.CLICKS.length === nClicks + 1, 'anderer Fehler → Download als Rückfall');
+    nav.canShare = () => false; T.exportDone(false);
+    ok(sb.style.display === 'none' && an.classList.contains('hi'), 'canShare false → kein Teilen-Knopf');
+    delete nav.canShare; delete nav.share; global.matchMedia = prevMM; global.File = prevFile;
   }
 
   // Lücken schließen: kurze Lücken (< GAP_CLOSE_SEC) zu, nie über Szenenschnitt, lange Pausen bleiben

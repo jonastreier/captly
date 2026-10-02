@@ -441,7 +441,17 @@ input[type=checkbox]{accent-color:#7c3aed}
 .exp-btn.hi .exp-btn-sub{color:rgba(255,255,255,.8)}
 /* Export läuft: KEIN blasser Disabled-Look — volle Farbe, Fortschritt als Füllung im Button, gut lesbar */
 .exp-btn.hi.busy,.exp-btn.hi.busy:disabled{opacity:1;cursor:wait;position:relative;overflow:hidden;
-  background:linear-gradient(90deg,#5b21b6 0%,#4f46e5 var(--p,0%),#7c3aed var(--p,0%),#6366f1 100%)}
+  background:linear-gradient(135deg,#6d28d9,#5b54e8)}
+/* EINE Fortschrittsanzeige: hellere Füllung im Button (--p), dazu Prozent im Export-Knopf oben */
+.exp-btn.hi.busy::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);
+  background:linear-gradient(90deg,rgba(255,255,255,.14),rgba(255,255,255,.26));transition:width .3s ease;pointer-events:none}
+.exp-btn.hi.busy>*{position:relative}
+.exp-sheet #recProg{display:none!important}
+.es-render{font-size:12px;color:var(--muted,#6b6577);margin:8px 0 0;line-height:1.45}
+.es-done-acts{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.es-done-acts .exp-btn:not(.hi){background:#fff;border-color:#d9d2e6}
+.es-done-acts .exp-btn:not(.hi) .exp-btn-icon{color:#6d28d9}
+.es-done-links{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;margin-top:10px;font-size:12.5px;color:#a39fab}
 .exp-btn.hi.busy .exp-btn-label{color:#fff;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.25)}
 .exp-btn.hi.busy .exp-btn-sub{color:rgba(255,255,255,.8)}
 @media (prefers-reduced-motion:no-preference){.exp-btn.hi.busy{animation:expBusy 1.6s ease-in-out infinite}}
@@ -976,16 +986,17 @@ input[type=checkbox]{accent-color:#7c3aed}
     <div id="expMain">
       <!-- Beta: Download ohne Wasserzeichen gegen E-Mail-Adresse (gespeichert in Supabase „leads“). Newsletter nur mit Opt-in. -->
       <form class="es-gate" id="expGate" style="display:none" novalidate onsubmit="event.preventDefault();exportVideoWithCaptions()">
-        <label class="es-gate-l" for="gateEmail">Your email — free download, no watermark</label>
-        <input type="email" id="gateEmail" class="es-gate-in" placeholder="you@example.com" autocomplete="email" inputmode="email" maxlength="254">
-        <label class="exp-chk"><input type="checkbox" id="gateNews"><span id="gateNewsTxt">Send me occasional tips &amp; updates about Capivo. Unsubscribe anytime.</span></label>
+        <label class="es-gate-l" for="gateEmail">Email for your free download</label>
+        <input type="email" id="gateEmail" class="es-gate-in" placeholder="you@example.com" autocomplete="email" inputmode="email" maxlength="254" enterkeyhint="go">
         <p class="es-gate-err" id="gateErr" role="alert" style="display:none"></p>
-        <p class="es-gate-fine">Free while Capivo is in beta. We only send you news if you tick the box.</p>
+        <label class="exp-chk"><input type="checkbox" id="gateNews"><span id="gateNewsTxt">Send me occasional tips &amp; updates about Capivo. Unsubscribe anytime.</span></label>
+        <p class="es-gate-fine">Free during beta. No newsletter unless you tick the box.</p>
       </form>
       <button type="button" class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
         <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
-        <span class="exp-btn-txt"><span class="exp-btn-label">Download video</span><span class="exp-btn-sub" id="btnVideoSub">MP4 · 1080p</span></span>
+        <span class="exp-btn-txt"><span class="exp-btn-label">Download video</span><span class="exp-btn-sub" id="btnVideoSub">MP4 · 1080p · no watermark</span></span>
       </button>
+      <p class="es-render" id="expRender" style="display:none">Rendering on your device — keep this tab open.</p>
       <div id="recProg">
         <p id="recMsg">Rendering video…</p>
         <div class="rec-bar-wrap"><div class="rec-bar" id="recBar"></div></div>
@@ -1019,10 +1030,26 @@ input[type=checkbox]{accent-color:#7c3aed}
     </div>
     <p class="es-note" id="expNote" role="status" aria-live="polite" style="display:none"></p>
     <div class="es-done" id="expDone" style="display:none" role="status" aria-live="polite">
-      <div class="es-ok"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Saved — <b id="expDoneName">capivo-video.mp4</b></span></div>
+      <div class="es-ok"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span><span id="expDoneLbl">Saved</span> — <b id="expDoneName">capivo-video.mp4</b></span></div>
+      <!-- Handy mit Teilen-Blatt: „Save to Photos / Share“ primär (Fototeilen braucht einen echten Tipp), sonst
+           „Caption another video“. Reihenfolge per JS (exportDone). -->
+      <div class="es-done-acts" id="expDoneActs">
+        <button type="button" class="exp-btn hi es-share" id="expShare" style="display:none" onclick="shareLastExport()">
+          <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
+          <span class="exp-btn-txt"><span class="exp-btn-label">Save to Photos / Share</span></span>
+        </button>
+        <button type="button" class="exp-btn hi" id="expAnother" onclick="captionAnother()">
+          <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
+          <span class="exp-btn-txt"><span class="exp-btn-label">Caption another video</span><span class="exp-btn-sub">Keeps your style</span></span>
+        </button>
+      </div>
       <div class="es-done-row">
         <button type="button" class="pos-btn" id="expRmWm" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">Remove watermark (free)</button>
         <button type="button" class="pos-btn" onclick="exportAgain()">Export again</button>
+      </div>
+      <div class="es-done-links">
+        <button type="button" class="es-link" id="expDlFile" style="display:none" onclick="downloadLastExport()">Download file</button><span id="expDlSep" aria-hidden="true" style="display:none">·</span>
+        <button type="button" class="es-link" id="expCopyPost" onclick="copyTranscript(this)">Copy text for your post</button>
       </div>
     </div>
   </div>
@@ -7386,12 +7413,12 @@ function transcriptText() {
   // dort will niemand GROSSBUCHSTABEN — die Case-Option gilt nur fürs Video und die Untertiteldateien.
   return paras.join('\n\n');
 }
-function exportTXT() { if (captionBlocks.length) dlText(transcriptText() + '\n', 'capivo-transcript.txt'); }
-function copyTranscript() {
-  var txt = transcriptText(), btn = document.getElementById('btnCopy');
+function exportTXT() { if (captionBlocks.length) dlText(transcriptText() + '\n', exportBaseName() + '.txt'); }
+function copyTranscript(srcBtn) {
+  var txt = transcriptText(), btn = (srcBtn && srcBtn.nodeType === 1 ? srcBtn : null) || document.getElementById('btnCopy');
   function done(ok) {
     if (!btn) return;
-    var old = '📋 Copy text';
+    var old = btn._label || (btn._label = btn.textContent);
     btn.textContent = ok ? '✓ Copied' : 'Copy failed';
     setTimeout(function(){ btn.textContent = old; }, 1600);
   }
@@ -7409,14 +7436,14 @@ function exportSRT() {
   var out = captionBlocks.map(function(b, i) {
     return (i+1) + '\n' + srtT(offT(b.start)) + ' --> ' + srtT(offT(b.end)) + '\n' + subtitleText(b.text);
   }).join('\n\n');
-  dlText(out, 'capivo-captions.srt');
+  dlText(out, exportBaseName() + '.srt');
 }
 function exportVTT() {
   var lines = ['WEBVTT', ''];
   captionBlocks.forEach(function(b, i) {
     lines.push((i+1) + '\n' + vttT(offT(b.start)) + ' --> ' + vttT(offT(b.end)) + '\n' + subtitleText(b.text));
   });
-  dlText(lines.join('\n\n'), 'capivo-captions.vtt');
+  dlText(lines.join('\n\n'), exportBaseName() + '.vtt');
 }
 function dlText(content, name) {
   var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -7426,7 +7453,7 @@ function dlText(content, name) {
   setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
 }
 function dlBlob(blob, name) {
-  if (/\.(mp4|webm)$/i.test(name)) _lastDlName = name; // für „✓ Saved — …“ im Export-Blatt
+  if (/\.(mp4|webm)$/i.test(name)) { _lastDlName = name; _lastExportBlob = blob; } // „✓ Saved — …“ + Teilen/erneut laden
   var url = URL.createObjectURL(blob);
   var a   = document.createElement('a');
   a.href = url; a.download = name; a.click();
@@ -8033,7 +8060,7 @@ async function tryFastExport(vid) {
     recMsg.textContent = 'Checking video…';
     var check = await validateExportBlob(blob, vid.duration - cutTotalSec);
     if (!check.ok) throw new Error('Validierung fehlgeschlagen: ' + check.reason);
-    dlBlob(blob, 'capivo-video.mp4');
+    dlBlob(blob, exportBaseName() + '.mp4');
     recProg.style.display = 'none';
     exportBtnState(null);
     isExporting = false;
@@ -8179,12 +8206,13 @@ function exportBtnState(text) {
     var pm = /(\d+)%/.exec(text);
     if (b.style && b.style.setProperty) b.style.setProperty('--p', (pm ? Math.min(100, +pm[1]) : 0) + '%');
     if (lbl) lbl.textContent = text;
+    var rn = document.getElementById('expRender'); if (rn) rn.style.display = '';
     if (!b._scrolled) {
       b._scrolled = true;
-      var rp = document.getElementById('recProg');
-      try { if (rp && rp.scrollIntoView) rp.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
+      try { if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) {}
     }
   } else {
+    var rn2 = document.getElementById('expRender'); if (rn2) rn2.style.display = 'none';
     b._scrolled = false;
     if (b.classList) b.classList.remove('busy');
     if (b.style && b.style.removeProperty) b.style.removeProperty('--p');
@@ -8258,7 +8286,7 @@ async function exportVideoWithCaptions() {
     var recBar = document.getElementById('recBar'), recMsg = document.getElementById('recMsg');
     if (isMp4) {
       // Chrome/Edge liefern MP4 (H.264/AAC) direkt — sofort speichern
-      dlBlob(blob, 'capivo-video.mp4');
+      dlBlob(blob, exportBaseName() + '.mp4');
     } else {
       // Firefox/Chromium ohne H.264: WebM → H.264-MP4 umkodieren, damit der Upload zu Instagram/TikTok klappt
       try {
@@ -8269,12 +8297,12 @@ async function exportVideoWithCaptions() {
           recMsg.textContent = 'Creating MP4… ' + Math.round(p * 100) + '%';
           exportBtnState('Creating MP4 ' + Math.round(p * 100) + '%…');
         }, vid.duration - cutTotalSec); // Bild und Ton exakt auf die Ausgabedauer kürzen
-        dlBlob(mp4, 'capivo-video.mp4');
+        dlBlob(mp4, exportBaseName() + '.mp4');
       } catch (e) {
         console.error('MP4-Konvertierung fehlgeschlagen:', e);
         alert('MP4 conversion failed (maybe offline) — saving as WebM instead. '
             + 'Tip: exporting in Chrome or Safari gives you an Instagram-ready MP4 directly.');
-        dlBlob(blob, 'capivo-video.webm');
+        dlBlob(blob, exportBaseName() + '.webm');
       }
     }
     document.getElementById('recProg').style.display = 'none';
@@ -9054,10 +9082,20 @@ function openExportSheet() {
   if (!isExporting) showExportMain();
   var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
   syncExpSub(); updateAcctUI(); flushLead();
-  var g = document.getElementById('expGate'); if (g && (meEmail || leadEmail())) g.style.display = 'none';
+  // E-Mail-Feld sofort zeigen (statt erst nach dem ersten Download-Klick) → Download ist danach EIN Klick.
+  // Autofokus nur mit Maus/Trackpad — auf dem Handy würde die Tastatur das halbe Blatt verdecken.
+  var g = document.getElementById('expGate'), needGate = !!g && !meEmail && !leadEmail();
+  if (g) g.style.display = needGate ? '' : 'none';
   var nt = document.getElementById('expNote'); if (nt) nt.style.display = 'none'; // alte Hinweise (z. B. Anmeldung down) weg
   sh.style.display = 'block';
+  if (needGate && !isExporting && pointerFine()) {
+    var gi = document.getElementById('gateEmail');
+    try { if (gi && gi.focus) gi.focus({ preventScroll: true }); } catch (eF) {}
+  }
   var tb = document.getElementById('tbExport'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'true');
+}
+function pointerFine() {
+  try { return typeof matchMedia === 'function' && matchMedia('(pointer:fine)').matches; } catch (e) { return false; }
 }
 function closeExportSheet() {
   var sh = document.getElementById('expSheet');
@@ -9071,24 +9109,73 @@ function showExportMain() {
 // Unterzeile des Download-Knopfs: Format + Auflösung, damit man ohne „Options“ sieht, was man bekommt
 function syncExpSub() {
   var el = document.getElementById('btnVideoSub');
-  if (el) el.textContent = 'MP4 · ' + (exportRes === 'orig' ? 'original size' : '1080p');
+  if (el) el.textContent = 'MP4 · ' + (exportRes === 'orig' ? 'original size' : '1080p') + ' · no watermark';
   var r = document.getElementById('expRes'); if (r && r.value !== exportRes) r.value = exportRes; // gemerkte Wahl anzeigen
 }
 function topExport() {
   if (isExporting) { openExportSheet(); return; }
   var b = document.getElementById('btnVideo');
-  if (expSkip() && b && !b.disabled) { openExportSheet(); exportVideoWithCaptions(); return; }
+  // „Skip“ lädt sofort herunter — außer die E-Mail fehlt noch (dann nur das Blatt mit dem Feld öffnen)
+  var gateNeeded = !!document.getElementById('expGate') && !meEmail && !leadEmail();
+  if (expSkip() && b && !b.disabled && !gateNeeded) { openExportSheet(); exportVideoWithCaptions(); return; }
   if (exportSheetOpen()) closeExportSheet(); else openExportSheet();
 }
 // Nach dem Speichern: Erfolg INLINE im Blatt (kein blockierendes Modal mehr) + „Remove watermark (free)“
 // nur, wenn dieses Video mit Wasserzeichen gerendert wurde.
-var _lastDlName = 'capivo-video.mp4';
+var _lastDlName = 'capivo-video.mp4', _lastExportBlob = null;
+// Dateiname aus dem Projekttitel: Kleinbuchstaben, ASCII (ä→ae, ö→oe, ü→ue, ß→ss, Akzente weg), alles andere
+// → „-“, max. 40 Zeichen. Leer → '' (Aufrufer nimmt dann „capivo-video“).
+function fileSlug(t) {
+  var x = String(t || '').toLowerCase().replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss');
+  try { x = x.normalize('NFKD').replace(/[\u0300-\u036f]/g, ''); } catch (e) {}
+  x = x.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return x.slice(0, 40).replace(/-+$/, '');
+}
+// Basis für ALLE Exporte (MP4/WebM, SRT, VTT, TXT): „mein-reel-capivo“, ohne Titel „capivo-video“
+function exportBaseName() {
+  var sl = fileSlug(typeof projTitle !== 'undefined' ? projTitle : '');
+  return sl ? sl + '-capivo' : 'capivo-video';
+}
+// Teilen-Blatt mit Datei (iOS „In Fotos sichern“, Android „Galerie“) nur auf Touch-Geräten anbieten
+function canShareExport(blob, name) {
+  try {
+    if (!blob || typeof navigator === 'undefined' || !navigator.canShare || !navigator.share || typeof File !== 'function') return false;
+    var coarse = typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches;
+    if (!coarse) return false;
+    return !!navigator.canShare({ files: [new File([blob], name, { type: blob.type || 'video/mp4' })] });
+  } catch (e) { return false; }
+}
 function exportDone(wmOn) {
   var m = document.getElementById('expMain'), d = document.getElementById('expDone');
   var nm = document.getElementById('expDoneName'); if (nm) nm.textContent = _lastDlName;
   var rw = document.getElementById('expRmWm'); if (rw) rw.style.display = wmOn ? '' : 'none';
+  var share = canShareExport(_lastExportBlob, _lastDlName);
+  var sb = document.getElementById('expShare'), an = document.getElementById('expAnother');
+  if (sb) sb.style.display = share ? '' : 'none';
+  if (an && an.classList) an.classList.toggle('hi', !share); // mit Teilen: „Caption another video“ sekundär
+  ['expDlFile', 'expDlSep'].forEach(function(id) { var e2 = document.getElementById(id); if (e2) e2.style.display = share ? '' : 'none'; });
   if (m) m.style.display = 'none'; if (d) d.style.display = '';
   if (!exportSheetOpen()) capToast('✓ Saved — ' + _lastDlName);
+}
+// Muss direkt aus einem Tipp kommen (navigator.share verlangt eine Nutzergeste) — nie automatisch nach dem Rendern.
+function shareLastExport() {
+  var b = _lastExportBlob;
+  if (!b) return Promise.resolve(false);
+  var f = new File([b], _lastDlName, { type: b.type || 'video/mp4' });
+  return navigator.share({ files: [f] }).then(function(){ return true; }, function(e) {
+    if (e && e.name === 'AbortError') return false; // Nutzer hat das Teilen-Blatt geschlossen
+    console.warn('share:', e);
+    downloadLastExport(); // Teilen nicht möglich → klassischer Download
+    return false;
+  });
+}
+function downloadLastExport() { if (_lastExportBlob) dlBlob(_lastExportBlob, _lastDlName); }
+// „Caption another video“: zurück zum Upload; Style/Layout bleiben (gemerkt), das nächste Video startet damit
+function captionAnother() {
+  closeExportSheet();
+  goBack();
+  try { window.scrollTo(0, 0); } catch (e) {}
+  var z = document.getElementById('landZone'); try { if (z && z.focus && pointerFine()) z.focus({ preventScroll: true }); } catch (e2) {}
 }
 function exportAgain() { showExportMain(); exportVideoWithCaptions(); }
 // ⋯-Menü in der Kopfzeile (Konto, Projekte, Tastenkürzel)
