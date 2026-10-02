@@ -79,6 +79,7 @@ revertTranscriptionSettings:revertTranscriptionSettings,getModel:function(){retu
 exportGeometry:exportGeometry,exportBitrate:exportBitrate,drawReframed:drawReframed,classifyUnplayable:classifyUnplayable,
 applyPlayability:applyPlayability,setVideoPlayable:function(v){videoPlayable=v;},transcribeVideo:transcribeVideo,DEFAULT_STYLE:DEFAULT_STYLE,
 setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDistance:histDistance,
+cssColorToHexA:cssColorToHexA,cssColorToHex:cssColorToHex,liveTemplates:liveTemplates,flushCustomStyle:flushCustomStyle,
 decideSceneCuts:decideSceneCuts,cutFrame:cutFrame,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
 onBreakAtCutsChange:onBreakAtCutsChange,currentBlockIdx2:currentBlockIdx,setDisplayMode:function(m){displayMode=m;},polishWords:polishWords,
 polishEnabled:polishEnabled,setModelState:function(m){whisperModel=m;},polishSegments:polishSegments,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
@@ -479,7 +480,8 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   const html = T.buildCap(['eins', 'zwei'], cs, 1, 22, null);
   ok(html.includes('letter-spacing:2px') && html.includes('text-transform:uppercase') && html.includes('rgba(255,255,255,0.4)') && html.includes('captly-wobble'),
      'Vorschau rendert alle Custom-Eigenschaften');
-  E('csHlType').value = 'pill'; E('csPillC').value = '#fde047';
+  // Pill-Modus: dasselbe Farbfeld („Pill“) ist die Pill-Farbe
+  E('csHlType').value = 'pill'; E('csHl').value = '#fde047';
   cs = T.buildCustomStyle();
   ok(cs.hlPillBg === '#fde047' && cs.hlc === '#111', 'Highlight-Pill mit lesbarer Textfarbe');
   // Kontur-Erkennung aus bestehenden Styles
@@ -528,6 +530,126 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   ok(n === 1 && imp.id === 'tpl_classic' && !/[<>"]/.test(imp.style.font) && !/url\(|;/.test(imp.style.tc), 'Import bereinigt: ' + imp.style.font + ' / ' + imp.style.tc);
   ok(T.STYLES.filter(x => x.id === 'classic').length === 1, 'eingebauter Style unangetastet');
   delete global.localStorage; delete global.prompt;
+}
+
+// 16a2b) Custom-Editor: Farbumrechnung, Befüllen aller Regler aus Pill/Box/Kontur/Glow-Styles,
+//         jede Regler-Gruppe wirkt, Templates speichern/überschreiben/Reihenfolge
+{
+  const E = id => document.getElementById(id);
+  // Farbumrechnung: color-Inputs akzeptieren nur #rrggbb
+  const C = T.cssColorToHexA;
+  ok(C('#fff').hex === '#ffffff' && C('#FFD60A').hex === '#ffd60a' && C('#abc').a === 1, 'Hex 3/6-stellig → #rrggbb');
+  ok(C('rgba(255,255,255,.55)').hex === '#ffffff' && Math.abs(C('rgba(255,255,255,.55)').a - 0.55) < 1e-9, 'rgba() → Hex + Deckkraft');
+  ok(C('rgb(34, 197, 94)').hex === '#22c55e' && C('rgb(0 0 0 / 50%)').a === 0.5, 'rgb() mit Komma/Leerzeichen/Prozent-Alpha');
+  ok(C('white').hex === '#ffffff' && C('Red').hex === '#ff0000' && C('transparent').a === 0, 'Farbnamen');
+  ok(C('#ff000080').hex === '#ff0000' && Math.abs(C('#ff000080').a - 0.5) < 0.01, '#rrggbbaa');
+  ok(C('linear-gradient(90deg,#ff00aa,#00ffcc)').hex === '#ff00aa', 'Gradient → erste Farbstufe');
+  ok(C('kein-farbwert') === null && T.cssColorToHex(undefined, '#123456') === '#123456', 'ungueltig → null bzw. Fallback');
+
+  // Befüllen: Pill-Style (Flux) — „Active“-Feld zeigt die PILL-Farbe und heißt „Pill“
+  T.setCsDirty({});
+  E('csHl').value = '#facc15'; E('csGlow').checked = true; // Reste eines vorigen Styles
+  T.selectStyle('pulse');
+  ok(E('csHl').value === '#00ff85' && E('csHlType').value === 'pill' && E('csHlLbl').textContent === 'Pill', 'Pill-Style: Farbfeld = Pill-Farbe, Label „Pill“: ' + E('csHl').value);
+  ok(E('csText').value === '#ffffff' && E('csFont').value === 'Montserrat' && E('csWeight').value === '900' && E('csUpper').classList.contains('on'), 'Pill-Style: Text/Font/Gewicht/Caps');
+  ok(E('csGlow').checked === false && E('csGlowInt').disabled === true, 'Glow aus → Regler deaktiviert');
+  ok(E('csBox').value === 'off' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '70', 'kein Hintergrund → neutrale Box-Werte statt Resten');
+  // Box-Style (Box Karaoke): Hintergrund aus rgba
+  T.selectStyle('boxkara');
+  ok(E('csBox').value === 'box' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '60' && E('csHl').value === '#22c55e', 'Box Karaoke: Box schwarz 60 %, Pill gruen');
+  // Kontur-Style (Hormozi): Kontur 3 px, Schatten an, Textfarbe-Highlight
+  T.selectStyle('hormozi');
+  ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Active' && E('csAnim').value === 'punch',
+     'Hormozi: Kontur/Schatten/Active-Farbe/Animation');
+  // Glow-Style (Jolt/amplify): Glow an mit Stärke 20, Regler aktiv
+  T.selectStyle('amplify');
+  ok(E('csGlow').checked === true && String(E('csGlowInt').value) === '20' && E('csGlowInt').disabled === false && E('csHl').value === '#d7ff1f', 'Jolt: Glow an, Staerke 20');
+  // rgba-Textfarbe (Clean Minimal) → gültiges Hex, Deckkraft bleibt beim Umfärben
+  T.selectStyle('minimal');
+  ok(E('csText').value === '#ffffff', 'rgba-Textfarbe → #ffffff im Farbfeld');
+  E('csText').value = '#ff0000'; T.setCsDirty({ text: true });
+  ok(T.buildCustomStyle().tc === 'rgba(255,0,0,0.55)', 'Textfarbe behaelt die Deckkraft des Ausgangs-Styles: ' + T.buildCustomStyle().tc);
+
+  // Anwenden: Pill-Farbe über das EINE Farbfeld; Glow nur bei Glow-Änderung; Wechsel Pill → Textfarbe
+  T.selectStyle('pulse');
+  E('csHl').value = '#ff3366'; T.setCsDirty({ hlc: true });
+  let cs = T.buildCustomStyle();
+  ok(cs.hlPillBg === '#ff3366' && cs.hlc === '#fff' && cs.hls === 'none' && cs.anim === 'flash', 'Pill-Farbe wirkt (vorher blieb die Pill gruen): ' + cs.hlPillBg);
+  E('csGlow').checked = true; E('csGlowInt').value = '20'; T.setCsDirty({ hlc: true, glow: true });
+  ok(T.buildCustomStyle().hls === '0 0 20px #ff3366', 'Glow um die Pill');
+  E('csHlType').value = 'color'; T.setCsDirty({ hlc: true, glow: true, hltype: true });
+  cs = T.buildCustomStyle();
+  ok(!cs.hlPillBg && cs.hl === '#ff3366' && /0 0 20px #ff3366/.test(cs.hls), 'Pill → Textfarbe uebernimmt die Farbe: ' + cs.hls);
+  // Beast: nur Glow anschalten → Farbwechsel (hlCycle) bleibt
+  T.selectStyle('beast');
+  E('csGlow').checked = true; E('csGlowInt').value = '10'; T.setCsDirty({ glow: true });
+  cs = T.buildCustomStyle();
+  ok(cs.hlCycle && cs.hlCycle.length === 4 && /0 0 10px/.test(cs.hls) && T.parseOutline(cs.hls).w === 3, 'Beast: Glow an, Farbwechsel + Kontur bleiben');
+  // Nur Kontur geändert → Glow des Ausgangs-Highlights bleibt unverändert (Jolt)
+  T.selectStyle('amplify');
+  E('csOutlineW').value = '4'; T.setCsDirty({ stroke: true });
+  cs = T.buildCustomStyle();
+  ok(/0px 0px 20px rgba\(215,255,31,\.85\)/.test(cs.hls) && T.parseOutline(cs.hls).w === 4, 'Kontur-Aenderung laesst Glow des Presets: ' + cs.hls.slice(-40));
+  // Regler ohne Wirkung schalten ihren Schalter ein: Box-Farbe bei „None“, Konturfarbe bei 0 px
+  T.selectStyle('pulse');
+  E('csBoxC').value = '#2040ff'; T.applyCustomStyle('boxc');
+  T.flushCustomStyle();
+  cs = T.STYLES.find(x => x.id === 'custom');
+  ok(E('csBox').value === 'box' && cs.boxBg === 'rgba(32,64,255,0.7)', 'Box-Farbe bei None → Box an: ' + cs.boxBg);
+  ok(T.getActiveId() === 'custom', 'Bearbeiten waehlt die Custom-Kachel');
+  E('csOutlineC').value = '#ff00ff'; T.applyCustomStyle('strokec'); T.flushCustomStyle();
+  cs = T.STYLES.find(x => x.id === 'custom');
+  ok(String(E('csOutlineW').value) === '2' && T.parseOutline(cs.ts).w === 2 && cs.ts.includes('#ff00ff') && cs.boxBg === 'rgba(32,64,255,0.7)', 'Konturfarbe bei 0 px → 2 px Kontur; vorige Aenderung bleibt');
+  // Custom-Kachel erneut wählen → Regler aus Custom befüllen, weitere Edits bauen darauf auf
+  T.selectStyle('hormozi'); T.selectStyle('custom');
+  ok(E('csBox').value === 'box' && String(E('csOutlineW').value) === '2' && E('csHl').value === '#00ff85', 'Custom erneut gewaehlt → Regler zeigen Custom');
+  E('csAnim').value = 'wobble'; T.applyCustomStyle('anim'); T.flushCustomStyle();
+  cs = T.STYLES.find(x => x.id === 'custom');
+  ok(cs.anim === 'wobble' && cs.boxBg === 'rgba(32,64,255,0.7)' && cs.hlPillBg === '#00ff85', 'weitere Aenderung behaelt fruehere Custom-Edits');
+  T.setCsDirty({});
+
+  // Templates: speichern (Feedback), Gruppe oben, neueste zuerst, gleicher Name → überschreiben statt Dublette
+  const store = {};
+  global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+  T.setUserTemplates([]); T.loadTemplates();
+  const pickerIds = () => { E('stylePicker').children = []; T.buildPicker(); return E('stylePicker').children.map(c => c.className.split(' ')[0] === 'stile' ? c.dataset.id : c.className); };
+  let ids = pickerIds();
+  ok(ids[0] === 'stile-group' && ids.includes('stile-empty') && ids.indexOf('stile-empty') < ids.indexOf('stile-group presets'), 'leerer Zustand oben im Picker');
+  ok(ids[1] === 'custom', 'Custom-Kachel steht oben in „My templates“');
+  E('tplName').value = 'Blau';
+  T.saveTemplate();
+  const blau = T.liveTemplates().find(t => t.name === 'Blau');
+  ok(blau && blau.style.boxBg === 'rgba(32,64,255,0.7)' && blau.style.anim === 'wobble' && T.getActiveId() === blau.id, 'Template aus Custom gespeichert + ausgewaehlt');
+  ok(/Saved as “Blau”/.test(E('tplStatus').textContent) && /1 saved/.test(E('tplCount').textContent), 'Feedback + Zaehler: ' + E('tplStatus').textContent);
+  ok(!T.STYLES.find(x => x.id === 'custom'), 'gespeicherter Custom-Entwurf verschwindet (keine Doppel-Kachel)');
+  T.selectStyle('hormozi');
+  E('tplName').value = 'Gelb'; T.saveTemplate();
+  const gelb = T.liveTemplates().find(t => t.name === 'Gelb');
+  gelb.createdAt = blau.createdAt + 1; // deterministisch: Gelb ist neuer
+  ids = pickerIds();
+  ok(ids[0] === 'stile-group' && ids[1] === gelb.id && ids[2] === blau.id && ids.indexOf('stile-group presets') === 3 && !ids.includes('stile-empty'), 'Templates oben, neueste zuerst: ' + ids.slice(0, 5).join(','));
+  // gleicher Name (andere Schreibweise) → Rückfrage; Abbrechen speichert nichts
+  let asked = 0;
+  global.confirm = () => { asked++; return false; };
+  T.selectStyle('classic'); E('tplName').value = 'blau'; T.saveTemplate();
+  ok(asked === 1 && T.liveTemplates().length === 2 && T.liveTemplates().find(t => t.id === blau.id).style.boxBg, 'Abbrechen: nichts ueberschrieben');
+  global.confirm = () => true;
+  T.saveTemplate();
+  const blau2 = T.liveTemplates().find(t => t.id === blau.id);
+  ok(T.liveTemplates().length === 2 && blau2.name === 'Blau' && !blau2.style.boxBg && blau2.style.ts === T.STYLES.find(x => x.id === 'classic').ts && /Updated “Blau”/.test(E('tplStatus').textContent),
+     'Bestaetigen: bestehendes Template ueberschrieben (keine Dublette, Name bleibt)');
+  // Edit → Update überschreibt und aktualisiert die Kachel
+  T.editTemplate(gelb.id);
+  E('csHlType').value = 'pill'; E('csHl').value = '#00aaff'; T.applyCustomStyle('hltype'); T.applyCustomStyle('hlc');
+  T.saveTemplate(); // flusht die gedrosselte Änderung selbst
+  const gelb2 = T.liveTemplates().find(t => t.id === gelb.id);
+  ok(gelb2.style.hlPillBg === '#00aaff' && T.STYLES.find(x => x.id === gelb.id).hlPillBg === '#00aaff' && T.getEditingTpl() === null && T.getActiveId() === gelb.id, 'Edit → Update ueberschreibt, Kachel-Style aktualisiert');
+  // Reload aus localStorage
+  T.setUserTemplates([]); T.loadTemplates();
+  ok(T.liveTemplates().length === 2 && T.STYLES.find(x => x.id === gelb.id).hlPillBg === '#00aaff', 'Templates ueberleben Reload');
+  T.selectStyle('classic');
+  delete global.localStorage; delete global.confirm;
+  T.setUserTemplates([]); T.loadTemplates();
 }
 
 // 16a3) Trend-Presets: vorhanden, Pop One erzwingt 1 Wort/Block und gibt den alten Wert zurück
@@ -1499,7 +1621,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const origCreate = document.createElement, origURL = global.URL;
     let revoked = 0, mode = {};
-    global.URL = { createObjectURL: () => 'blob:v', revokeObjectURL: () => { revoked++; } };
+    // Nur eigene URLs zählen: dlBlob() früherer Tests gibt 'blob:x' per Timer (1–2 s) frei — fiel das in
+    // dieses Fenster, war der Zähler sporadisch 7 statt 5 (flaky).
+    global.URL = { createObjectURL: () => 'blob:v', revokeObjectURL: (u) => { if (u === 'blob:v') revoked++; } };
     document.createElement = (tag) => {
       if (tag !== 'video') return origCreate(tag);
       const v = { muted: false, preload: '', videoWidth: 0, duration: NaN, removeAttribute() {}, load() {} };

@@ -260,6 +260,11 @@ body.editor-open{height:100vh;overflow:hidden}
 .cs-col{width:30px;height:26px;border:none;background:none;cursor:pointer;padding:0;flex:0 0 auto}
 .cs-swatch{display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;flex:0 0 auto}
 .cs-swatch span{font-size:9px;line-height:1;color:#94909c;letter-spacing:.02em}
+/* Farbfelder immer mit sichtbarem Rand: Weiß auf weißem Panel sah sonst „leer“ aus (Nutzer-Report) */
+.cs-col::-webkit-color-swatch-wrapper{padding:2px}
+.cs-col::-webkit-color-swatch{border:1px solid #cbc4d6;border-radius:5px}
+.cs-col::-moz-color-swatch{border:1px solid #cbc4d6;border-radius:5px}
+#csGlowInt:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
 .cs-sel{margin:0!important;padding:5px 7px;font-size:11px}
 .cs-more{margin-top:8px}
 .cs-more summary{font-size:10.5px;font-weight:600;color:#7c3aed;cursor:pointer;user-select:none;list-style:none}
@@ -270,6 +275,19 @@ body.editor-open{height:100vh;overflow:hidden}
 .cs-k{font-size:10.5px;color:#66616e;min-width:64px}
 .cs-v{font-size:10px;color:#8a8494;min-width:28px;text-align:right;font-variant-numeric:tabular-nums}
 .tpl-io{display:flex;align-items:center;gap:10px;margin-top:6px;font-size:10px}
+.tpl-status{font-size:10.5px;font-weight:600;color:#15803d;margin-top:5px;min-height:0}
+.tpl-status:empty{display:none}
+.tpl-status.warn{color:#b45309}
+/* Style-Picker-Gruppen: „My templates“ oben, darunter die Presets */
+.stile-group{flex:0 0 100%;display:flex;align-items:center;justify-content:space-between;font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#7c3aed;margin:4px 0 1px}
+.stile-group .sg-n{font-weight:600;color:#94909c;letter-spacing:0;text-transform:none}
+.stile-group.presets{color:#8a8494;margin-top:8px}
+.stile-empty{flex:0 0 100%;box-sizing:border-box;font-size:10.5px;line-height:1.4;color:#8a8494;border:1px dashed #d9d2e6;border-radius:8px;padding:8px 10px}
+.stile-empty a{color:#7c3aed;font-weight:600;text-decoration:none}
+.stile.just-saved{animation:stileSaved 1.6s ease}
+@keyframes stileSaved{0%,40%{box-shadow:0 0 0 4px rgba(34,197,94,.55)}100%{box-shadow:0 0 0 3px rgba(124,58,237,.18)}}
+.cap-toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:1200;background:#1f1b2b;color:#fff;font:600 13px/1.3 'Inter',sans-serif;padding:10px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(20,10,40,.3);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px)}
+.cap-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .tpl-io a{color:#7c3aed;font-weight:600;text-decoration:none}
 .tpl-io a:hover{text-decoration:underline}
 #tplEditing{color:#66616e;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -863,7 +881,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div class="clbl" style="margin-top:10px">Custom style <span style="text-transform:none;letter-spacing:0;color:#94909c">· starts from the selected style</span></div>
         <div style="display:flex;gap:6px;align-items:center">
           <label class="cs-swatch" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
-          <label class="cs-swatch" title="Highlight color"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hl')"><span>Active</span></label>
+          <label class="cs-swatch" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Active</span></label>
           <select id="csFont" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('font')" title="Font">
             <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
             <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
@@ -879,16 +897,16 @@ input[type=checkbox]{accent-color:#7c3aed}
           <button class="pos-btn" id="csShadow" type="button" onclick="toggleCsBtn(this,'stroke')" title="Soft drop shadow">Shadow</button>
         </div>
         <label class="sz-row" style="margin-top:7px;cursor:pointer">
-          <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle('hl')" style="cursor:pointer">
+          <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle('glow')" style="cursor:pointer">
           <span style="font-size:10.5px;color:#66616e;min-width:34px">Glow</span>
-          <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('hl')">
+          <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('glow')" title="Glow strength">
         </label>
         <details class="cs-more" id="csMore">
           <summary>More style options</summary>
           <div class="sz-row cs-line"><span class="cs-k">Outline</span>
             <input type="range" min="0" max="8" step="1" value="0" id="csOutlineW" oninput="applyCustomStyle('stroke')">
             <span class="cs-v" id="csOutlineDisp">0px</span>
-            <input type="color" id="csOutlineC" class="cs-col" value="#000000" title="Outline color" oninput="applyCustomStyle('stroke')"></div>
+            <input type="color" id="csOutlineC" class="cs-col" value="#000000" title="Outline color" oninput="applyCustomStyle('strokec')"></div>
           <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
             <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')">
             <span class="cs-v" id="csLsDisp">0px</span></div>
@@ -896,13 +914,12 @@ input[type=checkbox]{accent-color:#7c3aed}
             <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="applyCustomStyle('box')">
               <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
             </select>
-            <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('box')">
-            <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('box')"></div>
+            <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('boxc')">
+            <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('boxc')"></div>
           <div class="sz-row cs-line"><span class="cs-k">Highlight</span>
-            <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hl')">
+            <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hltype')" title="How the active word stands out — its color is the “Active”/“Pill” swatch above">
               <option value="color">Text color</option><option value="pill">Pill behind word</option>
-            </select>
-            <input type="color" id="csPillC" class="cs-col" value="#7c3aed" title="Pill color" oninput="applyCustomStyle('hl')"></div>
+            </select></div>
           <div class="sz-row cs-line"><span class="cs-k">Animation</span>
             <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')">
               <option value="none">None</option><option value="punch">Punch</option><option value="scale">Pop</option>
@@ -910,11 +927,12 @@ input[type=checkbox]{accent-color:#7c3aed}
               <option value="wobble">Wobble</option>
             </select></div>
         </details>
-        <div class="clbl" style="margin-top:10px">Save as template</div>
+        <div class="clbl" style="margin-top:10px">Save as template <span id="tplCount" style="text-transform:none;letter-spacing:0;color:#94909c"></span></div>
         <div style="display:flex;gap:6px;align-items:center">
-          <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)">
-          <button class="pos-btn" id="tplSaveBtn" style="flex:0 0 auto;padding:5px 10px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">💾</button>
+          <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTemplate();}">
+          <button class="pos-btn" id="tplSaveBtn" style="flex:0 0 auto;padding:5px 10px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">💾 Save</button>
         </div>
+        <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
         <div class="tpl-io">
           <span id="tplEditing" style="display:none"></span>
           <a href="#" onclick="exportTemplates(event)" title="Download your templates as a JSON file">Export templates</a>
@@ -2459,14 +2477,17 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1; // muss wie in buildCap()/drawCaptionsOnCtx() angewendet werden, sonst misst der Umbruch mit der falschen Schriftgröße
   px = px * fsMul;
   ctx.font  = fi + fw + ' ' + px + 'px "' + fn + '", sans-serif';
-  var sp    = ctx.measureText(' ').width + capWordGap(s); // wie word-spacing in buildCap
+  // Buchstabenabstand („Spacing“-Regler) wie fitCaptionWords/capLayout mitmessen — sonst brach der Export
+  // (Canvas mit letterSpacing) anders um als die Vorschau (2 Zeilen im MP4, 1 Zeile in der Vorschau).
+  var lsPx  = parseFloat(s.ls) || 0;
+  var sp    = ctx.measureText(' ').width + capWordGap(s) + lsPx; // wie word-spacing in buildCap (CSS-letter-spacing gilt auch fürs Leerzeichen)
   var info  = words.map(function(w, i) {
     var isHL = (hlOf ? hlOf[i] : i) === hlIdx;
     var f    = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
     var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
     ctx.font = it + fw + ' ' + px + 'px "' + f + '", sans-serif';
     var wt   = (tt || (isHL && s.hlUpper)) ? w.toUpperCase() : w;
-    return { i: i, w: ctx.measureText(wt).width + ((isHL && s.hlPillBg) ? 18 : 0) }; // Pill-Padding wie im DOM
+    return { i: i, w: ctx.measureText(wt).width + lsPx * wt.length + ((isHL && s.hlPillBg) ? 18 : 0) }; // Pill-Padding wie im DOM
   });
   var n = info.length;
   var lines;
@@ -2519,7 +2540,9 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   var fi   = s.fi   || 'normal';
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1; // sonst weicht die Vorschau-Größe vom Export ab (Export wendet fsMul immer an, s. drawCaptionsOnCtx)
   var sz   = px ? ((px * fsMul) + 'px') : (s.fs || '1em');
-  var wCss = 'font-family:' + font + ';font-weight:' + fw + ';text-transform:' + tt
+  // Generischer Fallback wie im Canvas-Export (", sans-serif"): solange/falls die Webfont fehlt, zeigte die
+  // Vorschau sonst Serifenschrift, das MP4 aber serifenlos.
+  var wCss = 'font-family:' + font + ',sans-serif;font-weight:' + fw + ';text-transform:' + tt
     + ';letter-spacing:' + ls + ';font-style:' + fi + ';font-size:' + sz
     + ';line-height:1.3;display:inline-block;max-width:100%;';
   if (lineTarget && capWordGap(s)) wCss += 'word-spacing:' + capWordGap(s) + 'px;';
@@ -2539,7 +2562,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
     var wt   = (tt === 'uppercase' || (isHL && s.hlUpper)) ? words[i].toUpperCase() : words[i];
     var ws   = 'display:inline-block;';
     if (isHL || isKw) {
-      if (isHL && s.hlFont)   ws += 'font-family:' + s.hlFont + ';';
+      if (isHL && s.hlFont)   ws += 'font-family:' + s.hlFont + ',sans-serif;';
       if (isHL && s.hlItalic) ws += 'font-style:italic;';
       if (isHL && s.circle)   ws += 'border:2.5px solid ' + (s.hl || '#fff') + ';border-radius:50%;padding:.02em .3em;';
       if (s.hlg)                    ws += 'background:' + s.hlg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
@@ -3561,13 +3584,18 @@ function renderWPills() {
 // ═══════════════════════════════════════
 // STYLE
 // ═══════════════════════════════════════
-function selectStyle(id) {
+// fromEditor: Aufruf aus applyCustomStyle — dann die Regler NICHT neu befüllen (sie sind die Quelle).
+function selectStyle(id, fromEditor) {
+  var prevId = activeId;
   activeId = id;
   if (id !== 'custom') { try { localStorage.setItem(STYLE_KEY, id); } catch (e) {} } // Custom lebt nur in der Sitzung
   scheduleAutosave();
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
-  if (s) seedCustomFields(s);                        // „Eigener Style" startet vom gewählten Style/Template
+  if (s && !fromEditor) seedCustomFields(s);         // „Eigener Style" startet vom gewählten Style/Template (auch von Custom selbst)
+  // Erster Regler-Eingriff: die Custom-Kachel (oben in „My templates“) im Picker sichtbar machen — sonst
+  // sah es aus, als bliebe das vorige Preset aktiv bzw. die Änderung käme nicht an.
+  if (fromEditor && prevId !== id) scrollPickerTo(id, false);
   if (s && s._tpl) { _presetPrevLayout = null; applyTemplateSettings(s._tpl); } // Template bringt eigenes Layout mit
   else if (s && s.layout) applyPresetLayout(s.layout); // eingebaute Presets mit eigener Blockgröße (Pop One)
   else if (s && _presetPrevLayout) restorePresetLayout(); // jeder andere Style (auch Custom): vorheriges Layout zurück
@@ -3583,6 +3611,42 @@ function toHex6(c) {
   if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   return '#' + h.toLowerCase();
 }
+// Benannte CSS-Farben, die in Styles/Templates vorkommen können. <input type=color> akzeptiert NUR
+// #rrggbb — alles andere (rgba(), „white“, „#fff“) zeigt es als Schwarz/leer an (Nutzer-Report „leere Felder“).
+var CSS_NAMED = { white: '#ffffff', black: '#000000', red: '#ff0000', lime: '#00ff00', green: '#008000', blue: '#0000ff',
+  yellow: '#ffff00', cyan: '#00ffff', aqua: '#00ffff', magenta: '#ff00ff', fuchsia: '#ff00ff', orange: '#ffa500',
+  purple: '#800080', pink: '#ffc0cb', gold: '#ffd700', gray: '#808080', grey: '#808080', silver: '#c0c0c0',
+  navy: '#000080', teal: '#008080', maroon: '#800000', olive: '#808000', violet: '#ee82ee', hotpink: '#ff69b4' };
+// Beliebige CSS-Farbe → { hex: '#rrggbb', a: Deckkraft } oder null (Gradient-Strings → erste Farbstufe).
+function cssColorToHexA(c) {
+  if (!c || typeof c !== 'string') return null;
+  var v = c.trim().toLowerCase();
+  if (/gradient\(/.test(v)) { var stops = gradColors(v); return stops.length ? cssColorToHexA(stops[0]) : null; }
+  var h = toHex6(v);
+  if (h) return { hex: h, a: 1 };
+  var m8 = /^#([0-9a-f]{6})([0-9a-f]{2})$/.exec(v) || /^#([0-9a-f]{3})([0-9a-f])$/.exec(v);
+  if (m8) return { hex: toHex6('#' + m8[1]), a: Math.round(parseInt(m8[2].length === 1 ? m8[2] + m8[2] : m8[2], 16) / 2.55) / 100 };
+  var m = /^rgba?\(\s*([\d.]+)%?\s*[, ]\s*([\d.]+)%?\s*[, ]\s*([\d.]+)%?\s*(?:[,/]\s*([\d.]+)(%?)\s*)?\)$/.exec(v);
+  if (m) {
+    var hx = '#' + [m[1], m[2], m[3]].map(function(x){ return ('0' + Math.max(0, Math.min(255, Math.round(+x))).toString(16)).slice(-2); }).join('');
+    var a = m[4] === undefined ? 1 : (m[5] ? +m[4] / 100 : +m[4]);
+    return { hex: hx, a: Math.max(0, Math.min(1, a)) };
+  }
+  if (v === 'transparent') return { hex: '#000000', a: 0 };
+  if (CSS_NAMED[v]) return { hex: CSS_NAMED[v], a: 1 };
+  // Sonstige Namen/hsl(): der Browser normalisiert über einen Canvas-Kontext (im Test-Stub nicht vorhanden)
+  try {
+    var cx = capMeasureCtx && capMeasureCtx();
+    if (cx && 'fillStyle' in cx) {
+      cx.fillStyle = '#010203'; cx.fillStyle = v;
+      var n = String(cx.fillStyle);
+      if (n !== '#010203' && n.toLowerCase() !== v) return cssColorToHexA(n);
+    }
+  } catch (e) {}
+  return null;
+}
+// Für <input type=color>: immer ein gültiges #rrggbb (Fallback statt eines ungültigen/leeren Werts)
+function cssColorToHex(c, fallback) { var r = cssColorToHexA(c); return r ? r.hex : (fallback || null); }
 function _cbChecked(id, def) { var e = document.getElementById(id); return e && typeof e.checked === 'boolean' ? e.checked : def; }
 // ═══════════════════════════════════════
 // CUSTOM STYLE EDITOR
@@ -3646,14 +3710,7 @@ function parseOutline(ts) { return splitShadows(ts).ring || { w: 0, c: '#000000'
 // Weiche Schatten (Blur > 0, nicht zentriert = kein Glow) aus einem text-shadow-String
 function softShadowPart(ts) { return shadowsStr(splitShadows(ts).soft); }
 // '#rrggbb' oder 'rgba(r,g,b,a)' → { hex, a }
-function parseColorAlpha(c) {
-  var h = toHex6(c);
-  if (h) return { hex: h, a: 1 };
-  var m = /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\s*\)/.exec(c || '');
-  if (!m) return null;
-  var hx = '#' + [m[1], m[2], m[3]].map(function(v){ return ('0' + (+v).toString(16)).slice(-2); }).join('');
-  return { hex: hx, a: m[4] === undefined ? 1 : +m[4] };
-}
+function parseColorAlpha(c) { return cssColorToHexA(c); }
 function hexToRgba(hex, a) {
   var h = toHex6(hex) || '#000000';
   return 'rgba(' + parseInt(h.slice(1, 3), 16) + ',' + parseInt(h.slice(3, 5), 16) + ',' + parseInt(h.slice(5, 7), 16) + ',' + (Math.round(a * 100) / 100) + ')';
@@ -3670,13 +3727,32 @@ function csSetOn(id, on) { var e = csEl(id); if (e && e.classList) e.classList.t
 function csIsOn(id) { var e = csEl(id); return !!(e && e.classList && e.classList.contains('on')); }
 function toggleCsBtn(btn, group) { btn.classList.toggle('on'); applyCustomStyle(group); }
 // Regler aus einem Style befüllen (ohne applyCustomStyle zu feuern) und ihn als Ausgangsbasis merken.
+// Farbe des aktiven Worts so, wie sie tatsächlich zu sehen ist: bei Pill-Styles die Pill-Farbe, sonst
+// die Textfarbe (bzw. erste Stufe von Gradient/Farbwechsel).
+function csActiveColor(st) {
+  if (st.hlPillBg) return cssColorToHex(st.hlPillBg, '#7c3aed');
+  if (st.hlCycle && st.hlCycle.length) return cssColorToHex(st.hlCycle[0], '#facc15');
+  return cssColorToHex(st.hl, null) || cssColorToHex(st.hlg, null) || '#ffffff';
+}
+// Abhängige Anzeige-Zustände der Regler: Label des Aktiv-Felds (Active ↔ Pill), Glow-Regler nur bei
+// aktivem Glow bedienbar, Pixel-Anzeigen.
+function syncCsUi() {
+  var pill = (csEl('csHlType') || {}).value === 'pill';
+  var lbl = csEl('csHlLbl'); if (lbl) lbl.textContent = pill ? 'Pill' : 'Active';
+  var sw = csEl('csHlSw'); if (sw) sw.title = pill ? 'Pill color behind the active (spoken) word' : 'Color of the active (spoken) word';
+  var gi = csEl('csGlowInt'); if (gi) gi.disabled = !_cbChecked('csGlow', false);
+  var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
+  var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
+}
+function seedActiveStyle() { var st = STYLES.find(function(x){ return x.id === activeId; }); if (st) seedCustomFields(st); }
 function seedCustomFields(st) {
-  if (!st || st.id === 'custom') return;
+  if (!st) return;
   _csBase = cloneStyle(st); _csDirty = {};
-  if (_csEditingTpl && st.id !== _csEditingTpl) setTplEditing(null);
-  var tc = toHex6(st.tc), hl = toHex6(st.hl);
-  if (tc) csSetVal('csText', tc);
-  if (hl) csSetVal('csHl', hl);
+  // Custom selbst (Kachel erneut angeklickt) beendet den Template-Edit-Modus nicht — das ist ja die Bearbeitung.
+  if (_csEditingTpl && st.id !== _csEditingTpl && st.id !== 'custom') setTplEditing(null);
+  // Immer einen gültigen Wert setzen: ein übersprungenes Feld behielt den Wert des VORIGEN Styles.
+  csSetVal('csText', cssColorToHex(st.tc, null) || cssColorToHex(st.tg, null) || '#ffffff');
+  csSetVal('csHl', csActiveColor(st));
   var fEl = csEl('csFont');
   if (fEl && st.fl) {
     var has = false, opts = fEl.options ? Array.prototype.slice.call(fEl.options) : [];
@@ -3695,13 +3771,15 @@ function seedCustomFields(st) {
   csSetVal('csLs', ls); var ld = csEl('csLsDisp'); if (ld) ld.textContent = ls + 'px';
   var bx = st.boxBg ? parseColorAlpha(st.boxBg) : null;
   csSetVal('csBox', st.boxBg ? ((parseFloat(st.boxBr) || 0) >= 14 ? 'pill' : 'box') : 'off');
-  if (bx) { csSetVal('csBoxC', bx.hex); csSetVal('csBoxO', Math.round(bx.a * 100)); }
+  // Ohne Hintergrund neutrale Startwerte statt der Reste des vorigen Styles
+  csSetVal('csBoxC', bx ? bx.hex : '#000000');
+  csSetVal('csBoxO', bx ? Math.max(10, Math.min(100, Math.round(bx.a * 20) * 5)) : 70);
   csSetVal('csHlType', st.hlPillBg ? 'pill' : 'color');
-  var pc = st.hlPillBg && toHex6(st.hlPillBg); if (pc) csSetVal('csPillC', pc);
   csSetVal('csAnim', st.anim || 'none');
   var gl = parseTextShadows(st.hls).filter(function(l){ return l.blur > 0 && !l.x && !l.y; })[0];
   csSetVal('csGlowInt', gl ? Math.min(30, Math.round(gl.blur)) : 14);
   var gOn = csEl('csGlow'); if (gOn && typeof gOn.checked === 'boolean') gOn.checked = !!gl;
+  syncCsUi();
 }
 // Baut „custom“ = Kopie der Basis + nur die vom Nutzer geänderten Gruppen.
 function buildCustomStyle() {
@@ -3713,7 +3791,11 @@ function buildCustomStyle() {
   if (d.weight) cs.fw = (csEl('csWeight') || {}).value || cs.fw || '800';
   if (d.upper)  cs.tt = csIsOn('csUpper') ? 'uppercase' : 'none';
   if (d.ls)     { var lv = parseFloat((csEl('csLs') || {}).value) || 0; cs.ls = lv ? lv + 'px' : 'normal'; }
-  if (d.text)   { cs.tc = (csEl('csText') || {}).value || cs.tc; delete cs.tg; }
+  if (d.text)   {
+    // Halbtransparente Ausgangs-Textfarbe (z. B. Clean Minimal: rgba(255,255,255,.55)) behält ihre Deckkraft
+    var tv = (csEl('csText') || {}).value || cs.tc, ta = cssColorToHexA(base.tc);
+    cs.tc = (ta && ta.a < 1 && toHex6(tv)) ? hexToRgba(tv, ta.a) : tv; delete cs.tg;
+  }
   var ow = parseFloat((csEl('csOutlineW') || {}).value) || 0, oc = (csEl('csOutlineC') || {}).value || '#000000';
   var outline = outlineShadow(ow, oc);
   if (d.stroke) {
@@ -3723,21 +3805,29 @@ function buildCustomStyle() {
     cs.ts = joinShadows(outline, shadowsStr(bts.hard), shadowsStr(bts.glow), soft);
     if (ow > 0) cs.cstroke = oc; else delete cs.cstroke;
   }
-  if (d.hl || d.stroke) {
-    if (d.hl) { cs.hl = (csEl('csHl') || {}).value || cs.hl; delete cs.hlg; delete cs.hlCycle; }
+  // Aktives Wort. Gruppen: hlc = Farbfeld „Active“/„Pill“, glow = Glow an/aus + Stärke, hltype = Textfarbe ↔ Pill;
+  // hl (Altform) = alles zusammen. Das EINE Farbfeld ist je nach Typ die Wort- bzw. die Pill-Farbe — vorher
+  // änderte „Active“ bei Pill-Styles nur die (unsichtbare) Wortfarbe und die Pill blieb grün.
+  var dCol = d.hl || d.hlc, dGlow = d.hl || d.glow, dType = d.hl || d.hltype;
+  if (dCol || dGlow || dType || d.stroke) {
+    var swatch = (csEl('csHl') || {}).value || '#facc15';
     var glowOn = _cbChecked('csGlow', false);
     var gi = parseInt((csEl('csGlowInt') || {}).value, 10); if (isNaN(gi)) gi = 14;
     if ((csEl('csHlType') || {}).value === 'pill') {
-      var pcol = (csEl('csPillC') || {}).value || '#7c3aed';
-      cs.hlPillBg = pcol; cs.hlc = contrastText(pcol);
-      cs.hls = glowOn ? ('0 0 ' + gi + 'px ' + pcol) : 'none';
+      if (dCol || dType || !cs.hlPillBg) { cs.hlPillBg = swatch; cs.hlc = contrastText(swatch); }
+      // Glow nur neu bauen, wenn er (oder der Typ) geändert wurde — sonst bleiben die Schatten des Ausgangs-Styles
+      if (dGlow || dType || !base.hlPillBg) cs.hls = glowOn && gi > 0 ? ('0 0 ' + gi + 'px ' + cs.hlPillBg) : 'none';
     } else {
+      // Wortfarbe nur übernehmen, wenn das Farbfeld angefasst wurde bzw. von Pill gewechselt wird —
+      // so bleiben z. B. der Farbwechsel von „Beast“ oder ein Gradient bei reinen Glow-/Kontur-Änderungen erhalten.
+      if (dCol || (dType && base.hlPillBg)) { cs.hl = swatch; delete cs.hlg; delete cs.hlCycle; }
       delete cs.hlPillBg; delete cs.hlc;
       // Übrige Schichten des Ausgangs-Highlights (Drop-Shadows, weiche Schatten) unverändert lassen;
       // Kontur nur ersetzen, wenn sie geändert wurde bzw. das Highlight vorher keine eigene hatte.
-      var bh = splitShadows(base.hls);
+      var bh = splitShadows(base.hlPillBg ? 'none' : base.hls);
       var ringPart = (d.stroke || !bh.ring) ? outline : shadowsStr(bh.ringLayers);
-      cs.hls = joinShadows(ringPart, shadowsStr(bh.hard), shadowsStr(bh.soft), glowOn && gi > 0 ? ('0 0 ' + gi + 'px ' + cs.hl) : '');
+      var glowPart = (dGlow || dCol || dType) ? (glowOn && gi > 0 ? ('0 0 ' + gi + 'px ' + (cs.hl || '#fff')) : '') : shadowsStr(bh.glow);
+      cs.hls = joinShadows(ringPart, shadowsStr(bh.hard), shadowsStr(bh.soft), glowPart);
     }
   }
   if (d.box) {
@@ -3754,21 +3844,30 @@ function buildCustomStyle() {
 }
 var _csLast = 0, _csTimer = null;
 function applyCustomStyle(group) {
+  // Farbe/Deckkraft bei „Background: None“ bzw. Konturfarbe bei 0 px hatten keinerlei Wirkung („Änderung
+  // kommt nicht an“) → den zugehörigen Schalter automatisch einschalten.
+  if (group === 'boxc') { var bxs = csEl('csBox'); if (bxs && (bxs.value || 'off') === 'off') bxs.value = 'box'; group = 'box'; }
+  if (group === 'strokec') { var oww = csEl('csOutlineW'); if (oww && !(parseFloat(oww.value) > 0)) oww.value = 2; group = 'stroke'; }
   if (group) _csDirty[group] = true;
-  var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
-  var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
-  // Throttled: Farbregler feuern beim Ziehen dutzende Events — Picker max. alle 200 ms neu bauen (1. Aufruf sofort)
-  function run() {
-    var cs = buildCustomStyle();
-    var i = STYLES.findIndex(function(x){ return x.id === 'custom'; });
-    if (i >= 0) STYLES[i] = cs; else STYLES.push(cs);
-    buildPicker();
-    selectStyle('custom');
-  }
+  syncCsUi();
+  // Throttled: Farbregler feuern beim Ziehen dutzende Events — max. alle 200 ms neu bauen (1. Aufruf sofort).
+  // Der nachlaufende Timer liest die Regler erst beim Ausführen → der LETZTE Wert kommt immer an.
   var now = Date.now();
-  if (now - _csLast > 200) { _csLast = now; run(); }
-  else { clearTimeout(_csTimer); _csTimer = setTimeout(function(){ _csLast = Date.now(); run(); }, 160); }
+  clearTimeout(_csTimer); _csTimer = null;
+  if (now - _csLast >= 200) runCustomStyle();
+  else _csTimer = setTimeout(runCustomStyle, 200 - (now - _csLast));
 }
+function runCustomStyle() {
+  clearTimeout(_csTimer); _csTimer = null; _csLast = Date.now();
+  var cs = buildCustomStyle();
+  var i = STYLES.findIndex(function(x){ return x.id === 'custom'; });
+  if (i >= 0) STYLES[i] = cs; else STYLES.push(cs);
+  // Nur die Custom-Kachel ersetzen statt alle 36+ Kacheln neu zu bauen (Scroll-Position bleibt, schneller)
+  if (i < 0 || !replacePickerTile(cs)) buildPicker();
+  selectStyle('custom', true);
+}
+// Noch ausstehende (gedrosselte) Regler-Änderung sofort anwenden — z. B. vor dem Speichern als Template.
+function flushCustomStyle() { if (_csTimer) runCustomStyle(); }
 
 // ═══════════════════════════════════════
 // TEMPLATES (lokal + optional Cloud-Sync über Supabase-User-Metadaten)
@@ -3884,26 +3983,57 @@ function setTplEditing(id) {
   var t = id && userTemplates.find(function(x){ return x.id === id; });
   var lbl = csEl('tplEditing'), btn = csEl('tplSaveBtn'), nm = csEl('tplName');
   if (lbl) { lbl.style.display = t ? '' : 'none'; lbl.textContent = t ? ('Editing “' + t.name + '”') : ''; }
-  if (btn) { btn.textContent = t ? 'Update' : '💾'; btn.title = t ? 'Overwrite this template with the current style + layout' : 'Save the current style + position + size + mode as a named template'; }
+  if (btn) { btn.textContent = t ? 'Update' : '💾 Save'; btn.title = t ? 'Overwrite this template with the current style + layout' : 'Save the current style + position + size + mode as a named template'; }
   if (nm && t) nm.value = t.name;
 }
+function setTplStatus(msg, warn) {
+  var el = csEl('tplStatus');
+  if (!el) return;
+  el.textContent = msg || '';
+  if (el.classList) el.classList.toggle('warn', !!warn);
+  clearTimeout(setTplStatus._t);
+  if (msg && !warn) setTplStatus._t = setTimeout(function(){ el.textContent = ''; }, 6000);
+}
 function saveTemplate() {
+  flushCustomStyle(); // eine gerade gezogene, noch gedrosselte Regler-Änderung gehört mit ins Template
   var nameEl = csEl('tplName');
-  var name = (nameEl.value || '').trim();
+  var name = (nameEl.value || '').trim().slice(0, 60);
   var editing = _csEditingTpl && userTemplates.find(function(x){ return x.id === _csEditingTpl && !x.deleted; });
   if (!name && editing) name = editing.name;
-  if (!name) { nameEl.focus && nameEl.focus(); nameEl.placeholder = 'Enter a name'; return; }
+  if (!name) {
+    if (nameEl.focus) nameEl.focus(); nameEl.placeholder = 'Enter a name';
+    setTplStatus('Give your template a name first.', true);
+    return;
+  }
+  // Gleicher Name wie ein anderes Template → überschreiben statt eine Dublette anzulegen (nach Rückfrage)
+  var same = liveTemplates().find(function(x){ return x.name.trim().toLowerCase() === name.toLowerCase() && (!editing || x.id !== editing.id); });
+  var target = editing;
+  if (same) {
+    var okOverwrite = typeof confirm !== 'function' || confirm('A template named “' + same.name + '” already exists. Overwrite it with the current style?');
+    if (!okOverwrite) { if (nameEl.select) nameEl.select(); setTplStatus('Not saved — choose another name to keep both.', true); return; }
+    target = same; name = same.name; // Überschreiben behält den bestehenden Namen (nur Groß-/Kleinschreibung getippt)
+  }
   var src = STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0];
   var st = sanitizeStyle(cloneStyle(src));
   var now = Date.now(), t;
-  if (editing) { t = editing; t.name = name; t.style = st; t.layout = currentLayout(); t.updatedAt = now; }
+  if (target) { t = target; t.name = name; t.style = st; t.layout = currentLayout(); t.updatedAt = now; }
   else { t = { id: newTplId(), name: name, style: st, layout: currentLayout(), createdAt: now, updatedAt: now }; userTemplates.push(t); }
+  // Der ungespeicherte Custom-Entwurf IST jetzt das Template → Kachel entfernen, sonst stehen zwei gleiche
+  // Kacheln nebeneinander und man weiß nicht, welche gespeichert ist.
+  if (activeId === 'custom') {
+    var ci = STYLES.findIndex(function(x){ return x.id === 'custom'; });
+    if (ci >= 0) STYLES.splice(ci, 1);
+  }
   persistTemplates();
   rebuildTemplateStyles();
   nameEl.value = '';
   setTplEditing(null);
   buildPicker();
   selectStyle(t.id);
+  var verb = target ? 'Updated' : 'Saved as';
+  setTplStatus('✓ ' + verb + ' “' + t.name + '” — find it under My templates' + (meEmail ? ' (synced to your account)' : ' (saved in this browser)'));
+  capToast('✓ ' + verb + ' “' + t.name + '”');
+  scrollPickerTo(t.id, true, true);
 }
 function renameTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
@@ -3915,6 +4045,7 @@ function renameTemplate(id) {
   t.name = nn; t.updatedAt = Date.now();
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
   if (_csEditingTpl === id) setTplEditing(id);
+  capToast('✓ Renamed to “' + nn + '”');
 }
 function duplicateTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
@@ -3924,6 +4055,8 @@ function duplicateTemplate(id) {
             layout: JSON.parse(JSON.stringify(t.layout || {})), createdAt: now, updatedAt: now };
   userTemplates.push(c);
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
+  capToast('✓ Duplicated as “' + c.name + '”');
+  scrollPickerTo(c.id, false, true);
 }
 function deleteTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
@@ -3934,12 +4067,14 @@ function deleteTemplate(id) {
   persistTemplates(); rebuildTemplateStyles();
   if (activeId === id) activeId = 'classic';
   buildPicker(); selectStyle(activeId);
+  capToast('Deleted “' + t.name + '”');
 }
 function editTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
   if (!t) return;
   selectStyle(id);           // Regler aus dem Template befüllen (seedCustomFields)
   setTplEditing(id);
+  setTplStatus('Editing “' + t.name + '”: change the style below, then click Update.');
   var more = csEl('csMore'); if (more && 'open' in more) more.open = true;
   var nm = csEl('tplName'); if (nm && nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
@@ -3966,6 +4101,11 @@ function openTplMenu(id, btn) {
   m.style.top = Math.round(r.bottom + 4) + 'px';
   m.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 150, r.left - 110))) + 'px';
   document.body.appendChild(m);
+  // Unten kein Platz (Handy: Picker am Bildschirmrand) → Menü über dem ⋯-Knopf öffnen, sonst ist „Delete“ abgeschnitten
+  if (m.getBoundingClientRect && typeof window.innerHeight === 'number') {
+    var mh = m.getBoundingClientRect().height || 0;
+    if (r.bottom + 4 + mh > window.innerHeight - 8 && r.top - 4 - mh >= 8) m.style.top = Math.round(r.top - 4 - mh) + 'px';
+  }
   _tplMenuEl = m;
   // mousedown UND touchstart: auf Touch-Geräten schließt ein Tipp daneben das Menü sofort
   setTimeout(function(){ document.addEventListener('mousedown', _tplMenuOutside, true); document.addEventListener('touchstart', _tplMenuOutside, true); }, 0);
@@ -4111,8 +4251,83 @@ function buildPicker() {
   var c = document.getElementById('stylePicker');
   if (!c) return;
   if (_stileHoverTimer) { clearInterval(_stileHoverTimer); _stileHoverTimer = null; }
+  var keepScroll = c.scrollTop || 0;
   c.innerHTML = '';
-  STYLES.forEach(function(s) {
+  // Gruppen: „My templates“ (Custom-Entwurf + eigene Templates, neueste zuerst) OBEN, dann die Presets —
+  // vorher hingen Templates hinter 36 Presets und man sah nicht, ob/was gespeichert wurde.
+  var mine = [], presets = [];
+  STYLES.forEach(function(s){ (s._isTpl || s.id === 'custom' ? mine : presets).push(s); });
+  var tplCreated = {};
+  userTemplates.forEach(function(t){ tplCreated[t.id] = t.createdAt || t.updatedAt || 0; });
+  mine.sort(function(a, b) {
+    if (a.id === 'custom') return -1; if (b.id === 'custom') return 1;
+    return (tplCreated[b.id] || 0) - (tplCreated[a.id] || 0);
+  });
+  var nTpl = mine.filter(function(s){ return s._isTpl; }).length;
+  var hdr = document.createElement('div');
+  hdr.className = 'stile-group';
+  hdr.innerHTML = 'My templates <span class="sg-n">' + (nTpl ? nTpl + ' saved' : '') + '</span>';
+  c.appendChild(hdr);
+  mine.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
+  if (!nTpl) {
+    var em = document.createElement('div');
+    em.className = 'stile-empty';
+    em.innerHTML = 'No templates yet — style your captions and <a href="#" onclick="focusTemplateSave(event)">save them as a template</a> to reuse them here.';
+    c.appendChild(em);
+  }
+  var hdr2 = document.createElement('div');
+  hdr2.className = 'stile-group presets';
+  hdr2.textContent = 'Presets';
+  c.appendChild(hdr2);
+  presets.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
+  c.scrollTop = keepScroll;
+  var cnt = document.getElementById('tplCount');
+  if (cnt) cnt.textContent = nTpl ? ('· ' + nTpl + ' saved') : '';
+}
+// Kachel ersetzen (Custom-Style beim Regler-Ziehen) — false, wenn sie (noch) nicht im Picker ist.
+function replacePickerTile(s) {
+  var c = document.getElementById('stylePicker');
+  if (!c || !c.querySelector) return false;
+  var old = c.querySelector('.stile[data-id="' + s.id + '"]');
+  if (!old || !old.parentNode) return false;
+  if (_stileHoverTimer) { clearInterval(_stileHoverTimer); _stileHoverTimer = null; } // Hover-Animation hing an der alten Kachel
+  old.parentNode.replaceChild(makeStyleTile(s), old);
+  return true;
+}
+// Kachel im Picker sichtbar machen; withPage = auch die Seite dorthin scrollen (nach dem Speichern).
+function scrollPickerTo(id, withPage, flash) {
+  var c = document.getElementById('stylePicker');
+  if (!c || !c.querySelector) return;
+  var tile = c.querySelector('.stile[data-id="' + id + '"]');
+  if (!tile) return;
+  if (withPage && tile.scrollIntoView) tile.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  else if (c.getBoundingClientRect && tile.getBoundingClientRect) {
+    var cr = c.getBoundingClientRect(), tr = tile.getBoundingClientRect();
+    if (tr.top < cr.top) c.scrollTop -= (cr.top - tr.top) + 24;
+    else if (tr.bottom > cr.bottom) c.scrollTop += (tr.bottom - cr.bottom) + 6;
+  }
+  if (flash && tile.classList) { tile.classList.remove('just-saved'); void tile.offsetWidth; tile.classList.add('just-saved'); }
+}
+function focusTemplateSave(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  var nm = csEl('tplName');
+  if (nm) { if (nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (nm.focus) nm.focus({ preventScroll: true }); }
+}
+var _toastTimer = null;
+function capToast(msg) {
+  if (typeof document === 'undefined' || !document.body) return;
+  var el = document.getElementById('capToast');
+  if (!el || !el.parentNode) {
+    el = document.createElement('div'); el.id = 'capToast'; el.className = 'cap-toast';
+    if (el.setAttribute) { el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); }
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  if (el.classList) { el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ if (el.classList) el.classList.remove('show'); }, 2600);
+}
+function makeStyleTile(s) {
     var tile = document.createElement('div');
     tile.className = 'stile' + (s.id === activeId ? ' on' : '');
     tile.dataset.id = s.id;
@@ -4144,16 +4359,19 @@ function buildPicker() {
     var info = document.createElement('div');
     info.className = 'stile-info';
     var badge = s.badge ? (' <span style="font-size:7px;color:#f87171">' + s.badge + '</span>') : '';
-    info.innerHTML = '<div class="stile-name">' + escHtml(s.name) + badge + '</div><div class="stile-font">' + escHtml(s.fl) + '</div>';
+    // Custom-Entwurf klar als „noch nicht gespeichert“ kennzeichnen
+    var sub = s.id === 'custom' ? 'unsaved · edit below' : s.fl;
+    info.innerHTML = '<div class="stile-name">' + escHtml(s.id === 'custom' ? 'Custom' : s.name) + badge + '</div><div class="stile-font">' + escHtml(sub) + '</div>';
     tile.appendChild(info);
     if (s._isTpl) {
+      tile.title = 'Your template “' + s.name + '”';
       var mb = document.createElement('button');
       mb.type = 'button'; mb.className = 'stile-menu-btn'; mb.textContent = '⋯'; mb.title = 'Template options';
+      if (mb.setAttribute) mb.setAttribute('aria-label', 'Options for template ' + s.name);
       mb.onclick = function(e){ e.stopPropagation(); openTplMenu(s.id, mb); };
       tile.appendChild(mb);
-    }
-    c.appendChild(tile);
-  });
+    } else if (s.id === 'custom') tile.title = 'Your current custom style (not saved yet)';
+    return tile;
 }
 
 // ═══════════════════════════════════════
@@ -4735,7 +4953,7 @@ function applyProjectPayload(p) {
     wordTimestamps = [];
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
   }
-  if (p.style) restoreSavedStyle(p);
+  if (p.style) { restoreSavedStyle(p); seedActiveStyle(); }
   if (p.fontSize) { fontSize = p.fontSize; var ss = document.getElementById('szSlider'); if (ss) { ss.value = p.fontSize; document.getElementById('szDisp').textContent = p.fontSize + 'px'; } }
   if (p.wpb) { WORDS_PER_BLOCK = p.wpb; var ws = document.getElementById('wpbSlider'); if (ws) { ws.value = p.wpb; document.getElementById('wpbDisp').textContent = p.wpb; } }
   if (typeof p.lines === 'number') { CAPTION_LINES = p.lines; syncLinesButtons(); }
@@ -7400,6 +7618,7 @@ function openEditor() {
   if (_showcaseIO) _showcaseIO.disconnect();
   loadTemplates(); // gespeicherte Templates in den Picker einhängen
   if (!STYLES.find(function(x){ return x.id === activeId; })) activeId = DEFAULT_STYLE; // gemerkter Style existiert nicht mehr
+  seedActiveStyle(); // Custom-Regler zeigen den gemerkten Style (sonst HTML-Defaults wie gelbes „Active“)
   buildPicker(); renderWPills(); updateOverlay();
   applyPos(); // gewählte Position beibehalten
 }
