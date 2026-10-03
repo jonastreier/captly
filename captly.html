@@ -143,6 +143,61 @@ body.editor-open{height:100vh;overflow:hidden}
 .how-steps li{counter-increment:st;font-size:14px;color:var(--muted);line-height:1.5}
 .how-steps li b{display:block;color:var(--ink);font-weight:600;margin-bottom:2px}
 .how-steps li b::before{content:counter(st) '. ';color:var(--brand)}
+/* Handy: animierte Mini-Demo (Upload → Captions Wort für Wort → Export) statt der breiten Grafik,
+   die auf schmalen Screens unlesbar klein wird. Ablauf steuert initHowDemo() über data-s / Klassen. */
+.how-demo{display:none}
+@media (max-width:640px){
+  .how-visual{display:none}
+  .how-demo{display:flex;justify-content:center;margin:24px auto 0;padding:28px 0;border-radius:24px;background:linear-gradient(160deg,#f6f2ff,#ece4fd 55%,#f7f3ff);border:1px solid var(--brand-line)}
+  .how-steps{gap:6px;margin-top:16px}
+  .how-steps li{padding:10px 12px;border-radius:12px;transition:background .35s ease}
+  .how-steps li.on{background:var(--brand-soft)}
+}
+.hd-phone{position:relative;width:min(58vw,224px);aspect-ratio:9/18.5;border-radius:34px;background:#15121d;padding:7px;box-shadow:0 20px 44px rgba(76,29,149,.22),0 2px 6px rgba(16,24,28,.12)}
+.hd-screen{position:relative;width:100%;height:100%;border-radius:28px;overflow:hidden;background:#fff;font-family:'Inter',sans-serif}
+.hd-scene{position:absolute;inset:0;opacity:0;transition:opacity .45s ease}
+.how-demo[data-s="1"] .hd-up,.how-demo[data-s="2"] .hd-vid,.how-demo[data-s="3"] .hd-vid,.how-demo[data-s="3"] .hd-exp{opacity:1}
+.hd-up{display:flex;flex-direction:column;justify-content:center;gap:14px;padding:0 14px;background:linear-gradient(180deg,#fbfaff,#f3effe)}
+.hd-uz{display:flex;flex-direction:column;align-items:center;gap:4px;padding:22px 10px;border:1.5px dashed var(--brand-line);border-radius:16px;background:#fff;text-align:center}
+.hd-uz b{font-size:13px;color:var(--ink);font-weight:600}
+.hd-uz small{font-size:10.5px;color:var(--faint)}
+.hd-uz-ic{position:relative;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;background:var(--brand-soft);color:var(--brand);margin-bottom:4px}
+.hd-uz-ic .ic{width:18px;height:18px}
+.hd-tap::after{content:'';position:absolute;inset:-6px;border-radius:inherit;border:2px solid var(--brand);opacity:0;pointer-events:none}
+.hd-tap.tap::after{animation:hdTap .7s ease-out}
+@keyframes hdTap{0%{opacity:.7;transform:scale(.7)}100%{opacity:0;transform:scale(1.35)}}
+.hd-file{display:grid;grid-template-columns:30px 1fr;grid-template-rows:auto auto;column-gap:9px;row-gap:6px;align-items:center;padding:9px 10px;border-radius:12px;background:#fff;box-shadow:var(--sh-2);opacity:0;transform:translateY(10px);transition:opacity .35s ease,transform .35s ease}
+.hd-file.in{opacity:1;transform:none}
+.hd-file-th{grid-row:1/3;width:30px;height:40px;border-radius:6px;background:url(assets/showcase/bloom.jpg) center/cover}
+.hd-file-nm{font-size:11.5px;font-weight:600;color:var(--ink)}
+.hd-bar{height:4px;border-radius:2px;background:var(--fill2);overflow:hidden}
+.hd-bar i{display:block;height:100%;width:0;background:var(--brand);border-radius:2px;transition:width 1.4s cubic-bezier(.4,0,.2,1)}
+.hd-file.load .hd-bar i{width:100%}
+.hd-vid{background:#2a1d2b}
+.hd-vid img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hd-badge{position:absolute;top:12px;left:50%;transform:translateX(-50%);display:inline-flex;align-items:center;gap:5px;white-space:nowrap;padding:5px 10px;border-radius:999px;background:rgba(20,16,30,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;font-size:10.5px;font-weight:600}
+.hd-badge .ic{width:12px;height:12px}
+.hd-cap{position:absolute;left:10px;right:10px;top:58%;text-align:center;font:800 19px/1.25 'Poppins',sans-serif;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.45)}
+.hd-cap span{display:inline-block;padding:0 4px;border-radius:6px;opacity:0;transform:translateY(6px) scale(.96);transition:opacity .22s ease,transform .22s ease,background .2s ease,color .2s ease}
+.hd-cap span.in{opacity:1;transform:none}
+.hd-cap span.hl{background:var(--brand)}
+.hd-cap.bold{font-size:19px;font-weight:900;text-transform:uppercase;letter-spacing:.01em;text-shadow:0 2px 0 #000,0 0 10px rgba(0,0,0,.55)}
+.hd-cap.bold span.hl{background:none;color:#facc15}
+.hd-chips{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:6px}
+.hd-chips span{position:relative;padding:5px 10px;border-radius:999px;background:rgba(255,255,255,.88);color:var(--ink2);font-size:10.5px;font-weight:600;transition:background .2s,color .2s}
+.hd-chips span.on{background:var(--brand);color:#fff}
+.hd-exp{background:rgba(20,16,30,.28);transition:opacity .35s ease}
+.hd-sheet{position:absolute;left:0;right:0;bottom:0;padding:14px 14px 18px;border-radius:20px 20px 0 0;background:#fff;box-shadow:0 -8px 24px rgba(16,24,28,.18);transform:translateY(105%);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+.how-demo[data-s="3"] .hd-sheet{transform:none}
+.hd-sheet-h{font-size:12.5px;font-weight:700;color:var(--ink);margin-bottom:10px}
+.hd-btn{position:relative;display:flex;align-items:center;justify-content:center;gap:6px;width:100%;padding:10px;border:none;border-radius:999px;background:var(--brand);color:#fff;font:600 12px 'Inter',sans-serif;overflow:visible}
+.hd-btn .ic{width:14px;height:14px}
+.hd-btn>*:not(.hd-btn-fill){position:relative}
+.hd-btn-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:inherit;background:var(--brand-ink);transition:width 1s linear}
+.hd-btn.load .hd-btn-fill{width:100%}
+.hd-done{display:flex;align-items:center;justify-content:center;gap:5px;margin-top:10px;font-size:11px;font-weight:600;color:#15803d;opacity:0;transform:translateY(4px);transition:opacity .3s,transform .3s}
+.hd-done .ic{width:13px;height:13px}
+.hd-done.in{opacity:1;transform:none}
 
 /* FEATURE GRID (Landing) */
 .feat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:28px}
@@ -950,6 +1005,28 @@ input[type=checkbox]{accent-color:var(--brand)}
       <div class="how-slot how-slot-phone"><img class="how-piece how-piece-phone" src="assets/how-piece-phone.jpg" alt="Captioned video preview" loading="lazy" style="mask-image:url(assets/how-mask-phone.png);-webkit-mask-image:url(assets/how-mask-phone.png)"></div>
       <div class="how-slot how-slot-card2"><img class="how-piece how-piece-card2" src="assets/how-piece-card2.jpg" alt="AI transcribes and styles it" loading="lazy" style="mask-image:url(assets/how-mask-card2.png);-webkit-mask-image:url(assets/how-mask-card2.png)"></div>
       <div class="how-slot how-slot-card3"><img class="how-piece how-piece-card3" src="assets/how-piece-card3.jpg" alt="Export and post" loading="lazy" style="mask-image:url(assets/how-mask-card3.png);-webkit-mask-image:url(assets/how-mask-card3.png)"></div>
+    </div>
+    <!-- Handy: animierte Demo (initHowDemo); rein illustrativ, die Schritte stehen in der Liste darunter -->
+    <div class="how-demo" id="howDemo" data-s="2" aria-hidden="true">
+      <div class="hd-phone"><div class="hd-screen">
+        <div class="hd-scene hd-up">
+          <div class="hd-uz"><span class="hd-uz-ic hd-tap"><svg class="ic"><use href="#i-upload"/></svg></span><b>Upload your clip</b><small>MP4, MOV or WebM</small></div>
+          <div class="hd-file"><span class="hd-file-th"></span><span class="hd-file-nm">my-reel.mp4</span><span class="hd-bar"><i></i></span></div>
+        </div>
+        <div class="hd-scene hd-vid">
+          <img src="assets/showcase/bloom.jpg" alt="" loading="lazy">
+          <span class="hd-badge"><svg class="ic"><use href="#i-spark"/></svg><span class="hd-badge-t">Auto-captioning</span></span>
+          <div class="hd-cap"><span class="in">Captions</span> <span class="in">in</span> <span class="in hl">seconds,</span></div>
+          <div class="hd-chips"><span class="on">Reveal</span><span class="hd-tap">Bold</span><span>Neon</span></div>
+        </div>
+        <div class="hd-scene hd-exp">
+          <div class="hd-sheet">
+            <div class="hd-sheet-h">Export</div>
+            <div class="hd-btn hd-tap"><span class="hd-btn-fill"></span><svg class="ic"><use href="#i-dl"/></svg><span>Download MP4</span></div>
+            <div class="hd-done"><svg class="ic"><use href="#i-check"/></svg>Saved · ready to post</div>
+          </div>
+        </div>
+      </div></div>
     </div>
     <ol class="how-steps">
       <li><b>Upload your clip</b>Captions appear in seconds, word by word.</li>
@@ -11987,6 +12064,7 @@ updateAcctUI();
 fetchMe().then(function(){ if (meEmail) loadProjects(); });
 initLandingNavScroll();
 initScrollReveal();
+initHowDemo();
 // Editor-Shortcuts (Pro-Creator-Standard): Leertaste = Play/Pause, ←/→ = ±1 s (Shift: ±0.1 s),
 // Ctrl/⌘+Z / Ctrl/⌘+Shift+Z (bzw. Ctrl+Y) = Undo/Redo der Caption-Edits, Esc verlässt ein Textfeld.
 // Beim Tippen in normalen Eingabefeldern (Suchen, Vokabular, Template-Name …) bleiben die nativen Tasten;
@@ -12030,6 +12108,57 @@ function initLandingNavScroll() {
     if (document.body.classList.contains('editor-open')) return;
     nav.classList.toggle('scrolled', window.scrollY > 40);
   }, { passive: true });
+}
+// Handy-Demo im „How it works“-Block: Upload → Captions Wort für Wort (+ Stilwechsel) → Export, als
+// Schleife. Läuft nur, solange sie sichtbar ist (IntersectionObserver; Desktop: display:none → nie
+// sichtbar). Reduzierte Bewegung / kein IO → bleibt im statischen Startbild (data-s="2", Satz komplett).
+function initHowDemo() {
+  var demo = document.getElementById('howDemo');
+  if (!demo || !('IntersectionObserver' in window)) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var steps = document.querySelectorAll('#how-it-works .how-steps li');
+  var cap = demo.querySelector('.hd-cap'), file = demo.querySelector('.hd-file'), uz = demo.querySelector('.hd-uz-ic');
+  var chips = demo.querySelectorAll('.hd-chips span'), btn = demo.querySelector('.hd-btn'), done = demo.querySelector('.hd-done');
+  var badge = demo.querySelector('.hd-badge-t');
+  var timers = [];
+  function at(ms, fn) { timers.push(setTimeout(fn, ms)); }
+  function stop() { timers.forEach(clearTimeout); timers = []; }
+  function tap(el) { el.classList.remove('tap'); void el.offsetWidth; el.classList.add('tap'); }
+  function setStep(s) {
+    demo.setAttribute('data-s', s);
+    steps.forEach(function(li, i){ li.classList.toggle('on', i === s - 1); });
+  }
+  function phrase(words, t0) {
+    at(t0, function(){ cap.innerHTML = words.map(function(w){ return '<span>' + w + '</span>'; }).join(' '); });
+    words.forEach(function(w, i) {
+      at(t0 + 150 + i * 420, function() {
+        for (var j = 0; j < cap.children.length; j++) cap.children[j].className = j < i ? 'in' : (j === i ? 'in hl' : '');
+      });
+    });
+  }
+  function run() {
+    stop();
+    file.className = 'hd-file'; btn.classList.remove('load'); done.classList.remove('in');
+    cap.className = 'hd-cap'; cap.innerHTML = ''; badge.textContent = 'Auto-captioning';
+    chips.forEach(function(c, i){ c.classList.toggle('on', i === 0); });
+    setStep(1);
+    at(400, function(){ tap(uz); });
+    at(900, function(){ file.classList.add('in'); });
+    at(1150, function(){ file.classList.add('load'); });
+    at(2800, function(){ setStep(2); });
+    phrase(['Captions', 'in', 'seconds,'], 3100);
+    at(4700, function(){ tap(chips[1]); chips[0].classList.remove('on'); chips[1].classList.add('on'); cap.classList.add('bold'); });
+    phrase(['word', 'by', 'word.'], 4900);
+    at(6300, function(){ badge.textContent = 'Captions ready'; });
+    at(7000, function(){ setStep(3); });
+    at(7700, function(){ tap(btn); btn.classList.add('load'); });
+    at(8800, function(){ done.classList.add('in'); });
+    at(10600, run);
+  }
+  var io = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) { if (e.isIntersecting) run(); else { stop(); steps.forEach(function(li){ li.classList.remove('on'); }); } });
+  }, { threshold: 0.35 });
+  io.observe(demo);
 }
 function initScrollReveal() {
   var els = document.querySelectorAll('.reveal');
