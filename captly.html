@@ -33,7 +33,7 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@800&family=Bebas+Neue&family=Caveat:wght@700&family=DM+Sans:wght@700&family=Exo+2:wght@700&family=Inter:wght@400;500;600;700;800;900&family=Kalam:wght@700&family=Bangers&family=Montserrat:wght@600;700;800;900&family=Orbitron:wght@700&family=Oswald:wght@700&family=Playfair+Display:ital,wght@0,700;1,700&family=Poppins:wght@600;700;800;900&family=Raleway:wght@300&family=Space+Grotesk:wght@700&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@800&family=Bebas+Neue&family=Caveat:wght@700&family=DM+Sans:wght@700&family=Exo+2:wght@700&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800&family=Kalam:wght@700&family=Bangers&family=Montserrat:wght@600;700;800;900&family=Orbitron:wght@700&family=Oswald:wght@700&family=Playfair+Display:ital,wght@0,700;1,700&family=Poppins:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&family=Raleway:wght@300&family=Space+Grotesk:wght@700&family=VT323&display=swap" rel="stylesheet">
 <style>
 /* --muted: Hinweis-/Sekundärtext (≥ 4.5:1 auf Weiß); nur für Text, nicht für Rahmen */
 :root{--muted:#6b6577}
@@ -43,14 +43,16 @@
 body{background:#f6f4f5;color:#111;font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 body.editor-open{height:100vh;overflow:hidden}
 
-/* Wort-Animationen bewusst ruhig (kein Blinken/Wackeln/Schrumpfen): Pop ≤ 1.08, Punch ≤ 1.12, Lift = sanft
-   von unten, Fade = einblenden, Glow = leichtes Aufhellen. flash/wobble bleiben als Namen für alte Templates. */
-@keyframes captly-bounce{0%{transform:translateY(4px)}60%{transform:translateY(-1px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
-@keyframes captly-scale{0%{transform:scale(1)}45%{transform:scale(1.08)}100%{transform:scale(1)}}
+/* Wort-Animationen bewusst ruhig (kein Blinken/Wackeln/Schrumpfen): Pop ≤ 1.04, Punch ≤ 1.06, Lift = sanft
+   von unten, Fade = einblenden, Glow = leichtes Aufhellen. flash/wobble bleiben als Namen für alte Templates.
+   Nur noch für Kacheln/Showcase — die Editor-Vorschau rechnet dieselben Keyframes (ANIM_KEYFRAMES) aus der Videozeit. */
+@keyframes captly-bounce{0%{transform:translateY(3px)}60%{transform:translateY(-1px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
+@keyframes captly-scale{0%{transform:scale(1)}45%{transform:scale(1.04)}100%{transform:scale(1)}}
 @keyframes captly-flash{0%{opacity:.45}100%{opacity:1}}
 @keyframes captly-glow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
-@keyframes captly-punch{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
-@keyframes captly-wobble{0%{transform:translateY(4px)}60%{transform:translateY(-1px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
+@keyframes captly-punch{0%{transform:scale(1)}45%{transform:scale(1.06)}100%{transform:scale(1)}}
+@keyframes captly-wobble{0%{transform:translateY(3px)}60%{transform:translateY(-1px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
+@keyframes capWordIn{from{opacity:0;transform:translateY(.25em)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes capEmoIn{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
@@ -1416,7 +1418,11 @@ input[type=checkbox]{accent-color:#7c3aed}
                 <option value="color">Text color</option><option value="pill">Pill behind word</option>
               </select></div>
             <div class="sz-row cs-line"><span class="cs-k">Animation</span>
-              <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')">
+              <select id="csMotion" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('motion')" title="Highlight: the spoken word stands out · Reveal: words appear as they are spoken and stay · Fill: the whole caption is visible, spoken words turn solid · None: static">
+                <option value="highlight">Highlight</option><option value="reveal">Reveal</option><option value="fill">Fill</option><option value="none">None</option>
+              </select></div>
+            <div class="sz-row cs-line"><span class="cs-k">Word pop</span>
+              <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')" title="Small extra motion on the spoken word (Highlight only)">
                 <option value="none">None</option><option value="scale">Pop</option><option value="punch">Punch</option>
                 <option value="bounce">Lift</option><option value="flash">Fade in</option><option value="glow">Glow</option>
               </select></div>
@@ -1488,10 +1494,34 @@ input[type=checkbox]{accent-color:#7c3aed}
 // ═══════════════════════════════════════
 // STYLES
 // ═══════════════════════════════════════
-// 15 kuratierte Presets (2026): die gängigen Short-Form-Looks, ruhig animiert (kein Blinken/Wackeln/Farbwechsel
-// pro Wort). Reihenfolge = Häufigkeit. Entfernte/zusammengelegte IDs → STYLE_ALIASES (alte Projekte,
-// Autosaves, gemerkter Style, Brand-Default laden den nächstliegenden Look).
+// Kuratierte Presets (2026): die gängigen Short-Form-Looks, ruhig animiert (kein Blinken/Wackeln/Farbwechsel
+// pro Wort). Zuerst die ruhigen Looks nach dem Vorbild der Captions-App (motion 'reveal'/'fill', Betonung über
+// Typografie: em/emFont/emItalic/emFw/emS), danach nach Häufigkeit. Entfernte/zusammengelegte IDs → STYLE_ALIASES
+// (alte Projekte, Autosaves, gemerkter Style, Brand-Default laden den nächstliegenden Look).
+// motion: s. capMotion() — fehlt es, gilt 'highlight' (aktives Wort hebt sich ab, wie alle bisherigen Styles).
 var STYLES = [
+  {id:'reveal',   name:'Reveal',     fl:'Inter', // Standard: Wörter erscheinen beim Sprechen und bleiben (Layout steht fest), Keyword kursiv in Türkis, größer
+   font:"'Inter'", fw:'700', fs:'.92em', motion:'reveal',
+   thumbBg:'linear-gradient(160deg,#0e1a1c,#070c0d)',
+   tc:'#fff', ts:'0 2px 10px rgba(0,0,0,.45)',
+   hl:'#fff', hls:'0 2px 10px rgba(0,0,0,.45)', anim:'none',
+   em:'#8fe3d6', emItalic:true, emFw:'800', emS:1.28},
+  {id:'note',     name:'Note',       fl:'Inter', // Kleine weiße Notiz-Box, dunkle Schrift: ganze Phrase sichtbar, kommende Wörter hellgrau, gesprochene satt
+   font:"'Inter'", fw:'700', fs:'.8em', motion:'fill',
+   thumbBg:'linear-gradient(160deg,#1d2b2a,#0f1716)',
+   tc:'#18181b', ts:'none', boxBg:'#ffffff', boxBr:'9px',
+   hl:'#18181b', hls:'none', anim:'none', em:'#6d28d9', emItalic:true, emFw:'800', emS:1.06},
+  {id:'script',   name:'Script',     fl:'Poppins', // Fette weiße Sans + Keyword als Handschrift (Caveat) in Türkis, Wörter erscheinen nacheinander
+   font:"'Poppins'", fw:'700', fs:'.95em', motion:'reveal',
+   thumbBg:'linear-gradient(160deg,#101a22,#070b10)',
+   tc:'#fff', ts:'0 2px 12px rgba(0,0,0,.5)',
+   hl:'#fff', hls:'0 2px 12px rgba(0,0,0,.5)', anim:'none',
+   em:'#7ff0e0', emFont:"'Caveat'", emFw:'700', emS:1.4},
+  {id:'soft',     name:'Soft',       fl:'Poppins', // Weiche Satzschreibung: Phrase leicht transparent, gesprochene Wörter füllen sich weiß, Keyword kursiv in Pfirsich
+   font:"'Poppins'", fw:'600', motion:'fill',
+   thumbBg:'linear-gradient(160deg,#1a1420,#0c0910)',
+   tc:'#fff', ts:'0 2px 10px rgba(0,0,0,.45)',
+   hl:'#fff', hls:'0 2px 10px rgba(0,0,0,.45)', anim:'none', em:'#ffc9a8', emItalic:true, emFw:'700', emS:1.15},
   {id:'classic',  name:'Classic',    fl:'Montserrat', // Der Look, den die meisten einfach nehmen: fette weiße Großbuchstaben, harter schwarzer Rand, KEINE Wort-Hervorhebung/Animation
    font:"'Montserrat'", fw:'900', tt:'uppercase', ls:'.3px',
    thumbBg:'linear-gradient(160deg,#151515,#0a0a0a)',
@@ -1503,12 +1533,12 @@ var STYLES = [
    thumbBg:'linear-gradient(160deg,#17140a,#070604)',
    tc:'#fff', ts:outlineShadow(3, '#000') + ',0 4px 10px rgba(0,0,0,.45)',
    hl:'#FFD60A', hls:outlineShadow(3, '#000'),
-   anim:'punch', cstroke:'#000'},
+   anim:'scale', cstroke:'#000'},
   {id:'boxkara',  name:'Highlight Box', fl:'Montserrat', // Submagic-Look: konturierte Caps, farbige Box hinter dem gesprochenen Wort
    font:"'Montserrat'", fw:'900', tt:'uppercase',
    thumbBg:'linear-gradient(160deg,#0c1410,#060907)',
    tc:'#fff', ts:outlineShadow(2, '#000') + ',0 3px 8px rgba(0,0,0,.4)',
-   hl:'#fff', hlPillBg:'#22c55e', hlc:'#06240f', hls:'none', anim:'scale', cstroke:'#000', em:'#4ade80'},
+   hl:'#fff', hlPillBg:'#22c55e', hlc:'#06240f', hls:'none', anim:'none', cstroke:'#000', em:'#4ade80'}, // Bewegung = gleitende Box
   {id:'beast',    name:'Beast',      fl:'Bangers', // MrBeast-Comic: Bangers-Caps, schwere Kontur + harter Drop-Shadow, aktives Wort farbig
    font:"'Bangers'", fw:'400', tt:'uppercase', ls:'1px', fs:'1.12em',
    thumbBg:'linear-gradient(160deg,#0b1730,#05070f)',
@@ -1547,7 +1577,7 @@ var STYLES = [
    font:"'Poppins'", fw:'800',
    thumbBg:'linear-gradient(160deg,#0e0818,#100a20)',
    tc:'#fff', ts:'0 2px 8px rgba(0,0,0,.6)',
-   hlPillBg:'#7c3aed', hlc:'#fff', hls:'none', anim:'scale', em:'#c4b5fd'},
+   hlPillBg:'#7c3aed', hlc:'#fff', hls:'none', anim:'none', em:'#c4b5fd'}, // Bewegung = gleitende Pill
   {id:'headline', name:'Headline',   fl:'Anton', // Schmale fette Caps mit Kontur — ruhiger News-/Doku-Look ohne Wort-Hervorhebung
    font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px', fs:'1.05em',
    thumbBg:'linear-gradient(160deg,#1a0505,#0d0202)',
@@ -1598,9 +1628,10 @@ function resolveStyleId(id) {
 // ═══════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════
-// Standard-Style für neue Nutzer: Hormozi (schnell im Export, modern, sehr gut lesbar). Früher „Petal“ —
-// dessen große Blur-Glows machten den Export bis 6× langsamer. Eine bewusste frühere Wahl bleibt erhalten.
-var DEFAULT_STYLE   = 'hormozi', STYLE_KEY = 'capivo.style';
+// Standard-Style für neue Nutzer: Reveal (ruhig wie die Captions-App, kleiner weicher Schatten → schneller
+// Export). Vorher Hormozi, davor „Petal“ (große Blur-Glows, Export bis 6× langsamer). Eine bewusste frühere
+// Wahl (gemerkter Style, Brand-Default) bleibt erhalten.
+var DEFAULT_STYLE   = 'reveal', STYLE_KEY = 'capivo.style';
 var activeId        = (function(){ try { return resolveStyleId((typeof localStorage !== 'undefined' && localStorage.getItem(STYLE_KEY)) || DEFAULT_STYLE); } catch (e) { return DEFAULT_STYLE; } })();
 var capPos          = 'bottom';
 var capVOff         = 20;   // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position — Default etwas höher, damit Captions nicht mit UI-Elementen der Plattformen (Beschreibung, Like-Leiste) kollidieren
@@ -2700,27 +2731,33 @@ function fitCaptionWords(words, s, px, maxW, lines, em) {
   var maxH = previewFrameH() * CAP_FIT_MAX_H;
   var esc = emphScale(s);
   var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, capWordGap(s),
-            s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0, capLineH(s)].join(',') + '|' + px + '|' + Math.round(maxW)
+            s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0, capLineH(s), capMotion(s), s.emFont, s.emItalic, s.emFw].join(',') + '|' + px + '|' + Math.round(maxW)
             + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen + '|' + capHyphLang() + '|e' + emMaskKey(em) + esc;
   if (_capFitCache[key]) return _capFitCache[key];
   var ctx   = capMeasureCtx();
   var fn    = (s.font || "'Inter'").replace(/'/g, '');
   var fw    = s.fw || '700';
   var fi    = s.fi === 'italic' ? 'italic ' : '';
+  var hv    = capHlVariant(s), anyEm = !!(em && em.some(Boolean));
   var fontPending = capFontPending(fi + fw + ' 16px "' + fn + '"')
-    || (s.hlFont ? capFontPending((s.hlItalic ? 'italic ' : fi) + fw + ' 16px "' + s.hlFont.replace(/'/g, '') + '"') : false);
+    || (hv && s.hlFont ? capFontPending(capFaceFont(capWordFace(s, true, false), 16)) : false)
+    || (anyEm ? capFontPending(capFaceFont(capWordFace(s, false, true), 16)) : false);
   var tt    = s.tt === 'uppercase';
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
   var lsPx  = parseFloat(s.ls) || 0; // ls ist bei allen Styles px (oder 'none' → 0)
+  // Breite = Platz für normale UND aktive Variante (capHlVariant) — Betonung mit eigener Schrift/Größe (emphScale).
+  // Die Highlight-Box (hlPillBg) belegt keine Breite mehr (s. capWordGap).
   function measure(w, p, i) {
-    var sz = p * fsMul * ((em && i !== undefined && em[i]) ? esc : 1);
-    ctx.font = fi + fw + ' ' + sz + 'px "' + fn + '", sans-serif';
-    var normal = ctx.measureText(tt ? w.toUpperCase() : w).width;
-    var hf = s.hlFont ? s.hlFont.replace(/'/g, '') : fn;
-    ctx.font = (s.hlItalic ? 'italic ' : fi) + fw + ' ' + sz + 'px "' + hf + '", sans-serif';
-    var hl = ctx.measureText((tt || s.hlUpper) ? w.toUpperCase() : w).width;
-    if (s.hlPillBg) hl += 18;                 // padding 2px 9px (buildCap)
-    if (s.circle)   hl += 0.6 * sz + 5;       // padding .3em + 2.5px Rahmen je Seite
+    var isE = !!(em && i !== undefined && em[i]);
+    var sz = p * fsMul * (isE ? esc : 1), f = capWordFace(s, false, isE);
+    ctx.font = capFaceFont(f, sz);
+    var normal = ctx.measureText(f.up ? w.toUpperCase() : w).width, hl = 0;
+    if (hv) {
+      var fh = capWordFace(s, true, isE);
+      ctx.font = capFaceFont(fh, sz);
+      hl = ctx.measureText(fh.up ? w.toUpperCase() : w).width;
+      if (s.circle) hl += 0.6 * sz + 5;       // padding .3em + 2.5px Rahmen je Seite
+    }
     return Math.max(normal, hl) + lsPx * w.length;
   }
   // Kurzes Nachbarwort + überlanges Wort (capLongPairFits) → wie ein Einzelwort zuerst trennen statt schrumpfen
@@ -3092,15 +3129,20 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf, em) {
   // (Canvas mit letterSpacing) anders um als die Vorschau (2 Zeilen im MP4, 1 Zeile in der Vorschau).
   var lsPx  = parseFloat(s.ls) || 0;
   var sp    = ctx.measureText(' ').width + capWordGap(s) + lsPx; // wie word-spacing in buildCap (CSS-letter-spacing gilt auch fürs Leerzeichen)
-  var esc   = emphScale(s);
+  var esc   = emphScale(s), hv = capHlVariant(s);
+  // Breite unabhängig vom aktiven Wort (Platz für beide Varianten, s. capHlVariant) → das wandernde Highlight
+  // bricht nie anders um; hlIdx bleibt nur als Parameter für alte Aufrufer.
   var info  = words.map(function(w, i) {
-    var oi   = hlOf ? hlOf[i] : i;
-    var isHL = oi === hlIdx;
-    var f    = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
-    var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
-    ctx.font = it + fw + ' ' + (px * ((em && em[oi]) ? esc : 1)) + 'px "' + f + '", sans-serif';
-    var wt   = (tt || (isHL && s.hlUpper)) ? w.toUpperCase() : w;
-    return { i: i, w: ctx.measureText(wt).width + lsPx * wt.length + ((isHL && s.hlPillBg) ? 18 : 0), // Pill-Padding wie im DOM
+    var oi   = hlOf ? hlOf[i] : i, isE = !!(em && em[oi]), sz = px * (isE ? esc : 1);
+    var f    = capWordFace(s, false, isE);
+    ctx.font = capFaceFont(f, sz);
+    var ww   = ctx.measureText(f.up ? w.toUpperCase() : w).width;
+    if (hv) {
+      var fh = capWordFace(s, true, isE);
+      ctx.font = capFaceFont(fh, sz);
+      ww = Math.max(ww, ctx.measureText(fh.up ? w.toUpperCase() : w).width + (s.circle ? 0.6 * sz + 5 : 0));
+    }
+    return { i: i, w: ww + lsPx * w.length,
              t: w, hy: !!hlOf && i + 1 < words.length && hlOf[i + 1] === hlOf[i] }; // hy: getrennter Wortteil → Zeilenende
   });
   var lines = capDistributeLines(info, targetLines, sp, previewFrameW() * 0.86);
@@ -3280,16 +3322,156 @@ function hlColorFor(s, idx) {
 // jeden Wortzwischenraum hinein — bei fetten Caps (Hormozi, Standard) blieb vom Leerzeichen kaum etwas,
 // in der Punch-Animation (aktives Wort ×1,22) verschwand es ganz („DERWEIDE.“). Zusätzlicher
 // Wortabstand = 2w (Vorschau: CSS word-spacing, Export/Umbruch/Auto-Fit: gleiche Zugabe zu sp).
+// Highlight-Box (hlPillBg) liegt NICHT mehr als Padding im Layout (das verschob beim Wandern der Box die
+// Nachbarwörter), sondern als eigene Fläche hinter dem Wort, die CAP_PILL_PAD_X in den Wortzwischenraum ragt
+// → dafür bekommen Box-Styles CAP_PILL_GAP extra Wortabstand (Vorschau, Umbruch, Auto-Fit, Export gleich).
 function capWordGap(s) {
   var p = capShadowPlan(s && s.ts);
-  return p.ring && p.ring.w > 0 ? 2 * p.ring.w : 0;
+  return (p.ring && p.ring.w > 0 ? 2 * p.ring.w : 0) + ((s && s.hlPillBg && capMotion(s) === 'highlight') ? CAP_PILL_GAP : 0);
 }
 // Zeilenhöhe (Vielfaches der Schriftgröße) — Standard 1.3; eigene Styles: „Line height“ 0.9–1.8
 function capLineH(s) { var v = s && parseFloat(s.lh); return (v >= 0.8 && v <= 2) ? v : 1.3; }
+
+// ═══════════════════════════════════════
+// MOTION — Animations-Modi + weiche Übergänge
+// ═══════════════════════════════════════
+// s.motion: 'highlight' (Standard, alle älteren Styles: das gesprochene Wort hebt sich ab) · 'reveal' (Wörter
+// erscheinen beim Sprechen an ihrer ENDGÜLTIGEN Stelle und bleiben — das Layout der ganzen Phrase steht von
+// Anfang an fest, noch nicht gesprochene Wörter sind unsichtbar, belegen aber ihren Platz) · 'fill' (ganze
+// Phrase sichtbar, kommende Wörter gedimmt, gesprochene voll) · 'none' (statischer Block).
+// Alle Zustände sind reine Funktionen der Videozeit t — nie rAF-Deltas: Vorschau (capDomMotion) und Export
+// (drawCaptionsOnCtx) rechnen identisch, der Export bleibt frame-genau, Scrubben ist stabil.
+// Längen in em = Anteil der (angepassten) Caption-Schriftgröße.
+var CAP_MOT = {
+  enter: 0.15, enterRise: 0.12, exit: 0.10, // Block: Einblenden (+ leichter Anstieg) / Ausblenden, s
+  hl: 0.12,                                 // Highlight-Farbe ein-/ausblenden + Box-Gleiten, s
+  reveal: 0.22, revealRise: 0.25,           // Reveal: Einblenden je Wort (s) + Anstieg (em)
+  fill: 0.12, dim: 0.4                      // Fill: Übergang (s) + Deckkraft noch nicht gesprochener Wörter
+};
+var CAP_PILL_PAD_X = 9, CAP_PILL_PAD_Y = 2, CAP_PILL_GAP = 8; // Highlight-Box (Vorschau-px)
+function capMotion(s) { var m = s && s.motion; return (m === 'reveal' || m === 'fill' || m === 'none') ? m : 'highlight'; }
+function capEaseOut(x) { x = x > 0 ? (x < 1 ? x : 1) : 0; return 1 - (1 - x) * (1 - x) * (1 - x); }
+// Fortschritt 0..1 eines Übergangs, der dt Sekunden läuft (dur 0 = sofort, z. B. reduzierte Bewegung)
+function capPhase(dt, dur) { return dur > 0 ? capEaseOut(dt / dur) : (dt >= 0 ? 1 : 0); }
+// Reduzierte Bewegung (Systemeinstellung) — gilt nur für die Vorschau, der Export behält die Bewegung.
+var _capRM = null;
+function capReduceMotion() {
+  if (_capRM === null) {
+    _capRM = false;
+    try {
+      var mq = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)');
+      if (mq) { _capRM = !!mq.matches; if (mq.addEventListener) mq.addEventListener('change', function(e){ _capRM = !!e.matches; _lastKey = null; }); }
+    } catch (e) {}
+  }
+  return _capRM;
+}
+// Zeitpunkt, an dem Block bi verschwindet (Spiegel von currentBlockIdx) — null = er wird direkt vom nächsten
+// Block abgelöst (dann kein Ausblenden, sonst flackerte es zwischen zwei Phrasen).
+function capBlockVisEnd(bi) {
+  var b = captionBlocks[bi], nb = captionBlocks[bi + 1];
+  if (!b) return null;
+  if (displayMode !== 'all') return (nb && nb.start - b.end < 0.05) ? null : b.end;
+  var end = (!nb || nb.start - b.end > HOLD_GAP_SEC) ? b.end + HOLD_TAIL_SEC : null;
+  var cut = cutBetween(activeCuts(), b.end - 1e-6, end !== null ? end : nb.start);
+  if (cut !== null) return Math.max(b.end, cut);
+  return end;
+}
+// Block-Ein-/Ausblenden: { op, dy (em, + = tiefer) }. forced = pausierte Vorschau/PNG außerhalb der Sprechzeit
+// (Block wird nur als Vorschau gezeigt) → voll sichtbar. rm = reduzierte Bewegung.
+function capBlockFx(bi, t, forced, rm) {
+  var b = captionBlocks[bi];
+  if (!b || forced || rm) return { op: 1, dy: 0 };
+  var kin = capPhase(t - b.start, CAP_MOT.enter), ve = capBlockVisEnd(bi);
+  var kout = ve === null ? 1 : capPhase(ve - t, CAP_MOT.exit);
+  return { op: Math.min(kin, kout), dy: (1 - kin) * CAP_MOT.enterRise };
+}
+// Zustand von Wort i (Original-Index) zum Zeitpunkt t, wi = aktives Wort:
+//   op Deckkraft · dy Versatz (em) · hk 0..1 Anteil „an“-Farbe (Highlight bzw. Fill: gesprochen) · a Pop-Keyframe (animState)
+// Das Layout hängt von keinem dieser Werte ab (nur Deckkraft/Transform/Farbe) → nichts springt oder fließt um.
+function capWordFx(s, b, i, wi, t, forced, rm) {
+  var mode = capMotion(s), w = b.words[i] || {}, st = w.start || 0;
+  var f = { op: 1, dy: 0, hk: 0, a: null };
+  if (mode === 'reveal') {
+    if (forced && t < b.start) return f; // Vorschau vor dem Block: ganze Phrase zeigen
+    var kr = capPhase(t - st, rm ? 0 : CAP_MOT.reveal);
+    f.op = kr; f.dy = (1 - kr) * CAP_MOT.revealRise;
+  } else if (mode === 'fill') {
+    var kf = capPhase(t - st, rm ? 0 : CAP_MOT.fill);
+    f.op = CAP_MOT.dim + (1 - CAP_MOT.dim) * kf; f.hk = kf;
+    if (kf >= 1) f.op = 1;
+  } else if (mode === 'highlight') {
+    var d = rm ? 0 : CAP_MOT.hl;
+    if (i === wi) {
+      f.hk = capPhase(t - st, d);
+      if (!rm && s.anim && s.anim !== 'none') f.a = animState(s.anim, t - st);
+    } else if (wi > 0 && i === wi - 1) {
+      // voriges Wort gibt die Farbe weich ab (nie heller als sein eigenes Einblenden war)
+      f.hk = Math.min(capPhase(t - st, d), 1 - capPhase(t - ((b.words[wi] || {}).start || 0), d));
+    }
+  }
+  return f;
+}
+// Endzustand ohne laufenden Übergang? (Export: solche Wörter liegen in der gecachten statischen Ebene)
+function capFxSteady(f, mode) {
+  if (f.a || f.dy) return false;
+  if (f.hk !== 0 && f.hk !== 1) return false;
+  return f.op === 0 || f.op === 1 || (mode === 'fill' && f.op === CAP_MOT.dim);
+}
+// Schrift eines Worts: Betonung (emFont/emItalic/emFw) und aktives Wort (hlFont/hlItalic/hlUpper, nur 'highlight')
+function capWordFace(s, isHL, isEm) {
+  var hv = !!isHL && capMotion(s) === 'highlight';
+  var fam = (hv && s.hlFont) || (isEm && s.emFont) || s.font || "'Inter'";
+  return { fam: String(fam).replace(/'/g, ''), it: !!((hv && s.hlItalic) || (isEm && s.emItalic) || s.fi === 'italic'),
+           fw: String((isEm && s.emFw) || s.fw || '700'), up: s.tt === 'uppercase' || !!(hv && s.hlUpper) };
+}
+function capFaceFont(f, sz) { return (f.it ? 'italic ' : '') + f.fw + ' ' + sz + 'px "' + f.fam + '", sans-serif'; }
+// Hat das aktive Wort eine andere Breite (eigene Schrift/Kursiv/Caps/Kringel)? Dann bekommt JEDES Wort einen
+// Platz = max(normal, aktiv) und steht darin zentriert → das wandernde Highlight verschiebt nie die Zeile.
+function capHlVariant(s) { return !!(s && capMotion(s) === 'highlight' && (s.hlFont || s.hlItalic || s.hlUpper || s.circle)); }
+// Farben „aus“ (normal bzw. Betonung) und „an“ (Highlight bzw. Fill: gesprochen) eines Worts (null = Verlauf)
+function capOffColor(s, isEm) {
+  var ec = isEm ? emphColor(s) : null;
+  if (ec) return ec;
+  if (s.tg || (isEm && s.hlg)) return null;
+  return s.tc || '#fff';
+}
+function capOnColor(s, oi, isEm) {
+  if (capMotion(s) === 'fill') { var ec = isEm ? emphColor(s) : null; return ec || s.hl || s.tc || '#fff'; }
+  if (s.hlg) return null;
+  return s.hlPillBg ? (s.hlc || '#fff') : hlColorFor(s, oi);
+}
+// Mischfarbe a → b (k 0..1) als rgba(); nicht lesbare Farben (Verläufe) springen bei k = 0.5
+var _capColCache = {};
+function capMixColor(a, b, k) {
+  if (k <= 0 || a === b) return a;
+  if (k >= 1) return b;
+  if (!a || !b) return k < 0.5 ? a : b;
+  var pa = _capColCache[a] || (_capColCache[a] = cssColorToHexA(a) || 0), pb = _capColCache[b] || (_capColCache[b] = cssColorToHexA(b) || 0);
+  if (!pa || !pb) return k < 0.5 ? a : b;
+  function ch(h, o) { return parseInt(h.substr(o, 2), 16); }
+  var r = Math.round(ch(pa.hex, 1) + (ch(pb.hex, 1) - ch(pa.hex, 1)) * k), g = Math.round(ch(pa.hex, 3) + (ch(pb.hex, 3) - ch(pa.hex, 3)) * k),
+      bl = Math.round(ch(pa.hex, 5) + (ch(pb.hex, 5) - ch(pa.hex, 5)) * k), al = pa.a + (pb.a - pa.a) * k;
+  return 'rgba(' + r + ',' + g + ',' + bl + ',' + (Math.round(al * 1000) / 1000) + ')';
+}
+// Highlight-Box: gleitet vom vorigen Wort (P) zum aktiven (R) — gleiche Zeile, je ein Wortteil; sonst (Zeilen-
+// wechsel, getrenntes Wort, erstes Wort) blendet sie am Ziel ein. Rechtecke {x,y,w,h} in beliebiger Einheit.
+function capSlideBoxes(P, R, k) {
+  if (!R || !R.length || !(k > 0)) return [];
+  if (k < 1 && P && P.length === 1 && R.length === 1 && Math.abs(P[0].y - R[0].y) < 0.5) {
+    var p = P[0], r = R[0];
+    return [{ x: p.x + (r.x - p.x) * k, y: r.y, w: p.w + (r.w - p.w) * k, h: r.h, op: 1 }];
+  }
+  return R.map(function(r){ return { x: r.x, y: r.y, w: r.w, h: r.h, op: Math.min(1, k) }; });
+}
 // ex (optional, Vorschau): { em: Maske hervorgehobener Wörter, emoji: Emoji der Caption, age: s seit Blockbeginn }
+// Vorschau (lineTarget gesetzt): Wörter tragen data-oi; Ein-/Ausblenden, Reveal/Fill, Farbübergänge, Pop und die
+// gleitende Highlight-Box setzt capDomMotion pro Frame aus der Videozeit (keine CSS-Animationen → identisch
+// zum Export). Kacheln/Showcase (ohne lineTarget): statisch, hlIdx = aktives bzw. bei Reveal/Fill zuletzt
+// gesprochenes Wort; Pop/Reveal per CSS-Keyframes.
 function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   if (!words || !words.length) return '';
   var em = (ex && ex.em) || null, esc = emphScale(s), ec = emphColor(s);
+  var mode = capMotion(s), live = !!lineTarget, hv = live && capHlVariant(s);
   // Auto-Fit nur für die echte Vorschau (lineTarget gesetzt) — Style-Thumbnails/Showcase haben eigene Größen.
   var srcWords = words, orig = null;
   if (lineTarget && px) {
@@ -3309,7 +3491,21 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     + ';letter-spacing:' + ls + ';font-style:' + fi + ';font-size:' + sz
     + ';line-height:' + capLineH(s) + ';display:inline-block;max-width:100%;';
   if (lineTarget && capWordGap(s)) wCss += 'word-spacing:' + capWordGap(s) + 'px;';
-  if (s.boxBg) wCss += 'background:' + s.boxBg + ';padding:5px 18px;border-radius:' + (s.boxBr || '6px') + ';';
+  if (s.boxBg) {
+    wCss += 'background:' + s.boxBg + ';padding:5px 18px;border-radius:' + (s.boxBr || '6px') + ';';
+    // Weicher Schatten der Box wie im Export (drawCaptionsOnCtx: Blur 0.3·Schrift, Versatz 4 Export-px)
+    if (live && px) wCss += 'box-shadow:0 1.5px ' + (px * fsMul * 0.3).toFixed(1) + 'px rgba(0,0,0,.35);';
+  }
+  var hlBox = live && mode === 'highlight' && !!s.hlPillBg; // Highlight-Box als eigene, gleitende Fläche (.cap-hlbox)
+  if (hlBox) wCss += 'position:relative;z-index:0;';
+  // Platz je Wort für normale + aktive Variante (s. capHlVariant) — gleiche Messung wie wrapCaptionLines
+  function slotW(i, isE) {
+    var c = capMeasureCtx(), sz0 = px * fsMul * (isE ? esc : 1), w = words[i];
+    var f0 = capWordFace(s, false, isE), f1 = capWordFace(s, true, isE);
+    c.font = capFaceFont(f0, sz0); var a = c.measureText(f0.up ? w.toUpperCase() : w).width;
+    c.font = capFaceFont(f1, sz0); var b2 = c.measureText(f1.up ? w.toUpperCase() : w).width + (s.circle ? 0.6 * sz0 + 5 : 0);
+    return Math.max(a, b2) + (parseFloat(s.ls) || 0) * w.length;
+  }
   var hp = !!s.pill;
   var pCss = '';
   if (hp) {
@@ -3320,20 +3516,21 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   }
   function wordHtml(i) {
     var oi   = orig ? orig[i] : i; // Teilwort → Originalwort (Highlight, Keyword, Seek gelten fürs ganze Wort)
-    var isHL = oi === hlIdx;
+    var isHL = mode === 'highlight' && oi === hlIdx;
     var isEm = em ? !!em[oi] : isKeywordWord(srcWords[oi]); // ohne ex (Kacheln/Showcase): nur die alte Keyword-Liste
     var isKw = !isHL && isEm;
-    var wt   = (tt === 'uppercase' || (isHL && s.hlUpper)) ? words[i].toUpperCase() : words[i];
+    var wt   = capWordFace(s, isHL, false).up ? words[i].toUpperCase() : words[i];
     var ws   = 'display:inline-block;';
     if (isHL) {
       if (s.hlFont)   ws += 'font-family:' + s.hlFont + ',sans-serif;';
       if (s.hlItalic) ws += 'font-style:italic;';
       if (s.circle)   ws += 'border:2.5px solid ' + (s.hl || '#fff') + ';border-radius:50%;padding:.02em .3em;';
       if (s.hlg)                    ws += 'background:' + s.hlg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+      else if (s.hlPillBg && live)  ws += 'color:' + (s.hlc || '#fff') + ';'; // Box = eigene Fläche dahinter (kein Padding → kein Verschieben)
       else if (s.hlPillBg)          ws += 'background:' + s.hlPillBg + ';padding:2px 9px;border-radius:5px;color:' + (s.hlc || '#fff') + ';-webkit-text-fill-color:' + (s.hlc || '#fff') + ';';
       else                          ws += 'color:' + hlColorFor(s, oi) + ';';
       ws += 'text-shadow:' + (s.hls || 'none') + ';';
-      if (s.anim && s.anim !== 'none') ws += 'animation:captly-' + s.anim + ' .34s ease both;';
+      if (!live && s.anim && s.anim !== 'none') ws += 'animation:captly-' + s.anim + ' .34s ease both;';
     } else if (isKw) {
       // Hervorgehoben (nicht aktiv): Akzentfarbe des Styles (emphColor), sonst Textfarbe; Schatten s. emphShadowIsHl
       if (s.hlg)      ws += 'background:' + s.hlg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
@@ -3348,10 +3545,24 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     }
     // Größer (wie capLayout im Export: Schrift × emphScale). Zeilenhöhe so gewählt, dass die Box des größeren
     // Worts (grundlinienbündig) oben nicht über die Nachbarn ragt → Zeilenabstand/Position bleiben exakt wie im Export.
-    if (isEm) ws += 'font-size:' + esc + 'em;line-height:' + emphLineH(s, esc).toFixed(4) + ';';
-    var ck = '';
+    // Typografische Betonung der ruhigen Styles: eigene Schrift/Kursiv/Gewicht (emFont/emItalic/emFw).
+    if (isEm) {
+      if (s.emFont && !(isHL && s.hlFont)) ws += 'font-family:' + s.emFont + ',sans-serif;';
+      if (s.emItalic) ws += 'font-style:italic;';
+      if (s.emFw) ws += 'font-weight:' + s.emFw + ';';
+      ws += 'font-size:' + esc + 'em;line-height:' + emphLineH(s, esc).toFixed(4) + ';';
+    }
+    if (hv) ws += 'min-width:' + slotW(i, isEm).toFixed(2) + 'px;text-align:center;';
+    // Kacheln/Showcase: Reveal = bis hlIdx sichtbar (neues Wort blendet ein), Fill = danach gedimmt
+    if (!live && hlIdx >= 0 && mode === 'reveal') {
+      if (oi > hlIdx) ws += 'opacity:0;'; else if (oi === hlIdx) ws += 'animation:capWordIn .22s ease-out both;';
+    } else if (!live && hlIdx >= 0 && mode === 'fill') {
+      if (oi > hlIdx) ws += 'opacity:' + CAP_MOT.dim + ';';
+      else { var onc = capOnColor(s, oi, isEm); if (onc) ws += 'color:' + onc + ';'; }
+    }
+    var ck = live ? ' data-oi="' + oi + '"' : '';
     if (seekTimes && seekTimes[oi] !== undefined) {
-      ck = ' data-wi="' + oi + '" onclick="event.stopPropagation();capOverlayClickWord(event,' + oi + ',' + Number(seekTimes[oi]).toFixed(3) + ')"';
+      ck += ' data-wi="' + oi + '" onclick="event.stopPropagation();capOverlayClickWord(event,' + oi + ',' + Number(seekTimes[oi]).toFixed(3) + ')"';
       ws += 'cursor:pointer;';
     }
     return '<span' + ck + ' style="' + ws + '">' + wt + '</span>';
@@ -3367,6 +3578,9 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     built = '';
     for (var i = 0; i < words.length; i++) built += (i ? ' ' : '') + wordHtml(i);
   }
+  if (hlBox) built = '<span class="cap-hlbox" aria-hidden="true" style="position:absolute;left:0;top:0;width:0;height:0;opacity:0;background:'
+    + s.hlPillBg + ';border-radius:5px;z-index:-1;pointer-events:none"></span>' + built;
+  var rootAttr = live ? ' class="cap-root" data-fpx="' + ((px || 24) * fsMul).toFixed(3) + '"' : '';
   // Emoji der Caption: absolut über (Position „Top“: unter) der Caption-Box → verschiebt den Text nicht.
   // Pop-in per negativer animation-delay (Phase = Zeit seit Blockbeginn) → beim Scrubben/Neu-Rendern stabil.
   if (ex && ex.emoji) {
@@ -3379,12 +3593,12 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     wCss += 'position:relative;';
     if (hp) { // Emoji gehört in die äußere Box (nicht in die Akzent-Box)
       var cut = built.lastIndexOf('<span class="cap-emo"');
-      return '<span style="' + wCss + '"><span style="' + pCss + '">' + built.slice(0, cut) + '</span>' + built.slice(cut) + '</span>';
+      return '<span' + rootAttr + ' style="' + wCss + '"><span style="' + pCss + '">' + built.slice(0, cut) + '</span>' + built.slice(cut) + '</span>';
     }
   }
   return hp
-    ? ('<span style="' + wCss + '"><span style="' + pCss + '">' + built + '</span></span>')
-    : ('<span style="' + wCss + '">' + built + '</span>');
+    ? ('<span' + rootAttr + ' style="' + wCss + '"><span style="' + pCss + '">' + built + '</span></span>')
+    : ('<span' + rootAttr + ' style="' + wCss + '">' + built + '</span>');
 }
 
 // ═══════════════════════════════════════
@@ -3432,19 +3646,26 @@ function blockEmoji(b) {
 }
 // Unitless line-height für ein um k vergrößertes Wort: Box-Oberkante = die der Nachbarn (s. buildCap).
 // L' = (L − (k−1)·(Ober − Unterlänge)) / k, Metriken der Caption-Schrift (Canvas), Fallback typische Werte.
+// Eigene Betonungs-Schrift (emFont, z. B. Handschrift): L' = (L + ad − k·ad') / k mit ad' derselben Größe
+// der Betonungs-Schrift (gleiche Schrift → obige Formel).
 var _emAdCache = {};
-function emphLineH(s, k) {
-  var fn = (s.font || "'Inter'").replace(/'/g, ''), key = fn + '|' + (s.fw || '700') + '|' + _capFontGen, ad = _emAdCache[key];
+function capFontAd(f) {
+  var key = capFaceFont(f, 100) + '|' + _capFontGen, ad = _emAdCache[key];
   if (ad === undefined) {
     ad = 0.69;
     try {
-      var c = capMeasureCtx(); c.font = (s.fw || '700') + ' 100px "' + fn + '", sans-serif';
+      var c = capMeasureCtx(); c.font = capFaceFont(f, 100);
       var m = c.measureText('Hg');
       if (m && m.fontBoundingBoxAscent > 0 && m.fontBoundingBoxDescent > 0) ad = (m.fontBoundingBoxAscent - m.fontBoundingBoxDescent) / 100;
     } catch (e) {}
     _emAdCache[key] = ad;
   }
-  return Math.max(0.5, (capLineH(s) - (k - 1) * ad) / k);
+  return ad;
+}
+function emphLineH(s, k) {
+  var base = capWordFace(s, false, false), ef = capWordFace(s, false, true);
+  var ad = capFontAd({ fam: base.fam, it: false, fw: base.fw }), ad2 = ef.fam === base.fam ? ad : capFontAd({ fam: ef.fam, it: false, fw: ef.fw });
+  return Math.max(0.5, (capLineH(s) + ad - k * ad2) / k);
 }
 function emMaskKey(m) { return m ? m.map(function(x){ return x ? 1 : 0; }).join('') : ''; }
 // Skalierung hervorgehobener Wörter je Style (One Word: etwas mehr, dort ist Grösse die einzige Betonung)
@@ -3999,31 +4220,87 @@ function updateOverlay(t) {
     }
   } else {
     var playing = vidReady && !vid.paused && !vid.ended;
-    var bi = currentBlockIdx(t);
-    if (bi < 0 && !playing) bi = nearestBlockIdx(t); // pausiert: nächstliegenden Block als Vorschau zeigen
+    var bi = currentBlockIdx(t), forced = false;
+    if (bi < 0 && !playing) { bi = nearestBlockIdx(t); forced = true; } // pausiert: nächstliegenden Block als Vorschau zeigen
     var b = bi >= 0 ? captionBlocks[bi] : null;
     var wi = b ? activeWordIdx(b, t) : -1;
+    // Nur der Highlight-Modus färbt ein aktives Wort im HTML (Schrift/Schatten); Reveal/Fill/None bauen den Block
+    // einmal und animieren ihn per capDomMotion.
+    var hlI = (b && capMotion(s) === 'highlight') ? wi : -1;
     var exm = b ? blockEmph(b) : null, emo = (b && emEmoji) ? blockEmoji(b) : '';
-    key = bi + ':' + wi + ':' + activeId + ':' + fontSize + ':' + displayMode + ':' + (b ? b.text : '') + ':' + emMaskKey(exm) + ':' + emo + ':' + capPos;
+    key = bi + ':' + hlI + ':' + activeId + ':' + fontSize + ':' + displayMode + ':' + (b ? b.text : '') + ':' + emMaskKey(exm) + ':' + emo + ':' + capPos;
     if (key !== _lastKey) {
       ov.innerHTML = b
-        ? buildCap(b.words.map(function(w){ return displayWord(w.word); }), s, wi, fontSize,
+        ? buildCap(b.words.map(function(w){ return displayWord(w.word); }), s, hlI, fontSize,
                    b.words.map(function(w){ return w.start; }), CAPTION_LINES, { em: exm, emoji: emo, age: t - b.start })
         : '';
-      if (b && bi !== _lastBi) { // Einblend-Animation nur beim Blockwechsel
-        ov.style.animation = 'none'; void ov.offsetWidth;
-        ov.style.animation = 'capIn .15s ease';
-      }
+      ov._capM = null; // Messwerte (Wort-Spans/Box-Rechtecke) gehören zum alten DOM
       _lastKey = key; _lastBi = bi;
       if (bi >= 0) setActiveSeg(bi);
       if (ov._capClamped) applyPos(); else clampCapVertical(); // Höhe kann sich je Block ändern
       if (showSafeZone) checkSafeZoneCollision();
     }
+    if (b) capDomMotion(ov, s, b, bi, wi, t, forced); // jedes Frame: Ein-/Ausblenden, Reveal/Fill, Farb-/Box-Übergänge
   }
   document.getElementById('prevBg').style.background = vidReady ? '#000' : s.thumbBg;
   applyPreviewZoom(t - timeOff); // Auto-Zoom: nur das Video (CSS-Transform), nie die Captions
   if (!vidReady || vid.paused) positionPlayIcon(); // nur im Pausenzustand sichtbar → kein Layout-Read pro Frame
   tlRequestDraw(); // Abspielkopf + aktiver Balken (ein rAF pro Frame, egal wie oft gerufen)
+}
+// Vorschau-Gegenstück zu den Bewegungen in drawCaptionsOnCtx — gleiche Zustandsfunktionen (capBlockFx/capWordFx/
+// capSlideBoxes), gleiche Einheiten (em der angepassten Schriftgröße bzw. Vorschau-px). Schreibt nur geänderte
+// Werte (kein Layout: nur opacity/transform/color/filter; Box-Rechtecke einmal je DOM-Aufbau gemessen).
+function capSetSt(el, k, v) { var c = el._capSt || (el._capSt = {}); if (c[k] !== v) { c[k] = v; el.style[k] = v; } }
+function capDomMotion(ov, s, b, bi, wi, t, forced) {
+  var M = ov._capM;
+  if (!M) {
+    var root = ov.querySelector ? ov.querySelector('.cap-root') : null;
+    if (!root) return;
+    M = ov._capM = { root: root, fpx: parseFloat(root.getAttribute('data-fpx')) || fontSize,
+                     spans: Array.prototype.slice.call(root.querySelectorAll('[data-oi]')).map(function(sp){ sp._c0 = sp.style.color; return sp; }), // _c0 = Farbe aus buildCap
+                     boxes: Array.prototype.slice.call(root.querySelectorAll('.cap-hlbox')), rects: null };
+  }
+  var mode = capMotion(s), rm = capReduceMotion(), em = blockEmph(b);
+  var bf = capBlockFx(bi, t, forced, rm);
+  capSetSt(M.root, 'opacity', bf.op < 1 ? bf.op.toFixed(3) : '');
+  capSetSt(M.root, 'transform', bf.dy > 1e-4 ? 'translateY(' + (bf.dy * M.fpx).toFixed(2) + 'px)' : '');
+  var fxs = {};
+  M.spans.forEach(function(sp) {
+    var oi = +sp.getAttribute('data-oi');
+    var f = fxs[oi] || (fxs[oi] = capWordFx(s, b, oi, wi, t, forced, rm));
+    var a = f.a, op = f.op * (a ? a.op : 1), dy = f.dy * M.fpx + (a ? a.ty : 0), sc = a ? a.sx : 1;
+    capSetSt(sp, 'opacity', op < 1 ? op.toFixed(3) : '');
+    capSetSt(sp, 'transform', (Math.abs(dy) > 1e-3 ? 'translateY(' + dy.toFixed(2) + 'px)' : '') + (Math.abs(sc - 1) > 1e-4 ? ' scale(' + sc.toFixed(4) + ')' : ''));
+    capSetSt(sp, 'filter', (a && a.bright !== 1) ? 'brightness(' + a.bright.toFixed(3) + ')' : '');
+    // Farbe: Fill immer (gesprochen = „an“), Highlight nur während des Übergangs (danach gilt die Farbe aus buildCap)
+    var col = '';
+    if (mode === 'fill' || (mode === 'highlight' && f.hk > 0 && f.hk < 1)) {
+      var isE = !!(em && em[oi]), c0 = capOffColor(s, isE), c1 = capOnColor(s, oi, isE);
+      if (c0 && c1) col = capMixColor(c0, c1, f.hk);
+    }
+    capSetSt(sp, 'color', col || sp._c0 || '');
+  });
+  if (!M.boxes.length) return;
+  // Highlight-Box: Rechtecke je Originalwort (Vorschau-px relativ zur Caption-Box), einmal je Aufbau gemessen
+  if (!M.rects) {
+    M.rects = {};
+    var lh = M.fpx * capLineH(s);
+    M.spans.forEach(function(sp) {
+      var oi = +sp.getAttribute('data-oi');
+      (M.rects[oi] = M.rects[oi] || []).push({ x: sp.offsetLeft - CAP_PILL_PAD_X, y: sp.offsetTop - CAP_PILL_PAD_Y,
+                                               w: sp.offsetWidth + 2 * CAP_PILL_PAD_X, h: lh + 2 * CAP_PILL_PAD_Y });
+    });
+  }
+  var k = (fxs[wi] || capWordFx(s, b, wi, wi, t, forced, rm)).hk;
+  var bx = capSlideBoxes(M.rects[wi - 1], M.rects[wi], k);
+  while (M.boxes.length < bx.length) { var nb = M.boxes[0].cloneNode(true); M.boxes[0].parentNode.insertBefore(nb, M.boxes[0]); M.boxes.push(nb); }
+  M.boxes.forEach(function(el, j) {
+    var r = bx[j];
+    if (!r) { capSetSt(el, 'opacity', '0'); return; }
+    capSetSt(el, 'left', r.x.toFixed(2) + 'px'); capSetSt(el, 'top', r.y.toFixed(2) + 'px');
+    capSetSt(el, 'width', r.w.toFixed(2) + 'px'); capSetSt(el, 'height', r.h.toFixed(2) + 'px');
+    capSetSt(el, 'opacity', r.op < 1 ? r.op.toFixed(3) : '1');
+  });
 }
 function syncCaption(t) { updateOverlay(t); }
 function startCapLoop() {
@@ -4633,7 +4910,7 @@ function capAutoChars(s) {
   s = s || capActiveStyle();
   var frameW = previewFrameW(), maxW = capFitMaxW(s);
   var key = [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, s.hlPillBg ? 1 : 0, s.circle ? 1 : 0,
-             s.boxBg ? 1 : 0, s.pill ? 1 : 0, s.ts, fontSize, Math.round(frameW), capCase, _capFontGen].join('|');
+             s.boxBg ? 1 : 0, s.pill ? 1 : 0, s.ts, fontSize, Math.round(frameW), capCase, _capFontGen, capMotion(s)].join('|');
   if (_capAutoCharsCache[key]) return _capAutoCharsCache[key];
   var ctx = capMeasureCtx();
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1, sz = fontSize * fsMul;
@@ -4642,14 +4919,13 @@ function capAutoChars(s) {
   var up = s.tt === 'uppercase';
   ctx.font = fi + fw + ' ' + sz + 'px "' + fn + '", sans-serif';
   var w = ctx.measureText(up ? sample.toUpperCase() : sample).width;
-  if (s.hlFont || s.hlUpper || s.hlItalic) {
+  if (capHlVariant(s)) {
     ctx.font = (s.hlItalic ? 'italic ' : fi) + fw + ' ' + sz + 'px "' + (s.hlFont || s.font || "'Inter'").replace(/'/g, '') + '", sans-serif';
     w = Math.max(w, ctx.measureText((up || s.hlUpper) ? sample.toUpperCase() : sample).width);
   }
   var nSp = (sample.match(/ /g) || []).length;
   w += nSp * capWordGap(s) + (parseFloat(s.ls) || 0) * sample.length;
   var avail = maxW * 0.95;
-  if (s.hlPillBg) avail -= 18;
   if (s.circle) avail -= 0.6 * sz + 5;
   var per = Math.floor(avail / Math.max(1, w / sample.length));
   per = Math.max(6, Math.min(60, per));
@@ -5165,7 +5441,7 @@ function selectStyle(id, fromEditor) {
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   var s = STYLES.find(function(x){ return x.id === id; });
   if (s && !fromEditor) seedCustomFields(s);         // „Eigener Style" startet vom gewählten Style/Template (auch von Custom selbst)
-  if (s) ensureCapFont(styleFontName(s));            // nicht vorgeladene Schrift (Template/eigene Wahl) nachladen
+  if (s) { ensureCapFont(styleFontName(s)); ensureStyleFaces(s); } // nicht vorgeladene Schrift/Schnitte (Template, Betonung) nachladen
   // Erster Regler-Eingriff: die Custom-Kachel (oben in „My templates“) im Picker sichtbar machen — sonst
   // sah es aus, als bliebe das vorige Preset aktiv bzw. die Änderung käme nicht an.
   if (fromEditor && prevId !== id) scrollPickerTo(id, false);
@@ -5350,6 +5626,18 @@ function ensureCapFont(name, timeoutMs) {
   return Promise.race([_fontReq[name], new Promise(function(r){ setTimeout(function(){ r(false); }, to); })]);
 }
 function styleFontName(s) { return s ? cleanFontName(s.fl || String(s.font || '').split(',')[0]) : ''; }
+// Alle Schnitte, die ein Style zeichnet (Betonung kursiv/fett, eigene Betonungs-/Highlight-Schrift), laden —
+// der Canvas-Export stößt eine noch nirgends benutzte @font-face nicht an und zeichnete sonst die Ersatzschrift.
+function ensureStyleFaces(s, timeoutMs) {
+  if (!s || typeof document === 'undefined' || !document.fonts || typeof document.fonts.load !== 'function') return Promise.resolve();
+  var specs = [capFaceFont(capWordFace(s, false, false), 40), capFaceFont(capWordFace(s, false, true), 40)];
+  if (capHlVariant(s)) specs.push(capFaceFont(capWordFace(s, true, false), 40));
+  var extra = [s.emFont, s.hlFont].map(cleanFontName).filter(Boolean);
+  var work = Promise.all(extra.map(function(n){ return ensureCapFont(n, timeoutMs); })).then(function() {
+    return Promise.all(specs.map(function(f){ try { return Promise.resolve(document.fonts.load(f)).catch(function(){}); } catch (e) { return null; } }));
+  });
+  return Promise.race([work, new Promise(function(r){ setTimeout(r, timeoutMs || 4000); })]);
+}
 // Font-Auswahl im Style-Editor aus der kuratierten Liste (Gruppen) + „Andere Google-Schrift…“ füllen
 function buildFontSelect() {
   var sel = document.getElementById('csFont');
@@ -5401,6 +5689,7 @@ function syncCsUi() {
   var lbl = csEl('csHlLbl'); if (lbl) lbl.textContent = pill ? 'Pill' : 'Active';
   var sw = csEl('csHlSw'); if (sw) sw.title = pill ? 'Pill color behind the active (spoken) word' : 'Color of the active (spoken) word';
   var gi = csEl('csGlowInt'); if (gi) gi.disabled = !_cbChecked('csGlow', false);
+  var mo = (csEl('csMotion') || {}).value, an = csEl('csAnim'); if (an && mo) an.disabled = mo !== 'highlight'; // Pop gibt es nur beim Highlight
   var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
   var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
   var rd = csEl('csBoxRDisp'), rEl = csEl('csBoxR'); if (rd && rEl) rd.textContent = (rEl.value || 0) + 'px';
@@ -5447,6 +5736,7 @@ function seedCustomFields(st) {
   csSetVal('csBoxO', bx ? Math.max(10, Math.min(100, Math.round(bx.a * 20) * 5)) : 70);
   csSetVal('csHlType', st.hlPillBg ? 'pill' : 'color');
   csSetVal('csAnim', st.anim === 'wobble' ? 'bounce' : (st.anim || 'none')); // „Wobble“ gibt es nicht mehr → Lift (gleiche ruhige Bewegung)
+  csSetVal('csMotion', capMotion(st));
   var gl = parseTextShadows(st.hls).filter(function(l){ return l.blur > 0 && !l.x && !l.y; })[0];
   csSetVal('csGlowInt', gl ? Math.min(30, Math.round(gl.blur)) : 14);
   var gOn = csEl('csGlow'); if (gOn && typeof gOn.checked === 'boolean') gOn.checked = !!gl;
@@ -5513,6 +5803,7 @@ function buildCustomStyle() {
     }
   }
   if (d.anim) cs.anim = (csEl('csAnim') || {}).value || 'none';
+  if (d.motion) { var mv = (csEl('csMotion') || {}).value; if (mv && mv !== 'highlight') cs.motion = mv; else delete cs.motion; }
   return cs;
 }
 var _csLast = 0, _csTimer = null;
@@ -5554,7 +5845,7 @@ var userTemplates = [];
 // Templates können aus fremden JSON-Dateien kommen → nur bekannte Style-Felder übernehmen und
 // Zeichen entfernen, mit denen man aus dem style="…"-Attribut (buildCap) ausbrechen könnte.
 var TPL_STYLE_KEYS = ['fl','font','fw','tt','ls','lh','fs','fi','tc','ts','hl','hls','anim','cstroke','thumbBg','hlPillBg','hlc',
-  'boxBg','boxBr','pill','tg','hlFont','hlItalic','hlg','hlUpper','circle','hlCycle','em','emS'];
+  'boxBg','boxBr','pill','tg','hlFont','hlItalic','hlg','hlUpper','circle','hlCycle','em','emS','motion','emFont','emItalic','emFw'];
 function cleanCssVal(v) { return String(v).replace(/[<>"\\;{}]/g, '').replace(/url\s*\(|expression\s*\(/gi, '').slice(0, 600); }
 function sanitizeStyle(st) {
   var out = {};
@@ -9027,6 +9318,7 @@ async function exportVideoWithCaptions() {
   await waitAuth(); // Session-Wiederherstellung abwarten, bevor needsWatermark() entscheidet
 
   await ensureCapFont(styleFontName(STYLES.find(function(x){ return x.id === activeId; }))); // nachgeladene Schrift
+  await ensureStyleFaces(caseStyle(STYLES.find(function(x){ return x.id === activeId; }))); // Betonungs-/Highlight-Schnitte
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
   await capHyphReady(capHyphLang(), 4000); // Trennmuster wie in der Vorschau (sonst Fallback-Trennung im Video)
 
@@ -9310,12 +9602,12 @@ function fillTextWithShadow(ctx, text, x, y, shadowStr, scale) {
 // Keyframes der @keyframes captly-* (0.34s ease) — reproduziert die Wort-Pop-Animation beim Highlight-
 // Wechsel im Export, den der Canvas (anders als DOM/CSS) sonst komplett ignoriert.
 var ANIM_KEYFRAMES = { // ruhig, s. CSS — Lift (bounce/wobble), Pop (scale), Punch, Fade (flash), Glow
-  bounce: [[0,{ty:4,sx:1,sy:1}],[60,{ty:-1,sx:1.03,sy:1.03}],[100,{ty:0,sx:1,sy:1}]],
-  scale:  [[0,{sx:1,sy:1}],[45,{sx:1.08,sy:1.08}],[100,{sx:1,sy:1}]],
+  bounce: [[0,{ty:3,sx:1,sy:1}],[60,{ty:-1,sx:1.02,sy:1.02}],[100,{ty:0,sx:1,sy:1}]],
+  scale:  [[0,{sx:1,sy:1}],[45,{sx:1.04,sy:1.04}],[100,{sx:1,sy:1}]],
   flash:  [[0,{op:.45}],[100,{op:1}]],
   glow:   [[0,{bright:1,sat:1}],[50,{bright:1.25,sat:1}],[100,{bright:1,sat:1}]],
-  punch:  [[0,{sx:1,sy:1}],[45,{sx:1.12,sy:1.12}],[100,{sx:1,sy:1}]],
-  wobble: [[0,{ty:4,sx:1,sy:1}],[60,{ty:-1,sx:1.03,sy:1.03}],[100,{ty:0,sx:1,sy:1}]]
+  punch:  [[0,{sx:1,sy:1}],[45,{sx:1.06,sy:1.06}],[100,{sx:1,sy:1}]],
+  wobble: [[0,{ty:3,sx:1,sy:1}],[60,{ty:-1,sx:1.02,sy:1.02}],[100,{ty:0,sx:1,sy:1}]]
 };
 var ANIM_DUR = 0.34;
 function animState(anim, elapsed) {
@@ -9352,11 +9644,12 @@ function capFontMetrics(ctx, fsS) {
   } catch (e) {}
   return { a: 0.93, d: 0.24 };
 }
+// Unabhängig vom aktiven Wort: jedes Wort hat einen festen Platz (max. aus normaler/aktiver Variante, s.
+// capHlVariant), die Highlight-Box belegt keine Breite → das Layout eines Blocks ändert sich nie während er läuft.
 function capLayout(ctx, b, bi, wi, s, W, H) {
-  var wiKey = (s.hlFont || s.hlItalic || s.hlUpper || s.hlPillBg) ? wi : -1;
   var emk = blockEmph(b), esc = emphScale(s);
-  var key = [bi, wiKey, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
-             _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length, capHyphLang(), emMaskKey(emk), esc].join('|');
+  var key = [bi, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
+             _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length, capHyphLang(), emMaskKey(emk), esc, capMotion(s)].join('|');
   var c = _capLayoutCache;
   if (c.key === key && c.s === s && c.ctx === ctx) return c.val;
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
@@ -9371,31 +9664,31 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   ctx.font = fi + fw + ' ' + fsS + 'px "' + fn + '", sans-serif';
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
 
-  // Font pro Wort — aktives Wort kann eigenen Font/Kursiv haben (Prime/Sketch/Sonnet wie Referenz)
+  // Font pro Wort — Betonung (emFont/emItalic/emFw) und aktives Wort (hlFont/hlItalic/hlUpper), s. capWordFace
   var lsPxS = (parseFloat(s.ls) || 0) * scale; // letter-spacing wie im DOM (CSS px bei Vorschaubreite)
   function wordFont(isHL, isEm) {
-    var f  = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
-    var it = (isHL && s.hlItalic) ? 'italic ' : fi;
-    ctx.font = it + fw + ' ' + (isEm ? fsS * esc : fsS) + 'px "' + f + '", sans-serif';
+    ctx.font = capFaceFont(capWordFace(s, isHL, isEm), isEm ? fsS * esc : fsS);
     if ('letterSpacing' in ctx) ctx.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px';
   }
-  var words = fit.words.map(function(w, i) {
-    return (tt || (fit.orig[i] === wi && s.hlUpper)) ? w.toUpperCase() : w;
-  });
   ctx.font = fi + fw + ' ' + fsS + 'px "' + fn + '", sans-serif';
   if ('letterSpacing' in ctx) ctx.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px'; // CSS wendet es auch auf Leerzeichen an
   var sp    = ctx.measureText(' ').width + capWordGap(s) * scale; // gleiches Extra wie word-spacing in der Vorschau
   var maxW  = W * 0.86;
-  // idx = Index des ORIGINALWORTS (Teilwörter nach Bindestrich-Trennung teilen sich Highlight/Keyword)
-  // Pill hinter dem aktiven Wort: im DOM ist sie Padding des Wort-Spans (2px 9px) und schiebt die Nachbarn
-  // weg — hier genauso: Breite = Text + 2·9px (skaliert), Text um padL eingerückt. Sonst überlappte die
-  // Pill im Export die Nachbarwörter („au[unserem]“).
-  var pillPad = s.hlPillBg ? 9 * scale : 0;
-  var wordInfo = words.map(function(w, i) {
-    var hl = fit.orig[i] === wi, e = !!(emk && emk[fit.orig[i]]); wordFont(hl, e);
-    var tw = ctx.measureText(w).width, pl = (hl && pillPad) ? pillPad : 0;
-    return { txt: w, w: tw + 2 * pl, tw: tw, padL: pl, idx: fit.orig[i], t: fit.words[i], e: e,
-             hy: i + 1 < words.length && fit.orig[i + 1] === fit.orig[i] }; // wie wrapCaptionLines
+  // idx = Index des ORIGINALWORTS (Teilwörter nach Bindestrich-Trennung teilen sich Highlight/Keyword).
+  // txt/tw = normale Variante, txtH/twH = aktive Variante; w = fester Platz (Text darin zentriert wie im DOM: min-width).
+  var hv = capHlVariant(s);
+  var wordInfo = fit.words.map(function(w0, i) {
+    var e = !!(emk && emk[fit.orig[i]]);
+    var txt = capWordFace(s, false, e).up ? w0.toUpperCase() : w0;
+    wordFont(false, e);
+    var tw = ctx.measureText(txt).width, txtH = txt, twH = tw, cx = 0;
+    if (hv) {
+      txtH = capWordFace(s, true, e).up ? w0.toUpperCase() : w0;
+      wordFont(true, e); twH = ctx.measureText(txtH).width;
+      if (s.circle) cx = 0.6 * (e ? fsS * esc : fsS) + 5 * scale; // Kringel-Innenabstand wie im DOM
+    }
+    return { txt: txt, txtH: txtH, w: Math.max(tw, twH + cx), tw: tw, twH: twH, idx: fit.orig[i], t: fit.words[i], e: e,
+             hy: i + 1 < fit.words.length && fit.orig[i + 1] === fit.orig[i] }; // wie wrapCaptionLines
   });
 
   // Mehrzeiliger Umbruch — bei CAPTION_LINES>1 wird möglichst gleichmäßig auf genau so viele
@@ -9439,6 +9732,11 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   if (blkTop < 0) y0 -= blkTop; // oben hat Vorrang (erste Zeile ist die, die gelesen wird)
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
+  // Feste Position jedes Wortplatzes (x = linke Kante, y = Grundlinie) — gilt für den ganzen Block
+  lines.forEach(function(L, li) {
+    var x = W/2 - lineWs[li]/2;
+    L.forEach(function(wo) { wo.x = x; wo.y = y0 + li * lh; wo.li = li; x += wo.w + sp; });
+  });
 
   var val = { scale: scale, fsS: fsS, fn: fn, fw: fw, fi: fi, lsPxS: lsPxS, sp: sp, lines: lines, lineWs: lineWs, lh: lh, y0: y0, fitPx: fit.px, esc: esc,
               capA: gapAbove - padB, capD: gapBelow - padB }; // Grundlinie → Ober-/Unterkante der CSS-Zeile
@@ -9449,23 +9747,34 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   if (!captionBlocks.length) return;
   s = caseStyle(s); // gleiche Case-Regel wie die Vorschau (updateOverlay)
   t = t + timeOff; // Timing-Feinschliff
-  var bi = currentBlockIdx(t);
-  if (bi < 0 && forceShow) bi = nearestBlockIdx(t);
+  var bi = currentBlockIdx(t), forced = false;
+  if (bi < 0 && forceShow) { bi = nearestBlockIdx(t); forced = true; }
   if (bi < 0) return;
   var b  = captionBlocks[bi];
   var wi = activeWordIdx(b, t);
+  var mode = capMotion(s), hlOn = mode === 'highlight';
+  // Bewegung: dieselben Zustandsfunktionen wie die Vorschau (capDomMotion), rein aus der Zeit t → frame-genau
+  var bf = capBlockFx(bi, t, forced, false);
+  if (!(bf.op > 0)) return;
+  var fx = b.words.map(function(w, i){ return capWordFx(s, b, i, wi, t, forced, false); });
 
   var L0 = capLayout(ctx, b, bi, wi, s, W, H);
   var scale = L0.scale, fsS = L0.fsS, fn = L0.fn, fw = L0.fw, fi = L0.fi, lsPxS = L0.lsPxS, sp = L0.sp;
   var lines = L0.lines, lineWs = L0.lineWs, lh = L0.lh, y0 = L0.y0, capA = L0.capA, capD = L0.capD;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-  // Statische Ebene (Box, Akzentstrich, alle NICHT aktiven Wörter mit ihren Schatten/Glows) wird je
-  // (Layout, aktives Wort) EINMAL in einen Offscreen-Canvas gemalt und pro Frame nur noch per drawImage
-  // eingesetzt; live gezeichnet wird nur das aktive Wort (Animation). Große Blur-Glows (Petal, Vivid)
-  // kosteten sonst pro Wort und Frame — Export bis 6× langsamer als Standard.
+  // „live“ = Wort mit laufendem Übergang (bzw. das aktive Wort im Highlight-Modus): wird pro Frame gezeichnet.
+  // Alles andere (Box, Akzentstrich, Wörter im Endzustand mit ihren Schatten/Glows) liegt in einer statischen
+  // Ebene, die je (Layout, Endzustände) EINMAL in einen Offscreen-Canvas gemalt und pro Frame nur per drawImage
+  // eingesetzt wird. Große Blur-Glows (Petal, Vivid) kosteten sonst pro Wort und Frame — Export bis 6× langsamer.
+  function isLive(i) { return (hlOn && i === wi) || !capFxSteady(fx[i], mode); }
+  ctx.save();
+  if (bf.op < 1) ctx.globalAlpha *= bf.op;
+  if (bf.dy) ctx.translate(0, bf.dy * fsS);
   var useLayer = !!(ctx.canvas && typeof document !== 'undefined' && document.createElement && ctx.canvas.width === W);
   if (useLayer) {
-    var lkey = _capLayoutCache.key + '|' + wi + '|' + (s.id || '');
+    var sig = [];
+    fx.forEach(function(f, i) { if (!isLive(i) && f.op > 0) sig.push(i + (f.hk ? 'h' : '') + (f.op < 1 ? 'd' : '')); });
+    var lkey = _capLayoutCache.key + '|' + mode + '|' + sig.join(',') + '|' + (s.id || '');
     var lc = _capStaticLayer;
     if (!lc || lc.key !== lkey || lc.s !== s || lc.W !== W || lc.H !== H) {
       if (lc && lc.s !== s) _wordSpriteCache.clear(); // anderes Style-Objekt (z. B. geänderter Custom-Style) → Sprites verwerfen
@@ -9477,21 +9786,20 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       _capStaticLayer = lc = { key: lkey, s: s, W: W, H: H, cv: cv };
     }
     ctx.drawImage(lc.cv, 0, 0);
-    paint(ctx, 'active');
+    paint(ctx, 'live');
   } else {
     paint(ctx, 'all');
   }
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   var emo = emEmoji ? blockEmoji(b) : '';
   if (emo) drawCapEmoji(ctx, emo, L0, s, t - b.start, W); // Pop-in wie die Vorschau (Zeit seit Blockbeginn)
+  ctx.restore();
 
-  function paint(ctx, mode) {
+  function paint(ctx, mode2) {
     // Font/letterSpacing nur setzen, wenn sie sich ändern (Zuweisung parst den Font-String jedes Mal neu)
-    var curFont = null, curLs = null, ecol = emphColor(s), emHl = emphShadowIsHl(s);
+    var curFont = null, curLs = null, emHl = emphShadowIsHl(s);
     function wordFont(isHL, isEm) {
-      var f  = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
-      var it = (isHL && s.hlItalic) ? 'italic ' : fi;
-      var fs = it + fw + ' ' + (isEm ? fsS * L0.esc : fsS) + 'px "' + f + '", sans-serif';
+      var fs = capFaceFont(capWordFace(s, isHL, isEm), isEm ? fsS * L0.esc : fsS);
       if (fs !== curFont) { ctx.font = fs; curFont = fs; }
       if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
     }
@@ -9499,7 +9807,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
     // boxBg-Padding/-Radius sind im DOM (buildCap: "padding:5px 18px", s.boxBr) feste px-Werte, die bei
     // der Vorschaubreite (previewFrameW) gemeint sind — mit `scale` (== W/previewFrameW, dieselbe Umrechnung
     // wie fsS) 1:1 in den Export übertragen, statt (wie zuvor) willkürlich an fsS gekoppelt und boxBr zu ignorieren.
-    if (mode !== 'active' && s.boxBg) {
+    if (mode2 !== 'live' && s.boxBg) {
       var widest = Math.max.apply(null, lineWs);
       var padX = 18 * scale, padY = 5 * scale;
       var radius = parseFloat(s.boxBr || '6') * scale;
@@ -9513,7 +9821,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 
     // "evo"-Style: linker Akzentstrich (s.pill, im DOM eine umschließende Box mit border-left) — fehlte
     // im Export bisher komplett.
-    if (mode !== 'active' && s.pill) {
+    if (mode2 !== 'live' && s.pill) {
       var widest2 = Math.max.apply(null, lineWs);
       var pm = String(s.pill.p || '0').split(/\s+/).map(function(v){ return parseFloat(v) || 0; });
       var pT = (pm[0] || 0) * scale, pR = (pm.length > 1 ? pm[1] : pm[0]) * scale,
@@ -9531,20 +9839,42 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       }
     }
 
+    // Highlight-Box (Karaoke/Highlight Box/Marker): eigene Fläche hinter dem aktiven Wort, gleitet vom vorigen
+    // Wort herüber (capSlideBoxes) — Padding/Radius wie im DOM (.cap-hlbox: 9/2 px, Radius 5 px bei previewFrameW).
+    // Liegt nur über Wortzwischenräumen (CAP_PILL_GAP) bzw. den live gezeichneten Wörtern → über der Ebene ok.
+    if (mode2 !== 'static' && hlOn && s.hlPillBg) {
+      var pdx = CAP_PILL_PAD_X * scale, pdy = CAP_PILL_PAD_Y * scale;
+      var rectsOf = function(idx) {
+        var out = [];
+        lines.forEach(function(L) { L.forEach(function(wo) {
+          if (wo.idx === idx) out.push({ x: wo.x - pdx, y: wo.y - capA - pdy, w: wo.w + 2 * pdx, h: capA + capD + 2 * pdy });
+        }); });
+        return out;
+      };
+      capSlideBoxes(wi > 0 ? rectsOf(wi - 1) : null, rectsOf(wi), fx[wi] ? fx[wi].hk : 0).forEach(function(r) {
+        ctx.save(); ctx.shadowColor = 'transparent';
+        if (r.op < 1) ctx.globalAlpha *= r.op;
+        ctx.fillStyle = s.hlPillBg;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 5 * scale); else ctx.rect(r.x, r.y, r.w, r.h);
+        ctx.fill(); ctx.restore();
+      });
+    }
+
     function wordFill(c, wo, x0, tw, isHL, isKw) {
-      var fillCss = isHL ? (s.hlg || null) : isKw ? (s.hlg || (ecol ? null : s.tg) || null) : (s.tg || null);
+      var fillCss = isHL ? (s.hlg || null) : isKw ? (s.hlg || (emphColor(s) ? null : s.tg) || null) : (s.tg || null);
       if (fillCss) {
         var cols = gradColors(fillCss);
         var g = c.createLinearGradient(x0, 0, x0 + Math.max(1, tw), 0);
         cols.forEach(function(cc, ci){ g.addColorStop(cols.length > 1 ? ci / (cols.length - 1) : 0, cc); });
         return g;
       }
-      return isHL ? (s.hlPillBg ? (s.hlc || '#fff') : hlColorFor(s, wo.idx)) : isKw ? (ecol || s.tc || '#fff') : (s.tc || '#fff');
+      return isHL ? capOnColor(s, wo.idx, !!wo.e) : capOffColor(s, !!wo.e);
     }
     function activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt) {
       // Filter-Animation (glow) in 8 Helligkeits-/Sättigungsstufen; Transformationen kommen beim Einsetzen dazu
       var fb = animSt ? Math.round((animSt.bright || 1) * 8) / 8 : 1, fs2 = animSt ? Math.round((animSt.sat || 1) * 8) / 8 : 1;
-      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txt + '|' + fb + '|' + fs2 + '|' + ctx.font + '|' + ctx.letterSpacing;
+      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txtH + '|' + fb + '|' + fs2 + '|' + ctx.font + '|' + ctx.letterSpacing;
       var hit = _wordSpriteCache.get(key);
       if (hit) return hit;
       var m = 6, fsW = wo.e ? fsS * L0.esc : fsS;
@@ -9557,20 +9887,23 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       c.textAlign = 'left'; c.textBaseline = 'alphabetic';
       if (fb !== 1 || fs2 !== 1) c.filter = 'brightness(' + fb + ') saturate(' + fs2 + ')';
       c.fillStyle = wordFill(c, wo, m, tw, isHL, isKw);
-      drawTextWithPlan(c, wo.txt, m, m + fsW * 1.05, plan, scale, 1, fsW, tw);
+      drawTextWithPlan(c, wo.txtH, m, m + fsW * 1.05, plan, scale, 1, fsW, tw);
       var res = { cv: cv, m: m, fsW: fsW };
       _wordSpriteCache.set(key, res);
       if (_wordSpriteCache.size > 48) _wordSpriteCache.delete(_wordSpriteCache.keys().next().value); // klein halten
       return res;
     }
 
-    lines.forEach(function(L, li) {
-      var x = W/2 - lineWs[li]/2;
-      var y = y0 + li * lh;
+    lines.forEach(function(L) {
       L.forEach(function(wo) {
-        var isHL = wo.idx === wi;
-        if ((mode === 'static' && isHL) || (mode === 'active' && !isHL)) { x += wo.w + sp; return; }
-        var tx = x + (wo.padL || 0), tw = wo.tw || wo.w; // Textposition (Pill-Padding eingerückt)
+        var f = fx[wo.idx] || { op: 1, dy: 0, hk: 0, a: null }, live = isLive(wo.idx);
+        if ((mode2 === 'static' && live) || (mode2 === 'live' && !live)) return;
+        var animSt = f.a, op = f.op * (animSt ? animSt.op : 1);
+        if (!(op > 0)) return; // Reveal: noch nicht gesprochen (Platz bleibt reserviert)
+        var x = wo.x, y = wo.y;
+        var isHL = hlOn && wo.idx === wi;
+        var txt = isHL ? wo.txtH : wo.txt, tw = isHL ? wo.twH : wo.tw;
+        var tx = x + (wo.w - tw) / 2; // im festen Wortplatz zentriert (DOM: min-width + text-align:center)
         var isKw = !isHL && !!wo.e; // hervorgehoben (KI/Nutzer/alte Keyword-Liste), s. blockEmph
         wordFont(isHL, wo.e);
 
@@ -9584,66 +9917,55 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
           ctx.stroke(); ctx.restore();
         }
 
-        // Pill hinter aktivem Wort (z. B. Karaoke-Style) — Padding/Radius wie im DOM ("padding:2px 9px;
-        // border-radius:5px", feste px bei previewFrameW) via `scale` übertragen statt an fsS gekoppelt.
-        if (isHL && s.hlPillBg) {
-          var pdx = 9 * scale, pdy = 2 * scale;
-          ctx.save(); ctx.shadowColor = 'transparent';
-          ctx.fillStyle = s.hlPillBg;
-          ctx.beginPath();
-          var pw = wo.padL ? wo.w : wo.w + pdx * 2, px0 = wo.padL ? x : x - pdx;
-          if (ctx.roundRect) ctx.roundRect(px0, y - fsS * 0.92 - pdy, pw, fsS * 1.28 + pdy*2, 5 * scale);
-          else ctx.rect(px0, y - fsS * 0.92 - pdy, pw, fsS * 1.28 + pdy*2);
-          ctx.fill(); ctx.restore();
-        }
-
-        // Pop-Animation des aktiven Worts (@keyframes captly-*) — im Export bisher komplett statisch.
-        var animSt = (isHL && s.anim && s.anim !== 'none') ? animState(s.anim, t - (b.words[wo.idx].start || 0)) : null;
         var plan = isHL ? shHl : isKw ? (emHl ? shHl : shTs) : shTs;
+        // Farbübergang (Highlight ein/aus, Fill: gesprochen) — Mischfarbe, solange beide Farben einfarbig sind
+        var mixCol = null;
+        if ((hlOn && f.hk > 0 && f.hk < 1) || mode === 'fill') {
+          var c0 = capOffColor(s, !!wo.e), c1 = capOnColor(s, wo.idx, !!wo.e);
+          if (c0 && c1) mixCol = capMixColor(c0, c1, f.hk);
+        }
+        var dyPx = f.dy * fsS + (animSt ? animSt.ty * scale : 0);
         // Teure Glows (große Blur-Schatten, Glow-Animation per Filter) des AKTIVEN Worts als Sprite: Text +
         // Schatten (+ Filter-Stufe) einmal je (Layout, Wort, quantisierte Animationsstufe) rendern, pro Frame
         // nur noch per drawImage unter der Animations-Transformation einsetzen. Konturierte Styles (Ring →
         // strokeText) sind live billig und bleiben beim direkten Zeichnen (Kontur-Breite animationsstabil).
         var hasFilter = !!(animSt && (animSt.bright !== 1 || animSt.sat !== 1));
-        if (mode === 'active' && isHL && ctx.canvas && !plan.ring && typeof document !== 'undefined'
+        if (mode2 === 'live' && isHL && !mixCol && ctx.canvas && !plan.ring && typeof document !== 'undefined'
             && (hasFilter || plan.rest.some(function(l){ return l.blur * scale >= 8; }))) {
           var spr = activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt);
           ctx.save();
-          if (animSt) {
+          if (op < 1) ctx.globalAlpha *= op;
+          if (animSt || dyPx) {
             var pvx2 = x + wo.w / 2, pvy2 = y - fsS * 0.32;
-            ctx.translate(pvx2, pvy2 + animSt.ty * scale); // translateY wie im CSS (Lift), dann skalieren um die Wortmitte
-            if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
-            ctx.scale(animSt.sx, animSt.sy);
+            ctx.translate(pvx2, pvy2 + dyPx); // translateY wie im CSS (Lift), dann skalieren um die Wortmitte
+            if (animSt && animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
+            if (animSt) ctx.scale(animSt.sx, animSt.sy);
             ctx.translate(-pvx2, -pvy2);
-            if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
           }
           ctx.shadowColor = 'transparent';
           ctx.drawImage(spr.cv, tx - spr.m, y - spr.fsW * 1.05 - spr.m);
           ctx.restore();
-          x += wo.w + sp;
           return;
         }
         ctx.save();
-        if (animSt) {
+        if (op < 1) ctx.globalAlpha *= op;
+        if (animSt || dyPx) {
           var pvx = x + wo.w / 2, pvy = y - fsS * 0.32;
-          ctx.translate(pvx, pvy + animSt.ty * scale); // translateY wie im CSS (Lift), dann skalieren um die Wortmitte
-          if (animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
-          ctx.scale(animSt.sx, animSt.sy);
+          ctx.translate(pvx, pvy + dyPx); // translateY wie im CSS (Lift/Reveal), dann skalieren um die Wortmitte
+          if (animSt && animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
+          if (animSt) ctx.scale(animSt.sx, animSt.sy);
           ctx.translate(-pvx, -pvy);
-          if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
-          if (animSt.bright !== 1 || animSt.sat !== 1) ctx.filter = 'brightness(' + animSt.bright + ') saturate(' + animSt.sat + ')';
+          if (animSt && (animSt.bright !== 1 || animSt.sat !== 1)) ctx.filter = 'brightness(' + animSt.bright + ') saturate(' + animSt.sat + ')';
         }
 
-        // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) verhalten sich wie im DOM
-        // genauso wie das Highlight-Wort (gleiche Farbe/Gradient/Schatten), nur ohne Pill/Kringel/Anim.
-        ctx.fillStyle = wordFill(ctx, wo, tx, tw, isHL, isKw);
+        // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) in der Betonungsfarbe des Styles
+        ctx.fillStyle = mixCol || wordFill(ctx, wo, tx, tw, isHL, isKw);
         // Text-Shadow wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter). Eine
         // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
         // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
         var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
-        drawTextWithPlan(ctx, wo.txt, tx, y, plan, scale, animK, wo.e ? fsS * L0.esc : fsS, tw);
+        drawTextWithPlan(ctx, txt, tx, y, plan, scale, animK, wo.e ? fsS * L0.esc : fsS, tw);
         ctx.restore();
-        x += wo.w + sp;
       });
     });
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
@@ -9659,6 +9981,7 @@ async function exportPNG() {
   var wmPng = needsWatermark();
   var s   = STYLES.find(function(x){ return x.id === activeId; });
   var vid = document.getElementById('mainVid');
+  await ensureStyleFaces(caseStyle(s));
   document.fonts.ready.then(function() {
     var W = 1080, H = 1920;
     var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
@@ -9700,7 +10023,8 @@ var SHOW_SAMPLES = ['this changes everything','wait for it','the secret nobody t
 // 404-Anfragen, weil bisher nur ein Loop generiert ist. Neue Videos hier eintragen.
 var SHOWCASE_VIDEOS = ['bloom'];
 // Style → Foto unter assets/showcase/ (Fotos sind generisch; neue/umbenannte Presets leihen sich eins)
-var SHOWCASE_PHOTO = { hormozi: 'prismpro', boxkara: 'sketch', minimal: 'bloom', tiktok: 'chrome', beast: 'impact2', popone: 'carbon' };
+var SHOWCASE_PHOTO = { hormozi: 'prismpro', boxkara: 'sketch', minimal: 'bloom', tiktok: 'chrome', beast: 'impact2', popone: 'carbon',
+  reveal: 'lift', note: 'hush', script: 'neon', soft: 'editorial' };
 function renderShowcase() {
   var row = document.getElementById('showcaseRow');
   if (!row) return;
@@ -9713,7 +10037,7 @@ function renderShowcase() {
   // bleibt nach Trend-Popularität sortiert). Hier zählt der erste Eindruck: einladende, freundliche
   // Fotos zuerst; ein paar sehr intensive "Schock-Gesicht"-Fotos wirken sonst eher abschreckend als
   // einladend und stehen deshalb ganz hinten (weiterhin per Scroll erreichbar, nur nicht "above the fold").
-  var SHOWCASE_ORDER = ['classic','hormozi','boxkara','minimal','lift','tiktok','editorial','marker','hush','stack',
+  var SHOWCASE_ORDER = ['reveal','classic','hormozi','note','boxkara','script','minimal','lift','tiktok','soft','editorial','marker','hush','stack',
     'beast','popone','focus','neon','headline'];
   var showcaseStyles = SHOWCASE_ORDER.map(function(id){ return STYLES.find(function(s){ return s.id === id; }); })
     .filter(function(s){ return s && s.id !== 'custom' && !s._tpl; });

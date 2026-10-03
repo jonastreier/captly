@@ -120,7 +120,9 @@ localEmphasis:localEmphasis,clearAutoFlags:clearAutoFlags,isEmphWord:isEmphWord,
 toggleWordEmph:toggleWordEmph,setBlockEmoji:setBlockEmoji,getEmph:function(){return {kw:emKw,emoji:emEmoji,zoom:emZoom,src:emSrc};},
 setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKey=null;},applyProjectPayload:applyProjectPayload,getUndoSnapshot:function(){return captionSnapshot();},
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
-runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;}};`;
+runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
+capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
+capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -130,7 +132,7 @@ let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } };
 
 // 1) Grunddaten
-ok(T.STYLES.length === 15, '15 kuratierte Presets erwartet: ' + T.STYLES.length);
+ok(T.STYLES.length === 19, '19 kuratierte Presets erwartet (15 + 4 ruhige: Reveal/Note/Script/Soft): ' + T.STYLES.length);
 
 // 2) Zeitformate
 ok(T.srtT(61.5) === '00:01:01,500', 'srtT: ' + T.srtT(61.5));
@@ -295,7 +297,7 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
 // 9e) Auto-Fit überlanger Wörter (Stub: Breite = Zeichen * px * 0.55)
 {
   document.getElementById('prevFrame').style.width = '270px';
-  const st = T.STYLES.find(x => !x.boxBg && !x.pill && !x.hlPillBg && !x.circle && !(parseFloat(x.ls) > 0));
+  const st = T.STYLES.find(x => !x.boxBg && !x.pill && !x.hlPillBg && !x.circle && !(parseFloat(x.ls) > 0) && !x.fs && !x.motion);
   const fsMul = st.fs ? (parseFloat(st.fs) || 1) : 1;
   const maxW = T.capFitMaxW(st);
   ok(Math.abs(maxW - 270 * 0.86) < 1e-9, 'Fit: nutzbare Breite = 86% Rahmen: ' + maxW);
@@ -465,7 +467,7 @@ ok(initialLang === 'auto', 'Sprache startet auf Auto-Erkennung: ' + initialLang)
 // 13) Showcase-Reihe crasht nicht (Stub leert children nicht → Vielfaches von 31:
 // Auto-Init beim Skript-Load + ein Rebuild via goBack() weiter unten in Test 8)
 const showN = document.getElementById('showcaseRow').children.length;
-ok(showN >= 15 && showN % 15 === 0, 'Showcase: Vielfaches von 15 Karten erwartet, habe ' + showN);
+ok(showN >= 19 && showN % 19 === 0, 'Showcase: Vielfaches von 19 Karten erwartet, habe ' + showN);
 
 // 14) cleanWords ist jetzt async (yielded) — Assertions unten in der async IIFE (Test 20b).
 const mkW = arr => arr.map((w, i) => ({ word: w, start: i * 0.3, end: i * 0.3 + 0.25 }));
@@ -489,7 +491,7 @@ ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animat
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
 T.applyCustomStyle();
-ok(T.STYLES.length === 16 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
+ok(T.STYLES.length === 20 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
 // Fixtures: frühere Presets (vor der Kuratierung) — der Custom-Editor/Glow-/Pill-/Farbwechsel-Code muss
 // diese Formen weiter verarbeiten (Templates/Projekte enthalten sie). Nur im Test als eigene IDs.
 const OS = T.outlineShadow;
@@ -612,7 +614,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   ok(E('csBox').value === 'box' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '60' && E('csHl').value === '#22c55e', 'Box Karaoke: Box schwarz 60 %, Pill gruen');
   // Kontur-Style (Hormozi): Kontur 3 px, Schatten an, Textfarbe-Highlight
   T.selectStyle('hormozi');
-  ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Active' && E('csAnim').value === 'punch',
+  ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Active' && E('csAnim').value === 'scale',
      'Hormozi: Kontur/Schatten/Active-Farbe/Animation');
   // Glow-Style (Jolt/amplify): Glow an mit Stärke 20, Regler aktiv
   T.selectStyle('tamp');
@@ -1280,7 +1282,7 @@ ok(T.webmToMp4Trim(33.96).join(' ') === '-t 33.960 -shortest' && T.webmToMp4Trim
   T.applyPlayability('ok'); T.enableExports(true);
   ok(document.getElementById('btnVideo').disabled === false && document.getElementById('vidWarn').style.display === 'none', 'abspielbar: alles normal');
 }
-ok(T.DEFAULT_STYLE === 'hormozi', 'Standard-Style fuer neue Nutzer: Hormozi');
+ok(T.DEFAULT_STYLE === 'reveal', 'Standard-Style fuer neue Nutzer: Reveal (ruhig, wie die Captions-App)');
 
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
@@ -2601,7 +2603,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const removed = ['amplify', 'impact2', 'volt', 'pulse', 'evo', 'prime', 'linen', 'carbon', 'tokyo', 'chrome', 'ignite', 'ember', 'y2k',
       'prismpro', 'elevate', 'bloom', 'sonnet', 'align', 'paper2', 'muse', 'sketch', 'chalk'];
-    const ids = new Set(T.STYLES.slice(0, 15).map(x => x.id)); // eingebaute Presets stehen vorn (Custom/Templates/Fixtures danach)
+    const ids = new Set(T.STYLES.slice(0, 19).map(x => x.id)); // eingebaute Presets stehen vorn (Custom/Templates/Fixtures danach)
     ok(removed.every(id => T.STYLE_ALIASES[id] && ids.has(T.STYLE_ALIASES[id])), 'jede entfernte ID zeigt auf ein vorhandenes Preset');
     ok(Object.keys(T.STYLE_ALIASES).every(id => !ids.has(id)), 'kein Alias verdeckt ein vorhandenes Preset');
     ok(T.resolveStyleId('y2k') === 'neon' && T.resolveStyleId('pulse') === 'boxkara' && T.resolveStyleId('hormozi') === 'hormozi' && T.resolveStyleId('tpl_abc') === 'tpl_abc', 'resolveStyleId');
@@ -2906,6 +2908,188 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setCaptionsEdited(false);
     T.setEmphState(true, false, 'off');
     document.getElementById('prevFrame').style.width = ''; document.getElementById('prevFrame').style.height = '';
+  }
+
+  // 30) Ruhige Bewegung: Reveal/Fill/Highlight-Übergänge, gleitende Box, Block ein/aus, Standard-Style
+  {
+    const near = (a, b, e) => Math.abs(a - b) <= (e || 1e-6);
+    const M = T.CAP_MOT;
+    // Canvas-Stub mit echtem save/restore (Deckkraft/Font/Translate), protokolliert fillText + Boxen
+    const mkCtx = (canvas) => {
+      const c = { canvas, _st: [], _font: '', letterSpacing: '0px', globalAlpha: 1, ty: 0, fillStyle: '#000', strokeStyle: '#000', lineWidth: 1, filter: 'none',
+        shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, textAlign: 'left', textBaseline: 'alphabetic', calls: [], rects: [], imgs: 0,
+        get font() { return this._font; }, set font(v) { this._font = v; },
+        measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+        save() { this._st.push([this.globalAlpha, this.ty, this.fillStyle, this._font]); },
+        restore() { const v = this._st.pop(); if (v) { this.globalAlpha = v[0]; this.ty = v[1]; this.fillStyle = v[2]; this._font = v[3]; } },
+        translate(x, y) { this.ty += y; }, scale() {}, rotate() {},
+        fillText(t, x, y) { this.calls.push({ t, x, y: y + this.ty, a: this.globalAlpha, fs: this.fillStyle, font: this._font }); }, strokeText() {},
+        roundRect(x, y, w, h) { this.rects.push({ x, y: y + this.ty, w, h, a: this.globalAlpha, fs: this.fillStyle }); }, rect(x, y, w, h) { this.rects.push({ x, y, w, h, a: this.globalAlpha }); },
+        beginPath() {}, fill() {}, stroke() {}, ellipse() {}, fillRect() {}, drawImage() { this.imgs++; }, createLinearGradient() { return { addColorStop() {} }; } };
+      return c;
+    };
+    const ST = id => T.STYLES.find(x => x.id === id);
+    T.setEmphState(false, false, 'off'); T.setTimeOffState(0);
+    const ws = ['eins', 'zwei', 'drei', 'vier'].map((w, i) => ({ word: w, start: 1 + i * 0.5, end: 1 + i * 0.5 + 0.4 }));
+    T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
+    const b = T.getBlocks()[0];
+    ok(T.getBlocks().length === 1 && b.words.length === 4, 'Motion: Testblock mit 4 Woertern');
+    // Modi
+    ok(T.capMotion(ST('reveal')) === 'reveal' && T.capMotion(ST('note')) === 'fill' && T.capMotion(ST('script')) === 'reveal' && T.capMotion(ST('soft')) === 'fill'
+       && T.capMotion(ST('hormozi')) === 'highlight' && T.capMotion({ motion: 'quatsch' }) === 'highlight', 'capMotion: neue Presets + Fallback Highlight');
+    ok(T.STYLES.slice(0, 4).map(x => x.id).join() === 'reveal,note,script,soft', 'ruhige Presets stehen vorn im Picker');
+    // Reveal: unsichtbar vor dem Wort, ~220 ms Einblenden mit Anstieg, danach voll
+    const rv = ST('reveal'), fx = (s, i, t, f, rm) => T.capWordFx(s, b, i, T.activeWordIdx(b, t), t, !!f, !!rm);
+    ok(fx(rv, 1, 1.49).op === 0 && fx(rv, 2, 1.6).op === 0, 'Reveal: kommende Woerter unsichtbar');
+    const mid = fx(rv, 1, 1.55);
+    ok(mid.op > 0.3 && mid.op < 1 && mid.dy > 0 && mid.dy < M.revealRise, 'Reveal: Wort blendet ein + steigt auf: op=' + mid.op.toFixed(3) + ' dy=' + mid.dy.toFixed(3));
+    ok(fx(rv, 1, 1.5 + M.reveal).op === 1 && fx(rv, 1, 1.5 + M.reveal).dy === 0 && fx(rv, 0, 2.9).op === 1, 'Reveal: nach ~220 ms voll sichtbar, bleibt stehen');
+    ok(fx(rv, 3, 0.5, true).op === 1, 'Reveal: pausierte Vorschau vor dem Block zeigt die ganze Phrase');
+    ok(fx(rv, 1, 1.55, false, true).op === 1 && fx(rv, 2, 1.55, false, true).op === 0, 'Reveal: reduzierte Bewegung = ohne Uebergang');
+    ok(M.reveal >= 0.2 && M.reveal <= 0.3 && M.revealRise > 0, 'Reveal: 200–300 ms');
+    // Fill: kommende gedimmt, gesprochene voll, weicher Übergang
+    const nt = ST('note');
+    ok(fx(nt, 3, 1.6).op === M.dim && fx(nt, 3, 1.6).hk === 0 && M.dim >= 0.35 && M.dim <= 0.45, 'Fill: kommende Woerter ~40 %');
+    ok(fx(nt, 0, 1.6).op === 1 && fx(nt, 0, 1.6).hk === 1, 'Fill: gesprochene Woerter voll');
+    const fm = fx(nt, 1, 1.53);
+    ok(fm.op > M.dim && fm.op < 1 && fm.hk > 0 && fm.hk < 1, 'Fill: Uebergang ~120 ms: op=' + fm.op.toFixed(3));
+    ok(T.capFxSteady(fx(nt, 3, 1.6), 'fill') && T.capFxSteady(fx(nt, 0, 1.6), 'fill') && !T.capFxSteady(fm, 'fill'), 'Fill: Endzustaende fuer die statische Export-Ebene');
+    // Highlight: Farbe blendet ~120 ms über, voriges Wort gibt sie ab; Pop ≤ 1.04
+    const hz = ST('hormozi');
+    const h1 = fx(hz, 1, 1.53), h0 = fx(hz, 0, 1.53);
+    ok(h1.hk > 0 && h1.hk < 1 && h0.hk > 0 && h0.hk < 1, 'Highlight: Farbwechsel weich (aktiv ' + h1.hk.toFixed(2) + ', vorher ' + h0.hk.toFixed(2) + ')');
+    ok(fx(hz, 1, 1.5 + M.hl).hk === 1 && fx(hz, 0, 1.5 + M.hl).hk === 0 && fx(hz, 2, 1.53).hk === 0, 'Highlight: danach eindeutig');
+    let peak = 1; for (let k = 0; k <= 40; k++) { const a = fx(hz, 1, 1.5 + k * 0.01).a; if (a) peak = Math.max(peak, a.sx); }
+    ok(peak > 1 && peak <= 1.04 + 1e-9, 'Hormozi: Pop hoechstens 1.04: ' + peak.toFixed(3));
+    ok(T.STYLES.slice(0, 19).every(x => !['punch'].includes(x.anim)), 'Presets ohne Punch-Bounce');
+    ok(T.capMixColor('#ffffff', '#000000', 0.5) === 'rgba(128,128,128,1)' && T.capMixColor('#fff', '#FFD60A', 0) === '#fff' && T.capMixColor('#fff', '#FFD60A', 1) === '#FFD60A', 'capMixColor');
+    // Block ein-/ausblenden (Lücke nach dem Block → Ausblenden; direkt anschliessender Block → kein Flackern)
+    let bf = T.capBlockFx(0, 1.0, false, false);
+    ok(bf.op === 0 && bf.dy > 0, 'Block: startet unsichtbar');
+    bf = T.capBlockFx(0, 1.075, false, false);
+    ok(bf.op > 0 && bf.op < 1 && bf.dy > 0, 'Block: blendet ~150 ms ein');
+    ok(T.capBlockFx(0, 1.0 + M.enter, false, false).op === 1 && T.capBlockFx(0, 1.0 + M.enter, false, false).dy === 0, 'Block: voll nach dem Einblenden');
+    const end = b.end;
+    ok(T.capBlockFx(0, end - 0.05, false, false).op < 1 && T.capBlockFx(0, end - 0.05, false, false).op > 0 && T.capBlockFx(0, end, false, false).op === 0
+       && T.capBlockFx(0, end - M.exit - 0.01, false, false).op === 1, 'Block: blendet in den letzten ~100 ms aus');
+    ok(T.capBlockFx(0, 1.0, true, false).op === 1 && T.capBlockFx(0, 1.0, false, true).op === 1, 'Block: Vorschau-Ersatz / reduzierte Bewegung ohne Ein-/Ausblenden');
+    {
+      const two = [['a', 0, 0.4], ['b.', 0.45, 0.9], ['c', 0.9, 1.2], ['d', 1.25, 1.6]].map(([w, s0, e]) => ({ word: w, start: s0, end: e }));
+      T.onWpbChange('2');
+      T.setState(T.buildCaptionBlocks(two), [], 'karaoke');
+      const bl = T.getBlocks();
+      ok(bl.length === 2 && T.capBlockVisEnd(0) === null && T.capBlockFx(0, bl[0].end - 0.01, false, false).op === 1, 'Block: direkt abgeloest → kein Ausblenden');
+      T.onWpbChange('4');
+      T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
+    }
+    // Gleitende Box: Interpolation + Export
+    const P = [{ x: 0, y: 10, w: 40, h: 20 }], R = [{ x: 100, y: 10, w: 60, h: 20 }];
+    let sb = T.capSlideBoxes(P, R, 0.5);
+    ok(sb.length === 1 && near(sb[0].x, 50) && near(sb[0].w, 50) && sb[0].op === 1, 'Box gleitet: halbe Strecke/Breite bei k=0.5');
+    sb = T.capSlideBoxes(P, [{ x: 100, y: 40, w: 60, h: 20 }], 0.5);
+    ok(sb.length === 1 && near(sb[0].x, 100) && near(sb[0].op, 0.5), 'Box bei Zeilenwechsel: blendet am Ziel ein');
+    ok(T.capSlideBoxes(P, R, 1)[0].x === 100 && T.capSlideBoxes(null, R, 0).length === 0, 'Box: Endposition / unsichtbar vor dem Wort');
+    const bk = ST('boxkara');
+    const boxAt = (t) => { const c = mkCtx(null); T.drawCaptionsOnCtx(c, t, bk, 1080, 1920, false); return c.rects.filter(r => r.fs === bk.hlPillBg).pop(); };
+    const r0 = boxAt(1.45), r1 = boxAt(1.5 + 0.3), rm = boxAt(1.5 + 0.04);
+    ok(r0 && r1 && rm && r1.x > r0.x && rm.x > r0.x + 1 && rm.x < r1.x - 1 && Math.abs(rm.y - r1.y) < 1e-6, 'Export: Box gleitet zwischen den Woertern (' + [r0, rm, r1].map(r => r && r.x.toFixed(1)).join(' → ') + ')');
+    // Layout fix: Wortpositionen unabhängig von Zeit/aktivem Wort (Reveal, Box, Kursiv-Highlight)
+    ['reveal', 'boxkara', 'editorial', 'hormozi'].forEach(id => {
+      const pos = (t) => { const c = mkCtx(null); T.drawCaptionsOnCtx(c, t, ST(id), 1080, 1920, false); const o = {}; c.calls.forEach(k => { o[k.t.toLowerCase()] = Math.round(k.x * 100) / 100 + ',' + Math.round((k.y - 0) * 100) / 100; }); return o; };
+      const a = pos(id === 'reveal' ? 2.3 : 1.2), z = pos(2.75); // Reveal: 3 Woerter fertig eingeblendet
+      const lay = (wi) => T.capLayout(mkCtx(null), b, 0, wi, ST(id), 1080, 1920).lines.map(L => L.map(w => w.x.toFixed(2) + '/' + w.y.toFixed(2)).join(' ')).join(' | ');
+      ok(lay(0) === lay(3), id + ': Layout unabhaengig vom aktiven Wort');
+      const same = Object.keys(a).filter(k => z[k] !== undefined).every(k => a[k] === z[k]);
+      ok(same && Object.keys(a).length >= 3, id + ': Woerter bleiben an ihrer Stelle (' + Object.keys(a).length + ' verglichen)');
+    });
+    ok(JSON.stringify(T.wrapCaptionLines(['eins', 'zwei', 'drei', 'vier'], ST('editorial'), 0, 22, 2)) === JSON.stringify(T.wrapCaptionLines(['eins', 'zwei', 'drei', 'vier'], ST('editorial'), 3, 22, 2)),
+       'Vorschau-Umbruch unabhaengig vom aktiven Wort (Kursiv-Highlight)');
+    // Reveal im Export: kommende Woerter nicht gezeichnet, einblendendes Wort halbtransparent + tiefer
+    {
+      const c = mkCtx(null); T.drawCaptionsOnCtx(c, 1.55, rv, 1080, 1920, false);
+      const by = {}; c.calls.forEach(k => { by[k.t] = k; });
+      const c2 = mkCtx(null); T.drawCaptionsOnCtx(c2, 2.7, rv, 1080, 1920, false);
+      const z = {}; c2.calls.forEach(k => { z[k.t] = k; });
+      ok(by.eins && by.zwei && !by.drei && !by.vier && by.zwei.a > 0 && by.zwei.a < 1 && by.eins.a === 1, 'Export Reveal: sichtbar bis zum gesprochenen Wort, Einblenden ueber Deckkraft');
+      ok(by.zwei.y > z.zwei.y && near(by.eins.y, z.eins.y), 'Export Reveal: neues Wort steigt auf, Rest bleibt stehen');
+      const cf = mkCtx(null); T.drawCaptionsOnCtx(cf, 1.6, nt, 1080, 1920, false);
+      const fa = {}; cf.calls.forEach(k => { fa[k.t] = k.a; });
+      ok(fa.eins === 1 && near(fa.drei, M.dim) && near(fa.vier, M.dim), 'Export Fill: gedimmt/voll wie die Vorschau');
+      const ce = mkCtx(null); T.drawCaptionsOnCtx(ce, 1.075, rv, 1080, 1920, false);
+      ok(ce.calls.length && ce.calls.every(k => k.a < 1), 'Export: Block blendet ein (Deckkraft < 1)');
+    }
+    // Statische Ebene im Export: im Endzustand nur drawImage, kein Neuzeichnen
+    {
+      const layers = []; const origCreate = document.createElement;
+      document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); const cv = { width: 0, height: 0 }; const cx = mkCtx(cv); cv.getContext = () => cx; layers.push(cx); return cv; };
+      const main = mkCtx({ width: 1080, height: 1921 }); // eigene Größe → frische Ebene
+      T.drawCaptionsOnCtx(main, 2.73, rv, 1080, 1921, false);
+      const n1 = layers.reduce((a, l) => a + l.calls.length, 0);
+      T.drawCaptionsOnCtx(main, 2.76, rv, 1080, 1921, false);
+      T.drawCaptionsOnCtx(main, 2.79, rv, 1080, 1921, false);
+      ok(n1 === 4 && layers.reduce((a, l) => a + l.calls.length, 0) === n1 && main.calls.length === 0 && main.imgs === 3, 'Reveal-Export: Endzustand aus der Ebene (kein Neuzeichnen pro Frame)');
+      const mid2 = mkCtx({ width: 1080, height: 1921 }); T.drawCaptionsOnCtx(mid2, 2.55, rv, 1080, 1921, false);
+      ok(mid2.calls.length === 1 && mid2.calls[0].t === 'vier', 'Reveal-Export: nur das einblendende Wort wird live gezeichnet');
+      document.createElement = origCreate;
+    }
+    // Vorschau-HTML: keine CSS-Animation (Zeit-basiert per capDomMotion), Wort-Index, Box als eigene Fläche
+    {
+      const hv = T.buildCap(['eins', 'zwei'], rv, -1, 22, [1, 1.5], 2, { em: null });
+      ok(/class="cap-root"/.test(hv) && /data-oi="1"/.test(hv) && !/animation:captly/.test(hv), 'Vorschau Reveal: Wort-Spans mit data-oi, keine CSS-Animation');
+      const hb = T.buildCap(['eins', 'zwei'], bk, 1, 22, [1, 1.5], 2, { em: null });
+      ok(/class="cap-hlbox"/.test(hb) && !/padding:2px 9px/.test(hb) && /word-spacing:/.test(hb), 'Vorschau Box: eigene Flaeche, kein Padding am Wort, extra Wortabstand');
+      ok(T.capWordGap(bk) === 4 + T.CAP_PILL_GAP && T.capWordGap(rv) === 0, 'Box-Styles: Wortabstand + Box-Gap');
+      const hz2 = T.buildCap(['eins', 'zwei'], hz, 1, 22, [1, 1.5], 2, { em: null });
+      ok(!/animation:captly/.test(hz2), 'Vorschau Highlight: Pop zeitbasiert statt CSS-Animation');
+      const ed = T.buildCap(['eins', 'zwei'], ST('editorial'), 1, 22, [1, 1.5], 2, { em: null });
+      ok((ed.match(/min-width:[\d.]+px;text-align:center/g) || []).length === 2, 'Kursiv-Highlight: fester Platz je Wort');
+      // Kacheln/Showcase: Reveal blendet bis hlIdx ein, Fill dimmt danach
+      const tr = T.buildCap(['a', 'b', 'c'], rv, 1, 12, null);
+      ok(/opacity:0;/.test(tr) && /capWordIn/.test(tr) && T.buildCap(['a', 'b', 'c'], nt, 0, 12, null).split('opacity:' + M.dim).length === 3, 'Kacheln: Reveal/Fill-Fortschritt');
+    }
+    // Typografische Betonung (KI-Keyword): Script = Caveat 1.4×, Reveal = kursiv; im Auto-Fit mitgemessen
+    {
+      T.setEmphState(true, false, 'off');
+      const sc = ST('script');
+      const hs = T.buildCap(['nur', 'langsam', 'atmen'], sc, -1, 22, [0, 0.5, 1], 2, { em: [false, true, false] });
+      ok(/font-family:'Caveat'/.test(hs) && /font-size:1\.4em/.test(hs) && /7ff0e0/.test(hs), 'Script: Keyword in Caveat, 1.4x, Akzentfarbe');
+      ok(/font-style:italic/.test(T.buildCap(['ein', 'Preis'], rv, -1, 22, [0, 0.5], 2, { em: [false, true] })), 'Reveal: Keyword kursiv');
+      const fw0 = T.fitCaptionWords(['nur', 'Wahnsinnsgeschichte'], sc, 40, 200, 2, null), fw1 = T.fitCaptionWords(['nur', 'Wahnsinnsgeschichte'], sc, 40, 200, 2, [false, true]);
+      ok(fw1.px < fw0.px || fw1.words.length > fw0.words.length, 'Betonung (1.4x) im Auto-Fit beruecksichtigt');
+      ok(T.capWordFace(sc, false, true).fam === 'Caveat' && T.capWordFace(rv, false, true).it && T.capWordFace(rv, false, true).fw === '800', 'capWordFace: Betonungs-Schrift/-Schnitt');
+      ok(T.emphLineH(sc, 1.4) > 0.5 && T.emphLineH(sc, 1.4) < 1.3, 'emphLineH mit eigener Betonungs-Schrift');
+      const kw = [{ word: 'nur', start: 1, end: 1.3 }, { word: 'langsam', start: 1.35, end: 1.8, kw: 2 }, { word: 'atmen', start: 1.85, end: 2.2 }];
+      T.setState(T.buildCaptionBlocks(kw), [], 'karaoke');
+      const c = mkCtx(null); T.drawCaptionsOnCtx(c, 2.1, sc, 1080, 1920, false);
+      const lk = c.calls.find(k => k.t === 'langsam');
+      ok(lk && /Caveat/.test(lk.font) && lk.fs === '#7ff0e0', 'Export: Keyword in Caveat + Akzentfarbe');
+      T.setEmphState(false, false, 'off');
+    }
+    // Customize: Animation-Wahl + Templates behalten motion/emFont
+    {
+      T.selectStyle('hormozi');
+      document.getElementById('csMotion').value = 'reveal';
+      T.setCsDirty({ motion: true });
+      const cs = T.buildCustomStyle();
+      ok(cs.motion === 'reveal' && cs.font === ST('hormozi').font, 'Customize: Animation „Reveal“');
+      document.getElementById('csMotion').value = 'highlight'; T.setCsDirty({ motion: true });
+      ok(T.buildCustomStyle().motion === undefined, 'Customize: „Highlight“ = Standard (kein Feld)');
+      T.seedCustomFields(ST('note'));
+      ok(document.getElementById('csMotion').value === 'fill', 'Customize: Animation aus dem Style uebernommen');
+      const san = T.sanitizeStyle({ motion: 'fill', emFont: "'Caveat'", emItalic: true, emFw: '800', bad: 1 });
+      ok(san.motion === 'fill' && san.emFont === "'Caveat'" && san.emItalic === true && san.emFw === '800' && san.bad === undefined, 'Templates speichern motion/emFont/emItalic/emFw');
+    }
+    // Standard-Style: neue Nutzer → Reveal, gemerkter Style bleibt
+    {
+      const runWith = (store) => {
+        global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem() {}, removeItem() {} };
+        try { return new Function(script + ';return activeId;')(); } finally { delete global.localStorage; }
+      };
+      ok(runWith({}) === 'reveal', 'neuer Nutzer startet mit Reveal');
+      ok(runWith({ 'capivo.style': 'hormozi' }) === 'hormozi', 'gemerkter Style bleibt (Hormozi)');
+      ok(runWith({ 'capivo.style': 'prime' }) === 'lift', 'gemerkter alter Style folgt dem Alias');
+    }
+    T.setEmphState(true, false, 'off');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
