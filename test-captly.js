@@ -110,16 +110,21 @@ updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentL
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
 tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomAt,tlTickStep:tlTickStep,tlSnap:tlSnap,tlSnapCands:tlSnapCands,
 tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
+resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
 tlNudge:tlNudge,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
-setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;}};`;
+setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
+capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
+wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBaseName:exportBaseName,openExportSheet:openExportSheet,closeExportSheet:closeExportSheet,
+exportDone:exportDone,dlBlob:dlBlob,shareLastExport:shareLastExport,topExport:topExport,setCapLang:function(v){_capLangForce=v;},setWordsState:function(w){wordTimestamps=w;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
+T.setMaxCharsState(40); // Alt-Tests: großzügiges Zeichenlimit (Auto hängt von der Stub-Messung ab); eigene Tests unten
 
 let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } };
 
 // 1) Grunddaten
-ok(T.STYLES.length === 36, '36 Styles erwartet (31 + 5 Trend-Presets): ' + T.STYLES.length);
+ok(T.STYLES.length === 15, '15 kuratierte Presets erwartet: ' + T.STYLES.length);
 
 // 2) Zeitformate
 ok(T.srtT(61.5) === '00:01:01,500', 'srtT: ' + T.srtT(61.5));
@@ -175,7 +180,7 @@ ok((html.match(/animation:captly-/g) || []).length === 1, 'Animation nur am akti
 
 // 7) SRT/VTT-Export
 T.exportSRT();
-ok(global.LASTBLOB.content.startsWith('1\n00:00:00,000 --> 00:00:01,000\nHallo und willkommen.'), 'SRT-Format: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 50)));
+ok(global.LASTBLOB.content.startsWith('1\n00:00:00,000 --> 00:00:01,100\nHallo und willkommen.'), 'SRT-Format (Lücke 0,1 s geschlossen): ' + JSON.stringify(global.LASTBLOB.content.slice(0, 50)));
 T.exportVTT();
 ok(global.LASTBLOB.content.startsWith('WEBVTT'), 'VTT-Header');
 ok(global.CLICKS.length === 2, '2 Downloads ausgeloest');
@@ -296,6 +301,14 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   ok(f1.words.every(w => wStub(w, f1.px) <= maxW + 1e-9), 'Fit: jedes (Teil-)Wort passt in den Rahmen: ' + f1.words.join(' | '));
   ok(f1.words.filter((w, i) => f1.orig[i] === 1).map(w => w.replace(/-$/, '')).join('') === long, 'Fit: Trennung verliert keine Zeichen');
   ok(f1.words.includes('Highland-') && f1.orig.length === f1.words.length, 'Fit: vorhandene Bindestriche bevorzugt: ' + f1.words.join(' | '));
+  // Kurzes Wort + überlanges Wort bei 2 Zeilen: getrennt statt geschrumpft, „Das“ teilt sich die Zeile
+  {
+    const fp = T.fitCaptionWords(['Das', 'Bundesverfassungsgericht'], st, 54, maxW, 2);
+    const fl = T.fitCaptionWords(['Das', 'Bundesverfassungsgericht'], st, 54, maxW, 1);
+    ok(fp.words.length === 3 && fp.words[1].endsWith('-') && fp.g <= 2, 'Paar: Trennung in 2 Zeilen: ' + fp.words.join(' | ') + ' g=' + fp.g);
+    ok(wStub('Das ' + fp.words[1], fp.px) <= maxW + 1e-9, 'Paar: „Das“ passt neben den ersten Wortteil: ' + fp.words.join(' | '));
+    ok(fp.px > fl.px, 'Paar: größer als bei 1 Zeile (' + fp.px + ' > ' + fl.px + ')');
+  }
   // Wort, das per Verkleinerung allein passt → keine Trennung
   const f2 = T.fitCaptionWords(['Highland'], st, 54, maxW);
   ok(f2.words.length === 1 && f2.px < 54 && wStub('Highland', f2.px) <= maxW, 'Fit: nur verkleinert, nicht getrennt: ' + f2.px);
@@ -446,7 +459,7 @@ ok(initialLang === 'auto', 'Sprache startet auf Auto-Erkennung: ' + initialLang)
 // 13) Showcase-Reihe crasht nicht (Stub leert children nicht → Vielfaches von 31:
 // Auto-Init beim Skript-Load + ein Rebuild via goBack() weiter unten in Test 8)
 const showN = document.getElementById('showcaseRow').children.length;
-ok(showN >= 31 && showN % 31 === 0, 'Showcase: Vielfaches von 31 Karten erwartet, habe ' + showN);
+ok(showN >= 15 && showN % 15 === 0, 'Showcase: Vielfaches von 15 Karten erwartet, habe ' + showN);
 
 // 14) cleanWords ist jetzt async (yielded) — Assertions unten in der async IIFE (Test 20b).
 const mkW = arr => arr.map((w, i) => ({ word: w, start: i * 0.3, end: i * 0.3 + 0.25 }));
@@ -470,18 +483,27 @@ ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animat
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
 T.applyCustomStyle();
-ok(T.STYLES.length === 37 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
-// Referenz-Styles: Prime Script-Akzent, Sketch Kringel, Sonnet kursiv
-const pr = T.buildCap(['nur', 'ein', 'tipp'], T.STYLES.find(x => x.id === 'prime'), 2, 22, null);
+ok(T.STYLES.length === 16 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
+// Fixtures: frühere Presets (vor der Kuratierung) — der Custom-Editor/Glow-/Pill-/Farbwechsel-Code muss
+// diese Formen weiter verarbeiten (Templates/Projekte enthalten sie). Nur im Test als eigene IDs.
+const OS = T.outlineShadow;
+T.STYLES.push(
+  { id: 'tbox', name: 'Box Karaoke', fl: 'Inter', font: "'Inter'", fw: '800', thumbBg: '#000', tc: '#fff', ts: 'none', boxBg: 'rgba(0,0,0,.62)', boxBr: '10px', hl: '#fff', hlPillBg: '#22c55e', hlc: '#04210f', hls: 'none', anim: 'scale' },
+  { id: 'tpulse', name: 'Flux', fl: 'Montserrat', font: "'Montserrat'", fw: '900', tt: 'uppercase', thumbBg: '#000', tc: '#fff', ts: '-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000', hlPillBg: '#00ff85', hlc: '#00220f', hls: 'none', anim: 'flash', cstroke: '#000' },
+  { id: 'tamp', name: 'Jolt', fl: 'Poppins', font: "'Poppins'", fw: '900', tt: 'uppercase', fs: '1.1em', thumbBg: '#000', tc: '#fff', ts: '-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000', hl: '#d7ff1f', hls: '-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000,0 0 20px rgba(215,255,31,.85)', anim: 'punch', cstroke: '#000' },
+  { id: 'tbeast', name: 'Beast alt', fl: 'Bangers', font: "'Bangers'", fw: '400', tt: 'uppercase', ls: '1px', fs: '1.12em', thumbBg: '#000', tc: '#fff', ts: OS(3, '#000') + ',0 5px 0 rgba(0,0,0,.85)', hl: '#22e3ff', hlCycle: ['#22e3ff', '#ffd60a', '#ff4fd8', '#7cff4f'], hls: OS(3, '#000') + ',0 5px 0 rgba(0,0,0,.85)', anim: 'bounce', cstroke: '#000' },
+  { id: 'tbloom', name: 'Petal', fl: 'Playfair Display', font: "'Playfair Display'", fw: '700', tt: 'uppercase', ls: '1px', thumbBg: '#000', tc: '#fff', ts: '0 2px 18px rgba(249,168,212,.45)', hl: '#f9a8d4', hlFont: "'Caveat'", hlItalic: true, hls: '0 0 22px rgba(249,168,212,.9)', anim: 'glow' });
+// Style-Features (Templates können sie weiter nutzen): Script-Akzent, Kringel
+const pr = T.buildCap(['nur', 'ein', 'tipp'], { id: 'tprime', font: "'Poppins'", fw: '800', tc: '#fff', ts: 'none', hl: '#7df3ff', hlFont: "'Caveat'", hlItalic: true, hls: 'none', anim: 'scale' }, 2, 22, null);
 ok(pr.includes("font-family:'Caveat'") && pr.includes('font-style:italic'), 'Prime: Script-Akzent am aktiven Wort');
-const sk = T.buildCap(['mind', 'map'], T.STYLES.find(x => x.id === 'sketch'), 1, 22, null);
+const sk = T.buildCap(['mind', 'map'], { id: 'tsketch', font: "'Kalam'", fw: '700', tc: '#fff', ts: 'none', hl: '#efe7d8', hlFont: "'Barlow Condensed'", hlUpper: true, circle: true, hls: 'none', anim: 'none' }, 1, 22, null);
 ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Uppercase am aktiven Wort');
 
 // 16a) Custom-Style-Editor: startet vom gewählten Style, nur geänderte Gruppen überschreiben
 {
   const E = id => document.getElementById(id);
-  const base = T.STYLES.find(x => x.id === 'boxkara');
-  T.selectStyle('boxkara');                      // seedet die Regler + Basis
+  const base = T.STYLES.find(x => x.id === 'tbox');
+  T.selectStyle('tbox');                      // seedet die Regler + Basis
   ok(E('csBox').value === 'box' && E('csHlType').value === 'pill' && E('csAnim').value === 'scale', 'Regler aus Box Karaoke befuellt');
   E('csText').value = '#ff0000';
   T.setCsDirty({ text: true });
@@ -525,7 +547,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   const legacy = T.STYLES.find(x => x.id === 'tpl_1700000000000');
   ok(legacy && legacy.fl === 'Anton' && legacy.hl === '#ff0000' && /0 0 9px/.test(legacy.hls) && legacy._tpl.pos === 'top' && legacy._tpl.wpb === 3, 'Legacy-Template migriert');
   // Neues Template speichert den VOLLEN Style
-  T.selectStyle('boxkara');
+  T.selectStyle('tbox');
   document.getElementById('tplName').value = 'Mein Box';
   T.saveTemplate();
   let tpl = T.getUserTemplates().find(t => t.name === 'Mein Box');
@@ -574,29 +596,29 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   // Befüllen: Pill-Style (Flux) — „Active“-Feld zeigt die PILL-Farbe und heißt „Pill“
   T.setCsDirty({});
   E('csHl').value = '#facc15'; E('csGlow').checked = true; // Reste eines vorigen Styles
-  T.selectStyle('pulse');
+  T.selectStyle('tpulse');
   ok(E('csHl').value === '#00ff85' && E('csHlType').value === 'pill' && E('csHlLbl').textContent === 'Pill', 'Pill-Style: Farbfeld = Pill-Farbe, Label „Pill“: ' + E('csHl').value);
   ok(E('csText').value === '#ffffff' && E('csFont').value === 'Montserrat' && E('csWeight').value === '900' && E('csUpper').classList.contains('on'), 'Pill-Style: Text/Font/Gewicht/Caps');
   ok(E('csGlow').checked === false && E('csGlowInt').disabled === true, 'Glow aus → Regler deaktiviert');
   ok(E('csBox').value === 'off' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '70', 'kein Hintergrund → neutrale Box-Werte statt Resten');
   // Box-Style (Box Karaoke): Hintergrund aus rgba
-  T.selectStyle('boxkara');
+  T.selectStyle('tbox');
   ok(E('csBox').value === 'box' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '60' && E('csHl').value === '#22c55e', 'Box Karaoke: Box schwarz 60 %, Pill gruen');
   // Kontur-Style (Hormozi): Kontur 3 px, Schatten an, Textfarbe-Highlight
   T.selectStyle('hormozi');
   ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Active' && E('csAnim').value === 'punch',
      'Hormozi: Kontur/Schatten/Active-Farbe/Animation');
   // Glow-Style (Jolt/amplify): Glow an mit Stärke 20, Regler aktiv
-  T.selectStyle('amplify');
+  T.selectStyle('tamp');
   ok(E('csGlow').checked === true && String(E('csGlowInt').value) === '20' && E('csGlowInt').disabled === false && E('csHl').value === '#d7ff1f', 'Jolt: Glow an, Staerke 20');
   // rgba-Textfarbe (Clean Minimal) → gültiges Hex, Deckkraft bleibt beim Umfärben
   T.selectStyle('minimal');
   ok(E('csText').value === '#ffffff', 'rgba-Textfarbe → #ffffff im Farbfeld');
   E('csText').value = '#ff0000'; T.setCsDirty({ text: true });
-  ok(T.buildCustomStyle().tc === 'rgba(255,0,0,0.55)', 'Textfarbe behaelt die Deckkraft des Ausgangs-Styles: ' + T.buildCustomStyle().tc);
+  ok(T.buildCustomStyle().tc === 'rgba(255,0,0,0.6)', 'Textfarbe behaelt die Deckkraft des Ausgangs-Styles: ' + T.buildCustomStyle().tc);
 
   // Anwenden: Pill-Farbe über das EINE Farbfeld; Glow nur bei Glow-Änderung; Wechsel Pill → Textfarbe
-  T.selectStyle('pulse');
+  T.selectStyle('tpulse');
   E('csHl').value = '#ff3366'; T.setCsDirty({ hlc: true });
   let cs = T.buildCustomStyle();
   ok(cs.hlPillBg === '#ff3366' && cs.hlc === '#fff' && cs.hls === 'none' && cs.anim === 'flash', 'Pill-Farbe wirkt (vorher blieb die Pill gruen): ' + cs.hlPillBg);
@@ -606,17 +628,17 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   cs = T.buildCustomStyle();
   ok(!cs.hlPillBg && cs.hl === '#ff3366' && /0 0 20px #ff3366/.test(cs.hls), 'Pill → Textfarbe uebernimmt die Farbe: ' + cs.hls);
   // Beast: nur Glow anschalten → Farbwechsel (hlCycle) bleibt
-  T.selectStyle('beast');
+  T.selectStyle('tbeast');
   E('csGlow').checked = true; E('csGlowInt').value = '10'; T.setCsDirty({ glow: true });
   cs = T.buildCustomStyle();
   ok(cs.hlCycle && cs.hlCycle.length === 4 && /0 0 10px/.test(cs.hls) && T.parseOutline(cs.hls).w === 3, 'Beast: Glow an, Farbwechsel + Kontur bleiben');
   // Nur Kontur geändert → Glow des Ausgangs-Highlights bleibt unverändert (Jolt)
-  T.selectStyle('amplify');
+  T.selectStyle('tamp');
   E('csOutlineW').value = '4'; T.setCsDirty({ stroke: true });
   cs = T.buildCustomStyle();
   ok(/0px 0px 20px rgba\(215,255,31,\.85\)/.test(cs.hls) && T.parseOutline(cs.hls).w === 4, 'Kontur-Aenderung laesst Glow des Presets: ' + cs.hls.slice(-40));
   // Regler ohne Wirkung schalten ihren Schalter ein: Box-Farbe bei „None“, Konturfarbe bei 0 px
-  T.selectStyle('pulse');
+  T.selectStyle('tpulse');
   E('csBoxC').value = '#2040ff'; T.applyCustomStyle('boxc');
   T.flushCustomStyle();
   cs = T.STYLES.find(x => x.id === 'custom');
@@ -681,8 +703,9 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
 {
   ['hormozi', 'beast', 'boxkara', 'minimal', 'popone'].forEach(id => ok(T.STYLES.find(x => x.id === id), 'Preset vorhanden: ' + id));
   const beast = T.STYLES.find(x => x.id === 'beast');
-  ok(T.hlColorFor(beast, 0) !== T.hlColorFor(beast, 1), 'Beast: aktives Wort wechselt die Farbe');
-  ok(T.buildCap(['a', 'b'], beast, 1, 22, null).includes(beast.hlCycle[1]), 'Beast: Farbwechsel in der Vorschau');
+  ok(!beast.hlCycle && T.hlColorFor(beast, 0) === T.hlColorFor(beast, 1), 'Beast: aktives Wort in EINER Farbe (kein Farbwechsel pro Wort)');
+  const tbeast = T.STYLES.find(x => x.id === 'tbeast');
+  ok(T.hlColorFor(tbeast, 0) !== T.hlColorFor(tbeast, 1) && T.buildCap(['a', 'b'], tbeast, 1, 22, null).includes(tbeast.hlCycle[1]), 'hlCycle (alte Templates) funktioniert weiter');
   T.selectStyle('classic');
   const prevWpb = T.getWpb();
   T.selectStyle('popone');
@@ -728,7 +751,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
 {
   T.togglePunct();
   ok(T.displayWord('Hallo,') === 'Hallo' && T.displayWord('wirklich?!') === 'wirklich' && T.displayWord('3.5') === '3.5'
-     && T.displayWord("rock'n'roll.") === "rock'n'roll" && T.displayWord('Weide-Land:') === 'Weide-Land' && T.displayWord('…') === '…',
+     && T.displayWord("rock'n'roll.") === "rock’n’roll" && T.displayWord('Weide-Land:') === 'Weide-Land' && T.displayWord('…') === '…',
      'Satzzeichen entfernt, Apostroph/Bindestrich/Dezimalpunkt bleiben');
   T.setCaptionCase('upper');
   ok(T.displayWord('Hallo,') === 'HALLO', 'UPPERCASE + ohne Satzzeichen');
@@ -791,7 +814,7 @@ ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200
   ok(cs.hl === '#ff00ff' && T.parseOutline(cs.hls).w === 0 && /1px 2px 0px #000/.test(cs.hls) && /0px 3px 6px rgba/.test(cs.hls) && cs.ts === '1px 2px 0 #000',
      'nur Highlight-Farbe: keine Fake-Kontur, Schatten bleiben: ' + cs.hls);
   // Beast: Drop-Shadow im Highlight bleibt auch beim Farbwechsel
-  T.selectStyle('beast'); T.setCsDirty({ hl: true });
+  T.selectStyle('tbeast'); T.setCsDirty({ hl: true });
   const cb = T.buildCustomStyle();
   ok(T.parseOutline(cb.hls).w === 3 && /0px 5px 0px rgba\(0,0,0,\.85\)/.test(cb.hls), 'Beast: Kontur + Drop-Shadow im Highlight erhalten: ' + cb.hls.slice(-60));
   T.setCsDirty({});
@@ -1066,7 +1089,7 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   };
   const ws = ['Ganz', 'weiche', 'Bluete', 'heute'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.4 }));
   T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
-  const bloom = T.STYLES.find(x => x.id === 'bloom');
+  const bloom = T.STYLES.find(x => x.id === 'tbloom');
   const main = mkCtx({ width: 1080, height: 1920 });
   T.drawCaptionsOnCtx(main, 0.1, bloom, 1080, 1920, false);
   const layer = layerCtxs[0], after1 = layer ? layer.n : -1, main1 = main.n;
@@ -1091,7 +1114,7 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); created++; const cv = { width: 0, height: 0 }; const cx = mkCtx(cv); cv.getContext = () => cx; return cv; };
   const ws = ['Weiche', 'Bluete', 'leuchtet', 'heute'].map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.45 }));
   T.setState(T.buildCaptionBlocks(ws), [], 'karaoke');
-  ['bloom', 'neon'].forEach(id => {
+  ['tbloom', 'neon'].forEach(id => {
     const st = T.STYLES.find(x => x.id === id);
     const main = mkCtx({ width: 1080, height: 1920 });
     T.drawCaptionsOnCtx(main, 0.40, st, 1080, 1920, false);           // Animation vorbei → Grundstufe
@@ -1113,7 +1136,7 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   ok(bl.map(b => b.text).join(' ').split(' ').length === 5, 'keine Woerter verloren');
   // Lücke reicht → nur verlängern
   bl = T.buildCaptionBlocks(W([['Kurz.', 0, 0.1], ['Danach', 1.0, 1.4], ['kommt', 1.45, 1.8], ['mehr', 1.85, 2.2]]), []);
-  ok(bl[0].text === 'Kurz.' && Math.abs(bl[0].end - 0.3) < 1e-9, 'kurzer Block in die Luecke verlaengert');
+  ok(bl[0].text === 'Kurz.' && Math.abs(bl[0].end - 1.0) < 1e-9, 'kurzer Block in die Luecke verlaengert (Lücke < 1 s → bis zum nächsten Block)');
   // Regression: „SIE IN DIE KOMMENTARE. HALLO“ — nie über Satzende / über „Wörter pro Block“ hinaus
   bl = T.buildCaptionBlocks(W([['Schreibt', 0, 0.3], ['es', 0.32, 0.45], ['in', 0.47, 0.55], ['die', 0.56, 0.62], ['Kommentare.', 0.64, 1.1], ['Hallo', 1.12, 1.25], ['und', 1.4, 1.6], ['tschuess', 1.62, 2.0]]), []);
   ok(bl.every(b => b.words.length <= 4) && !bl.some(b => /Kommentare\. Hallo/.test(b.text)), 'max. 4 Woerter, kein Verschmelzen ueber Satzende: ' + bl.map(b => b.text).join(' | '));
@@ -1343,7 +1366,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const nw = document.getElementById('gateNews'), err = document.getElementById('gateErr');
     document.getElementById('gateNewsTxt').textContent = 'Send me tips';
     g.style.display = 'none'; sh.style.display = 'none'; inp.value = '';
-    ok(T.passEmailGate() === false && g.style.display === '' && sh.style.display === 'block', 'erster Export-Klick: Blatt + E-Mail-Feld, kein Export');
+    ok(T.passEmailGate() === false && g.style.display === '' && sh.style.display === 'block', 'Export ohne offenes Blatt: Blatt + E-Mail-Feld, kein Export');
+    // Blatt öffnen → E-Mail-Feld sofort sichtbar; gültige Adresse + Download = EIN Klick
+    g.style.display = 'none'; sh.style.display = 'none';
+    T.openExportSheet();
+    ok(g.style.display === '' && sh.style.display === 'block', 'Export-Blatt zeigt das E-Mail-Feld sofort');
     inp.value = 'kein-mail';
     ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent), 'ungültige Adresse → Fehlermeldung');
     fail = true; inp.value = 'Treier@Example.CH'; nw.checked = true;
@@ -1362,8 +1389,20 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const body = JSON.parse(calls[2].o.body);
     ok(body.newsletter === false && body.consent_text === null, 'ohne Häkchen → kein Newsletter, kein Einwilligungstext');
     delete store[T.LEAD_KEY];
+    // Blatt offen, Feld sichtbar, gültige Adresse → erster Download-Klick exportiert direkt
+    T.openExportSheet(); inp.value = 'eins@klick.ch';
+    ok(g.style.display === '' && T.passEmailGate() === true && g.style.display === 'none', 'ein Klick: Blatt offen + Adresse → Export startet');
+    T.closeExportSheet();
+    ok(store[T.LEAD_KEY] === 'eins@klick.ch', 'Adresse aus dem Ein-Klick-Weg gemerkt');
+    T.openExportSheet();
+    ok(g.style.display === 'none', 'bekannte Adresse → Feld beim Öffnen versteckt');
+    T.closeExportSheet();
+    delete store[T.LEAD_KEY];
     T.setMe('free', 'x@y.z'); g.style.display = 'none';
     ok(T.passEmailGate() === true && g.style.display === 'none', 'angemeldet → kein Gate');
+    T.openExportSheet();
+    ok(g.style.display === 'none', 'angemeldet → Feld beim Öffnen versteckt');
+    T.closeExportSheet();
     T.setMe('anon', '');
     global.fetch = realFetch; delete global.localStorage;
   })();
@@ -2236,6 +2275,12 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.syncTopExport('Rendering 42%…', true); ok(E('tbExport').disabled && /42%/.test(E('tbExport').textContent), 'Top-Export zeigt Fortschritt');
     T.syncTopExport(null, true); ok(!E('tbExport').disabled && /Export/.test(E('tbExport').textContent), 'Top-Export wieder frei');
     T.updateTrSetSum(); ok(/Fast|Perfect/.test(E('trSetSum').textContent), 'Transkriptions-Zusammenfassung: ' + E('trSetSum').textContent);
+    if (T.getLang() === 'auto') {
+      T.setLastTrMeta({ model: 'fast', lang: 'german', langSetting: 'auto' }); T.updateTrSetSum();
+      ok(/German \(detected\)/.test(E('trSetSum').textContent) && !/Auto/.test(E('trSetSum').textContent), 'erkannte Sprache statt „Auto“: ' + E('trSetSum').textContent);
+      T.setLastTrMeta(null); T.updateTrSetSum();
+      ok(/Auto language/.test(E('trSetSum').textContent), 'ohne Transkription: Auto language');
+    } else ok(false, 'Testannahme: Sprache auto, ist ' + T.getLang());
   }
 
   // Timeline: Zeit↔x, Zoom/Scroll, Fangen, Verschieben/Trimmen mit Grenzen, Wort-Skalierung, Undo, Export
@@ -2389,6 +2434,307 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(cl !== up && cl.tt === 'none' && cl.hlUpper === false && up.tt === 'uppercase' && T.caseStyle(up) === cl, 'lowercase überstimmt tt/hlUpper (stabiles Objekt, Original unverändert)');
     T.setCaseState('asis');
     T.setTitle('Mein Clip'); ok(T.projTitleOf() === 'Mein Clip', 'Titel reist im Projekt mit'); T.setTitle('');
+    // Dateiname aus dem Titel
+    ok(T.fileSlug('Grüße aus der Schweiz!') === 'gruesse-aus-der-schweiz', 'Slug: Umlaute + Satzzeichen: ' + T.fileSlug('Grüße aus der Schweiz!'));
+    ok(T.fileSlug('  Ölmühle – Café & Bär  ') === 'oelmuehle-cafe-baer', 'Slug: ö/ü/ä, Akzente, Ränder: ' + T.fileSlug('  Ölmühle – Café & Bär  '));
+    ok(T.fileSlug('IMG 1234') === 'img-1234' && T.fileSlug('') === '' && T.fileSlug('!!!') === '' && T.fileSlug('🙂🙂') === '', 'Slug: Zahlen, leer, nur Sonderzeichen');
+    const longSlug = T.fileSlug('Das ist ein sehr langer Titel für ein Video über Highland Rinder');
+    ok(longSlug.length <= 40 && !/-$/.test(longSlug) && longSlug.indexOf('das-ist-ein-sehr-langer') === 0, 'Slug: max. 40 Zeichen, kein Strich am Ende: ' + longSlug);
+    ok(T.exportBaseName() === 'capivo-video', 'ohne Titel: capivo-video');
+    T.setTitle('Mein Reel #1'); ok(T.exportBaseName() === 'mein-reel-1-capivo', 'Basis aus Titel: ' + T.exportBaseName());
+    global.CLICKS = []; T.exportSRT(); T.exportVTT(); T.exportTXT();
+    ok(global.CLICKS.map(c => c.download).join(',') === 'mein-reel-1-capivo.srt,mein-reel-1-capivo.vtt,mein-reel-1-capivo.txt', 'SRT/VTT/TXT mit gleicher Basis: ' + global.CLICKS.map(c => c.download).join(','));
+    T.setTitle('');
+  }
+  // Export fertig: Handy mit Teilen-Blatt → „Save to Photos / Share“ primär (erst auf Tipp), sonst „Caption another video“
+  {
+    const nav = global.navigator, prevMM = global.matchMedia, prevFile = global.File; let shared = null, rejectWith = null;
+    global.File = function (parts, name, o) { this.name = name; this.type = o && o.type; };
+    nav.canShare = () => true; nav.share = d => { shared = d; return rejectWith ? Promise.reject(rejectWith) : Promise.resolve(); };
+    const sb = document.getElementById('expShare'), an = document.getElementById('expAnother'), dlf = document.getElementById('expDlFile');
+    an.classList.add('hi');
+    global.matchMedia = q => ({ matches: /fine/.test(q) });           // Desktop
+    global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-capivo.mp4'); T.exportDone(false);
+    ok(sb.style.display === 'none' && an.classList.contains('hi') && dlf.style.display === 'none', 'Desktop: kein Teilen, „Caption another video“ primär');
+    ok(document.getElementById('expDoneName').textContent === 'mein-reel-capivo.mp4', 'Fertig-Zeile zeigt den Dateinamen');
+    global.matchMedia = q => ({ matches: /coarse/.test(q) });         // Handy
+    T.exportDone(false);
+    ok(sb.style.display === '' && !an.classList.contains('hi') && dlf.style.display === '' && !shared, 'Handy: Teilen primär, nichts automatisch geteilt');
+    T.shareLastExport(); await new Promise(r => setTimeout(r, 0));
+    ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-capivo.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
+    const nClicks = global.CLICKS.length; rejectWith = { name: 'AbortError' };
+    ok(await T.shareLastExport() === false && global.CLICKS.length === nClicks, 'Abbrechen (AbortError) → still, kein Download');
+    rejectWith = { name: 'NotAllowedError' };
+    await T.shareLastExport();
+    ok(global.CLICKS.length === nClicks + 1, 'anderer Fehler → Download als Rückfall');
+    nav.canShare = () => false; T.exportDone(false);
+    ok(sb.style.display === 'none' && an.classList.contains('hi'), 'canShare false → kein Teilen-Knopf');
+    delete nav.canShare; delete nav.share; global.matchMedia = prevMM; global.File = prevFile;
+  }
+
+  // Lücken schließen: kurze Lücken (< GAP_CLOSE_SEC) zu, nie über Szenenschnitt, lange Pausen bleiben
+  {
+    const W = (arr) => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
+    const mk = (t, a, b) => ({ words: W([[t, a, b]]), start: a, end: b, text: t });
+    ok(T.GAP_CLOSE_SEC === 1, 'GAP_CLOSE_SEC = 1 s');
+    let bl = [mk('a', 0, 1), mk('b', 1.3, 2), mk('c', 3.5, 4)];
+    let n = T.closeCaptionGaps(bl, []);
+    ok(n === 1 && bl[0].end === 1.3 && bl[1].end === 2 && bl[0].words[0].end === 1, 'kurze Lücke zu, Wort-Timing bleibt, lange Pause (1,5 s) bleibt');
+    bl = [mk('a', 0, 1), mk('b', 1.5, 2)];
+    T.closeCaptionGaps(bl, [1.2]);
+    ok(bl[0].end === 1.2, 'Verlängerung stoppt am Szenenschnitt: ' + bl[0].end);
+    bl = [mk('a', 0, 1.2), mk('b', 1.5, 2)];
+    ok(T.closeCaptionGaps(bl, [1.2]) === 0 && bl[0].end === 1.2, 'Block endet genau am Schnitt → nicht darüber hinaus');
+    bl = [mk('a', 0, 1), mk('b', 2.0, 2.5)];
+    ok(T.closeCaptionGaps(bl, []) === 0, 'Lücke ≥ 1 s (echte Pause) bleibt');
+    T.onWpbChange('2'); T.setMaxCharsState(40);
+    bl = T.buildCaptionBlocks(W([['Eins', 0, 0.4], ['zwei', 0.5, 0.9], ['drei', 1.0, 1.4], ['vier', 1.45, 1.8], ['fünf.', 3.5, 4.0]]), []);
+    ok(bl.length === 3 && bl[0].end === bl[1].start && bl[1].end === 1.8 && bl[2].start === 3.5, 'buildCaptionBlocks: lückenlos bis zur Pause: ' + bl.map(b => b.start + '-' + b.end).join(' '));
+    ok(bl[0].words[1].end === 0.9, 'Karaoke-Wortzeiten unverändert');
+    bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['b', 0.5, 0.9], ['c', 1.3, 1.6], ['d', 1.65, 1.9]]), [1.1]);
+    ok(bl[0].end === 1.1 && bl[1].start >= 1.1, 'buildCaptionBlocks: Lücke über Schnitt nur bis zum Schnitt');
+    // leere Wörter erzeugen keine leeren Blöcke
+    bl = T.buildCaptionBlocks(W([['a', 0, 0.4], ['  ', 0.5, 0.9], ['b', 1.0, 1.4]]), []);
+    ok(bl.every(b => b.text.trim() && b.end > b.start), 'keine leeren Blöcke');
+    T.onWpbChange('4');
+  }
+
+  // Zeichenlimit pro Zeile: Block früher schließen statt Schrift schrumpfen
+  {
+    const W = (arr) => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
+    const seq = (txt) => { let t = 0; return txt.split(' ').map(w => { const o = { word: w, start: +t.toFixed(2), end: +(t + 0.3).toFixed(2) }; t += 0.35; return o; }); };
+    T.setCaseState('asis'); T.selectStyle('minimal'); // Satzschreibung, keine Großbuchstaben
+    T.onWpbChange('6'); T.setLinesState(2); T.setMaxCharsState(12);
+    ok(JSON.stringify(T.capBlockLimit()) === '{"per":12,"lines":2}', 'manuelles Limit: ' + JSON.stringify(T.capBlockLimit()));
+    ok(T.capCharsFit([3, 5, 4, 3], { per: 12, lines: 2 }) && !T.capCharsFit([3, 5, 4, 3, 5], { per: 12, lines: 2 }) && !T.capCharsFit([13, 6], { per: 12, lines: 2 }), 'capCharsFit: gierig in 2 Zeilen à 12');
+    const lineFit = (txt, per, lines) => { let nl = 1, cur = 0; txt.split(' ').forEach(w => { const add = cur ? cur + 1 + w.length : w.length; if (cur && add > per) { nl++; cur = w.length; } else cur = add; }); return nl <= lines && txt.length <= per * lines; };
+    let bl = T.buildCaptionBlocks(seq('Die Tiere sind das ganze Jahr draussen und fressen nur Gras und Heu'), []);
+    ok(bl.length > 2 && bl.every(b => lineFit(b.text, 12, 2)), 'jeder Block ≤ 12 Zeichen × 2 Zeilen: ' + bl.map(b => b.text).join(' | '));
+    ok(bl.map(b => b.text).join(' ') === 'Die Tiere sind das ganze Jahr draussen und fressen nur Gras und Heu', 'keine Wörter verloren');
+    // Einzelnes überlanges Wort → eigener Block
+    bl = T.buildCaptionBlocks(seq('Die Rindfleischverarbeitungsbetriebe sind gross'), []);
+    ok(bl.map(b => b.text).join('|') === 'Die|Rindfleischverarbeitungsbetriebe|sind gross', 'langes Wort allein: ' + bl.map(b => b.text).join('|'));
+    // Kurzes Nachbarwort darf ab 2 Zeilen mit dem langen Wort in eine Caption, wenn es mit Trennung passt
+    ok(T.capCharsFit([3, 24], { per: 16, lines: 2 }) && T.capCharsFit([24, 3], { per: 16, lines: 2 }), 'capCharsFit: „Das“ + 24er-Wort in 2 Zeilen à 16');
+    ok(!T.capCharsFit([3, 24], { per: 16, lines: 1 }), 'capCharsFit: 1 Zeile → langes Wort bleibt allein');
+    ok(!T.capCharsFit([9, 24], { per: 16, lines: 2 }) && !T.capCharsFit([3, 3, 24], { per: 16, lines: 2 }), 'capCharsFit: nur EIN kurzes Nachbarwort');
+    ok(!T.capCharsFit([3, 35], { per: 12, lines: 2 }) && T.capCharsFit([3, 35], { per: 12, lines: 4 }), 'capCharsFit: passt nur, wenn die Zeilen reichen');
+    T.setMaxCharsState(16);
+    bl = T.buildCaptionBlocks(seq('Das Bundesverfassungsgericht hat entschieden'), []);
+    ok(bl.map(b => b.text).join('|') === 'Das Bundesverfassungsgericht|hat entschieden', 'kein verwaistes „Das“: ' + bl.map(b => b.text).join('|'));
+    T.setLinesState(1);
+    bl = T.buildCaptionBlocks(seq('Das Bundesverfassungsgericht hat entschieden'), []);
+    ok(bl.map(b => b.text).join('|') === 'Das|Bundesverfassungsgericht|hat entschieden', '1 Zeile: langes Wort weiter allein: ' + bl.map(b => b.text).join('|'));
+    T.setLinesState(2); T.setMaxCharsState(12);
+    // 1 Zeile vs 2 Zeilen
+    T.setLinesState(1);
+    bl = T.buildCaptionBlocks(seq('Die Tiere sind das'), []);
+    ok(bl.length === 2 && bl.every(b => b.text.length <= 12), '1 Zeile à 12: ' + bl.map(b => b.text).join('|'));
+    T.setLinesState(2);
+    bl = T.buildCaptionBlocks(seq('Die Tiere sind das'), []);
+    ok(bl.length === 1, '2 Zeilen à 12: ein Block');
+    // Anzeige-Text zählt: Großbuchstaben-Style macht aus ß zwei Zeichen
+    T.selectStyle('hormozi');
+    ok(T.capCharLen('Straße') === 7, 'ß → SS zählt doppelt bei Caps-Style: ' + T.capCharLen('Straße'));
+    T.selectStyle('minimal');
+    ok(T.capCharLen('Straße') === 6, 'Satzschreibung: 6 Zeichen');
+    // Auto: aus Breite abgeleitet, bei größerer Schrift weniger Zeichen
+    T.setMaxCharsState(0);
+    T.setFontSizeState(22); const a22 = T.capAutoChars();
+    T.setFontSizeState(40); const a40 = T.capAutoChars();
+    ok(a22 > a40 && a40 >= 6, 'Auto: größere Schrift → kleineres Limit (' + a22 + ' / ' + a40 + ')');
+    T.setFontSizeState(22);
+    // Unbearbeitet: Limit-Wechsel gruppiert neu (Undo-fähig)
+    T.resetUndo(); T.setCaptionsEdited(false); T.setMaxCharsState(32);
+    const ws = seq('Die Tiere sind das ganze Jahr draussen und fressen');
+    T.setState(T.buildCaptionBlocks(ws), ws.slice());
+    const n32 = T.getBlocks().length;
+    T.setMaxChars('12');
+    ok(T.getBlocks().length > n32 && T.getBlocks().every(b => lineFit(b.text, 12, 2)), 'unbearbeitet: neu gruppiert bei Limit 12: ' + T.getBlocks().map(b => b.text).join('|'));
+    ok(T.undoDepth()[0] === 1, 'Limit-Wechsel ist ein Undo-Schritt');
+    T.undoCaptions();
+    ok(T.getBlocks().length === n32, 'Undo stellt die alten Blöcke wieder her');
+    ok(T.projectPayload().maxChars === 32 && document.getElementById('mcSel').value === '32', 'Undo stellt auch den Max-chars-Regler zurück');
+    T.redoCaptions();
+    ok(T.projectPayload().maxChars === 12 && T.getBlocks().length > n32, 'Redo stellt Limit + Blöcke wieder her');
+    T.undoCaptions();
+    // Bearbeitet: nur überlaufende Blöcke teilen, die anderen bleiben exakt
+    T.setMaxCharsState(32);
+    const b0 = { words: W([['Kurz', 0, 0.4]]), start: 0, end: 0.5, text: 'Kurz' };
+    const b1 = { words: W([['Hallo', 0.5, 0.8], ['zusammen', 0.85, 1.3], ['und', 1.35, 1.5], ['willkommen', 1.55, 2.0]]), start: 0.5, end: 2.2, text: 'Hallo zusammen und willkommen' };
+    const b2 = { words: W([['Ende', 2.5, 2.9]]), start: 2.4, end: 3.1, text: 'Ende' }; // manuell getimt
+    [b0, b1, b2].forEach(b => b.srcWords = b.words.map(w => Object.assign({}, w)));
+    T.setState([b0, b1, b2], []); T.setCaptionsEdited(true); T.resetUndo();
+    const keep0 = JSON.stringify(b0), keep2 = JSON.stringify(b2);
+    T.setMaxChars('12');
+    const nb = T.getBlocks();
+    ok(JSON.stringify(nb[0]) === keep0 && JSON.stringify(nb[nb.length - 1]) === keep2, 'bearbeitet: nicht überlaufende Blöcke unverändert');
+    // Teilung an der besten Stelle (vor „und“, nicht nach „und“ — capSegmentRun), nicht gierig
+    ok(nb.length === 4 && nb[1].text === 'Hallo zusammen' && nb[2].text === 'und willkommen' && nb[1].start === 0.5 && nb[1].end === 1.35 && nb[2].end === 2.2,
+       'bearbeitet: nur der überlaufende Block geteilt, lückenlos, Rand-Zeiten bleiben: ' + nb.map(b => b.text + '[' + b.start + '-' + b.end + ']').join(' | '));
+    ok(nb[2].words[0].start === 1.35 && nb[2].words[1].end === 2.0 && nb[1].words[1].end === 1.3, 'Wort-Timings beim Teilen erhalten');
+    T.undoCaptions();
+    ok(T.getBlocks().length === 3, 'Teilen rückgängig');
+    // Persistenz: Template-Layout, Projekt-Payload
+    T.setMaxCharsState(16);
+    ok(T.currentLayout().maxChars === 16 && T.projectPayload().maxChars === 16, 'maxChars in Layout + Projekt');
+    ok(T.normalizeTemplate({ id: 'tpl_x', name: 'X', style: { font: "'Inter'" }, layout: { maxChars: 20, lines: 1 } }).layout.maxChars === 20, 'Template behält maxChars');
+    T.setMaxCharsState(40); T.setLinesState(2); T.setCaptionsEdited(false); T.resetUndo(); T.onWpbChange('4');
+  }
+
+  // Kuratierung: entfernte Preset-IDs → nächstliegender Look (Projekte, Autosave, gemerkter Style, Brand-Default)
+  {
+    const removed = ['amplify', 'impact2', 'volt', 'pulse', 'evo', 'prime', 'linen', 'carbon', 'tokyo', 'chrome', 'ignite', 'ember', 'y2k',
+      'prismpro', 'elevate', 'bloom', 'sonnet', 'align', 'paper2', 'muse', 'sketch', 'chalk'];
+    const ids = new Set(T.STYLES.slice(0, 15).map(x => x.id)); // eingebaute Presets stehen vorn (Custom/Templates/Fixtures danach)
+    ok(removed.every(id => T.STYLE_ALIASES[id] && ids.has(T.STYLE_ALIASES[id])), 'jede entfernte ID zeigt auf ein vorhandenes Preset');
+    ok(Object.keys(T.STYLE_ALIASES).every(id => !ids.has(id)), 'kein Alias verdeckt ein vorhandenes Preset');
+    ok(T.resolveStyleId('y2k') === 'neon' && T.resolveStyleId('pulse') === 'boxkara' && T.resolveStyleId('hormozi') === 'hormozi' && T.resolveStyleId('tpl_abc') === 'tpl_abc', 'resolveStyleId');
+    ['classic', 'hormozi', 'boxkara', 'beast', 'minimal', 'popone', 'tiktok', 'hush', 'neon', 'editorial', 'marker'].forEach(id => ok(ids.has(id), 'Standard-Look vorhanden: ' + id));
+    ok(T.STYLES.filter(x => ids.has(x.id)).every(x => ['none', 'scale', 'punch', 'bounce'].includes(x.anim) && !x.hlCycle), 'Presets: nur ruhige Animationen, kein Farbwechsel pro Wort');
+    // Projekt/Autosave mit entferntem Style
+    T.restoreSavedStyle({ style: 'chalk' });
+    ok(T.getActiveId() === 'marker', 'Projekt mit „chalk“ → Marker: ' + T.getActiveId());
+    T.restoreSavedStyle({ style: 'amplify' });
+    ok(T.getActiveId() === 'hormozi', 'Projekt mit „amplify“ → Hormozi');
+    T.selectStyle('prismpro');
+    ok(T.getActiveId() === 'neon', 'selectStyle mit alter ID → Neon');
+    // Brand-Default mit alter ID
+    const store = { 'capivo.brandTpl': 'paper2' };
+    const prevLS = global.localStorage;
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    T.applyBrandOnOpen();
+    ok(T.getActiveId() === 'tiktok', 'Brand-Default „paper2“ → TikTok: ' + T.getActiveId());
+    global.localStorage = prevLS;
+    T.selectStyle('hormozi');
+  }
+
+  // ── Typografie: Liang-Silbentrennung, Zeilenumbruch, Caption-Segmentierung ──
+  {
+    ['de', 'en', 'fr', 'it', 'es'].forEach(c => require('./vendor/hyphen/hyph-' + c + '.js')); // ruft capHyphLoaded
+    T.setCapLang('de');
+    ok(T.capHyphLang() === 'de', 'Trennsprache de');
+    const hy = (w, max, l) => T.capHyphenate(w, p => p.length <= max, l).join(' / ');
+    const join = pcs => pcs.map(p => p.replace(/-$/, '')).join('');
+    // deutsche Komposita: an der Fuge, nicht „Rindfleischverar-|beitungsbetriebe“
+    ok(hy('Rindfleischverarbeitungsbetriebe', 22) === 'Rindfleisch- / verarbeitungsbetriebe', 'Liang de 2 Teile: ' + hy('Rindfleischverarbeitungsbetriebe', 22));
+    ok(hy('Rindfleischverarbeitungsbetriebe', 14) === 'Rindfleisch- / verarbeitungs- / betriebe', 'Liang de 3 Teile: ' + hy('Rindfleischverarbeitungsbetriebe', 14));
+    ok(hy('Bundesverfassungsgericht', 18) === 'Bundesverfassungs- / gericht', 'Liang Bundesverfassungsgericht: ' + hy('Bundesverfassungsgericht', 18));
+    ok(hy('Naturschutzgebiet', 12) === 'Naturschutz- / gebiet', 'nie „…schutzge-|biet“: ' + hy('Naturschutzgebiet', 12));
+    ['Rindfleischverarbeitungsbetriebe', 'Bundesverfassungsgericht', 'Geschwindigkeitsbegrenzung', 'Schifffahrtsgesellschaft'].forEach(w => {
+      [9, 12, 16, 20].forEach(max => {
+        const pcs = T.capHyphenate(w, p => p.length <= max, 'de'), pts = T.capHyphPoints('de', w);
+        ok(join(pcs) === w && pcs.every(p => p.length <= max), 'Liang: Stücke passen, nichts verloren: ' + pcs.join('/'));
+        ok(pcs.every(p => p.replace(/-$/, '').length >= 3), 'Liang: >= 3 Buchstaben je Teil: ' + pcs.join('/'));
+        let at = 0; ok(pcs.slice(0, -1).every(p => { at += p.length - 1; return pts.includes(at); }), 'Liang: nur legale Trennstellen: ' + pcs.join('/'));
+      });
+    });
+    // Groß-/Kleinschreibung ändert die Trennstelle nicht; Satzzeichen bleiben am letzten Teil
+    ok(hy('RINDFLEISCHVERARBEITUNGSBETRIEBE', 14) === hy('Rindfleischverarbeitungsbetriebe', 14).toUpperCase(), 'Versalien: gleiche Trennung');
+    ok(hy('Rindfleischverarbeitungsbetriebe,', 22) === 'Rindfleisch- / verarbeitungsbetriebe,', 'Komma bleibt am Wortende');
+    // vorhandener Bindestrich: dort trennen, kein zusätzlicher Trennstrich
+    ok(hy('Highland-Rinder', 10) === 'Highland- / Rinder', 'Bindestrich-Wort: ' + hy('Highland-Rinder', 10));
+    ok(hy('Highland-Weidehaltung', 14) === 'Highland- / Weidehaltung', 'Bindestrich-Wort nur am Bindestrich: ' + hy('Highland-Weidehaltung', 14));
+    // Englisch
+    T.setCapLang('en');
+    ok(T.capHyphLang() === 'en' && hy('communication', 9) === 'communi- / cation', 'Liang en: ' + hy('communication', 9));
+    T.setCapLang('pt'); ok(T.capHyphLang() === 'en', 'andere Sprache → englische Muster');
+    T.setCapLang('de');
+    // nie trennen: URLs, Handles, Hashtags, Zahlen, ≤ 7 Buchstaben
+    ['#Rindfleischverarbeitung', '@waldundtier_highland', 'www.waldundtier.ch', 'https://waldundtier.ch/fleischverkauf', 'info@waldundtier.ch',
+     '1234567890', '2025er-Jahrgang', 'Weiden', 'Highlan', 'Rinder.'].forEach(w => {
+      ok(T.capHyphenate(w, p => p.length <= 4, 'de').length === 1, 'nicht getrennt: ' + w);
+    });
+    ok(hy('Hofladen', 5) === 'Hof- / laden', '8 Buchstaben dürfen getrennt werden: ' + hy('Hofladen', 5));
+    // Auto-Fit (Vorschau + Export): einzelnes Kompositum auf 2 Zeilen → an der Fuge, nicht mittendrin
+    document.getElementById('prevFrame').style.width = '270px';
+    const st = T.STYLES.find(x => x.id === 'classic') || T.STYLES[0];
+    const fr = T.fitCaptionWords(['Rindfleischverarbeitungsbetriebe'], st, 40, T.capFitMaxW(st), 2);
+    ok(fr.words.join('|') === 'Rindfleisch-|verarbeitungsbetriebe', 'Fit trennt an der Fuge: ' + fr.words.join('|') + ' @' + fr.px);
+    const fb = T.fitCaptionWords(['Bundesverfassungsgericht'], st, 40, T.capFitMaxW(st), 2);
+    ok(/^(Bundes-\|verfassungsgericht|Bundesverfassungs-\|gericht)$/.test(fb.words.join('|')), 'Fit Bundesverfassungsgericht: ' + fb.words.join('|'));
+
+    // Zeilenumbruch (synthetische Breiten: 10 px je Zeichen, Leerzeichen 10 px)
+    const dl = (txt, chars, k = 2, hyAt) => {
+      const ws = txt.split(' ');
+      const info = ws.map((w, i) => ({ i, w: w.length * 10, t: w, hy: hyAt === i }));
+      return T.capDistributeLines(info, k, 10, chars * 10).map(L => L.map(it => it.t));
+    };
+    const STOP = ['der', 'die', 'das', 'auf', 'unsere', 'und', 'mit', 'the', 'a', 'of', 'to'];
+    const heute = 'Heute zeige ich euch unsere Highland Rinder auf der Weide';
+    [36, 40, 44, 50].forEach(c => {
+      const L = dl(heute, c);
+      ok(L.length === 2 && !STOP.includes(L[0][L[0].length - 1]), 'kein Stoppwort am Zeilenende (' + c + '): ' + L.map(x => x.join(' ')).join(' / '));
+    });
+    let L2 = dl(heute, 44);
+    ok(L2[0].join(' ') === 'Heute zeige ich euch' || L2[0].join(' ') === 'Heute zeige ich euch unsere Highland Rinder', 'Umbruch vor „unsere“: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('aaaa bbbb cccc dddd eeee', 30);
+    ok(L2[0].length === 2 && L2[1].length === 3, 'Pyramide: untere Zeile länger: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Wir haben heute 5 Kilo Fleisch gekauft', 30);
+    ok(!L2.some((l, i) => i < L2.length - 1 && l[l.length - 1] === '5'), 'Zahl + Einheit zusammen: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Das kostet nur CHF 20 pro Kilo', 22);
+    ok(L2[0][L2[0].length - 1] !== 'CHF', 'CHF + Betrag zusammen: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Hallo zusammen, heute geht es um Rinder', 30);
+    ok(L2[0].join(' ') === 'Hallo zusammen,', 'Umbruch nach Komma: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Er sagt das stimmt so nicht !', 30);
+    ok(L2[1][0] !== '!', 'keine Zeile beginnt mit Satzzeichen: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Unsere Rindfleisch- verarbeitungsbetriebe sind gross', 40, 2, 1);
+    ok(L2[0][L2[0].length - 1] === 'Rindfleisch-', 'Wortteil mit Trennstrich steht am Zeilenende: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('sich für alle.', 30);
+    ok(L2.length === 2 && L2[0].join(' ') === 'sich', '3 Wörter: 2 Zeilen, nicht nach „für“: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('für alle.', 30);
+    ok(L2.length === 1, 'erzwungener Stoppwort-Umbruch → lieber eine Zeile: ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('Gras und Heu.', 30);
+    ok(L2.length === 2, 'normaler kurzer Block bleibt gestapelt (2 Zeilen): ' + L2.map(x => x.join(' ')).join(' / '));
+    L2 = dl('eins zwei drei vier', 3);
+    ok(L2.length >= 2 && L2.flat().join(' ') === 'eins zwei drei vier', 'passt nichts → bisheriges Verfahren, kein Absturz');
+    // Vorschau (wrapCaptionLines) und Export (capLayout) verteilen identisch
+    T.setLinesState(2);
+    const bl = { words: heute.split(' ').map((w, i) => ({ word: w, start: i * 0.3, end: i * 0.3 + 0.25 })), start: 0, end: 3, text: heute };
+    T.setState([bl], bl.words.slice(), 'karaoke');
+    const fit = T.fitCaptionWords(bl.words.map(w => T.displayWord(w.word)), st, T.getFontSize(), T.capFitMaxW(st), 2);
+    const prev = T.wrapCaptionLines(fit.words, st, 2, fit.px, 2, fit.orig).map(l => l.map(i => fit.words[i]).join(' '));
+    const lay = T.capLayout(document.createElement('canvas').getContext('2d'), bl, 0, 2, st, 1080, 1920);
+    const exp = lay.lines.map(l => l.map(it => it.t).join(' '));
+    ok(JSON.stringify(prev) === JSON.stringify(exp) && prev.length === 2, 'Vorschau = Export: ' + prev.join(' / ') + ' ‖ ' + exp.join(' / '));
+
+    // Caption-Segmentierung (automatischer Aufbau)
+    T.setMaxCharsState(40); T.setCaptionsEdited(false);
+    const seq = (txt, gap = 0.05) => { let t = 0; return txt.split(' ').map(w => { const o = { word: w, start: t, end: t + 0.3 }; t += 0.3 + gap; return o; }); };
+    const blocks = (txt, wpb, gap) => { T.onWpbChange(String(wpb)); const ws = seq(txt, gap); T.setWordsState(ws); return T.buildCaptionBlocks(ws, []).map(b => b.text); };
+    let bt = blocks('eins zwei drei vier fünf', 4);
+    ok(bt.join('|') === 'eins zwei drei|vier fünf', '5 Wörter bei 4 → 3+2: ' + bt.join('|'));
+    bt = blocks('Die Rinder fressen nur Gras und Heu.', 3);
+    ok(bt.join('|') === 'Die Rinder|fressen nur|Gras und Heu.' || !bt.some(b => / (und|der|die|das)$/.test(b)), 'kein „und |“ am Caption-Ende: ' + bt.join('|'));
+    bt = blocks('fressen nur Gras und Heu.', 4);
+    ok(bt.join('|') === 'fressen nur|Gras und Heu.', '„fressen nur | Gras und Heu.“: ' + bt.join('|'));
+    bt = blocks(heute + '.', 4);
+    ok(bt.every((b, i) => i === bt.length - 1 || !STOP.includes(b.split(' ').pop())) && bt.every(b => b.split(' ').length <= 4), 'Captions enden nicht auf Artikel/Präposition: ' + bt.join('|'));
+    bt = blocks('Wir kaufen heute 5 Kilo Fleisch und Wurst', 4);
+    ok(!bt.some((b, i) => i < bt.length - 1 && /\b5$/.test(b)), 'Zahl + Einheit in einer Caption: ' + bt.join('|'));
+    bt = blocks(heute + '.', 1);
+    ok(bt.length === 10 && bt.every(b => !b.includes(' ')), 'Words = 1 bleibt ein Wort pro Caption');
+    bt = blocks('Hallo zusammen. Heute zeige ich euch', 4);
+    ok(bt[0] === 'Hallo zusammen.', 'Satzende bleibt harte Grenze: ' + bt.join('|'));
+    bt = blocks('eins zwei drei vier fünf sechs', 4, 0.9);
+    ok(bt.length === 6, 'Pause > 0,8 s bleibt harte Grenze');
+    T.setMaxCharsState(12);
+    bt = blocks('Unsere Rinder fressen das ganze Jahr frisches Gras', 4);
+    ok(bt.every(b => T.capCharsFit(b.split(' ').map(w => w.length), T.capBlockLimit())), 'Zeichenlimit eingehalten: ' + bt.join('|'));
+    T.setMaxCharsState(40);
+    // bearbeitete Captions: nicht überlaufende Blöcke bleiben exakt (auch wenn sie auf „und“ enden)
+    const eb = [{ words: seq('fressen nur Gras und'), start: 0, end: 1.4, text: 'fressen nur Gras und' },
+                { words: seq('Heu.').map(w => ({ word: w.word, start: 1.4, end: 1.7 })), start: 1.4, end: 1.8, text: 'Heu.' }];
+    eb.forEach(b => b.srcWords = b.words.map(w => Object.assign({}, w)));
+    const ebKeep = JSON.stringify(eb);
+    T.setState(eb, [], 'karaoke'); T.setCaptionsEdited(true); T.resetUndo();
+    T.setMaxChars('30');
+    ok(JSON.stringify(T.getBlocks()) === ebKeep, 'bearbeitete Captions unverändert');
+    T.setMaxCharsState(40); T.setCaptionsEdited(false); T.resetUndo(); T.onWpbChange('4');
+    // Typografie in der Anzeige
+    ok(T.capTypo('Na...') === 'Na…' && T.capTypo("geht's") === 'geht’s' && T.capTypo("'98") === "'98", 'Ellipse + Apostroph');
+    T.setCapLang(null);
+    document.getElementById('prevFrame').style.width = '';
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
