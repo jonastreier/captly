@@ -4,7 +4,8 @@ Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai
 Upload → Auto-Transkript → Karaoke-Preview in 15 kuratierten Styles → Export als **MP4** (mit
 eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
-- **⚡ Fast** = `whisper-large-v3-turbo`, **💎 Perfect** = `whisper-large-v3` — beide **serverseitig**
+- **Ein Modus, immer beste Qualität:** `whisper-large-v3` + KI-Feinschliff (Polish, läuft nach dem Anzeigen im
+  Hintergrund); scheitert large-v3 (Limit/Timeout/5xx), automatisch einmal `whisper-large-v3-turbo`. **Serverseitig**
   über einen schlanken PHP-Proxy ([`transcribe.php`](transcribe.php)). **Kein Modell-Download für den
   Nutzer**, läuft auf jedem Gerät (auch iPhone). Transkribiert wird über **Groq** (kostenloser Free-Tier,
   OpenAI-kompatible API).
@@ -63,7 +64,7 @@ Auf klassischem **Webhosting mit PHP** — kein Node-Server nötig:
 2. `config.example.php` → **`config.php`** kopieren und den Key eintragen (`config.php` ist per
    `.gitignore` ausgeschlossen, kommt **nie** ins Repo/den Browser).
 3. `captly.html` **und** `transcribe.php` (+ `config.php`) in dasselbe Verzeichnis auf dem Webhosting
-   legen. Fertig — Fast/Perfect laufen ohne Download für den Nutzer.
+   legen. Fertig — die Transkription läuft ohne Download für den Nutzer.
 
 Voraussetzungen: PHP mit **cURL** aktiv. Das Frontend zerlegt die Tonspur an Sprechpausen in ~100-s-Stücke
 (≤ ~3,2 MB je Request als WAV bzw. ~0,4 MB als Ogg/Opus, jeweils mit Retry bei Netz-/429-/5xx-Fehlern), dadurch sind `post_max_size` &
@@ -73,7 +74,7 @@ Whisper-Halluzinationen). Max. 20 Min Audio pro Video. Der Proxy hat ein IP-Limi
 Eingeloggten; das Session-Token wird serverseitig bei Supabase geprüft. Anbieterwechsel (Deepgram,
 paid) ist im Proxy gekapselt → wenige Zeilen.
 
-## Transkript-Feinschliff („Polish“, für Perfect)
+## Transkript-Feinschliff („Polish“)
 
 Nach Whisper large-v3 kann das Frontend das Transkript an **`/api/polish`** (Vercel,
 [`api/polish.js`](api/polish.js)) bzw. **`polish.php`** (PHP-Hosting) schicken. Ein LLM auf Groq
@@ -93,15 +94,47 @@ Kürzen; Füllwörter/Dialekt bleiben, „ss“ wird nie zu „ß“.
   in `vercel.json`; Groq-Budget ~25 s. Check: `GET /api/polish` → `{"configured":true}`.
 - Tests: `node test-polish.js` (gemockter Groq; prüft bei vorhandenem `php` auch die PHP-Parität).
 
+## KI-Hervorhebung („Enhance“: Keywords, Emojis, Auto-Zoom, Post-Text)
+
+Nach der Transkription schickt das Frontend die Captions im Hintergrund an **`/api/enhance`** (Vercel,
+[`api/enhance.js`](api/enhance.js)) bzw. **`enhance.php`** (PHP-Hosting). Ein LLM auf Groq (gleiche Modelle
+wie Polish, gleicher `GROQ_API_KEY`) **wählt nur aus** — es schreibt nie Text um (Dialekt bleibt unangetastet):
+
+- `keywords`: 0–2 bedeutungstragende Wörter je Caption (Wort-Indizes; nie Artikel/Füllwörter) → Hervorhebung
+  in der Akzentfarbe des Styles + ~1,12× Grösse.
+- `emojis`: ein Emoji aus einer festen Liste (~180, keine Flaggen/Hauttöne/ZWJ) auf höchstens 30 % der Captions,
+  nie zwei hintereinander.
+- `zoom`: sparsame „Punch-in“-Momente, mindestens 4 s Abstand (wenn `start` mitgeschickt wird).
+- `post` (auf Knopfdruck im Export-Blatt): kurzer Post-Text in der Sprache des Videos + 3–6 Hashtags, ohne
+  erfundene Fakten.
+
+- Request: `POST {"lang":"de","want":["keywords","emojis","zoom"],"segments":[{"id":0,"text":"…","start":1.2}]}`
+  bzw. `{"lang":"de","want":["post"],"text":"…"}` (max. 12 000 Zeichen / 1000 Segmente, sonst 413).
+- Antwort: `{"segments":[{"id":0,"kw":[2],"emoji":"🐄","zoom":false}],"model":"…","dropped":n}` bzw.
+  `{"post":{"caption":"…","hashtags":["#…"]},"model":"…"}`. Alles wird serverseitig geprüft (ids, Indizes,
+  Emoji-Liste, Quoten); unpassende Vorschläge werden verworfen (`dropped`).
+- Fehler/fehlender Endpoint → das Frontend nutzt still eine lokale Heuristik (nur Keywords, keine Emojis);
+  Auto-Zoom nimmt dann hervorgehobene Zahlen/Wörter. Transkripttext wird nie geloggt.
+- Setup: nichts zusätzlich (gleiche Env-Variablen bzw. `config.php`; `RATE_LIMIT_PER_HOUR` zählt separat).
+  `maxDuration` 30 s in `vercel.json`. Check: `GET /api/enhance` → `{"configured":true}`.
+- Tests: `node test-enhance.js` (gemockter Groq; prüft bei vorhandenem `php` auch die PHP-Parität).
+- **Editor:** Style-Tab → „Emphasis“: *Highlight keywords* (Default an), *Emojis* (Default aus), *Auto zoom*
+  Off/Subtle (1,10×)/Punchy (1,18×) (Default aus). Captions-Tab: unter der gewählten Zeile Wörter antippen
+  (hervorheben an/aus) und ein Emoji wählen/entfernen. Gespeichert pro Wort (`kw`/`emo`/`zm`) — übersteht
+  Text-Edits, Split/Merge, Neu-Gruppieren, Undo, Autosave und Projekte; Templates/Brand-Default merken die
+  drei Schalter. Vorschau und Export (WebCodecs + MediaRecorder, inkl. 9:16-Blur) rendern identisch; der Zoom
+  wirkt nur aufs Video, nie auf die Captions, und nie über einen Szenenschnitt. Export-Blatt: „Caption &
+  hashtags for your post“ (Copy/Regenerate). Notschalter: `localStorage['capivo.ai'] = 'off'`.
+
 ## Zuverlässigkeit & Komfort (Editor)
 
-- **Names & terms:** optionales Feld unter Fast/Perfect; wird als Whisper-`prompt` mitgeschickt
+- **Names & terms:** optionales Feld unter „Video & language“; wird als Whisper-`prompt` mitgeschickt
   (nur Transkription, max. 300 Zeichen), damit Namen/Marken/Orte richtig geschrieben werden.
   Gespeichert pro Gerät (localStorage). Änderungen greifen erst nach „Re-transcribe to apply".
 - **Lokale Zwischenspeicherung:** Untertitel + Edits + Stil werden pro Video (Name|Grösse|Dauer)
   automatisch im Browser gesichert (max. 5 Videos). Gleiches Video erneut laden → Zustand wird
   ohne neue Transkription wiederhergestellt („Restored your last session").
-- **Schutz vor Datenverlust:** Neu-Transkription (Fast/Perfect, Sprache, Übersetzen) fragt nach,
+- **Schutz vor Datenverlust:** Neu-Transkription (Sprache, Übersetzen) fragt nach,
   wenn Untertitel bearbeitet wurden; Wort-Timings bleiben beim Korrigieren erhalten.
 
 ### Bekannte Grenzen (Export)
@@ -255,13 +288,15 @@ captly.deinedomain.ch {
 `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `captly.html` eingetragen · eigenes SMTP in Supabase
 hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ .Token }}` ·
 `canonical`/`og:url`/`og:image` zeigen auf die Live-Domain
-(aktuell `https://captly.vercel.app` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Fast → Perfect
+(aktuell `https://captly.vercel.app` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Transkription + Polish
 → Export → Login-Code kommt an → Projekt speichern & wieder laden).
 
 ## Tests
 
 ```bash
-node test-captly.js
+node test-captly.js     # Editor-Logik (DOM-Stub)
+node test-polish.js     # /api/polish + polish.php
+node test-enhance.js    # /api/enhance + enhance.php
 ```
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,
