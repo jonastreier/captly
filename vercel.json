@@ -52,6 +52,15 @@
     },
     "api/enhance.js": {
       "maxDuration": 30
+    },
+    "api/keepalive.js": {
+      "maxDuration": 10
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/keepalive",
+      "schedule": "17 6 * * *"
+    }
+  ]
 }
