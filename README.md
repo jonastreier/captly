@@ -4,7 +4,8 @@ Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai
 Upload → Auto-Transkript → Karaoke-Preview in 15 kuratierten Styles → Export als **MP4** (mit
 eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
-- **⚡ Fast** = `whisper-large-v3-turbo`, **💎 Perfect** = `whisper-large-v3` — beide **serverseitig**
+- **Ein Modus, immer beste Qualität:** `whisper-large-v3` + KI-Feinschliff (Polish, läuft nach dem Anzeigen im
+  Hintergrund); scheitert large-v3 (Limit/Timeout/5xx), automatisch einmal `whisper-large-v3-turbo`. **Serverseitig**
   über einen schlanken PHP-Proxy ([`transcribe.php`](transcribe.php)). **Kein Modell-Download für den
   Nutzer**, läuft auf jedem Gerät (auch iPhone). Transkribiert wird über **Groq** (kostenloser Free-Tier,
   OpenAI-kompatible API).
@@ -63,7 +64,7 @@ Auf klassischem **Webhosting mit PHP** — kein Node-Server nötig:
 2. `config.example.php` → **`config.php`** kopieren und den Key eintragen (`config.php` ist per
    `.gitignore` ausgeschlossen, kommt **nie** ins Repo/den Browser).
 3. `captly.html` **und** `transcribe.php` (+ `config.php`) in dasselbe Verzeichnis auf dem Webhosting
-   legen. Fertig — Fast/Perfect laufen ohne Download für den Nutzer.
+   legen. Fertig — die Transkription läuft ohne Download für den Nutzer.
 
 Voraussetzungen: PHP mit **cURL** aktiv. Das Frontend zerlegt die Tonspur an Sprechpausen in ~100-s-Stücke
 (≤ ~3,2 MB je Request als WAV bzw. ~0,4 MB als Ogg/Opus, jeweils mit Retry bei Netz-/429-/5xx-Fehlern), dadurch sind `post_max_size` &
@@ -73,7 +74,7 @@ Whisper-Halluzinationen). Max. 20 Min Audio pro Video. Der Proxy hat ein IP-Limi
 Eingeloggten; das Session-Token wird serverseitig bei Supabase geprüft. Anbieterwechsel (Deepgram,
 paid) ist im Proxy gekapselt → wenige Zeilen.
 
-## Transkript-Feinschliff („Polish“, für Perfect)
+## Transkript-Feinschliff („Polish“)
 
 Nach Whisper large-v3 kann das Frontend das Transkript an **`/api/polish`** (Vercel,
 [`api/polish.js`](api/polish.js)) bzw. **`polish.php`** (PHP-Hosting) schicken. Ein LLM auf Groq
@@ -120,13 +121,13 @@ wie Polish, gleicher `GROQ_API_KEY`) **wählt nur aus** — es schreibt nie Text
 
 ## Zuverlässigkeit & Komfort (Editor)
 
-- **Names & terms:** optionales Feld unter Fast/Perfect; wird als Whisper-`prompt` mitgeschickt
+- **Names & terms:** optionales Feld unter „Video & language“; wird als Whisper-`prompt` mitgeschickt
   (nur Transkription, max. 300 Zeichen), damit Namen/Marken/Orte richtig geschrieben werden.
   Gespeichert pro Gerät (localStorage). Änderungen greifen erst nach „Re-transcribe to apply".
 - **Lokale Zwischenspeicherung:** Untertitel + Edits + Stil werden pro Video (Name|Grösse|Dauer)
   automatisch im Browser gesichert (max. 5 Videos). Gleiches Video erneut laden → Zustand wird
   ohne neue Transkription wiederhergestellt („Restored your last session").
-- **Schutz vor Datenverlust:** Neu-Transkription (Fast/Perfect, Sprache, Übersetzen) fragt nach,
+- **Schutz vor Datenverlust:** Neu-Transkription (Sprache, Übersetzen) fragt nach,
   wenn Untertitel bearbeitet wurden; Wort-Timings bleiben beim Korrigieren erhalten.
 
 ### Bekannte Grenzen (Export)
@@ -280,7 +281,7 @@ captly.deinedomain.ch {
 `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `captly.html` eingetragen · eigenes SMTP in Supabase
 hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ .Token }}` ·
 `canonical`/`og:url`/`og:image` zeigen auf die Live-Domain
-(aktuell `https://captly.vercel.app` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Fast → Perfect
+(aktuell `https://captly.vercel.app` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Transkription + Polish
 → Export → Login-Code kommt an → Projekt speichern & wieder laden).
 
 ## Tests

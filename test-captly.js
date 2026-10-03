@@ -83,7 +83,7 @@ setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDi
 cssColorToHexA:cssColorToHexA,cssColorToHex:cssColorToHex,liveTemplates:liveTemplates,flushCustomStyle:flushCustomStyle,
 decideSceneCuts:decideSceneCuts,cutFrame:cutFrame,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
 onBreakAtCutsChange:onBreakAtCutsChange,currentBlockIdx2:currentBlockIdx,setDisplayMode:function(m){displayMode=m;},polishWords:polishWords,
-polishEnabled:polishEnabled,setModelState:function(m){whisperModel=m;},polishSegments:polishSegments,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
+polishEnabled:polishEnabled,turboFallbackOk:turboFallbackOk,polishInPlace:polishInPlace,setModelState:function(m){whisperModel=m;},polishSegments:polishSegments,validateExportBlob:validateExportBlob,drawCaptionsOnCtx:drawCaptionsOnCtx,capShadowPlan:capShadowPlan,audioTruncated:audioTruncated,parseTextShadows:parseTextShadows,
 splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
 loadProjects:loadProjects,restoreSavedStyle:restoreSavedStyle,setUserTemplates:function(l){userTemplates=l;},pruneTemplates:pruneTemplates,
 TPL_ROW_TITLE:TPL_ROW_TITLE,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
@@ -110,7 +110,7 @@ updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentL
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
 tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomAt,tlTickStep:tlTickStep,tlSnap:tlSnap,tlSnapCands:tlSnapCands,
 tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
-resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
+resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,toggleMaxCharsAuto:toggleMaxCharsAuto,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
 tlNudge:tlNudge,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
 capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
@@ -1178,12 +1178,16 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   ok(!b.classList.contains('busy') && document.getElementById('btnVideoLbl').textContent === 'Download video', 'zurueckgesetzt (Label des Export-Blatts)');
 }
 
-// 22e) Fehlgeschlagener Wechsel Fast→Perfect: Einstellungen auf die der behaltenen Captions zurück
+// 22e) Fehlgeschlagener Wechsel (Übersetzen): Einstellungen auf die der behaltenen Captions zurück.
+// Ein Modus (immer large-v3): ein gespeicherter model-Wert alter Projekte wird ignoriert.
 {
-  T.setModelState('perfect');
+  T.setTranslateState(true);
   const hint = T.revertTranscriptionSettings({ model: 'fast', langSetting: 'auto', translate: false });
-  ok(T.getModel() === 'fast' && /Perfect again to retry/.test(hint), 'Modell zurueck auf Fast + Hinweis: ' + hint);
+  ok(T.getModel() === 'perfect' && /Translate to English/.test(hint), 'Übersetzen zurueck + Hinweis, Modell bleibt large-v3: ' + hint);
+  T.setTranslateState(false);
   ok(T.revertTranscriptionSettings(null) === '', 'ohne Meta: nichts tun');
+  ok(T.turboFallbackOk({ status: 429 }) && T.turboFallbackOk({ status: 503 }) && T.turboFallbackOk({}) && !T.turboFallbackOk({ status: 401 })
+     && !T.turboFallbackOk({ status: 413 }) && !T.turboFallbackOk({ stale: true }) && !T.turboFallbackOk({ noProxy: true }), 'large-v3 → turbo-Fallback nur, wo er helfen kann');
 }
 
 // 23a) WebM→MP4: Bild und Ton auf die Ausgabedauer kürzen
@@ -1775,11 +1779,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const rf = await T.polishWords(words, 'de', '', null);
       ok(rf.words === words && rf.fixes === 0, 'Polish-Fehler → Original unveraendert');
     }
-    // Fast polisht nie, Übersetzen auch nicht
-    T.setModelState('fast'); ok(T.polishEnabled() === false, 'Fast: kein Polish');
-    T.setModelState('perfect'); ok(T.polishEnabled() === true, 'Perfect: Polish');
-    T.setTranslateState(true); ok(T.polishEnabled() === false, 'Perfect + Uebersetzen: kein Polish'); T.setTranslateState(false);
-    T.setModelState('fast');
+    // Ein Modus: immer Polish, ausser beim Übersetzen
+    ok(T.polishEnabled() === true, 'Polish immer an');
+    T.setTranslateState(true); ok(T.polishEnabled() === false, 'Uebersetzen: kein Polish'); T.setTranslateState(false);
     ok(T.polishSegments(Array.from({ length: 95 }, (_, i) => ({ word: 'w' + i }))).every(sg => sg.b - sg.a <= 40), 'Segmente max. 40 Woerter');
   }
 
@@ -2274,7 +2276,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.switchTab('captions');
     T.syncTopExport('Rendering 42%…', true); ok(E('tbExport').disabled && /42%/.test(E('tbExport').textContent), 'Top-Export zeigt Fortschritt');
     T.syncTopExport(null, true); ok(!E('tbExport').disabled && /Export/.test(E('tbExport').textContent), 'Top-Export wieder frei');
-    T.updateTrSetSum(); ok(/Fast|Perfect/.test(E('trSetSum').textContent), 'Transkriptions-Zusammenfassung: ' + E('trSetSum').textContent);
+    T.updateTrSetSum(); ok(!/Fast|Perfect/.test(E('trSetSum').textContent) && /language/i.test(E('trSetSum').textContent), 'Transkriptions-Zusammenfassung ohne Modell: ' + E('trSetSum').textContent);
     if (T.getLang() === 'auto') {
       T.setLastTrMeta({ model: 'fast', lang: 'german', langSetting: 'auto' }); T.updateTrSetSum();
       ok(/German \(detected\)/.test(E('trSetSum').textContent) && !/Auto/.test(E('trSetSum').textContent), 'erkannte Sprache statt „Auto“: ' + E('trSetSum').textContent);
@@ -2555,6 +2557,13 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.undoCaptions();
     ok(T.getBlocks().length === n32, 'Undo stellt die alten Blöcke wieder her');
     ok(T.projectPayload().maxChars === 32 && document.getElementById('mcSel').value === '32', 'Undo stellt auch den Max-chars-Regler zurück');
+    ok(!document.getElementById('mcAuto').classList.contains('on') && document.getElementById('mcDisp').textContent === '32', 'fester Wert: Auto-Chip aus, Zahl sichtbar');
+    T.toggleMaxCharsAuto();
+    ok(T.projectPayload().maxChars === 0 && document.getElementById('mcAuto').classList.contains('on') && /^Auto · \d+$/.test(document.getElementById('mcAuto').textContent)
+       && document.getElementById('mcSel').classList.contains('mc-off'), 'Auto-Chip: an, „Auto · N“, Regler ausgegraut');
+    T.toggleMaxCharsAuto();
+    ok(T.projectPayload().maxChars === T.capAutoChars() || T.projectPayload().maxChars >= 8, 'Auto aus → fester Wert = abgeleiteter Auto-Wert');
+    T.setMaxChars('32');
     T.redoCaptions();
     ok(T.projectPayload().maxChars === 12 && T.getBlocks().length > n32, 'Redo stellt Limit + Blöcke wieder her');
     T.undoCaptions();

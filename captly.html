@@ -29,7 +29,7 @@
 {"@context":"https://schema.org","@type":"SoftwareApplication","name":"Capivo","applicationCategory":"MultimediaApplication","operatingSystem":"Web","description":"Capivo adds animated, word-perfect captions to Reels, TikToks and Shorts in seconds, with 15 pro caption styles, automatic language detection and MP4/SRT/VTT export.","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"featureList":["Automatic speech-to-text captions","15 pro caption styles","Word-by-word karaoke highlighting","Automatic language detection","Export to MP4, SRT and VTT","Runs in the browser, no account needed"]}
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is Capivo free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Capivo is free during the beta, with no account needed. Generate captions and export MP4 (no watermark), SRT and VTT; we only ask for your email before the first video download. Creator and Pro plans with more Perfect-transcription minutes are coming soon."}},{"@type":"Question","name":"Which languages does Capivo support?","acceptedAnswer":{"@type":"Answer","text":"Capivo auto-detects the spoken language and supports English, German, Spanish, French and 15+ more. You can also pick the language manually."}},{"@type":"Question","name":"Do I need to install anything?","acceptedAnswer":{"@type":"Answer","text":"No. Capivo runs in your browser. Upload a video, pick a style and export it."}},{"@type":"Question","name":"What's the difference between Fast and Perfect?","acceptedAnswer":{"@type":"Answer","text":"Fast uses a lighter model for near-instant transcription. Perfect uses a larger model for maximum accuracy and is a little slower. Both run server-side, so there is nothing to download."}},{"@type":"Question","name":"Is my video uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. Only the audio track is sent off to generate captions. The video itself is rendered and exported locally in your browser."}},{"@type":"Question","name":"Can I cancel anytime?","acceptedAnswer":{"@type":"Answer","text":"Paid plans aren't available yet. Capivo is free during the beta. When Creator and Pro launch, they will be month-to-month and you can cancel anytime."}}]}
+{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Is Capivo free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Capivo is free during the beta, with no account needed. Generate captions and export MP4 (no watermark), SRT and VTT; we only ask for your email before the first video download. Creator and Pro plans with more transcription minutes are coming soon."}},{"@type":"Question","name":"Which languages does Capivo support?","acceptedAnswer":{"@type":"Answer","text":"Capivo auto-detects the spoken language and supports English, German, Spanish, French and 15+ more. You can also pick the language manually."}},{"@type":"Question","name":"Do I need to install anything?","acceptedAnswer":{"@type":"Answer","text":"No. Capivo runs in your browser. Upload a video, pick a style and export it."}},{"@type":"Question","name":"How accurate are the captions?","acceptedAnswer":{"@type":"Answer","text":"Capivo always uses the largest Whisper speech model plus an AI proofreading pass for names, places and dialects, so you get word-accurate captions in seconds. It runs server-side, so there is nothing to download, and you can fix any word in the editor."}},{"@type":"Question","name":"Is my video uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. Only the audio track is sent off to generate captions. The video itself is rendered and exported locally in your browser."}},{"@type":"Question","name":"Can I cancel anytime?","acceptedAnswer":{"@type":"Answer","text":"Paid plans aren't available yet. Capivo is free during the beta. When Creator and Pro launch, they will be month-to-month and you can cancel anytime."}}]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -278,8 +278,6 @@ body.editor-open{height:100vh;overflow:hidden}
 .ctrl-col .csect[data-tab]{display:none}
 .ctrl-col[data-tab="captions"] .csect[data-tab="captions"],.ctrl-col[data-tab="style"] .csect[data-tab="style"]{display:block}
 .tr-set{margin:10px 0 8px}
-.model-hint{font-size:12px;color:var(--muted);line-height:1.45;margin:-2px 0 10px}
-.model-hint b{color:#3f3b46}
 .tr-set summary{cursor:pointer;list-style:none;display:flex;align-items:center;gap:6px;user-select:none;margin-bottom:10px;padding:7px 10px;border:1px solid #ece6f4;border-radius:9px;background:#faf8fd;color:#55505c}
 .tr-set summary::-webkit-details-marker{display:none}
 .tr-set summary::after{content:'▾';font-size:12px;color:var(--muted);margin-left:auto}
@@ -416,6 +414,14 @@ input.lang-sel{cursor:text}
 .q-quick .q-row{margin-bottom:6px}
 .q-quick .q-row:last-child{margin-bottom:0}
 .q-quick .q-k{flex-basis:70px}
+.mc-row{gap:8px}
+.mc-row input[type=range]{flex:1 1 0;min-width:0}
+.mc-row input[type=range].mc-off{opacity:.38;filter:grayscale(1)}
+.mc-auto{flex:0 0 auto;border:1px solid #ddd6e4;background:#fff;color:#55505c;border-radius:999px;padding:4px 10px;font:600 12px 'Inter',sans-serif;cursor:pointer;white-space:nowrap;font-variant-numeric:tabular-nums}
+.mc-auto.on{background:#f1ebfe;border-color:#c9b6f7;color:#5b21b6}
+.mc-auto:hover{border-color:#a99cc0}
+.mc-row .sz-val{min-width:22px}
+.q-quick .lines-row .pos-row{flex:0 0 120px}
 .stile:hover .stile-thumb{filter:brightness(1.12) saturate(1.15)}
 .stile-inner{text-align:center;padding:0 4px;width:100%;position:relative;z-index:2}
 .stile-info{background:#f4f2f7;padding:5px 5px 6px;text-align:center}
@@ -834,7 +840,7 @@ input[type=checkbox]{accent-color:#7c3aed}
     </div>
   </section>
 
-  <div class="land-stats"><span><b>15</b> styles</span><span><b>17+</b> languages</span><span><b>⚡</b> free during beta</span><span><b>💎</b> word-perfect</span></div>
+  <div class="land-stats"><span><b>15</b> styles</span><span><b>17+</b> languages</span><span><b>Free</b> during beta</span><span><b>Word</b>-accurate</span></div>
 
   <!-- How it works -->
   <section class="how-sec reveal" id="how-it-works">
@@ -864,15 +870,14 @@ input[type=checkbox]{accent-color:#7c3aed}
   <!-- Pricing -->
   <section class="pricing-sec reveal" id="pricing">
     <h2 class="show-h">Simple, honest pricing.</h2>
-    <p class="show-sub">Start free. Upgrade only if you need more Perfect-transcription minutes.</p>
+    <p class="show-sub">Start free. Upgrade only if you need more transcription minutes.</p>
     <p class="price-beta">Beta — everything is free while we build. Paid plans are coming soon.</p>
     <div class="pricing-grid">
       <div class="price-card">
         <div class="price-name">Free</div>
         <div class="price-amt">$0</div>
         <ul class="price-list">
-          <li>Unlimited Fast transcription</li>
-          <li>Perfect transcription trial</li>
+          <li>Word-accurate AI transcription</li>
           <li>All 15 caption styles</li>
           <li>MP4, SRT &amp; VTT export</li>
           <li>Free during beta · no watermark · just your email</li>
@@ -883,8 +888,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div class="price-name">Creator</div>
         <div class="price-amt">$9<span>/mo</span></div>
         <ul class="price-list">
-          <li>300 Perfect-transcription min/mo</li>
-          <li>Unlimited Fast transcription</li>
+          <li>300 transcription min/mo</li>
           <li>All 15 caption styles</li>
           <li>Translate captions to English</li>
           <li>Save projects to your account</li>
@@ -895,7 +899,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div class="price-name">Pro</div>
         <div class="price-amt">$24<span>/mo</span></div>
         <ul class="price-list">
-          <li>1,500 Perfect-transcription min/mo</li>
+          <li>1,500 transcription min/mo</li>
           <li>Everything in Creator</li>
           <li>Batch processing (coming soon)</li>
           <li>Save projects to your account</li>
@@ -911,7 +915,7 @@ input[type=checkbox]{accent-color:#7c3aed}
     <div class="faq-list">
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">Is Capivo free?<span class="faq-plus">+</span></button>
-        <div class="faq-a"><p>Yes — free during the beta, no account needed. Generate captions and export MP4 (no watermark), SRT and VTT; we only ask for your email before the first video download. Creator and Pro plans with more Perfect-transcription minutes are coming soon.</p></div>
+        <div class="faq-a"><p>Yes — free during the beta, no account needed. Generate captions and export MP4 (no watermark), SRT and VTT; we only ask for your email before the first video download. Creator and Pro plans with more transcription minutes are coming soon.</p></div>
       </div>
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">Which languages does Capivo support?<span class="faq-plus">+</span></button>
@@ -922,8 +926,8 @@ input[type=checkbox]{accent-color:#7c3aed}
         <div class="faq-a"><p>No. Capivo runs in your browser. Upload a video, pick a style and export it — no app, no plugin.</p></div>
       </div>
       <div class="faq-item">
-        <button class="faq-q" onclick="toggleFaq(this)">What's the difference between Fast and Perfect?<span class="faq-plus">+</span></button>
-        <div class="faq-a"><p>⚡ Fast uses a lighter model for near-instant transcription. 💎 Perfect uses a larger model for maximum accuracy and is a little slower. Both run server-side — no download for you.</p></div>
+        <button class="faq-q" onclick="toggleFaq(this)">How accurate are the captions?<span class="faq-plus">+</span></button>
+        <div class="faq-a"><p>Capivo always uses the largest Whisper speech model plus an AI proofreading pass for names, places and dialects — word-accurate captions in seconds. It runs server-side (nothing to download), and you can fix any word in the editor.</p></div>
       </div>
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">Is my video uploaded anywhere?<span class="faq-plus">+</span></button>
@@ -1174,7 +1178,7 @@ input[type=checkbox]{accent-color:#7c3aed}
         </div>
         <div id="retryWrap" style="display:none">
           <button type="button" class="retry-btn" onclick="retryTranscribe()">Try again</button>
-          <div class="badge-o">Tips: try again · pick the language or switch to 💎 Perfect under “Video &amp; language” · check your connection.</div>
+          <div class="badge-o">Tips: try again · pick the spoken language under “Video &amp; language” · check your connection.</div>
         </div>
 
         <details class="tr-set" id="trSet">
@@ -1204,11 +1208,6 @@ input[type=checkbox]{accent-color:#7c3aed}
               <option value="arabic">Arabic</option>
               <option value="hindi">Hindi</option>
             </select>
-            <div class="pos-row" id="modelRow">
-              <button type="button" class="pos-btn on" data-m="fast" onclick="setModel(this)" title="Fast &amp; free · great quality · no download">⚡ Fast</button>
-              <button type="button" class="pos-btn" data-m="perfect" onclick="setModel(this)" title="Maximum accuracy · a little slower · no download">💎 Perfect</button>
-            </div>
-            <div class="model-hint">Fast: captions in seconds · Perfect: biggest model + AI proofreading for names &amp; dialects.</div>
             <input type="text" id="vocabInput" class="lang-sel" maxlength="300" autocomplete="off" spellcheck="false"
               placeholder="Names &amp; terms (optional) — e.g. Birkenhof" oninput="onVocabChange(this.value)" title="Helps the AI spell names, brands &amp; places">
             <div class="vocab-hint">
@@ -1270,12 +1269,18 @@ input[type=checkbox]{accent-color:#7c3aed}
             <input type="range" min="1" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)" aria-label="Words per caption" title="Words per caption">
             <span class="sz-val" id="wpbDisp">4</span>
           </div>
-          <div class="q-row">
-            <span class="q-k" title="Maximum characters per caption line">Max chars</span>
-            <select id="mcSel" class="lang-sel cs-sel" onchange="setMaxChars(this.value)" aria-label="Maximum characters per line" title="Captions break into more, shorter captions instead of shrinking the text. Recommended for Reels: 15–20 characters per line">
-              <option value="0">Auto (recommended)</option><option value="12">12 per line</option><option value="16">16 per line</option>
-              <option value="20">20 per line</option><option value="24">24 per line</option><option value="32">32 per line</option>
-            </select>
+          <div class="q-row sz-row mc-row" title="Captions break into more, shorter captions instead of shrinking the text. Recommended for Reels: 15–20 characters per line">
+            <span class="q-k">Max chars</span>
+            <button type="button" class="mc-auto on" id="mcAuto" onclick="toggleMaxCharsAuto()" aria-pressed="true" title="Auto: derived from size, style and frame width. Recommended for Reels: 15–20 characters per line">Auto</button>
+            <input type="range" min="8" max="40" step="1" value="20" id="mcSel" class="mc-off" oninput="setMaxChars(this.value)" aria-label="Maximum characters per line" title="Exact characters per line (8–40). Recommended for Reels: 15–20">
+            <span class="sz-val" id="mcDisp" style="display:none"></span>
+          </div>
+          <div class="q-row lines-row">
+            <span class="q-k" title="Maximum lines per caption">Lines</span>
+            <div class="pos-row seg" id="linesRow">
+              <button type="button" class="pos-btn" data-lines="1" onclick="setLines(this)" title="One line per caption">1</button>
+              <button type="button" class="pos-btn on" data-lines="2" onclick="setLines(this)" title="Up to two lines per caption">2</button>
+            </div>
           </div>
         </div>
         <div class="style-grid" id="stylePicker"></div>
@@ -1294,11 +1299,6 @@ input[type=checkbox]{accent-color:#7c3aed}
         <details class="cs-adv" id="advSet">
           <summary>Customize</summary>
           <div class="cs-grp"><div class="cs-gh">Layout</div>
-            <div class="sz-row cs-line"><span class="cs-k">Max lines</span>
-              <div class="pos-row seg" id="linesRow" style="flex:1;margin:0">
-                <button type="button" class="pos-btn" data-lines="1" onclick="setLines(this)">1</button>
-                <button type="button" class="pos-btn on" data-lines="2" onclick="setLines(this)">2</button>
-              </div></div>
             <p class="cs-note">Long captions break into more, shorter captions (see Max chars) instead of shrinking. Only a single word too long for the frame gets smaller.</p>
             <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
               <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')" title="Letter spacing">
@@ -1398,7 +1398,7 @@ input[type=checkbox]{accent-color:#7c3aed}
 <div id="acctModal" style="display:none;position:fixed;inset:0;background:rgba(20,15,35,.45);z-index:100;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:16px;padding:22px;width:320px;box-shadow:0 24px 80px rgba(0,0,0,.25)">
     <div style="font-weight:800;font-size:16px;margin-bottom:4px">Capivo account</div>
-    <p style="font-size:12.5px;color:#66616e;margin-bottom:10px" id="acctSub">⚡ Fast &amp; 💎 Perfect are free — no download, on any device. Sign in to save projects.</p>
+    <p style="font-size:12.5px;color:#66616e;margin-bottom:10px" id="acctSub">Word-accurate captions in seconds — free, no download, on any device. Sign in to save projects.</p>
     <div id="acctStep1">
       <input type="email" id="acctEmail" class="lang-sel" placeholder="you@email.com" onkeydown="if(event.key==='Enter')reqCode()">
       <button class="pos-btn on" style="width:100%;padding:8px" onclick="reqCode()">Send login code</button>
@@ -1550,7 +1550,9 @@ var wordTimestamps  = [];
 var captionBlocks   = [];
 var currentFile     = null;
 var whisperPipes    = {};          // gecachte Pipelines pro Modell
-var whisperModel    = 'fast';   // 'fast' | 'perfect' — serverseitig via transcribe.php (kein Download)
+// Ein Modus, immer beste Qualität: whisper-large-v3 + Polish (Fast/Perfect-Wahl entfernt). 'fast' (turbo) ist nur
+// noch der automatische Fallback, wenn large-v3 scheitert. Gespeicherte model-Werte alter Projekte werden ignoriert.
+var whisperModel    = 'perfect';
 var SERVER_MODEL    = { fast: 'whisper-large-v3-turbo', perfect: 'whisper-large-v3' };
 // nur Fallback, wenn kein PHP-Proxy (z. B. Vercel-Demo). fast='tiny' statt 'base': gemessen (Playwright,
 // echtes Sprachsample, gewarmtes Modell) lief 'tiny' in ~1.6-1.7s vs. 'small' in ~10.4-10.6s (~6x) —
@@ -5747,19 +5749,30 @@ function setMaxChars(v) {
   _lastKey = null; updateOverlay();
   scheduleAutosave();
 }
-// Auswahl + „Auto · ~N“ (aktuell abgeleiteter Wert) anzeigen
+// Regler (8–40, exakter Wert) + „Auto“-Chip anzeigen. Auto: Chip „Auto · N“ (aktuell abgeleiteter Wert),
+// Regler steht ausgegraut auf N; Ziehen am Regler schaltet Auto aus (setMaxChars).
 function syncMaxCharsUI() {
-  var sel = document.getElementById('mcSel');
-  if (!sel) return;
+  var sl = document.getElementById('mcSel');
+  if (!sl) return;
   var auto = 0;
   try { auto = capAutoChars(); } catch (e) {}
-  if (sel.options && sel.options[0]) sel.options[0].textContent = 'Auto (recommended)' + (auto ? ' · ' + auto : '');
-  var val = String(CAP_MAX_CHARS || 0), has = false;
-  for (var i = 0; sel.options && i < sel.options.length; i++) if (sel.options[i].value === val) has = true;
-  if (!has && CAP_MAX_CHARS && sel.options && document.createElement) { // Wert aus Template/Projekt ohne eigene Option
-    var o = document.createElement('option'); o.value = val; o.textContent = val + ' per line'; sel.appendChild(o);
+  var isAuto = !CAP_MAX_CHARS, v = isAuto ? (auto || 20) : CAP_MAX_CHARS;
+  sl.value = String(Math.max(CAP_CHARS_MIN, Math.min(CAP_CHARS_MAX, v)));
+  if (sl.classList) sl.classList.toggle('mc-off', isAuto);
+  var btn = document.getElementById('mcAuto');
+  if (btn) {
+    btn.textContent = isAuto && auto ? 'Auto · ' + auto : 'Auto';
+    if (btn.classList) btn.classList.toggle('on', isAuto);
+    if (btn.setAttribute) btn.setAttribute('aria-pressed', isAuto ? 'true' : 'false');
   }
-  sel.value = val;
+  var d = document.getElementById('mcDisp');
+  if (d) { d.textContent = isAuto ? '' : String(CAP_MAX_CHARS); d.style.display = isAuto ? 'none' : ''; }
+}
+// Chip: Auto an ↔ aus (aus = fester Wert, startet beim aktuell abgeleiteten Auto-Wert → Feinjustieren per Regler)
+function toggleMaxCharsAuto() {
+  if (CAP_MAX_CHARS) { setMaxChars('0'); return; }
+  var a = 0; try { a = capAutoChars(); } catch (e) {}
+  setMaxChars(String(Math.max(CAP_CHARS_MIN, Math.min(CAP_CHARS_MAX, a || 20))));
 }
 // Nach Style-/Größen-/Case-Wechsel: Auto-Limit neu anzeigen und Blöcke anpassen
 function onCapMetricsChange(tag) {
@@ -5824,15 +5837,6 @@ function setTranslate(cb) {
   if (cb.checked === doTranslate) return;
   if (!confirmRetranscribe()) { cb.checked = doTranslate; return; }
   doTranslate = cb.checked; updateTrSetSum();
-  if (currentFile) transcribeVideo(currentFile);
-}
-function setModel(btn) {
-  var m = btn.dataset.m;
-  if (m === whisperModel) return;
-  if (!confirmRetranscribe()) return; // Buttons wurden noch nicht umgeschaltet → nichts zurückzusetzen
-  whisperModel = m;
-  document.querySelectorAll('#modelRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.m === m); });
-  updateTrSetSum();
   if (currentFile) transcribeVideo(currentFile);
 }
 function setLang(v) {
@@ -6074,7 +6078,7 @@ function updateAcctUI() {
   if (rw && !needsWatermark()) rw.style.display = 'none';
   var qi = document.getElementById('quotaInfo');
   if (!qi) return;
-  if (mePlan === 'anon') qi.textContent = '⚡ Fast & 💎 Perfect · free, no download — works on any device';
+  if (mePlan === 'anon') qi.textContent = 'Word-accurate captions in seconds · free, no download — works on any device';
   else qi.textContent = '⚡ Signed in · your projects are saved to the cloud';
 }
 // Bezahlung ist noch nicht angebunden (kein Stripe im aktuellen Umfang) — die Plan-Buttons
@@ -6519,7 +6523,7 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
 async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt, spans) {
   prompt = cleanVocab(prompt);
   function checkStale() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
-  var label = (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' – transcribing';
+  var label = 'Transcribing';
   var track = spans && spans.length ? buildSpeechTrack(audioData, 16000, spans) : null;
   var chunks = splitAudioChunks(track ? track.samples : audioData, 16000), n = chunks.length;
   var all = [], language = null, forced = lc, results = [], encP = [], done = 0, posted = 0, failed = null;
@@ -6748,13 +6752,13 @@ function audioTruncated(nSamples, mediaDur) {
   return nSamples > 16000 * MAX_AUDIO_SEC || (isFinite(mediaDur) && mediaDur > MAX_AUDIO_SEC + 0.5);
 }
 // ═══════════════════════════════════════
-// POLISH — „Perfect“: Korrekturlauf über den Transkript-Text (Server: api/polish, Fallback polish.php)
+// POLISH — Korrekturlauf (immer, außer beim Übersetzen; im Hintergrund nach dem Anzeigen) über den Transkript-Text (Server: api/polish, Fallback polish.php)
 // ═══════════════════════════════════════
 // Nur Text wird korrigiert; die Timings bleiben exakt: jede korrigierte Passage wird mit derselben
 // LCS-/Slot-Logik wie manuelle Edits (retimeEditedBlock) auf die getimten Wörter gelegt. Fehlt der Endpoint,
 // ist er nicht konfiguriert oder zu langsam → stillschweigend das unpolierte Transkript behalten.
 var POLISH_ENDPOINTS = ['api/polish', 'polish.php'], _plIdx = 0, POLISH_TIMEOUT_MS = 24000, POLISH_SEG_MAX = 40;
-function polishEnabled() { return whisperModel === 'perfect' && !doTranslate; }
+function polishEnabled() { return !doTranslate; } // immer (außer Übersetzen) — läuft nach dem Anzeigen im Hintergrund (polishInPlace)
 function polishSegments(words) {
   var segs = [], a = 0;
   for (var i = 0; i < words.length; i++) {
@@ -6819,6 +6823,31 @@ async function polishWords(words, lang, vocab, isStale) {
   });
   return { words: out, fixes: fixes };
 }
+// Fehler von large-v3 → lohnt ein zweiter Versuch mit turbo? Nicht bei Login/zu gross (gleiches Ergebnis)
+// und nicht beim Übersetzen (der Server erzwingt dafür ohnehin large-v3).
+function turboFallbackOk(e) {
+  if (doTranslate || !e || e.stale || e.noProxy) return false;
+  return e.status !== 401 && e.status !== 413;
+}
+// Polish NACH dem Anzeigen: Captions erscheinen sofort (keine Wartezeit durch den Korrekturlauf), die
+// Korrekturen werden eingesetzt, sobald sie da sind — aber nur, wenn seit dem Anzeigen nichts geändert wurde
+// (kein Edit, kein Undo-Schritt, kein laufender Export) und der Lauf noch aktuell ist. Danach KI-Hervorhebung.
+var _polishing = false;
+async function polishInPlace(run, lang, vocab) {
+  var snap = captionSnapshot(), words = wordTimestamps, applied = false;
+  _polishing = true;
+  try {
+    var pol = await polishWords(words, lang, vocab, function(){ return run !== _trRun; });
+    if (run !== _trRun) return false;
+    if (pol.fixes > 0 && pol.words !== words && !captionsEdited && !isExporting && captionSnapshot() === snap) {
+      wordTimestamps = pol.words;
+      captionBlocks = buildCaptionBlocks(wordTimestamps);
+      refreshCaptionViews(); buildPicker(); scheduleAutosave();
+      applied = true;
+    }
+  } finally { if (run === _trRun) _polishing = false; }
+  return applied;
+}
 async function transcribeVideo(file) {
   // Lauf-Token: Wird währenddessen ein anderes Video geladen oder neu transkribiert (Modell/Sprache/
   // Übersetzen/Retry), darf dieser Lauf danach NICHTS mehr schreiben — sonst landen die Captions
@@ -6832,7 +6861,7 @@ async function transcribeVideo(file) {
   setTProgress(5);
   document.getElementById('retryWrap').style.display = 'none';
   // Bisherige Captions bleiben stehen (Vorschau, Editor, Exporte), bis der neue Lauf ERFOLGREICH ist —
-  // ein 429 nach Fast→Perfect oder ein fehlgeschlagener Retry löschte sie sonst ersatzlos. Der Lauf
+  // ein 429 oder ein fehlgeschlagener Retry löschte sie sonst ersatzlos. Der Lauf
   // arbeitet daher auf einer lokalen Wortliste (wts) und schreibt erst ganz am Ende.
   var hadCaptions = captionBlocks.length > 0;
   if (!hadCaptions) { document.getElementById('capEditor').style.display = 'none'; enableExports(false); }
@@ -6882,7 +6911,15 @@ async function transcribeVideo(file) {
     var lc = (whisperLang !== 'auto' && CODE_BY_LANG[whisperLang]) ? CODE_BY_LANG[whisperLang] : '';
 
     // ── 1) Serverseitig transkribieren (Groq via transcribe.php) — kein Download für den Nutzer ──
-    var served = await serverTranscribe(audioData, SERVER_MODEL[whisperModel] || SERVER_MODEL.fast, lc, audioDur, stale, vocab, spans);
+    // large-v3 (beste Qualität); scheitert es (Groq-Limit je Modell, 5xx, Netz, Timeout) → einmal still mit turbo.
+    var served;
+    try { served = await serverTranscribe(audioData, SERVER_MODEL.perfect, lc, audioDur, stale, vocab, spans); }
+    catch (eS) {
+      if (stale() || (eS && eS.stale) || !turboFallbackOk(eS)) throw eS;
+      console.warn('large-v3 fehlgeschlagen, Fallback turbo:', eS && eS.message || eS);
+      setTStatus('', 'Transcribing (backup model)…', true, true);
+      served = await serverTranscribe(audioData, SERVER_MODEL.fast, lc, audioDur, stale, vocab, spans);
+    }
     bailIfStale();
 
     if (served !== null) {
@@ -6915,8 +6952,8 @@ async function transcribeVideo(file) {
       var retryTarget = detectedTarget || NAV_LANG;
       if (whisperLang === 'auto' && retryTarget && (repetitive || suspiciousEnglishBias)) {
         setTStatus('', 'Auto-detect uncertain — trying ' + retryTarget + '…', true, true);
-        // Fuer den Korrektur-Versuch IMMER large-v3 (Perfect) statt turbo verwenden, auch im Fast-
-        // Modus: whisper-large-v3-turbo hat laut Groq/OpenAI eine bekannt schwaechere mehrsprachige
+        // Fuer den Korrektur-Versuch IMMER large-v3 statt turbo verwenden (auch wenn oben der turbo-
+        // Fallback lief): whisper-large-v3-turbo hat laut Groq/OpenAI eine bekannt schwaechere mehrsprachige
         // Genauigkeit (reduzierte Decoder-Tiefe) -- selbst mit erzwungenem `language`-Parameter bleibt
         // der generierte Text bei turbo mitunter unzuverlaessig. Der Retry ist selten (nur bei
         // Verdachtsfall) und darf daher die genauere/langsamere Variante nutzen.
@@ -6980,16 +7017,9 @@ async function transcribeVideo(file) {
     var snapped = await snapWordTimings(wts, audioData, 16000, speech); // Wortgrenzen an die echte Sprache ziehen + auf Sprachbereiche beschränken
     bailIfStale();
     wts = snapped;
-    var polishFixes = -1;
-    if (polishEnabled() && wts.length) {
-      setTStatus('', '💎 Perfect – polishing…', true, true);
-      var pol = await polishWords(wts, CODE_BY_LANG[usedLang] || lc || '', vocab, stale);
-      bailIfStale();
-      wts = pol.words; polishFixes = pol.fixes;
-    }
 
     setTProgress(100);
-    if (!wts.length) throw new Error('No speech detected. Tip: pick the language above manually, or try Perfect.');
+    if (!wts.length) throw new Error('No speech detected. Tip: pick the language above manually.');
 
     wordTimestamps = wts;
     captionBlocks = buildCaptionBlocks(wordTimestamps);
@@ -6999,13 +7029,12 @@ async function transcribeVideo(file) {
     updateTrSetSum();
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
-    // Kurz und menschlich statt Technik-Protokoll: „✓ German · 56 words“ (+ „· polished“ bei 💎 Perfect).
-    // Modell/Sprach-Details stehen in der eingeklappten „Video & language“-Zusammenfassung.
+    // Kurz und menschlich statt Technik-Protokoll: „✓ German · 56 words“. Sprach-Details stehen in der
+    // eingeklappten „Video & language“-Zusammenfassung. Polish + KI-Hervorhebung laufen danach im Hintergrund.
     setTStatus(qWarn ? '⚠️' : '✅',
       langLabel(usedLang) + ' · ' + wordTimestamps.length + ' words' + (doTranslate ? ' · → English' : '')
-      + (polishFixes >= 0 ? ' · polished' : '')
       + (truncated ? ' · only the first ' + (MAX_AUDIO_SEC / 60) + ' min were transcribed' : '')
-      + (qWarn ? ' · quality uncertain — try 💎 Perfect under “Video &amp; language”' : ''), false, false);
+      + (qWarn ? ' · quality uncertain — pick the spoken language under “Video &amp; language”' : ''), false, false);
     var wasProcessing = setProcessing(false);
     if (wasProcessing) switchTab('captions'); // VOR renderSegments: Zeilenhöhen lassen sich nur sichtbar messen
     document.getElementById('capEditor').style.display = 'block';
@@ -7021,6 +7050,9 @@ async function transcribeVideo(file) {
       showCoach('coachEdit');
       if (!hintSeen('readyToast')) { markHintSeen('readyToast'); capToast('Captions ready — fix any word, then Export.'); }
     }
+    // Feinschliff im Hintergrund: Captions sind schon sichtbar/bearbeitbar; Korrekturen landen nur, solange
+    // niemand etwas geändert hat (sonst still verworfen).
+    if (polishEnabled()) polishInPlace(run, CODE_BY_LANG[usedLang] || lc || '', vocab);
 
   } catch(err) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
@@ -7031,8 +7063,8 @@ async function transcribeVideo(file) {
     var trs = document.getElementById('trSet'); if (trs) trs.open = true;
     if (hadCaptions && captionBlocks.length) {
       // Vorherige Captions unverändert lassen — Editor/Exporte bleiben benutzbar. Modell/Sprache/Übersetzen
-      // wieder auf die Werte stellen, die diese Captions erzeugt haben (sonst zeigt die UI z. B. 💎 Perfect
-      // über Fast-Captions) und sagen, wie man den Versuch wiederholt.
+      // wieder auf die Werte stellen, die diese Captions erzeugt haben (sonst zeigt die UI z. B. „Translate“ an
+      // über nicht übersetzten Captions) und sagen, wie man den Versuch wiederholt.
       var hint = revertTranscriptionSettings(_lastTrMeta);
       setTStatus('❌', 'Error: ' + (err.message || err) + ' Your previous captions are kept.' + (hint ? ' ' + hint : ''), false, false);
       document.getElementById('capEditor').style.display = 'block';
@@ -7048,12 +7080,9 @@ async function transcribeVideo(file) {
 // wiederholt werden kann (oder '').
 function revertTranscriptionSettings(meta) {
   if (!meta || !meta.model) return '';
-  var tried = { model: whisperModel, lang: whisperLang, translate: doTranslate }, hint = '';
-  if (tried.model !== meta.model) hint = 'Switch to ' + (tried.model === 'perfect' ? '💎 Perfect' : '⚡ Fast') + ' again to retry.';
-  else if (tried.translate !== !!meta.translate) hint = (tried.translate ? 'Turn on' : 'Turn off') + ' “Translate to English” again to retry.';
+  var tried = { lang: whisperLang, translate: doTranslate }, hint = '';
+  if (tried.translate !== !!meta.translate) hint = (tried.translate ? 'Turn on' : 'Turn off') + ' “Translate to English” again to retry.';
   else if (meta.langSetting && tried.lang !== meta.langSetting) hint = 'Pick the language again to retry.';
-  whisperModel = meta.model;
-  document.querySelectorAll('#modelRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.m === whisperModel); });
   doTranslate = !!meta.translate;
   var tr = document.getElementById('trEn'); if (tr) tr.checked = doTranslate;
   if (meta.langSetting) { whisperLang = meta.langSetting; var ls = document.getElementById('langSel'); if (ls) ls.value = whisperLang; }
@@ -9303,7 +9332,7 @@ function updateTrSetSum() {
   var m = typeof _lastTrMeta !== 'undefined' ? _lastTrMeta : null;
   var lang = (whisperLang === 'auto' && m && m.langSetting === 'auto' && m.lang && m.lang !== 'auto')
     ? langLabel(m.lang) + ' (detected)' : langLabel(whisperLang);
-  el.textContent = '· ' + lang + ' · ' + (whisperModel === 'perfect' ? '💎 Perfect' : '⚡ Fast') + (doTranslate ? ' · → EN' : '');
+  el.textContent = '· ' + lang + (doTranslate ? ' · → EN' : '');
 }
 // „Video & language“ ist standardmäßig zu (Sprache wählt man schon auf der Startseite); nur Fehler öffnen sie.
 function collapseTrSettings(collapse) {
