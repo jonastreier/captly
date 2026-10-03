@@ -49,6 +49,9 @@
     },
     "api/polish.js": {
       "maxDuration": 30
+    },
+    "api/enhance.js": {
+      "maxDuration": 30
     }
   }
 }

@@ -93,6 +93,31 @@ Kürzen; Füllwörter/Dialekt bleiben, „ss“ wird nie zu „ß“.
   in `vercel.json`; Groq-Budget ~25 s. Check: `GET /api/polish` → `{"configured":true}`.
 - Tests: `node test-polish.js` (gemockter Groq; prüft bei vorhandenem `php` auch die PHP-Parität).
 
+## KI-Hervorhebung („Enhance“: Keywords, Emojis, Auto-Zoom, Post-Text)
+
+Nach der Transkription schickt das Frontend die Captions im Hintergrund an **`/api/enhance`** (Vercel,
+[`api/enhance.js`](api/enhance.js)) bzw. **`enhance.php`** (PHP-Hosting). Ein LLM auf Groq (gleiche Modelle
+wie Polish, gleicher `GROQ_API_KEY`) **wählt nur aus** — es schreibt nie Text um (Dialekt bleibt unangetastet):
+
+- `keywords`: 0–2 bedeutungstragende Wörter je Caption (Wort-Indizes; nie Artikel/Füllwörter) → Hervorhebung
+  in der Akzentfarbe des Styles + ~1,12× Grösse.
+- `emojis`: ein Emoji aus einer festen Liste (~180, keine Flaggen/Hauttöne/ZWJ) auf höchstens 30 % der Captions,
+  nie zwei hintereinander.
+- `zoom`: sparsame „Punch-in“-Momente, mindestens 4 s Abstand (wenn `start` mitgeschickt wird).
+- `post` (auf Knopfdruck im Export-Blatt): kurzer Post-Text in der Sprache des Videos + 3–6 Hashtags, ohne
+  erfundene Fakten.
+
+- Request: `POST {"lang":"de","want":["keywords","emojis","zoom"],"segments":[{"id":0,"text":"…","start":1.2}]}`
+  bzw. `{"lang":"de","want":["post"],"text":"…"}` (max. 12 000 Zeichen / 1000 Segmente, sonst 413).
+- Antwort: `{"segments":[{"id":0,"kw":[2],"emoji":"🐄","zoom":false}],"model":"…","dropped":n}` bzw.
+  `{"post":{"caption":"…","hashtags":["#…"]},"model":"…"}`. Alles wird serverseitig geprüft (ids, Indizes,
+  Emoji-Liste, Quoten); unpassende Vorschläge werden verworfen (`dropped`).
+- Fehler/fehlender Endpoint → das Frontend nutzt still eine lokale Heuristik (nur Keywords, keine Emojis);
+  Auto-Zoom nimmt dann hervorgehobene Zahlen/Wörter. Transkripttext wird nie geloggt.
+- Setup: nichts zusätzlich (gleiche Env-Variablen bzw. `config.php`; `RATE_LIMIT_PER_HOUR` zählt separat).
+  `maxDuration` 30 s in `vercel.json`. Check: `GET /api/enhance` → `{"configured":true}`.
+- Tests: `node test-enhance.js` (gemockter Groq; prüft bei vorhandenem `php` auch die PHP-Parität).
+
 ## Zuverlässigkeit & Komfort (Editor)
 
 - **Names & terms:** optionales Feld unter Fast/Perfect; wird als Whisper-`prompt` mitgeschickt
@@ -261,7 +286,9 @@ hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ 
 ## Tests
 
 ```bash
-node test-captly.js
+node test-captly.js     # Editor-Logik (DOM-Stub)
+node test-polish.js     # /api/polish + polish.php
+node test-enhance.js    # /api/enhance + enhance.php
 ```
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,
