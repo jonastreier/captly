@@ -794,6 +794,7 @@ input[type=checkbox]{accent-color:var(--brand)}
 .ta-tool.on{color:var(--brand-ink)}
 .ta-tool.on .ic{color:var(--brand)}
 .ta-del:not(:disabled){color:#b91c1c}
+@media (max-width:380px){.ta-tools{gap:0}.ta-tool{font-size:11px;padding:4px 0}}
 .ed-tab-tl{display:none}
 @media(max-width:640px){
   /* Handy-Kopfzeile: ← · Titel · Undo/Redo · ⋯ · Export — alles in EINER Zeile (vorher schwebten Undo/Redo/⋯
@@ -829,6 +830,7 @@ input[type=checkbox]{accent-color:var(--brand)}
   /* Timeline-Modus: Vorschau + Spur + Aktionsleiste füllen den Platz bis zur Tab-Leiste; das Panel ruht */
   #editor.tl-mode .prev-col{flex:1 1 auto;max-height:none;min-height:0;padding-bottom:calc(72px + env(safe-area-inset-bottom));justify-content:flex-start}
   #editor.tl-mode .ctrl-col{flex:0 0 0;min-height:0;overflow:hidden;border:none;padding:0}
+  #editor.tl-mode .prev-frame,#editor.tl-mode .vid-ctrls{margin-top:auto} /* Querformat: freie Höhe ober-/unterhalb des Videos statt unter der Spur */
   #editor.tl-mode .tl-wrap{width:100%;max-width:none;align-self:stretch;border-radius:16px}
   #editor.tl-mode .tl-bar{display:none}
   #editor.tl-mode .tl-body{border-top:none}
@@ -11186,6 +11188,7 @@ function tlDraw() {
   var act = nb ? currentBlockIdx(ph + off) : -1, dragIdx = d && d.type === 'block' && d.base ? d.idx : -1;
   var rad = mob ? 10 : Math.min(6, hB / 4), padT = mob ? 10 : 5;
   ctx.font = g.font; ctx.lineWidth = 1;
+  var selH = null;
   for (i = tlFirstEndAfter(bl, t0 + off); i < nb; i++) {
     var b = bl[i], xs = tlTimeToX(b.start - off, v), xe = tlTimeToX(b.end - off, v);
     if (xs > w) break;
@@ -11203,15 +11206,17 @@ function tlDraw() {
       var tx0 = Math.max(xs, 0), tx = tlFitText(ctx, b.text, Math.min(dxe, w) - tx0 - (sel && !mob ? 18 : dw > 20 ? padT * 2 : 6));
       if (tx) { ctx.fillStyle = isDrag ? '#fff' : '#2b2152'; ctx.fillText(tx, tx0 + (sel && !mob ? 9 : dw > 20 ? padT : 3), yB + hB / 2 + 0.5); }
     }
-    if (sel && mob) { // Handy: deutliche Griffe AUSSEN an den Kanten (Trefferfläche je ≥ 44 px, s. tlHit)
-      ctx.fillStyle = isDrag ? '#5b21b6' : '#7c3aed';
-      ctx.beginPath(); tlRRect(ctx, xs - 14, yB, 14, hB, 7); tlRRect(ctx, xe, yB, 14, hB, 7); ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); tlRRect(ctx, xs - 8.5, yB + hB * 0.32, 3, hB * 0.36, 1.5); tlRRect(ctx, xe + 5.5, yB + hB * 0.32, 3, hB * 0.36, 1.5); ctx.fill();
-    } else if (sel && bw > 12) { // Griffe an den Kanten
+    if (sel && mob) selH = { xs: xs, xe: xe, drag: isDrag }; // Griffe NACH allen Balken zeichnen (Nachbar läge sonst darüber)
+    else if (sel && bw > 12) { // Griffe an den Kanten
       ctx.fillStyle = isDrag ? 'rgba(255,255,255,.9)' : '#7c3aed';
       ctx.beginPath(); tlRRect(ctx, xs + 2.5, yB + hB * 0.28, 3, hB * 0.44, 1.5); tlRRect(ctx, xe - 5.5, yB + hB * 0.28, 3, hB * 0.44, 1.5); ctx.fill();
     }
+  }
+  if (selH) { // Handy: deutliche Griffe AUSSEN an den Kanten (Trefferfläche je ≥ 44 px, s. tlHit)
+    ctx.fillStyle = selH.drag ? '#5b21b6' : '#7c3aed';
+    ctx.beginPath(); tlRRect(ctx, selH.xs - 14, yB, 14, hB, 7); tlRRect(ctx, selH.xe, yB, 14, hB, 7); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); tlRRect(ctx, selH.xs - 8.5, yB + hB * 0.32, 3, hB * 0.36, 1.5); tlRRect(ctx, selH.xe + 5.5, yB + hB * 0.32, 3, hB * 0.36, 1.5); ctx.fill();
   }
   // Fang-Linie + Zeitanzeige beim Ziehen
   if (_tl.snap) {
@@ -11234,7 +11239,7 @@ function tlDraw() {
     ctx.strokeStyle = '#1d1f20'; ctx.lineWidth = mob ? 2 : 1.5;
     ctx.beginPath(); ctx.moveTo(x, mob ? g.ruler : 2); ctx.lineTo(x, g.h); ctx.stroke();
     if (mob && dragIdx < 0) {
-      var pl = tlFmt2(ph).replace(/(\.\d)\d$/, '$1');
+      var pl = fmtT1(ph); // gleiche Rundung wie Start/End in der Aktionsleiste
       ctx.font = '600 11px Inter, system-ui, sans-serif';
       var pw = ctx.measureText(pl).width + 14;
       ctx.fillStyle = '#1d1f20'; ctx.beginPath(); tlRRect(ctx, x - pw / 2, 1, pw, g.ruler - 2, (g.ruler - 2) / 2); ctx.fill();

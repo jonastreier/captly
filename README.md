@@ -128,6 +128,14 @@ wie Polish, gleicher `GROQ_API_KEY`) **wählt nur aus** — es schreibt nie Text
 
 ## Zuverlässigkeit & Komfort (Editor)
 
+- **Timeline auf Handy/Touch** (≤ 760 px oder grober Zeiger): Abspielkopf fest in der Mitte, Wischen scrubbt
+  (mit Schwung), Abspielen scrollt mit, Pinch-Zoom 30–200 px/s (Start 70). Antippen wählt einen Block (Bewegung
+  < 10 px = Tippen, sonst Wischen → nie versehentliche Edits); Kanten nur am gewählten Block (≥ 44-px-Griffe),
+  Long-Press verschiebt. Aktionsleiste darunter: Start/End ±0,1 s (gedrückt halten = wiederholen, an Nachbarn/
+  Schnitten geklemmt, Grund als Toast), Split am Abspielkopf, Edit text, Delete, Snap, Close gaps. Auf dem Handy
+  (≤ 640 px) ist „Timeline“ der dritte Tab unten. Pure Helfer (`tlCenterView`, `tlClassify`, `tlFlingVelocity`,
+  `tlSplitIndex`, `tlNudgeEdge`) sind in `test-captly.js` abgedeckt; der Desktop-Weg bleibt unverändert.
+
 - **Names & terms:** optionales Feld unter „Video & language“; wird als Whisper-`prompt` mitgeschickt
   (nur Transkription, max. 300 Zeichen), damit Namen/Marken/Orte richtig geschrieben werden.
   Gespeichert pro Gerät (localStorage). Änderungen greifen erst nach „Re-transcribe to apply".
