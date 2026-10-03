@@ -116,7 +116,7 @@ body.editor-open{height:100vh;overflow:hidden}
 .hero-fine{display:flex;align-items:flex-start;gap:8px;max-width:620px;margin-top:16px;font-size:13px;line-height:1.5;color:var(--muted);text-align:left}
 .hero-fine .ic{width:16px;height:16px;margin-top:1px;color:var(--brand)}
 .ll-short{display:none}
-@media (max-width:520px){.ll-long{display:none}.ll-short{display:inline}.hero{padding-top:40px}.land-sub{font-size:15px}.hero-card{border-radius:24px;padding:10px;margin-top:24px}.upload-zone{min-height:200px;padding:24px 16px}.hc-top{padding:2px 2px 10px}.land-lang{padding-left:12px}.how-steps{grid-template-columns:1fr;gap:10px}.how-sec,.feat-sec,.pricing-sec,.showcase,.faq-sec,.cta-band{margin-top:72px}}
+@media (max-width:520px){.ll-long{display:none}.ll-short{display:inline}.hero{padding-top:40px}.land-sub{font-size:15px}.hero-card{border-radius:24px;padding:10px;margin-top:24px}.upload-zone{min-height:200px;padding:24px 16px}.hc-top{padding:2px 2px 10px;flex-wrap:nowrap;gap:4px}.land-try-btn{white-space:nowrap;padding:8px 6px}.land-lang{gap:2px;padding:2px 4px 2px 12px}.land-lang select{padding:6px 2px;max-width:150px}.land-try-btn::after{content:none}.how-steps{grid-template-columns:1fr;gap:10px}.how-sec,.feat-sec,.pricing-sec,.showcase,.faq-sec,.cta-band{margin-top:72px}}
 
 /* NAV LINKS + SCROLL STATE */
 .land-nav-links{display:flex;align-items:center;gap:24px}
@@ -137,7 +137,7 @@ body.editor-open{height:100vh;overflow:hidden}
 .how-slot-card2{left:56.041%;top:25.823%;width:17.045%;height:51.753%}
 .how-slot-card3{left:74.343%;top:25.823%;width:17.584%;height:51.753%}
 .how-piece{display:block;width:100%;height:100%;mask-repeat:no-repeat;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;-webkit-mask-size:100% 100%}
-.how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:960px;margin:20px auto 0;list-style:none;counter-reset:st}
+.how-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;max-width:960px;margin:20px auto 0;list-style:none;counter-reset:st}
 .how-steps li{counter-increment:st;font-size:14px;color:var(--muted);line-height:1.5}
 .how-steps li b{display:block;color:var(--ink);font-weight:600;margin-bottom:2px}
 .how-steps li b::before{content:counter(st) '. ';color:var(--brand)}
@@ -241,11 +241,10 @@ body.editor-open{height:100vh;overflow:hidden}
 #playOverlay{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.14);cursor:pointer}
 .play-icon{width:44px;height:44px;border-radius:50%;background:rgba(20,16,30,.42);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,.38);display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;padding-left:3px;box-shadow:0 4px 16px rgba(0,0,0,.28);transition:transform .15s,background .15s}
 #playOverlay:hover .play-icon{transform:scale(1.08);background:rgba(20,16,30,.58)}
-#frameDropZone{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:24%;gap:8px}
-.fdz-btn{background:var(--brand);color:#fff;font:700 12.5px 'Inter',sans-serif;padding:8px 16px;border-radius:20px;box-shadow:0 4px 14px rgba(124,58,237,.45)}
+#frameDropZone{position:absolute;inset:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;gap:10px;background:radial-gradient(120% 70% at 50% 40%,#2a2d30,#141617)}
+.fdz-btn{background:var(--brand);color:#fff;font:600 13px 'Inter',sans-serif;padding:10px 18px;border-radius:999px;box-shadow:var(--sh-2)}
 #frameDropZone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:4}
-#frameDropZone span{font-size:16px}
-#frameDropZone p{font-size:12px;color:#b8b2c4;text-align:center;padding:0 12px;line-height:1.5}
+#frameDropZone p{font-size:12px;color:#b3babc;text-align:center;padding:0 12px;line-height:1.5}
 #capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
 #capOverlay:active{cursor:grabbing}
 #capOverlay.dragging{cursor:grabbing}
@@ -280,7 +279,7 @@ body.editor-open{height:100vh;overflow:hidden}
 .ctrl-col::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
 .csect{padding:12px 16px;border-bottom:1px solid var(--line)}
 /* Tabs im Seitenpanel (Captions / Style / Export) — sticky, damit sie beim Scrollen erreichbar bleiben */
-.ed-tabs{position:sticky;top:0;z-index:6;display:flex;gap:4px;margin:12px 16px 4px;padding:4px;background:var(--fill2);border-radius:12px;flex-shrink:0}
+.ed-tabs{position:sticky;top:12px;z-index:6;display:flex;gap:4px;margin:12px 16px 4px;padding:4px;background:var(--fill2);border-radius:12px;flex-shrink:0;box-shadow:0 0 0 12px #fff}
 .ed-tab{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 4px;border:none;border-radius:9px;background:transparent;color:var(--muted);font:600 13px 'Inter',sans-serif;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
 .ed-tab:hover{color:var(--ink)}
 .ed-tab.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,24,28,.12)}
@@ -772,6 +771,7 @@ input[type=checkbox]{accent-color:var(--brand)}
   .seg-tools button{min-width:32px;height:32px;font-size:12.5px}
   .cap-inline textarea{font-size:16px}
   .fr-row .pos-btn{min-height:36px}
+  .em-chip,.mc-auto{min-height:36px;padding-left:12px;padding-right:12px}
 }
 /* Timeline-Aktionsleiste (Handy/Touch, s. tlSyncAct): immer gleich hoch → nichts springt beim Wählen */
 .tl-act{display:none;border-top:1px solid var(--line);padding:8px 8px 10px}
@@ -810,7 +810,7 @@ input[type=checkbox]{accent-color:var(--brand)}
   .tb-menu{position:fixed;top:56px;right:8px;left:auto}
   .ed-body{flex-direction:column}
   /* Vorschau wächst mit dem Video (max. ~56 % der Höhe, s. layoutPreviewFrame) → kein toter Grau-Rand bei Querformat */
-  .prev-col{flex:0 0 auto;height:auto;max-height:58dvh;padding:12px 12px 10px;gap:10px}
+  .prev-col{flex:0 0 auto;height:auto;max-height:54dvh;padding:12px 12px 10px;gap:10px}
   .col-resize-handle{display:none}
   .prev-frame{max-width:100%;border-radius:14px}
   .ctrl-col{width:100%!important;height:auto;flex:1 1 0;min-height:0;border-left:none;border-top:1px solid var(--line);border-radius:20px 20px 0 0;padding-bottom:calc(68px + env(safe-area-inset-bottom))}
@@ -908,7 +908,7 @@ input[type=checkbox]{accent-color:var(--brand)}
             <option value="auto">Auto-detect</option>
           </select>
         </label>
-        <button type="button" class="land-try-btn" id="sampleBtn" onclick="trySample(landPick || undefined)">Try a sample video</button>
+        <button type="button" class="land-try-btn" id="sampleBtn" onclick="trySample(landPick || undefined)"><span class="ll-long">Try a sample video</span><span class="ll-short">Try a sample</span></button>
       </div>
       <label class="upload-zone" id="landZone">
         <input type="file" accept="video/*" id="landInput">
@@ -968,8 +968,8 @@ input[type=checkbox]{accent-color:var(--brand)}
   <!-- Pricing -->
   <section class="pricing-sec reveal" id="pricing">
     <h2 class="show-h">Simple, honest pricing.</h2>
-    <p class="show-sub">Start free. Upgrade only if you need more transcription minutes.</p>
-    <p class="price-beta">Beta — everything is free while we build. Paid plans are coming soon.</p>
+    <p class="show-sub">Start free. Plans with more transcription minutes will follow.</p>
+    <p class="price-beta">Beta — everything is free while we build.</p>
     <div class="pricing-grid">
       <div class="price-card">
         <div class="price-name">Free</div>
@@ -1052,7 +1052,7 @@ input[type=checkbox]{accent-color:var(--brand)}
         <div class="foot-brand">
           <img src="assets/logo-lockup-light-nav.png" alt="Capivo" height="24" style="height:24px;width:auto;display:block">
         </div>
-        <p class="foot-claim">Viral, word-perfect captions for Reels &amp; TikToks — in seconds, no download.</p>
+        <p class="foot-claim">Word-perfect captions for Reels &amp; TikToks — right in your browser.</p>
       </div>
       <div class="foot-col">
         <div class="foot-col-h">Product</div>
@@ -1214,7 +1214,7 @@ input[type=checkbox]{accent-color:var(--brand)}
         <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
-          <b class="fdz-btn"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Choose a video</b><p><span class="hint-desk">or drop it here · </span>MP4, MOV, WebM<br>captions in seconds — no account needed</p>
+          <b class="fdz-btn"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Choose a video</b><p><span class="hint-desk">or drop it here · </span>MP4, MOV or WebM</p>
         </div>
         <!-- Verarbeitung: Fortschritt direkt auf der Vorschau (statt Platzhalter-Caption + Statustext im Panel) -->
         <div id="procOv" class="proc-ov" style="display:none" role="status" aria-live="polite">
@@ -6630,7 +6630,7 @@ function trySample(styleId) {
     return r.blob();
   }).then(function(bl) {
     _sampleLoading = false;
-    if (b) { b.disabled = false; b.textContent = 'Try a sample video'; }
+    if (b) { b.disabled = false; b.innerHTML = '<span class="ll-long">Try a sample video</span><span class="ll-short">Try a sample</span>'; }
     loadVideo(new File([bl], 'Sample video.mp4', { type: 'video/mp4' }));
     if (styleId && STYLES.find(function(x){ return x.id === styleId; })) selectStyle(styleId);
   }).catch(function(e) {
@@ -7992,7 +7992,7 @@ function layoutPreviewFrame(setFont) {
   try { var pcs = getComputedStyle(frame.parentElement); padX = (parseFloat(pcs.paddingLeft) || 0) + (parseFloat(pcs.paddingRight) || 0); padY = (parseFloat(pcs.paddingTop) || 0) + (parseFloat(pcs.paddingBottom) || 0); } catch (e) {}
   var pcH = pcRect.height || 540;
   // Handy (außer Timeline-Modus): die Spalte wächst mit dem Video → feste Obergrenze statt gemessener Höhe
-  if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * 0.56);
+  if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * 0.52);
   var maxH = Math.max(100, pcH - padY - ctrlH - 12 - tlReservedHeight()); // 12 = Abstand Rahmen↔Leiste
   var maxW = Math.min(720, Math.max(100, (pcRect.width || 360) - padX));
   var h = maxH, w = Math.round(h * ar);
