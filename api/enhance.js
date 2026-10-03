@@ -1,4 +1,4 @@
-// Capivo – KI-Hervorhebung („Enhance“) als Vercel Serverless Function (Groq Chat Completions).
+// CaptionRush – KI-Hervorhebung („Enhance“) als Vercel Serverless Function (Groq Chat Completions).
 // Gegenstück für klassisches PHP-Webhosting: enhance.php (gleiche Schnittstelle, gleiche Regeln).
 //
 // Zweck (wie die Captions-App): Ein LLM WÄHLT nur aus — es schreibt nie Text um.

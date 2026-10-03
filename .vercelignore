@@ -8,3 +8,4 @@ test-captly.js
 schema.sql
 scripts/
 *.md
+i18n/

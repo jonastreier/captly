@@ -1,4 +1,4 @@
-# Capivo
+# CaptionRush
 
 Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai).
 Upload → Auto-Transkript → Karaoke-Preview in 15 kuratierten Styles → Export als **MP4** (mit
@@ -9,11 +9,11 @@ eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
   über einen schlanken PHP-Proxy ([`transcribe.php`](transcribe.php)). **Kein Modell-Download für den
   Nutzer**, läuft auf jedem Gerät (auch iPhone). Transkribiert wird über **Groq** (kostenloser Free-Tier,
   OpenAI-kompatible API).
-- **Fallback:** Ist der Proxy nicht erreichbar (z. B. reine Vercel-Demo ohne PHP), transkribiert Capivo
+- **Fallback:** Ist der Proxy nicht erreichbar (z. B. reine Vercel-Demo ohne PHP), transkribiert CaptionRush
   automatisch **lokal im Browser** (transformers.js) — dann einmaliger Modell-Download.
 - **Video-Export:** MP4/MOV-Quellen laufen über einen **WebCodecs-Schnellexport** (Demux mit mp4box,
   H.264-Encode, Mux mit mp4-muxer, Original-AAC wird kopiert) — schneller als Echtzeit. Bei jedem Problem
-  (Browser ohne WebCodecs/H.264-Encoder, WebM-Quelle, exotische Datei) fällt Capivo automatisch auf den
+  (Browser ohne WebCodecs/H.264-Encoder, WebM-Quelle, exotische Datei) fällt CaptionRush automatisch auf den
   Echtzeit-Export (MediaRecorder, ggf. ffmpeg.wasm) zurück. Libs self-hosted unter `vendor/mp4box` +
   `vendor/mp4-muxer` (Versionen: [`scripts/fetch-webcodecs-libs.sh`](scripts/fetch-webcodecs-libs.sh)).
   Notschalter: `localStorage['capivo.fastExport'] = 'off'`.
@@ -29,6 +29,12 @@ eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
 Dateien, kein Build:
 - [`captly.html`](captly.html) — kompletter Editor + Landing (Single-File).
+- [`captly.de.html`](captly.de.html) — deutsche Landing unter `/de`, **generiert** aus `captly.html` + [`i18n/de.js`](i18n/de.js)
+  mit `node scripts/build-i18n.js` (`--check` prüft nur). Übersetzt sind `<head>` (Titel, Description, OG, JSON-LD) und
+  die Landing; der Editor bleibt englisch. Beide Seiten verlinken sich per `hreflang` + Sprachumschalter (Nav/Footer);
+  kein Auto-Redirect, nur ein wegklickbarer Hinweis für deutschsprachige Browser auf der EN-Seite.
+  `sitemap.xml`/`robots.txt` listen beide Versionen. **Domainwechsel** (z. B. `captionrush.com`): Basis-URL in
+  `captly.html` (canonical, hreflang, og:url/og:image), `i18n/de.js` (canonical, og:url, og:image) und `sitemap.xml`/`robots.txt` ersetzen.
 - [`transcribe.php`](transcribe.php) — serverseitiger Transkriptions-Proxy für Webhosting (hält den
   API-Key, ruft Groq). **Primärer Weg.**
 - [`schema.sql`](schema.sql) — Datenbankschema für Login & Cloud-Projekte, einmalig im
@@ -171,12 +177,12 @@ Magic-Code-Login). Kein Build, kein npm — `supabase-js` wird per ESM-CDN gelad
 4. **Authentication → Sign In / Providers**: Provider *Email* aktiviert, „Allow new users to
    sign up" an.
 
-Ohne diese Werte bleibt Capivo voll nutzbar (Editor, Transkription, Export) — nur der
+Ohne diese Werte bleibt CaptionRush voll nutzbar (Editor, Transkription, Export) — nur der
 Sign-in-Button meldet dann, dass Konten auf dieser Instanz nicht eingerichtet sind.
 
 ### Mailversand: eigenes SMTP ist Pflicht, nicht optional
 
-Capivo fragt einen **6-stelligen Code** ab, nicht den Magic-Link. Der Code steht nur dann in der
+CaptionRush fragt einen **6-stelligen Code** ab, nicht den Magic-Link. Der Code steht nur dann in der
 Mail, wenn das Template die Variable `{{ .Token }}` enthält — und **Templates lassen sich in
 Supabase erst bearbeiten, wenn eigenes SMTP hinterlegt ist** („Set up custom SMTP to edit
 templates"). Der eingebaute Free-Tier-Mailer verschickt ausschließlich das Standard-Template mit

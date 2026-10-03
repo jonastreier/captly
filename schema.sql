@@ -1,6 +1,6 @@
--- Capivo — Datenbankschema für Login & Cloud-Projekte (Supabase / Postgres).
+-- CaptionRush — Datenbankschema für Login & Cloud-Projekte (Supabase / Postgres).
 -- Einmalig im Supabase-Dashboard unter "SQL Editor" ausführen.
--- Nutzerkonten selbst verwaltet Supabase Auth (auth.users) — hier steht nur, was Capivo speichert.
+-- Nutzerkonten selbst verwaltet Supabase Auth (auth.users) — hier steht nur, was CaptionRush speichert.
 
 create table if not exists public.projects (
   id         bigint generated always as identity primary key,

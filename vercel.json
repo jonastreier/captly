@@ -1,10 +1,21 @@
 {
   "framework": null,
   "buildCommand": null,
+  "redirects": [
+    {
+      "source": "/de/",
+      "destination": "/de",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/",
       "destination": "/captly.html"
+    },
+    {
+      "source": "/de",
+      "destination": "/captly.de.html"
     }
   ],
   "headers": [
