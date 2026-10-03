@@ -111,7 +111,7 @@ detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,
 tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomAt,tlTickStep:tlTickStep,tlSnap:tlSnap,tlSnapCands:tlSnapCands,
 tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
 resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,toggleMaxCharsAuto:toggleMaxCharsAuto,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
-tlNudge:tlNudge,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
+tlNudge:tlNudge,tlNudgeEdge:tlNudgeEdge,tlNudgeWhy:tlNudgeWhy,tlCenterView:tlCenterView,tlClampPps:tlClampPps,tlClassify:tlClassify,tlFlingVelocity:tlFlingVelocity,tlFlingDecay:tlFlingDecay,tlSplitIndex:tlSplitIndex,tlSplitAt:tlSplitAt,tlHit:tlHit,setTlMob:function(m){_tl.mob=m;},setTlView:function(v){tlView=v;},setTlSel:function(i){tlSel=i;},getTlSel:function(){return tlSel;},TL_MOB_PPS:TL_MOB_PPS,switchTabT:switchTab,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
 capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
 wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBaseName:exportBaseName,openExportSheet:openExportSheet,closeExportSheet:closeExportSheet,
@@ -2430,6 +2430,68 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(JSON.stringify(T.projectPayload().speech) === '[{"start":1,"end":2}]', 'Sprachbereiche im Payload');
     T.setSpeech([]);
     ok(T.projectPayload().speech === undefined, 'ohne Sprachbereiche kein Feld');
+
+    // ── Handy-Timeline (feste Mitte) ──
+    // px ↔ Zeit mit Abspielkopf in der Mitte: Mitte = Abspielzeit, Standard 70 px/s, links von 0 ist Leere erlaubt
+    let cvw = T.tlCenterView(10, 70, 350);
+    ok(near(cvw.start, 7.5) && cvw.pps === 70 && near(T.tlTimeToX(10, cvw), 175) && near(T.tlXToTime(245, cvw), 11), 'Mitte = Abspielzeit, 70 px = 1 s: ' + JSON.stringify(cvw));
+    cvw = T.tlCenterView(0.5, 70, 350);
+    ok(cvw.start < 0 && near(T.tlTimeToX(0, cvw), 140), 'am Anfang: Zeit 0 liegt rechts vom linken Rand (Leere davor)');
+    ok(near(T.tlXToTime(T.tlTimeToX(3.21, T.tlCenterView(2, 133, 390)), T.tlCenterView(2, 133, 390)), 3.21), 'Rundreise mit Mitte');
+    ok(T.TL_MOB_PPS === 70 && T.tlClampPps(10) === 30 && T.tlClampPps(500) === 200 && T.tlClampPps(NaN) === 70 && T.tlClampPps(120) === 120, 'Pinch-Zoom auf 30–200 px/s begrenzt');
+    // Antippen vs. Wischen vs. Halten
+    ok(T.tlClassify(3, 2, 120, true) === 'tap', 'kleine Bewegung, kurz → Tap');
+    ok(T.tlClassify(3, 2, 120, false) === 'pending', 'noch gedrückt, kaum bewegt → offen');
+    ok(T.tlClassify(14, 3, 80, false) === 'swipe' && T.tlClassify(-10, 0, 30, true) === 'swipe', 'ab 10 px waagrecht → Wischen (kein Edit)');
+    ok(T.tlClassify(2, 16, 80, false) === 'vswipe', 'senkrecht → kein Scrubben');
+    ok(T.tlClassify(4, 4, 460, false) === 'hold' && T.tlClassify(4, 4, 460, true) === 'hold', 'still gehalten ≥ 450 ms → Long-Press');
+    // Schwung: Tempo aus den letzten 100 ms, exponentielles Abklingen
+    const smp = [{ t: 0, x: 300 }, { t: 150, x: 290 }, { t: 200, x: 250 }, { t: 250, x: 200 }];
+    ok(near(T.tlFlingVelocity(smp, 250), -0.9, 1e-9), 'Fling-Tempo nur aus den letzten 100 ms: ' + T.tlFlingVelocity(smp, 250));
+    ok(T.tlFlingVelocity([{ t: 0, x: 1 }], 10) === 0 && T.tlFlingVelocity(smp, 900) === 0, 'Stillstand/alte Proben → kein Schwung');
+    ok(near(T.tlFlingDecay(1, 325), Math.exp(-1)) && T.tlFlingDecay(2, 0) === 2, 'Abklingen e^(−t/325 ms)');
+    // Teilen am Abspielkopf: Wortmitte entscheidet
+    const sw = [{ word: 'a', start: 1, end: 1.4 }, { word: 'b', start: 1.6, end: 2 }, { word: 'c', start: 2.1, end: 2.5 }];
+    ok(T.tlSplitIndex(sw, 1.5) === 1 && T.tlSplitIndex(sw, 1.75) === 1 && T.tlSplitIndex(sw, 1.85) === 2 && T.tlSplitIndex(sw, 0.5) === 0 && T.tlSplitIndex(sw, 9) === 3, 'Split-Index nach Wortmitte');
+    T.setState(mkB(), [], 'karaoke'); T.resetUndo(); T.setSceneCuts([]);
+    ok(T.tlSplitAt(0, 1.5) && T.getBlocks().length === 4 && T.undoDepth()[0] === 1, 'Split am Abspielkopf: ein Undo-Schritt');
+    let sb = T.getBlocks();
+    ok(sb[0].text === 'eins' && sb[1].text === 'zwei' && sb[0].start === 1 && sb[0].end === 1.5 && sb[1].start === 1.5 && sb[1].end === 2 && sb[1].srcWords.length === 1, 'Naht am Abspielkopf, Wörter + srcWords verteilt: ' + JSON.stringify(sb.slice(0, 2).map(b => [b.text, b.start, b.end])));
+    ok(T.tlSplitAt(2, 3.0) === false && T.tlSplitAt(3, 6.2) === false, 'kein Split vor dem ersten Wort / bei einem Wort');
+    T.undoCaptions(); ok(T.getBlocks().length === 3, 'Undo macht den Split rückgängig');
+    // Start/End ±0.1 s: an Nachbarn und (mit Snap) an Schnitten geklemmt, Serie = ein Undo-Schritt
+    T.setState(mkB(), [], 'karaoke'); T.resetUndo(); T.setTlSnapOn(true); T.setSceneCuts([]);
+    T.getBlocks().forEach(b => { b.srcWords = JSON.parse(JSON.stringify(b.words)); });
+    ok(T.tlNudgeEdge(1, 'start', -0.1) && T.getBlocks()[1].start === 2.9 && T.getBlocks()[1].end === 4, 'Start −0.1 s, Ende bleibt');
+    ok(T.tlNudgeEdge(1, 'end', 0.1) && T.getBlocks()[1].end === 4.1 && T.getBlocks()[1].start === 2.9, 'Ende +0.1 s, Start bleibt');
+    for (let k = 0; k < 15; k++) T.tlNudgeEdge(1, 'start', -0.1);
+    ok(T.getBlocks()[1].start === 2 && T.undoDepth()[0] === 3, 'Start klemmt am Ende des Vorgängers (2.0), Serie je Kante = ein Undo-Schritt: ' + T.getBlocks()[1].start + ' · Undo ' + T.undoDepth()[0]);
+    ok(T.tlNudgeEdge(1, 'start', -0.1) === false && /previous caption/.test(T.tlNudgeWhy(1, 'start', -1)), 'blockiert → Grund: Vorgänger');
+    for (let k = 0; k < 40; k++) T.tlNudgeEdge(1, 'end', 0.1);
+    ok(T.getBlocks()[1].end === 6 && /next caption/.test(T.tlNudgeWhy(1, 'end', 1)), 'Ende klemmt am Start des Nachfolgers (6.0): ' + T.getBlocks()[1].end);
+    for (let k = 0; k < 60; k++) T.tlNudgeEdge(1, 'end', -0.1);
+    const nb1 = T.getBlocks()[1];
+    ok(near(nb1.end - nb1.start, 0.2, 1e-6) && /short/.test(T.tlNudgeWhy(1, 'end', -1)), 'Mindestdauer bleibt: ' + (nb1.end - nb1.start));
+    T.setState(mkB(), [], 'karaoke'); T.resetUndo(); T.setSceneCuts([4.25]);
+    T.getBlocks().forEach(b => { b.srcWords = JSON.parse(JSON.stringify(b.words)); });
+    for (let k = 0; k < 5; k++) T.tlNudgeEdge(1, 'end', 0.1);
+    ok(T.getBlocks()[1].end === 4.25 && /scene cut/.test(T.tlNudgeWhy(1, 'end', 1)), 'Snap an: Ende stoppt am Szenenschnitt: ' + T.getBlocks()[1].end);
+    T.setTlSnapOn(false); T.tlNudgeEdge(1, 'end', 0.1);
+    ok(T.getBlocks()[1].end === 4.35, 'Snap aus: über den Schnitt: ' + T.getBlocks()[1].end);
+    T.setTlSnapOn(true); T.setSceneCuts([]);
+    ok(T.tlNudgeEdge(9, 'end', 0.1) === false && T.tlNudgeEdge(1, 'middle', 0.1) === false, 'ungültiger Block/Kante → nichts');
+    // Treffer: Kanten-Griffe (≥ 44 px) nur am gewählten Block, sonst Block wählen
+    T.setState(mkB(), [], 'karaoke'); T.setTlMob(true); T.setTlView(T.tlCenterView(3.5, 70, 360));
+    const gy = 40 + 26; // Balkenmitte (Handy-Geometrie: Lineal 20 + Welle 14 + 6)
+    const x3 = T.tlTimeToX(3, T.tlCenterView(3.5, 70, 360)), x4 = T.tlTimeToX(4, T.tlCenterView(3.5, 70, 360));
+    T.setTlSel(-1);
+    ok(T.tlHit(x3 + 2, gy, true).mode === 'move' && T.tlHit(x3 - 15, gy, true).type === 'empty', 'ohne Auswahl: keine Griffe, Tippen wählt den Block');
+    T.setTlSel(1);
+    const hs = T.tlHit(x3 - 20, gy, true), he = T.tlHit(x4 + 20, gy, true), hm = T.tlHit((x3 + x4) / 2, gy, true);
+    ok(hs.mode === 'start' && he.mode === 'end' && hm.mode === 'move', 'gewählt: Griffe bis 22 px außerhalb der Kanten, Mitte = Körper: ' + [hs.mode, he.mode, hm.mode]);
+    ok(T.tlHit(x3 + 20, gy, true).mode === 'start' && T.tlHit(x3 - 26, gy, true).type !== 'block' || T.tlHit(x3 - 26, gy, true).idx !== 1, 'Griffzone ≈ 44 px breit');
+    ok(T.tlHit(x3 + 2, 10, true).type === 'empty', 'Handy: Lineal ist kein Seek-Ziel (Wischen scrubbt)');
+    T.setTlMob(false); T.setTlSel(-1);
   }
 
   // UX-Vereinfachung: Anmelde-Netzwerkfehler verständlich, Case-Schalter überstimmt Style-Schreibweise, Titel im Projekt
