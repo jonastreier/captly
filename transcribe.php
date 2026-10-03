@@ -1,6 +1,6 @@
 <?php
 /**
- * Capivo – serverseitiger Transkriptions-Proxy (Groq Whisper large-v3).
+ * CaptionRush – serverseitiger Transkriptions-Proxy (Groq Whisper large-v3).
  *
  * Zweck: Der geheime API-Key darf NIE in den Browser. Der Browser lädt die Tonspur
  * (Ogg/Opus oder WAV, 16 kHz mono) per POST hierher; dieses Skript hängt den Key an und ruft die
