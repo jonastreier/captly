@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Datenschutz · Capivo</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<style>
+:root{--ink:#1d1f20;--muted:#595e5e;--line:#e3e7ea;--bg:#f5f9fa;--brand:#6d28d9}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif}
+main{max-width:720px;margin:0 auto;padding:40px 16px 64px}
+a{color:var(--brand)}
+.back{display:inline-block;margin-bottom:24px;text-decoration:none;font-weight:600}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px 24px}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+h2{font-size:18px;margin:28px 0 8px}
+p,ul{margin:0 0 12px}
+ul{padding-left:20px}
+li{margin-bottom:4px}
+.muted{color:var(--muted);font-size:14px}
+.lead{background:#f3effd;border-radius:12px;padding:12px 14px;margin:16px 0 4px}
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">← Zurück zu Capivo</a>
+  <div class="card">
+    <h1>Datenschutzerklärung</h1>
+    <p class="muted">Stand: Oktober 2026 · <span lang="en">English summary: your video stays on your device; only the audio is sent for transcription. We store your email only if you enter it to download, and send news only if you opt in.</span></p>
+
+    <p class="lead"><strong>Kurz gesagt:</strong> Dein Video bleibt auf deinem Gerät. Zur Transkription wird nur der Ton übertragen. Deine E-Mail-Adresse speichern wir nur, wenn du sie für den Download eingibst, und einen Newsletter bekommst du nur, wenn du das Häkchen setzt.</p>
+
+    <h2>1. Verantwortlich</h2>
+    <p>web&amp;meh (Einzelunternehmen), Hauptstrasse 84A, 5070 Frick, Schweiz<br>E-Mail: <a href="mailto:hallo@webundmeh.ch">hallo@webundmeh.ch</a></p>
+    <p>Wir bearbeiten Personendaten nach dem Schweizer Datenschutzgesetz (DSG) und, soweit anwendbar, der EU-Datenschutz-Grundverordnung (DSGVO).</p>
+
+    <h2>2. Dein Video und die Transkription</h2>
+    <ul>
+      <li>Das Video wird <strong>nicht hochgeladen</strong>. Vorschau, Bearbeitung und Export laufen in deinem Browser.</li>
+      <li>Für die Untertitel extrahiert dein Browser den Ton (nur die Abschnitte mit Sprache) und sendet ihn an unseren Server bei Vercel. Von dort geht er an <strong>Groq, Inc. (USA)</strong>, die ihn mit einem Spracherkennungsmodell in Text umwandeln.</li>
+      <li>Für den Feinschliff (Satzzeichen, Gross-/Kleinschreibung), die Auswahl von Schlüsselwörtern, Emojis und Zoom-Momenten sowie den optionalen Post-Text senden wir den <strong>transkribierten Text</strong> ebenfalls an Groq.</li>
+      <li>Wir speichern weder Ton noch Transkript auf unseren Servern und protokollieren keine Inhalte. Groq bearbeitet die Daten nach ihren eigenen Datenschutzbestimmungen.</li>
+    </ul>
+
+    <h2>3. E-Mail-Adresse beim Download</h2>
+    <ul>
+      <li>Während der Beta fragen wir vor dem Download nach deiner E-Mail-Adresse. Wir speichern sie zusammen mit dem Zeitpunkt, der Browsersprache und deiner Newsletter-Wahl in einer Datenbank bei <strong>Supabase</strong> (Server in Frankfurt, Deutschland).</li>
+      <li>Ohne Häkchen verwenden wir die Adresse nur, um dich bei wichtigen Änderungen an Capivo (zum Beispiel dem Ende der Beta) zu informieren. Werbung bekommst du dann nicht.</li>
+      <li><strong>Newsletter</strong> nur mit deinem Häkchen. Wir speichern den angezeigten Einwilligungstext als Nachweis. Du kannst dich jederzeit abmelden, über den Link im Newsletter oder per E-Mail an uns.</li>
+      <li>Deine Adresse ist auf deinem Gerät gemerkt, damit du sie nicht erneut eingeben musst.</li>
+    </ul>
+
+    <h2>4. Konto (optional)</h2>
+    <p>Wenn du dich anmeldest, um Projekte zu speichern, verwenden wir Supabase (Frankfurt) für die Anmeldung per Code und für deine Projekte: Untertitel, Stil-Einstellungen und Vorlagen, aber nicht das Video. Du kannst die Löschung deines Kontos jederzeit per E-Mail verlangen.</p>
+
+    <h2>5. Hosting und Server-Logs</h2>
+    <p>Capivo wird bei <strong>Vercel Inc.</strong> gehostet. Beim Aufruf werden technisch notwendige Zugriffsdaten (z. B. IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browsertyp) in Server-Logs bearbeitet. Unsere Server-Funktionen nutzen die IP-Adresse zudem kurzzeitig im Arbeitsspeicher, um Missbrauch zu begrenzen. Vercel betreibt seine Infrastruktur international.</p>
+
+    <h2>6. Eingebundene Dienste</h2>
+    <ul>
+      <li><strong>Google Fonts</strong> (Google LLC): Schriften werden von Google-Servern geladen. Dabei wird deine IP-Adresse an Google übermittelt.</li>
+      <li><strong>Programmbibliotheken von CDNs</strong> (esm.sh, jsDelivr, unpkg): Werden einzelne Bibliotheken von dort nachgeladen, sehen diese Anbieter deine IP-Adresse.</li>
+      <li><strong>Offline-Spracherkennung</strong> (nur als Notlösung, wenn unser Server nicht erreichbar ist): Das Modell wird von Hugging Face geladen. Die Erkennung läuft dann vollständig in deinem Browser.</li>
+    </ul>
+    <p>Wir verwenden keine Tracking- oder Werbe-Cookies und keine Analyse-Tools, die Nutzerprofile bilden.</p>
+
+    <h2>7. Speicherung auf deinem Gerät</h2>
+    <p>Capivo speichert Einstellungen, Vorlagen und eine automatische Sicherung deines Projekts im lokalen Speicher deines Browsers (localStorage). Diese Daten verlassen dein Gerät nicht und lassen sich über die Browser-Einstellungen löschen.</p>
+
+    <h2>8. Übermittlung ins Ausland</h2>
+    <p>Groq, Vercel und Google haben ihren Sitz in den USA. Eine Bearbeitung ausserhalb der Schweiz und der EU ist deshalb möglich. Wir stützen uns dabei auf die von diesen Anbietern verwendeten Garantien, wie Standardvertragsklauseln oder das Swiss-U.S. Data Privacy Framework, soweit die Anbieter zertifiziert sind.</p>
+
+    <h2>9. Aufbewahrung</h2>
+    <p>E-Mail-Adressen bewahren wir auf, bis du die Löschung verlangst oder dich vom Newsletter abmeldest und die Adresse nicht mehr für die Beta-Information benötigt wird. Kontodaten löschen wir mit dem Konto.</p>
+
+    <h2>10. Deine Rechte</h2>
+    <p>Du kannst Auskunft über deine Daten verlangen sowie deren Berichtigung, Löschung oder Herausgabe. Eine Einwilligung kannst du jederzeit widerrufen. Schreib uns dazu an <a href="mailto:hallo@webundmeh.ch">hallo@webundmeh.ch</a>. Du hast ausserdem das Recht, dich beim Eidgenössischen Datenschutz- und Öffentlichkeitsbeauftragten (EDÖB) zu beschweren.</p>
+
+    <p class="muted"><a href="impressum.html">Impressum</a></p>
+  </div>
+</main>
+</body>
+</html>

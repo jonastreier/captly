@@ -581,6 +581,7 @@ input[type=checkbox]{accent-color:var(--brand)}
 .foot-legal{color:var(--faint);font-size:12px;margin-top:10px;line-height:1.6;max-width:560px}
 .foot-legal a{color:var(--brand);text-decoration:underline;cursor:pointer}
 .foot-copy{color:var(--faint);font-size:12px;margin-top:12px}
+.foot-copy a,.es-gate-fine a{color:inherit;text-decoration:underline}
 
 /* ═══ UX-VEREINFACHUNG (Editor) ═══
    Schriftgrößen im Editor nur noch 11 / 12.5 / 14 / 16 px; Icons aus dem SVG-Sprite (.ic). */
@@ -1067,13 +1068,13 @@ input[type=checkbox]{accent-color:var(--brand)}
       </div>
       <div class="foot-col">
         <div class="foot-col-h">Legal</div>
-        <a onclick="return false" href="#">Terms</a>
-        <a onclick="return false" href="#">Privacy Policy</a>
-        <a onclick="return false" href="#">Contact</a>
+        <a href="impressum.html">Impressum</a>
+        <a href="datenschutz.html">Privacy (Datenschutz)</a>
+        <a href="mailto:hallo@webundmeh.ch">Contact</a>
       </div>
     </div>
-    <p class="foot-legal">By uploading a video you agree to our <a onclick="return false" href="#">Terms</a> and have read our <a onclick="return false" href="#">Privacy Policy</a>.</p>
-    <p class="foot-copy">© 2026 Capivo</p>
+    <p class="foot-legal">Your video stays on your device; only the audio is sent for transcription. Details in our <a href="datenschutz.html">privacy policy</a>.</p>
+    <p class="foot-copy">© 2026 Capivo · Made in Switzerland by <a href="https://webundmeh.ch" rel="noopener" target="_blank">web&amp;meh</a></p>
   </footer>
 </div>
 
@@ -1132,7 +1133,7 @@ input[type=checkbox]{accent-color:var(--brand)}
         <input type="email" id="gateEmail" class="es-gate-in" placeholder="you@example.com" autocomplete="email" inputmode="email" maxlength="254" enterkeyhint="go">
         <p class="es-gate-err" id="gateErr" role="alert" style="display:none"></p>
         <label class="exp-chk"><input type="checkbox" id="gateNews"><span id="gateNewsTxt">Send me occasional tips &amp; updates about Capivo. Unsubscribe anytime.</span></label>
-        <p class="es-gate-fine">Free during beta. No newsletter unless you tick the box.</p>
+        <p class="es-gate-fine">Free during beta. No newsletter unless you tick the box. <a href="datenschutz.html" target="_blank" rel="noopener">Privacy</a></p>
       </form>
       <button type="button" class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
         <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
@@ -6416,8 +6417,8 @@ function capToast(msg) {
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(function(){ if (el.classList) el.classList.remove('show'); }, 2600);
 }
-// Im Editor nicht über Timeline (Desktop) bzw. Videoanfang (Handy): Desktop unten mittig über dem
-// Seitenpanel, Handy oben am Panel direkt unter dem Video. Sonst (Startseite) Standardplatz aus dem CSS.
+// Im Editor nicht über Timeline (Desktop) bzw. Video/Panelkopf (Handy): Desktop unten mittig über dem
+// Seitenpanel, Handy knapp über der Tab-Leiste. Sonst (Startseite) Standardplatz aus dem CSS.
 function capToastAnchor(el) {
   if (!el || !el.style) return;
   el.style.top = el.style.bottom = el.style.left = '';
@@ -6425,8 +6426,10 @@ function capToastAnchor(el) {
   var r = cc && cc.getBoundingClientRect ? cc.getBoundingClientRect() : null;
   if (!r || !(r.width > 0) || !(r.height > 0)) return;
   if (window.innerWidth <= 640) {
-    var top = Math.round(r.top + 8);
-    if (top > 60 && top < window.innerHeight - 120) { el.style.top = top + 'px'; el.style.bottom = 'auto'; }
+    // Handy: knapp über der unteren Tab-Leiste — verdeckt weder Video noch die oberste Panel-Zeile
+    var tabs = document.querySelector ? document.querySelector('.ed-tabs') : null;
+    var tr = tabs && tabs.getBoundingClientRect ? tabs.getBoundingClientRect() : null;
+    if (tr && tr.height > 0 && tr.top > 120) { el.style.bottom = Math.round(window.innerHeight - tr.top + 10) + 'px'; el.style.top = 'auto'; }
   } else {
     el.style.left = Math.round(r.left + r.width / 2) + 'px';
   }
