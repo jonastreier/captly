@@ -3154,6 +3154,18 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setEmphState(true, false, 'off');
   }
 
+  // Sprachversionen (captly.de.html): aus captly.html erzeugt, aktuell, vollständig übersetzt
+  {
+    const i18n = require('./scripts/build-i18n.js');
+    const de = i18n.build('de');
+    de.errors.forEach(e => console.log('  ' + e));
+    ok(de.errors.length === 0, 'i18n de: alle EN-Texte gefunden, keine unübersetzten Landing-Texte');
+    ok(fs.existsSync(de.file) && fs.readFileSync(de.file, 'utf8') === de.html, 'i18n de: captly.de.html aktuell (sonst: node scripts/build-i18n.js)');
+    ok(/<html lang="de">/.test(de.html) && /hreflang="de" href="https:\/\/[^"]+\/de"/.test(de.html), 'i18n de: lang + hreflang gesetzt');
+    const ldFaq = JSON.parse(de.html.match(/<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/g)[1].replace(/^<script[^>]*>\n|\n<\/script>$/g, ''));
+    ok(ldFaq['@type'] === 'FAQPage' && ldFaq.mainEntity.length === 6 && /kostenlos/.test(ldFaq.mainEntity[0].name), 'i18n de: FAQ-Strukturdaten aus den deutschen FAQ');
+  }
+
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();

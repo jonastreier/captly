@@ -29,6 +29,12 @@ eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
 Dateien, kein Build:
 - [`captly.html`](captly.html) — kompletter Editor + Landing (Single-File).
+- [`captly.de.html`](captly.de.html) — deutsche Landing unter `/de`, **generiert** aus `captly.html` + [`i18n/de.js`](i18n/de.js)
+  mit `node scripts/build-i18n.js` (`--check` prüft nur). Übersetzt sind `<head>` (Titel, Description, OG, JSON-LD) und
+  die Landing; der Editor bleibt englisch. Beide Seiten verlinken sich per `hreflang` + Sprachumschalter (Nav/Footer);
+  kein Auto-Redirect, nur ein wegklickbarer Hinweis für deutschsprachige Browser auf der EN-Seite.
+  `sitemap.xml`/`robots.txt` listen beide Versionen. **Domainwechsel** (z. B. `captionrush.com`): Basis-URL in
+  `captly.html` (canonical, hreflang, og:url/og:image), `i18n/de.js` (canonical, og:url, og:image) und `sitemap.xml`/`robots.txt` ersetzen.
 - [`transcribe.php`](transcribe.php) — serverseitiger Transkriptions-Proxy für Webhosting (hält den
   API-Key, ruft Groq). **Primärer Weg.**
 - [`schema.sql`](schema.sql) — Datenbankschema für Login & Cloud-Projekte, einmalig im
