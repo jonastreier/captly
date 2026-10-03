@@ -118,6 +118,13 @@ wie Polish, gleicher `GROQ_API_KEY`) **wählt nur aus** — es schreibt nie Text
 - Setup: nichts zusätzlich (gleiche Env-Variablen bzw. `config.php`; `RATE_LIMIT_PER_HOUR` zählt separat).
   `maxDuration` 30 s in `vercel.json`. Check: `GET /api/enhance` → `{"configured":true}`.
 - Tests: `node test-enhance.js` (gemockter Groq; prüft bei vorhandenem `php` auch die PHP-Parität).
+- **Editor:** Style-Tab → „Emphasis“: *Highlight keywords* (Default an), *Emojis* (Default aus), *Auto zoom*
+  Off/Subtle (1,10×)/Punchy (1,18×) (Default aus). Captions-Tab: unter der gewählten Zeile Wörter antippen
+  (hervorheben an/aus) und ein Emoji wählen/entfernen. Gespeichert pro Wort (`kw`/`emo`/`zm`) — übersteht
+  Text-Edits, Split/Merge, Neu-Gruppieren, Undo, Autosave und Projekte; Templates/Brand-Default merken die
+  drei Schalter. Vorschau und Export (WebCodecs + MediaRecorder, inkl. 9:16-Blur) rendern identisch; der Zoom
+  wirkt nur aufs Video, nie auf die Captions, und nie über einen Szenenschnitt. Export-Blatt: „Caption &
+  hashtags for your post“ (Copy/Regenerate). Notschalter: `localStorage['capivo.ai'] = 'off'`.
 
 ## Zuverlässigkeit & Komfort (Editor)
 
