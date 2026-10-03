@@ -53,6 +53,7 @@ body.editor-open{height:100vh;overflow:hidden}
 @keyframes captly-wobble{0%{transform:translateY(4px)}60%{transform:translateY(-1px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes capEmoIn{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
 @keyframes capIn{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 #app{display:flex;min-height:100vh}
@@ -414,6 +415,42 @@ input.lang-sel{cursor:text}
 .q-quick .q-row{margin-bottom:6px}
 .q-quick .q-row:last-child{margin-bottom:0}
 .q-quick .q-k{flex-basis:70px}
+.em-grp{background:#faf9fc;border:1px solid #efeaf5;border-radius:10px;padding:8px 10px;margin:-4px 0 12px}
+.em-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.em-row+.em-row{margin-top:7px}
+.em-row .q-k{flex:0 0 70px;display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;color:#3f3b46}
+.em-row .q-k .ic{width:14px;height:14px;color:#7c3aed}
+.em-row .pos-row{flex:1;margin:0;min-width:0}
+.em-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #ddd6e4;background:#fff;color:#55505c;border-radius:999px;padding:5px 10px;font:600 12px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.em-chip .ic{width:14px;height:14px}
+.em-chip.on{background:#f1ebfe;border-color:#c9b6f7;color:#5b21b6}
+.em-chip:hover{border-color:#a99cc0}
+.em-note{font-size:12px;color:var(--muted);margin:7px 0 0;line-height:1.4}
+.seg-emph{display:none;flex-basis:100%;align-items:center;flex-wrap:wrap;gap:4px;margin-top:5px;font-size:12px;color:var(--muted)}
+.cap-seg:focus-within .seg-emph,.cap-seg.sel .seg-emph{display:flex}
+.seg-emph .se-lbl{font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.05em;margin:0 2px 0 4px}
+.seg-emph button{border:1px solid #e2dce9;background:#fff;border-radius:6px;height:24px;padding:0 7px;font:500 12.5px 'Inter',sans-serif;color:#3f3b46;cursor:pointer;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seg-emph button:hover{border-color:#a99cc0}
+.seg-emph .se-w.on{background:#fff7d6;border-color:#f5c518;color:#1a1523;font-weight:700}
+.seg-emph .se-emo{display:inline-flex;align-items:center;justify-content:center;min-width:28px;padding:0 4px;color:#7c3aed}
+.seg-emph .se-emo .ic{width:16px;height:16px}
+.seg-emph .se-emo-g{font-size:15px;line-height:1}
+.emo-pick{position:fixed;z-index:120;width:300px;max-width:calc(100vw - 16px);background:#fff;border:1px solid #e6e1ec;border-radius:12px;box-shadow:0 18px 44px rgba(30,20,60,.22);padding:8px;box-sizing:border-box}
+.ep-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.ep-e{border:none;background:none;border-radius:7px;font-size:20px;line-height:1;height:34px;cursor:pointer;padding:0}
+.ep-e:hover,.ep-e.on{background:#f1ebfe}
+.ep-none{display:flex;align-items:center;gap:6px;width:100%;margin-top:6px;border:1px solid #ece7f2;background:#faf9fc;border-radius:8px;padding:7px 10px;font:600 12.5px 'Inter',sans-serif;color:#55505c;cursor:pointer}
+.ep-none .ic{width:14px;height:14px}
+.es-post{margin-top:12px;padding-top:12px;border-top:1px solid #f0edf4}
+.es-post-head{display:flex;align-items:center;gap:8px;width:100%;border:1px solid #e2dce9;background:#faf9fc;border-radius:9px;padding:9px 10px;font:600 13px 'Inter',sans-serif;color:#2a2630;cursor:pointer;text-align:left}
+.es-post-head .ic{width:16px;height:16px;color:#7c3aed;flex:0 0 auto}
+.es-post-head span:nth-child(2){flex:1}
+.es-post-go{font-size:12.5px;color:#6d28d9}
+.es-post-ta{display:block;width:100%;box-sizing:border-box;margin-top:8px;font:400 13.5px/1.45 'Inter',sans-serif;color:#1a1720;border:1px solid #d9d4e0;border-radius:9px;padding:9px 10px;resize:vertical;min-height:92px}
+.es-post-ta:focus{outline:none;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.15)}
+.es-post-acts{display:flex;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+.es-post-acts .pos-btn{flex:0 0 auto;padding:6px 14px}
+.es-post-note{font-size:12px;color:var(--muted);flex:1 1 140px}
 .mc-row{gap:8px}
 .mc-row input[type=range]{flex:1 1 0;min-width:0}
 .mc-row input[type=range].mc-off{opacity:.38;filter:grayscale(1)}
@@ -790,6 +827,8 @@ input[type=checkbox]{accent-color:#7c3aed}
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
   <symbol id="i-gap" viewBox="0 0 24 24"><path d="M3.5 5v14M20.5 5v14"/><path d="M6.5 12h4.5M8.8 9.5l2.4 2.5-2.4 2.5M17.5 12H13M15.2 9.5L12.8 12l2.4 2.5"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></symbol>
+  <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14c.9 1.4 2.1 2.1 3.5 2.1s2.6-.7 3.5-2.1"/><circle class="fill" cx="9.2" cy="10" r="1.1"/><circle class="fill" cx="14.8" cy="10" r="1.1"/></symbol>
   <symbol id="i-magnet" viewBox="0 0 24 24"><path d="M6 4.5h4v6.5a2 2 0 004 0V4.5h4V11a6 6 0 01-12 0z"/><path d="M6 8h4M14 8h4"/></symbol>
 </svg>
 <div id="app">
@@ -1089,7 +1128,18 @@ input[type=checkbox]{accent-color:#7c3aed}
       </div>
       <div class="es-done-links">
         <button type="button" class="es-link" id="expDlFile" style="display:none" onclick="downloadLastExport()">Download file</button><span id="expDlSep" aria-hidden="true" style="display:none">·</span>
-        <button type="button" class="es-link" id="expCopyPost" onclick="copyTranscript(this)">Copy text for your post</button>
+        <button type="button" class="es-link" id="expCopyPost" onclick="copyTranscript(this)">Copy full transcript</button>
+      </div>
+    </div>
+    <div class="es-post" id="expPost" style="display:none">
+      <button type="button" class="es-post-head" id="expPostBtn" onclick="genPostCaption()"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg><span>Caption &amp; hashtags for your post</span><span class="es-post-go" id="expPostGo">Write</span></button>
+      <div class="es-post-body" id="expPostBody" style="display:none">
+        <textarea id="expPostTa" class="es-post-ta" rows="4" spellcheck="true" aria-label="Caption and hashtags for your post" oninput="onPostEdit(this.value)"></textarea>
+        <div class="es-post-acts">
+          <button type="button" class="pos-btn on" onclick="copyPostCaption(this)">Copy</button>
+          <button type="button" class="pos-btn" onclick="genPostCaption(true)" title="Write a new version">Regenerate</button>
+          <span class="es-post-note" id="expPostNote"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -1234,8 +1284,8 @@ input[type=checkbox]{accent-color:#7c3aed}
         <!-- Caption editor — shown after transcription. Bedien-Hinweis nur EINMAL als wegklickbarer Tipp. -->
         <div class="cap-editor" id="capEditor">
           <div class="coach" id="coachEdit" style="display:none" role="note">
-            <span class="hint-desk"><b>Tip:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there.</span>
-            <span class="hint-touch"><b>Tip:</b> tap a line to edit · <b>return</b> splits · <b>⌫</b> at the start merges · tap the word in the video to edit it there.</span>
+            <span class="hint-desk"><b>Tip:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there · under a selected line, click words to highlight them or pick an emoji.</span>
+            <span class="hint-touch"><b>Tip:</b> tap a line to edit · <b>return</b> splits · <b>⌫</b> at the start merges · tap the word in the video to edit it there · under a selected line, tap words to highlight them or pick an emoji.</span>
             <button type="button" class="coach-x" onclick="dismissCoach('coachEdit')" aria-label="Dismiss tip"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
           </div>
           <div class="cap-segs" id="capSegs"></div>
@@ -1282,6 +1332,23 @@ input[type=checkbox]{accent-color:#7c3aed}
               <button type="button" class="pos-btn on" data-lines="2" onclick="setLines(this)" title="Up to two lines per caption">2</button>
             </div>
           </div>
+        </div>
+        <!-- Emphasis: KI wählt Schlüsselwörter, Emojis und Zoom-Momente (pro Wort/Caption im Captions-Tab änderbar) -->
+        <div class="em-grp" id="emGrp">
+          <div class="em-row">
+            <span class="q-k">Emphasis</span>
+            <button type="button" class="em-chip on" id="emKwBtn" onclick="setEmphKw(!emKw)" aria-pressed="true" title="AI picks the important words and highlights them in the style's accent colour — tap words in the Captions tab to change"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg>Highlight keywords</button>
+            <button type="button" class="em-chip" id="emEmoBtn" onclick="setEmphEmoji(!emEmoji)" aria-pressed="false" title="A fitting emoji on some captions — change or remove it per caption in the Captions tab"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg>Emojis</button>
+          </div>
+          <div class="em-row">
+            <span class="q-k" title="Smooth punch-in zooms on key moments (video only, never across a scene cut)">Auto zoom</span>
+            <div class="pos-row seg" id="emZoomRow">
+              <button type="button" class="pos-btn on" data-z="off" onclick="setEmphZoom('off')">Off</button>
+              <button type="button" class="pos-btn" data-z="subtle" onclick="setEmphZoom('subtle')" title="Gentle 10 % punch-in">Subtle</button>
+              <button type="button" class="pos-btn" data-z="punchy" onclick="setEmphZoom('punchy')" title="Stronger 18 % punch-in">Punchy</button>
+            </div>
+          </div>
+          <p class="em-note" id="emNote" role="status" aria-live="polite" style="display:none"></p>
         </div>
         <div class="style-grid" id="stylePicker"></div>
       </div>
@@ -1353,8 +1420,6 @@ input[type=checkbox]{accent-color:#7c3aed}
                 <option value="none">None</option><option value="scale">Pop</option><option value="punch">Punch</option>
                 <option value="bounce">Lift</option><option value="flash">Fade in</option><option value="glow">Glow</option>
               </select></div>
-            <div class="sz-row cs-line"><span class="cs-k">Keywords</span>
-              <input type="text" id="kwInput" class="lang-sel" style="margin:0;flex:1" placeholder="Always highlight, e.g. free, today" oninput="onKwChange(this.value)" title="Words that always appear in the highlight color"></div>
           </div>
           <div class="cs-grp"><div class="cs-gh">Timing &amp; text</div>
             <label class="chk-row" title="Captions disappear during silence and only show while someone is speaking. Off: the last caption stays up until the next one starts.">
@@ -1394,6 +1459,7 @@ input[type=checkbox]{accent-color:#7c3aed}
   </div>
 </div>
 
+<div class="emo-pick" id="emoPick" style="display:none" role="dialog" aria-label="Pick an emoji" onclick="onEmojiPick(event)"></div>
 <!-- Konto-Modal -->
 <div id="acctModal" style="display:none;position:fixed;inset:0;background:rgba(20,15,35,.45);z-index:100;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:16px;padding:22px;width:320px;box-shadow:0 24px 80px rgba(0,0,0,.25)">
@@ -1431,7 +1497,7 @@ var STYLES = [
    thumbBg:'linear-gradient(160deg,#151515,#0a0a0a)',
    tc:'#fff', ts:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
    hl:'#fff', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
-   anim:'none', cstroke:'#000'},
+   anim:'none', cstroke:'#000', em:'#FFD60A'},
   {id:'hormozi',  name:'Hormozi',    fl:'Montserrat', // Fette weiße Caps, dicke schwarze Kontur, aktives Wort gelb + kurzer Pop — der meistkopierte Talking-Head-Look
    font:"'Montserrat'", fw:'900', tt:'uppercase',
    thumbBg:'linear-gradient(160deg,#17140a,#070604)',
@@ -1442,7 +1508,7 @@ var STYLES = [
    font:"'Montserrat'", fw:'900', tt:'uppercase',
    thumbBg:'linear-gradient(160deg,#0c1410,#060907)',
    tc:'#fff', ts:outlineShadow(2, '#000') + ',0 3px 8px rgba(0,0,0,.4)',
-   hl:'#fff', hlPillBg:'#22c55e', hlc:'#06240f', hls:'none', anim:'scale', cstroke:'#000'},
+   hl:'#fff', hlPillBg:'#22c55e', hlc:'#06240f', hls:'none', anim:'scale', cstroke:'#000', em:'#4ade80'},
   {id:'beast',    name:'Beast',      fl:'Bangers', // MrBeast-Comic: Bangers-Caps, schwere Kontur + harter Drop-Shadow, aktives Wort farbig
    font:"'Bangers'", fw:'400', tt:'uppercase', ls:'1px', fs:'1.12em',
    thumbBg:'linear-gradient(160deg,#0b1730,#05070f)',
@@ -1464,30 +1530,30 @@ var STYLES = [
    thumbBg:'linear-gradient(160deg,#1d0b24,#0b0410)',
    tc:'#fff', ts:outlineShadow(2, '#000') + ',0 6px 14px rgba(0,0,0,.5)',
    hl:'#fff', hls:outlineShadow(2, '#000') + ',0 6px 14px rgba(0,0,0,.5)',
-   anim:'scale', cstroke:'#000', layout:{ wpb: 1, lines: 1 }},
+   anim:'scale', cstroke:'#000', layout:{ wpb: 1, lines: 1 }, em:'none', emS:1.15}, // Betonung = nur Grösse
   {id:'tiktok',   name:'TikTok',     fl:'Montserrat', // TikTok-Textstil: schwarzer Text auf weißer, abgerundeter Box
    font:"'Montserrat'", fw:'700',
    thumbBg:'linear-gradient(160deg,#141414,#0a0a0a)',
    tc:'#111', ts:'none',
    boxBg:'#ffffff', boxBr:'10px',
-   hl:'#111', hls:'none', anim:'none'},
+   hl:'#111', hls:'none', anim:'none', em:'#fe2c55'},
   {id:'hush',     name:'Subtitle',   fl:'Inter', // Netflix-Untertitel: weiß, Satzschreibung, weicher Schatten auf halbtransparentem Balken
    font:"'Inter'", fw:'600',
    thumbBg:'linear-gradient(160deg,#171717,#0c0c0c)',
    tc:'#fff', ts:'0 1px 3px rgba(0,0,0,.8)',
    boxBg:'rgba(0,0,0,.5)', boxBr:'4px',
-   hl:'#fff', hls:'0 1px 3px rgba(0,0,0,.8)', anim:'none'},
+   hl:'#fff', hls:'0 1px 3px rgba(0,0,0,.8)', anim:'none', em:'#ffe066'},
   {id:'focus',    name:'Karaoke',    fl:'Poppins', // Satzschreibung, aktives Wort in runder violetter Pill (Captions-App-Karaoke)
    font:"'Poppins'", fw:'800',
    thumbBg:'linear-gradient(160deg,#0e0818,#100a20)',
    tc:'#fff', ts:'0 2px 8px rgba(0,0,0,.6)',
-   hlPillBg:'#7c3aed', hlc:'#fff', hls:'none', anim:'scale'},
+   hlPillBg:'#7c3aed', hlc:'#fff', hls:'none', anim:'scale', em:'#c4b5fd'},
   {id:'headline', name:'Headline',   fl:'Anton', // Schmale fette Caps mit Kontur — ruhiger News-/Doku-Look ohne Wort-Hervorhebung
    font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px', fs:'1.05em',
    thumbBg:'linear-gradient(160deg,#1a0505,#0d0202)',
    tc:'#fff', ts:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
    hl:'#fff', hls:'-2px -2px 0 #000,0 -2px 0 #000,2px -2px 0 #000,-2px 0 0 #000,2px 0 0 #000,-2px 2px 0 #000,0 2px 0 #000,2px 2px 0 #000',
-   anim:'none', cstroke:'#000'},
+   anim:'none', cstroke:'#000', em:'#FFD60A'},
   {id:'stack',    name:'Dark Box',   fl:'DM Sans', // Caps auf dunkler Box, aktives Wort gelb
    font:"'DM Sans'", fw:'700', tt:'uppercase',
    thumbBg:'linear-gradient(160deg,#050505,#111)',
@@ -1508,7 +1574,7 @@ var STYLES = [
    font:"'Kalam'", fw:'700',
    thumbBg:'linear-gradient(160deg,#0f0f12,#17171b)',
    tc:'#ffffff', ts:'0 1px 6px rgba(0,0,0,.5)',
-   hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'none'},
+   hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'none', em:'#fde047'},
 ];
 // Entfernte bzw. zusammengelegte Presets (Kuratierung 2026) → nächstliegender behaltener Look.
 var STYLE_ALIASES = {
@@ -2629,11 +2695,13 @@ function previewFrameH() {
   return (h > 0) ? h : 390;
 }
 // lines (optional): Ziel-Zeilenzahl (CAPTION_LINES) für die Höhen-Prüfung. Ergebnis in Vorschau-Einheiten.
-function fitCaptionWords(words, s, px, maxW, lines) {
+// em (optional): Maske hervorgehobener Wörter — diese werden mit emphScale(s) gemessen (größer gezeichnet).
+function fitCaptionWords(words, s, px, maxW, lines, em) {
   var maxH = previewFrameH() * CAP_FIT_MAX_H;
+  var esc = emphScale(s);
   var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, capWordGap(s),
             s.hlPillBg ? 1 : 0, s.circle ? 1 : 0, s.boxBg ? 1 : 0, capLineH(s)].join(',') + '|' + px + '|' + Math.round(maxW)
-            + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen + '|' + capHyphLang();
+            + '|' + Math.round(maxH) + '|' + (lines || 0) + '|f' + _capFontGen + '|' + capHyphLang() + '|e' + emMaskKey(em) + esc;
   if (_capFitCache[key]) return _capFitCache[key];
   var ctx   = capMeasureCtx();
   var fn    = (s.font || "'Inter'").replace(/'/g, '');
@@ -2644,8 +2712,8 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   var tt    = s.tt === 'uppercase';
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
   var lsPx  = parseFloat(s.ls) || 0; // ls ist bei allen Styles px (oder 'none' → 0)
-  function measure(w, p) {
-    var sz = p * fsMul;
+  function measure(w, p, i) {
+    var sz = p * fsMul * ((em && i !== undefined && em[i]) ? esc : 1);
     ctx.font = fi + fw + ' ' + sz + 'px "' + fn + '", sans-serif';
     var normal = ctx.measureText(tt ? w.toUpperCase() : w).width;
     var hf = s.hlFont ? s.hlFont.replace(/'/g, '') : fn;
@@ -2658,7 +2726,7 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   // Kurzes Nachbarwort + überlanges Wort (capLongPairFits) → wie ein Einzelwort zuerst trennen statt schrumpfen
   var pair = null;
   if (words.length === 2 && (lines || 0) >= 2) {
-    var w0 = measure(words[0], px) > maxW, w1 = measure(words[1], px) > maxW;
+    var w0 = measure(words[0], px, 0) > maxW, w1 = measure(words[1], px, 1) > maxW;
     if (w0 !== w1) {
       var si = w0 ? 1 : 0;
       if (Array.from(words[si]).length <= CAP_SHORT_NEIGHBOR) pair = { li: 1 - si, si: si };
@@ -2668,17 +2736,17 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   function layoutAt(p) {
     var outW = [], orig = [], hq = 0;
     words.forEach(function(w, i) {
-      if (w.length < 8 || measure(w, p) <= maxW) { outW.push(w); orig.push(i); return; } // ≤ 7 Zeichen: nie trennen
-      var pcs = capHyphenate(w, function(piece){ return measure(piece, p) <= maxW; });
+      if (w.length < 8 || measure(w, p, i) <= maxW) { outW.push(w); orig.push(i); return; } // ≤ 7 Zeichen: nie trennen
+      var pcs = capHyphenate(w, function(piece){ return measure(piece, p, i) <= maxW; });
       // Paar „kurzes Wort + langes Wort“: Trennung so wählen, dass das kurze Wort in die Zeile des
       // angrenzenden Wortteils passt („Das Bundes- / verfassungsgericht“) — nur wenn das die Zeilen hält.
       if (pair && i === pair.li && pcs.length > 1) {
         var sw = pair.si < i ? words[pair.si] : null, ew = pair.si > i ? words[pair.si] : null, spW = measure(' ', p);
         var pcs2 = capHyphenate(w, function(piece) {
           var core = piece.replace(/-$/, '');
-          if (sw && w.indexOf(core) === 0) return measure(sw, p) + spW + measure(piece, p) <= maxW;
-          if (ew && core.length < w.length && w.lastIndexOf(core) === w.length - core.length && !/-$/.test(piece) ) return measure(piece, p) + spW + measure(ew, p) <= maxW;
-          return measure(piece, p) <= maxW;
+          if (sw && w.indexOf(core) === 0) return measure(sw, p, pair.si) + spW + measure(piece, p, i) <= maxW;
+          if (ew && core.length < w.length && w.lastIndexOf(core) === w.length - core.length && !/-$/.test(piece) ) return measure(piece, p, i) + spW + measure(ew, p, pair.si) <= maxW;
+          return measure(piece, p, i) <= maxW;
         });
         if (pcs2.length <= Math.max(1, lines || 1)) pcs = pcs2;
       }
@@ -2687,8 +2755,8 @@ function fitCaptionWords(words, s, px, maxW, lines) {
     });
     ctx.font = fi + fw + ' ' + (p * fsMul) + 'px "' + fn + '", sans-serif';
     var sp = ctx.measureText(' ').width + capWordGap(s) + lsPx, nl = 1, lw = 0, gw = maxW * 0.99; // 1 % Reserve: Export rundet die Schriftgröße
-    outW.forEach(function(w) {
-      var ww = measure(w, p), add = (lw ? sp : 0) + ww;
+    outW.forEach(function(w, k) {
+      var ww = measure(w, p, orig[k]), add = (lw ? sp : 0) + ww;
       if (lw && lw + add > gw) { nl++; lw = ww; } else lw += add;
     });
     var g = nl; // Zeilen bei gieriger Füllung = Mindestzahl, die bei dieser Größe nötig ist
@@ -2698,7 +2766,7 @@ function fitCaptionWords(words, s, px, maxW, lines) {
   }
   var floor = px * CAP_FIT_MIN;
   var widest = 0;
-  words.forEach(function(w){ widest = Math.max(widest, measure(w, px)); });
+  words.forEach(function(w, i){ widest = Math.max(widest, measure(w, px, i)); });
   var epx = px;
   // Einzelnes überlanges Wort (eigener Block dank Zeichenlimit) bei ≥ 2 Zeilen: zuerst an Wortfugen trennen
   // („Rindfleisch-/verarbeitungsbetriebe“) statt sofort auf eine Zeile zu schrumpfen — die Schleife unten
@@ -3011,7 +3079,7 @@ function capHyphLang() {
 }
 // hlOf (optional): Index-Abbildung Teilwort → Originalwort (nach Bindestrich-Trennung), damit alle
 // Teile eines aktiven Worts mit der Highlight-Schrift gemessen werden.
-function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
+function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf, em) {
   var ctx   = capMeasureCtx();
   var fn    = (s.font || "'Inter'").replace(/'/g, '');
   var fw    = s.fw || '700';
@@ -3024,11 +3092,13 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf) {
   // (Canvas mit letterSpacing) anders um als die Vorschau (2 Zeilen im MP4, 1 Zeile in der Vorschau).
   var lsPx  = parseFloat(s.ls) || 0;
   var sp    = ctx.measureText(' ').width + capWordGap(s) + lsPx; // wie word-spacing in buildCap (CSS-letter-spacing gilt auch fürs Leerzeichen)
+  var esc   = emphScale(s);
   var info  = words.map(function(w, i) {
-    var isHL = (hlOf ? hlOf[i] : i) === hlIdx;
+    var oi   = hlOf ? hlOf[i] : i;
+    var isHL = oi === hlIdx;
     var f    = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
     var it   = (isHL && s.hlItalic) ? 'italic ' : fi;
-    ctx.font = it + fw + ' ' + px + 'px "' + f + '", sans-serif';
+    ctx.font = it + fw + ' ' + (px * ((em && em[oi]) ? esc : 1)) + 'px "' + f + '", sans-serif';
     var wt   = (tt || (isHL && s.hlUpper)) ? w.toUpperCase() : w;
     return { i: i, w: ctx.measureText(wt).width + lsPx * wt.length + ((isHL && s.hlPillBg) ? 18 : 0), // Pill-Padding wie im DOM
              t: w, hy: !!hlOf && i + 1 < words.length && hlOf[i + 1] === hlOf[i] }; // hy: getrennter Wortteil → Zeilenende
@@ -3216,12 +3286,14 @@ function capWordGap(s) {
 }
 // Zeilenhöhe (Vielfaches der Schriftgröße) — Standard 1.3; eigene Styles: „Line height“ 0.9–1.8
 function capLineH(s) { var v = s && parseFloat(s.lh); return (v >= 0.8 && v <= 2) ? v : 1.3; }
-function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
+// ex (optional, Vorschau): { em: Maske hervorgehobener Wörter, emoji: Emoji der Caption, age: s seit Blockbeginn }
+function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   if (!words || !words.length) return '';
+  var em = (ex && ex.em) || null, esc = emphScale(s), ec = emphColor(s);
   // Auto-Fit nur für die echte Vorschau (lineTarget gesetzt) — Style-Thumbnails/Showcase haben eigene Größen.
   var srcWords = words, orig = null;
   if (lineTarget && px) {
-    var fit = fitCaptionWords(words, s, px, capFitMaxW(s), lineTarget);
+    var fit = fitCaptionWords(words, s, px, capFitMaxW(s), lineTarget, em);
     px = fit.px; words = fit.words; orig = fit.orig;
   }
   var font = s.font || "'Inter'";
@@ -3249,23 +3321,34 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   function wordHtml(i) {
     var oi   = orig ? orig[i] : i; // Teilwort → Originalwort (Highlight, Keyword, Seek gelten fürs ganze Wort)
     var isHL = oi === hlIdx;
-    var isKw = !isHL && isKeywordWord(srcWords[oi]);
+    var isEm = em ? !!em[oi] : isKeywordWord(srcWords[oi]); // ohne ex (Kacheln/Showcase): nur die alte Keyword-Liste
+    var isKw = !isHL && isEm;
     var wt   = (tt === 'uppercase' || (isHL && s.hlUpper)) ? words[i].toUpperCase() : words[i];
     var ws   = 'display:inline-block;';
-    if (isHL || isKw) {
-      if (isHL && s.hlFont)   ws += 'font-family:' + s.hlFont + ',sans-serif;';
-      if (isHL && s.hlItalic) ws += 'font-style:italic;';
-      if (isHL && s.circle)   ws += 'border:2.5px solid ' + (s.hl || '#fff') + ';border-radius:50%;padding:.02em .3em;';
+    if (isHL) {
+      if (s.hlFont)   ws += 'font-family:' + s.hlFont + ',sans-serif;';
+      if (s.hlItalic) ws += 'font-style:italic;';
+      if (s.circle)   ws += 'border:2.5px solid ' + (s.hl || '#fff') + ';border-radius:50%;padding:.02em .3em;';
       if (s.hlg)                    ws += 'background:' + s.hlg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
-      else if (isHL && s.hlPillBg)  ws += 'background:' + s.hlPillBg + ';padding:2px 9px;border-radius:5px;color:' + (s.hlc || '#fff') + ';-webkit-text-fill-color:' + (s.hlc || '#fff') + ';';
-      else                          ws += 'color:' + (isHL ? hlColorFor(s, oi) : (s.hl || '#fff')) + ';';
+      else if (s.hlPillBg)          ws += 'background:' + s.hlPillBg + ';padding:2px 9px;border-radius:5px;color:' + (s.hlc || '#fff') + ';-webkit-text-fill-color:' + (s.hlc || '#fff') + ';';
+      else                          ws += 'color:' + hlColorFor(s, oi) + ';';
       ws += 'text-shadow:' + (s.hls || 'none') + ';';
-      if (isHL && s.anim && s.anim !== 'none') ws += 'animation:captly-' + s.anim + ' .34s ease both;';
+      if (s.anim && s.anim !== 'none') ws += 'animation:captly-' + s.anim + ' .34s ease both;';
+    } else if (isKw) {
+      // Hervorgehoben (nicht aktiv): Akzentfarbe des Styles (emphColor), sonst Textfarbe; Schatten s. emphShadowIsHl
+      if (s.hlg)      ws += 'background:' + s.hlg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+      else if (ec)    ws += 'color:' + ec + ';';
+      else if (s.tg)  ws += 'background:' + s.tg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+      else            ws += 'color:' + (s.tc || '#fff') + ';';
+      ws += 'text-shadow:' + ((emphShadowIsHl(s) ? s.hls : s.ts) || 'none') + ';';
     } else {
       if (s.tg) ws += 'background:' + s.tg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
       else      ws += 'color:' + (s.tc || '#fff') + ';';
       ws += 'text-shadow:' + (s.ts || 'none') + ';';
     }
+    // Größer (wie capLayout im Export: Schrift × emphScale). Zeilenhöhe so gewählt, dass die Box des größeren
+    // Worts (grundlinienbündig) oben nicht über die Nachbarn ragt → Zeilenabstand/Position bleiben exakt wie im Export.
+    if (isEm) ws += 'font-size:' + esc + 'em;line-height:' + emphLineH(s, esc).toFixed(4) + ';';
     var ck = '';
     if (seekTimes && seekTimes[oi] !== undefined) {
       ck = ' data-wi="' + oi + '" onclick="event.stopPropagation();capOverlayClickWord(event,' + oi + ',' + Number(seekTimes[oi]).toFixed(3) + ')"';
@@ -3275,7 +3358,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
   }
   var built;
   if (lineTarget && words.length > 1) {
-    var groups = wrapCaptionLines(words, s, hlIdx, px || 24, lineTarget, orig);
+    var groups = wrapCaptionLines(words, s, hlIdx, px || 24, lineTarget, orig, em);
     built = groups.map(function(idxs) {
       var line = idxs.map(function(i, k){ return (k ? ' ' : '') + wordHtml(i); }).join('');
       return '<span style="display:block;white-space:nowrap">' + line + '</span>';
@@ -3284,9 +3367,576 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget) {
     built = '';
     for (var i = 0; i < words.length; i++) built += (i ? ' ' : '') + wordHtml(i);
   }
+  // Emoji der Caption: absolut über (Position „Top“: unter) der Caption-Box → verschiebt den Text nicht.
+  // Pop-in per negativer animation-delay (Phase = Zeit seit Blockbeginn) → beim Scrubben/Neu-Rendern stabil.
+  if (ex && ex.emoji) {
+    var E = Math.round((px || 24) * EMO_REL), below = capPos === 'top';
+    built += '<span class="cap-emo" aria-hidden="true" style="position:absolute;left:0;right:0;' + (below ? 'top:100%;margin-top:' : 'bottom:100%;margin-bottom:')
+      + (E * EMO_GAP).toFixed(2) + 'px;font-family:' + EMO_FONT + ';font-size:' + E + 'px;line-height:1;text-align:center;font-weight:400;font-style:normal;'
+      + 'letter-spacing:0;word-spacing:0;text-transform:none;white-space:nowrap;text-shadow:0 ' + (E * 0.04).toFixed(2) + 'px ' + (E * 0.12).toFixed(2) + 'px rgba(0,0,0,.35);'
+      + 'pointer-events:none;transform-origin:50% ' + (below ? '0%' : '100%') + ';animation:capEmoIn ' + ANIM_DUR + 's linear both;animation-delay:'
+      + (-Math.max(0, ex.age || 0)).toFixed(3) + 's">' + escHtml(ex.emoji) + '</span>';
+    wCss += 'position:relative;';
+    if (hp) { // Emoji gehört in die äußere Box (nicht in die Akzent-Box)
+      var cut = built.lastIndexOf('<span class="cap-emo"');
+      return '<span style="' + wCss + '"><span style="' + pCss + '">' + built.slice(0, cut) + '</span>' + built.slice(cut) + '</span>';
+    }
+  }
   return hp
     ? ('<span style="' + wCss + '"><span style="' + pCss + '">' + built + '</span></span>')
     : ('<span style="' + wCss + '">' + built + '</span>');
+}
+
+// ═══════════════════════════════════════
+// EMPHASIS — KI-Keywords, Emojis, Auto-Zoom (wie die Captions-App)
+// ═══════════════════════════════════════
+// Gespeichert wird PRO WORT (übersteht Neu-Gruppieren, Split/Merge, Text-Edits, Undo, Projekte):
+//   w.kw   1 = automatisch hervorgehoben (KI/Heuristik) · 2 = vom Nutzer an · -1 = vom Nutzer aus
+//   w.emo  Emoji der Caption, verankert an einem ihrer Wörter ('' + w.emoU = vom Nutzer entfernt)
+//   w.emoU 1 = Emoji vom Nutzer gesetzt/entfernt (KI überschreibt es nie)
+//   w.zm   1 = Zoom-Moment (Punch-in) beginnt bei diesem Wort
+// Darstellung: Vorschau (buildCap) und Export (capLayout/drawCaptionsOnCtx) nutzen dieselben Helfer.
+var EM_KEY = 'capivo.emph';
+var emKw = true, emEmoji = false, emZoom = 'off'; // Schalter im Style-Tab (Default: Keywords an, Rest aus)
+var emSrc = null;      // 'llm' | 'local' | null — Herkunft der automatischen Auswahl
+var EMPH_SCALE = 1.12; // hervorgehobenes Wort ~12 % größer (One Word: s.emS)
+var EMO_REL = 1.35;    // Emoji-Größe relativ zur (angepassten) Caption-Schriftgröße
+var EMO_GAP = 0.12;    // Abstand Emoji ↔ Caption (Anteil der Emoji-Größe)
+var EMO_FONT = "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol',sans-serif"; // einfache Anführungszeichen: steht auch im style-Attribut
+var WFLAGS = ['kw', 'emo', 'emoU', 'zm'];
+(function() {
+  try {
+    var o = JSON.parse((typeof localStorage !== 'undefined' && localStorage.getItem(EM_KEY)) || 'null');
+    if (o && typeof o === 'object') {
+      if (typeof o.kw === 'boolean') emKw = o.kw;
+      if (typeof o.emoji === 'boolean') emEmoji = o.emoji;
+      if (['off', 'subtle', 'punchy'].indexOf(o.zoom) >= 0) emZoom = o.zoom;
+    }
+  } catch (e) {}
+})();
+function copyWordFlags(src, dst) {
+  if (src && dst) for (var i = 0; i < WFLAGS.length; i++) { var k = WFLAGS[i]; if (src[k] !== undefined) dst[k] = src[k]; }
+  return dst;
+}
+function isEmphWord(w) { return !!w && (w.kw > 0 || (w.kw !== -1 && isKeywordWord(w.word))); }
+// Maske der hervorgehobenen Wörter eines Blocks (null = keins / Schalter aus)
+function blockEmph(b) {
+  if (!emKw || !b || !b.words) return null;
+  var any = false, m = b.words.map(function(w){ var e = isEmphWord(w); if (e) any = true; return e; });
+  return any ? m : null;
+}
+function blockEmoji(b) {
+  if (!b || !b.words) return '';
+  for (var i = 0; i < b.words.length; i++) if (b.words[i] && b.words[i].emo) return b.words[i].emo;
+  return '';
+}
+// Unitless line-height für ein um k vergrößertes Wort: Box-Oberkante = die der Nachbarn (s. buildCap).
+// L' = (L − (k−1)·(Ober − Unterlänge)) / k, Metriken der Caption-Schrift (Canvas), Fallback typische Werte.
+var _emAdCache = {};
+function emphLineH(s, k) {
+  var fn = (s.font || "'Inter'").replace(/'/g, ''), key = fn + '|' + (s.fw || '700') + '|' + _capFontGen, ad = _emAdCache[key];
+  if (ad === undefined) {
+    ad = 0.69;
+    try {
+      var c = capMeasureCtx(); c.font = (s.fw || '700') + ' 100px "' + fn + '", sans-serif';
+      var m = c.measureText('Hg');
+      if (m && m.fontBoundingBoxAscent > 0 && m.fontBoundingBoxDescent > 0) ad = (m.fontBoundingBoxAscent - m.fontBoundingBoxDescent) / 100;
+    } catch (e) {}
+    _emAdCache[key] = ad;
+  }
+  return Math.max(0.5, (capLineH(s) - (k - 1) * ad) / k);
+}
+function emMaskKey(m) { return m ? m.map(function(x){ return x ? 1 : 0; }).join('') : ''; }
+// Skalierung hervorgehobener Wörter je Style (One Word: etwas mehr, dort ist Grösse die einzige Betonung)
+function emphScale(s) { var v = s && +s.emS; return v >= 1 && v <= 1.5 ? v : EMPH_SCALE; }
+// Farbe hervorgehobener (nicht aktiver) Wörter: eigene Style-Angabe (em, 'none' = nur Grösse) → Pill-Farbe →
+// Highlight-Farbe (wenn sie sich vom Text abhebt) → Gelb. null = Textfarbe behalten.
+function emphColor(s) {
+  if (!s) return null;
+  if (typeof s.em === 'string' && s.em) return s.em === 'none' ? null : s.em;
+  if (s.hlg) return null;
+  if (s.hlPillBg) return s.hlPillBg;
+  var h = cssColorToHexA(s.hl || ''), t = cssColorToHexA(s.tc || '#fff');
+  if (s.hl && (!h || !t || h.hex !== t.hex || Math.abs(h.a - t.a) > 0.05)) return s.hl;
+  return '#FFD60A';
+}
+// Schatten hervorgehobener Wörter: Highlight-Schatten, ausser bei Pill-Styles (dort ist hls 'none', die Pill
+// liefert den Kontrast) bzw. ohne eigene Farbe → normaler Text-Schatten.
+function emphShadowIsHl(s) { return !!(s && !s.hlPillBg && (emphColor(s) || s.hlg)); }
+// Nach Änderungen an den Flags (Nutzer/KI): die stabile Referenz srcWords mitführen, damit spätere Text-Edits
+// (retimeEditedBlock richtet sich nach srcWords) die Hervorhebung behalten.
+function syncSrcFlags(b) {
+  if (!b || !b.srcWords || !b.words) return;
+  b.srcWords.forEach(function(sw, i) {
+    var k = normWordKey(sw.word), hit = null;
+    if (b.words.length === b.srcWords.length && b.words[i] && normWordKey(b.words[i].word) === k) hit = b.words[i];
+    for (var j = 0; !hit && j < b.words.length; j++) {
+      var w = b.words[j];
+      if (normWordKey(w.word) === k && Math.abs((w.start || 0) - (sw.start || 0)) < 0.02) hit = w;
+    }
+    WFLAGS.forEach(function(f){ delete sw[f]; });
+    if (hit) copyWordFlags(hit, sw);
+  });
+}
+
+// ── Lokale Heuristik (Fallback ohne KI) ──
+var EM_STOP = null;
+function emStopSet() {
+  if (EM_STOP) return EM_STOP;
+  EM_STOP = {};
+  ('der die das den dem des ein eine einen einem einer eines und oder aber doch denn weil dass wenn als wie ich du er sie es wir ihr ' +
+   'mich dich sich uns euch mir dir ihm ihn ihnen mein dein sein unser euer meine deine seine unsere unserem unseren ist sind war waren bin ' +
+   'bist seid hat haben habe hast hatte wird werden wurde kann können muss müssen soll will in im ins an am auf aus bei mit nach von vom zu ' +
+   'zum zur für über unter vor hinter neben zwischen durch gegen ohne um nicht auch noch schon nur so da dann hier dort ja nein mal eben halt ' +
+   'also quasi gell gäll eh äh ähm öhm hm hmm heute jetzt immer sehr ganz ganze ganzen viel mehr alle alles man dieser diese dieses ' +
+   'de d dr s isch si mer üs eus em is i u o ond gsi ha hät het hend the a an and or but if as of to on at by for with from into is are was ' +
+   'were be been do does did you he it we they me him her us them my your his its our their this that these those um uh like just really ' +
+   'very what when where there here then than have has had will would can could should le la les un une et ou mais je tu il elle nous vous ' +
+   'est sont au aux dans sur pour par avec lo gli una ma io lui lei noi voi loro sono di da su per con el los las y pero yo es son en por para')
+    .split(/\s+/).forEach(function(w){ if (w) EM_STOP[w] = 1; });
+  return EM_STOP;
+}
+function emNorm(w) { return String(w || '').toLowerCase().replace(/ß/g, 'ss').replace(/[^\p{L}\p{N}]+/gu, ''); }
+function emEligible(w) {
+  var n = emNorm(w);
+  if (!n) return false;
+  if (/\p{N}/u.test(n)) return true;
+  return n.length >= 3 && !emStopSet()[n];
+}
+// Je Caption höchstens ein Wort: Zahl > (Deutsch) längstes grossgeschriebenes Nomen > längstes Inhaltswort (≥ 5
+// Zeichen). Insgesamt max. ~30 % der Wörter; Zooms auf Zahlen/hervorgehobenen Wörtern mit ≥ 6 s Abstand.
+function localEmphasis(blocks, lang) {
+  var de = /^de/.test(lang || '') || lang === 'german';
+  var picks = [];
+  (blocks || []).forEach(function(b, bi) {
+    var best = -1, bestScore = 0;
+    (b.words || []).forEach(function(w, i) {
+      if (!emEligible(w.word)) return;
+      var raw = String(w.word || '').replace(/^[^\p{L}\p{N}]+/u, ''), n = emNorm(w.word), sc = 0;
+      if (/\p{N}/u.test(n)) sc = 100 + n.length;
+      else if (de && /^\p{Lu}/u.test(raw) && i > 0) sc = 50 + n.length;
+      else if (de && /^\p{Lu}/u.test(raw)) sc = 20 + n.length;
+      else if (n.length >= 5) sc = 10 + n.length;
+      if (sc > bestScore) { bestScore = sc; best = i; }
+    });
+    if (best >= 0) picks.push({ b: bi, i: best, sc: bestScore });
+  });
+  var total = 0; (blocks || []).forEach(function(b){ total += (b.words || []).length; });
+  var max = Math.max(1, Math.floor(total * 0.3));
+  if (picks.length > max) picks = picks.slice().sort(function(a, c){ return c.sc - a.sc; }).slice(0, max)
+    .sort(function(a, c){ return a.b - c.b || a.i - c.i; });
+  var lastZ = -Infinity;
+  picks.forEach(function(p) {
+    var w = blocks[p.b].words[p.i];
+    if (w.kw !== 2 && w.kw !== -1) w.kw = 1;
+    if (p.sc >= 50 && (w.start || 0) - lastZ >= 6) { w.zm = 1; lastZ = w.start || 0; }
+  });
+  return picks.length;
+}
+// Automatische Flags entfernen (Nutzer-Entscheidungen bleiben)
+function clearAutoFlags(blocks) {
+  (blocks || []).forEach(function(b) {
+    (b.words || []).forEach(function(w) {
+      if (w.kw === 1) delete w.kw;
+      if (!w.emoU) delete w.emo;
+      delete w.zm;
+    });
+  });
+}
+
+// ── KI-Auswahl (api/enhance, Fallback enhance.php) ──
+var ENH_ENDPOINTS = ['api/enhance', 'enhance.php'], _enIdx = 0, ENH_TIMEOUT_MS = 24000, ENH_BATCH_CHARS = 11000;
+var _enRun = 0, _enhancing = false;
+// Notschalter: localStorage['capivo.ai'] = 'off' → keine KI-Anfrage (lokale Heuristik); Tests schalten den
+// automatischen Hintergrund-Aufruf ganz ab (ENH_AUTO), damit er keine fremden fetch-Mocks trifft.
+var ENH_AUTO = true;
+function aiOff() { try { return typeof localStorage !== 'undefined' && localStorage.getItem('capivo.ai') === 'off'; } catch (e) { return false; } }
+async function postEnhance(body) {
+  var tok = openaiKey ? '' : await authToken();
+  for (var guard = 0; guard < ENH_ENDPOINTS.length + 1; guard++) {
+    var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, ENH_TIMEOUT_MS), resp;
+    try {
+      resp = await fetch(ENH_ENDPOINTS[_enIdx], { method: 'POST', signal: ctrl.signal,
+        headers: tok ? { 'Content-Type': 'application/json', 'X-Capivo-Token': tok } : { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body) });
+    } catch (e) { clearTimeout(timer); throw new Error('enhance: ' + (e && e.name === 'AbortError' ? 'Timeout' : 'Netzwerk')); }
+    clearTimeout(timer);
+    if (resp.status === 404 || resp.status === 405 || resp.status === 403) {
+      if (_enIdx < ENH_ENDPOINTS.length - 1) { _enIdx++; continue; }
+      _enIdx = 0; throw new Error('enhance: kein Endpoint');
+    }
+    if (!resp.ok) throw new Error('enhance: HTTP ' + resp.status);
+    var j = await resp.json();
+    if (!j || typeof j !== 'object') throw new Error('enhance: unerwartete Antwort');
+    return j;
+  }
+  throw new Error('enhance: kein Endpoint');
+}
+function emLang() {
+  var l = _lastTrMeta && _lastTrMeta.lang;
+  if (l && CODE_BY_LANG[l]) return CODE_BY_LANG[l];
+  try { return capLang() || ''; } catch (e) { return ''; }
+}
+function emWordRef(w) { return normWordKey(w.word) + '|' + (Math.round((w.start || 0) * 100) / 100); }
+// KI-Ergebnis auf die AKTUELLEN Blöcke anwenden: Wörter über (Text, Startzeit) wiederfinden — so überstehen die
+// Ergebnisse Edits während der Anfrage; gelöschte Wörter fallen einfach weg.
+function applyEnhanceResult(results, refs, blocks) {
+  blocks = blocks || captionBlocks;
+  var byRef = {};
+  blocks.forEach(function(b, bi) { b.words.forEach(function(w) { var k = emWordRef(w); if (!byRef[k]) byRef[k] = { w: w, b: bi }; }); });
+  clearAutoFlags(blocks);
+  var userEmo = {};
+  blocks.forEach(function(b, bi) { if (b.words.some(function(w){ return w.emoU; })) userEmo[bi] = 1; });
+  var n = 0;
+  (results || []).forEach(function(r) {
+    var ref = r && refs[r.id];
+    if (!ref) return;
+    var kw = Array.isArray(r.kw) ? r.kw.filter(function(i){ return i >= 0 && i < ref.length; }) : [];
+    kw.forEach(function(i) { var hit = byRef[ref[i]]; if (hit && hit.w.kw !== 2 && hit.w.kw !== -1) { hit.w.kw = 1; n++; } });
+    // Anker für Emoji/Zoom: erstes tatsächlich hervorgehobenes Keyword, sonst erstes Keyword / erstes Wort
+    var anchor = null;
+    kw.forEach(function(i) { var h = byRef[ref[i]]; if (!anchor && h && isEmphWord(h.w)) anchor = h; });
+    if (!anchor) anchor = byRef[ref[kw.length ? kw[0] : 0]] || null;
+    for (var a = 0; !anchor && a < ref.length; a++) anchor = byRef[ref[a]] || null;
+    if (!anchor) return;
+    if (typeof r.emoji === 'string' && r.emoji && !userEmo[anchor.b] && !blockEmoji(blocks[anchor.b])) anchor.w.emo = r.emoji;
+    if (r.zoom === true) anchor.w.zm = 1;
+  });
+  blocks.forEach(syncSrcFlags);
+  return n;
+}
+// Im Hintergrund nach Transkription/Polish bzw. beim Laden älterer Projekte. Nie blockierend, nie ein Fehler-Popup:
+// scheitert die KI (offline, Limit, PHP-Host ohne enhance.php), übernimmt still die lokale Heuristik.
+async function runEnhance(force) {
+  if (!ENH_AUTO && !force) return null;
+  var run = ++_enRun, blocks = captionBlocks;
+  if (!blocks.length) return null;
+  if (aiOff()) { clearAutoFlags(blocks); localEmphasis(blocks, emLang()); blocks.forEach(syncSrcFlags); emSrc = 'local'; afterEmphChange(); return emSrc; }
+  var segs = [], refs = [];
+  blocks.forEach(function(b, i) {
+    refs.push(b.words.map(emWordRef));
+    segs.push({ id: i, text: b.words.map(function(w){ return w.word; }).join(' '),
+                start: Math.round((b.start || 0) * 100) / 100, end: Math.round((b.end || 0) * 100) / 100 });
+  });
+  var batches = [], cur = [], chars = 0;
+  segs.forEach(function(sg) {
+    if (cur.length && (chars + sg.text.length > ENH_BATCH_CHARS || cur.length >= 900)) { batches.push(cur); cur = []; chars = 0; }
+    cur.push(sg); chars += sg.text.length;
+  });
+  if (cur.length) batches.push(cur);
+  _enhancing = true; syncEmphUI();
+  var results = [], ok = true;
+  for (var k = 0; k < batches.length; k++) {
+    try {
+      var j = await postEnhance({ lang: emLang(), want: ['keywords', 'emojis', 'zoom'], segments: batches[k] });
+      if (!Array.isArray(j.segments)) throw new Error('enhance: segments fehlt');
+      results = results.concat(j.segments);
+    } catch (e) { console.warn('KI-Hervorhebung übersprungen:', e && e.message || e); ok = false; break; }
+    if (run !== _enRun) return null;
+  }
+  if (run !== _enRun) return null;
+  _enhancing = false;
+  if (ok) { applyEnhanceResult(results, refs); emSrc = 'llm'; }
+  else { clearAutoFlags(captionBlocks); localEmphasis(captionBlocks, emLang()); captionBlocks.forEach(syncSrcFlags); emSrc = 'local'; }
+  afterEmphChange();
+  return emSrc;
+}
+function afterEmphChange(save) {
+  _lastKey = null; _zoomPlanKey = null;
+  try { updateOverlay(); } catch (e) {}
+  refreshAllSegEmph(); syncEmphUI(); tlRequestDraw();
+  if (save !== false) scheduleAutosave();
+}
+
+// ── Schalter (Style-Tab) ──
+function persistEmph() { try { localStorage.setItem(EM_KEY, JSON.stringify({ kw: emKw, emoji: emEmoji, zoom: emZoom })); } catch (e) {} }
+function setEmphKw(on) { emKw = !!on; persistEmph(); afterEmphChange(); }
+function setEmphEmoji(on) { emEmoji = !!on; persistEmph(); afterEmphChange(); }
+function setEmphZoom(z) { emZoom = ['subtle', 'punchy'].indexOf(z) >= 0 ? z : 'off'; persistEmph(); afterEmphChange(); }
+function syncEmphUI() {
+  var a = document.getElementById('emKwBtn'), e = document.getElementById('emEmoBtn');
+  [[a, emKw], [e, emEmoji]].forEach(function(p) {
+    if (!p[0]) return;
+    if (p[0].classList) p[0].classList.toggle('on', p[1]);
+    if (p[0].setAttribute) p[0].setAttribute('aria-pressed', p[1] ? 'true' : 'false');
+  });
+  document.querySelectorAll('#emZoomRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.z === emZoom); });
+  var n = document.getElementById('emNote');
+  if (n) {
+    var txt = !captionBlocks.length ? '' : _enhancing ? 'AI is picking keywords…'
+      : emSrc === 'local' ? 'AI picks unavailable right now — using simple keyword detection' + (emEmoji ? ' (no emojis)' : '') + '.' : '';
+    n.textContent = txt; n.style.display = txt ? '' : 'none';
+  }
+}
+
+// ── Pro Wort / pro Caption (Captions-Tab) ──
+function toggleWordEmph(bi, wi) {
+  var b = captionBlocks[bi], w = b && b.words[wi];
+  if (!w) return;
+  pushUndo();
+  w.kw = isEmphWord(w) ? -1 : 2;
+  syncSrcFlags(b);
+  if (!emKw) { emKw = true; persistEmph(); capToast('Keyword highlighting turned on'); }
+  markCaptionsEdited();
+  afterEmphChange();
+}
+function setBlockEmoji(bi, emo) {
+  var b = captionBlocks[bi];
+  if (!b || !b.words.length) return;
+  pushUndo();
+  var anchor = null;
+  b.words.forEach(function(w) { if (w.emo && !anchor) anchor = w; if (w.emo) { w.emo = ''; w.emoU = 1; } });
+  if (!anchor) for (var i = 0; i < b.words.length && !anchor; i++) if (isEmphWord(b.words[i])) anchor = b.words[i];
+  anchor = anchor || b.words[0];
+  anchor.emo = emo || ''; anchor.emoU = 1;
+  syncSrcFlags(b);
+  if (emo && !emEmoji) { emEmoji = true; persistEmph(); capToast('Emojis turned on'); }
+  markCaptionsEdited();
+  afterEmphChange();
+}
+var EMO_PICK = ['🔥', '💯', '😂', '😍', '😎', '🤔', '😮', '🤯', '🙌', '👏', '👍', '👀', '💪', '🎉', '✨', '❤️',
+  '💡', '📈', '💰', '🚀', '⚡', '🎯', '✅', '❌', '🙏', '👋', '💬', '❓', '🐄', '🌿', '🌾', '🥩', '🏡', '☀️', '🌍', '📸', '🎬', '🏆', '😋', '😴'];
+function segEmphHtml(idx) {
+  var b = captionBlocks[idx];
+  if (!b) return '';
+  var emo = blockEmoji(b);
+  var h = '<button type="button" class="se-emo' + (emo ? ' has' : '') + '" data-a="emo" title="' + (emo ? 'Change or remove the emoji' : 'Add an emoji to this caption') + '" aria-label="Caption emoji">'
+    + (emo ? '<span class="se-emo-g">' + escHtml(emo) + '</span>' : icon('smile')) + '</button><span class="se-lbl">Highlight</span>';
+  b.words.forEach(function(w, i) {
+    h += '<button type="button" class="se-w' + (isEmphWord(w) ? ' on' : '') + '" data-a="w:' + i + '" aria-pressed="' + (isEmphWord(w) ? 'true' : 'false') + '">' + escHtml(w.word) + '</button>';
+  });
+  return h;
+}
+function buildSegEmph(idx) {
+  var d = document.createElement('div');
+  d.className = 'seg-emph';
+  d.innerHTML = segEmphHtml(idx);
+  d.title = 'Tap a word to highlight it';
+  d.onclick = function(e) {
+    e.stopPropagation();
+    var tg = e.target && e.target.closest ? e.target.closest('[data-a]') : e.target;
+    var a = tg && tg.getAttribute && tg.getAttribute('data-a');
+    if (!a) return;
+    if (a === 'emo') { openEmojiPicker(idx, tg); return; }
+    if (a.slice(0, 2) === 'w:') toggleWordEmph(idx, parseInt(a.slice(2), 10));
+  };
+  d.onmousedown = function(e) { if (e.target && e.target.closest && e.target.closest('button')) e.preventDefault(); }; // Fokus im Textfeld lassen
+  return d;
+}
+function refreshSegEmph(idx) {
+  var row = document.getElementById('seg' + idx), el = row && row.querySelector ? row.querySelector('.seg-emph') : null;
+  if (el) el.innerHTML = segEmphHtml(idx);
+}
+function refreshAllSegEmph() {
+  var c = document.getElementById('capSegs');
+  if (!c || !c.querySelectorAll) return;
+  c.querySelectorAll('.seg-emph').forEach(function(el) {
+    var row = el.parentNode, m = row && /^seg(\d+)$/.exec(row.id || '');
+    if (m) el.innerHTML = segEmphHtml(+m[1]);
+  });
+}
+var _emoPickIdx = -1;
+function openEmojiPicker(idx, anchorEl) {
+  var p = document.getElementById('emoPick');
+  if (!p) return;
+  _emoPickIdx = idx;
+  var cur = blockEmoji(captionBlocks[idx]);
+  p.innerHTML = '<div class="ep-grid">' + EMO_PICK.map(function(e) {
+    return '<button type="button" class="ep-e' + (e === cur ? ' on' : '') + '" data-e="' + e + '">' + e + '</button>';
+  }).join('') + '</div><button type="button" class="ep-none" data-e="">' + icon('x') + ' No emoji</button>';
+  p.style.display = 'block';
+  try {
+    var r = anchorEl.getBoundingClientRect(), pw = p.offsetWidth || 300, ph = p.offsetHeight || 220;
+    var x = Math.max(8, Math.min(innerWidth - pw - 8, r.left)), y = r.bottom + 6;
+    if (y + ph > innerHeight - 8) y = Math.max(8, r.top - ph - 6);
+    p.style.left = x + 'px'; p.style.top = y + 'px';
+  } catch (e) {}
+}
+function closeEmojiPicker() { var p = document.getElementById('emoPick'); if (p) p.style.display = 'none'; _emoPickIdx = -1; }
+function onEmojiPick(e) {
+  var tg = e.target && e.target.closest ? e.target.closest('[data-e]') : null;
+  if (!tg) return;
+  var idx = _emoPickIdx;
+  closeEmojiPicker();
+  if (idx >= 0) setBlockEmoji(idx, tg.getAttribute('data-e'));
+}
+
+// ── Emoji im Canvas (Export) — gleiche Geometrie wie die Vorschau (absolut über/unter der Caption-Box) ──
+var EMO_KF = [[0, { sx: .4, sy: .4, op: 0 }], [55, { sx: 1.12, sy: 1.12, op: 1 }], [100, { sx: 1, sy: 1, op: 1 }]];
+function emojiPopState(age) {
+  if (!(age >= 0)) return { s: 0.4, op: 0 };
+  if (age >= ANIM_DUR) return { s: 1, op: 1 };
+  var pct = age / ANIM_DUR * 100, lo = EMO_KF[0], hi = EMO_KF[2];
+  if (pct <= EMO_KF[1][0]) hi = EMO_KF[1]; else lo = EMO_KF[1];
+  var f = (pct - lo[0]) / (hi[0] - lo[0]);
+  return { s: lo[1].sx + (hi[1].sx - lo[1].sx) * f, op: lo[1].op + (hi[1].op - lo[1].op) * f };
+}
+var _emoSprites = new Map();
+function emojiSprite(emo, px) {
+  var key = emo + '|' + Math.round(px);
+  var hit = _emoSprites.get(key);
+  if (hit) return hit;
+  var cv = document.createElement('canvas'), m = Math.ceil(px * 0.25) + 4;
+  var c0 = cv.getContext('2d');
+  c0.font = px + 'px ' + EMO_FONT;
+  var met = c0.measureText(emo), w = Math.max(px, met.width || px);
+  var A = met.fontBoundingBoxAscent > 0 ? met.fontBoundingBoxAscent : px * 0.95, D = met.fontBoundingBoxDescent > 0 ? met.fontBoundingBoxDescent : px * 0.27;
+  cv.width = Math.ceil(w + 2 * m); cv.height = Math.ceil(px + 2 * m);
+  var c = cv.getContext('2d');
+  c.font = px + 'px ' + EMO_FONT; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = px * 0.12; c.shadowOffsetY = px * 0.04;
+  // CSS: Zeilenbox der Höhe px (line-height:1), Grundlinie bei (px − (A+D))/2 + A
+  c.fillText(emo, cv.width / 2, m + (px - (A + D)) / 2 + A);
+  var res = { cv: cv, m: m, px: px };
+  _emoSprites.set(key, res);
+  if (_emoSprites.size > 24) _emoSprites.delete(_emoSprites.keys().next().value);
+  return res;
+}
+// L: capLayout-Ergebnis · age: Sekunden seit Blockbeginn (Pop-in)
+function drawCapEmoji(ctx, emo, L, s, age, W) {
+  var px = Math.round(L.fitPx * EMO_REL) * L.scale; // wie die Vorschau: dort auf ganze CSS-px gerundet
+  if (!(px > 4)) return;
+  var spr = emojiSprite(emo, px), padB = s.boxBg ? 5 * L.scale : 0, gap = px * EMO_GAP, top;
+  if (capPos === 'top') top = L.y0 + (L.lines.length - 1) * L.lh + L.capD + padB + gap;
+  else top = L.y0 - L.capA - padB - gap - px;
+  var st = emojiPopState(age);
+  if (st.op <= 0) return;
+  ctx.save();
+  ctx.globalAlpha *= st.op;
+  var cx = W / 2, by = capPos === 'top' ? top : top + px; // Skalierungs-Ursprung: Kante zur Caption (wie transform-origin)
+  ctx.translate(cx, by); ctx.scale(st.s, st.s); ctx.translate(-cx, -by);
+  ctx.drawImage(spr.cv, cx - spr.cv.width / 2, top - spr.m);
+  ctx.restore();
+}
+
+// ── Auto-Zoom („Punch-in“) ──
+// Ein Zoom startet kurz vor dem markierten Wort, fährt weich ein (0,3 s), hält ~1,6 s und fährt wieder aus.
+// Nie über einen Szenenschnitt (endet hart AM Schnitt bzw. beginnt erst danach), Starts ≥ 4 s auseinander.
+// Gleiche Funktion für Vorschau (CSS-Transform am Video) und Export (Canvas-Transform vor dem Video-Zeichnen).
+var ZOOM_AMT = { subtle: 1.10, punchy: 1.18 }, ZOOM_IN = 0.3, ZOOM_HOLD = 1.6, ZOOM_OUT = 0.35, ZOOM_LEAD = 0.1, ZOOM_GAP = 4, ZOOM_MIN = 0.6;
+var _zoomPlan = [], _zoomPlanKey = null;
+function zoomPlanFrom(starts, cuts, dur) {
+  cuts = (cuts || []).slice().sort(function(a, b){ return a - b; });
+  starts = starts.slice().sort(function(a, b){ return a - b; });
+  var out = [], last = -Infinity;
+  for (var i = 0; i < starts.length; i++) {
+    var zs = Math.max(0, starts[i] - ZOOM_LEAD);
+    var prevCut = -Infinity, nextCut = Infinity;
+    cuts.forEach(function(c) { if (c <= starts[i] && c > prevCut) prevCut = c; if (c > zs && c < nextCut && c > starts[i] - 1e-9) nextCut = c; });
+    if (prevCut > zs) zs = prevCut; // nicht vor dem Schnitt beginnen
+    if (zs - last < ZOOM_GAP) continue;
+    var end = zs + ZOOM_IN + ZOOM_HOLD + ZOOM_OUT, hard = false;
+    if (nextCut < end) { end = nextCut; hard = true; }
+    if (isFinite(dur) && dur > 0 && end > dur) end = dur;
+    if (end - zs < ZOOM_MIN) continue;
+    out.push({ s: zs, e: end, hard: hard });
+    last = zs;
+  }
+  return out;
+}
+function zoomPlan() {
+  if (emZoom === 'off' || !captionBlocks.length) return [];
+  var starts = [];
+  captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { if (w.zm && isFinite(w.start)) starts.push(w.start); }); });
+  var vid = typeof document !== 'undefined' ? document.getElementById('mainVid') : null;
+  var dur = vid && vid.duration;
+  var key = starts.join(',') + '|' + sceneCuts.length + ':' + (sceneCuts[sceneCuts.length - 1] || 0) + '|' + (dur || 0);
+  if (key !== _zoomPlanKey) { _zoomPlan = zoomPlanFrom(starts, sceneCuts, dur); _zoomPlanKey = key; }
+  return _zoomPlan;
+}
+function easeInOut(x) { x = Math.max(0, Math.min(1, x)); return x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; }
+function zoomScaleAt(t, plan, amt) {
+  for (var i = 0; i < plan.length; i++) {
+    var z = plan[i];
+    if (t < z.s || t >= z.e) continue;
+    var k;
+    if (t - z.s < ZOOM_IN) k = easeInOut((t - z.s) / ZOOM_IN);
+    else if (!z.hard && z.e - t < ZOOM_OUT) k = easeInOut((z.e - t) / ZOOM_OUT);
+    else k = 1;
+    return 1 + (amt - 1) * k;
+  }
+  return 1;
+}
+// t = Videozeit (ohne timeOff) — wie bei den Captions gilt der Timing-Feinschliff
+function zoomAt(t) {
+  if (emZoom === 'off') return 1;
+  return zoomScaleAt(t + timeOff, zoomPlan(), ZOOM_AMT[emZoom] || 1);
+}
+// Video-Ebene (inkl. Blur-Hintergrund) zoomen, Captions NICHT: fn zeichnet das Video.
+function drawZoomedVideo(ctx, W, H, t, fn) {
+  var z = zoomAt(t);
+  if (z === 1) { fn(); return; }
+  ctx.save();
+  ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  fn();
+  ctx.restore();
+}
+var _prevZoom = 1;
+function applyPreviewZoom(tVid) {
+  var z = zoomAt(tVid);
+  if (Math.abs(z - _prevZoom) < 1e-4) return;
+  _prevZoom = z;
+  var tf = z === 1 ? '' : 'scale(' + z.toFixed(4) + ')';
+  ['mainVid', 'prevBlurBg'].forEach(function(id) { var el = document.getElementById(id); if (el && el.style) el.style.transform = tf; });
+}
+
+// ── Post-Text + Hashtags (Export-Blatt) ──
+var postCaption = null; // { caption, hashtags[], src: 'llm'|'local' }
+function localPostCaption() {
+  var txt = transcriptText().replace(/\s+/g, ' ').trim();
+  var m = /^(.{12,160}?[.!?…])(\s|$)/.exec(txt), hook = m ? m[1] : txt.slice(0, 150).replace(/\s+\S*$/, '') + (txt.length > 150 ? '…' : '');
+  var seen = {}, tags = [];
+  captionBlocks.forEach(function(b) { b.words.forEach(function(w) {
+    if (!isEmphWord(w) || tags.length >= 5) return;
+    var h = String(w.word).replace(/[^\p{L}\p{N}_]/gu, '');
+    if (h.length < 3 || /^\d+$/.test(h) || seen[h.toLowerCase()]) return;
+    seen[h.toLowerCase()] = 1; tags.push('#' + h.charAt(0).toUpperCase() + h.slice(1));
+  }); });
+  return { caption: hook, hashtags: tags, src: 'local' };
+}
+function postText(p) { return p ? (p.caption + (p.hashtags && p.hashtags.length ? '\n\n' + p.hashtags.join(' ') : '')) : ''; }
+function syncPostUI() {
+  var box = document.getElementById('expPost'), body = document.getElementById('expPostBody'), ta = document.getElementById('expPostTa');
+  var go = document.getElementById('expPostGo'), note = document.getElementById('expPostNote');
+  if (!box) return;
+  box.style.display = captionBlocks.length ? '' : 'none';
+  if (body) body.style.display = postCaption ? '' : 'none';
+  if (ta && postCaption && document.activeElement !== ta) {
+    ta.value = postText(postCaption);
+    if (body && body.style.display !== 'none' && ta.style) { ta.style.height = 'auto'; ta.style.height = Math.min(220, (ta.scrollHeight || 92) + 2) + 'px'; } // ganze Caption + Hashtags sichtbar
+  }
+  if (go) { go.textContent = _postBusy ? 'Writing…' : postCaption ? '' : 'Write'; go.style.display = postCaption && !_postBusy ? 'none' : ''; }
+  if (note) note.textContent = postCaption && postCaption.src === 'local' ? 'AI unavailable — simple version from your transcript.' : '';
+}
+var _postBusy = false;
+async function genPostCaption(regen) {
+  if (_postBusy || !captionBlocks.length) return;
+  if (postCaption && !regen) return;
+  _postBusy = true; syncPostUI();
+  var text = transcriptText().replace(/\s+/g, ' ').trim().slice(0, 11500), res = null;
+  try {
+    var j = await postEnhance({ lang: emLang(), want: ['post'], text: text });
+    if (j && j.post && (j.post.caption || (j.post.hashtags || []).length))
+      res = { caption: String(j.post.caption || ''), hashtags: (j.post.hashtags || []).map(String), src: 'llm' };
+  } catch (e) { console.warn('Post-Text übersprungen:', e && e.message || e); }
+  _postBusy = false;
+  postCaption = res || localPostCaption();
+  syncPostUI(); scheduleAutosave();
+}
+function onPostEdit(v) {
+  if (!postCaption) return;
+  var parts = String(v).split(/\n\s*\n/), last = parts.length > 1 ? parts[parts.length - 1] : '';
+  if (last && /^(#[\p{L}\p{N}_]+\s*)+$/u.test(last.trim())) postCaption = { caption: parts.slice(0, -1).join('\n\n').trim(), hashtags: last.trim().split(/\s+/), src: postCaption.src };
+  else postCaption = { caption: String(v).trim(), hashtags: [], src: postCaption.src };
+  scheduleAutosave();
+}
+function copyPostCaption(btn) {
+  var ta = document.getElementById('expPostTa'), v = ta ? ta.value : postText(postCaption);
+  function done(ok) { if (btn) { var o = btn.textContent; btn.textContent = ok ? 'Copied ✓' : 'Select & copy'; setTimeout(function(){ btn.textContent = o; }, 1500); } }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(v).then(function(){ done(true); }, function(){ if (ta) ta.select(); done(false); }); return; }
+  } catch (e) {}
+  if (ta) { ta.select(); try { done(document.execCommand('copy')); } catch (e2) { done(false); } }
 }
 
 // ═══════════════════════════════════════
@@ -3353,11 +4003,12 @@ function updateOverlay(t) {
     if (bi < 0 && !playing) bi = nearestBlockIdx(t); // pausiert: nächstliegenden Block als Vorschau zeigen
     var b = bi >= 0 ? captionBlocks[bi] : null;
     var wi = b ? activeWordIdx(b, t) : -1;
-    key = bi + ':' + wi + ':' + activeId + ':' + fontSize + ':' + displayMode + ':' + (b ? b.text : '');
+    var exm = b ? blockEmph(b) : null, emo = (b && emEmoji) ? blockEmoji(b) : '';
+    key = bi + ':' + wi + ':' + activeId + ':' + fontSize + ':' + displayMode + ':' + (b ? b.text : '') + ':' + emMaskKey(exm) + ':' + emo + ':' + capPos;
     if (key !== _lastKey) {
       ov.innerHTML = b
         ? buildCap(b.words.map(function(w){ return displayWord(w.word); }), s, wi, fontSize,
-                   b.words.map(function(w){ return w.start; }), CAPTION_LINES)
+                   b.words.map(function(w){ return w.start; }), CAPTION_LINES, { em: exm, emoji: emo, age: t - b.start })
         : '';
       if (b && bi !== _lastBi) { // Einblend-Animation nur beim Blockwechsel
         ov.style.animation = 'none'; void ov.offsetWidth;
@@ -3370,6 +4021,7 @@ function updateOverlay(t) {
     }
   }
   document.getElementById('prevBg').style.background = vidReady ? '#000' : s.thumbBg;
+  applyPreviewZoom(t - timeOff); // Auto-Zoom: nur das Video (CSS-Transform), nie die Captions
   if (!vidReady || vid.paused) positionPlayIcon(); // nur im Pausenzustand sichtbar → kein Layout-Read pro Frame
   tlRequestDraw(); // Abspielkopf + aktiver Balken (ein rAF pro Frame, egal wie oft gerufen)
 }
@@ -4222,7 +4874,7 @@ function buildCaptionBlocks(wts, cuts) {
       var cOut = cutBetween(cuts, m1, end);           // Schnitt nach der Mitte des letzten Worts
       if (cOut !== null) end = Math.max(start + 0.05, cOut);
     }
-    var words = chunk.map(function(w){ return { word: w.word, start: w.start || start, end: w.end || 0 }; });
+    var words = chunk.map(function(w){ return copyWordFlags(w, { word: w.word, start: w.start || start, end: w.end || 0 }); });
     words.forEach(function(w, k){ if (!w.end || w.end <= w.start) w.end = words[k + 1] ? words[k + 1].start : end; });
     blocks.push({ words: words, srcWords: copyTimedWords(words), start: start, end: end,
                   text: words.map(function(w){ return w.word; }).join(' ') });
@@ -4256,7 +4908,7 @@ function resplitBlock(b) {
 // Ohne brauchbare Wortdaten → resplitBlock().
 function normWordKey(w) { return String(w || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, ''); }
 function copyTimedWords(ws) {
-  return (ws || []).map(function(w){ return { word: w.word, start: w.start, end: w.end }; });
+  return (ws || []).map(function(w){ return copyWordFlags(w, { word: w.word, start: w.start, end: w.end }); });
 }
 function retimeEditedBlock(b) {
   var ws = String(b.text || '').split(/\s+/).filter(Boolean);
@@ -4265,7 +4917,7 @@ function retimeEditedBlock(b) {
   if (!valid) { resplitBlock(b); return; }
   if (!ws.length) { b.words = []; return; }
   if (ws.length === old.length) {
-    b.words = ws.map(function(w, i){ return { word: w, start: old[i].start, end: old[i].end }; });
+    b.words = ws.map(function(w, i){ return copyWordFlags(old[i], { word: w, start: old[i].start, end: old[i].end }); }); // gleicher Slot → Hervorhebung/Emoji bleiben
     return;
   }
   // LCS-Tabelle (Blöcke sind kurz; selbst eingefügte Absätze bleiben im niedrigen Tausender-Bereich)
@@ -4283,7 +4935,7 @@ function retimeEditedBlock(b) {
     else j++;
   }
   var bs = isFinite(b.start) ? b.start : old[0].start, be = isFinite(b.end) ? b.end : old[n - 1].end;
-  var out = ws.map(function(w, k){ var oi = match[k]; return oi < 0 ? null : { word: w, start: old[oi].start, end: old[oi].end }; });
+  var out = ws.map(function(w, k){ var oi = match[k]; return oi < 0 ? null : copyWordFlags(old[oi], { word: w, start: old[oi].start, end: old[oi].end }); });
   var k = 0;
   while (k < m) {
     if (out[k]) { k++; continue; }
@@ -4291,7 +4943,7 @@ function retimeEditedBlock(b) {
     var pi = k > 0 ? match[k - 1] : -1, ni = k1 < m ? match[k1] : n; // alte Anker-Indizes
     var s0, e0, cnt = k1 - k;
     if (ni - pi - 1 === cnt) {                                // gleich lang ersetzt → Slots 1:1 übernehmen
-      for (var q1 = 0; q1 < cnt; q1++) out[k + q1] = { word: ws[k + q1], start: old[pi + 1 + q1].start, end: old[pi + 1 + q1].end };
+      for (var q1 = 0; q1 < cnt; q1++) out[k + q1] = copyWordFlags(old[pi + 1 + q1], { word: ws[k + q1], start: old[pi + 1 + q1].start, end: old[pi + 1 + q1].end });
       k = k1; continue;
     }
     if (ni - pi > 1) { s0 = old[pi + 1].start; e0 = old[ni - 1].end; }   // Ersetzung: Spanne der alten Wörter
@@ -4404,6 +5056,7 @@ async function renderSegments() {
         el.style.height = 'auto';
         el.style.height = el.scrollHeight + 'px';
         renderWPills();
+        refreshSegEmph(i);
         _lastKey = null;
         updateOverlay();
       };
@@ -4425,6 +5078,7 @@ async function renderSegments() {
     row.appendChild(ts);
     row.appendChild(ta);
     row.appendChild(buildSegTools(idx, b));
+    row.appendChild(buildSegEmph(idx));
     if (idx === tlSel && row.classList) row.classList.add('sel'); // Timeline-Auswahl übersteht das Neuaufbauen
     frag.appendChild(row);
     rows.push(ta);
@@ -4900,7 +5554,7 @@ var userTemplates = [];
 // Templates können aus fremden JSON-Dateien kommen → nur bekannte Style-Felder übernehmen und
 // Zeichen entfernen, mit denen man aus dem style="…"-Attribut (buildCap) ausbrechen könnte.
 var TPL_STYLE_KEYS = ['fl','font','fw','tt','ls','lh','fs','fi','tc','ts','hl','hls','anim','cstroke','thumbBg','hlPillBg','hlc',
-  'boxBg','boxBr','pill','tg','hlFont','hlItalic','hlg','hlUpper','circle','hlCycle'];
+  'boxBg','boxBr','pill','tg','hlFont','hlItalic','hlg','hlUpper','circle','hlCycle','em','emS'];
 function cleanCssVal(v) { return String(v).replace(/[<>"\\;{}]/g, '').replace(/url\s*\(|expression\s*\(/gi, '').slice(0, 600); }
 function sanitizeStyle(st) {
   var out = {};
@@ -4949,6 +5603,9 @@ function normalizeTemplate(t) {
   if (typeof lay.mode === 'string') layOut.mode = lay.mode.replace(/[^a-z]/gi, '').slice(0, 20);
   if (['asis', 'upper', 'lower', 'orig'].indexOf(lay.case) >= 0) layOut.case = lay.case;
   if (typeof lay.punct === 'boolean') layOut.punct = lay.punct;
+  if (typeof lay.kw === 'boolean') layOut.kw = lay.kw;
+  if (typeof lay.emoji === 'boolean') layOut.emoji = lay.emoji;
+  if (['off', 'subtle', 'punchy'].indexOf(lay.zoom) >= 0) layOut.zoom = lay.zoom;
   return { id: tid, name: String(t.name || 'Template').slice(0, 60), style: st, layout: layOut,
            createdAt: +t.createdAt || ts0, updatedAt: ts0 };
 }
@@ -5000,7 +5657,8 @@ function currentLayout() {
   // ab (9:16 am Desktop 270 px breit, quadratisch 360 px, Handy ~240 px) — ein Template sähe sonst je Video
   // anders groß aus. case/punct gehören zum Look (Brand-Kit) und reisen mit.
   return { pos: capPos, voff: capVOff, size: fontSize, sizeRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
-           mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, case: capCase, punct: capNoPunct };
+           mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, case: capCase, punct: capNoPunct,
+           kw: emKw, emoji: emEmoji, zoom: emZoom }; // Emphasis-Schalter gehören zum Look (Brand-Kit)
 }
 function newTplId() { return 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6); }
 function setTplEditing(id) {
@@ -5269,6 +5927,12 @@ function applyTemplateSettings(t) {
   if (t.case) capCase = t.case;
   if (typeof t.punct === 'boolean') capNoPunct = t.punct;
   if (t.case || typeof t.punct === 'boolean') syncTextFormatUI();
+  if (typeof t.kw === 'boolean' || typeof t.emoji === 'boolean' || t.zoom) {
+    if (typeof t.kw === 'boolean') emKw = t.kw;
+    if (typeof t.emoji === 'boolean') emEmoji = t.emoji;
+    if (['off', 'subtle', 'punchy'].indexOf(t.zoom) >= 0) emZoom = t.zoom;
+    persistEmph(); _zoomPlanKey = null; syncEmphUI(); _lastKey = null;
+  }
   if (t.mode) {
     displayMode = t.mode;
     syncModeUI();
@@ -5696,7 +6360,7 @@ function syncWordsFromBlocks() {
   if (!captionBlocks.length) return;
   var flat = [];
   captionBlocks.forEach(function(b) {
-    (b.words || []).forEach(function(w) { if (w && w.word) flat.push({ word: w.word, start: w.start, end: w.end }); });
+    (b.words || []).forEach(function(w) { if (w && w.word) flat.push(copyWordFlags(w, { word: w.word, start: w.start, end: w.end })); });
   });
   wordTimestamps = flat;
 }
@@ -6207,7 +6871,9 @@ function projectPayload() {
   var p = { title: projTitle, fontRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
            blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
            lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
-           noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts };
+           noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts,
+           emph: { kw: emKw, emoji: emEmoji, zoom: emZoom, src: emSrc } };
+  if (postCaption) p.post = { caption: postCaption.caption, hashtags: (postCaption.hashtags || []).slice(0, 10), src: postCaption.src };
   if (tlSpeech.length) p.speech = tlSpeech.slice(0, 2000); // Sprachbereiche für die Timeline (klein, gerundet)
   // Eigener Style bzw. Template mitspeichern — die IDs allein existieren in einer neuen Sitzung/auf
   // einem anderen Gerät evtl. nicht (Custom lebt nur im Speicher, Templates im localStorage).
@@ -6272,7 +6938,20 @@ function applyProjectPayload(p) {
   if (typeof p.maxChars === 'number') CAP_MAX_CHARS = (p.maxChars >= CAP_CHARS_MIN && p.maxChars <= CAP_CHARS_MAX) ? p.maxChars : 0;
   syncMaxCharsUI();
   if (p.mode) { displayMode = p.mode; syncModeUI(); }
-  if (p.keywords) hlKeywords = p.keywords;
+  // Alte globale Keyword-Liste → pro Wort (Nutzer-Hervorhebung), Liste danach leer: nur noch eine Quelle
+  if (Array.isArray(p.keywords) && p.keywords.length && p.blocks) {
+    hlKeywords = p.keywords.map(String);
+    captionBlocks.forEach(function(b) { b.words.forEach(function(w) { if (w.kw === undefined && isKeywordWord(w.word)) w.kw = 2; }); syncSrcFlags(b); });
+  }
+  hlKeywords = [];
+  if (p.emph && typeof p.emph === 'object') {
+    if (typeof p.emph.kw === 'boolean') emKw = p.emph.kw;
+    if (typeof p.emph.emoji === 'boolean') emEmoji = p.emph.emoji;
+    emZoom = ['subtle', 'punchy'].indexOf(p.emph.zoom) >= 0 ? p.emph.zoom : 'off';
+    emSrc = p.emph.src === 'llm' || p.emph.src === 'local' ? p.emph.src : null;
+  } else if (p.blocks) emSrc = null;
+  postCaption = (p.post && typeof p.post.caption === 'string') ? { caption: p.post.caption, hashtags: Array.isArray(p.post.hashtags) ? p.post.hashtags.map(String).slice(0, 10) : [], src: p.post.src === 'local' ? 'local' : 'llm' } : null;
+  _zoomPlanKey = null; syncEmphUI(); syncPostUI();
   if (p.timeOff !== undefined) { timeOff = Math.max(-0.5, Math.min(0.5, +p.timeOff || 0)); syncTimeOffUI(); }
   if (typeof p.noPunct === 'boolean') capNoPunct = p.noPunct;
   if (typeof p.breakAtCuts === 'boolean') { breakAtCuts = p.breakAtCuts; var bc = document.getElementById('cutChk'); if (bc) bc.checked = breakAtCuts; }
@@ -6295,6 +6974,8 @@ function applyProjectPayload(p) {
   // Geladene Blöcke bleiben, wie sie gespeichert wurden — erst eine echte Änderung (Style/Größe/Limit) passt an
   if (p.blocks) _relayoutKey = capLimitKey(capBlockLimit());
   syncMaxCharsUI();
+  // Älteres Projekt ohne KI-Auswahl → im Hintergrund nachholen (still, nie blockierend)
+  if (p.blocks && !emSrc && captionBlocks.length) runEnhance();
 }
 // ── Wasserzeichen (nur anonym) — Hinweis VOR dem Export im Blatt, Angebot danach inline (kein Modal) ──
 // Beta: Bezahlpläne sind noch nicht kaufbar (startCheckout) → ein „$9 ohne Wasserzeichen“-Angebot wäre
@@ -6848,6 +7529,11 @@ async function polishInPlace(run, lang, vocab) {
   } finally { if (run === _trRun) _polishing = false; }
   return applied;
 }
+// Nach dem Anzeigen: erst Polish (verändert Wörter), dann KI-Hervorhebung auf dem endgültigen Text.
+async function postTranscribeAI(run, lang, vocab) {
+  try { if (polishEnabled()) await polishInPlace(run, lang, vocab); } catch (e) { console.warn('Polish:', e && e.message || e); }
+  if (run === _trRun && captionBlocks.length) await runEnhance();
+}
 async function transcribeVideo(file) {
   // Lauf-Token: Wird währenddessen ein anderes Video geladen oder neu transkribiert (Modell/Sprache/
   // Übersetzen/Retry), darf dieser Lauf danach NICHTS mehr schreiben — sonst landen die Captions
@@ -7052,7 +7738,8 @@ async function transcribeVideo(file) {
     }
     // Feinschliff im Hintergrund: Captions sind schon sichtbar/bearbeitbar; Korrekturen landen nur, solange
     // niemand etwas geändert hat (sonst still verworfen).
-    if (polishEnabled()) polishInPlace(run, CODE_BY_LANG[usedLang] || lc || '', vocab);
+    emSrc = null; postCaption = null; _zoomPlanKey = null; syncPostUI(); syncEmphUI();
+    postTranscribeAI(run, CODE_BY_LANG[usedLang] || lc || '', vocab);
 
   } catch(err) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
@@ -7317,8 +8004,11 @@ function positionPlayIcon() {
   var z = zoomLevel || 1, H = fr.height / z; // Rects sind per Zoom skaliert → in Rahmen-px umrechnen
   // Bei „Middle“ spannt capOverlay die volle Höhe (Flex) → tatsächlichen Text-Bereich aus den Kindern nehmen.
   var top = Infinity, bot = -Infinity;
-  for (var i = 0; i < ov.children.length; i++) {
-    var r = ov.children[i].getBoundingClientRect();
+  var boxes = Array.prototype.slice.call(ov.children);
+  var emoEl = ov.querySelector ? ov.querySelector('.cap-emo') : null; // Emoji über/unter der Caption zählt mit
+  if (emoEl) boxes.push(emoEl);
+  for (var i = 0; i < boxes.length; i++) {
+    var r = boxes[i].getBoundingClientRect();
     if (!r.height) continue;
     top = Math.min(top, (r.top - fr.top) / z); bot = Math.max(bot, (r.bottom - fr.top) / z);
   }
@@ -8002,7 +8692,9 @@ async function exportFastWebCodecs(file, o) {
         if (outT === null) return; // Auto-Cut: Frame liegt in Stille/Füllwort
         var outUs = Math.round(outT * 1e6);
         if (outUs <= lastOutUs) return;
-        drawReframed(ctx, W, H, o.mode || 'original', function(c, w, h, fit){ drawFastFrame(c, frame, w, h, rot, fit); });
+        drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
+          drawReframed(ctx, W, H, o.mode || 'original', function(c, w, h, fit){ drawFastFrame(c, frame, w, h, rot, fit); });
+        });
         drawCaptionsOnCtx(ctx, t, o.style, W, H, false);
         drawWatermark(ctx, W, H, o.wmOn);
         var vf = new VideoFrame(canvas, { timestamp: outUs, duration: frame.duration || defDurUs, alpha: 'discard' });
@@ -8483,7 +9175,9 @@ async function exportVideoWithCaptions() {
     document.getElementById('recMsg').textContent = 'Rendering ' + Math.round(pct * 100) + '%…';
     exportBtnState('Rendering ' + Math.round(pct * 100) + '%…');
 
-    drawReframed(ctx, W, H, geo.mode, function(c, w, h, fit){ drawVideoFit(c, vid, w, h, fit); });
+    drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
+      drawReframed(ctx, W, H, geo.mode, function(c, w, h, fit){ drawVideoFit(c, vid, w, h, fit); });
+    });
     drawCaptionsOnCtx(ctx, t, s, W, H, false);
     drawWatermark(ctx, W, H, wmOn); // nur anonym (beim Export-Start festgelegt)
     requestAnimationFrame(drawLoop);
@@ -8660,14 +9354,15 @@ function capFontMetrics(ctx, fsS) {
 }
 function capLayout(ctx, b, bi, wi, s, W, H) {
   var wiKey = (s.hlFont || s.hlItalic || s.hlUpper || s.hlPillBg) ? wi : -1;
+  var emk = blockEmph(b), esc = emphScale(s);
   var key = [bi, wiKey, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
-             _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length, capHyphLang()].join('|');
+             _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length, capHyphLang(), emMaskKey(emk), esc].join('|');
   var c = _capLayoutCache;
   if (c.key === key && c.s === s && c.ctx === ctx) return c.val;
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
   var scale = W / previewFrameW(); // Vorschau-Rahmen ist variabel breit (Video-AR-abhängig) — NIE eine feste Zahl hier
   // Gleiches Auto-Fit wie die Vorschau (buildCap), in Vorschau-Einheiten berechnet → identisches Ergebnis.
-  var fit = fitCaptionWords(b.words.map(function(w){ return displayWord(w.word); }), s, fontSize, capFitMaxW(s), CAPTION_LINES);
+  var fit = fitCaptionWords(b.words.map(function(w){ return displayWord(w.word); }), s, fontSize, capFitMaxW(s), CAPTION_LINES, emk);
   var fsS = Math.round(fit.px * scale * fsMul);
   var fn  = (s.font || "'Inter'").replace(/'/g,'');
   var fw  = s.fw || '400';
@@ -8678,10 +9373,10 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
 
   // Font pro Wort — aktives Wort kann eigenen Font/Kursiv haben (Prime/Sketch/Sonnet wie Referenz)
   var lsPxS = (parseFloat(s.ls) || 0) * scale; // letter-spacing wie im DOM (CSS px bei Vorschaubreite)
-  function wordFont(isHL) {
+  function wordFont(isHL, isEm) {
     var f  = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
     var it = (isHL && s.hlItalic) ? 'italic ' : fi;
-    ctx.font = it + fw + ' ' + fsS + 'px "' + f + '", sans-serif';
+    ctx.font = it + fw + ' ' + (isEm ? fsS * esc : fsS) + 'px "' + f + '", sans-serif';
     if ('letterSpacing' in ctx) ctx.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px';
   }
   var words = fit.words.map(function(w, i) {
@@ -8697,9 +9392,9 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   // Pill im Export die Nachbarwörter („au[unserem]“).
   var pillPad = s.hlPillBg ? 9 * scale : 0;
   var wordInfo = words.map(function(w, i) {
-    var hl = fit.orig[i] === wi; wordFont(hl);
+    var hl = fit.orig[i] === wi, e = !!(emk && emk[fit.orig[i]]); wordFont(hl, e);
     var tw = ctx.measureText(w).width, pl = (hl && pillPad) ? pillPad : 0;
-    return { txt: w, w: tw + 2 * pl, tw: tw, padL: pl, idx: fit.orig[i], t: fit.words[i],
+    return { txt: w, w: tw + 2 * pl, tw: tw, padL: pl, idx: fit.orig[i], t: fit.words[i], e: e,
              hy: i + 1 < words.length && fit.orig[i + 1] === fit.orig[i] }; // wie wrapCaptionLines
   });
 
@@ -8745,7 +9440,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
 
-  var val = { scale: scale, fsS: fsS, fn: fn, fw: fw, fi: fi, lsPxS: lsPxS, sp: sp, lines: lines, lineWs: lineWs, lh: lh, y0: y0,
+  var val = { scale: scale, fsS: fsS, fn: fn, fw: fw, fi: fi, lsPxS: lsPxS, sp: sp, lines: lines, lineWs: lineWs, lh: lh, y0: y0, fitPx: fit.px, esc: esc,
               capA: gapAbove - padB, capD: gapBelow - padB }; // Grundlinie → Ober-/Unterkante der CSS-Zeile
   _capLayoutCache = { key: key, s: s, ctx: ctx, val: val };
   return val;
@@ -8787,14 +9482,16 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
     paint(ctx, 'all');
   }
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  var emo = emEmoji ? blockEmoji(b) : '';
+  if (emo) drawCapEmoji(ctx, emo, L0, s, t - b.start, W); // Pop-in wie die Vorschau (Zeit seit Blockbeginn)
 
   function paint(ctx, mode) {
     // Font/letterSpacing nur setzen, wenn sie sich ändern (Zuweisung parst den Font-String jedes Mal neu)
-    var curFont = null, curLs = null;
-    function wordFont(isHL) {
+    var curFont = null, curLs = null, ecol = emphColor(s), emHl = emphShadowIsHl(s);
+    function wordFont(isHL, isEm) {
       var f  = (isHL && s.hlFont) ? s.hlFont.replace(/'/g, '') : fn;
       var it = (isHL && s.hlItalic) ? 'italic ' : fi;
-      var fs = it + fw + ' ' + fsS + 'px "' + f + '", sans-serif';
+      var fs = it + fw + ' ' + (isEm ? fsS * L0.esc : fsS) + 'px "' + f + '", sans-serif';
       if (fs !== curFont) { ctx.font = fs; curFont = fs; }
       if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
     }
@@ -8835,14 +9532,14 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
     }
 
     function wordFill(c, wo, x0, tw, isHL, isKw) {
-      var fillCss = (isHL || isKw) ? (s.hlg || null) : (s.tg || null);
+      var fillCss = isHL ? (s.hlg || null) : isKw ? (s.hlg || (ecol ? null : s.tg) || null) : (s.tg || null);
       if (fillCss) {
         var cols = gradColors(fillCss);
         var g = c.createLinearGradient(x0, 0, x0 + Math.max(1, tw), 0);
         cols.forEach(function(cc, ci){ g.addColorStop(cols.length > 1 ? ci / (cols.length - 1) : 0, cc); });
         return g;
       }
-      return (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (isHL ? hlColorFor(s, wo.idx) : (s.hl || '#fff'))) : (s.tc || '#fff');
+      return isHL ? (s.hlPillBg ? (s.hlc || '#fff') : hlColorFor(s, wo.idx)) : isKw ? (ecol || s.tc || '#fff') : (s.tc || '#fff');
     }
     function activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt) {
       // Filter-Animation (glow) in 8 Helligkeits-/Sättigungsstufen; Transformationen kommen beim Einsetzen dazu
@@ -8850,18 +9547,18 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       var key = _capLayoutCache.key + '|' + wi + '|' + wo.txt + '|' + fb + '|' + fs2 + '|' + ctx.font + '|' + ctx.letterSpacing;
       var hit = _wordSpriteCache.get(key);
       if (hit) return hit;
-      var m = 6;
+      var m = 6, fsW = wo.e ? fsS * L0.esc : fsS;
       plan.rest.forEach(function(l){ m = Math.max(m, Math.ceil(l.blur * scale * 1.6 + (Math.abs(l.x) + Math.abs(l.y)) * scale + 6)); });
       var cv = document.createElement('canvas');
-      cv.width = Math.max(1, Math.ceil(tw + 2 * m)); cv.height = Math.max(1, Math.ceil(fsS * 1.6 + 2 * m));
+      cv.width = Math.max(1, Math.ceil(tw + 2 * m)); cv.height = Math.max(1, Math.ceil(fsW * 1.6 + 2 * m));
       var c = cv.getContext('2d');
       c.font = ctx.font;
       if ('letterSpacing' in c) c.letterSpacing = ctx.letterSpacing;
       c.textAlign = 'left'; c.textBaseline = 'alphabetic';
       if (fb !== 1 || fs2 !== 1) c.filter = 'brightness(' + fb + ') saturate(' + fs2 + ')';
       c.fillStyle = wordFill(c, wo, m, tw, isHL, isKw);
-      drawTextWithPlan(c, wo.txt, m, m + fsS * 1.05, plan, scale, 1, fsS, tw);
-      var res = { cv: cv, m: m };
+      drawTextWithPlan(c, wo.txt, m, m + fsW * 1.05, plan, scale, 1, fsW, tw);
+      var res = { cv: cv, m: m, fsW: fsW };
       _wordSpriteCache.set(key, res);
       if (_wordSpriteCache.size > 48) _wordSpriteCache.delete(_wordSpriteCache.keys().next().value); // klein halten
       return res;
@@ -8874,8 +9571,8 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
         var isHL = wo.idx === wi;
         if ((mode === 'static' && isHL) || (mode === 'active' && !isHL)) { x += wo.w + sp; return; }
         var tx = x + (wo.padL || 0), tw = wo.tw || wo.w; // Textposition (Pill-Padding eingerückt)
-        var isKw = !isHL && isKeywordWord(b.words[wo.idx].word);
-        wordFont(isHL);
+        var isKw = !isHL && !!wo.e; // hervorgehoben (KI/Nutzer/alte Keyword-Liste), s. blockEmph
+        wordFont(isHL, wo.e);
 
         // Kringel ums aktive Wort (Sketch, wie Referenz)
         if (isHL && s.circle) {
@@ -8902,7 +9599,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 
         // Pop-Animation des aktiven Worts (@keyframes captly-*) — im Export bisher komplett statisch.
         var animSt = (isHL && s.anim && s.anim !== 'none') ? animState(s.anim, t - (b.words[wo.idx].start || 0)) : null;
-        var plan = (isHL || isKw) ? shHl : shTs;
+        var plan = isHL ? shHl : isKw ? (emHl ? shHl : shTs) : shTs;
         // Teure Glows (große Blur-Schatten, Glow-Animation per Filter) des AKTIVEN Worts als Sprite: Text +
         // Schatten (+ Filter-Stufe) einmal je (Layout, Wort, quantisierte Animationsstufe) rendern, pro Frame
         // nur noch per drawImage unter der Animations-Transformation einsetzen. Konturierte Styles (Ring →
@@ -8921,7 +9618,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
             if (animSt.op !== 1) ctx.globalAlpha *= animSt.op;
           }
           ctx.shadowColor = 'transparent';
-          ctx.drawImage(spr.cv, tx - spr.m, y - fsS * 1.05 - spr.m);
+          ctx.drawImage(spr.cv, tx - spr.m, y - spr.fsW * 1.05 - spr.m);
           ctx.restore();
           x += wo.w + sp;
           return;
@@ -8939,20 +9636,12 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
 
         // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) verhalten sich wie im DOM
         // genauso wie das Highlight-Wort (gleiche Farbe/Gradient/Schatten), nur ohne Pill/Kringel/Anim.
-        var fillCss = (isHL || isKw) ? (s.hlg || null) : (s.tg || null);
-        if (fillCss) {
-          var cols = gradColors(fillCss);
-          var g = ctx.createLinearGradient(tx, 0, tx + Math.max(1, tw), 0);
-          cols.forEach(function(c, ci){ g.addColorStop(cols.length > 1 ? ci / (cols.length - 1) : 0, c); });
-          ctx.fillStyle = g;
-        } else {
-          ctx.fillStyle = (isHL || isKw) ? ((isHL && s.hlPillBg) ? (s.hlc || '#fff') : (isHL ? hlColorFor(s, wo.idx) : (s.hl || '#fff'))) : (s.tc || '#fff');
-        }
+        ctx.fillStyle = wordFill(ctx, wo, tx, tw, isHL, isKw);
         // Text-Shadow wie im DOM (buildCap: s.hls für Highlight/Keyword, s.ts für normale Wörter). Eine
         // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
         // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
         var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
-        drawTextWithPlan(ctx, wo.txt, tx, y, (isHL || isKw) ? shHl : shTs, scale, animK, fsS, tw);
+        drawTextWithPlan(ctx, wo.txt, tx, y, plan, scale, animK, wo.e ? fsS * L0.esc : fsS, tw);
         ctx.restore();
         x += wo.w + sp;
       });
@@ -8976,7 +9665,7 @@ async function exportPNG() {
     var ctx = cv.getContext('2d');
     if (vidReady && vid.readyState >= 2) {
       var vw = vid.videoWidth, vh = vid.videoHeight, sc = Math.max(W/vw, H/vh);
-      ctx.drawImage(vid, (W-vw*sc)/2, (H-vh*sc)/2, vw*sc, vh*sc);
+      drawZoomedVideo(ctx, W, H, vid.currentTime || 0, function() { ctx.drawImage(vid, (W-vw*sc)/2, (H-vh*sc)/2, vw*sc, vh*sc); });
     } else { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0,0,W,H); }
     drawCaptionsOnCtx(ctx, vidReady ? vid.currentTime : 0, s, W, H, true);
     drawWatermark(ctx, W, H, wmPng);
@@ -9180,7 +9869,7 @@ function openExportSheet() {
   closeMoreMenu();
   if (!isExporting) showExportMain();
   var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
-  syncExpSub(); updateAcctUI(); flushLead();
+  syncExpSub(); updateAcctUI(); flushLead(); syncPostUI();
   // E-Mail-Feld sofort zeigen (statt erst nach dem ersten Download-Klick) → Download ist danach EIN Klick.
   // Autofokus nur mit Maus/Trackpad — auf dem Handy würde die Tastatur das halbe Blatt verdecken.
   var g = document.getElementById('expGate'), needGate = !!g && !meEmail && !leadEmail();
@@ -9297,10 +9986,11 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     var t = e.target;
     if (!t || !t.closest) return;
     if (!t.closest('#moreMenu') && !t.closest('#moreBtn')) closeMoreMenu();
+    if (!t.closest('#emoPick') && !t.closest('.se-emo')) closeEmojiPicker();
     if (!t.closest('#expSheet') && !t.closest('#tbExport') && !t.closest('#acctModal') && !isExporting) closeExportSheet();
   }, true);
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { closeMoreMenu(); if (!isExporting) closeExportSheet(); }
+    if (e.key === 'Escape') { closeMoreMenu(); closeEmojiPicker(); if (!isExporting) closeExportSheet(); }
   });
 }
 // Titel = Dateiname (ohne Endung), umbenennbar; wird in Autosave/Projekt gespeichert
@@ -9859,11 +10549,11 @@ function tlRetimeWords(words, s0, e0, ns, ne, minW) {
   minW = minW === undefined ? TL_MIN_WORD : minW;
   var span0 = e0 - s0, span1 = ne - ns, d = ns - s0;
   if (Math.abs(span1 - span0) < 1e-9) {
-    return (words || []).map(function(w){ return { word: w.word, start: tlR3(w.start + d), end: tlR3(w.end + d) }; });
+    return (words || []).map(function(w){ return copyWordFlags(w, { word: w.word, start: tlR3(w.start + d), end: tlR3(w.end + d) }); });
   }
   var k = span1 / Math.max(1e-6, span0);
   var f = function(t){ return ns + (Math.min(e0, Math.max(s0, t)) - s0) * k; };
-  var out = (words || []).map(function(w){ return { word: w.word, start: f(w.start), end: f(w.end) }; });
+  var out = (words || []).map(function(w){ return copyWordFlags(w, { word: w.word, start: f(w.start), end: f(w.end) }); });
   var n = out.length, i;
   if (n && n * minW <= span1 + 1e-9) {
     for (i = 0; i < n; i++) { // vorwärts: Anfang hinter dem Vorgänger-Anfang, Mindestlänge
@@ -10124,6 +10814,16 @@ function tlDraw() {
       ctx.beginPath(); ctx.moveTo(x - 4, g.ruler - 8); ctx.lineTo(x + 4, g.ruler - 8); ctx.lineTo(x, g.ruler - 3); ctx.closePath(); ctx.fill();
     }
     ctx.globalAlpha = 1;
+  }
+  // Auto-Zoom-Momente: dezente Bernstein-Balken am Lineal-Unterrand (gleiche Zeitachse wie die Captions)
+  var zp = zoomPlan();
+  if (zp.length) {
+    ctx.fillStyle = 'rgba(217,119,6,.75)';
+    for (i = 0; i < zp.length; i++) {
+      if (zp[i].e - off < t0 || zp[i].s - off > t1) continue;
+      var zx = tlTimeToX(zp[i].s - off, v);
+      ctx.fillRect(zx, g.ruler - 4, Math.max(3, tlTimeToX(zp[i].e - off, v) - zx), 3);
+    }
   }
   // Caption-Balken: nur der sichtbare Bereich (Binärsuche über die Enden)
   var bl = captionBlocks, nb = bl.length, d = _tl.drag;

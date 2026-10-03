@@ -115,9 +115,15 @@ tlNudge:tlNudge,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,proj
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
 capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
 wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBaseName:exportBaseName,openExportSheet:openExportSheet,closeExportSheet:closeExportSheet,
-exportDone:exportDone,dlBlob:dlBlob,shareLastExport:shareLastExport,topExport:topExport,setCapLang:function(v){_capLangForce=v;},setWordsState:function(w){wordTimestamps=w;}};`;
+exportDone:exportDone,dlBlob:dlBlob,shareLastExport:shareLastExport,topExport:topExport,setCapLang:function(v){_capLangForce=v;},setWordsState:function(w){wordTimestamps=w;},setEnhAuto:function(v){ENH_AUTO=v;},
+localEmphasis:localEmphasis,clearAutoFlags:clearAutoFlags,isEmphWord:isEmphWord,emWordRef:emWordRef,applyEnhanceResult:applyEnhanceResult,blockEmoji:blockEmoji,
+toggleWordEmph:toggleWordEmph,setBlockEmoji:setBlockEmoji,getEmph:function(){return {kw:emKw,emoji:emEmoji,zoom:emZoom,src:emSrc};},
+setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKey=null;},applyProjectPayload:applyProjectPayload,getUndoSnapshot:function(){return captionSnapshot();},
+emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
+runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
+T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
 T.setMaxCharsState(40); // Alt-Tests: großzügiges Zeichenlimit (Auto hängt von der Stub-Messung ab); eigene Tests unten
 
 let fails = 0;
@@ -2744,6 +2750,162 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.capTypo('Na...') === 'Na…' && T.capTypo("geht's") === 'geht’s' && T.capTypo("'98") === "'98", 'Ellipse + Apostroph');
     T.setCapLang(null);
     document.getElementById('prevFrame').style.width = '';
+  }
+
+  // ── Emphasis: KI-Keywords, Emojis, Auto-Zoom, Post-Text ──
+  {
+    const seqE = (txt, t0 = 0) => { let t = t0; return txt.split(' ').map(w => { const o = { word: w, start: +t.toFixed(2), end: +(t + 0.3).toFixed(2) }; t += 0.35; return o; }); };
+    T.setMaxCharsState(40); T.setLinesState(2); T.setCaptionsEdited(false); T.resetUndo(); T.onWpbChange('4'); T.setEmphState(true, false, 'off');
+    const ws = seqE('Unsere Highland Rinder fressen nur Gras. Das merkt man am Fleisch.');
+    T.setState(T.buildCaptionBlocks(ws), ws.slice(), 'karaoke');
+    let B = T.getBlocks();
+    // Fallback-Heuristik (Deutsch): Nomen/Zahlen, nie Stoppwörter, höchstens eins je Caption
+    const n = T.localEmphasis(B, 'de');
+    const em = B.map(b => b.words.filter(T.isEmphWord).map(w => w.word));
+    ok(n <= Math.floor(ws.length * 0.3) && em.every(e => e.length <= 1) && em.flat().some(w => /Highland|Rinder|Gras|Fleisch/.test(w))
+       && !em.flat().some(w => /^(Das|nur|am|man|Unsere)$/.test(w)), 'Heuristik: max. ein Wort je Caption, ≤ 30 %, Nomen statt Füllwörter: ' + JSON.stringify(em));
+    T.clearAutoFlags(B);
+    ok(!B.some(b => b.words.some(w => w.kw || w.zm)), 'clearAutoFlags entfernt automatische Flags');
+    const en = [{ word: 'we', start: 0, end: 0.2 }, { word: 'sold', start: 0.2, end: 0.4 }, { word: '500', start: 0.4, end: 0.6 }, { word: 'tickets', start: 0.6, end: 0.9 }];
+    const eb = [{ words: en, start: 0, end: 1, text: 'we sold 500 tickets' }];
+    T.localEmphasis(eb, 'en');
+    ok(en[2].kw === 1 && en[2].zm === 1 && !en[0].kw, 'Heuristik: Zahl schlägt Wort, Zahl = Zoom-Kandidat');
+
+    // KI-Ergebnis: Mapping über (Wort, Startzeit), Nutzer-Entscheidungen bleiben, gelöschte Wörter fallen weg
+    T.setState(T.buildCaptionBlocks(ws), ws.slice(), 'karaoke'); B = T.getBlocks();
+    const refs = B.map(b => b.words.map(T.emWordRef));
+    B[0].words[0].kw = -1;                       // Nutzer hat „Unsere“ ausgeschaltet
+    B[1].words[0].emo = '🔥'; B[1].words[0].emoU = 1; // Nutzer-Emoji
+    const lastBlock = B[B.length - 1];
+    const res = [{ id: 0, kw: [0, 2], emoji: '🐄', zoom: true }, { id: 1, kw: [0], emoji: '🌾', zoom: false }, { id: B.length - 1, kw: [lastBlock.words.length - 1], emoji: null, zoom: false }, { id: 99, kw: [0] }];
+    lastBlock.words.pop(); lastBlock.text = lastBlock.words.map(w => w.word).join(' '); // Wort während der Anfrage gelöscht
+    T.applyEnhanceResult(res, refs);
+    ok(B[0].words[0].kw === -1 && B[0].words[2].kw === 1, 'Nutzer-Aus bleibt, KI-Keyword gesetzt');
+    ok(T.blockEmoji(B[0]) === '🐄' && B[0].words[2].emo === '🐄' && B[0].words[2].zm === 1, 'Emoji/Zoom am ersten Keyword verankert');
+    ok(T.blockEmoji(B[1]) === '🔥', 'Nutzer-Emoji wird von der KI nie überschrieben');
+    ok(!lastBlock.words.some(w => w.kw), 'Keyword eines gelöschten Worts fällt weg');
+    ok(B[0].srcWords[2].kw === 1 && B[0].srcWords[2].emo === '🐄', 'srcWords tragen die Flags mit (für spätere Text-Edits)');
+
+    // Text-Edit: Flags folgen dem Wort (LCS), auch bei Einfügungen; geändertes Wort im gleichen Slot behält sie
+    const b0 = B[0], kwWord = b0.words[2].word;
+    b0.text = 'Hey ' + b0.text; T.retimeEditedBlock(b0);
+    const moved = b0.words.find(w => w.word === kwWord);
+    ok(moved && moved.kw === 1 && moved.emo === '🐄' && moved.zm === 1 && !b0.words[0].kw, 'Einfügung vorne: Flags bleiben am Wort ' + kwWord);
+    b0.text = b0.words.map(w => w.word === kwWord ? kwWord + 's' : w.word).join(' '); T.retimeEditedBlock(b0);
+    ok(b0.words.find(w => w.word === kwWord + 's').kw === 1, 'Tippfehler-Korrektur (gleicher Slot) behält die Hervorhebung');
+    b0.text = b0.words.filter(w => !/^Highland/.test(w.word) && w.word !== kwWord + 's').map(w => w.word).join(' '); T.retimeEditedBlock(b0);
+    ok(!b0.words.some(w => w.kw === 1), 'Wort gelöscht → Hervorhebung weg');
+    // Neu gruppieren (Words-Regler) und Wortliste behalten Flags
+    T.setState(T.buildCaptionBlocks(ws), ws.slice(), 'karaoke'); B = T.getBlocks();
+    B[1].words[1].kw = 2; B[1].words[1].emo = '💪'; B[1].words[1].emoU = 1;
+    const fw = B[1].words[1].word;
+    T.onWpbChange('2');
+    const after = [].concat(...T.getBlocks().map(b => b.words)).find(w => w.word === fw);
+    ok(after && after.kw === 2 && after.emo === '💪', 'Neu-Gruppieren behält Hervorhebung + Emoji');
+    T.onWpbChange('4'); B = T.getBlocks();
+
+    // Undo/Projekt: Flags im Snapshot + Payload, Schalter im Payload
+    T.resetUndo();
+    const bi = B.findIndex(b => b.words.some(w => w.word === fw)), wi = B[bi].words.findIndex(w => w.word === fw);
+    T.toggleWordEmph(bi, wi);
+    ok(T.getBlocks()[bi].words[wi].kw === -1 && T.undoDepth()[0] === 1, 'Wort umschalten = Undo-Schritt');
+    T.undoCaptions();
+    ok(T.getBlocks()[bi].words[wi].kw === 2, 'Undo stellt die Hervorhebung wieder her');
+    T.setBlockEmoji(bi, '🚀');
+    ok(T.blockEmoji(T.getBlocks()[bi]) === '🚀' && T.getEmph().emoji === true, 'Emoji setzen schaltet Emojis an');
+    T.setBlockEmoji(bi, '');
+    ok(T.blockEmoji(T.getBlocks()[bi]) === '' && T.getBlocks()[bi].words.some(w => w.emoU), 'Emoji entfernen merkt sich die Nutzer-Entscheidung');
+    T.setBlockEmoji(bi, '🚀'); T.setEmphState(true, true, 'subtle');
+    const pl = JSON.parse(JSON.stringify(T.projectPayload()));
+    ok(pl.emph.kw === true && pl.emph.emoji === true && pl.emph.zoom === 'subtle' && pl.blocks[bi].words.some(w => w.emo === '🚀' && w.emoU === 1), 'Projekt-Payload: Schalter + Flags pro Wort');
+    T.setEmphState(false, false, 'off');
+    T.applyProjectPayload(Object.assign({}, pl, { keywords: ['fressen'] }));
+    const g = T.getEmph();
+    ok(g.kw === true && g.emoji === true && g.zoom === 'subtle' && T.blockEmoji(T.getBlocks()[bi]) === '🚀', 'Projekt laden stellt Schalter + Emoji wieder her');
+    ok(T.getBlocks().some(b => b.words.some(w => w.word === 'fressen' && w.kw === 2)) && !T.isKeywordWord('fressen'), 'alte Keyword-Liste → pro Wort, Liste geleert');
+    ok(T.getUndoSnapshot().indexOf('"kw"') >= 0, 'Undo-Snapshot enthält die Flags');
+    // Templates speichern die drei Schalter
+    const tl = T.currentLayout();
+    ok(tl.kw === true && tl.emoji === true && tl.zoom === 'subtle', 'currentLayout: Emphasis-Schalter');
+    const nt = T.normalizeTemplate({ id: 'tpl_x', name: 'X', style: { fl: 'Inter' }, layout: { kw: false, emoji: true, zoom: 'punchy', bogus: 1 } });
+    ok(nt.layout.kw === false && nt.layout.emoji === true && nt.layout.zoom === 'punchy' && T.normalizeTemplate({ id: 'tpl_y', style: {}, layout: { zoom: 'wild' } }).layout.zoom === undefined, 'Template: Schalter normalisiert');
+
+    // Fitting: hervorgehobenes Wort ist größer → Fit misst es mit (sonst Überlauf)
+    const hz = T.STYLES.find(x => x.id === 'hormozi');
+    document.getElementById('prevFrame').style.width = '220px'; document.getElementById('prevFrame').style.height = '390px';
+    const wordsF = ['Rindfleischbetrieb', 'heute'];
+    const f0 = T.fitCaptionWords(wordsF, hz, 26, T.capFitMaxW(hz), 2), f1 = T.fitCaptionWords(wordsF, hz, 26, T.capFitMaxW(hz), 2, [true, false]);
+    ok(f1.px < f0.px || f1.words.length > f0.words.length, 'Fit: betontes langes Wort → kleiner/getrennt (' + f0.px + '/' + f0.words.length + ' vs ' + f1.px + '/' + f1.words.length + ')');
+    ok(T.emphScale(hz) === 1.12 && T.emphScale(T.STYLES.find(x => x.id === 'popone')) === 1.15, 'Skalierung: 1.12, One Word 1.15');
+    // Farben: Style-Akzent, Pill-Styles behalten Text-Schatten, One Word nur Grösse
+    ok(T.emphColor(hz) === '#FFD60A' && T.emphColor(T.STYLES.find(x => x.id === 'popone')) === null && T.emphColor(T.STYLES.find(x => x.id === 'minimal')) === '#fff'
+       && T.emphColor(T.STYLES.find(x => x.id === 'stack')) === '#f7c204' && !T.emphShadowIsHl(T.STYLES.find(x => x.id === 'focus')), 'Akzentfarben je Style');
+    ok(T.STYLES.filter(s => !s._isTpl && s.id !== 'custom').every(s => T.emphColor(s) !== null || s.id === 'popone'), 'alle 15 Styles haben eine sichtbare Betonung');
+    const h1 = T.buildCap(['auf', 'der', 'Weide.'], hz, 0, 24, [0, 0.3, 0.6], 2, { em: [false, false, true], emoji: '🌿', age: 0.1 });
+    ok(/font-size:1\.12em/.test(h1) && /FFD60A/.test(h1) && /class="cap-emo"/.test(h1) && /🌿/.test(h1) && /animation-delay:-0\.100s/.test(h1) && /position:relative/.test(h1),
+       'buildCap: Betonung (Grösse + Farbe) und Emoji mit Pop-in-Phase');
+    ok(!/cap-emo/.test(T.buildCap(['a', 'b'], hz, 0, 24, null, 2, { em: null, emoji: '' })), 'ohne Emoji kein Emoji-Element');
+    // Canvas: Emoji wird gezeichnet, betontes Wort größer
+    const fonts = [], draws = [];
+    const cctx = { _font: '', get font() { return this._font; }, set font(v) { this._font = v; fonts.push(v); }, letterSpacing: '0px', globalAlpha: 1,
+      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+      fillText() {}, strokeText() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, rect() {}, roundRect() {}, ellipse() {}, fillRect() {},
+      drawImage(cv) { draws.push(cv); }, createLinearGradient() { return { addColorStop() {} }; } };
+    const ew = seqE('Wir lieben unsere Weide');
+    ew[3].kw = 1; ew[3].emo = '🌿';
+    T.setState([{ words: ew, srcWords: ew.map(w => Object.assign({}, w)), start: 0, end: 1.5, text: 'Wir lieben unsere Weide' }], ew, 'karaoke');
+    T.setEmphState(true, true, 'off');
+    T.drawCaptionsOnCtx(cctx, 0.5, hz, 1080, 1920, false);
+    const sizes = fonts.map(f => +(/([\d.]+)px/.exec(f) || [0, 0])[1]).filter(Boolean);
+    ok(Math.max(...sizes) / Math.min(...sizes.filter(x => x > 20)) > 1.1, 'Export: betontes Wort mit größerer Schrift');
+    ok(draws.length >= 1, 'Export: Emoji gezeichnet');
+    T.setEmphState(true, false, 'off'); draws.length = 0;
+    T.drawCaptionsOnCtx(cctx, 0.5, hz, 1080, 1920, false);
+    ok(draws.length === 0, 'Emojis aus → kein Emoji');
+    ok(T.emojiPopState(0).op === 0 && T.emojiPopState(0.2).s > 1 && T.emojiPopState(1).s === 1, 'Emoji-Pop: 0 → Überschwinger → 1');
+
+    // Auto-Zoom: Abstand ≥ 4 s, nie über einen Schnitt, harte Kante am Schnitt, weich sonst
+    const zp = T.zoomPlanFrom([1, 2, 3, 6, 9.5, 11, 20], [12.5, 21], 30);
+    ok(zp.length === 4 && zp[0].s === 0.9 && zp.every((z, i) => !i || z.s - zp[i - 1].s >= 4), 'Zoom-Starts ≥ 4 s auseinander: ' + JSON.stringify(zp));
+    ok(zp.every(z => ![12.5, 21].some(c => c > z.s + 1e-9 && c < z.e - 1e-9)), 'kein Zoom läuft über einen Schnitt');
+    const zc = zp.find(z => z.s < 12.5 && z.e === 12.5);
+    ok(zc && zc.hard && T.zoomScaleAt(12.49, zp, 1.18) > 1.1 && T.zoomScaleAt(12.51, zp, 1.18) === 1, 'Zoom endet hart am Schnitt');
+    ok(!T.zoomPlanFrom([9.5], [9.8], 30).length, 'zu kurzer Zoom vor einem Schnitt entfällt');
+    ok(T.zoomPlanFrom([10.05], [10], 30)[0].s === 10, 'Zoom beginnt nicht vor dem Schnitt');
+    const z0 = zp[0];
+    ok(T.zoomScaleAt(z0.s, zp, 1.1) === 1 && Math.abs(T.zoomScaleAt(z0.s + 0.15, zp, 1.1) - 1.05) < 1e-9 && T.zoomScaleAt(z0.s + 1, zp, 1.1) === 1.1
+       && T.zoomScaleAt(z0.e - 0.01, zp, 1.1) < 1.01 && T.zoomScaleAt(z0.e, zp, 1.1) === 1, 'weiches Ein-/Ausfahren (Subtle 1.10)');
+    T.setEmphState(true, false, 'off');
+    ok(T.zoomAt(1.5) === 1, 'Auto zoom aus → nie Zoom');
+
+    // KI-Anfrage im Hintergrund: Erfolg (Endpoint-Fallback 404 → enhance.php) bzw. Fehler → lokale Heuristik
+    T.setState(T.buildCaptionBlocks(ws), ws.slice(), 'karaoke'); B = T.getBlocks();
+    let sent = [];
+    global.fetch = async (u, o) => { sent.push(u); if (u === 'api/enhance') return { ok: false, status: 404, json: async () => ({}) };
+      const body = JSON.parse(o.body); return { ok: true, status: 200, json: async () => ({ segments: body.segments.map(s => ({ id: s.id, kw: [0], emoji: s.id === 1 ? '🌾' : null, zoom: false })) }) }; };
+    ok(await T.runEnhance(true) === 'llm' && sent.join() === 'api/enhance,enhance.php' && T.getBlocks().every(b => T.isEmphWord(b.words[0])) && T.blockEmoji(T.getBlocks()[1]) === '🌾',
+       'KI: Endpoint-Fallback, Ergebnis angewendet');
+    global.fetch = async () => { throw new TypeError('Failed to fetch'); };
+    ok(await T.runEnhance(true) === 'local' && T.getBlocks().some(b => b.words.some(w => w.kw === 1)) && !T.getBlocks().some(b => T.blockEmoji(b)), 'KI offline → lokale Heuristik, keine Emojis');
+    // Post-Text: KI, sonst lokale Version aus dem Transkript (ohne erfundene Fakten)
+    global.fetch = async (u, o) => { const b = JSON.parse(o.body); return { ok: true, status: 200, json: async () => ({ post: { caption: 'Highland Rinder auf der Weide', hashtags: ['#Rinder', '#Weide', '#Hof'] }, lang: b.lang }) }; };
+    await T.genPostCaption(true);
+    ok(T.getPost().caption === 'Highland Rinder auf der Weide' && T.getPost().hashtags.length === 3 && /\n\n#Rinder #Weide #Hof$/.test(T.postText(T.getPost())), 'Post-Text: Caption + Hashtags');
+    global.fetch = async () => ({ ok: false, status: 502, json: async () => ({ error: 'x' }) });
+    await T.genPostCaption(true);
+    ok(T.getPost().src === 'local' && /^Unsere Highland Rinder fressen nur Gras\./.test(T.getPost().caption), 'Post-Text ohne KI: erster Satz aus dem Transkript ' + JSON.stringify(T.getPost()));
+    ok(T.projectPayload().post && T.projectPayload().post.caption === T.getPost().caption, 'Post-Text im Projekt gespeichert');
+
+    // Polish im Hintergrund: übernimmt nur, wenn seitdem nichts geändert wurde
+    const pw = seqE('wir sind am birkehof');
+    T.setState(T.buildCaptionBlocks(pw), pw.slice(), 'karaoke'); T.setCaptionsEdited(false);
+    global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ segments: [{ id: 0, text: 'Wir sind am Birkenhof' }] }) });
+    ok(await T.polishInPlace(T.getTrRun(), 'de', '') === true && /Birkenhof/.test(T.getBlocks().map(b => b.text).join(' ')), 'Polish wird eingesetzt, wenn nichts geändert wurde');
+    T.setState(T.buildCaptionBlocks(pw), pw.slice(), 'karaoke'); T.setCaptionsEdited(true);
+    ok(await T.polishInPlace(T.getTrRun(), 'de', '') === false && !/Birkenhof/.test(T.getBlocks().map(b => b.text).join(' ')), 'nach einem Edit wird Polish verworfen');
+    T.setCaptionsEdited(false);
+    T.setEmphState(true, false, 'off');
+    document.getElementById('prevFrame').style.width = ''; document.getElementById('prevFrame').style.height = '';
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
