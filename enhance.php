@@ -1,6 +1,6 @@
 <?php
 /**
- * Capivo – KI-Hervorhebung („Enhance“) für klassisches PHP-Webhosting (Groq Chat Completions).
+ * CaptionRush – KI-Hervorhebung („Enhance“) für klassisches PHP-Webhosting (Groq Chat Completions).
  * Gleiche Schnittstelle und Regeln wie api/enhance.js (Vercel) – Details/Vertrag siehe dort.
  *
  * Ein LLM WÄHLT nur aus (schreibt nie Text um): Keywords (0–2 Wort-Indizes je Caption), ein Emoji auf

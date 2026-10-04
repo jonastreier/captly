@@ -2512,10 +2512,10 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.fileSlug('IMG 1234') === 'img-1234' && T.fileSlug('') === '' && T.fileSlug('!!!') === '' && T.fileSlug('🙂🙂') === '', 'Slug: Zahlen, leer, nur Sonderzeichen');
     const longSlug = T.fileSlug('Das ist ein sehr langer Titel für ein Video über Highland Rinder');
     ok(longSlug.length <= 40 && !/-$/.test(longSlug) && longSlug.indexOf('das-ist-ein-sehr-langer') === 0, 'Slug: max. 40 Zeichen, kein Strich am Ende: ' + longSlug);
-    ok(T.exportBaseName() === 'capivo-video', 'ohne Titel: capivo-video');
-    T.setTitle('Mein Reel #1'); ok(T.exportBaseName() === 'mein-reel-1-capivo', 'Basis aus Titel: ' + T.exportBaseName());
+    ok(T.exportBaseName() === 'captionrush-video', 'ohne Titel: captionrush-video');
+    T.setTitle('Mein Reel #1'); ok(T.exportBaseName() === 'mein-reel-1-captionrush', 'Basis aus Titel: ' + T.exportBaseName());
     global.CLICKS = []; T.exportSRT(); T.exportVTT(); T.exportTXT();
-    ok(global.CLICKS.map(c => c.download).join(',') === 'mein-reel-1-capivo.srt,mein-reel-1-capivo.vtt,mein-reel-1-capivo.txt', 'SRT/VTT/TXT mit gleicher Basis: ' + global.CLICKS.map(c => c.download).join(','));
+    ok(global.CLICKS.map(c => c.download).join(',') === 'mein-reel-1-captionrush.srt,mein-reel-1-captionrush.vtt,mein-reel-1-captionrush.txt', 'SRT/VTT/TXT mit gleicher Basis: ' + global.CLICKS.map(c => c.download).join(','));
     T.setTitle('');
   }
   // Export fertig: Handy mit Teilen-Blatt → „Save to Photos / Share“ primär (erst auf Tipp), sonst „Caption another video“
@@ -2526,14 +2526,14 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const sb = document.getElementById('expShare'), an = document.getElementById('expAnother'), dlf = document.getElementById('expDlFile');
     an.classList.add('hi');
     global.matchMedia = q => ({ matches: /fine/.test(q) });           // Desktop
-    global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-capivo.mp4'); T.exportDone(false);
+    global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-captionrush.mp4'); T.exportDone(false);
     ok(sb.style.display === 'none' && an.classList.contains('hi') && dlf.style.display === 'none', 'Desktop: kein Teilen, „Caption another video“ primär');
-    ok(document.getElementById('expDoneName').textContent === 'mein-reel-capivo.mp4', 'Fertig-Zeile zeigt den Dateinamen');
+    ok(document.getElementById('expDoneName').textContent === 'mein-reel-captionrush.mp4', 'Fertig-Zeile zeigt den Dateinamen');
     global.matchMedia = q => ({ matches: /coarse/.test(q) });         // Handy
     T.exportDone(false);
     ok(sb.style.display === '' && !an.classList.contains('hi') && dlf.style.display === '' && !shared, 'Handy: Teilen primär, nichts automatisch geteilt');
     T.shareLastExport(); await new Promise(r => setTimeout(r, 0));
-    ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-capivo.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
+    ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-captionrush.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
     const nClicks = global.CLICKS.length; rejectWith = { name: 'AbortError' };
     ok(await T.shareLastExport() === false && global.CLICKS.length === nClicks, 'Abbrechen (AbortError) → still, kein Download');
     rejectWith = { name: 'NotAllowedError' };
@@ -3152,6 +3152,18 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(runWith({ 'capivo.style': 'prime' }) === 'lift', 'gemerkter alter Style folgt dem Alias');
     }
     T.setEmphState(true, false, 'off');
+  }
+
+  // Sprachversionen (captly.de.html): aus captly.html erzeugt, aktuell, vollständig übersetzt
+  {
+    const i18n = require('./scripts/build-i18n.js');
+    const de = i18n.build('de');
+    de.errors.forEach(e => console.log('  ' + e));
+    ok(de.errors.length === 0, 'i18n de: alle EN-Texte gefunden, keine unübersetzten Landing-Texte');
+    ok(fs.existsSync(de.file) && fs.readFileSync(de.file, 'utf8') === de.html, 'i18n de: captly.de.html aktuell (sonst: node scripts/build-i18n.js)');
+    ok(/<html lang="de">/.test(de.html) && /hreflang="de" href="https:\/\/[^"]+\/de"/.test(de.html), 'i18n de: lang + hreflang gesetzt');
+    const ldFaq = JSON.parse(de.html.match(/<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/g)[1].replace(/^<script[^>]*>\n|\n<\/script>$/g, ''));
+    ok(ldFaq['@type'] === 'FAQPage' && ldFaq.mainEntity.length === 6 && /kostenlos/.test(ldFaq.mainEntity[0].name), 'i18n de: FAQ-Strukturdaten aus den deutschen FAQ');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

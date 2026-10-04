@@ -45,7 +45,7 @@ for pair in de:de-1996 en:en-us fr:fr it:it es:es; do
     const fs = require("fs");
     const [pat, hyp, code, src, commit, out] = process.argv.slice(1);
     const words = f => fs.readFileSync(f, "utf8").split(/\s+/).filter(Boolean).join(" ");
-    const body = "/* Capivo — Silbentrennmuster \"" + code + "\" (hyph-utf8 hyph-" + src + ", tex-hyphen@" + commit.slice(0, 7)
+    const body = "/* CaptionRush — Silbentrennmuster \"" + code + "\" (hyph-utf8 hyph-" + src + ", tex-hyphen@" + commit.slice(0, 7)
       + "). Lizenz: vendor/hyphen/LICENSE. Generiert von scripts/fetch-hyphen-patterns.sh — nicht von Hand ändern. */\n"
       + "(function(w){(w.CAPIVO_HYPH=w.CAPIVO_HYPH||{})[" + JSON.stringify(code) + "]={p:" + JSON.stringify(words(pat))
       + ",x:" + JSON.stringify(words(hyp)) + "};if(typeof w.capHyphLoaded===\"function\")w.capHyphLoaded(" + JSON.stringify(code) + ");})"

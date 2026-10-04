@@ -1,6 +1,6 @@
 <?php
 /**
- * Capivo – Transkript-Feinschliff („Polish“) für klassisches PHP-Webhosting (Groq Chat Completions).
+ * CaptionRush – Transkript-Feinschliff („Polish“) für klassisches PHP-Webhosting (Groq Chat Completions).
  * Gleiche Schnittstelle und Regeln wie api/polish.js (Vercel) – Details/Vertrag siehe dort.
  *
  * Nach Whisper large-v3 korrigiert ein LLM NUR offensichtliche Erkennungsfehler (verhörte Wörter,
