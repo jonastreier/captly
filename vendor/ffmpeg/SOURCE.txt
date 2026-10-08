@@ -1,0 +1,14 @@
+FFmpeg (WebAssembly build) — vendor/ffmpeg/core, vendor/ffmpeg/ffmpeg
+=======================================================================
+Package:   @ffmpeg/core 0.12.6 and @ffmpeg/ffmpeg (npm), built by the ffmpeg.wasm project
+License:   GNU General Public License v2 or later (the core is built with libx264); full text in ./LICENSE.
+           The JavaScript wrapper (@ffmpeg/ffmpeg) is MIT-licensed.
+Use here:  Only as an in-browser fallback to convert WebM to MP4. The video never leaves the device.
+
+Corresponding source code (written offer):
+  - ffmpeg.wasm build scripts and wrapper: https://github.com/ffmpegwasm/ffmpeg.wasm (tag for @ffmpeg/core 0.12.6)
+    The Dockerfile in that repository pins the exact FFmpeg, x264 and other library versions used for the binary.
+  - FFmpeg:  https://ffmpeg.org/download.html
+  - x264:    https://code.videolan.org/videolan/x264
+If you cannot obtain the source from there, write to contact@captionrush.com and we will provide it.
+The binary is unmodified; to replace it with your own build, run `scripts/fetch-ffmpeg.sh`.

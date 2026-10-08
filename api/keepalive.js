@@ -1,3 +1,4 @@
+// OPTIONAL (nicht der Live-Weg): Vercel-Alternative; live laufen die PHP-Gegenstücke auf Hostpoint.
 // Täglicher Vercel-Cron (vercel.json → crons): hält das Supabase-Gratisprojekt wach.
 // Supabase pausiert Free-Projekte nach ~7 Tagen ohne Datenbank-Aktivität; dann scheitern Login und das
 // Speichern der Download-E-Mails. Eine kleine REST-Abfrage zählt als Aktivität. Liest nichts Sensibles:

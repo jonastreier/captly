@@ -30,6 +30,7 @@ jobs:
           node test-captly.js
           node test-polish.js
           node test-enhance.js
+          node test-lead.js
       - name: Paket bauen
         run: node scripts/build-dist.js
       - name: config.php aus Secrets schreiben

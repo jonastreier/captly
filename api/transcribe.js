@@ -1,3 +1,4 @@
+// OPTIONAL (nicht der Live-Weg): Vercel-Alternative; live laufen die PHP-Gegenstücke auf Hostpoint.
 // CaptionRush – Transkriptions-Proxy als Vercel Serverless Function (Groq Whisper).
 // Gleiche Schnittstelle wie transcribe.php: POST /api/transcribe?model=&lang=&translate=&prompt=
 //   Body = rohe Audio-Bytes: Ogg/Opus (Content-Type: audio/ogg, ~0,4 MB pro Stück) oder WAV (audio/wav,
