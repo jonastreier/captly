@@ -9,7 +9,7 @@ const root = path.join(__dirname, '..');
 const out = path.join(root, 'dist');
 
 const FILES = ['.htaccess', '404.html', 'captly.html', 'captly.de.html', 'impressum.html', 'datenschutz.html', 'privacy.html', 'terms.html', 'licenses.html',
-  'llms.txt', 'robots.txt', 'sitemap.xml', 'styles.json', 'transcribe.php', 'polish.php', 'enhance.php', 'lead.php', 'confirm.php', 'unsubscribe.php', 'mail.php'];
+  'llms.txt', 'robots.txt', 'sitemap.xml', 'styles.json', 'transcribe.php', 'polish.php', 'enhance.php', 'lead.php', 'confirm.php', 'unsubscribe.php', 'log.php', 'stat.php', 'mail.php'];
 const DIRS = ['assets', 'vendor'];
 
 function copy(src, dst) {

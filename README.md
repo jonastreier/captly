@@ -73,6 +73,14 @@ Header gelesen (≤ 130 s pro Anfrage, 30 Min./Stunde und IP), bei Groq-Limit Pu
 Leads/Newsletter: `lead.php` schreibt mit dem service_role-Key serverseitig, Double-Opt-in über `confirm.php`, Abmeldung über `unsubscribe.php` (HMAC-signierter Link, Ein-Klick nach RFC 8058), Mail per SMTP (`mail.php`).
 Vercel (`api/*.js`, `vercel.json`) ist nur noch eine optionale Alternative (siehe unten).
 
+## Fehlerüberwachung und Style-Zählung (anonym)
+
+`window.onerror`/`unhandledrejection` → `api/log` (`log.php`): gesampelt (jede 2. Sitzung, max. 5 verschiedene Meldungen), serverseitig bereinigt
+(Dateinamen, E-Mails, Adress-Parameter, lange Zahlen), ohne IP/User-Agent, Rate-Limit pro IP, Löschung nach 30 Tagen. Auswertung: Supabase → SQL Editor →
+`select * from public.error_summary;`. Beim erfolgreichen Export zählt `api/stat` (`stat.php`) einen Zähler pro Tag und eingebautem Style
+(`style_stats`); `GET /api/stat` liefert die Top 5 der letzten 30 Tage (1 h Cache) → Abzeichen «Trending» für die Top 3 ab 50 Exporten. Beides nur über https auf der echten Domain
+und nicht bei Do-Not-Track/GPC. Tabellen/Funktion: `schema.sql` (nach dem Update erneut ausführen). Datenschutz: Ziffer 6.
+
 ## Optional: Vercel (Alternative, nicht der Live-Weg)
 
 Live läuft CaptionRush auf Hostpoint (siehe oben). `vercel.json` und `api/*.js` sind eine **optionale Alternative** für Vorschau-Deployments
@@ -332,6 +340,7 @@ node test-captly.js     # Editor-Logik (DOM-Stub)
 node test-polish.js     # /api/polish + polish.php
 node test-enhance.js    # /api/enhance + enhance.php
 node test-lead.js       # lead.php, confirm.php, unsubscribe.php (Mock-Supabase + Mock-SMTP, braucht php)
+node test-telemetry.js  # log.php + stat.php (Mock-Supabase, braucht php)
 ```
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,

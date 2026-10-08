@@ -104,7 +104,7 @@ encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSup
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
-brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,applyTrending:applyTrending,teleError:teleError,statExport:statExport,coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
@@ -3250,6 +3250,19 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(d2 && d2.emFont === undefined, 'Drop: unbekannte Keyword-Schrift wird entfernt');
     const file = JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8'));
     ok(Array.isArray(file) && file.every(o => T.dropToStyle(o, now) !== null || T.STYLES.some(x => x.id === o.id)), 'styles.json: gültig, jeder Eintrag besteht die Prüfung');
+  }
+
+  // «Trending»: nur ab genug Daten, nur eingebaute Styles ohne eigenes Abzeichen, höchstens 3
+  {
+    const top = [{ style: 'tight', n: 40 }, { style: 'hormozi', n: 20 }, { style: 'mix', n: 10 }, { style: 'statement', n: 5 }];
+    const had = T.STYLES.map(x => x.badge);
+    ok(T.applyTrending({ total: 49, top }) === 0 && !T.STYLES.some(x => x.badge === 'Trending'), 'Trending: unter 50 Exporten kein Abzeichen');
+    ok(T.applyTrending(null) === 0 && T.applyTrending({ total: 99, top: 'x' }) === 0, 'Trending: kaputte Antwort wird ignoriert');
+    ok(T.applyTrending({ total: 100, top: top.concat([{ style: 'gibtsnicht', n: 1 }]) }) === 3, 'Trending: genau die Top 3');
+    ok(T.STYLES.filter(x => x.badge === 'Trending').map(x => x.id).sort().join() === 'hormozi,mix,tight', 'Trending: richtige Styles markiert');
+    T.STYLES.forEach((x, i) => { if (had[i] === undefined) delete x.badge; else x.badge = had[i]; delete x._trend; });
+    T.teleError('Fehler', 'a.js:1'); T.statExport(); // ausserhalb von https/echter Domain: tut nichts, wirft nicht
+    ok(true, 'Messung ist ausserhalb der echten Domain inaktiv (kein Fehler)');
   }
 
   // Sprachversionen (captly.de.html): aus captly.html erzeugt, aktuell, vollständig übersetzt

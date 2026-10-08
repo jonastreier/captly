@@ -65,6 +65,43 @@ revoke all on public.leads from anon, authenticated;
 create index if not exists leads_email_idx on public.leads (lower(email));
 create index if not exists leads_confirm_hash_idx on public.leads (confirm_hash) where confirm_hash is not null;
 
+-- ── Fehlerüberwachung (log.php) und anonyme Style-Zählung (stat.php) ──
+-- Beide Tabellen sind für anon/authenticated gesperrt; geschrieben wird nur serverseitig mit dem service_role-Key.
+-- Keine Personendaten: client_errors enthält bereinigten Fehlertext, Seitenpfad und Browser-Familie, keine IP.
+create table if not exists public.client_errors (
+  id         bigserial primary key,
+  created_at timestamptz not null default now(),
+  msg        text not null check (char_length(msg) <= 240),
+  src        text check (char_length(src) <= 120),
+  page       text check (char_length(page) <= 80),
+  browser    text check (char_length(browser) <= 30)
+);
+alter table public.client_errors enable row level security;
+revoke all on public.client_errors from anon, authenticated;
+create index if not exists client_errors_created_idx on public.client_errors (created_at desc);
+-- Auswertung: select * from public.error_summary;   (letzte 7 Tage, häufigste zuerst)
+create or replace view public.error_summary as
+  select msg, src, count(*) as n, max(created_at) as last_seen, array_agg(distinct browser) as browsers
+  from public.client_errors where created_at > now() - interval '7 days'
+  group by msg, src order by n desc;
+revoke all on public.error_summary from anon, authenticated;
+
+create table if not exists public.style_stats (
+  day   date not null,
+  style text not null check (style ~ '^[a-z0-9_-]{1,32}$'),
+  n     integer not null default 0,
+  primary key (day, style)
+);
+alter table public.style_stats enable row level security;
+revoke all on public.style_stats from anon, authenticated;
+create or replace function public.bump_style(p_style text) returns void
+language sql security definer set search_path = public as $$
+  insert into public.style_stats (day, style, n) values (current_date, p_style, 1)
+  on conflict (day, style) do update set n = public.style_stats.n + 1
+$$;
+revoke all on function public.bump_style(text) from public, anon, authenticated;
+grant execute on function public.bump_style(text) to service_role;
+
 -- ── Keep-alive ──
 -- Supabase pausiert Gratisprojekte nach ~7 Tagen ohne Aktivität. Der tägliche GitHub-Workflow ruft diese
 -- Funktion auf (zählt als Datenbank-Aktivität, gibt nichts Sensibles zurück).
