@@ -28,6 +28,8 @@ RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)\.html$ /$1 [R=301,L]
 
 # API: gleiche Pfade wie auf Vercel (/api/transcribe …) → PHP-Gegenstücke
 RewriteRule ^api/(transcribe|polish|enhance|lead|confirm|unsubscribe|log|stat|plan)/?$ $1.php [L,QSA]
+RewriteRule ^contact/?$ contact.php [L,QSA]
+RewriteRule ^kontakt/?$ contact.php?lang=de [L,QSA]
 RewriteRule ^api/paddle-webhook/?$ paddle-webhook.php [L,QSA]
 RewriteRule ^api/portal/?$ paddle-portal.php [L,QSA]
 </IfModule>
