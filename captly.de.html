@@ -7294,6 +7294,55 @@ function trySample(styleId) {
 // Style-Chips in der Upload-Karte der Startseite: Name + kleine Live-Vorschau (gleicher buildCap wie Editor-
 // Kacheln, auf EINEM gemeinsamen Standbild). Gewählter Chip = Style fürs nächste Video — openEditor() setzt
 // ihn nach dem Brand-Template (landPick schlägt die Marke, weil bewusst gewählt). Gemerkt wie jede Style-Wahl.
+// ── Style Drops: neue Looks kommen über styles.json (eigene Datei, kein App-Code) ──
+// Jeder Eintrag: { id, name, added: 'YYYY-MM-DD', photo?: 'bloom', style: {…wie in STYLES…}, layout?: {wpb, lines} }.
+// Alles wird wie Vorlagen aus Projekten bereinigt (sanitizeStyle), Schriften müssen lokal vorliegen (vendor/fonts),
+// IDs dürfen eingebaute Styles nie überschreiben. Neue Looks stehen vorn und tragen 30 Tage das Abzeichen „New“.
+var DROP_NEW_DAYS = 30, _dropIds = [];
+function dropToStyle(o, now) {
+  if (!o || typeof o !== 'object') return null;
+  var id = String(o.id || '');
+  if (!/^[a-z][a-z0-9]{2,19}$/.test(id) || STYLES.some(function(x){ return x.id === id; })) return null;
+  var name = String(o.name || '').replace(/[<>&"'`]/g, '').trim().slice(0, 22);
+  if (!name || !o.style || typeof o.style !== 'object') return null;
+  var st = sanitizeStyle(o.style);
+  var fl = cleanFontName(st.fl || String(st.font || '').replace(/'/g, '').split(',')[0]);
+  if (!fl || !isKnownFont(fl)) return null;
+  ['emFont', 'hlFont'].forEach(function(k) {
+    if (!st[k]) return;
+    var n = cleanFontName(String(st[k]).replace(/'/g, '').split(',')[0]);
+    if (n && isKnownFont(n)) st[k] = "'" + n + "'"; else delete st[k];
+  });
+  st.id = id; st.name = name; st.fl = fl; st.font = "'" + fl + "'";
+  if (!st.fw) st.fw = '700';
+  if (!st.tc && !st.tg) st.tc = '#ffffff';
+  if (!st.anim) st.anim = 'none';
+  if (!st.thumbBg) st.thumbBg = CS_THUMB_BG;
+  var lay = o.layout && typeof o.layout === 'object' ? o.layout : null;
+  if (lay && lay.wpb >= 1 && lay.wpb <= 8 && lay.lines >= 1 && lay.lines <= 3) st.layout = { wpb: Math.floor(lay.wpb), lines: Math.floor(lay.lines) };
+  var t = Date.parse(o.added);
+  if (t && (now || Date.now()) - t < DROP_NEW_DAYS * 864e5) st.badge = 'New';
+  st._drop = true;
+  if (/^[a-z0-9]{3,24}$/.test(String(o.photo || ''))) SHOWCASE_PHOTO[id] = o.photo;
+  return st;
+}
+function applyStyleDrops(list, now) {
+  if (!Array.isArray(list)) return 0;
+  var add = [];
+  list.slice(0, 12).forEach(function(o) { var st = dropToStyle(o, now); if (st && !add.some(function(x){ return x.id === st.id; })) add.push(st); });
+  if (!add.length) return 0;
+  STYLES.unshift.apply(STYLES, add);
+  _dropIds = add.map(function(x){ return x.id; }).concat(_dropIds);
+  return add.length;
+}
+function loadStyleDrops() {
+  if (typeof fetch !== 'function') return Promise.resolve(0);
+  return fetch('styles.json', { cache: 'no-cache' }).then(function(r) { return r.ok ? r.json() : []; }).then(function(list) {
+    var n = applyStyleDrops(list);
+    if (n) { try { buildPicker(); renderLandChips(); renderShowcase(); } catch (e) {} }
+    return n;
+  }).catch(function(){ return 0; }); // fehlt die Datei (Entwicklung, offline) → nur die eingebauten Looks
+}
 var LAND_CHIPS = ['tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'hormozi', 'classic', 'boxkara', 'beast'];
 var landPick = null;
 function renderLandChips() {
@@ -7301,7 +7350,7 @@ function renderLandChips() {
   if (!row || typeof STYLES === 'undefined') return;
   row.innerHTML = '';
   var cur = resolveStyleId(landPick || activeId);
-  var ids = LAND_CHIPS.filter(function(id){ return STYLES.some(function(s){ return s.id === id; }); });
+  var ids = _dropIds.slice(0, 2).concat(LAND_CHIPS).filter(function(id){ return STYLES.some(function(s){ return s.id === id; }); });
   if (cur && ids.indexOf(cur) < 0 && STYLES.some(function(s){ return s.id === cur && !s._tpl && s.id !== 'custom'; })) ids.unshift(cur);
   ids.forEach(function(id) {
     var s = STYLES.find(function(x){ return x.id === id; });
@@ -10593,7 +10642,7 @@ function renderShowcase() {
   // einladend und stehen deshalb ganz hinten (weiterhin per Scroll erreichbar, nur nicht "above the fold").
   var SHOWCASE_ORDER = ['tight','mix','statement','accent','serifbold','reveal','classic','hormozi','note','boxkara','script','minimal','lift','tiktok','soft','editorial','marker','hush','stack',
     'beast','popone','focus','neon','headline'];
-  var showcaseStyles = SHOWCASE_ORDER.map(function(id){ return STYLES.find(function(s){ return s.id === id; }); })
+  var showcaseStyles = _dropIds.concat(SHOWCASE_ORDER).map(function(id){ return STYLES.find(function(s){ return s.id === id; }); })
     .filter(function(s){ return s && s.id !== 'custom' && !s._tpl; });
   showcaseStyles.forEach(function(s, i) {
     var card = document.createElement('div');
@@ -12443,6 +12492,7 @@ syncTimeOffUI(); syncTextFormatUI(); updateTrSetSum(); syncUndoBtns(); buildFont
 // Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
 renderShowcase(); renderLandChips();
+loadStyleDrops();
 updateAcctUI();
 // Bereits eingeloggte Nutzer erkennen (supabase-js hält die Session in localStorage).
 fetchMe().then(function(){ if (meEmail) loadProjects(); });

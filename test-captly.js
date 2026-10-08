@@ -104,7 +104,7 @@ encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSup
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
-brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
@@ -3215,6 +3215,22 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const sb = st('serifbold');
     ok(T.capWordFace(sb, false, false).it === true && T.capWordFace(sb, false, true).it === false && T.capWordFace(sb, false, true).fam === 'Inter Tight' && T.capWordFace(sb, false, true).fw === '900', 'Serif Bold: Text kursiv, Keyword aufrecht (Inter Tight 900)');
     ok(T.capWordFace(st('accent'), false, true).it === true && T.capWordFace(st('accent'), false, false).it === false, 'Accent: nur Keyword kursiv');
+  }
+
+  // Style Drops (styles.json): bereinigt, nur lokale Schriften, nie eingebaute IDs überschreiben, „New“ 30 Tage
+  {
+    const now = Date.parse('2026-11-01');
+    const good = { id: 'dropone', name: 'Drop <b>One</b>', added: '2026-10-20', photo: 'bloom', layout: { wpb: 2, lines: 1 },
+      style: { fl: 'Inter Tight', font: "'Inter Tight'", fw: '800', tc: '#fff', ts: '0 2px 8px rgba(0,0,0,.5);}<script>', hl: '#ff0', emFont: "'Instrument Serif'", em: '#0f0', evil: 'x' } };
+    const d = T.dropToStyle(good, now);
+    ok(d && d.id === 'dropone' && d.name === 'Drop bOne/b' && d.badge === 'New' && d.layout.wpb === 2 && d.emFont === "'Instrument Serif'" && d.evil === undefined && !/[<>{};]/.test(d.ts), 'Drop: gültiger Eintrag, bereinigt, Abzeichen New');
+    ok(T.dropToStyle(Object.assign({}, good, { added: '2026-08-01' }), now).badge === undefined, 'Drop: nach 30 Tagen kein Abzeichen');
+    ok(T.dropToStyle(Object.assign({}, good, { id: 'tight' }), now) === null && T.dropToStyle(Object.assign({}, good, { id: 'Bad Id' }), now) === null, 'Drop: eingebaute/ungültige ID abgelehnt');
+    ok(T.dropToStyle(Object.assign({}, good, { style: Object.assign({}, good.style, { fl: 'Rubik Mono One', font: "'Rubik Mono One'" }) }), now) === null, 'Drop: Schrift ohne lokale Datei abgelehnt');
+    const d2 = T.dropToStyle(Object.assign({}, good, { id: 'droptwo', style: Object.assign({}, good.style, { emFont: "'Unknown Font'" }) }), now);
+    ok(d2 && d2.emFont === undefined, 'Drop: unbekannte Keyword-Schrift wird entfernt');
+    const file = JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8'));
+    ok(Array.isArray(file) && file.every(o => T.dropToStyle(o, now) !== null || T.STYLES.some(x => x.id === o.id)), 'styles.json: gültig, jeder Eintrag besteht die Prüfung');
   }
 
   // Sprachversionen (captly.de.html): aus captly.html erzeugt, aktuell, vollständig übersetzt

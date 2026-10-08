@@ -46,6 +46,13 @@ Dateien, kein Build:
   Transkription läuft über `transcribe.php`, Login/Projekte über Supabase. Bleibt als Referenz
   für Quota- und Stripe-Logik liegen, falls Bezahlung dazukommt.
 
+## Style Drops (neue Looks ohne Code-Änderung)
+
+Neue Caption-Styles kommen über [`styles.json`](styles.json) (Array; Felder: `id`, `name`, `added` (JJJJ-MM-TT), optional `photo` (Datei in
+`assets/showcase`) und `layout`, `style` = Style-Felder wie in `STYLES`). Beim Laden bereinigt die Seite jeden Eintrag (`dropToStyle`: nur lokale
+Schriften, keine fremden IDs, 30 Tage Abzeichen «New», Looks stehen vorn). Ein Eintrag mit Fehler wird übersprungen, die Seite läuft weiter.
+Nach dem Eintragen: `node test-captly.js` (prüft die Datei) und je Style Vorschau/Export im Browser prüfen.
+
 ## Live-Betrieb auf Hostpoint (Ziel-Setup)
 
 Die Seite läuft als statische Dateien + die PHP-Dateien (`transcribe.php`, `polish.php`, `enhance.php`, `lead.php`, `confirm.php`) auf
