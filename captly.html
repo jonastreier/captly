@@ -708,6 +708,9 @@ body.editor-open .lang-hint{display:none}
 /* Kopfzeile */
 .tb-left,.tb-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .tb-right{position:relative}
+.min-left{border:0;font:600 12px/1 inherit;font-family:inherit;padding:6px 10px;border-radius:999px;background:var(--fill);color:var(--ink2);cursor:pointer;white-space:nowrap;margin-right:6px}
+.min-left.low{background:#fdf3e7;color:#b45309}
+@media(max-width:640px){.min-left{display:none!important}}
 .tb-back{display:inline-flex;align-items:center;gap:4px;padding:5px 10px 5px 6px}
 .tb-mid{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px}
 .tb-title{min-width:0;width:auto;max-width:360px;field-sizing:content;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 8px;font:600 14px 'Inter',sans-serif;color:var(--ink);text-overflow:ellipsis;outline:none;text-align:center}
@@ -1250,6 +1253,7 @@ body.editor-open .lang-hint{display:none}
       <span class="save-ind" id="saveInd" role="status" aria-live="polite"></span>
     </div>
     <div class="tb-right">
+      <button type="button" class="min-left" id="minLeft" style="display:none" onclick="showUpgrade()" title="Transcription minutes left this month"></button>
       <div class="tb-undo" id="tbUndo">
         <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Undo caption edit (Ctrl/⌘+Z)" aria-label="Undo"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg></button>
         <button type="button" class="tb-icon" id="redoBtn" onclick="redoCaptions()" disabled title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo"><svg class="ic" aria-hidden="true"><use href="#i-redo"/></svg></button>
@@ -1257,6 +1261,7 @@ body.editor-open .lang-hint{display:none}
       <div class="tb-more">
         <button type="button" class="tb-icon" id="moreBtn" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu" title="Account, projects &amp; shortcuts" aria-label="More"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></button>
         <div class="tb-menu" id="moreMenu" style="display:none" onclick="event.stopPropagation()">
+          <button type="button" class="tm-item" id="mmMin" style="display:none" onclick="closeMoreMenu();showUpgrade()"></button>
           <button type="button" class="tm-item" id="acctBtn" onclick="closeMoreMenu();showAcct()">Sign in</button>
           <button type="button" class="tm-item" onclick="closeMoreMenu();saveProject()" title="Save captions + style to your free account">Save to account</button>
           <label class="tm-item tm-sel">Load project
@@ -1764,8 +1769,9 @@ body.editor-open .lang-hint{display:none}
     </div>
     <div id="acctStep3" style="display:none">
       <p style="font-size:12.5px;margin-bottom:10px" id="acctInfo"></p>
-      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('creator')" title="Paid plans are coming soon">Creator · 300 min/mo · $7.99 — coming soon</button>
-      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('pro')" title="Paid plans are coming soon">Pro · 1200 min/mo · $14.99 — coming soon</button>
+      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" id="btnPlanCreator" onclick="startCheckout('creator')" title="Paid plans are coming soon">Creator · 300 min/mo · $7.99 — coming soon</button>
+      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" id="btnPlanPro" onclick="startCheckout('pro')" title="Paid plans are coming soon">Pro · 1200 min/mo · $14.99 — coming soon</button>
+      <button class="pos-btn" id="btnPortal" style="width:100%;padding:8px;margin-bottom:5px;display:none" onclick="openPortal()">Manage subscription &amp; invoices</button>
       <button class="pos-btn" style="width:100%;padding:8px" onclick="logout()">Sign out</button>
     </div>
     <p id="acctMsg" style="font-size:12px;color:#7c3aed;margin-top:8px"></p>
@@ -7621,7 +7627,7 @@ async function verifyCode() {
   } catch (e) { m.textContent = authErrText(e); return; }
   m.textContent = '';
   document.getElementById('acctModal').style.display = 'none';
-  await fetchMe(); loadProjects();
+  await fetchMe(); loadProjects(); loadBilling();
   if (_pendingWmExport && meEmail) { _pendingWmExport = false; exportVideoWithCaptions(); } // Export ohne Logo nach Login
 }
 // Anonymer Export-Button „Export without watermark“ → Login, danach startet der Export automatisch.
@@ -7636,14 +7642,14 @@ async function exportWithoutWatermark() {
 async function logout() {
   var sb = await getSb();
   if (sb) await sb.auth.signOut();
-  mePlan = 'anon'; meEmail = '';
+  mePlan = 'anon'; meEmail = ''; billing = null; renderBilling();
   document.getElementById('acctBtn').textContent = 'Sign in';
   document.getElementById('acctModal').style.display = 'none';
   var pl = document.getElementById('projList'); if (pl) pl.innerHTML = '<option value="">— Load project —</option>';
   updateAcctUI();
 }
 function applyUser(user) {
-  meEmail = user.email || user.phone || 'account'; mePlan = 'free';
+  meEmail = user.email || user.phone || 'account'; mePlan = (billing && billing.loggedIn && billing.plan) || 'free';
   var b = document.getElementById('acctBtn'), i = document.getElementById('acctInfo');
   if (b) b.textContent = 'Account · ' + meEmail.split('@')[0];
   if (i) i.textContent = meEmail + ' · signed in';
@@ -7676,7 +7682,8 @@ function waitAuth() {
 }
 function updateAcctUI() {
   var wo = document.getElementById('wmOpt');
-  if (wo) wo.style.display = needsWatermark() && !document.getElementById('expGate') ? '' : 'none'; // Beta: E-Mail-Gate statt Wasserzeichen // Hinweis im Export-Blatt VOR dem Rendern (keine Überraschung)
+  if (wo && billingOn()) { wo.style.display = needsWatermark() ? '' : 'none'; wo.innerHTML = 'Free plan adds a small CaptionRush mark · <a href="#" onclick="closeExportSheet();showUpgrade();return false">Upgrade to remove it</a>'; }
+  else if (wo) wo.style.display = needsWatermark() && !document.getElementById('expGate') ? '' : 'none'; // Beta: E-Mail-Gate statt Wasserzeichen // Hinweis im Export-Blatt VOR dem Rendern (keine Überraschung)
   var rw = document.getElementById('expRmWm');
   if (rw && !needsWatermark()) rw.style.display = 'none';
   var qi = document.getElementById('quotaInfo');
@@ -7686,8 +7693,96 @@ function updateAcctUI() {
 }
 // Bezahlung ist noch nicht angebunden (kein Stripe im aktuellen Umfang) — die Plan-Buttons
 // bleiben sichtbar, sagen aber ehrlich, dass es noch nichts zu kaufen gibt.
-function startCheckout(plan) {
-  document.getElementById('acctMsg').textContent = 'Paid plans are coming soon — everything is free while CaptionRush is in beta.';
+// ── Abos (Vorbereitung, nur aktiv wenn api/plan {enabled:true} liefert; Standard: aus → alles wie in der Beta) ──
+var billing = null, _paddleReady = false;
+function billingOn() { return !!(billing && billing.enabled); }
+function minOf(sec) { return Math.max(0, Math.floor((sec || 0) / 60)); }
+var PLAN_NAMES = { anon: 'Guest', free: 'Free', creator: 'Creator', pro: 'Pro' };
+function quotaText(plan) {
+  return plan === 'anon' ? 'Today\'s guest minutes are used up. Sign in free for ' + minOf(billing && billing.limits && billing.limits.free) + ' minutes a month.'
+    : plan === 'free' ? 'You\'ve used your free minutes for this month. Upgrade for more minutes, or come back next month.'
+    : 'You\'ve used all minutes of your plan this month. They reset next month.';
+}
+async function loadBilling() {
+  if (typeof fetch !== 'function' || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return null;
+  try {
+    var tok = await authToken();
+    var r = await fetch('api/plan', { headers: tok ? { 'X-Capivo-Token': tok } : {}, cache: 'no-store' });
+    var j = r.ok ? await r.json() : null;
+    billing = j && j.enabled ? j : null;
+  } catch (e) { billing = null; }
+  if (billing && billing.loggedIn && billing.plan) mePlan = billing.plan;
+  renderBilling(); updateAcctUI();
+  return billing;
+}
+function renderBilling() {
+  var on = billingOn() && billing.loggedIn, pill = document.getElementById('minLeft'), mm = document.getElementById('mmMin');
+  var txt = on ? '⏱ ' + minOf(billing.left_sec) + ' min left' : '';
+  [pill, mm].forEach(function(el) {
+    if (!el) return;
+    el.style.display = on ? '' : 'none'; el.textContent = txt;
+    if (el.classList) el.classList.toggle('low', on && billing.left_sec < billing.limit_sec * 0.1);
+  });
+  var info = document.getElementById('acctInfo');
+  if (info && meEmail) info.textContent = meEmail + ' · signed in' + (on ? ' · ' + PLAN_NAMES[billing.plan] + ' plan · ' + minOf(billing.left_sec) + ' of ' + minOf(billing.limit_sec) + ' min left this month' : '');
+  var c = document.getElementById('btnPlanCreator'), p = document.getElementById('btnPlanPro'), po = document.getElementById('btnPortal');
+  if (c && p) {
+    var lim = (billing && billing.limits) || {};
+    c.textContent = billingOn() ? 'Creator · ' + minOf(lim.creator) + ' min/month' : 'Creator · 300 min/mo · $7.99 — coming soon';
+    p.textContent = billingOn() ? 'Pro · ' + minOf(lim.pro) + ' min/month' : 'Pro · 1200 min/mo · $14.99 — coming soon';
+    c.title = p.title = billingOn() ? 'Price shown in your local currency at checkout' : 'Paid plans are coming soon';
+    c.style.display = on && billing.plan === 'creator' ? 'none' : ''; p.style.display = on && billing.plan === 'pro' ? 'none' : '';
+  }
+  if (po) po.style.display = on && billing.canPortal ? '' : 'none';
+}
+function showUpgrade() { showAcct(); renderBilling(); }
+function loadPaddleJs() {
+  return new Promise(function(res, rej) {
+    if (window.Paddle) { res(); return; }
+    var sc = document.createElement('script'), t = setTimeout(function(){ rej(new Error('timeout')); }, 12000);
+    // Einzige Stelle mit Fremdserver: erst beim Klick auf «Upgrade» geladen (Zahlungsanbieter Paddle, siehe Datenschutzerklärung)
+    sc.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+    sc.onload = function(){ clearTimeout(t); res(); }; sc.onerror = function(){ clearTimeout(t); rej(new Error('load')); };
+    document.head.appendChild(sc);
+  });
+}
+async function startCheckout(plan) {
+  var m = document.getElementById('acctMsg');
+  if (!billingOn()) { m.textContent = 'Paid plans are coming soon — everything is free while CaptionRush is in beta.'; return; }
+  if (!meEmail) { showAcct(); m.textContent = 'Sign in first, then pick a plan.'; return; }
+  var pd = billing.paddle || {}, price = pd.prices && pd.prices[plan];
+  if (!pd.clientToken || !price) { m.textContent = 'Checkout is not available yet — please try again later.'; return; }
+  m.textContent = 'Opening checkout…';
+  try { await loadPaddleJs(); } catch (e) { m.textContent = 'Could not load the payment window. Please check your connection and try again.'; return; }
+  try {
+    if (!_paddleReady) {
+      if (pd.env === 'sandbox') window.Paddle.Environment.set('sandbox');
+      window.Paddle.Initialize({ token: pd.clientToken, eventCallback: function(ev) { if (ev && ev.name === 'checkout.completed') onCheckoutDone(); } });
+      _paddleReady = true;
+    }
+    window.Paddle.Checkout.open({ items: [{ priceId: price, quantity: 1 }], customer: { email: meEmail }, customData: { user_id: billing.userId },
+      settings: { displayMode: 'overlay', theme: 'light', locale: String(navigator.language || 'en').slice(0, 2) } });
+    m.textContent = '';
+  } catch (e) { m.textContent = 'Checkout could not start. Please try again.'; }
+}
+// Nach dem Bezahlen: der Webhook braucht einen Moment → Plan ein paar Mal nachladen
+async function onCheckoutDone() {
+  var m = document.getElementById('acctMsg'); if (m) m.textContent = 'Thank you! Activating your plan…';
+  for (var i = 0; i < 8; i++) {
+    await new Promise(function(r){ setTimeout(r, 2500); });
+    await loadBilling();
+    if (billing && billing.plan && billing.plan !== 'free') { if (m) m.textContent = 'Your ' + PLAN_NAMES[billing.plan] + ' plan is active.'; return; }
+  }
+  if (m) m.textContent = 'Payment received — your plan will show up in a minute. Reload if it doesn\'t.';
+}
+async function openPortal() {
+  var m = document.getElementById('acctMsg'); m.textContent = 'Opening…';
+  try {
+    var r = await fetch('api/portal', { method: 'POST', headers: { 'X-Capivo-Token': await authToken() } });
+    var j = r.ok ? await r.json() : null;
+    if (j && /^https:\/\//.test(j.url || '')) { m.textContent = ''; window.open(j.url, '_blank', 'noopener'); return; }
+  } catch (e) {}
+  m.textContent = 'Could not open the billing portal. Please try again.';
 }
 // Landing-Preiskarten: „Coming soon“ öffnet das Konto-Modal mit derselben ehrlichen Beta-Meldung
 // (anmelden lohnt sich trotzdem: entfernt das Wasserzeichen, speichert Projekte).
@@ -7926,6 +8021,7 @@ function applyProjectPayload(p) {
 // Wird zum Exportzeitpunkt ausgewertet (Nutzer kann sich nach dem Video-Laden noch anmelden).
 function needsWatermark() {
   if (mePlan === 'creator' || mePlan === 'pro') return false;
+  if (billingOn()) return true; // Abos aktiv: nur bezahlte Pläne exportieren ohne Marke (sonst Beta: E-Mail statt Marke)
   return !meEmail && !leadEmail();
 }
 // ── Beta-E-Mail-Gate ──
@@ -8109,8 +8205,8 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       _trIdx = 0; throw transcribeErr('no proxy', { noProxy: true });
     }
     if (!resp.ok) {
-      var detail = '';
-      try { var ej = await resp.json(); detail = (ej && (typeof ej.error === 'string' ? ej.error : ej.error && ej.error.message)) || ''; } catch (e2) {}
+      var detail = '', ej = null;
+      try { ej = await resp.json(); detail = (ej && (typeof ej.error === 'string' ? ej.error : ej.error && ej.error.message)) || ''; } catch (e2) {}
       // Proxy da, aber Key nicht hinterlegt → wie "kein Proxy" behandeln (lokaler Fallback statt toter Button)
       if (!openaiKey && resp.status === 500 && /nicht konfiguriert/i.test(detail)) {
         console.warn('Transkriptions-Proxy ohne Key:', detail);
@@ -8128,6 +8224,10 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       var rlMsg = isFinite(raSec) && raSec > 0
         ? 'Free-tier limit reached — please try again in ~' + Math.max(1, Math.ceil(raSec / 60)) + ' min.'
         : 'Free-tier limit reached (too many requests) — wait a minute and try again.';
+      if (resp.status === 402 && detail === 'quota') {
+        var qj = null; try { qj = ej; } catch (e3) {}
+        throw transcribeErr(quotaText(qj && qj.plan), { status: 402, quota: true });
+      }
       throw transcribeErr(resp.status === 401 && detail === 'login_required' ? 'Please log in (top right) to transcribe videos.'
         : resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
         : resp.status === 413 ? 'Audio too large for the server — please trim the video.'
@@ -8517,6 +8617,8 @@ async function transcribeVideo(file) {
     var dec = await decodeToMono16k(file, stale);
     bailIfStale();
     var audioData = dec.audioData, peak = dec.peak, len = audioData.length;
+    // Abos: reicht das Restkontingent nicht für das ganze Video, gleich melden statt mittendrin zu scheitern
+    if (billingOn() && billing.loggedIn && billing.left_sec < len / 16000) throw transcribeErr(quotaText(billing.plan), { quota: true });
     setTProgress(50);
 
     // Normalisieren — leiser Ton ist Hauptursache für "keine Sprache erkannt"
@@ -8694,6 +8796,7 @@ async function transcribeVideo(file) {
     // niemand etwas geändert hat (sonst still verworfen).
     emSrc = null; postCaption = null; _zoomPlanKey = null; syncPostUI(); syncEmphUI();
     postTranscribeAI(run, CODE_BY_LANG[usedLang] || lc || '', vocab);
+    if (billingOn()) loadBilling(); // Restminuten nach dem Lauf aktualisieren
 
   } catch(err) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
@@ -8714,6 +8817,7 @@ async function transcribeVideo(file) {
       setTStatus('❌', 'Error: ' + (err.message || err), false, false);
     }
     document.getElementById('retryWrap').style.display = 'block';
+    if (err && err.quota) setTimeout(showUpgrade, 400);
   }
 }
 
@@ -12927,7 +13031,7 @@ renderShowcase(); renderLandChips();
 loadStyleDrops().then(loadStyleStats);
 updateAcctUI();
 // Bereits eingeloggte Nutzer erkennen (supabase-js hält die Session in localStorage).
-fetchMe().then(function(){ if (meEmail) loadProjects(); });
+fetchMe().then(function(){ if (meEmail) loadProjects(); return loadBilling(); });
 initLandingNavScroll();
 initScrollReveal();
 initHowDemo();

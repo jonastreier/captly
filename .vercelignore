@@ -25,3 +25,7 @@ enhance.php
 docs/
 log.php
 stat.php
+plan.php
+paddle-webhook.php
+paddle-portal.php
+billing.php

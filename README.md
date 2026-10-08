@@ -81,6 +81,16 @@ Vercel (`api/*.js`, `vercel.json`) ist nur noch eine optionale Alternative (sieh
 (`style_stats`); `GET /api/stat` liefert die Top 5 der letzten 30 Tage (1 h Cache) → Abzeichen «Trending» für die Top 3 ab 50 Exporten. Beides nur über https auf der echten Domain
 und nicht bei Do-Not-Track/GPC. Tabellen/Funktion: `schema.sql` (nach dem Update erneut ausführen). Datenschutz: Ziffer 6.
 
+## Abos (Vorbereitung, Schalter aus)
+
+Code für Free/Creator/Pro ist fertig, aber **abgeschaltet** (`BILLING_ENABLED=false` in `config.php`; dann ändert sich nichts). Bausteine:
+`schema.sql` (`profiles`, `usage`, `paddle_events`, `add_usage()`, Trigger für neue Nutzer, RLS: Nutzer lesen nur ihre Zeilen), `billing.php` (Hilfsfunktionen),
+`plan.php` (`/api/plan`: Plan + Restminuten + öffentliche Paddle-Werte), `transcribe.php` (402 `{error:"quota"}` vor dem Groq-Aufruf; eingeloggt: Plan-Minuten pro Monat,
+Gast: `ANON_SEC_PER_DAY` pro IP; gezählt wird nach Erfolg), `paddle-webhook.php` (`/api/paddle-webhook`: HMAC-Signatur, Zeitstempel-Toleranz, Idempotenz, Reihenfolge, Events
+`subscription.*`), `paddle-portal.php` (`/api/portal`: Link zum Kundenportal). Frontend: Abzeichen «x min left», `needsWatermark()` hängt am Plan, Paddle-Checkout-Overlay
+(`paddle.js` wird erst beim Klick auf «Upgrade» geladen), «Manage subscription». Sandbox-Anleitung: [`docs/paddle-sandbox.md`](docs/paddle-sandbox.md); was vor dem Live-Schalten
+fehlt: [`docs/abo-aktivierung.md`](docs/abo-aktivierung.md).
+
 ## Optional: Vercel (Alternative, nicht der Live-Weg)
 
 Live läuft CaptionRush auf Hostpoint (siehe oben). `vercel.json` und `api/*.js` sind eine **optionale Alternative** für Vorschau-Deployments
@@ -341,6 +351,7 @@ node test-polish.js     # /api/polish + polish.php
 node test-enhance.js    # /api/enhance + enhance.php
 node test-lead.js       # lead.php, confirm.php, unsubscribe.php (Mock-Supabase + Mock-SMTP, braucht php)
 node test-telemetry.js  # log.php + stat.php (Mock-Supabase, braucht php)
+node test-billing.js    # Abo-Vorbereitung: Webhook, Plan, Kontingent, Portal (Mock-Supabase/Groq/Paddle, braucht php)
 ```
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,

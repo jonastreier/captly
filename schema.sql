@@ -102,6 +102,67 @@ $$;
 revoke all on function public.bump_style(text) from public, anon, authenticated;
 grant execute on function public.bump_style(text) to service_role;
 
+-- ── Abo-Vorbereitung (noch nicht scharf: config.php BILLING_ENABLED=false) ──
+-- profiles: Plan pro Nutzer (geschrieben nur vom Webhook mit service_role); usage: Sekunden Ton pro Tag und Nutzer;
+-- paddle_events: bereits verarbeitete Webhook-Events (Idempotenz). Nutzer dürfen nur ihre eigene Zeile lesen.
+create table if not exists public.profiles (
+  user_id                uuid primary key references auth.users(id) on delete cascade,
+  plan                   text not null default 'free' check (plan in ('free', 'creator', 'pro')),
+  status                 text not null default 'active' check (status in ('active', 'trialing', 'past_due', 'paused', 'canceled')),
+  period_end             timestamptz,
+  paddle_customer_id     text,
+  paddle_subscription_id text,
+  last_event_at          timestamptz,
+  created_at             timestamptz not null default now(),
+  updated_at             timestamptz not null default now()
+);
+alter table public.profiles enable row level security;
+drop policy if exists "profiles: read own" on public.profiles;
+create policy "profiles: read own" on public.profiles for select to authenticated using (user_id = auth.uid());
+revoke all on public.profiles from anon, authenticated;
+grant select on public.profiles to authenticated;
+create index if not exists profiles_customer_idx on public.profiles (paddle_customer_id) where paddle_customer_id is not null;
+
+create table if not exists public.usage (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  day     date not null,
+  seconds integer not null default 0 check (seconds >= 0),
+  primary key (user_id, day)
+);
+alter table public.usage enable row level security;
+drop policy if exists "usage: read own" on public.usage;
+create policy "usage: read own" on public.usage for select to authenticated using (user_id = auth.uid());
+revoke all on public.usage from anon, authenticated;
+grant select on public.usage to authenticated;
+
+create table if not exists public.paddle_events (
+  event_id    text primary key check (char_length(event_id) <= 80),
+  type        text not null,
+  received_at timestamptz not null default now()
+);
+alter table public.paddle_events enable row level security;
+revoke all on public.paddle_events from anon, authenticated;
+
+create or replace function public.add_usage(p_user uuid, p_seconds integer) returns void
+language sql security definer set search_path = public as $$
+  insert into public.usage (user_id, day, seconds) values (p_user, current_date, greatest(p_seconds, 0))
+  on conflict (user_id, day) do update set seconds = public.usage.seconds + greatest(p_seconds, 0)
+$$;
+revoke all on function public.add_usage(uuid, integer) from public, anon, authenticated;
+grant execute on function public.add_usage(uuid, integer) to service_role;
+
+-- Jeder neue Nutzer bekommt eine Free-Zeile; bestehende werden einmalig nachgetragen.
+create or replace function public.handle_new_user() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.profiles (user_id) values (new.id) on conflict (user_id) do nothing;
+  return new;
+end $$;
+revoke all on function public.handle_new_user() from public, anon, authenticated;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();
+insert into public.profiles (user_id) select id from auth.users on conflict (user_id) do nothing;
+
 -- ── Keep-alive ──
 -- Supabase pausiert Gratisprojekte nach ~7 Tagen ohne Aktivität. Der tägliche GitHub-Workflow ruft diese
 -- Funktion auf (zählt als Datenbank-Aktivität, gibt nichts Sensibles zurück).
