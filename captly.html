@@ -424,6 +424,9 @@ body.editor-open{height:100vh;overflow:hidden}
 @keyframes stileSaved{0%,40%{box-shadow:0 0 0 4px rgba(34,197,94,.55)}100%{box-shadow:0 0 0 3px rgba(124,58,237,.18)}}
 .cap-toast{position:fixed;left:50%;bottom:24px;width:max-content;transform:translateX(-50%) translateY(20px);opacity:0;z-index:1200;background:#1f1b2b;color:#fff;font:600 12.5px/1.3 'Inter',sans-serif;padding:10px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(20,10,40,.3);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px)}
 .cap-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.cap-toast.has-act{display:flex;align-items:center;gap:12px}
+.cap-toast.show.has-act{pointer-events:auto}
+.cap-toast-btn{flex:none;border:none;border-radius:8px;background:#fff;color:#1f1b2b;font:700 12.5px/1 'Inter',sans-serif;padding:8px 12px;min-height:32px;cursor:pointer}
 @media (max-width:520px){.tl-hint{display:none}}
 .tpl-io a{color:var(--brand);font-weight:600;text-decoration:none}
 .tpl-io a:hover{text-decoration:underline}
@@ -1462,16 +1465,6 @@ body.editor-open .lang-hint{display:none}
               <input type="checkbox" id="trEn" onchange="setTranslate(this)"> Translate captions to English
             </label>
             <div id="quotaInfo" class="quota-info"></div>
-            <details class="fr-box" id="frBox"><summary><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> Find &amp; replace</summary>
-              <div class="fr-row">
-                <input type="text" id="frFind" class="lang-sel" placeholder="Find" oninput="updateFindCount()" autocomplete="off" spellcheck="false">
-                <input type="text" id="frRepl" class="lang-sel" placeholder="Replace with" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')replaceAllCaptions()">
-              </div>
-              <div class="fr-row" style="justify-content:space-between">
-                <label class="fr-opt"><input type="checkbox" id="frWhole" onchange="updateFindCount()"> Whole word</label>
-                <button class="pos-btn" id="frBtn" type="button" onclick="replaceAllCaptions()" disabled>Replace all (0)</button>
-              </div>
-            </details>
           </div>
         </details>
 
@@ -1482,6 +1475,17 @@ body.editor-open .lang-hint{display:none}
             <span class="hint-touch"><b>Tip:</b> tap a line to fix a word. Below the selected line you can highlight words or add an emoji.</span>
             <button type="button" class="coach-x" onclick="dismissCoach('coachEdit')" aria-label="Dismiss tip"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
           </div>
+          <!-- Find & replace direkt über der Liste (vorher versteckt unter „Video & language“) -->
+          <details class="fr-box" id="frBox" ontoggle="if(this.open){var f=document.getElementById('frFind');if(f&&f.focus)f.focus()}"><summary><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> Find &amp; replace</summary>
+            <div class="fr-row">
+              <input type="text" id="frFind" class="lang-sel" placeholder="Find" oninput="updateFindCount()" autocomplete="off" spellcheck="false">
+              <input type="text" id="frRepl" class="lang-sel" placeholder="Replace with" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')replaceAllCaptions()">
+            </div>
+            <div class="fr-row" style="justify-content:space-between">
+              <label class="fr-opt"><input type="checkbox" id="frWhole" onchange="updateFindCount()"> Whole word</label>
+              <button class="pos-btn" id="frBtn" type="button" onclick="replaceAllCaptions()" disabled>Replace all (0)</button>
+            </div>
+          </details>
           <div class="cap-segs" id="capSegs"></div>
           <div class="wpills" id="wpills"></div>
         </div>
@@ -5537,7 +5541,9 @@ async function renderSegments() {
     ta.rows = 1;
     ta.value = b.text;
     ta.onclick = function(e){ e.stopPropagation(); };
-    ta.onfocus = (function(r) { return function() { selectSegRow(r); }; })(row);
+    ta.onfocus = (function(r, el) { return function() { selectSegRow(r); el._orig = el.value; setEdCompact(true); }; })(row, ta);
+    ta.onblur = segBlur;
+    ta.onchange = (function(i, el) { return function() { suggestFixAll(el._orig, el.value, i); el._orig = el.value; }; })(idx, ta);
     ta.oninput = (function(i, el) {
       return function() {
         pushUndo('seg' + i); // Tipp-Serie = ein Undo-Schritt (Schnappschuss VOR der Änderung)
@@ -5563,6 +5569,11 @@ async function renderSegments() {
           e.preventDefault();
           mergeBlockWithPrevious(i, el);
           return;
+        }
+        // ↑ am Anfang / ↓ am Ende: zur vorigen/nächsten Zeile (Korrekturlesen nur mit der Tastatur)
+        var atStart = el.selectionStart === 0 && el.selectionEnd === 0, atEnd = el.selectionStart === el.value.length;
+        if ((e.key === 'ArrowUp' && atStart) || (e.key === 'ArrowDown' && atEnd)) {
+          if (focusSegRow(i + (e.key === 'ArrowUp' ? -1 : 1), e.key === 'ArrowUp')) e.preventDefault();
         }
       };
     })(idx, ta);
@@ -5606,6 +5617,76 @@ function buildSegTools(idx, b) {
   };
   t.onmousedown = function(e) { if (e.target && (e.target.tagName === 'BUTTON' || (e.target.closest && e.target.closest('button')))) e.preventDefault(); }; // Fokus im Textfeld lassen
   return t;
+}
+// Fokus in Zeile idx (Cursor ans Ende bzw. an den Anfang), Video springt ohne Abspielen mit
+function focusSegRow(idx, toEnd) {
+  var row = document.getElementById('seg' + idx), b = captionBlocks[idx];
+  var ta = row && row.querySelector ? row.querySelector('.cap-seg-ta') : null;
+  if (!ta || !b) return false;
+  ta.focus();
+  var p = toEnd ? ta.value.length : 0;
+  try { ta.setSelectionRange(p, p); } catch (e) {}
+  if (row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
+  var vid = document.getElementById('mainVid');
+  if (vid && vid.duration) { vid.currentTime = b.start; _lastKey = null; updateOverlay(b.start); }
+  return true;
+}
+// Kompakte Handy-Vorschau erst aufheben, wenn der Fokus nicht gleich in die nächste Zeile springt
+function segBlur() {
+  setTimeout(function() {
+    var a = document.activeElement;
+    if (!(a && a.classList && a.classList.contains('cap-seg-ta'))) setEdCompact(false);
+  }, 150);
+}
+// ── „Überall korrigieren?“ ── Wurde in einer Zeile genau EIN Wort ersetzt (typisch: falsch erkannter Name),
+// gleiche Fehler in den anderen Zeilen per Toast-Knopf mitkorrigieren. Gibt {from, to} oder null zurück.
+function wordSwap(a, b) {
+  var A = String(a || '').trim().split(/\s+/), B = String(b || '').trim().split(/\s+/);
+  if (!A[0] || A.length !== B.length) return null;
+  var k = -1;
+  for (var i = 0; i < A.length; i++) if (A[i] !== B[i]) { if (k >= 0) return null; k = i; }
+  if (k < 0) return null;
+  function core(w) { return w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, ''); }
+  var f = core(A[k]), t = core(B[k]);
+  if (!f || !t || f === t) return null; // nur Satzzeichen geändert
+  // Kurze Allerweltswörter (die → der) nicht vorschlagen — ausser es wird ein Name (Grossbuchstabe)
+  if (Array.from(f).length < 4 && !/^\p{Lu}/u.test(t)) return null;
+  return { from: f, to: t };
+}
+// Treffer (ganzes Wort, Gross-/Kleinschreibung egal), die noch nicht genau „to“ lauten; skip = Zeile auslassen
+function fixAllHits(from, to, skip) {
+  var n = 0;
+  captionBlocks.forEach(function(b, i) {
+    if (i === skip) return;
+    findMatches(b.text, from, true).forEach(function(h) { if (String(b.text).substr(h[0], h[1]) !== to) n++; });
+  });
+  return n;
+}
+function fixWordEverywhere(from, to) {
+  var n = 0;
+  captionBlocks.forEach(function(b) {
+    var t = String(b.text || ''), hits = findMatches(t, from, true).filter(function(h){ return t.substr(h[0], h[1]) !== to; });
+    if (!hits.length) return;
+    var nt = '', pos = 0;
+    hits.forEach(function(h){ nt += t.slice(pos, h[0]) + to; pos = h[0] + h[1]; n++; });
+    b.text = nt + t.slice(pos);
+    retimeEditedBlock(b);
+  });
+  return n;
+}
+function suggestFixAll(before, after, idx) {
+  var sw = wordSwap(before, after);
+  if (!sw) return;
+  var n = fixAllHits(sw.from, sw.to, idx);
+  if (!n) return;
+  capToastAction('Change “' + sw.from + '” → “' + sw.to + '” in ' + n + ' more ' + (n === 1 ? 'place' : 'places') + '?', 'Fix all', function() {
+    var snap = captionSnapshot();
+    if (!fixWordEverywhere(sw.from, sw.to)) return;
+    pushUndo(null, snap);
+    markCaptionsEdited();
+    refreshCaptionViews();
+    capToast('✓ Fixed ' + n + '× — Ctrl/⌘+Z to undo');
+  });
 }
 function selectSegRow(row) {
   document.querySelectorAll('.cap-seg.sel').forEach(function(r){ if (r !== row) r.classList.remove('sel'); });
@@ -6563,10 +6644,25 @@ function capToast(msg) {
     document.body.appendChild(el);
   }
   el.textContent = msg;
+  if (el.classList) el.classList.remove('has-act');
   capToastAnchor(el);
   if (el.classList) { el.classList.remove('show'); void el.offsetWidth; el.classList.add('show'); }
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(function(){ if (el.classList) el.classList.remove('show'); }, 2600);
+}
+// Toast mit einem Knopf (z. B. „Fix all“) — bleibt länger stehen und ist nur sichtbar klickbar
+function capToastAction(msg, label, fn) {
+  capToast(msg);
+  var el = document.getElementById('capToast');
+  if (!el || !document.createElement) return;
+  var b = document.createElement('button');
+  b.type = 'button'; b.className = 'cap-toast-btn'; b.textContent = label;
+  b.onclick = function() { clearTimeout(_toastTimer); if (el.classList) el.classList.remove('show'); fn(); };
+  el.appendChild(b);
+  if (el.classList) el.classList.add('has-act');
+  capToastAnchor(el); // mit Knopf breiter → neu einpassen
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ if (el.classList) el.classList.remove('show'); }, 8000);
 }
 // Im Editor nicht über Timeline (Desktop) bzw. Video/Panelkopf (Handy): Desktop unten mittig über dem
 // Seitenpanel, Handy knapp über der Tab-Leiste. Sonst (Startseite) Standardplatz aus dem CSS.
@@ -6582,7 +6678,10 @@ function capToastAnchor(el) {
     var tr = tabs && tabs.getBoundingClientRect ? tabs.getBoundingClientRect() : null;
     if (tr && tr.height > 0 && tr.top > 120) { el.style.bottom = Math.round(window.innerHeight - tr.top + 10) + 'px'; el.style.top = 'auto'; }
   } else {
-    el.style.left = Math.round(r.left + r.width / 2) + 'px';
+    // mittig über dem Panel, aber nie über den Fensterrand hinaus (breite Toasts mit Knopf)
+    var half = (el.offsetWidth || 0) / 2, vw = window.innerWidth || 0, cx = r.left + r.width / 2;
+    if (vw && half) cx = Math.max(half + 12, Math.min(vw - half - 12, cx));
+    el.style.left = Math.round(cx) + 'px';
   }
 }
 // ── Style-Kacheln als Live-Vorschau: echtes Standbild des eigenen Videos + die eigenen ersten Worte ──
@@ -8450,6 +8549,15 @@ function applyPlayability(state) {
 // anpassen. Verfügbaren Platz aus dem tatsächlich gerenderten prev-col nehmen statt aus window.innerHeight —
 // auf Mobile ist prev-col per CSS auf einen Bruchteil der Viewport-Höhe begrenzt. min()-Deckel 480/360 = Desktop.
 // setFont: Start-Schriftgröße ~8 % der Rahmenbreite (nur beim Laden eines Videos).
+var _edCompact = false;
+// Handy: Vorschau verkleinern, solange eine Caption-Zeile bearbeitet wird (Tastatur verdeckt sonst die Zeile)
+function setEdCompact(on) {
+  on = !!on && typeof tlPhone === 'function' && tlPhone() && edTab === 'captions';
+  if (on === _edCompact) return;
+  _edCompact = on;
+  var ed = document.getElementById('editor'); if (ed && ed.classList) ed.classList.toggle('ed-compact', on);
+  if (vidReady) { layoutPreviewFrame(false); _lastKey = null; updateOverlay(); applyPos(); }
+}
 function layoutPreviewFrame(setFont) {
   var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
   var ar = vid.videoWidth / vid.videoHeight;
@@ -8465,12 +8573,22 @@ function layoutPreviewFrame(setFont) {
   try { var pcs = getComputedStyle(frame.parentElement); padX = (parseFloat(pcs.paddingLeft) || 0) + (parseFloat(pcs.paddingRight) || 0); padY = (parseFloat(pcs.paddingTop) || 0) + (parseFloat(pcs.paddingBottom) || 0); } catch (e) {}
   var pcH = pcRect.height || 540;
   // Handy (außer Timeline-Modus): die Spalte wächst mit dem Video → feste Obergrenze statt gemessener Höhe
-  if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * 0.52);
+  // Beim Tippen in einer Zeile (Tastatur offen) kompakter, damit Zeile + Video gleichzeitig sichtbar bleiben.
+  if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * (_edCompact ? 0.34 : 0.52));
   var maxH = Math.max(100, pcH - padY - ctrlH - 12 - tlReservedHeight()); // 12 = Abstand Rahmen↔Leiste
   var maxW = Math.min(720, Math.max(100, (pcRect.width || 360) - padX));
   var h = maxH, w = Math.round(h * ar);
   if (w > maxW) { w = maxW; h = Math.round(w / ar); }
   if (w < 120) { w = 120; h = Math.round(w / ar); }
+  // Schrift wächst/schrumpft mit dem Rahmen (Timeline auf/zu, Handy-Tabs, Fenstergrösse): der Export rechnet mit
+  // fontSize / Rahmenbreite — ohne Mitskalieren hinge die Textgrösse im Video davon ab, welcher Tab offen war.
+  var w0 = parseFloat(frame.style.width);
+  if (!setFont && w0 > 0 && w !== w0) {
+    fontSize = fontSize * w / w0;
+    var szS = document.getElementById('szSlider'), szD = document.getElementById('szDisp');
+    if (szS) szS.value = Math.round(fontSize);
+    if (szD) szD.textContent = Math.round(fontSize) + 'px';
+  }
   frame.style.width  = w + 'px';
   frame.style.height = h + 'px';
   if (setFont) {
@@ -10886,11 +11004,13 @@ function closeInlineEdit(save) {
   var v = String(ta.value || '').replace(/\s+/g, ' ').trim();
   if (v === captionBlocks[bi].text) return;
   pushUndo();
+  var before = captionBlocks[bi].text;
   if (!v) { captionBlocks.splice(bi, 1); }
   else { captionBlocks[bi].text = v; retimeEditedBlock(captionBlocks[bi]); }
   markCaptionsEdited();
   refreshCaptionViews();
   capToast(v ? '✓ Caption updated' : 'Caption deleted — Ctrl/⌘+Z to undo');
+  if (v) suggestFixAll(before, v, bi);
 }
 // Klick woanders hin (andere Zeile, Tab, Player) speichert — kurz verzögert, damit ein Tipp auf
 // „Cancel“ (Touch: Fokus geht vor dem click verloren) noch zuerst ankommt.

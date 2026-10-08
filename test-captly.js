@@ -87,7 +87,7 @@ polishEnabled:polishEnabled,turboFallbackOk:turboFallbackOk,polishInPlace:polish
 splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
 loadProjects:loadProjects,restoreSavedStyle:restoreSavedStyle,setUserTemplates:function(l){userTemplates=l;},pruneTemplates:pruneTemplates,
 TPL_ROW_TITLE:TPL_ROW_TITLE,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
-countMatches:countMatches,replaceAllCaptions:replaceAllCaptions,displayWord:displayWord,togglePunct:togglePunct,setCaptionCase:setCaptionCase,
+countMatches:countMatches,replaceAllCaptions:replaceAllCaptions,wordSwap:wordSwap,fixAllHits:fixAllHits,fixWordEverywhere:fixWordEverywhere,displayWord:displayWord,togglePunct:togglePunct,setCaptionCase:setCaptionCase,
 transcriptText:transcriptText,copyTranscript:copyTranscript,exportTXT:exportTXT,seedCustomFields:seedCustomFields,buildCustomStyle:buildCustomStyle,
 setCsDirty:function(d){_csDirty=d;},saveTemplate:saveTemplate,loadTemplates:loadTemplates,getUserTemplates:function(){return userTemplates;},
 mergeTemplates:mergeTemplates,importTemplatesFromText:importTemplatesFromText,renameTemplate:renameTemplate,duplicateTemplate:duplicateTemplate,
@@ -3157,6 +3157,21 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(runWith({ 'capivo.style': 'prime' }) === 'lift', 'gemerkter alter Style folgt dem Alias');
     }
     T.setEmphState(true, false, 'off');
+  }
+
+  // „Überall korrigieren?“: genau ein ersetztes Wort → Vorschlag, gleiche Fehler in anderen Zeilen
+  {
+    const sw = T.wordSwap('Ich bin auf dem Birkenhoff.', 'Ich bin auf dem Birkenhof.');
+    ok(sw && sw.from === 'Birkenhoff' && sw.to === 'Birkenhof', 'wordSwap: Satzzeichen werden ignoriert');
+    ok(T.wordSwap('a b c', 'a b c') === null && T.wordSwap('eins zwei', 'eins zwei drei') === null && T.wordSwap('Hallo Welt', 'Hallo, Welt') === null,
+      'wordSwap: keine Änderung / andere Wortzahl / nur Satzzeichen → kein Vorschlag');
+    ok(T.wordSwap('das ist gut', 'dies ist toll') === null, 'wordSwap: zwei geänderte Wörter → kein Vorschlag');
+    ok(T.wordSwap('die Kuh', 'der Kuh') === null && T.wordSwap('mit max', 'mit Max') !== null, 'wordSwap: kurze Allerweltswörter nur, wenn ein Name entsteht');
+    const mk = t => ({ text: t, start: 0, end: 1, words: t.split(' ').map(w => ({ word: w, start: 0, end: 1 })) });
+    T.setState([mk('Willkommen am Birkenhof'), mk('Der birkenhoff ist schön'), mk('Birkenhoff, Birkenhoffs Hof'), mk('Birkenhof bleibt')], []);
+    ok(T.fixAllHits('Birkenhoff', 'Birkenhof', 0) === 2, 'fixAllHits: nur ganze Wörter, Gross/klein egal, fertige Treffer zählen nicht');
+    ok(T.fixWordEverywhere('Birkenhoff', 'Birkenhof') === 2 && T.getBlocks()[1].text === 'Der Birkenhof ist schön'
+      && T.getBlocks()[2].text === 'Birkenhof, Birkenhoffs Hof' && T.getBlocks()[3].text === 'Birkenhof bleibt', 'fixWordEverywhere: ersetzt nur echte Treffer');
   }
 
   // Sprachversionen (captly.de.html): aus captly.html erzeugt, aktuell, vollständig übersetzt
