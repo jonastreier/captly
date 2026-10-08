@@ -1,0 +1,57 @@
+# Deploy auf Hostpoint (FTPS) bei jedem Merge nach main — oder von Hand: Actions → Deploy → Run workflow.
+# Einmalig einzurichten: GitHub → Settings → Secrets and variables → Actions → New repository secret
+#   FTP_SERVER      z. B. ftp.deinname.hostpoint.ch (steht im Hostpoint-Kundencenter unter FTP)
+#   FTP_USERNAME    FTP-Benutzer
+#   FTP_PASSWORD    FTP-Passwort
+#   FTP_DIR         Zielordner auf dem Server (Document Root der Domain), z. B. ./www/captionrush.com/  (Default ./)
+#   GROQ_API_KEY    Groq-Schlüssel (wird zu config.php auf dem Server, nie ins Repo)
+#   optional: ALERT_URL, SUPABASE_SERVICE_KEY, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, LEAD_SECRET, MAIL_FROM, RATE_LIMIT_PER_HOUR, MAX_AUDIO_SEC_PER_HOUR
+name: Deploy
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tests (dieselben wie lokal)
+        run: |
+          node scripts/build-i18n.js --check
+          node --check server.js
+          node test-captly.js
+          node test-polish.js
+          node test-enhance.js
+      - name: Paket bauen
+        run: node scripts/build-dist.js
+      - name: config.php aus Secrets schreiben
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          ALERT_URL: ${{ secrets.ALERT_URL }}
+          RATE_LIMIT_PER_HOUR: ${{ secrets.RATE_LIMIT_PER_HOUR }}
+          MAX_AUDIO_SEC_PER_HOUR: ${{ secrets.MAX_AUDIO_SEC_PER_HOUR }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          LEAD_SECRET: ${{ secrets.LEAD_SECRET }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+        run: node scripts/write-config.js
+      - name: Hochladen (FTPS)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./dist/
+          server-dir: ${{ secrets.FTP_DIR || './' }}

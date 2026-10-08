@@ -305,7 +305,7 @@ captly.deinedomain.ch {
 `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `captly.html` eingetragen · eigenes SMTP in Supabase
 hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ .Token }}` ·
 `canonical`/`og:url`/`og:image` zeigen auf die Live-Domain
-(aktuell `https://captly.vercel.app` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Transkription + Polish
+(aktuell `https://captionrush.com` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Transkription + Polish
 → Export → Login-Code kommt an → Projekt speichern & wieder laden).
 
 ## Tests

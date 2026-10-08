@@ -19,10 +19,10 @@ CaptionRush (formerly Capivo) is made in Switzerland by Jonas Treier (sole propr
 
 ## Pages
 
-- [CaptionRush (English)](https://captly.vercel.app/): app and landing page with features, pricing and FAQ
-- [CaptionRush (Deutsch)](https://captly.vercel.app/de): German landing page ("Untertitel automatisch erstellen")
-- [Impressum](https://captly.vercel.app/impressum.html): legal notice (German)
-- [Datenschutz](https://captly.vercel.app/datenschutz.html): privacy policy (German), incl. which data goes to Groq and Vercel
+- [CaptionRush (English)](https://captionrush.com/): app and landing page with features, pricing and FAQ
+- [CaptionRush (Deutsch)](https://captionrush.com/de): German landing page ("Untertitel automatisch erstellen")
+- [Impressum](https://captionrush.com/impressum.html): legal notice (German)
+- [Datenschutz](https://captionrush.com/datenschutz.html): privacy policy (German), incl. which data goes to Groq and Vercel
 
 ## FAQ highlights
 
@@ -33,4 +33,4 @@ CaptionRush (formerly Capivo) is made in Switzerland by Jonas Treier (sole propr
 
 ## Contact
 
-- Email: hallo@webundmeh.ch
+- Email: contact@captionrush.com

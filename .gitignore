@@ -20,3 +20,5 @@ av.getInt16*
 
 # Lokale Preview-Hilfe (Claude)
 .claude/
+dist/
+captionrush-dist.zip

@@ -1391,7 +1391,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(store[T.LEAD_KEY] === 'treier@example.ch' && T.needsWatermark() === false, 'Adresse gemerkt → kein Wasserzeichen');
     const pend = JSON.parse(store[T.LEAD_PENDING_KEY] || 'null');
     ok(pend && pend.newsletter === true && pend.consent_text === 'Send me tips' && pend.source === 'export', 'Fehlschlag → Lead bleibt in Warteschlange (mit Einwilligungstext)');
-    ok(calls.length === 1 && /\/rest\/v1\/leads$/.test(calls[0].url) && calls[0].o.headers.apikey && calls[0].o.method === 'POST', 'POST an /rest/v1/leads mit apikey');
+    ok(calls.length === 1 && /api\/lead$/.test(calls[0].url) && !calls[0].o.headers.apikey && calls[0].o.method === 'POST', 'POST an api/lead (ohne Datenbank-Schlüssel im Browser)');
     ok(T.passEmailGate() === true && calls.length === 1, 'zweiter Export: keine erneute Abfrage');
     fail = false;
     ok(await T.flushLead() === true && !(T.LEAD_PENDING_KEY in store), 'Retry erfolgreich → Warteschlange leer');

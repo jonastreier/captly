@@ -5,7 +5,7 @@
 module.exports = {
   lang: 'de',
   out: 'captly.de.html',
-  url: 'https://captly.vercel.app/de',
+  url: 'https://captionrush.com/de',
   head: [
     ['<html lang="en">', '<html lang="de">'],
     ['<title>Free AI Auto Captions for Reels &amp; TikTok | CaptionRush</title>',
@@ -14,14 +14,14 @@ module.exports = {
      'content="Untertitel automatisch erstellen für Instagram Reels, TikTok und YouTube Shorts: KI-Untertitel in 16 Sprachen, 19 Styles, MP4/SRT/VTT. Gratis, ohne Konto."'],
     ['content="auto captions for reels, add captions to TikTok, AI subtitle generator, caption generator, automatic subtitles, Instagram Reels captions, YouTube Shorts captions, word-by-word captions, SRT generator, VTT subtitles"',
      'content="Untertitel automatisch erstellen, automatische Untertitel, Untertitel für Reels, TikTok Untertitel, Untertitel Generator, KI Untertitel, Instagram Reels Untertitel, YouTube Shorts Untertitel, Video Untertitel, SRT erstellen"'],
-    ['<link rel="canonical" href="https://captly.vercel.app/">', '<link rel="canonical" href="https://captly.vercel.app/de">'],
+    ['<link rel="canonical" href="https://captionrush.com/">', '<link rel="canonical" href="https://captionrush.com/de">'],
     ['<meta property="og:locale" content="en_US">', '<meta property="og:locale" content="de_CH">'],
     ['<meta property="og:title" content="CaptionRush: AI auto captions for Reels, TikTok &amp; Shorts">',
      '<meta property="og:title" content="CaptionRush: Automatische Untertitel für Reels, TikTok &amp; Shorts">'],
     ['<meta property="og:description" content="Upload a video and get animated, word-by-word captions in seconds. 16 languages, 19 caption styles, export as MP4, SRT or VTT. Free during the beta, no account needed.">',
      '<meta property="og:description" content="Video hochladen und in Sekunden animierte Untertitel Wort für Wort erhalten. 16 Sprachen, 19 Untertitel-Styles, Export als MP4, SRT oder VTT. Kostenlos während der Beta, ohne Konto.">'],
-    ['<meta property="og:url" content="https://captly.vercel.app/">', '<meta property="og:url" content="https://captly.vercel.app/de">'],
-    ['https://captly.vercel.app/assets/og-image.jpg', 'https://captly.vercel.app/assets/og-image-de.jpg'],
+    ['<meta property="og:url" content="https://captionrush.com/">', '<meta property="og:url" content="https://captionrush.com/de">'],
+    ['https://captionrush.com/assets/og-image.jpg', 'https://captionrush.com/assets/og-image-de.jpg'],
     ['<meta name="twitter:title" content="CaptionRush: AI auto captions for Reels, TikTok &amp; Shorts">',
      '<meta name="twitter:title" content="CaptionRush: Automatische Untertitel für Reels, TikTok &amp; Shorts">'],
     ['<meta name="twitter:description" content="Animated, word-by-word captions for your short videos in seconds. 16 languages, 19 styles, MP4/SRT/VTT export. Free during the beta.">',
@@ -29,11 +29,11 @@ module.exports = {
   ],
   // Ersetzt im ersten JSON-LD-Block (@graph) den SoftwareApplication-Knoten; Organization + WebSite bleiben
   app: {
-    '@type': 'SoftwareApplication', '@id': 'https://captly.vercel.app/de#app', name: 'CaptionRush', url: 'https://captly.vercel.app/de', inLanguage: 'de',
+    '@type': 'SoftwareApplication', '@id': 'https://captionrush.com/de#app', name: 'CaptionRush', url: 'https://captionrush.com/de', inLanguage: 'de',
     applicationCategory: 'MultimediaApplication', applicationSubCategory: 'Untertitel-Generator',
     operatingSystem: 'Webbrowser (Computer und Handy)',
     browserRequirements: 'Benötigt JavaScript und einen aktuellen Webbrowser. Keine App und kein Plugin nötig.',
-    image: 'https://captly.vercel.app/assets/og-image-de.jpg',
+    image: 'https://captionrush.com/assets/og-image-de.jpg',
     description: 'CaptionRush ist ein KI-Untertitel-Generator im Browser: Er macht aus der Sprache in einem Video animierte Untertitel, Wort für Wort, für Instagram Reels, TikTok und YouTube Shorts. Er unterstützt 16 Sprachen mit automatischer Spracherkennung und exportiert MP4, SRT und VTT. Nur die Tonspur wird zur Transkription gesendet; das Video wird im Browser gerendert.',
     audience: { '@type': 'Audience', audienceType: 'Creator von Kurzvideos für Instagram Reels, TikTok und YouTube Shorts' },
     featureList: ['Automatische Untertitel per Spracherkennung (Whisper large-v3)', 'KI-Korrektur für Namen, Orte und Dialektwörter',
@@ -41,7 +41,7 @@ module.exports = {
       'Optionale KI-Hervorhebung: Keywords, Emojis und Zoom', 'Vorschlag für Post-Text und Hashtags', 'Export als MP4 (ohne Wasserzeichen), SRT, VTT und TXT',
       'Video wird lokal im Browser gerendert; nur die Tonspur geht zur Transkription'],
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Kostenlos während der Beta. Kein Konto nötig; vor dem ersten Video-Download fragen wir nach der E-Mail.' },
-    publisher: { '@id': 'https://captly.vercel.app/#organization' },
+    publisher: { '@id': 'https://captionrush.com/#organization' },
   },
   landing: [
     // Navigation & Sprachumschalter
@@ -169,5 +169,5 @@ module.exports = {
     ['Made in Switzerland by', 'Gemacht in der Schweiz von'],
   ],
   // Texte, die auf DE bewusst identisch bleiben (Marken, Formate, Style-Namen) — sonst meldet --check sie als unübersetzt
-  keep: ['CaptionRush', 'caption', 'rush', 'in', 'FAQ', 'MP4, SRT &amp; VTT', 'MP4, SRT, VTT &amp; TXT', 'Export', 'Reveal', 'Bold', 'Neon', 'Creator', 'Pro', 'Impressum', 'web&amp;meh', 'English', 'Deutsch', 'EN', 'DE', 'English · Deutsch'],
+  keep: ['CaptionRush', 'caption', 'rush', 'in', 'FAQ', 'MP4, SRT &amp; VTT', 'MP4, SRT, VTT &amp; TXT', 'Export', 'Reveal', 'Bold', 'Neon', 'Creator', 'Pro', 'Impressum', 'web&amp;meh', 'Jonas Treier', 'English', 'Deutsch', 'EN', 'DE', 'English · Deutsch'],
 };
