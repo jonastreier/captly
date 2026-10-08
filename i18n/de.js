@@ -168,6 +168,8 @@ module.exports = {
     ['>Contact<', '>Kontakt<'],
     ['Your video stays on your device; only the audio is sent for transcription. Details in our <a href="privacy.html">privacy policy</a>.',
      'Dein Video bleibt auf deinem Gerät; nur die Tonspur wird zur Transkription gesendet. Details in der <a href="datenschutz.html">Datenschutzerklärung</a>.'],
+    ['All trademarks and product names mentioned are the property of their respective owners. CaptionRush is not affiliated with them.',
+     'Alle genannten Marken und Produktnamen sind Eigentum ihrer jeweiligen Inhaber. CaptionRush steht in keiner Verbindung zu ihnen.'],
     ['Made in Switzerland by', 'Gemacht in der Schweiz von'],
   ],
   // Texte, die auf DE bewusst identisch bleiben (Marken, Formate, Style-Namen) — sonst meldet --check sie als unübersetzt

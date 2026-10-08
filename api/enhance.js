@@ -1,3 +1,4 @@
+// OPTIONAL (nicht der Live-Weg): Vercel-Alternative; live laufen die PHP-Gegenstücke auf Hostpoint.
 // CaptionRush – KI-Hervorhebung („Enhance“) als Vercel Serverless Function (Groq Chat Completions).
 // Gegenstück für klassisches PHP-Webhosting: enhance.php (gleiche Schnittstelle, gleiche Regeln).
 //

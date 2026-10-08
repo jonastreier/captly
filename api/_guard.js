@@ -1,3 +1,4 @@
+// OPTIONAL (nicht der Live-Weg): Vercel-Alternative; live laufen die PHP-Gegenstücke auf Hostpoint.
 // CaptionRush – gemeinsamer Missbrauchsschutz + Betreiber-Alarm für /api/* (kein eigener Endpunkt:
 // Dateien mit „_“ werden von Vercel nicht als Route ausgeliefert).
 //
