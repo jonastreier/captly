@@ -322,7 +322,11 @@ body.editor-open{height:100vh;overflow:hidden}
 /* Sichtbar 4px, aber per ::before ~20px Trefferfläche — sonst ist Seeken per Finger kaum möglich. */
 .prog-track{position:relative;height:4px;background:var(--line2);border-radius:2px;cursor:pointer;touch-action:none}
 .prog-track::before{content:'';position:absolute;left:0;right:0;top:-8px;bottom:-8px}
-.prog-fill{height:100%;background:var(--brand);border-radius:2px;width:0%;pointer-events:none}
+.prog-fill{position:relative;height:100%;background:var(--brand);border-radius:2px;width:0%;pointer-events:none}
+/* Griff: sichtbar bei Hover/Ziehen (Touch: immer) — zeigt, dass der Balken ziehbar ist */
+.prog-thumb{position:absolute;right:-6px;top:50%;width:12px;height:12px;margin-top:-6px;border-radius:50%;background:var(--brand);box-shadow:0 0 0 2px #fff,0 1px 4px rgba(0,0,0,.25);opacity:0;transform:scale(.6);transition:opacity .15s,transform .15s}
+.prog-track:hover .prog-thumb,.prog-track.drag .prog-thumb{opacity:1;transform:none}
+@media (hover:none){.prog-thumb{opacity:1;transform:none}}
 .prog-time{font-size:12px;color:var(--muted);text-align:right;flex-shrink:0;white-space:nowrap;font-variant-numeric:tabular-nums}
 .mute-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;background:none;border:1px solid transparent;color:var(--muted);font-size:12px;padding:0;border-radius:8px;flex-shrink:0;cursor:pointer;font-family:'Inter',sans-serif;transition:all .15s;white-space:nowrap}
 .mute-btn:hover{background:var(--fill2);color:var(--ink)}
@@ -1362,8 +1366,8 @@ body.editor-open .lang-hint{display:none}
       <div class="vid-ctrls" id="vidCtrls">
         <button type="button" class="pp-btn" id="ppBtn" onclick="togglePlay()" aria-label="Play"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></button>
         <div class="prog-col">
-          <div class="prog-track" id="progTrack" onclick="seekVid(event)">
-            <div class="prog-fill" id="progFill"></div>
+          <div class="prog-track" id="progTrack" onpointerdown="progDragStart(event)" role="slider" aria-label="Seek" tabindex="-1">
+            <div class="prog-fill" id="progFill"><span class="prog-thumb"></span></div>
           </div>
         </div>
         <div class="prog-time" id="timeLbl">0:00 / 0:00</div>
@@ -1378,7 +1382,7 @@ body.editor-open .lang-hint{display:none}
           <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · double-click to edit</span>
           <span class="tl-sp"></span>
           <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" aria-label="Snap" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span class="tl-lbl"> Snap</span></button>
-          <button type="button" class="tl-btn" id="tlGapBtn" onclick="tlCloseGaps()" aria-label="Close gaps" title="Close short gaps: each caption stays until the next one starts (pauses over 1 s and scene cuts are kept)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span class="tl-lbl"> Close gaps</span></button>
+          <button type="button" class="tl-btn" id="tlGapBtn" onclick="tlCloseGaps()" aria-label="Close gaps" title="Close all gaps: each caption stays until the next one starts (at a scene cut both meet exactly at the cut)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span class="tl-lbl"> Close gaps</span></button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1/1.6)" title="Zoom out" aria-label="Zoom timeline out">−</button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1.6)" title="Zoom in (Ctrl/⌘+wheel or pinch)" aria-label="Zoom timeline in">+</button>
           <button type="button" class="tl-btn tl-fit" onclick="tlFit()" title="Show the whole video">Fit</button>
@@ -1401,7 +1405,7 @@ body.editor-open .lang-hint{display:none}
             <button type="button" class="ta-tool" id="taEdit" onclick="tlEditText(tlSel)" disabled><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edit text</span></button>
             <button type="button" class="ta-tool ta-del" id="taDel" onclick="tlDeleteSel()" disabled><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg><span>Delete</span></button>
             <button type="button" class="ta-tool on" id="taSnap" onclick="tlToggleSnap()" aria-pressed="true" title="Snap edges to scene cuts, the playhead and neighbouring captions"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span>Snap</span></button>
-            <button type="button" class="ta-tool" id="taGaps" onclick="tlCloseGaps()" title="Close short gaps: each caption stays until the next one starts (pauses over 1 s and scene cuts are kept)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span>Close gaps</span></button>
+            <button type="button" class="ta-tool" id="taGaps" onclick="tlCloseGaps()" title="Close all gaps: each caption stays until the next one starts (at a scene cut both meet exactly at the cut)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span>Close gaps</span></button>
           </div>
         </div>
       </div>
@@ -1593,6 +1597,12 @@ body.editor-open .lang-hint{display:none}
               <select id="csWeight" class="lang-sel cs-sel" style="flex:0 0 76px" onchange="applyCustomStyle('weight')" title="Font weight">
                 <option value="400">Regular</option><option value="600">Semi</option><option value="700">Bold</option>
                 <option value="800">Extra</option><option value="900">Black</option>
+              </select>
+            </div>
+            <div class="cs-line" style="display:flex;gap:8px;align-items:center">
+              <label class="cs-swatch" title="Color of the highlighted keywords (Emphasis)"><input type="color" id="csEm" class="cs-col" value="#facc15" oninput="applyCustomStyle('em')"><span>Keywords</span></label>
+              <select id="csEmFont" class="lang-sel cs-sel" style="flex:1;min-width:0" onchange="applyCustomStyle('emfont')" title="Font of the highlighted keywords">
+                <option value="">Keywords: same font as text</option>
               </select>
             </div>
           </div>
@@ -2921,9 +2931,13 @@ function capFontPending(spec) {
   try { return !!(document.fonts && typeof document.fonts.check === 'function' && !document.fonts.check(spec)); }
   catch (e) { return false; }
 }
+// Nutzbare Breite einer (zentrierten) Caption = Safe-Zone der Reels/TikTok-UI: rechts liegt die Icon-Spalte
+// (SAFE_ZONE.right = 12.5 %), zentriert also links gleich viel Abstand → 1 − 2 × 12.5 % = 75 %. Vorher 86 % —
+// lange Wörter/Zeilen ragten dann rechts in die Icons (Safe-Zone-Warnung trotz Auto).
+var CAP_SAFE_W = 0.75;
 function capFitMaxW(s) {
-  // Nutzbare Breite wie clampLinesToWidth (86 % Rahmen) minus feste Deko-Innenabstände der Styles.
-  return previewFrameW() * 0.86 - (s.boxBg ? 36 : 0) - (s.pill ? 18 : 0);
+  // Nutzbare Breite wie clampLinesToWidth (CAP_SAFE_W) minus feste Deko-Innenabstände der Styles.
+  return previewFrameW() * CAP_SAFE_W - (s.boxBg ? 36 : 0) - (s.pill ? 18 : 0);
 }
 function previewFrameH() {
   var f = document.getElementById('prevFrame');
@@ -3350,7 +3364,7 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf, em) {
     return { i: i, w: ww + lsPx * w.length,
              t: w, hy: !!hlOf && i + 1 < words.length && hlOf[i + 1] === hlOf[i] }; // hy: getrennter Wortteil → Zeilenende
   });
-  var lines = capDistributeLines(info, targetLines, sp, previewFrameW() * 0.86);
+  var lines = capDistributeLines(info, targetLines, sp, previewFrameW() * CAP_SAFE_W);
   return lines.map(function(L){ return L.map(function(it){ return it.i; }); });
 }
 // ── Umbruch-Regeln wie Netflix/BBC-Untertitel ──
@@ -5181,18 +5195,25 @@ function capWordsFit(words, lim) {
 }
 // Lücken < GAP_CLOSE_SEC schließen: Blockende bis zum Start des nächsten Blocks verlängern, höchstens bis
 // zu einem Szenenschnitt dazwischen. Wort-Timings (Karaoke) bleiben unverändert. Gibt die Anzahl zurück.
-function closeCaptionGaps(blocks, cuts) {
+// maxGap (optional): nur Lücken darunter schliessen (Standard GAP_CLOSE_SEC beim Bauen; „Close gaps“-Knopf:
+// alle). bridgeCuts: liegt ein Szenenschnitt in der Lücke, treffen sich beide Blöcke genau am Schnitt
+// (nächster Block beginnt mit dem neuen Bild) statt dass dort eine Lücke bleibt.
+function closeCaptionGaps(blocks, cuts, maxGap, bridgeCuts) {
   cuts = cuts || [];
+  if (!(maxGap > 0)) maxGap = GAP_CLOSE_SEC;
   var n = 0;
   for (var i = 0; i < blocks.length - 1; i++) {
     var a = blocks[i], b = blocks[i + 1];
     if (!a || !b || !isFinite(a.end) || !isFinite(b.start)) continue;
     var gap = b.start - a.end;
-    if (gap <= 1e-3 || gap >= GAP_CLOSE_SEC) continue;
+    if (gap <= 1e-3 || gap >= maxGap) continue;
     var lim = b.start, c = cutBetween(cuts, a.end - 1e-6, b.start - 1e-6); // Ende genau am Schnitt zählt mit
     if (c !== null) lim = c;
     lim = Math.round(lim * 1000) / 1000;
-    if (lim > a.end + 1e-3) { a.end = lim; n++; }
+    var changed = false;
+    if (lim > a.end + 1e-3) { a.end = lim; changed = true; }
+    if (bridgeCuts && c !== null && b.start > lim + 1e-3) { b.start = lim; changed = true; }
+    if (changed) n++;
   }
   return n;
 }
@@ -5906,6 +5927,21 @@ function onBoxModeChange(v) {
   if (r && v === 'pill') r.value = 22; else if (r && v === 'box') r.value = 8;
   applyCustomStyle('box');
 }
+// Betonte Wörter (Keywords): Farbe = sichtbare Akzentfarbe (emphColor), Schrift = eigene emFont oder „wie Text“.
+// Die Schriftliste spiegelt #csFont (ohne „Any Google Font…“), plus die Akzentschrift des Styles.
+function csSeedEmFields(st) {
+  csSetVal('csEm', cssColorToHex(emphColor(st), null) || cssColorToHex(st.hl, null) || '#facc15');
+  var ef = csEl('csEmFont'), fEl = csEl('csFont');
+  if (!ef || !ef.appendChild) return;
+  var cur = st.emFont ? cleanFontName(st.emFont) : '';
+  var names = [];
+  Array.prototype.forEach.call((fEl && fEl.options) || [], function(o){ if (o.value && o.value !== '__other' && names.indexOf(o.value) < 0) names.push(o.value); });
+  if (cur && names.indexOf(cur) < 0) names.unshift(cur);
+  ef.innerHTML = '';
+  var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Keywords: same font as text'; ef.appendChild(o0);
+  names.forEach(function(n){ var o = document.createElement('option'); o.value = n; o.textContent = 'Keywords: ' + n; ef.appendChild(o); });
+  ef.value = cur;
+}
 function seedActiveStyle() { var st = STYLES.find(function(x){ return x.id === activeId; }); if (st) seedCustomFields(st); }
 function seedCustomFields(st) {
   if (!st) return;
@@ -5922,6 +5958,7 @@ function seedCustomFields(st) {
     if (!has && fEl.appendChild) { var o = document.createElement('option'); o.textContent = st.fl; o.value = st.fl; fEl.appendChild(o); }
     fEl.value = st.fl; _csFontPrev = st.fl;
   }
+  csSeedEmFields(st);
   var fw = parseInt(st.fw, 10) || 700;
   csSetVal('csWeight', String([400, 600, 700, 800, 900].reduce(function(b, v){ return Math.abs(v - fw) < Math.abs(b - fw) ? v : b; }, 700)));
   csSetOn('csUpper', st.tt === 'uppercase');
@@ -5953,7 +5990,13 @@ function buildCustomStyle() {
   var cs = cloneStyle(base), d = _csDirty;
   cs.id = 'custom'; cs.name = 'My style'; cs.badge = '❤️';
   if (!cs.thumbBg) cs.thumbBg = CS_THUMB_BG;
-  if (d.font)   { var f = (csEl('csFont') || {}).value || cs.fl || 'Poppins'; cs.fl = f; cs.font = "'" + f + "'"; }
+  // Neue Schrift gilt auch fürs aktive Wort (eigene hlFont des Styles fällt weg) — vorher wechselte nur der Rest.
+  if (d.font)   { var f = (csEl('csFont') || {}).value || cs.fl || 'Poppins'; cs.fl = f; cs.font = "'" + f + "'"; delete cs.hlFont; }
+  if (d.em)     { var emv = (csEl('csEm') || {}).value; if (emv) cs.em = emv; }
+  if (d.emfont) {
+    var efv = cleanFontName((csEl('csEmFont') || {}).value || '');
+    if (efv) { cs.emFont = "'" + efv + "'"; ensureCapFont(efv); } else delete cs.emFont;
+  }
   if (d.weight) cs.fw = (csEl('csWeight') || {}).value || cs.fw || '800';
   if (d.upper)  cs.tt = csIsOn('csUpper') ? 'uppercase' : 'none';
   if (d.ls)     { var lv = parseFloat((csEl('csLs') || {}).value) || 0; cs.ls = lv ? lv + 'px' : 'normal'; }
@@ -6649,13 +6692,19 @@ function makeStyleTile(s) {
 // POSITION / SIZE
 // ═══════════════════════════════════════
 function clampPct(v) { return Math.max(0, Math.min(85, v)); }
+// Position oben/unten automatisch in der Safe-Zone halten: Oberkante nicht in die obere Leiste, Unterkante
+// nicht in den Profil-/Beschreibungsbereich (Vorschau UND Export). Vorher landete „Oben“ mit dem
+// Standard-Versatz (+20 %) bei 0 % — mitten in der Reels-Leiste.
+var SAFE_PAD = 1; // % Luft zur Safe-Zone-Kante
+function capTopPct(off) { return Math.round(Math.max(SAFE_ZONE.top + SAFE_PAD, clampPct(10 - off)) * 100) / 100; }
+function capBottomPct(off) { return Math.round(Math.max(SAFE_ZONE.bottom + SAFE_PAD, clampPct(12 + off)) * 100) / 100; }
 function applyPos() {
   var ov = document.getElementById('capOverlay');
   ov.style.top = ''; ov.style.bottom = ''; ov.style.transform = '';
   ov.style.display = ''; ov.style.alignItems = ''; ov.style.justifyContent = '';
   ov.style.paddingTop = ''; ov.style.paddingBottom = '';
   var off = capVOff; // % , + = weiter oben
-  if (capPos === 'top') ov.style.top = clampPct(10 - off) + '%';
+  if (capPos === 'top') ov.style.top = capTopPct(off) + '%';
   else if (capPos === 'center') {
     // Echte Mitte via Flex — translateY würde mit der capIn-Animation (transform) kollidieren.
     // Feinjustierung daher über Padding (verschiebt den zentrierten Inhalt).
@@ -6664,7 +6713,7 @@ function applyPos() {
     if (off > 0) ov.style.paddingBottom = (off * 2) + '%';
     else if (off < 0) ov.style.paddingTop = (-off * 2) + '%';
   }
-  else ov.style.bottom = clampPct(12 + off) + '%';
+  else ov.style.bottom = capBottomPct(off) + '%';
   clampCapVertical();
   if (showSafeZone) checkSafeZoneCollision();
   positionPlayIcon();
@@ -8594,7 +8643,44 @@ function seekVid(e) {
   var v = document.getElementById('mainVid');
   if (!v.duration) return;
   var r = document.getElementById('progTrack').getBoundingClientRect();
-  v.currentTime = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * v.duration;
+  var f = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+  v.currentTime = f * v.duration;
+  var pf = document.getElementById('progFill'); if (pf) pf.style.width = (f * 100) + '%'; // sofort, nicht erst beim timeupdate
+}
+// Fortschrittsbalken ziehen (Maus/Touch/Stift) — vorher nur Klick. Während des Ziehens pausiert das Video
+// und läuft danach weiter, falls es lief; Seeks pro Frame gedrosselt.
+var _progDrag = null;
+function progDragStart(e) {
+  if (isExporting || (e.button !== undefined && e.button > 0)) return;
+  var v = document.getElementById('mainVid'), tr = document.getElementById('progTrack');
+  if (!v || !v.duration || !tr) return;
+  if (e.preventDefault) e.preventDefault();
+  _progDrag = { wasPlaying: !v.paused, x: e.clientX, raf: 0 };
+  if (!v.paused) v.pause();
+  tr.classList.add('drag');
+  try { if (tr.setPointerCapture && e.pointerId !== undefined) tr.setPointerCapture(e.pointerId); } catch (er) {}
+  seekVid(e);
+  tr.addEventListener('pointermove', progDragMove);
+  tr.addEventListener('pointerup', progDragEnd);
+  tr.addEventListener('pointercancel', progDragEnd);
+}
+function progDragMove(e) {
+  if (!_progDrag) return;
+  _progDrag.x = e.clientX;
+  if (_progDrag.raf) return;
+  _progDrag.raf = requestAnimationFrame(function() { if (_progDrag) { _progDrag.raf = 0; seekVid({ clientX: _progDrag.x }); } });
+}
+function progDragEnd(e) {
+  var tr = document.getElementById('progTrack'), d = _progDrag;
+  _progDrag = null;
+  if (!tr || !d) return;
+  if (d.raf) cancelAnimationFrame(d.raf);
+  seekVid({ clientX: e.clientX !== undefined ? e.clientX : d.x });
+  tr.classList.remove('drag');
+  tr.removeEventListener('pointermove', progDragMove);
+  tr.removeEventListener('pointerup', progDragEnd);
+  tr.removeEventListener('pointercancel', progDragEnd);
+  if (d.wasPlaying) doPlay();
 }
 function toggleMute() {
   if (isExporting) return;
@@ -9943,7 +10029,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   ctx.font = fi + fw + ' ' + fsS + 'px "' + fn + '", sans-serif';
   if ('letterSpacing' in ctx) ctx.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px'; // CSS wendet es auch auf Leerzeichen an
   var sp    = ctx.measureText(' ').width + capWordGap(s) * scale; // gleiches Extra wie word-spacing in der Vorschau
-  var maxW  = W * 0.86;
+  var maxW  = W * CAP_SAFE_W;
   // idx = Index des ORIGINALWORTS (Teilwörter nach Bindestrich-Trennung teilen sich Highlight/Keyword).
   // txt/tw = normale Variante, txtH/twH = aktive Variante; w = fester Platz (Text darin zentriert wie im DOM: min-width).
   var hv = capHlVariant(s);
@@ -9981,7 +10067,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   var off = capVOff;
   var y0;
   if (capPos === 'top') {
-    var topPct = clampPct(10 - off);
+    var topPct = capTopPct(off);
     y0 = H * (topPct / 100) + gapAbove;
   } else if (capPos === 'center') {
     // applyPos() verschiebt die Mitte per Padding, das (CSS-Eigenheit) relativ zur Breite berechnet
@@ -9989,7 +10075,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
     var centerY = H * 0.5 - (off / 100) * W;
     y0 = centerY - ((lines.length - 1) * lh) / 2 + fsS * 0.35;
   } else {
-    var bottomPct = clampPct(12 + off);
+    var bottomPct = capBottomPct(off);
     y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh - gapBelow;
   }
   // Box/Akzent-Hintergrund bei eigener Zeilenhöhe ≠ 1.3 entsprechend höher (CSS: halber Durchschuss je Seite)
@@ -12040,16 +12126,16 @@ function tlToggleSnap() {
   if (b) { b.classList.toggle('on', tlSnapOn); if (b.setAttribute) b.setAttribute('aria-pressed', tlSnapOn ? 'true' : 'false'); }
 }
 function tlFit() { _tl.fit = true; tlRequestDraw(); }
-// „Close gaps“: gleiche Regel wie beim Bauen (closeCaptionGaps) auf die aktuellen Blöcke — Starts und
-// Wort-Timings bleiben, nur Enden wachsen in kurze Lücken. Leere Blöcke (Text gelöscht) fliegen raus. Ein Undo-Schritt.
+// „Close gaps“: schliesst ALLE Lücken zwischen den aktuellen Blöcken (beim Bauen nur kurze, s. GAP_CLOSE_SEC) —
+// Wort-Timings bleiben, Enden wachsen bis zum nächsten Start; an einem Szenenschnitt treffen sich beide dort. Leere Blöcke (Text gelöscht) fliegen raus. Ein Undo-Schritt.
 function tlCloseGaps() {
   if (!captionBlocks.length || isExporting) return 0;
   var snap = captionSnapshot();
   var kept = captionBlocks.filter(function(b){ return b && String(b.text || '').trim() && isFinite(b.start) && isFinite(b.end) && b.end > b.start; });
   var removed = captionBlocks.length - kept.length;
   if (removed) captionBlocks = kept;
-  var n = closeCaptionGaps(captionBlocks, activeCuts());
-  if (!n && !removed) { capToast('No short gaps to close'); return 0; }
+  var n = closeCaptionGaps(captionBlocks, activeCuts(), Infinity, true);
+  if (!n && !removed) { capToast('No gaps to close'); return 0; }
   pushUndo(null, snap);
   markCaptionsEdited();
   refreshCaptionViews();

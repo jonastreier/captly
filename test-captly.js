@@ -300,7 +300,7 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   const st = T.STYLES.find(x => !x.boxBg && !x.pill && !x.hlPillBg && !x.circle && !(parseFloat(x.ls) > 0) && !x.fs && !x.motion);
   const fsMul = st.fs ? (parseFloat(st.fs) || 1) : 1;
   const maxW = T.capFitMaxW(st);
-  ok(Math.abs(maxW - 270 * 0.86) < 1e-9, 'Fit: nutzbare Breite = 86% Rahmen: ' + maxW);
+  ok(Math.abs(maxW - 270 * 0.75) < 1e-9, 'Fit: nutzbare Breite = Safe-Zone (75% Rahmen): ' + maxW);
   const wStub = (str, px) => str.length * px * fsMul * 0.55;
   const long = 'Rindfleischverarbeitungsbetriebe';
   ok(long.length === 32, 'Testwort hat 32 Zeichen');
@@ -320,8 +320,8 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   // Wort, das per Verkleinerung allein passt → keine Trennung
   const f2 = T.fitCaptionWords(['Highland'], st, 54, maxW);
   ok(f2.words.length === 1 && f2.px < 54 && wStub('Highland', f2.px) <= maxW, 'Fit: nur verkleinert, nicht getrennt: ' + f2.px);
-  const f3 = T.fitCaptionWords(['kurz', 'und', 'gut'], st, 54, maxW);
-  ok(f3.px === 54 && f3.words.length === 3, 'Fit: passende Woerter bleiben unveraendert');
+  const f3 = T.fitCaptionWords(['kurz', 'und', 'gut'], st, 40, maxW);
+  ok(f3.px === 40 && f3.words.length === 3, 'Fit: passende Woerter bleiben unveraendert: ' + f3.px);
   // Vorschau nutzt die verkleinerte Größe
   const capHtml = T.buildCap(['Unsere', long], st, 1, 54, [0, 1], 1);
   // Vorschau ruft fitCaptionWords mit der Zeilenvorgabe (hier 1) auf — „Max lines“ kann zusätzlich verkleinern
@@ -1450,7 +1450,10 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   const ovS = document.getElementById('capOverlay').style;
   ok(ovS.display === 'flex' && ovS.alignItems === 'center' && ovS.transform === '', 'Mitte via Flex, kein transform');
   T.setPosState('bottom'); T.applyPos();
-  ok(ovS.bottom === '12%' && ovS.display === '', 'Unten wieder normal');
+  ok(ovS.bottom === '24.44%' && ovS.display === '', 'Unten wieder normal, Unterkante über der Safe-Zone: ' + ovS.bottom);
+  T.setPosState('top'); T.setVOffState(20); T.applyPos();
+  ok(ovS.top === '12.46%', 'Oben mit Versatz bleibt unter der Reels-Leiste: ' + ovS.top);
+  T.setVOffState(0); T.setPosState('bottom'); T.applyPos();
 
   // 19) Regression: driftende null-Timestamps am Fensterende duerfen das Folgefenster NICHT leeren.
   // Fenster 0 (28s): 80 Woerter, deren End-Timestamps null sind -> chunksToWords verkettet und die
@@ -2615,14 +2618,16 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setFontSizeState(22); const a22 = T.capAutoChars();
     T.setFontSizeState(40); const a40 = T.capAutoChars();
     ok(a22 > a40 && a40 >= 6, 'Auto: größere Schrift → kleineres Limit (' + a22 + ' / ' + a40 + ')');
-    T.setFontSizeState(22);
+    // Schrift so, dass Auto (~14 Zeichen) dieselbe Gruppierung wie Limit 32 ergibt → Auto an/aus erzeugt
+    // keinen eigenen Undo-Schritt und Redo bleibt verfügbar (hängt von der Safe-Zone-Breite ab).
+    T.setFontSizeState(19);
     // Unbearbeitet: Limit-Wechsel gruppiert neu (Undo-fähig)
     T.resetUndo(); T.setCaptionsEdited(false); T.setMaxCharsState(32);
     const ws = seq('Die Tiere sind das ganze Jahr draussen und fressen');
     T.setState(T.buildCaptionBlocks(ws), ws.slice());
     const n32 = T.getBlocks().length;
-    T.setMaxChars('12');
-    ok(T.getBlocks().length > n32 && T.getBlocks().every(b => lineFit(b.text, 12, 2)), 'unbearbeitet: neu gruppiert bei Limit 12: ' + T.getBlocks().map(b => b.text).join('|'));
+    T.setMaxChars('10');
+    ok(T.getBlocks().length > n32 && T.getBlocks().every(b => lineFit(b.text, 10, 2)), 'unbearbeitet: neu gruppiert bei Limit 10: ' + T.getBlocks().map(b => b.text).join('|'));
     ok(T.undoDepth()[0] === 1, 'Limit-Wechsel ist ein Undo-Schritt');
     T.undoCaptions();
     ok(T.getBlocks().length === n32, 'Undo stellt die alten Blöcke wieder her');
@@ -2635,7 +2640,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.projectPayload().maxChars === T.capAutoChars() || T.projectPayload().maxChars >= 8, 'Auto aus → fester Wert = abgeleiteter Auto-Wert');
     T.setMaxChars('32');
     T.redoCaptions();
-    ok(T.projectPayload().maxChars === 12 && T.getBlocks().length > n32, 'Redo stellt Limit + Blöcke wieder her');
+    ok(T.projectPayload().maxChars === 10 && T.getBlocks().length > n32, 'Redo stellt Limit + Blöcke wieder her');
     T.undoCaptions();
     // Bearbeitet: nur überlaufende Blöcke teilen, die anderen bleiben exakt
     T.setMaxCharsState(32);
