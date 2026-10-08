@@ -806,6 +806,7 @@ body.editor-open .lang-hint{display:none}
 .sh-bar{height:5px;border-radius:99px;background:rgba(124,58,237,.12);overflow:hidden}
 .sh-fill{height:100%;width:0;background:linear-gradient(90deg,var(--brand),#ec4899);border-radius:99px;transition:width .35s cubic-bezier(.2,.7,.2,1)}
 .stile-badge{font-size:11px}
+.stile-tag{position:absolute;top:5px;right:5px;z-index:2;background:var(--brand);color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.02em;line-height:1;padding:3px 6px;border-radius:999px;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .q-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .q-k{flex:0 0 64px;font-size:12.5px;font-weight:600;color:var(--ink2)}
 .q-row .pos-row{flex:1;margin:0}
@@ -6914,7 +6915,11 @@ function makeStyleTile(s) {
     });
     var info = document.createElement('div');
     info.className = 'stile-info';
-    var badge = s.badge ? (' <span class="stile-badge">' + s.badge + '</span>') : '';
+    // Text-Abzeichen («New», «Trending») als kleine Marke oben rechts auf der Kachel (im Namen würden sie ihn abschneiden);
+    // Emoji-Abzeichen (❤️ ⭐) bleiben hinter dem Namen.
+    var tagBadge = s.badge && /^[A-Za-z]/.test(s.badge);
+    var badge = s.badge && !tagBadge ? (' <span class="stile-badge">' + s.badge + '</span>') : '';
+    if (tagBadge) { var tg = document.createElement('span'); tg.className = 'stile-tag'; tg.textContent = s.badge; tile.appendChild(tg); }
     // Nur Name (+ Badge) — die Schriftart-Zeile in 7 px war unlesbar und für die Wahl unwichtig. Status
     // (eigener Entwurf / Standard-Template) bleibt als zweite Zeile.
     var sub = s.id === 'custom' ? 'unsaved' : (s._isTpl && s.id === brandTplId() ? '★ default' : '');
@@ -7411,6 +7416,51 @@ function loadStyleDrops() {
     if (n) { try { buildPicker(); renderLandChips(); renderShowcase(); } catch (e) {} }
     return n;
   }).catch(function(){ return 0; }); // fehlt die Datei (Entwicklung, offline) → nur die eingebauten Looks
+}
+// ── Anonyme Messung: Fehlerberichte (api/log → log.php) und Style-Zählung (api/stat → stat.php) ──
+// Ohne Personendaten (Details in der Datenschutzerklärung): nur bereinigter Fehlertext + Seitenpfad bzw. die Style-ID beim
+// erfolgreichen Export. Nur über https auf der echten Domain, nicht bei «Do Not Track»/GPC. Ruft nie etwas anderes auf.
+var TELE_ON = (function(){ try { return location.protocol === 'https:' && !/^(localhost|127\.|\[::1\])/.test(location.hostname) && navigator.doNotTrack !== '1' && !navigator.globalPrivacyControl; } catch (e) { return false; } })();
+var _teleSent = 0, _teleSeen = {}, _teleSample = Math.random() < 0.5; // jede zweite Sitzung meldet, max. 5 verschiedene Fehler
+function telePost(url, obj) {
+  try { fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj), keepalive: true }).catch(function(){}); } catch (e) {}
+}
+function teleError(msg, src) {
+  if (!TELE_ON || !_teleSample || _teleSent >= 5) return;
+  msg = String(msg || '').slice(0, 300);
+  if (!msg || /^Script error\.?$|ResizeObserver loop/.test(msg) || _teleSeen[msg]) return;
+  _teleSeen[msg] = 1; _teleSent++;
+  telePost('api/log', { m: msg, s: String(src || '').slice(0, 160), p: location.pathname });
+}
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('error', function(e){ teleError(e && e.message, ((e && e.filename) || '').split('/').pop() + ':' + ((e && e.lineno) || 0)); });
+  window.addEventListener('unhandledrejection', function(e){ var r = e && e.reason; teleError('Unhandled rejection: ' + ((r && r.message) || r), ''); });
+}
+// Erfolgreicher MP4-Export → ein Zähler für den verwendeten, eingebauten Style (keine eigenen Looks/Vorlagen)
+function statExport() {
+  if (!TELE_ON) return;
+  var s = (typeof STYLES !== 'undefined') && STYLES.filter(function(x){ return x.id === activeId; })[0];
+  if (!s || s._isTpl || s.id === 'custom' || !/^[a-z0-9_-]{1,32}$/.test(s.id)) return;
+  telePost('api/stat', { style: s.id });
+}
+// «Trending»-Abzeichen: die 3 meistexportierten Looks der letzten 30 Tage, erst ab genug Daten (sonst Zufall)
+var TREND_MIN_TOTAL = 50;
+function applyTrending(res) {
+  if (!res || !(res.total >= TREND_MIN_TOTAL) || !Array.isArray(res.top)) return 0;
+  var n = 0;
+  res.top.slice(0, 3).forEach(function(t) {
+    var st = STYLES.filter(function(x){ return x.id === t.style; })[0];
+    if (st && !st._isTpl && !st.badge) { st.badge = 'Trending'; st._trend = true; n++; }
+  });
+  return n;
+}
+function loadStyleStats() {
+  if (typeof fetch !== 'function' || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return Promise.resolve(0);
+  return fetch('api/stat').then(function(r) { return r.ok ? r.json() : null; }).then(function(res) {
+    var n = applyTrending(res);
+    if (n) { try { buildPicker(); } catch (e) {} }
+    return n;
+  }).catch(function(){ return 0; });
 }
 var LAND_CHIPS = ['tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'hormozi', 'classic', 'boxkara', 'beast'];
 var landPick = null;
@@ -10950,6 +11000,7 @@ function exportDone(wmOn) {
   ['expDlFile', 'expDlSep'].forEach(function(id) { var e2 = document.getElementById(id); if (e2) e2.style.display = share ? '' : 'none'; });
   if (m) m.style.display = 'none'; if (d) d.style.display = '';
   if (!exportSheetOpen()) capToast('✓ Saved — ' + _lastDlName);
+  statExport();
 }
 
 // ═══════════════════════════════════════
@@ -12874,7 +12925,7 @@ syncTimeOffUI(); syncTextFormatUI(); updateTrSetSum(); syncUndoBtns(); buildFont
 // Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
 renderShowcase(); renderLandChips();
-loadStyleDrops();
+loadStyleDrops().then(loadStyleStats);
 updateAcctUI();
 // Bereits eingeloggte Nutzer erkennen (supabase-js hält die Session in localStorage).
 fetchMe().then(function(){ if (meEmail) loadProjects(); });
