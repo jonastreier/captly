@@ -122,7 +122,7 @@ setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKe
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
-capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle};`;
+capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -3283,6 +3283,30 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const enSrc = fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8');
     ok(i18n.syncSource(enSrc) === enSrc, 'i18n en: FAQ-JSON-LD in captly.html passt zur sichtbaren FAQ (sonst: node scripts/build-i18n.js)');
     ok(!/aggregateRating|"review"/.test(enSrc.slice(0, enSrc.indexOf('<style>'))) && (enSrc.match(/<h1[\s>]/g) || []).length === 1, 'Landing: genau ein <h1>, keine Fake-Bewertungen im JSON-LD');
+  }
+
+  // ── Konto selbst löschen: RPC delete_my_account, danach lokal abgemeldet; Abbruch/Fehler lassen alles stehen ──
+  {
+    const calls = []; let rpcErr = null, asked = 0;
+    const fakeSb = { rpc: async n => { calls.push('rpc:' + n); return { error: rpcErr }; }, auth: { signOut: async o => { calls.push('signOut:' + (o && o.scope)); return {}; } } };
+    const realConfirm = global.confirm; T.setSbState(fakeSb);
+    global.confirm = () => { asked++; return false; }; T.setMeEmail('a@b.ch');
+    await T.deleteAccount();
+    ok(asked === 1 && calls.length === 0 && T.getMeEmail() === 'a@b.ch', 'Konto löschen: ohne Bestätigung passiert nichts');
+    global.confirm = () => true; rpcErr = { message: 'boom' };
+    await T.deleteAccount();
+    ok(calls.join() === 'rpc:delete_my_account' && T.getMeEmail() === 'a@b.ch', 'Konto löschen: RPC-Fehler → bleibt angemeldet');
+    rpcErr = null; calls.length = 0;
+    await T.deleteAccount();
+    ok(calls.join() === 'rpc:delete_my_account,signOut:local' && T.getMeEmail() === '', 'Konto löschen: RPC, lokal abmelden, UI zurückgesetzt');
+    T.setMeEmail('a@b.ch'); T.setBillingState({ enabled: true, loggedIn: true, plan: 'pro' }); calls.length = 0; asked = 0;
+    global.confirm = () => { asked++; return true; };
+    await T.deleteAccount();
+    ok(calls.length === 0 && asked === 0 && T.getMeEmail() === 'a@b.ch', 'Konto löschen: aktives Abo blockiert (erst kündigen)');
+    T.setBillingState(null);
+    T.setSbState(null); global.confirm = realConfirm; if (!realConfirm) delete global.confirm;
+    const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+    ok(/grant execute on function public\.delete_my_account\(\) to authenticated/.test(sql), 'Konto löschen: schema.sql gibt delete_my_account an angemeldete Nutzer frei');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

@@ -11,6 +11,7 @@ Alles, was ohne mich möglich war, ist umgesetzt und als PRs offen:
 - #20 Telemetrie (log.php, stat.php, «Trending») · #22 Abo-Vorbereitung hinter BILLING_ENABLED=false (Paddle-Webhook, Kontingent, Portal) · #23 docs/ANLEITUNG-JONAS.md + dieser Prompt
 Reihenfolge: #15 → #16 → #20 → #22 → #23; #17/#18/#19/#21 unabhängig nach #15.
 Nicht testbar ohne mich/echte Dienste: Hostpoint, Supabase, Groq, Paddle, echte Mails.
+Entscheide (8.10.2026): Domain bei Hostpoint kaufen · Groq bleibt im Gratis-Tarif · keine Telefonnummer im Impressum (Jonas' Entscheid; Restrisiko EU/DE: EuGH C-298/07 verlangt einen zweiten schnellen Kontaktweg, Abhilfe wäre ein Kontaktformular) · Vercel zwei Wochen parallel, dann abschalten · Newsletter später über ein eigenes Brevo-Konto (CSV-Export aus `leads`, Datenschutz dann ergänzen) · Preise bleiben «coming soon» bis Paddle · Supabase-Region muss Jonas noch im Dashboard ablesen (Frankfurt?).
 
 ## Zuerst
 1. Status der PRs prüfen (gemergt? Konflikte? Deploy-Action grün?). Fehlt etwas, mich bitten zu mergen; Konflikte (v. a. README.md, .htaccess, build-dist.js, schema.sql, CLAUDE.md) selbst lösen und Tests laufen lassen.
@@ -19,7 +20,7 @@ Nicht testbar ohne mich/echte Dienste: Hostpoint, Supabase, Groq, Paddle, echte 
 ## Dann, je nach meiner Freigabe
 - Paddle-Sandbox-Test begleiten (docs/paddle-sandbox.md): Webhook-Log 200? Plan erscheint? Toleranz PADDLE_TOLERANCE_SEC ggf. anpassen.
 - Go-live der Abos (docs/abo-aktivierung.md): Pricing-Abschnitt der Landing auf echte Pläne/Preise, Datenschutz (Paddle, Nutzungsdaten), AGB (Pläne, Kündigung, Rückerstattung), EU-Vertreter eintragen, Verarbeitungsverzeichnis Zeile 9, DE/EN-Texte, build-i18n.
-- Kleine Lücken: «Konto löschen»-Knopf (schema.sql hat delete_my_account(), keine UI; Datenschutz sagt aktuell «per E-Mail»); Polish/Enhance-Aufrufe zählen nicht ins Abo-Kontingent; Style-Zähler ist per IP-Rate-Limit nur grob gegen Missbrauch geschützt.
+- Kleine Lücken: Polish/Enhance-Aufrufe zählen nicht ins Abo-Kontingent; Style-Zähler ist per IP-Rate-Limit nur grob gegen Missbrauch geschützt.
 - Qualität: Firefox/Safari-Export-Pfade prüfen, Lighthouse nach Deploy auf der echten Domain, Fehlerprotokoll (public.error_summary) auswerten und häufige Fehler beheben.
 
 ## Arbeitsweise

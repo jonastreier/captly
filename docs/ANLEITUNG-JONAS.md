@@ -9,7 +9,7 @@ Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eine
 ## A. Domain, Postfächer, Hosting (Hostpoint)
 
 **A1. Domain registrieren und mit dem Hosting verbinden**
-1. Im Hostpoint-Control-Panel `captionrush.com` registrieren (oder, falls schon da, unter «Domains» prüfen).
+1. Im Hostpoint-Control-Panel `captionrush.com` registrieren (oder, falls schon da, unter «Domains» prüfen). **Bei Hostpoint kaufen, nicht bei Vercel**: Hosting, DNS und Postfächer liegen dann im selben Panel, SPF/DKIM sind ein Klick (A4). Preis laut hostpoint.ch CHF 10 im ersten Jahr; die Verlängerung nennen Vergleichsseiten mit CHF 20/Jahr (im Warenkorb prüfen). Das Zusatzprodukt «Domain Shield» brauchst du nicht (deine Adresse steht ohnehin im Impressum).
 2. Domain dem Webhosting zuordnen. Der **Zielordner (Document Root)** wird angezeigt oder kann gewählt werden, z. B. `www/captionrush.com/` (Bezeichnung kann abweichen).
 3. SSL (Let's Encrypt) für die Domain einschalten. ✅ `https://captionrush.com` zeigt eine Seite ohne Zertifikatswarnung (auch eine leere Hostpoint-Seite genügt jetzt).
 
@@ -98,13 +98,19 @@ Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eine
 2. Bestätigung per **DNS-TXT-Eintrag**: im Hostpoint-Control-Panel die DNS-Zone bearbeiten, TXT-Eintrag mit dem von Google angezeigten Wert anlegen, in Google «Bestätigen» (kann bis zu einigen Stunden dauern).
 3. Sitemaps → `https://captionrush.com/sitemap.xml` einreichen. ✅ Status «Erfolgreich».
 
-**C5. Aufräumen**: Alte Vercel-Adresse: Projekt in Vercel löschen oder pausieren, sobald die neue Domain läuft (der Vercel-Keep-alive-Cron wird dann nicht mehr gebraucht; der GitHub-Workflow übernimmt).
+**C5. Aufräumen**: Alte Vercel-Adresse: **zwei Wochen parallel** laufen lassen (Rückfalloption, kostet nichts), danach Projekt in Vercel löschen oder pausieren (der Vercel-Keep-alive-Cron wird dann nicht mehr gebraucht; der GitHub-Workflow übernimmt).
 
 **Reihenfolge der offenen Pull Requests** (die Themen-PRs bauen aufeinander auf; GitHub zeigt die Basis oben an):
 1. [#15](https://github.com/jonastreier/captly/pull/15) (Go-live) mergen und den Branch danach löschen (Knopf «Delete branch»). GitHub stellt PRs, die auf diesem Branch aufbauen, dann automatisch auf `main` um; sonst beim PR-Titel «Edit» → Basis auf `main`.
 2. Danach in dieser Reihenfolge: [#16](https://github.com/jonastreier/captly/pull/16) (Recht/Texte) → [#20](https://github.com/jonastreier/captly/pull/20) (Telemetrie) → [#22](https://github.com/jonastreier/captly/pull/22) (Abo-Vorbereitung, Schalter aus) → dieser PR (Anleitung). Die Reihenfolge ist wichtig, weil sie aufeinander aufbauen.
 3. Unabhängig davon, jederzeit nach #15: [#17](https://github.com/jonastreier/captly/pull/17) (Tight), [#18](https://github.com/jonastreier/captly/pull/18) (E2E-Test), [#19](https://github.com/jonastreier/captly/pull/19) (Performance), [#21](https://github.com/jonastreier/captly/pull/21) (Mobile-Mehrfachauswahl).
 Zeigt ein PR ein Konflikt-Banner (selten, z. B. weil zwei PRs dieselbe Zeile in `README.md` ändern): sag mir Bescheid, ich löse ihn.
+
+**C6. Newsletter-Versand (erst, wenn du den ersten verschickst)**
+Entscheid: **Brevo**, nicht selbst über Supabase/Hostpoint. Supabase verschickt nur Login-Mails; ein eigener Massenversand über das Hostpoint-Postfach landet schnell im Spam und hat kein Bounce- und Abmelde-Handling. Brevo (Frankreich, EU) hat das alles, im Gratis-Tarif 300 Mails pro Tag, und du kennst es von Wald und Tier.
+1. **Eigenes Brevo-Konto für CaptionRush** (nicht die Wald-und-Tier-Liste mischen), Absenderdomain `captionrush.com` dort authentifizieren (Brevo zeigt die DNS-Einträge, in der Hostpoint-DNS-Zone eintragen).
+2. Supabase → Table Editor → `leads` → filtern: `newsletter = true`, `confirmed_at` gesetzt, `unsubscribed_at` leer → **Export CSV** → in Brevo als Liste importieren (Einwilligung liegt per Double-Opt-in vor).
+3. Abmeldungen laufen danach über Brevo. Vor dem Versand bitte Bescheid geben: Ich ergänze Brevo in der Datenschutzerklärung und baue, wenn die Liste wächst, einen automatischen Abgleich.
 
 ---
 
@@ -146,5 +152,5 @@ Zeigt ein PR ein Konflikt-Banner (selten, z. B. weil zwei PRs dieselbe Zeile in 
 ## Checkliste (zum Abhaken)
 - [ ] A1 Domain und SSL · [ ] A2 PHP ≥ 8.1 · [ ] A3 Postfächer · [ ] A4 SPF/DKIM/DMARC · [ ] A5 FTP und `FTP_DIR`
 - [ ] B1 Supabase (inkl. `schema.sql` erneut ausführen, Region, DPA) · [ ] B2 Groq (Key, Data Controls, Limits, DPA) · [ ] B3 ntfy · [ ] B4 GitHub-Secrets
-- [ ] C1 Deploy · [ ] C2 Endpunkte · [ ] C3 End-to-End-Test · [ ] C4 Search Console
+- [ ] C1 Deploy · [ ] C2 Endpunkte · [ ] C3 End-to-End-Test · [ ] C4 Search Console · [ ] C6 Newsletter (Brevo, später)
 - [ ] D Paddle (Sandbox, dann Live) · [ ] E1 SVA/Firma · [ ] E2 EU-Vertreter · [ ] E3 Marke
