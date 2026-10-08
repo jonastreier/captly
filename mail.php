@@ -23,7 +23,7 @@ function cr_smtp_cmd($fp, $cmd, $expect) {
 function cr_header_safe($s) { return trim(preg_replace('/[\r\n]+/', ' ', (string)$s)); }
 
 /** Plain-Text-Mail senden. Gibt true oder false zurück (nie eine Exception). */
-function cr_send_mail($cfg, $to, $subject, $text) {
+function cr_send_mail($cfg, $to, $subject, $text, $extraHeaders = []) {
   $to = cr_header_safe($to);
   if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
   $from = cr_header_safe($cfg['MAIL_FROM'] ?? '');
@@ -41,6 +41,7 @@ function cr_send_mail($cfg, $to, $subject, $text) {
     'Content-Transfer-Encoding: base64',
     'Auto-Submitted: auto-generated',
   ];
+  foreach ($extraHeaders as $h) $headers[] = cr_header_safe($h);
   $body = rtrim(chunk_split(base64_encode(str_replace(["\r\n", "\r"], "\n", $text)), 76, "\r\n"));
 
   $host = (string)($cfg['SMTP_HOST'] ?? '');
@@ -81,4 +82,21 @@ function cr_send_mail($cfg, $to, $subject, $text) {
   } catch (Exception $e) { $ok = false; }
   @fclose($fp);
   return $ok;
+}
+
+/** Signierter Abmelde-Link (HMAC-SHA256 über die Adresse, Schlüssel = LEAD_SECRET). Kein Token in der DB nötig. */
+function cr_unsub_sig($cfg, $email) {
+  $key = (string)($cfg['LEAD_SECRET'] ?? '') ?: (string)($cfg['SUPABASE_SERVICE_KEY'] ?? '');
+  return $key === '' ? '' : substr(hash_hmac('sha256', 'unsub:' . strtolower($email), $key), 0, 32);
+}
+function cr_unsub_link($cfg, $email) {
+  $sig = cr_unsub_sig($cfg, $email);
+  if ($sig === '') return '';
+  $site = rtrim((string)($cfg['SITE_URL'] ?? 'https://captionrush.com'), '/');
+  return $site . '/api/unsubscribe?e=' . rtrim(strtr(base64_encode(strtolower($email)), '+/', '-_'), '=') . '&s=' . $sig;
+}
+/** Zusatz-Header für Newsletter-Mails (RFC 8058: Ein-Klick-Abmeldung, von Gmail/Yahoo verlangt). */
+function cr_unsub_headers($cfg, $email) {
+  $l = cr_unsub_link($cfg, $email);
+  return $l === '' ? [] : ['List-Unsubscribe: <' . $l . '>', 'List-Unsubscribe-Post: List-Unsubscribe=One-Click'];
 }

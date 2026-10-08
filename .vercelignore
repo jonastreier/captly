@@ -1,3 +1,4 @@
+# OPTIONAL: Vercel ist nicht der Live-Weg (Live = Hostpoint, siehe SETUP.md). Nur für Vorschau-Deployments.
 # Vercel = captly.html + /vendor + Serverless Function /api/transcribe.js (Groq-Proxy).
 # Serverseitiges & Dev-Zeug gehört NICHT auf die statische Demo:
 server.js
@@ -14,3 +15,17 @@ enhance.php
 test-polish.js
 test-enhance.js
 .env.example
+test-*.js
+lead.php
+confirm.php
+unsubscribe.php
+mail.php
+polish.php
+enhance.php
+docs/
+log.php
+stat.php
+plan.php
+paddle-webhook.php
+paddle-portal.php
+billing.php

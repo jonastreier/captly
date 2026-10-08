@@ -27,7 +27,9 @@ RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)$ $1.html [L]
 RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)\.html$ /$1 [R=301,L]
 
 # API: gleiche Pfade wie auf Vercel (/api/transcribe …) → PHP-Gegenstücke
-RewriteRule ^api/(transcribe|polish|enhance|lead|confirm)/?$ $1.php [L,QSA]
+RewriteRule ^api/(transcribe|polish|enhance|lead|confirm|unsubscribe|log|stat|plan)/?$ $1.php [L,QSA]
+RewriteRule ^api/paddle-webhook/?$ paddle-webhook.php [L,QSA]
+RewriteRule ^api/portal/?$ paddle-portal.php [L,QSA]
 </IfModule>
 
 # Interne Dateien nie ausliefern

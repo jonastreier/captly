@@ -1,6 +1,6 @@
 # CaptionRush
 
-Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai).
+Web-Tool für Instagram/TikTok-Untertitel (automatische Untertitel direkt im Browser).
 Upload → Auto-Transkript → Karaoke-Preview in 24 kuratierten Styles → Export als **MP4** (mit
 eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
@@ -63,34 +63,42 @@ Nach dem Eintragen: `node test-captly.js` (prüft die Datei) und je Style Vorsch
 
 ## Live-Betrieb auf Hostpoint (Ziel-Setup)
 
-Die Seite läuft als statische Dateien + die PHP-Dateien (`transcribe.php`, `polish.php`, `enhance.php`, `lead.php`, `confirm.php`) auf
+Die Seite läuft als statische Dateien + die PHP-Dateien (`transcribe.php`, `polish.php`, `enhance.php`, `lead.php`, `confirm.php`, `unsubscribe.php`) auf
 Hostpoint (Apache/PHP). **Schritt-für-Schritt-Einrichtung: [`SETUP.md`](SETUP.md).** Deployment: GitHub-Action [`deploy.yml`](.github/workflows/deploy.yml)
 (FTPS, bei jedem Merge nach `main`; `scripts/build-dist.js` baut das Paket, `scripts/write-config.js` schreibt `config.php` aus GitHub-Secrets).
 [`.htaccess`](.htaccess) bildet `vercel.json` nach (`/`, `/de`, `/api/*` → PHP, Header, Caching).
 Schriften (`vendor/fonts`, `scripts/fetch-fonts.js`) und supabase-js (`vendor/supabase`, `scripts/fetch-supabase.sh`) liegen lokal —
 der Browser ruft beim normalen Besuch **keinen** Fremdserver auf (Datenschutz). Missbrauchsschutz: Audiodauer wird serverseitig aus dem
 Header gelesen (≤ 130 s pro Anfrage, 30 Min./Stunde und IP), bei Groq-Limit Push über `ALERT_URL` (ntfy).
-Leads/Newsletter: `lead.php` schreibt mit dem service_role-Key serverseitig, Double-Opt-in über `confirm.php`, Mail per SMTP (`mail.php`).
-Vercel bleibt als Alternative nutzbar (`api/*.js`, `vercel.json`), ist aber nicht mehr der Haupt-Weg.
+Leads/Newsletter: `lead.php` schreibt mit dem service_role-Key serverseitig, Double-Opt-in über `confirm.php`, Abmeldung über `unsubscribe.php` (HMAC-signierter Link, Ein-Klick nach RFC 8058), Mail per SMTP (`mail.php`).
+Vercel (`api/*.js`, `vercel.json`) ist nur noch eine optionale Alternative (siehe unten).
 
-## Transkription einrichten auf Vercel (empfohlen, aktueller Live-Weg)
+## Fehlerüberwachung und Style-Zählung (anonym)
 
-Vercel führt kein PHP aus, deshalb gibt es den Proxy zusätzlich als **Serverless Function**
-[`api/transcribe.js`](api/transcribe.js) (gleiche Schnittstelle, kein npm nötig). Das Frontend probiert
-zuerst `/api/transcribe`, dann `transcribe.php`, erst danach den lokalen Fallback.
+`window.onerror`/`unhandledrejection` → `api/log` (`log.php`): gesampelt (jede 2. Sitzung, max. 5 verschiedene Meldungen), serverseitig bereinigt
+(Dateinamen, E-Mails, Adress-Parameter, lange Zahlen), ohne IP/User-Agent, Rate-Limit pro IP, Löschung nach 30 Tagen. Auswertung: Supabase → SQL Editor →
+`select * from public.error_summary;`. Beim erfolgreichen Export zählt `api/stat` (`stat.php`) einen Zähler pro Tag und eingebautem Style
+(`style_stats`); `GET /api/stat` liefert die Top 5 der letzten 30 Tage (1 h Cache) → Abzeichen «Trending» für die Top 3 ab 50 Exporten. Beides nur über https auf der echten Domain
+und nicht bei Do-Not-Track/GPC. Tabellen/Funktion: `schema.sql` (nach dem Update erneut ausführen). Datenschutz: Ziffer 6.
 
-1. Groq-Key holen: <https://console.groq.com> → **API Keys**.
-2. Vercel → Projekt → **Settings → Environment Variables**: `GROQ_API_KEY = gsk_…` (Production + Preview).
-   Optional: `RATE_LIMIT_PER_HOUR` (Default 120/IP, best effort pro Instanz), `REQUIRE_LOGIN=1` +
-   `SUPABASE_URL` + `SUPABASE_ANON_KEY` (nur Eingeloggte).
-3. **Redeploy** (Env-Variablen greifen erst im nächsten Deployment). Check: `GET /api/transcribe` →
-   `{"configured":true}`.
+## Abos (Vorbereitung, Schalter aus)
 
-Vercel kappt Request-Bodies bei 4,5 MB; das Frontend schickt ~100-s-Stücke (≤ ~3,2 MB), passt also.
-Wo der Browser es kann (WebCodecs `AudioEncoder`), gehen die Stücke als **Ogg/Opus 32 kbit/s** raus
-(`Content-Type: audio/ogg`, ~0,4 MB statt 3,2 MB → auf dem Handy ~3–4× schneller); sonst WAV. Stück 1 läuft
-allein (Sprache erkennen), der Rest mit 3 parallelen Requests.
-Fehlt der Key, fällt die App automatisch auf die lokale Erkennung zurück (langsam, Modell-Download).
+Code für Free/Creator/Pro ist fertig, aber **abgeschaltet** (`BILLING_ENABLED=false` in `config.php`; dann ändert sich nichts). Bausteine:
+`schema.sql` (`profiles`, `usage`, `paddle_events`, `add_usage()`, Trigger für neue Nutzer, RLS: Nutzer lesen nur ihre Zeilen), `billing.php` (Hilfsfunktionen),
+`plan.php` (`/api/plan`: Plan + Restminuten + öffentliche Paddle-Werte), `transcribe.php` (402 `{error:"quota"}` vor dem Groq-Aufruf; eingeloggt: Plan-Minuten pro Monat,
+Gast: `ANON_SEC_PER_DAY` pro IP; gezählt wird nach Erfolg), `paddle-webhook.php` (`/api/paddle-webhook`: HMAC-Signatur, Zeitstempel-Toleranz, Idempotenz, Reihenfolge, Events
+`subscription.*`), `paddle-portal.php` (`/api/portal`: Link zum Kundenportal). Frontend: Abzeichen «x min left», `needsWatermark()` hängt am Plan, Paddle-Checkout-Overlay
+(`paddle.js` wird erst beim Klick auf «Upgrade» geladen), «Manage subscription». Sandbox-Anleitung: [`docs/paddle-sandbox.md`](docs/paddle-sandbox.md); was vor dem Live-Schalten
+fehlt: [`docs/abo-aktivierung.md`](docs/abo-aktivierung.md).
+
+## Optional: Vercel (Alternative, nicht der Live-Weg)
+
+Live läuft CaptionRush auf Hostpoint (siehe oben). `vercel.json` und `api/*.js` sind eine **optionale Alternative** für Vorschau-Deployments
+(Vercel führt kein PHP aus; die Funktionen haben dieselbe Schnittstelle wie die PHP-Dateien). Sie werden nicht ausgeliefert und nicht
+weiterentwickelt, solange kein Bedarf besteht (`api/_guard.js`, `api/transcribe.js`, `polish.js`, `enhance.js`, `keepalive.js`).
+Einrichtung: `GROQ_API_KEY` unter **Settings → Environment Variables** setzen und neu deployen; Check: `GET /api/transcribe` → `{"configured":true}`.
+Vercel kappt Bodies bei 4,5 MB; die ~100-s-Stücke des Frontends (Ogg/Opus ≈ 0,4 MB, sonst WAV ≤ ~3,2 MB) passen. Weitere Env-Werte wie bei
+`config.php` (`RATE_LIMIT_PER_HOUR`, `REQUIRE_LOGIN` + `SUPABASE_URL` + `SUPABASE_ANON_KEY`).
 
 ## Transkription einrichten (Groq-Proxy, klassisches PHP-Webhosting)
 
@@ -112,8 +120,8 @@ paid) ist im Proxy gekapselt → wenige Zeilen.
 
 ## Transkript-Feinschliff („Polish“)
 
-Nach Whisper large-v3 kann das Frontend das Transkript an **`/api/polish`** (Vercel,
-[`api/polish.js`](api/polish.js)) bzw. **`polish.php`** (PHP-Hosting) schicken. Ein LLM auf Groq
+Nach Whisper large-v3 kann das Frontend das Transkript an **`/api/polish`** (Live: **`polish.php`**; optional Vercel:
+[`api/polish.js`](api/polish.js)) schicken. Ein LLM auf Groq
 (`openai/gpt-oss-120b`, Fallback `openai/gpt-oss-20b`, gleicher `GROQ_API_KEY`) korrigiert **nur**
 offensichtliche Erkennungsfehler: verhörte Wörter (v. a. Namen/Marken/Orte aus „Names & terms“),
 Rechtschreibung, Gross-/Kleinschreibung, Satzzeichen, Satzgrenzen — kein Umformulieren, Übersetzen,
@@ -132,8 +140,8 @@ Kürzen; Füllwörter/Dialekt bleiben, „ss“ wird nie zu „ß“.
 
 ## KI-Hervorhebung („Enhance“: Keywords, Emojis, Auto-Zoom, Post-Text)
 
-Nach der Transkription schickt das Frontend die Captions im Hintergrund an **`/api/enhance`** (Vercel,
-[`api/enhance.js`](api/enhance.js)) bzw. **`enhance.php`** (PHP-Hosting). Ein LLM auf Groq (gleiche Modelle
+Nach der Transkription schickt das Frontend die Captions im Hintergrund an **`/api/enhance`** (Live: **`enhance.php`**; optional Vercel:
+[`api/enhance.js`](api/enhance.js)). Ein LLM auf Groq (gleiche Modelle
 wie Polish, gleicher `GROQ_API_KEY`) **wählt nur aus** — es schreibt nie Text um (Dialekt bleibt unangetastet):
 
 - `keywords`: 0–2 bedeutungstragende Wörter je Caption (Wort-Indizes; nie Artikel/Füllwörter) → Hervorhebung
@@ -341,6 +349,9 @@ hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ 
 node test-captly.js     # Editor-Logik (DOM-Stub)
 node test-polish.js     # /api/polish + polish.php
 node test-enhance.js    # /api/enhance + enhance.php
+node test-lead.js       # lead.php, confirm.php, unsubscribe.php (Mock-Supabase + Mock-SMTP, braucht php)
+node test-telemetry.js  # log.php + stat.php (Mock-Supabase, braucht php)
+node test-billing.js    # Abo-Vorbereitung: Webhook, Plan, Kontingent, Portal (Mock-Supabase/Groq/Paddle, braucht php)
 node test-e2e.js        # Browser-E2E (Playwright, Mock-Server): Upload → Untertitel → Export → E-Mail-Gate → Cover → Login → Projekt; Desktop + 390 px; Screenshots in e2e-shots/
 ```
 
