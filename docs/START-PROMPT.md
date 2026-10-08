@@ -11,7 +11,7 @@ Alles, was ohne mich möglich war, ist umgesetzt und als PRs offen:
 - #20 Telemetrie (log.php, stat.php, «Trending») · #22 Abo-Vorbereitung hinter BILLING_ENABLED=false (Paddle-Webhook, Kontingent, Portal) · #23 docs/ANLEITUNG-JONAS.md + dieser Prompt
 Reihenfolge: #15 → #16 → #20 → #22 → #23; #17/#18/#19/#21 unabhängig nach #15.
 Nicht testbar ohne mich/echte Dienste: Hostpoint, Supabase, Groq, Paddle, echte Mails.
-Entscheide (8.10.2026): Domain bei Hostpoint kaufen · Groq bleibt im Gratis-Tarif · Telefonnummer bleibt im Impressum (EU/DE: zweiter schneller Kontaktweg neben E-Mail; Alternative wäre ein Kontaktformular) · Vercel zwei Wochen parallel, dann abschalten · Newsletter später über ein eigenes Brevo-Konto (CSV-Export aus `leads`, Datenschutz dann ergänzen) · Preise bleiben «coming soon» bis Paddle · Supabase-Region muss Jonas noch im Dashboard ablesen (Frankfurt?).
+Entscheide (8.10.2026): Domain bei Hostpoint kaufen · Groq bleibt im Gratis-Tarif · keine Telefonnummer im Impressum (Jonas' Entscheid; Restrisiko EU/DE: EuGH C-298/07 verlangt einen zweiten schnellen Kontaktweg, Abhilfe wäre ein Kontaktformular) · Vercel zwei Wochen parallel, dann abschalten · Newsletter später über ein eigenes Brevo-Konto (CSV-Export aus `leads`, Datenschutz dann ergänzen) · Preise bleiben «coming soon» bis Paddle · Supabase-Region muss Jonas noch im Dashboard ablesen (Frankfurt?).
 
 ## Zuerst
 1. Status der PRs prüfen (gemergt? Konflikte? Deploy-Action grün?). Fehlt etwas, mich bitten zu mergen; Konflikte (v. a. README.md, .htaccess, build-dist.js, schema.sql, CLAUDE.md) selbst lösen und Tests laufen lassen.
