@@ -46,6 +46,18 @@ Dateien, kein Build:
   Transkription läuft über `transcribe.php`, Login/Projekte über Supabase. Bleibt als Referenz
   für Quota- und Stripe-Logik liegen, falls Bezahlung dazukommt.
 
+## Live-Betrieb auf Hostpoint (Ziel-Setup)
+
+Die Seite läuft als statische Dateien + die PHP-Dateien (`transcribe.php`, `polish.php`, `enhance.php`, `lead.php`, `confirm.php`) auf
+Hostpoint (Apache/PHP). **Schritt-für-Schritt-Einrichtung: [`SETUP.md`](SETUP.md).** Deployment: GitHub-Action [`deploy.yml`](.github/workflows/deploy.yml)
+(FTPS, bei jedem Merge nach `main`; `scripts/build-dist.js` baut das Paket, `scripts/write-config.js` schreibt `config.php` aus GitHub-Secrets).
+[`.htaccess`](.htaccess) bildet `vercel.json` nach (`/`, `/de`, `/api/*` → PHP, Header, Caching).
+Schriften (`vendor/fonts`, `scripts/fetch-fonts.js`) und supabase-js (`vendor/supabase`, `scripts/fetch-supabase.sh`) liegen lokal —
+der Browser ruft beim normalen Besuch **keinen** Fremdserver auf (Datenschutz). Missbrauchsschutz: Audiodauer wird serverseitig aus dem
+Header gelesen (≤ 130 s pro Anfrage, 30 Min./Stunde und IP), bei Groq-Limit Push über `ALERT_URL` (ntfy).
+Leads/Newsletter: `lead.php` schreibt mit dem service_role-Key serverseitig, Double-Opt-in über `confirm.php`, Mail per SMTP (`mail.php`).
+Vercel bleibt als Alternative nutzbar (`api/*.js`, `vercel.json`), ist aber nicht mehr der Haupt-Weg.
+
 ## Transkription einrichten auf Vercel (empfohlen, aktueller Live-Weg)
 
 Vercel führt kein PHP aus, deshalb gibt es den Proxy zusätzlich als **Serverless Function**

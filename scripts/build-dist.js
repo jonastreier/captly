@@ -8,7 +8,7 @@ const path = require('path');
 const root = path.join(__dirname, '..');
 const out = path.join(root, 'dist');
 
-const FILES = ['.htaccess', '404.html', 'captly.html', 'captly.de.html', 'impressum.html', 'datenschutz.html', 'privacy.html', 'terms.html',
+const FILES = ['.htaccess', '404.html', 'captly.html', 'captly.de.html', 'impressum.html', 'datenschutz.html', 'privacy.html', 'terms.html', 'licenses.html',
   'llms.txt', 'robots.txt', 'sitemap.xml', 'styles.json', 'transcribe.php', 'polish.php', 'enhance.php', 'lead.php', 'confirm.php', 'mail.php'];
 const DIRS = ['assets', 'vendor'];
 
@@ -17,6 +17,8 @@ function copy(src, dst) {
   if (st.isDirectory()) {
     fs.mkdirSync(dst, { recursive: true });
     fs.readdirSync(src).forEach(f => copy(path.join(src, f), path.join(dst, f)));
+  } else if (/\.(ts|mts|map)$/.test(src)) {
+    // Typdeklarationen/Source-Maps braucht der Browser nicht
   } else { fs.mkdirSync(path.dirname(dst), { recursive: true }); fs.copyFileSync(src, dst); }
 }
 

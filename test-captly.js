@@ -104,7 +104,7 @@ encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSup
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
-brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,fontCssUrl:fontCssUrl,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
@@ -2290,8 +2290,18 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.capLineH({}) === 1.3 && T.capLineH({ lh: 1.6 }) === 1.6 && T.capLineH({ lh: 9 }) === 1.3, 'capLineH: Standard/Wert/ungültig');
     // Schriften
     ok(T.cleanFontName(' Rubik  Mono One ') === 'Rubik Mono One' && T.cleanFontName("x');}<b") === '' && T.cleanFontName('A') === '', 'Fontname validiert');
-    ok(T.fontCssUrl('Luckiest Guy', '') === 'https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap'
-       && /family=Lato:wght@700;900&/.test(T.fontCssUrl('Lato', '700;900')), 'Google-Fonts-URL');
+    ok(T.isKnownFont('Luckiest Guy') && T.isKnownFont('Inter Tight') && T.isKnownFont('Instrument Serif') && !T.isKnownFont('Rubik Mono One'), 'Schriftliste kennt nur lokale Schriften');
+    ok(await T.ensureCapFont('Rubik Mono One') === false && await T.ensureCapFont('Inter Tight') === true, 'unbekannte Schrift → false, lokale → true');
+    {
+      // Datenschutz: keine Anfragen an Google; jede Schrift der Auswahlliste + jedes Styles liegt lokal vor (vendor/fonts)
+      const html2 = fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8'), fcss = fs.readFileSync(path.join(__dirname, 'vendor', 'fonts', 'fonts.css'), 'utf8');
+      ok(!/fonts\.(googleapis|gstatic)\.com/.test(html2.replace(/<!--[\s\S]*?-->/g, '')), 'captly.html ruft nichts bei Google Fonts ab');
+      const miss = Object.keys(T.CAP_FONT_W).filter(f => fcss.indexOf("font-family: '" + f + "'") < 0);
+      ok(miss.length === 0, 'alle Auswahl-Schriften lokal vorhanden (fehlt: ' + miss.join(', ') + ')');
+      const used = new Set(); T.STYLES.forEach(st => [st.fl, st.emFont, st.hlFont].forEach(f => { f = T.cleanFontName(String(f || '').replace(/^'|'$/g, '').split(',')[0]); if (f) used.add(f); }));
+      const miss2 = [...used].filter(f => fcss.indexOf("font-family: '" + f + "'") < 0);
+      ok(miss2.length === 0, 'alle Style-Schriften lokal vorhanden (fehlt: ' + miss2.join(', ') + ')');
+    }
     // Kachel-Worte aus dem Transkript
     T.setState([{ text: 'Grüezi Rindfleischverarbeitung, so isch es', start: 0, end: 2, words: [] }], [], 'karaoke');
     ok(T.tileWords().join(' ') === 'so isch', 'Kachel: zwei kurze aufeinanderfolgende Wörter: ' + T.tileWords());

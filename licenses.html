@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open-source licences · CaptionRush</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<style>
+:root{--ink:#1d1f20;--muted:#595e5e;--line:#e3e7ea;--bg:#f5f9fa;--brand:#6d28d9}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif}
+main{max-width:720px;margin:0 auto;padding:40px 16px 64px}
+a{color:var(--brand)}
+.back{display:inline-block;margin-bottom:24px;text-decoration:none;font-weight:600}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px 24px}
+h1{font-size:30px;line-height:1.2;margin:0 0 8px}
+h2{font-size:18px;margin:28px 0 8px}
+p,ul{margin:0 0 12px}
+ul{padding-left:20px}
+li{margin-bottom:4px}
+.muted{color:var(--muted);font-size:14px}
+.lead{background:#f3effd;border-radius:12px;padding:12px 14px;margin:16px 0 4px}
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="/">← Back to CaptionRush</a>
+  <div class="card">
+    <h1>Open-source licences</h1>
+    <p>CaptionRush builds on open-source software and fonts. Thank you to everyone who makes them.</p>
+
+    <h2>Software shipped with the site</h2>
+    <ul>
+      <li><strong>supabase-js</strong> — MIT. <a href="vendor/supabase/LICENSE">Licence</a> · <a href="https://github.com/supabase/supabase-js">Source</a></li>
+      <li><strong>mp4box.js</strong> (reads MP4) — BSD-3-Clause. <a href="vendor/mp4box/LICENSE">Licence</a> · <a href="https://github.com/gpac/mp4box.js">Source</a></li>
+      <li><strong>mp4-muxer</strong> (writes MP4) — MIT. <a href="vendor/mp4-muxer/LICENSE">Licence</a> · <a href="https://github.com/Vanilagy/mp4-muxer">Source</a></li>
+      <li><strong>Hyphenation patterns</strong> (word breaks, from the TeX hyph-utf8 project) — various permissive licences, listed in <a href="vendor/hyphen/LICENSE">vendor/hyphen/LICENSE</a>. <a href="https://github.com/hyphenation/tex-hyphen">Source</a></li>
+      <li><strong>FFmpeg (WebAssembly build, @ffmpeg/core 0.12.6)</strong> — GNU GPL v2 or later, built with libx264. Used only as a fallback to convert WebM to MP4 in the browser. The corresponding source code is available from <a href="https://github.com/ffmpegwasm/ffmpeg.wasm">github.com/ffmpegwasm/ffmpeg.wasm</a> and <a href="https://ffmpeg.org/download.html">ffmpeg.org</a>; the GPL text is at <a href="https://www.gnu.org/licenses/old-licenses/gpl-2.0.html">gnu.org</a>. Your video is not sent anywhere for this.</li>
+      <li><strong>Transformers.js and Whisper models</strong> — Apache-2.0 / MIT. Loaded only if you use the offline fallback, from jsDelivr and Hugging Face.</li>
+    </ul>
+
+    <h2>Fonts</h2>
+    <p>The fonts offered in the editor come from Google Fonts and are published under the <a href="https://openfontlicense.org">SIL Open Font License 1.1</a> (a few, such as Roboto and Open Sans, under the Apache License 2.0). They are served from our own server (<a href="vendor/fonts/LICENSE.txt">licence note</a>). The copyright of each font belongs to its authors, listed at <a href="https://fonts.google.com">fonts.google.com</a>.</p>
+
+    <p class="muted"><a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> · <a href="impressum.html">Impressum</a></p>
+  </div>
+</main>
+</body>
+</html>

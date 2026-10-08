@@ -23,8 +23,8 @@ RewriteRule ^captly\.html$ / [R=301,L]
 RewriteRule ^captly\.de\.html$ /de [R=301,L]
 RewriteRule ^de/$ /de [R=301,L]
 RewriteRule ^de$ captly.de.html [L]
-RewriteRule ^(impressum|datenschutz|privacy|terms)$ $1.html [L]
-RewriteRule ^(impressum|datenschutz|privacy|terms)\.html$ /$1 [R=301,L]
+RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)$ $1.html [L]
+RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)\.html$ /$1 [R=301,L]
 
 # API: gleiche Pfade wie auf Vercel (/api/transcribe …) → PHP-Gegenstücke
 RewriteRule ^api/(transcribe|polish|enhance|lead|confirm)/?$ $1.php [L,QSA]

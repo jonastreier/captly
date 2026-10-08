@@ -36,9 +36,8 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","inLanguage":"en","mainEntity":[{"@type":"Question","name":"Is CaptionRush free? Is there a watermark?","acceptedAnswer":{"@type":"Answer","text":"Yes — free during the beta, no account needed. Generate captions and export MP4 without watermark, SRT and VTT; we only ask for your email before the first video download. Creator and Pro plans with more transcription minutes are coming soon."}},{"@type":"Question","name":"How do I add captions to Instagram Reels, TikTok or YouTube Shorts?","acceptedAnswer":{"@type":"Answer","text":"Upload your video on this page, check the captions, pick a style and download the MP4. The captions are burned into the video, so you can post the file to Reels, TikTok or Shorts as it is."}},{"@type":"Question","name":"Which languages does CaptionRush support?","acceptedAnswer":{"@type":"Answer","text":"16 languages, detected automatically: English, German, Spanish, French, Italian, Portuguese, Dutch, Polish, Turkish, Russian, Ukrainian, Japanese, Korean, Chinese, Arabic and Hindi. You can also pick the language manually."}},{"@type":"Question","name":"Does it work for German and dialects?","acceptedAnswer":{"@type":"Answer","text":"Yes, German is fully supported. An AI proofreading pass helps with names, places and dialect words. Swiss German and other strong dialects can still contain mistakes, so check the captions and fix any word in the editor before you export."}},{"@type":"Question","name":"How accurate are the captions?","acceptedAnswer":{"@type":"Answer","text":"CaptionRush uses the Whisper large-v3 speech model plus an AI proofreading pass for names, places and dialects. Add tricky names or brand terms in the “Names & terms” field. It runs server-side (nothing to download), and you can fix any word in the editor."}},{"@type":"Question","name":"Which export formats can I download?","acceptedAnswer":{"@type":"Answer","text":"An MP4 with the captions burned in (1080p by default, ready to post), SRT and VTT subtitle files for editing apps or YouTube, and a plain TXT transcript."}},{"@type":"Question","name":"Does CaptionRush work on iPhone and Android?","acceptedAnswer":{"@type":"Answer","text":"Yes. It runs in the mobile browser, so there is no app to install, and the MP4 is rendered on your phone. If your browser can’t export a particular video, you can still download the SRT or VTT file."}},{"@type":"Question","name":"Do I need to install anything?","acceptedAnswer":{"@type":"Answer","text":"No. CaptionRush runs in your browser. Upload a video, pick a style and export it — no app, no plugin."}},{"@type":"Question","name":"Is my video uploaded anywhere?","acceptedAnswer":{"@type":"Answer","text":"No. Only the audio track is sent for transcription, and we don’t store audio or transcripts on our servers. The video itself is rendered and exported locally in your browser. Details in our privacy policy."}},{"@type":"Question","name":"Can I cancel anytime?","acceptedAnswer":{"@type":"Answer","text":"Paid plans aren't available yet — CaptionRush is free during the beta. When Creator and Pro launch, they'll be month-to-month and you can cancel anytime."}}]}
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@800&family=Bebas+Neue&family=Caveat:wght@700&family=DM+Sans:wght@700&family=Exo+2:wght@700&family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800&family=Kalam:wght@700&family=Bangers&family=Montserrat:wght@600;700;800;900&family=Orbitron:wght@700&family=Oswald:wght@700&family=Playfair+Display:ital,wght@0,700;1,700&family=Poppins:ital,wght@0,600;0,700;0,800;0,900;1,600;1,700&family=Raleway:wght@300&family=Space+Grotesk:wght@700&family=VT323&display=swap" rel="stylesheet">
+<link rel="preload" as="font" type="font/woff2" href="vendor/fonts/inter-latin-n-6ab57b.woff2" crossorigin>
+<link rel="stylesheet" href="vendor/fonts/fonts.css">
 <style>
 /* Design-Tokens (ruhiger, neutraler Look à la captions.ai; Lila ist der EINZIGE Akzent).
    --muted: Hinweis-/Sekundärtext (≥ 4.5:1 auf Weiß) · --faint nur für Trenner/Deko, nie für wichtigen Text.
@@ -422,6 +421,7 @@ body.editor-open{height:100vh;overflow:hidden}
 .stile-empty a{color:var(--brand);font-weight:600;text-decoration:none}
 .stile.just-saved{animation:stileSaved 1.6s ease}
 @keyframes stileSaved{0%,40%{box-shadow:0 0 0 4px rgba(34,197,94,.55)}100%{box-shadow:0 0 0 3px rgba(124,58,237,.18)}}
+.tm-legal{padding:8px 12px 4px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);margin-top:4px}.tm-legal a{color:inherit}
 .cap-toast{position:fixed;left:50%;bottom:24px;width:max-content;transform:translateX(-50%) translateY(20px);opacity:0;z-index:1200;background:#1f1b2b;color:#fff;font:600 12.5px/1.3 'Inter',sans-serif;padding:10px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(20,10,40,.3);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px)}
 .cap-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .cap-toast.has-act{display:flex;align-items:center;gap:12px}
@@ -1152,7 +1152,7 @@ body.editor-open .lang-hint{display:none}
       </div>
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">Is my video uploaded anywhere?<span class="faq-plus">+</span></button>
-        <div class="faq-a"><p>No. Only the audio track is sent for transcription, and we don’t store audio or transcripts on our servers. The video itself is rendered and exported locally in your browser. Details in our <a href="datenschutz.html">privacy policy</a>.</p></div>
+        <div class="faq-a"><p>No. Only the audio track is sent for transcription, and we don’t store audio or transcripts on our servers. The video itself is rendered and exported locally in your browser. Details in our <a href="privacy.html">privacy policy</a>.</p></div>
       </div>
       <div class="faq-item">
         <button class="faq-q" onclick="toggleFaq(this)">Can I cancel anytime?<span class="faq-plus">+</span></button>
@@ -1187,11 +1187,13 @@ body.editor-open .lang-hint{display:none}
       <div class="foot-col">
         <div class="foot-col-h">Legal</div>
         <a href="impressum.html">Impressum</a>
-        <a href="datenschutz.html">Privacy (Datenschutz)</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+        <a href="licenses.html">Licences</a>
         <a href="mailto:contact@captionrush.com">Contact</a>
       </div>
     </div>
-    <p class="foot-legal">Your video stays on your device; only the audio is sent for transcription. Details in our <a href="datenschutz.html">privacy policy</a>.</p>
+    <p class="foot-legal">Your video stays on your device; only the audio is sent for transcription. Details in our <a href="privacy.html">privacy policy</a>.</p>
     <p class="foot-lang"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg><a href="/" hreflang="en" lang="en" aria-current="page">English</a><a href="/de" hreflang="de" lang="de">Deutsch</a></p>
     <p class="foot-copy">© 2026 CaptionRush · Made in Switzerland by Jonas Treier</p>
   </footer>
@@ -1232,6 +1234,7 @@ body.editor-open .lang-hint{display:none}
           <details class="kb-help tm-kb"><summary class="tm-item">Keyboard shortcuts</summary>
             <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field<br><b>Captions:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there<br><b>Timeline:</b> drag a caption to move it, drag its edges to trim, double-click to edit · with a caption selected: <b>← →</b> 1 frame, <b>Shift+← →</b> 0.1 s, <b>Delete</b> removes · hold <b>Alt</b> to skip snapping · <b>Ctrl/⌘+wheel</b> zooms</div>
           </details>
+          <div class="tm-legal"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="impressum.html" target="_blank" rel="noopener">Impressum</a></div>
         </div>
       </div>
       <button type="button" class="tb-export" id="tbExport" onclick="topExport()" disabled title="Download the MP4 with your captions" aria-haspopup="dialog" aria-controls="expSheet">Export</button>
@@ -1252,7 +1255,7 @@ body.editor-open .lang-hint{display:none}
         <input type="email" id="gateEmail" class="es-gate-in" placeholder="you@example.com" autocomplete="email" inputmode="email" maxlength="254" enterkeyhint="go">
         <p class="es-gate-err" id="gateErr" role="alert" style="display:none"></p>
         <label class="exp-chk"><input type="checkbox" id="gateNews"><span id="gateNewsTxt">Send me occasional tips &amp; updates about CaptionRush. Unsubscribe anytime.</span></label>
-        <p class="es-gate-fine">Free during beta. No newsletter unless you tick the box — then we send one confirmation link. <a href="datenschutz.html" target="_blank" rel="noopener">Privacy</a></p>
+        <p class="es-gate-fine">Free during beta. No newsletter unless you tick the box — then we send one confirmation link. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
       </form>
       <button type="button" class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
         <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
@@ -1582,11 +1585,12 @@ body.editor-open .lang-hint{display:none}
             <div class="cs-line" style="display:flex;gap:8px;align-items:center">
               <label class="cs-swatch" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
               <label class="cs-swatch" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Active</span></label>
-              <select id="csFont" class="lang-sel cs-sel" style="flex:1;min-width:0" onchange="onFontPick(this)" title="Font — 55+ Google Fonts, or type any Google Font name">
+              <select id="csFont" class="lang-sel cs-sel" style="flex:1;min-width:0" onchange="onFontPick(this)" title="Font — 55+ fonts, or upload your own (.ttf / .otf / .woff2)">
                 <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
                 <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
                 <option>Inter</option><option>Oswald</option>
               </select>
+              <input type="file" id="fontUpload" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" style="display:none" onchange="onFontFile(this)">
               <select id="csWeight" class="lang-sel cs-sel" style="flex:0 0 76px" onchange="applyCustomStyle('weight')" title="Font weight">
                 <option value="400">Regular</option><option value="600">Semi</option><option value="700">Bold</option>
                 <option value="800">Extra</option><option value="900">Black</option>
@@ -5875,51 +5879,38 @@ var CAP_FONT_GROUPS = [
   ['Bold & clean', ['Montserrat|600;700;800;900', 'Poppins|600;700;800;900', 'Inter|400;600;700;800;900', 'Roboto|400;700;900',
     'Open Sans|600;700;800', 'Lato|700;900', 'Nunito|700;800;900', 'Rubik|600;700;800;900', 'Work Sans|600;700;800;900',
     'DM Sans|700', 'Manrope|600;700;800', 'Outfit|600;700;800;900', 'Sora|600;700;800', 'Plus Jakarta Sans|600;700;800',
-    'Archivo|600;700;800;900', 'Barlow|600;700;800;900', 'Raleway|300;700;800;900', 'Space Grotesk|700', 'Exo 2|700']],
+    'Archivo|600;700;800;900', 'Inter Tight|500;600;700;800;900', 'Barlow|600;700;800;900', 'Raleway|300;700;800;900', 'Space Grotesk|700', 'Exo 2|700']],
   ['Impact & display', ['Anton|', 'Bebas Neue|', 'Oswald|700', 'Archivo Black|', 'Bangers|', 'Luckiest Guy|', 'Lilita One|',
     'Titan One|', 'Bungee|', 'Russo One|', 'Black Ops One|', 'Righteous|', 'Fredoka|600;700', 'Barlow Condensed|800',
     'Teko|600;700', 'Staatliches|', 'Passion One|400;700;900', 'Paytone One|']],
   ['Handwritten', ['Kalam|700', 'Caveat|700', 'Permanent Marker|', 'Pacifico|', 'Dancing Script|700', 'Lobster|', 'Satisfy|', 'Shadows Into Light|']],
-  ['Serif', ['Playfair Display|700', 'Merriweather|700;900', 'Lora|700', 'DM Serif Display|', 'Abril Fatface|']],
+  ['Serif', ['Playfair Display|700', 'Instrument Serif|', 'Merriweather|700;900', 'Lora|700', 'DM Serif Display|', 'Abril Fatface|']],
   ['Retro & mono', ['VT323|', 'Orbitron|700', 'Press Start 2P|', 'Space Mono|700']]
 ];
 var CAP_FONT_W = {};
 CAP_FONT_GROUPS.forEach(function(g){ g[1].forEach(function(f){ var p = f.split('|'); CAP_FONT_W[p[0]] = p[1]; }); });
-var PRELOADED_FONTS = ['Anton', 'Barlow Condensed', 'Bebas Neue', 'Caveat', 'DM Sans', 'Exo 2', 'Inter', 'Kalam', 'Bangers', 'Montserrat',
-  'Orbitron', 'Oswald', 'Playfair Display', 'Poppins', 'Raleway', 'Space Grotesk', 'VT323'];
-// Gültiger Google-Fonts-Name (auch Schutz fürs style-Attribut / die URL)
+// Alle Schriften liegen lokal unter vendor/fonts/ (scripts/fetch-fonts.js → fonts.css): kein Aufruf bei Google, die IP der
+// Besucher geht nirgends hin. Das Frontend lädt nur den Schnitt, der gebraucht wird (die Browser holen @font-face erst bei Gebrauch).
+// Gültiger Schriftname (auch Schutz fürs style-Attribut)
 function cleanFontName(n) {
   var v = String(n || '').replace(/['"]/g, '').replace(/\s+/g, ' ').trim();
-  return /^[A-Za-z0-9][A-Za-z0-9 ]{1,48}$/.test(v) ? v : '';
+  return /^[A-Za-z0-9][A-Za-z0-9 ()-]{1,48}$/.test(v) ? v : '';
 }
-function fontCssUrl(name, weights) {
-  return 'https://fonts.googleapis.com/css2?family=' + name.replace(/ /g, '+') + (weights ? ':wght@' + weights : '') + '&display=swap';
-}
+var _userFonts = {};          // eigene, auf diesem Gerät gespeicherte Schriften: Familie → true
+var USER_FONT_MAX = 5, USER_FONT_BYTES = 3 * 1024 * 1024;
+function isKnownFont(name) { return Object.prototype.hasOwnProperty.call(CAP_FONT_W, name) || !!_userFonts[name]; }
 var _fontReq = {};
-// Lädt die Schrift (falls nötig) und löst auf, sobald sie benutzbar ist (max. timeoutMs) — nie reject.
+// Lädt die Schrift und löst auf, sobald sie benutzbar ist (max. timeoutMs) — nie reject. false = unbekannte Schrift.
 function ensureCapFont(name, timeoutMs) {
   name = cleanFontName(name);
-  if (!name || PRELOADED_FONTS.indexOf(name) >= 0 || typeof document === 'undefined' || !document.head) return Promise.resolve();
+  if (!name || typeof document === 'undefined' || !document.fonts || typeof document.fonts.load !== 'function') return Promise.resolve();
+  if (!isKnownFont(name)) return Promise.resolve(false);
   if (!_fontReq[name]) {
-    var known = Object.prototype.hasOwnProperty.call(CAP_FONT_W, name);
-    // Unbekannte (frei eingetippte) Schrift: Gewichte einzeln anfragen — fehlende scheitern harmlos
-    var urls = known ? [fontCssUrl(name, CAP_FONT_W[name])] : [fontCssUrl(name, ''), fontCssUrl(name, '700'), fontCssUrl(name, '900')];
-    _fontReq[name] = Promise.all(urls.map(function(u) {
-      return new Promise(function(res) {
-        var l = document.createElement('link');
-        l.rel = 'stylesheet'; l.href = u;
-        l.onload = function(){ res(true); }; l.onerror = function(){ res(false); };
-        document.head.appendChild(l);
-      });
-    })).then(function(r) {
-      if (!r.some(Boolean)) return false;
-      var fl = document.fonts && document.fonts.load;
-      return fl ? Promise.all(['400', '700', '900'].map(function(w){ return document.fonts.load(w + ' 40px "' + name + '"').catch(function(){}); }))
-        .then(function(){ capFontsChanged(); return true; }) : true;
-    });
+    _fontReq[name] = Promise.all(['400', '700', '900'].map(function(w){
+      return Promise.resolve(document.fonts.load(w + ' 40px "' + name + '"')).catch(function(){});
+    })).then(function(){ capFontsChanged(); return true; });
   }
-  var to = timeoutMs || 6000;
-  return Promise.race([_fontReq[name], new Promise(function(r){ setTimeout(function(){ r(false); }, to); })]);
+  return Promise.race([_fontReq[name], new Promise(function(r){ setTimeout(function(){ r(false); }, timeoutMs || 6000); })]);
 }
 function styleFontName(s) { return s ? cleanFontName(s.fl || String(s.font || '').split(',')[0]) : ''; }
 // Alle Schnitte, die ein Style zeichnet (Betonung kursiv/fett, eigene Betonungs-/Highlight-Schrift), laden —
@@ -5945,23 +5936,75 @@ function buildFontSelect() {
     g[1].forEach(function(f) { var o = document.createElement('option'); o.textContent = o.value = f.split('|')[0]; og.appendChild(o); });
     sel.appendChild(og);
   });
-  var other = document.createElement('option'); other.value = '__other'; other.textContent = '＋ Any Google Font…';
+  var mine = Object.keys(_userFonts);
+  if (mine.length) {
+    var og2 = document.createElement('optgroup'); og2.label = 'My fonts (on this device)';
+    mine.forEach(function(f) { var o = document.createElement('option'); o.textContent = o.value = f; og2.appendChild(o); });
+    sel.appendChild(og2);
+  }
+  var other = document.createElement('option'); other.value = '__other'; other.textContent = '＋ Upload your own font…';
   sel.appendChild(other);
   if (cur) sel.value = cur;
 }
 var _csFontPrev = 'Poppins';
 function onFontPick(sel) {
   if (sel.value === '__other') {
-    var n = cleanFontName(typeof prompt === 'function' ? prompt('Type any Google Fonts name (as shown on fonts.google.com), e.g. "Archivo Black" or "Rubik Mono One":', '') : '');
-    if (!n) { sel.value = _csFontPrev; return; }
-    var has = Array.prototype.some.call(sel.options || [], function(o){ return o.value === n; });
-    if (!has) { var o = document.createElement('option'); o.value = o.textContent = n; sel.insertBefore(o, sel.firstChild); }
-    sel.value = n;
-    capToast('Loading “' + n + '”…');
-    ensureCapFont(n).then(function(ok){ if (ok === false) capToast('Couldn’t load “' + n + '” — check the spelling on fonts.google.com'); });
-  } else ensureCapFont(sel.value);
+    sel.value = _csFontPrev;
+    var inp = document.getElementById('fontUpload');
+    if (inp && inp.click) inp.click();
+    return;
+  }
+  ensureCapFont(sel.value);
   _csFontPrev = sel.value;
   applyCustomStyle('font');
+}
+// ── Eigene Schrift (.ttf/.otf/.woff/.woff2): bleibt auf dem Gerät (Browser-Datenbank), wird nie hochgeladen ──
+// Die Lizenz der Schrift liegt bei der Nutzerin / dem Nutzer (steht in den Nutzungsbedingungen).
+function fontDb() {
+  return new Promise(function(res, rej) {
+    if (typeof indexedDB === 'undefined') return rej(new Error('no idb'));
+    var r = indexedDB.open('capivo-fonts', 1);
+    r.onupgradeneeded = function(){ r.result.createObjectStore('fonts', { keyPath: 'name' }); };
+    r.onsuccess = function(){ res(r.result); }; r.onerror = function(){ rej(r.error); };
+  });
+}
+function fontDbOp(mode, fn) {
+  return fontDb().then(function(db) {
+    return new Promise(function(res, rej) {
+      var tx = db.transaction('fonts', mode), st = tx.objectStore('fonts'), q = fn(st);
+      tx.oncomplete = function(){ res(q && q.result); }; tx.onerror = tx.onabort = function(){ rej(tx.error); };
+    });
+  });
+}
+function registerUserFont(name, buf) {
+  var ff = new FontFace(name, buf);
+  return ff.load().then(function() { document.fonts.add(ff); _userFonts[name] = true; capFontsChanged(); return name; });
+}
+function loadUserFonts() {
+  if (typeof FontFace === 'undefined') return Promise.resolve();
+  return fontDbOp('readonly', function(st){ return st.getAll(); }).then(function(list) {
+    return Promise.all((list || []).map(function(f){ return registerUserFont(f.name, f.buf).catch(function(){}); }));
+  }).then(function(){ buildFontSelect(); }, function(){});
+}
+function onFontFile(inp) {
+  var f = inp && inp.files && inp.files[0];
+  if (inp) inp.value = '';
+  if (!f) return;
+  if (!/\.(ttf|otf|woff2?)$/i.test(f.name)) { capToast('Please choose a .ttf, .otf, .woff or .woff2 file'); return; }
+  if (f.size > USER_FONT_BYTES) { capToast('That font file is too large (max. 3 MB)'); return; }
+  if (Object.keys(_userFonts).length >= USER_FONT_MAX) { capToast('You can keep up to ' + USER_FONT_MAX + ' own fonts — remove one first'); return; }
+  var name = cleanFontName(f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')) || 'My font';
+  if (isKnownFont(name)) name = cleanFontName(name + ' (own)') || 'My font ' + Date.now() % 1000;
+  f.arrayBuffer().then(function(buf) {
+    return registerUserFont(name, buf.slice(0)).then(function() {
+      fontDbOp('readwrite', function(st){ return st.put({ name: name, buf: buf }); }).catch(function(){}); // Speichern ist Zugabe, kein Muss
+      buildFontSelect();
+      var sel = document.getElementById('csFont'); if (sel) sel.value = name;
+      _csFontPrev = name;
+      applyCustomStyle('font');
+      capToast('✓ “' + name + '” added — stays on this device');
+    });
+  }).catch(function(){ capToast('Couldn’t read that font file'); });
 }
 
 function csEl(id) { return document.getElementById(id); }
@@ -5998,7 +6041,7 @@ function onBoxModeChange(v) {
   applyCustomStyle('box');
 }
 // Betonte Wörter (Keywords): Farbe = sichtbare Akzentfarbe (emphColor), Schrift = eigene emFont oder „wie Text“.
-// Die Schriftliste spiegelt #csFont (ohne „Any Google Font…“), plus die Akzentschrift des Styles.
+// Die Schriftliste spiegelt #csFont (ohne „Upload your own font…“), plus die Akzentschrift des Styles.
 function csSeedEmFields(st) {
   csSetVal('csEm', cssColorToHex(emphColor(st), null) || cssColorToHex(st.hl, null) || '#facc15');
   var ef = csEl('csEmFont'), fEl = csEl('csFont');
@@ -7285,7 +7328,7 @@ var _authReady = Promise.resolve(), _pendingWmExport = false, _tplSyncedFor = nu
 // Lazy geladen wie ffmpeg/whisper (s. loadFFmpeg) — das Script läuft als klassisches <script>,
 // ein Top-Level-import wäre hier ein Syntaxfehler. Gibt null zurück, solange keine Credentials
 // hinterlegt sind, damit die Seite ohne Supabase voll nutzbar bleibt (Editor/Export sind gratis).
-// Scheitert der CDN-Import (offline, esm.sh down, strenge CSP, Node-Testlauf), geben wir null
+// Scheitert der Import (Datei fehlt, strenge CSP, Node-Testlauf), geben wir null
 // zurück statt zu werfen — dann verhält sich die Seite wie ohne Credentials, statt am Login zu
 // hängen. _sbFailed verhindert, dass jeder Aufruf denselben Fehlversuch wiederholt.
 var _sb = null, _sbFailed = false;
@@ -7293,7 +7336,7 @@ async function getSb() {
   if (_sb) return _sb;
   if (_sbFailed || !SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
   try {
-    var mod = await import('https://esm.sh/@supabase/supabase-js@2');
+    var mod = await import('./vendor/supabase/supabase.js');
     _sb = mod.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     // Session-Wiederherstellung/Token-Refresh/Login/Logout laufen asynchron → Zustand immer mitführen
     // (nur synchron setzen; keine Supabase-Calls im Callback → Deadlock-Gefahr).
@@ -12350,7 +12393,7 @@ function tlReset() {
 enableExports(false);
 renderWPills();
 (function(){ var vi = document.getElementById('vocabInput'); if (vi && vocabText) vi.value = vocabText; })();
-syncTimeOffUI(); syncTextFormatUI(); updateTrSetSum(); syncUndoBtns(); buildFontSelect();
+syncTimeOffUI(); syncTextFormatUI(); updateTrSetSum(); syncUndoBtns(); buildFontSelect(); loadUserFonts();
 // Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
 renderShowcase(); renderLandChips();
