@@ -1441,6 +1441,7 @@ body.editor-open .lang-hint{display:none}
           <div class="ta-tools">
             <button type="button" class="ta-tool" id="taSplit" onclick="tlSplitAtPlayhead()" disabled><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span>Split</span></button>
             <button type="button" class="ta-tool" id="taEdit" onclick="tlEditText(tlSel)" disabled><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edit text</span></button>
+            <button type="button" class="ta-tool" id="taMulti" onclick="tlToggleMulti()" aria-pressed="false" title="Select several captions: tap the first, then the last"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Select</span></button>
             <button type="button" class="ta-tool ta-del" id="taDel" onclick="tlDeleteSel()" disabled><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg><span>Delete</span></button>
             <button type="button" class="ta-tool on" id="taSnap" onclick="tlToggleSnap()" aria-pressed="true" title="Snap edges to scene cuts, the playhead and neighbouring captions"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span>Snap</span></button>
             <button type="button" class="ta-tool" id="taGaps" onclick="tlCloseGaps()" title="Close all gaps: each caption stays until the next one starts (at a scene cut both meet exactly at the cut)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span>Close gaps</span></button>
@@ -11920,6 +11921,14 @@ var tlSnapOn = true, tlSel = -1;
 // Shift+Klick (Desktop): zusammenhängender Bereich tlSel … tlSelEnd. Ziehen eines Blocks darin verschiebt alle
 // gemeinsam (Abstände bleiben), ←/→ ebenso, Entf löscht alle. Ein normaler Klick hebt die Mehrfachauswahl auf.
 var tlSelEnd = -1;
+// Handy: Knopf «Select» schaltet den Mehrfachmodus. Antippen des ersten Blocks setzt den Anfang, jedes weitere Antippen den
+// Endpunkt des zusammenhängenden Bereichs (wie Shift+Klick am Desktop). Halten + Ziehen verschiebt den Bereich, «Delete» löscht ihn.
+var tlMulti = false;
+function tlToggleMulti() {
+  tlMulti = !tlMulti;
+  if (!tlMulti) tlSelEnd = -1;
+  _tl.actKey = ''; tlSyncAct(); tlRequestDraw();
+}
 function tlRange() {
   if (!(tlSel >= 0) || !(tlSelEnd >= 0) || tlSel === tlSelEnd || !captionBlocks[tlSel] || !captionBlocks[tlSelEnd]) return null;
   return { a: Math.min(tlSel, tlSelEnd), b: Math.max(tlSel, tlSelEnd) };
@@ -12279,6 +12288,8 @@ function tlSplitAtPlayhead() {
   return true;
 }
 function tlDeleteSel() {
+  var rg = tlRange();
+  if (rg) { tlDeleteRange(rg); tlRequestDraw(); return; }
   var i = tlSel;
   if (!captionBlocks[i] || isExporting) return;
   tlSel = -1; deleteSeg(i);
@@ -12413,15 +12424,20 @@ function tlFlingStart(v, to) {
 }
 // Aktionsleiste (nur Handy/Touch) nachziehen — billig: DOM nur bei geänderter Auswahl/Zeit/Snap.
 function tlSyncAct() {
-  var b = captionBlocks[tlSel], key = _tl.mob + '|' + tlSel + '|' + (b ? b.start + '|' + b.end : '') + '|' + tlSnapOn + '|' + captionBlocks.length;
+  var b = captionBlocks[tlSel], rg = tlRange(), key = _tl.mob + '|' + tlSel + '|' + tlSelEnd + '|' + tlMulti + '|' + (b ? b.start + '|' + b.end : '') + '|' + tlSnapOn + '|' + captionBlocks.length;
   if (key === _tl.actKey) return;
   _tl.actKey = key;
   var hint = document.getElementById('taHint');
-  if (hint) hint.textContent = b ? (fmtT1(b.start) + ' – ' + fmtT1(b.end) + ' · hold to move · drag the edges to trim')
+  if (hint) hint.textContent = rg ? ((rg.b - rg.a + 1) + ' captions selected · hold one to move them · Delete removes them')
+                             : tlMulti ? (b ? 'Tap the last caption of the range' : 'Tap the first caption, then the last')
+                             : b ? (fmtT1(b.start) + ' – ' + fmtT1(b.end) + ' · hold to move · drag the edges to trim')
                                  : 'Tap a caption to adjust it · swipe to scrub · pinch to zoom';
   ['taSplit', 'taEdit', 'taDel'].forEach(function(id){ var el = document.getElementById(id); if (el) el.disabled = !b; });
   var sp = document.getElementById('taSplit');
-  if (sp && b) sp.disabled = !(b.words && b.words.length > 1);
+  if (sp && b) sp.disabled = !!rg || !(b.words && b.words.length > 1);
+  var ed = document.getElementById('taEdit'); if (ed && rg) ed.disabled = true;
+  var mu = document.getElementById('taMulti');
+  if (mu) { mu.classList.toggle('on', tlMulti); if (mu.setAttribute) mu.setAttribute('aria-pressed', tlMulti ? 'true' : 'false'); mu.disabled = !captionBlocks.length; }
   var gp = document.getElementById('taGaps'); if (gp) gp.disabled = !captionBlocks.length;
   var sn = document.getElementById('taSnap');
   if (sn) { sn.classList.toggle('on', tlSnapOn); if (sn.setAttribute) sn.setAttribute('aria-pressed', tlSnapOn ? 'true' : 'false'); }
@@ -12638,7 +12654,7 @@ function tlHit(x, y, touch) {
   var best = null;
   for (var i = Math.max(0, tlFirstEndAfter(bl, t - tol) - 1); i < bl.length && bl[i].start - tol <= t; i++) {
     var b = bl[i], xs = tlTimeToX(b.start - off, v), xe = tlTimeToX(b.end - off, v), inner = Math.min(inN, (xe - xs) / (mob ? 2 : 3));
-    var edges = !touch || i === tlSel;
+    var edges = !touch || (i === tlSel && !tlRange()); // bei Mehrfachauswahl keine Kanten-Griffe (sonst fängt der Griff des Ankers die Nachbarn ab)
     if (edges && x >= xs - outN && x <= xs + inner) { var d1 = Math.abs(x - xs); if (!best || d1 < best.d) best = { type: 'block', idx: i, mode: 'start', d: d1 }; }
     if (edges && x >= xe - inner && x <= xe + outN) { var d2 = Math.abs(x - xe); if (!best || d2 < best.d) best = { type: 'block', idx: i, mode: 'end', d: d2 }; }
     // Schmale Blöcke (kurze Wörter, weit herausgezoomt): Mindest-Trefferbreite TL_MIN_HIT um die Mitte
@@ -12839,9 +12855,9 @@ function tlMobDown(e, p) {
     d.type = 'pan';
     if (hit.type === 'block') d.lp = setTimeout(function() {
       if (_tl.drag !== d || d.moved) return;
-      tlSelect(hit.idx, false);
+      if (tlInRange(hit.idx)) d.group = tlRange(); else tlSelect(hit.idx, false); // Teil der Auswahl: ganzen Bereich verschieben
       d.type = 'block'; d.idx = hit.idx; d.mode = 'move'; d.lpDone = true;
-      if (!tlBeginBlockDrag(d)) { d.type = 'pan'; return; }
+      if (!tlBeginBlockDrag(d)) { d.type = 'pan'; d.group = null; return; }
       d.moved = true; d.tDown = tlXToTime(d.x0, tlView); d.cur = null;
       tlRequestDraw();
     }, TL_HOLD_MS);
@@ -12872,11 +12888,22 @@ function tlMobMove(e, p, d) {
   var bd = tlSnapOn ? d.bCut : d.bFree;
   var r = tlDragSpan(d.base, d.mode, tlXToTime(p.x, tlView) - d.tDown, { lo: bd.lo, hi: bd.hi, cands: tlSnapOn ? d.cands : null, pps: tlView.pps, thr: TL_SNAP_PX * 1.5 });
   d.cur = r; _tl.snap = r.snap;
-  applyTimelineEdit(d.idx, r.start, r.end, d.base, { live: true });
+  if (d.group) tlGroupApply(d.group, d.gBases, r.start - d.base.start);
+  else applyTimelineEdit(d.idx, r.start, r.end, d.base, { live: true });
 }
 function tlMobUp(e, d) {
   var now = Date.now();
   if (e.type === 'pointercancel') { tlRevertDrag(d); tlScrubEnd(); tlRequestDraw(); return; }
+  if (d.type === 'block' && d.base && d.group) { // Bereich gemeinsam verschoben: Auswahl bleibt bestehen
+    _tl.snap = null;
+    if (d.arr === captionBlocks && d.cur) {
+      var gdl = d.cur.start - d.base.start;
+      tlGroupApply(d.group, d.gBases, gdl);
+      if (Math.abs(gdl) > 1e-6) { pushUndo(null, d.undoSnap); markCaptionsEdited(); }
+    }
+    tlScrubEnd(); tlRequestDraw();
+    return;
+  }
   if (d.type === 'block' && d.base) {
     _tl.snap = null;
     if (d.arr === captionBlocks && d.cur) applyTimelineEdit(d.idx, d.cur.start, d.cur.end, d.base, { undoSnap: d.undoSnap });
@@ -12892,6 +12919,14 @@ function tlMobUp(e, d) {
   if (d.moved || d.lpDone) { tlRequestDraw(); return; }
   if (tlClassify(0, 0, now - d.at, true) !== 'tap') { tlRequestDraw(); return; } // lange gehalten auf leerer Fläche
   var hit = d.hit, vid = document.getElementById('mainVid');
+  if (tlMulti) { // Mehrfachmodus: Antippen setzt Anfang bzw. Ende des Bereichs, leere Fläche ändert nichts
+    if (hit.type === 'block') {
+      if (!captionBlocks[tlSel] || hit.idx === tlSel) tlSelect(hit.idx, false);
+      else { tlSelEnd = hit.idx; selectSegRow(null); }
+      tlHintSeen(); tlRequestDraw();
+    }
+    return;
+  }
   if (hit.type === 'block') {
     var was = tlSel === hit.idx, b = captionBlocks[hit.idx];
     tlSelect(hit.idx, false);
@@ -13010,7 +13045,7 @@ function tlZoomBtn(f) {
 }
 // Neues Video: Wellenform/Sprache/Auswahl gehören zum alten
 function tlReset() {
-  tlWave = null; tlSpeech = []; tlSel = -1; _tl.fit = true; tlView = { start: 0, pps: 0 }; _tl.drag = null; _tl.snap = null; _tl.tw = {}; _tl.twN = 0;
+  tlWave = null; tlSpeech = []; tlSel = -1; tlMulti = false; _tl.fit = true; tlView = { start: 0, pps: 0 }; _tl.drag = null; _tl.snap = null; _tl.tw = {}; _tl.twN = 0;
   tlFlingStop(); _tl.scrubT = null; _tl.pendSeek = null; _tl.mpps = TL_MOB_PPS; _tl.actKey = '';
 }
 (function tlInit() {

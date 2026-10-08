@@ -104,7 +104,7 @@ encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSup
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
-brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,applyTrending:applyTrending,teleError:teleError,statExport:statExport,coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,applyTrending:applyTrending,teleError:teleError,statExport:statExport,tlRange:tlRange,tlDeleteSel:tlDeleteSel,tlToggleMulti:tlToggleMulti,tlSelState:function(a,b){tlSel=a;tlSelEnd=b;},tlGet:function(){return {sel:tlSel,end:tlSelEnd,multi:tlMulti};},coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
@@ -3263,6 +3263,23 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(d2 && d2.emFont === undefined, 'Drop: unbekannte Keyword-Schrift wird entfernt');
     const file = JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8'));
     ok(Array.isArray(file) && file.every(o => T.dropToStyle(o, now) !== null || T.STYLES.some(x => x.id === o.id)), 'styles.json: gültig, jeder Eintrag besteht die Prüfung');
+  }
+
+  // Timeline Mehrfachauswahl (Handy: «Select»): Bereich löschen, Modus umschalten
+  {
+    const mk = n => Array.from({ length: n }, (_, i) => ({ words: [{ word: 'w' + i, start: i, end: i + 0.9 }], start: i, end: i + 0.9, text: 'w' + i }));
+    T.setState(mk(6), [], null);
+    T.tlSelState(1, 3);
+    ok(JSON.stringify(T.tlRange()) === '{"a":1,"b":3}', 'Bereich 1…3 erkannt');
+    T.tlSelState(3, 1); ok(JSON.stringify(T.tlRange()) === '{"a":1,"b":3}', 'Bereich unabhängig von der Tipp-Reihenfolge');
+    T.tlSelState(2, 2); ok(T.tlRange() === null, 'ein Block ist kein Bereich');
+    T.tlSelState(1, 3); T.tlDeleteSel();
+    ok(T.getBlocks().map(b => b.text).join() === 'w0,w4,w5' && T.tlGet().sel === -1 && T.tlGet().end === -1, 'Delete entfernt den ganzen Bereich');
+    T.tlSelState(1, -1); T.tlDeleteSel(); ok(T.getBlocks().map(b => b.text).join() === 'w0,w5', 'Delete ohne Bereich löscht nur den gewählten Block');
+    T.tlSelState(0, 1); const m0 = T.tlGet().multi; T.tlToggleMulti();
+    ok(T.tlGet().multi === !m0 && T.tlGet().end === (m0 ? -1 : 1), 'Select-Knopf schaltet den Modus um');
+    if (T.tlGet().multi) T.tlToggleMulti();
+    ok(T.tlGet().multi === false && T.tlGet().end === -1, 'Ausschalten hebt den Bereich auf');
   }
 
   // «Trending»: nur ab genug Daten, nur eingebaute Styles ohne eigenes Abzeichen, höchstens 3
