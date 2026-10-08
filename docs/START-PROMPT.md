@@ -19,7 +19,7 @@ Nicht testbar ohne mich/echte Dienste: Hostpoint, Supabase, Groq, Paddle, echte 
 ## Dann, je nach meiner Freigabe
 - Paddle-Sandbox-Test begleiten (docs/paddle-sandbox.md): Webhook-Log 200? Plan erscheint? Toleranz PADDLE_TOLERANCE_SEC ggf. anpassen.
 - Go-live der Abos (docs/abo-aktivierung.md): Pricing-Abschnitt der Landing auf echte Pläne/Preise, Datenschutz (Paddle, Nutzungsdaten), AGB (Pläne, Kündigung, Rückerstattung), EU-Vertreter eintragen, Verarbeitungsverzeichnis Zeile 9, DE/EN-Texte, build-i18n.
-- Kleine Lücken: «Konto löschen»-Knopf (schema.sql hat delete_my_account(), keine UI; Datenschutz sagt aktuell «per E-Mail»); Polish/Enhance-Aufrufe zählen nicht ins Abo-Kontingent; Style-Zähler ist per IP-Rate-Limit nur grob gegen Missbrauch geschützt.
+- Kleine Lücken: Polish/Enhance-Aufrufe zählen nicht ins Abo-Kontingent; Style-Zähler ist per IP-Rate-Limit nur grob gegen Missbrauch geschützt.
 - Qualität: Firefox/Safari-Export-Pfade prüfen, Lighthouse nach Deploy auf der echten Domain, Fehlerprotokoll (public.error_summary) auswerten und häufige Fehler beheben.
 
 ## Arbeitsweise

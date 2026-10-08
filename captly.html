@@ -1773,6 +1773,7 @@ body.editor-open .lang-hint{display:none}
       <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" id="btnPlanPro" onclick="startCheckout('pro')" title="Paid plans are coming soon">Pro · 1200 min/mo · $14.99 — coming soon</button>
       <button class="pos-btn" id="btnPortal" style="width:100%;padding:8px;margin-bottom:5px;display:none" onclick="openPortal()">Manage subscription &amp; invoices</button>
       <button class="pos-btn" style="width:100%;padding:8px" onclick="logout()">Sign out</button>
+      <button type="button" id="acctDelBtn" style="display:block;margin:10px auto 0;background:none;border:0;padding:4px;font-size:11.5px;color:#9a3b3b;text-decoration:underline;cursor:pointer" onclick="deleteAccount()">Delete account and all saved projects</button>
     </div>
     <p id="acctMsg" style="font-size:12px;color:#7c3aed;margin-top:8px"></p>
   </div>
@@ -7642,11 +7643,35 @@ async function exportWithoutWatermark() {
 async function logout() {
   var sb = await getSb();
   if (sb) await sb.auth.signOut();
+  resetAcctUI();
+}
+function resetAcctUI() {
   mePlan = 'anon'; meEmail = ''; billing = null; renderBilling();
   document.getElementById('acctBtn').textContent = 'Sign in';
   document.getElementById('acctModal').style.display = 'none';
   var pl = document.getElementById('projList'); if (pl) pl.innerHTML = '<option value="">— Load project —</option>';
   updateAcctUI();
+}
+// Konto selbst löschen (DSGVO Art. 17 / nDSG Art. 32): delete_my_account() in schema.sql löscht auth.users,
+// Projekte/Vorlagen/Abo-Zeilen verschwinden per on delete cascade. Newsletter-Leads hängen an der E-Mail,
+// nicht am Konto, und bleiben (Abmeldung separat über den Link in jeder Mail).
+async function deleteAccount() {
+  if (!meEmail) return;
+  var m = document.getElementById('acctMsg');
+  // Laufendes Paddle-Abo würde sonst weiter abbuchen, ohne dass ein Konto existiert → erst kündigen.
+  if (billingOn() && billing.loggedIn && billing.plan && billing.plan !== 'free') {
+    if (m) m.textContent = 'Please cancel your ' + (PLAN_NAMES[billing.plan] || billing.plan) + ' plan first (Manage billing). Once it has ended you can delete the account here, or email contact@captionrush.com.';
+    return;
+  }
+  if (!confirm('Delete your account ' + meEmail + ' and all saved projects and templates? This cannot be undone.')) return;
+  var sb = await getSb();
+  if (!sb) { if (m) m.textContent = 'Sign-in service is unavailable right now. Please try again later.'; return; }
+  var res;
+  try { res = await sb.rpc('delete_my_account'); } catch (e) { res = { error: e }; }
+  if (res && res.error) { if (m) m.textContent = 'Could not delete the account: ' + (res.error.message || res.error); return; }
+  try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {} // Nutzer existiert nicht mehr → nur lokal abmelden
+  resetAcctUI();
+  capToast('Your account and saved projects were deleted');
 }
 function applyUser(user) {
   meEmail = user.email || user.phone || 'account'; mePlan = (billing && billing.loggedIn && billing.plan) || 'free';
