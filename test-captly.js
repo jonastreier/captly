@@ -1158,8 +1158,21 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   const ja = bl.find(b => b.text === 'Ja.');
   ok(ja.end <= 1.25 + 1e-9, 'Verlaengerung stoppt am Schnitt');
   T.onWpbChange('1');
-  bl = T.buildCaptionBlocks(W([['Pop', 0, 0.1], ['eins', 0.2, 0.3], ['zwei', 0.5, 0.6]]), []);
-  ok(bl.length === 3 && bl[0].end >= 0.2 - 1e-9, '1 Wort/Block: nicht verschmelzen, nur verlaengern (bis zum naechsten Block)');
+  bl = T.buildCaptionBlocks(W([['Pop', 0, 0.1], ['eins', 0.3, 0.4], ['zwei', 0.8, 0.9]]), []);
+  ok(bl.length === 3 && bl[0].end >= 0.3 - 1e-9, '1 Wort/Block: nicht verschmelzen, nur verlaengern (bis zum naechsten Block)');
+  // Schneller Sprecher (Tight): Wörter ohne Lücke à 0,12 s → Mindest-Anzeigedauer 0,25 s durch Zusammenfassen (max. 2 Wörter)
+  const fast = W([['ich', 0, 0.12], ['habe', 0.12, 0.24], ['das', 0.24, 0.36], ['wirklich', 0.36, 0.48], ['gemacht', 0.48, 0.6], ['heute', 0.6, 0.72]]);
+  bl = T.buildCaptionBlocks(fast, []);
+  ok(bl.every(b => b.words.length <= 2 && b.end - b.start >= 0.24 - 1e-9), 'Tight schnell: jeder Block >= 0,25 s, max. 2 Woerter: ' + bl.map(b => b.text + ' ' + (b.end - b.start).toFixed(2)).join(' | '));
+  ok(bl.map(b => b.text).join(' ') === 'ich habe das wirklich gemacht heute', 'Tight schnell: kein Wort verloren, Reihenfolge stabil');
+  // Langsamer Sprecher bleibt bei 1 Wort pro Block
+  bl = T.buildCaptionBlocks(W([['ganz', 0, 0.4], ['ruhig', 0.4, 0.8], ['gesprochen', 0.8, 1.3]]), []);
+  ok(bl.length === 3, 'Tight langsam: weiter ein Wort pro Block');
+  // Satzende und Schnitt bremsen das Zusammenfassen
+  bl = T.buildCaptionBlocks(W([['Stopp.', 0, 0.1], ['Weiter', 0.1, 0.2], ['jetzt', 0.2, 0.7]]), []);
+  ok(!bl.some(b => /Stopp\. Weiter/.test(b.text)), 'Tight: nie ueber ein Satzende zusammenfassen');
+  bl = T.buildCaptionBlocks(W([['links', 0, 0.1], ['rechts', 0.1, 0.2], ['mitte', 0.2, 0.7]]), [0.1]);
+  ok(!bl.some(b => /links rechts/.test(b.text)), 'Tight: nie ueber einen Szenenschnitt zusammenfassen');
   T.onWpbChange('4');
 }
 

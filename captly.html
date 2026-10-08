@@ -5417,12 +5417,17 @@ function splitOverflowingBlocks(blocks, lim) {
 // Reicht das nicht, nur dann verschmelzen, wenn das Ergebnis höchstens „Wörter pro Block“ hat, nicht über
 // ein Satzende (. ! ? …) und nicht über einen Schnitt läuft — sonst bleibt der Block, wie er ist
 // (vorher entstanden z. B. „SIE IN DIE KOMMENTARE. HALLO“ mit 5 Wörtern bei 4 pro Block).
-var MIN_BLOCK_SEC = 0.3;
+// Ein-Wort-Layouts (Tight, wpb = 1): schnelle Sprecher liefern Wörter < 0,25 s, die man nicht lesen kann.
+// Reicht das Verlängern nicht, wird das Wort mit dem Nachbarn zu einem Block mit höchstens 2 Wörtern
+// zusammengefasst (gleiche Grenzen wie oben: kein Satzende, kein Schnitt, Zeichenlimit).
+var MIN_BLOCK_SEC = 0.3, MIN_WORD_SEC = 0.25;
 function enforceMinBlockDuration(blocks, cuts, charLim) {
   cuts = cuts || [];
+  var single = WORDS_PER_BLOCK <= 1, maxJoin = single ? 2 : WORDS_PER_BLOCK;
   function canJoin(a, b2) {
     if (!a || !b2) return false;
-    if (WORDS_PER_BLOCK <= 1 || a.words.length + b2.words.length > WORDS_PER_BLOCK) return false;
+    if (a.words.length + b2.words.length > maxJoin) return false;
+    if (single && (a.words.length > 1 || b2.words.length > 1)) return false;
     if (charLim && !capWordsFit(a.words.concat(b2.words), charLim)) return false; // Zeichenlimit gilt auch beim Verschmelzen
     if (b2.start - a.end >= 0.8) return false;
     var la = a.words[a.words.length - 1], fb = b2.words[0];
@@ -5444,7 +5449,7 @@ function enforceMinBlockDuration(blocks, cuts, charLim) {
     if (next) lim = Math.min(lim, next.start);
     var c = cutBetween(cuts, b.start + 1e-6, lim); if (c !== null) lim = Math.min(lim, c);
     if (lim > b.end) b.end = lim;
-    if (b.end - b.start >= MIN_BLOCK_SEC - 1e-9) continue;
+    if (b.end - b.start >= (single ? MIN_WORD_SEC : MIN_BLOCK_SEC) - 1e-9) continue;
     // 2) nur unter strengen Bedingungen verschmelzen
     var okP = canJoin(prev, b), okN = canJoin(b, next);
     if (okP && (!okN || (b.start - prev.end) <= (next.start - b.end))) { out.splice(i - 1, 2, join(prev, b)); i -= 2; continue; }
