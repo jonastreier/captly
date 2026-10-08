@@ -1,7 +1,7 @@
 # CaptionRush
 
 Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai).
-Upload → Auto-Transkript → Karaoke-Preview in 19 kuratierten Styles → Export als **MP4** (mit
+Upload → Auto-Transkript → Karaoke-Preview in 24 kuratierten Styles → Export als **MP4** (mit
 eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
 - **Ein Modus, immer beste Qualität:** `whisper-large-v3` + KI-Feinschliff (Polish, läuft nach dem Anzeigen im

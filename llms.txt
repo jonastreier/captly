@@ -10,12 +10,12 @@ CaptionRush (formerly Capivo) is made in Switzerland by Jonas Treier (sole propr
 - Transcription: server-side with the Whisper large-v3 speech model (via Groq), followed by an AI proofreading pass for names, places and dialect words. Nothing to download for the user.
 - Languages: 16 spoken languages with automatic detection: English, German, Spanish, French, Italian, Portuguese, Dutch, Polish, Turkish, Russian, Ukrainian, Japanese, Korean, Chinese, Arabic, Hindi. The language can also be set manually.
 - German: fully supported. Swiss German and other strong dialects can still contain mistakes and should be checked in the editor before export.
-- Caption styles: 19, from bold karaoke-style captions to calm subtitles, with word-by-word highlighting.
+- Caption styles: 24, from bold karaoke-style captions to calm subtitles, with word-by-word highlighting.
 - Editor: fix words and timing, "Names & terms" field for tricky names and brand terms, templates, optional AI emphasis (keywords, emojis, zoom), suggested post caption and hashtags.
 - Export: MP4 with burned-in captions (1080p by default, no watermark), SRT, VTT and a plain TXT transcript.
 - Privacy: only the audio track is sent for transcription; the video stays on the device and the MP4 is rendered locally in the browser. Audio and transcripts are not stored on CaptionRush servers.
 - Devices: runs in desktop and mobile browsers (including iPhone and Android); no app or plugin to install.
-- Price: free during the beta, no account needed; an email address is asked before the first video download. Paid plans Creator ($9/month, 300 transcription minutes) and Pro ($24/month, 1,500 transcription minutes) are announced as "coming soon" and are not available yet.
+- Price: free during the beta, no account needed; an email address is asked before the first video download. Paid plans Creator (planned $7.99/month, 300 transcription minutes) and Pro (planned $14.99/month, 1,200 transcription minutes) are announced as "coming soon" and are not available yet.
 
 ## Pages
 
