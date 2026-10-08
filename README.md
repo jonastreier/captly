@@ -46,6 +46,14 @@ Dateien, kein Build:
   Transkription läuft über `transcribe.php`, Login/Projekte über Supabase. Bleibt als Referenz
   für Quota- und Stripe-Logik liegen, falls Bezahlung dazukommt.
 
+## Reel-Cover (Titelbild)
+
+Nach dem Export (Knopf «Create cover») oder jederzeit im Export-Menü: Standbild per Regler (oder eigenes Foto) + kurzer Titel im Look eines Styles
+(Tight, Mix, Statement, Accent, Serif Bold, Bold Pop, Elegant), Wörter antippen = Akzent, Grösse/Position, Abdunkeln/Verlauf. Hilfslinien zeigen den
+3:4-Ausschnitt des Instagram-Profilrasters und die Reels/TikTok-Sicherheitszone; der Text wird automatisch darin gehalten.
+Export: PNG 1080×1920, `<titel>-cover.png`. Vorschau und Export rechnen in denselben 1080×1920-Einheiten. Einstellungen (ohne Foto) liegen im Projekt-Autosave.
+Code: Abschnitt «REEL-COVER» in `captly.html`; reine Funktionen in `test-captly.js`.
+
 ## Style Drops (neue Looks ohne Code-Änderung)
 
 Neue Caption-Styles kommen über [`styles.json`](styles.json) (Array; Felder: `id`, `name`, `added` (JJJJ-MM-TT), optional `photo` (Datei in

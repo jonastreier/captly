@@ -422,6 +422,36 @@ body.editor-open{height:100vh;overflow:hidden}
 .stile-empty a{color:var(--brand);font-weight:600;text-decoration:none}
 .stile.just-saved{animation:stileSaved 1.6s ease}
 @keyframes stileSaved{0%,40%{box-shadow:0 0 0 4px rgba(34,197,94,.55)}100%{box-shadow:0 0 0 3px rgba(124,58,237,.18)}}
+/* Reel-Cover */
+.cv-modal{position:fixed;inset:0;z-index:110;background:rgba(20,15,35,.55);display:flex;align-items:center;justify-content:center;padding:12px}
+.cv-box{background:var(--card,#fff);border-radius:20px;width:min(980px,100%);max-height:calc(100dvh - 24px);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 70px rgba(20,10,40,.35)}
+.cv-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
+.cv-body{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:20px;padding:16px;overflow:auto}
+.cv-prev{display:flex;flex-direction:column;align-items:center;gap:8px}
+.cv-prev canvas{width:100%;max-width:320px;aspect-ratio:9/16;border-radius:12px;background:#14161a;box-shadow:0 6px 24px rgba(20,10,40,.25)}
+.cv-warn{margin:0;font-size:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:6px 9px;text-align:center}
+.cv-ctrl{display:flex;flex-direction:column;gap:10px;min-width:0}
+.cv-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.cv-row input[type=range]{flex:1;min-width:110px}
+.cv-lbl{font-size:12px;font-weight:700;color:var(--muted);min-width:68px}
+.cv-v{font-size:12px;color:var(--muted);min-width:56px;text-align:right}
+.cv-chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2)}
+.cv-ctrl textarea{width:100%;resize:vertical;border:1px solid var(--line2,#d5dade);border-radius:10px;padding:9px 11px;font:600 15px/1.35 'Inter',sans-serif;color:var(--ink);background:#fff}
+.cv-hint{margin:0;font-size:12px;color:var(--muted)}
+.cv-chips{display:flex;flex-wrap:wrap;gap:6px}
+.cv-chip{border:1px solid var(--line2,#d5dade);background:#fff;color:var(--ink2);border-radius:999px;padding:7px 12px;min-height:36px;font:600 13px 'Inter',sans-serif;cursor:pointer}
+.cv-chip.on{background:var(--brand-soft,#f3effd);border-color:var(--brand,#7c3aed);color:var(--brand-ink,#6d28d9)}
+.cv-pos{display:flex;border:1px solid var(--line2,#d5dade);border-radius:10px;overflow:hidden}
+.cv-pos button{border:none;background:#fff;padding:8px 11px;font:600 12.5px 'Inter',sans-serif;color:var(--ink2);cursor:pointer;min-height:36px}
+.cv-pos button.on{background:var(--brand,#7c3aed);color:#fff}
+.cv-up{cursor:pointer;display:inline-block}
+.cv-dl{margin-top:4px}
+@media (max-width:700px){
+  .cv-modal{padding:0;align-items:flex-end}
+  .cv-box{border-radius:20px 20px 0 0;max-height:96dvh;width:100%}
+  .cv-body{grid-template-columns:1fr;gap:12px;padding:12px}
+  .cv-prev canvas{max-width:none;width:auto;height:38dvh}
+}
 .tm-legal{padding:8px 12px 4px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);margin-top:4px}.tm-legal a{color:inherit}
 .cap-toast{position:fixed;left:50%;bottom:24px;width:max-content;transform:translateX(-50%) translateY(20px);opacity:0;z-index:1200;background:#1f1b2b;color:#fff;font:600 12.5px/1.3 'Inter',sans-serif;padding:10px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(20,10,40,.3);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px)}
 .cap-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -1272,7 +1302,8 @@ body.editor-open .lang-hint{display:none}
         <button type="button" class="es-link" id="btnSRT" onclick="exportSRT()" disabled title="Subtitle file for Premiere, DaVinci, CapCut… (Premiere: File → Import → choose the .srt → drag onto the timeline)">SRT</button><span aria-hidden="true">·</span>
         <button type="button" class="es-link" id="btnVTT" onclick="exportVTT()" disabled title="Subtitle file for web players &amp; YouTube">VTT</button><span aria-hidden="true">·</span>
         <button type="button" class="es-link" id="btnTXT" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">TXT</button><span aria-hidden="true">·</span>
-        <button type="button" class="es-link" id="btnCopy" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">Copy text</button>
+        <button type="button" class="es-link" id="btnCopy" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">Copy text</button><span aria-hidden="true">·</span>
+        <button type="button" class="es-link" id="btnCover" onclick="openCover()" disabled title="Make a cover image (thumbnail) for your Reel">Create cover</button>
       </div>
       <details class="es-opts" id="expOpts"><summary>Options</summary>
         <div class="exp-opts">
@@ -1312,6 +1343,7 @@ body.editor-open .lang-hint{display:none}
       <div class="es-done-row">
         <button type="button" class="pos-btn" id="expRmWm" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">Remove watermark (free)</button>
         <button type="button" class="pos-btn" onclick="exportAgain()">Export again</button>
+        <button type="button" class="pos-btn" onclick="openCover()" title="Make a cover image (thumbnail) for your Reel">Create cover</button>
       </div>
       <div class="es-done-links">
         <button type="button" class="es-link" id="expDlFile" style="display:none" onclick="downloadLastExport()">Download file</button><span id="expDlSep" aria-hidden="true" style="display:none">·</span>
@@ -1680,6 +1712,42 @@ body.editor-open .lang-hint{display:none}
 
 <div class="emo-pick" id="emoPick" style="display:none" role="dialog" aria-label="Pick an emoji" onclick="onEmojiPick(event)"></div>
 <!-- Konto-Modal -->
+<!-- Reel-Cover: Titelbild aus Standbild/Foto + Titel im Look eines Styles → PNG 1080×1920 -->
+<div id="coverModal" class="cv-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="cvTtl" onclick="if(event.target===this)closeCover()">
+  <div class="cv-box">
+    <div class="cv-head"><b id="cvTtl">Reel cover</b>
+      <button type="button" class="es-x" onclick="closeCover()" aria-label="Close"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <div class="cv-body">
+      <div class="cv-prev"><canvas id="cvCanvas" width="540" height="960" aria-label="Cover preview"></canvas><p class="cv-warn" id="cvWarn" role="status" style="display:none"></p></div>
+      <div class="cv-ctrl">
+        <div class="cv-row"><label class="cv-lbl" for="cvTime">Background</label>
+          <input type="range" id="cvTime" min="0" max="1" step="0.1" value="0" oninput="coverOnTime(this.value)" aria-label="Frame of your video">
+          <span class="cv-v" id="cvTimeLbl">0:00</span></div>
+        <div class="cv-row cv-row-btns">
+          <label class="pos-btn cv-up">Upload image<input type="file" accept="image/*" style="display:none" onchange="coverOnImage(this)"></label>
+          <button type="button" class="pos-btn" id="cvUseFrame" style="display:none" onclick="coverUseFrame()">Use video frame</button></div>
+        <div class="cv-row"><label class="cv-lbl" for="cvDark">Darken</label>
+          <input type="range" id="cvDark" min="0" max="70" step="5" oninput="coverSet('dark', +this.value)">
+          <label class="cv-chk"><input type="checkbox" id="cvGrad" onchange="coverSet('grad', this.checked)"> Gradient</label></div>
+        <label class="cv-lbl" for="cvTitle">Title</label>
+        <textarea id="cvTitle" rows="2" maxlength="90" spellcheck="true" placeholder="A short hook, up to 6 words" oninput="coverOnTitle(this.value)"></textarea>
+        <p class="cv-hint" id="cvWordsHint">Tap words to accent them:</p>
+        <div class="cv-chips" id="cvWords"></div>
+        <span class="cv-lbl">Look</span>
+        <div class="cv-chips" id="cvLooks"></div>
+        <div class="cv-row"><label class="cv-lbl" for="cvSize">Size</label>
+          <input type="range" id="cvSize" min="0.6" max="1.4" step="0.05" oninput="coverSet('size', +this.value)">
+          <div class="cv-pos" id="cvPos" role="group" aria-label="Position">
+            <button type="button" data-pos="top" onclick="coverSet('pos','top')">Top</button><button type="button" data-pos="mid" onclick="coverSet('pos','mid')">Middle</button><button type="button" data-pos="bottom" onclick="coverSet('pos','bottom')">Bottom</button></div></div>
+        <label class="cv-chk"><input type="checkbox" id="cvGuides" onchange="coverSet('guides', this.checked)"> Show guides (profile grid 3:4, Reels/TikTok safe area)</label>
+        <button type="button" class="exp-btn hi cv-dl" id="cvDl" onclick="downloadCover()">
+          <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
+          <span class="exp-btn-txt"><span class="exp-btn-label">Download cover</span><span class="exp-btn-sub">PNG · 1080 × 1920</span></span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="acctModal" style="display:none;position:fixed;inset:0;background:rgba(20,15,35,.45);z-index:100;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
   <div style="background:#fff;border-radius:16px;padding:22px;width:320px;box-shadow:0 24px 80px rgba(0,0,0,.25)">
     <div style="font-weight:800;font-size:16px;margin-bottom:4px">CaptionRush account</div>
@@ -1744,7 +1812,7 @@ var STYLES = [
    thumbBg:'linear-gradient(160deg,#1a1210,#0a0707)',
    tc:'#fff', ts:'0 2px 14px rgba(0,0,0,.5)',
    hl:'#fff', hls:'0 2px 14px rgba(0,0,0,.5)', anim:'none',
-   em:'#fff', emFont:"'Inter Tight'", emItalic:false, emFw:'900', emS:.95},
+   em:'#fff', emFont:"'Inter Tight'", emItalic:false, emFw:'900', emS:1},
   {id:'reveal',   name:'Reveal',     fl:'Inter', // Standard: Wörter erscheinen beim Sprechen und bleiben (Layout steht fest), Keyword kursiv in Türkis, größer
    font:"'Inter'", fw:'700', fs:'.92em', motion:'reveal',
    thumbBg:'linear-gradient(160deg,#0e1a1c,#070c0d)',
@@ -7693,6 +7761,9 @@ function projectPayload() {
            lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
            noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts,
            emph: { kw: emKw, emoji: emEmoji, zoom: emZoom, src: emSrc } };
+  // Cover-Einstellungen (ohne Bild: eigene Fotos bleiben auf dem Gerät und werden nicht im Projekt gespeichert)
+  if (coverState.title) p.cover = { t: coverState.t, dark: coverState.dark, grad: coverState.grad, title: coverState.title, kw: coverState.kw || [],
+    style: coverState.style, size: coverState.size, pos: coverState.pos, guides: coverState.guides };
   if (postCaption) p.post = { caption: postCaption.caption, hashtags: (postCaption.hashtags || []).slice(0, 10), src: postCaption.src };
   if (tlSpeech.length) p.speech = tlSpeech.slice(0, 2000); // Sprachbereiche für die Timeline (klein, gerundet)
   // Eigener Style bzw. Template mitspeichern — die IDs allein existieren in einer neuen Sitzung/auf
@@ -7771,6 +7842,7 @@ function applyProjectPayload(p) {
     emSrc = p.emph.src === 'llm' || p.emph.src === 'local' ? p.emph.src : null;
   } else if (p.blocks) emSrc = null;
   postCaption = (p.post && typeof p.post.caption === 'string') ? { caption: p.post.caption, hashtags: Array.isArray(p.post.hashtags) ? p.post.hashtags.map(String).slice(0, 10) : [], src: p.post.src === 'local' ? 'local' : 'llm' } : null;
+  coverRestore(p.cover);
   _zoomPlanKey = null; syncEmphUI(); syncPostUI();
   if (p.timeOff !== undefined) { timeOff = Math.max(-0.5, Math.min(0.5, +p.timeOff || 0)); syncTimeOffUI(); }
   if (typeof p.noPunct === 'boolean') capNoPunct = p.noPunct;
@@ -8610,7 +8682,7 @@ function revertTranscriptionSettings(meta) {
 function retryTranscribe() { if (currentFile) transcribeVideo(currentFile); }
 var videoPlayable = true; // false: Browser kann das Bild nicht dekodieren (HEVC) bzw. Datei hat keine Videospur
 function enableExports(on) {
-  ['btnVideo','btnSRT','btnVTT','btnTXT','btnCopy'].forEach(function(id){ var b=document.getElementById(id); if(b) b.disabled=!on; });
+  ['btnVideo','btnSRT','btnVTT','btnTXT','btnCopy','btnCover'].forEach(function(id){ var b=document.getElementById(id); if(b) b.disabled=!on; });
   // Video-Export braucht ein abspielbares Bild — SRT/VTT/TXT funktionieren trotzdem
   var bv = document.getElementById('btnVideo'); if (bv && !videoPlayable) bv.disabled = true;
   syncTopExport(null, !!on && videoPlayable);
@@ -10876,6 +10948,315 @@ function exportDone(wmOn) {
   ['expDlFile', 'expDlSep'].forEach(function(id) { var e2 = document.getElementById(id); if (e2) e2.style.display = share ? '' : 'none'; });
   if (m) m.style.display = 'none'; if (d) d.style.display = '';
   if (!exportSheetOpen()) capToast('✓ Saved — ' + _lastDlName);
+}
+
+// ═══════════════════════════════════════
+// REEL-COVER (Titelbild) — Standbild/Foto + Titel im Look eines Styles → PNG 1080×1920
+// ═══════════════════════════════════════
+// Reine Funktionen (getestet in test-captly.js): Layout, Sicherheitsbereich, Dateiname, Vorschlag.
+var COVER_W = 1080, COVER_H = 1920;
+var COVER_STYLES = ['tight', 'mix', 'statement', 'accent', 'serifbold', 'hormozi', 'editorial'];
+// 3:4-Ausschnitt in der Mitte (1080×1440): so sieht das Instagram-Profilraster das Cover
+function coverCropRect(W, H) { var h = Math.min(H, Math.round(W * 4 / 3)); return { x: 0, y: Math.round((H - h) / 2), w: W, h: h }; }
+// Bereich, in dem Text liegen darf: 3:4-Ausschnitt ∩ Sicherheitszone der Reels/TikTok-Oberfläche (SAFE_ZONE in %)
+function coverSafeRegion(W, H, sz) {
+  sz = sz || SAFE_ZONE; var c = coverCropRect(W, H);
+  var x0 = Math.max(c.x, W * sz.left / 100), x1 = Math.min(c.x + c.w, W * (1 - sz.right / 100));
+  var y0 = Math.max(c.y, H * sz.top / 100), y1 = Math.min(c.y + c.h, H * (1 - sz.bottom / 100));
+  return { x: Math.round(x0), y: Math.round(y0), w: Math.round(x1 - x0), h: Math.round(y1 - y0) };
+}
+function coverInRect(b, r) { return b.x >= r.x - 0.5 && b.y >= r.y - 0.5 && b.x + b.w <= r.x + r.w + 0.5 && b.y + b.h <= r.y + r.h + 0.5; }
+// Wörter (mit Breiten) in Zeilen umbrechen; ein zu breites Einzelwort bekommt eine eigene Zeile. → [[i, …], …]
+function coverWrap(widths, maxW, spaceW) {
+  var lines = [], cur = [], w = 0;
+  widths.forEach(function(ww, i) {
+    var add = (cur.length ? spaceW : 0) + ww;
+    if (cur.length && w + add > maxW) { lines.push(cur); cur = [i]; w = ww; } else { cur.push(i); w += add; }
+  });
+  if (cur.length) lines.push(cur);
+  return lines;
+}
+// Oberkante des Textblocks: 'top' | 'mid' | 'bottom' innerhalb der Region
+function coverBlockY(pos, region, blockH) {
+  if (pos === 'top') return region.y;
+  if (pos === 'bottom') return region.y + region.h - blockH;
+  return region.y + (region.h - blockH) / 2;
+}
+function coverFileName(title, fallback) {
+  var sl = fileSlug(title);
+  return (sl || fallback || 'captionrush') + '-cover.png';
+}
+// Kurzer Titelvorschlag (≤ 6 Wörter): erster Satz der Post-Caption (KI), sonst des Transkripts
+function coverHook(captionText, transcript) {
+  function firstSentence(t) {
+    t = String(t || '').replace(/#[\p{L}\p{N}_]+/gu, '').replace(/\s+/g, ' ').trim();
+    var m = /^(.+?[.!?…])(\s|$)/.exec(t);
+    return (m ? m[1] : t).trim();
+  }
+  var sent = firstSentence(captionText) || firstSentence(transcript);
+  var ws = sent.split(' ').filter(Boolean);
+  if (ws.length > 6) ws = ws.slice(0, 6);
+  return ws.join(' ').replace(/[,;:–—-]+$/, '').trim();
+}
+// Standardbild: Moment des ersten hervorgehobenen Worts, sonst Videomitte
+function coverDefaultTime(duration, blocks) {
+  var d = +duration || 0;
+  if (!(d > 0)) return 0;
+  var t = d / 2;
+  (blocks || []).some(function(b) {
+    var w = (b.words || []).find(function(x){ return x && x.kw > 0; });
+    if (w) { t = Math.min(d, Math.max(0, w.start || b.start || 0)); return true; }
+    return false;
+  });
+  return Math.round(t * 10) / 10;
+}
+
+function coverIsEm(s, kw, i) { return kw.indexOf(i) >= 0 && (emphColor(s) !== null || !!s.emFont); }
+// Buchstabenabstand in Cover-px: em folgt der Cover-Schrift, px (Vorschau-Einheiten) skaliert mit der Schriftgrösse
+function coverLs(s, base) { var v = String(s.ls || ''), n = parseFloat(v) || 0; return /em\s*$/.test(v) ? n * base : n * base / 28; }
+var coverState = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true };
+var _coverImg = null, _coverVid = null, _coverBusy = 0;
+// Hintergrund (Standbild aus dem Video oder eigenes Bild) so zeichnen, dass er das Format ausfüllt
+function coverDrawBg(ctx, W, H, src, sw, sh) {
+  ctx.fillStyle = '#14161a'; ctx.fillRect(0, 0, W, H);
+  if (!src || !(sw > 0 && sh > 0)) return false;
+  var sc = Math.max(W / sw, H / sh), dw = sw * sc, dh = sh * sc;
+  try { ctx.drawImage(src, (W - dw) / 2, (H - dh) / 2, dw, dh); } catch (e) { return false; }
+  return true;
+}
+// Titel im Look eines Styles zeichnen. Gibt die Textbox zurück {x,y,w,h} (für die Prüfung gegen die Sicherheitszone).
+function coverDrawTitle(ctx, W, H, st, s) {
+  var words = String(st.title || '').split(/\s+/).filter(Boolean);
+  if (!words.length || !s) return null;
+  s = caseStyle(s);
+  var region = coverSafeRegion(W, H), kw = st.kw || [];
+  var base = W * 0.1 * (st.size || 1), esc = emphScale(s), lh = capLineH(s);
+  var up = s.tt === 'uppercase', box = null, lines, maxW = Math.min(region.w, W * CAP_SAFE_W); // mittig auf dem Bild, wie die Untertitel
+  for (var tries = 0; tries < 40 && base > W * 0.02; tries++) {
+    var wid = words.map(function(w, i) {
+      var isE = coverIsEm(s, kw, i);
+      var f = capWordFace(s, false, isE), sz = base * (isE ? esc : 1);
+      ctx.font = capFaceFont(f, sz);
+      if ('letterSpacing' in ctx) ctx.letterSpacing = coverLs(s, base) + 'px';
+      return ctx.measureText(up ? w.toUpperCase() : w).width;
+    });
+    ctx.font = capFaceFont(capWordFace(s, false, false), base);
+    var space = ctx.measureText(' ').width + capWordGap(s) * base / 28; // measureText enthält den Buchstabenabstand schon
+    lines = coverWrap(wid, maxW, space);
+    var lineH = base * lh * 1.02, blockH = lines.length * lineH;
+    if (blockH <= region.h && lines.every(function(L){ var tw = 0; L.forEach(function(i, k){ tw += wid[i] + (k ? space : 0); }); return tw <= maxW + 0.5; })) {
+      var y0 = coverBlockY(st.pos, region, blockH), minX = W, maxX = 0;
+      var plan = capShadowPlan(s.ts), shScale = base / 28;
+      lines.forEach(function(L, li) {
+        var tw = 0; L.forEach(function(i, k){ tw += wid[i] + (k ? space : 0); });
+        var x = (W - tw) / 2; minX = Math.min(minX, x); maxX = Math.max(maxX, x + tw);
+        var y = y0 + li * lineH + lineH * 0.5 + base * 0.34;
+        L.forEach(function(i) {
+          var isE = coverIsEm(s, kw, i);
+          var f = capWordFace(s, false, isE), sz = base * (isE ? esc : 1), t = up ? words[i].toUpperCase() : words[i];
+          ctx.font = capFaceFont(f, sz);
+          if ('letterSpacing' in ctx) ctx.letterSpacing = coverLs(s, base) + 'px';
+          ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+          var col = capOffColor(s, isE);
+          if (isE && emphColor(s)) col = emphColor(s);
+          ctx.fillStyle = col || s.tc || '#fff';
+          var tws = ctx.measureText(t).width;
+          drawTextWithPlan(ctx, t, x, y, isE && emphShadowIsHl(s) ? capShadowPlan(s.hls) : plan, shScale, 1, sz, tws);
+          x += wid[i] + space;
+        });
+      });
+      box = { x: minX, y: y0, w: maxX - minX, h: blockH };
+      break;
+    }
+    base *= 0.94; // zu gross für die Sicherheitszone → verkleinern
+  }
+  return box;
+}
+// Gesamtbild zeichnen (Vorschau 540×960 und Export 1080×1920 mit derselben Funktion)
+function coverRender(ctx, outW, outH, withGuides) {
+  // Immer in 1080×1920-Einheiten rechnen und nur skalieren: Vorschau (540×960) und Export sind so Pixel für Pixel
+  // dasselbe Layout (Umbruch/Verkleinern hängen sonst von Rundungen der Schriftmessung ab).
+  var W = COVER_W, H = COVER_H, sc = outW / COVER_W;
+  ctx.save(); ctx.scale(sc, sc);
+  var st = coverState, s = STYLES.find(function(x){ return x.id === st.style; }) || STYLES[0];
+  var bg = _coverImg || _coverVid, ok = false;
+  if (_coverImg) ok = coverDrawBg(ctx, W, H, _coverImg, _coverImg.naturalWidth || _coverImg.width, _coverImg.naturalHeight || _coverImg.height);
+  else if (_coverVid) ok = coverDrawBg(ctx, W, H, _coverVid, _coverVid.videoWidth, _coverVid.videoHeight);
+  else coverDrawBg(ctx, W, H, null, 0, 0);
+  if (st.dark > 0) { ctx.fillStyle = 'rgba(0,0,0,' + (st.dark / 100).toFixed(3) + ')'; ctx.fillRect(0, 0, W, H); }
+  if (st.grad) { var g = ctx.createLinearGradient(0, H * 0.35, 0, H); g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,.6)'); ctx.fillStyle = g; ctx.fillRect(0, H * 0.35, W, H * 0.65); }
+  var box = coverDrawTitle(ctx, W, H, st, s);
+  if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  if (withGuides && st.guides) coverDrawGuides(ctx, W, H, box);
+  ctx.restore();
+  return { box: box, hasBg: ok };
+}
+function coverDrawGuides(ctx, W, H, box) {
+  var c = coverCropRect(W, H), r = coverSafeRegion(W, H), u = 2; // u: Linienstärke/Schrift in 1080er-Einheiten
+  ctx.save();
+  ctx.fillStyle = 'rgba(10,8,20,.55)';
+  ctx.fillRect(0, 0, W, c.y); ctx.fillRect(0, c.y + c.h, W, H - c.y - c.h);
+  ctx.lineWidth = 1.5 * u; ctx.setLineDash([6 * u, 5 * u]);
+  ctx.strokeStyle = 'rgba(196,181,253,.95)'; ctx.strokeRect(c.x + ctx.lineWidth, c.y, c.w - 2 * ctx.lineWidth, c.h);
+  var bad = box && !coverInRect(box, r);
+  ctx.strokeStyle = bad ? 'rgba(239,68,68,.95)' : 'rgba(255,255,255,.55)'; ctx.strokeRect(r.x, r.y, r.w, r.h);
+  ctx.setLineDash([]); ctx.font = '600 ' + (11 * u) + 'px Inter, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,.9)';
+  ctx.fillText('Profile grid 3:4', c.x + 8 * u, c.y + 14 * u);
+  ctx.fillText('Reels / TikTok safe area', r.x + 8 * u, r.y + r.h - 8 * u);
+  ctx.restore();
+}
+
+// ── UI ──
+function coverEl(id) { return document.getElementById(id); }
+function coverTitleWords() { return String(coverState.title || '').split(/\s+/).filter(Boolean); }
+function coverDefaultKw(words) {
+  var best = -1, len = 0;
+  words.forEach(function(w, i){ var l = w.replace(/[^\p{L}\p{N}]/gu, '').length; if (l > len && l >= 4) { len = l; best = i; } });
+  return best >= 0 ? [best] : [];
+}
+function openCover() {
+  var m = coverEl('coverModal'); if (!m || !captionBlocks.length) return;
+  closeExportSheet();
+  var vid = coverEl('mainVid');
+  if (!coverState.title) coverState.title = coverHook(postCaption && postCaption.caption, transcriptText());
+  if (!coverState.kw) coverState.kw = coverDefaultKw(coverTitleWords());
+  if (coverState.t === null || coverState.t > (vid.duration || 0)) coverState.t = coverDefaultTime(vid.duration, captionBlocks);
+  m.style.display = 'flex'; document.body.style.overflow = 'hidden';
+  coverSyncUI();
+  coverLoadFrame(coverState.t);
+  var ta = coverEl('cvTitle'); if (ta && ta.focus && pointerFine()) try { ta.focus({ preventScroll: true }); } catch (e) {}
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') { var m = document.getElementById('coverModal'); if (m && m.style.display !== 'none') closeCover(); } });
+function closeCover() { var m = coverEl('coverModal'); if (m) m.style.display = 'none'; document.body.style.overflow = ''; scheduleAutosave(); }
+// Zweites Video-Element mit derselben Quelle, damit die Vorschau im Editor nicht springt
+function coverLoadFrame(t) {
+  var vid = coverEl('mainVid');
+  if (_coverImg) { coverRedraw(); return Promise.resolve(); }
+  if (!vid || !vid.src || !(vid.videoWidth > 0)) { coverRedraw(); return Promise.resolve(); }
+  if (!_coverVid || _coverVid._src !== vid.src) {
+    _coverVid = document.createElement('video'); _coverVid._src = vid.src;
+    _coverVid.muted = true; _coverVid.playsInline = true; _coverVid.preload = 'auto'; _coverVid.src = vid.src;
+  }
+  var my = ++_coverBusy, v = _coverVid;
+  return new Promise(function(res) {
+    function done() { v.removeEventListener('seeked', done); if (my === _coverBusy) coverRedraw(); res(); }
+    function go() { try { if (Math.abs(v.currentTime - t) < 0.02 && v.readyState >= 2) { done(); return; } v.addEventListener('seeked', done); v.currentTime = Math.max(0, Math.min(t, (v.duration || t) - 0.05)); } catch (e) { res(); } }
+    if (v.readyState >= 1) go(); else v.addEventListener('loadedmetadata', function f(){ v.removeEventListener('loadedmetadata', f); go(); });
+    setTimeout(res, 4000);
+  });
+}
+async function coverEnsureFonts() {
+  var s = STYLES.find(function(x){ return x.id === coverState.style; });
+  if (!s) return;
+  s = caseStyle(s);
+  await ensureCapFont(styleFontName(s)); await ensureStyleFaces(s, 4000);
+  var txt = String(coverState.title || '');
+  try { await Promise.all([capFaceFont(capWordFace(s, false, false), 40), capFaceFont(capWordFace(s, false, true), 40)].map(function(f){ return document.fonts.load(f, txt); })); } catch (e) {}
+  await document.fonts.ready;
+}
+var _coverRaf = 0;
+function coverRedraw() {
+  if (_coverRaf) return;
+  _coverRaf = requestAnimationFrame(async function() {
+    _coverRaf = 0;
+    await coverEnsureFonts();
+    var cv = coverEl('cvCanvas'); if (!cv || !cv.getContext) return;
+    var r = coverRender(cv.getContext('2d'), cv.width, cv.height, true);
+    var warn = coverEl('cvWarn');
+    if (warn) {
+      var reg = coverSafeRegion(COVER_W, COVER_H), msg = '';
+      if (!r.hasBg) msg = 'No frame available for this video here — upload an image instead.';
+      else if (r.box && !coverInRect(r.box, reg)) msg = 'Title is outside the safe area — shorten it or make it smaller.';
+      warn.textContent = msg; warn.style.display = msg ? '' : 'none';
+    }
+  });
+}
+function coverSyncUI() {
+  var st = coverState, vid = coverEl('mainVid');
+  var tm = coverEl('cvTime'); if (tm) { tm.max = Math.max(0.1, (vid && vid.duration) || 1).toFixed(1); tm.value = st.t || 0; tm.disabled = !!_coverImg; }
+  var tl = coverEl('cvTimeLbl'); if (tl) tl.textContent = _coverImg ? 'Your image' : fmtS(st.t || 0);
+  var dk = coverEl('cvDark'); if (dk) dk.value = st.dark;
+  var gr = coverEl('cvGrad'); if (gr) gr.checked = !!st.grad;
+  var ta = coverEl('cvTitle'); if (ta && document.activeElement !== ta) ta.value = st.title;
+  var sz = coverEl('cvSize'); if (sz) sz.value = st.size;
+  var gu = coverEl('cvGuides'); if (gu) gu.checked = !!st.guides;
+  var rm = coverEl('cvUseFrame'); if (rm) rm.style.display = _coverImg ? '' : 'none';
+  document.querySelectorAll('#cvPos button').forEach(function(b){ b.classList.toggle('on', b.dataset.pos === st.pos); });
+  var lk = coverEl('cvLooks');
+  if (lk) {
+    lk.innerHTML = '';
+    COVER_STYLES.forEach(function(id) {
+      var s = STYLES.find(function(x){ return x.id === id; }); if (!s) return;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'cv-chip' + (id === st.style ? ' on' : ''); b.textContent = s.name;
+      b.onclick = function(){ coverState.style = id; coverSyncUI(); coverRedraw(); scheduleAutosave(); };
+      lk.appendChild(b);
+    });
+  }
+  var wd = coverEl('cvWords');
+  if (wd) {
+    wd.innerHTML = '';
+    var words = coverTitleWords(), kw = st.kw || [];
+    words.forEach(function(w, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'cv-chip' + (kw.indexOf(i) >= 0 ? ' on' : ''); b.textContent = w;
+      b.setAttribute('aria-pressed', kw.indexOf(i) >= 0 ? 'true' : 'false');
+      b.onclick = function() { var k = (coverState.kw || []).slice(), j = k.indexOf(i); if (j >= 0) k.splice(j, 1); else k.push(i); coverState.kw = k; coverSyncUI(); coverRedraw(); scheduleAutosave(); };
+      wd.appendChild(b);
+    });
+    var hint = coverEl('cvWordsHint'); if (hint) hint.style.display = words.length ? '' : 'none';
+  }
+}
+// Gespeicherte Cover-Einstellungen prüfen und übernehmen (Projekt laden); ohne Eintrag → Standard (frisch vorschlagen)
+function coverRestore(c) {
+  _coverImg = null; _coverVid = null;
+  var d = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true };
+  if (c && typeof c === 'object') {
+    if (typeof c.t === 'number' && c.t >= 0 && c.t < 36000) d.t = c.t;
+    if (typeof c.dark === 'number') d.dark = Math.max(0, Math.min(70, c.dark));
+    if (typeof c.grad === 'boolean') d.grad = c.grad;
+    if (typeof c.title === 'string') d.title = c.title.slice(0, 90);
+    if (Array.isArray(c.kw)) d.kw = c.kw.filter(function(i){ return Number.isInteger(i) && i >= 0 && i < 40; }).slice(0, 12);
+    if (COVER_STYLES.indexOf(c.style) >= 0) d.style = c.style;
+    if (typeof c.size === 'number') d.size = Math.max(0.6, Math.min(1.4, c.size));
+    if (['top', 'mid', 'bottom'].indexOf(c.pos) >= 0) d.pos = c.pos;
+    if (typeof c.guides === 'boolean') d.guides = c.guides;
+  }
+  coverState = d;
+}
+function coverOnTitle(v) {
+  var before = coverTitleWords().length;
+  coverState.title = String(v || '').slice(0, 90);
+  if (coverTitleWords().length !== before) coverState.kw = coverDefaultKw(coverTitleWords()); // Wortanzahl geändert → Akzent neu vorschlagen
+  coverSyncUI(); coverRedraw(); scheduleAutosave();
+}
+function coverOnTime(v) { coverState.t = +v || 0; var tl = coverEl('cvTimeLbl'); if (tl) tl.textContent = fmtS(coverState.t); coverLoadFrame(coverState.t); scheduleAutosave(); }
+function coverSet(k, v) { coverState[k] = v; coverSyncUI(); coverRedraw(); scheduleAutosave(); }
+function coverOnImage(inp) {
+  var f = inp && inp.files && inp.files[0]; if (inp) inp.value = '';
+  if (!f || !/^image\//.test(f.type)) { if (f) capToast('Please choose an image (JPG, PNG, WebP)'); return; }
+  if (f.size > 25 * 1024 * 1024) { capToast('That image is too large (max. 25 MB)'); return; }
+  var url = URL.createObjectURL(f), im = new Image();
+  im.onload = function() { _coverImg = im; coverSyncUI(); coverRedraw(); setTimeout(function(){ URL.revokeObjectURL(url); }, 2000); };
+  im.onerror = function() { capToast('Couldn’t read that image'); URL.revokeObjectURL(url); };
+  im.src = url;
+}
+function coverUseFrame() { _coverImg = null; coverSyncUI(); coverLoadFrame(coverState.t); }
+async function downloadCover() {
+  var btn = coverEl('cvDl'); if (btn) btn.disabled = true;
+  try {
+    await coverLoadFrame(coverState.t);
+    await coverEnsureFonts();
+    var cv = document.createElement('canvas'); cv.width = COVER_W; cv.height = COVER_H;
+    var r = coverRender(cv.getContext('2d'), COVER_W, COVER_H, false);
+    if (!r.hasBg) { capToast('No background — upload an image first'); return; }
+    await waitAuth(); // Anmeldestatus abwarten: wie beim Video trägt das Bild ohne E-Mail/Login ein kleines Zeichen
+    if (needsWatermark()) drawWatermark(cv.getContext('2d'), COVER_W, COVER_H, true);
+    var blob = await new Promise(function(res){ cv.toBlob(res, 'image/png'); });
+    if (!blob) { capToast('Couldn’t create the image'); return; }
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = coverFileName(coverState.title, exportBaseName()); a.click();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+    capToast('✓ Cover saved — ' + a.download);
+  } finally { if (btn) btn.disabled = false; }
 }
 // Muss direkt aus einem Tipp kommen (navigator.share verlangt eine Nutzergeste) — nie automatisch nach dem Rendern.
 function shareLastExport() {

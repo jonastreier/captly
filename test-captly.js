@@ -104,7 +104,7 @@ encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSup
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
-brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
@@ -3215,6 +3215,25 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const sb = st('serifbold');
     ok(T.capWordFace(sb, false, false).it === true && T.capWordFace(sb, false, true).it === false && T.capWordFace(sb, false, true).fam === 'Inter Tight' && T.capWordFace(sb, false, true).fw === '900', 'Serif Bold: Text kursiv, Keyword aufrecht (Inter Tight 900)');
     ok(T.capWordFace(st('accent'), false, true).it === true && T.capWordFace(st('accent'), false, false).it === false, 'Accent: nur Keyword kursiv');
+  }
+
+  // Reel-Cover: reine Funktionen (3:4-Ausschnitt, Sicherheitsbereich, Umbruch, Dateiname, Titelvorschlag, Standbild)
+  {
+    const c = T.coverCropRect(1080, 1920);
+    ok(c.x === 0 && c.y === 240 && c.w === 1080 && c.h === 1440, 'Cover: 3:4-Ausschnitt 1080×1440 mittig (y 240)');
+    const r = T.coverSafeRegion(1080, 1920);
+    ok(r.y >= c.y && r.y + r.h <= c.y + c.h && r.x === 0 && r.x + r.w <= 1080 * (1 - 0.125) + 1 && r.h > 800, 'Cover: Sicherheitsbereich liegt im 3:4-Ausschnitt und links von der Aktionsleiste');
+    ok(T.coverInRect({ x: 100, y: 300, w: 500, h: 400 }, r) && !T.coverInRect({ x: 100, y: 100, w: 500, h: 400 }, r) && !T.coverInRect({ x: 600, y: 300, w: 500, h: 400 }, r), 'Cover: Prüfung Text in Sicherheitsbereich');
+    ok(JSON.stringify(T.coverWrap([300, 300, 300, 300], 700, 20)) === '[[0,1],[2,3]]' && JSON.stringify(T.coverWrap([900, 100], 700, 20)) === '[[0],[1]]' && JSON.stringify(T.coverWrap([], 700, 20)) === '[]', 'Cover: Zeilenumbruch (zu breites Einzelwort allein)');
+    ok(T.coverBlockY('top', r, 200) === r.y && T.coverBlockY('bottom', r, 200) === r.y + r.h - 200 && T.coverBlockY('mid', r, 200) === r.y + (r.h - 200) / 2, 'Cover: Position oben/Mitte/unten');
+    ok(T.coverFileName('Mein Reel über Käse!') === 'mein-reel-ueber-kaese-cover.png' && T.coverFileName('', 'hof-captionrush') === 'hof-captionrush-cover.png' && T.coverFileName('???') === 'captionrush-cover.png', 'Cover: Dateiname <titel>-cover.png');
+    ok(T.coverHook('Das ist der Hook. Und noch mehr Text hier. #reels #hof', 'x') === 'Das ist der Hook.' && T.coverHook('', 'Eins zwei drei vier fünf sechs sieben acht') === 'Eins zwei drei vier fünf sechs' && T.coverHook('', '') === '', 'Cover: Titelvorschlag ≤ 6 Wörter (Post-Text, sonst Transkript)');
+    ok(T.coverDefaultTime(20, []) === 10 && T.coverDefaultTime(20, [{ words: [{ kw: 0, start: 1 }, { kw: 1, start: 4.26 }] }]) === 4.3 && T.coverDefaultTime(0, []) === 0, 'Cover: Standardbild = erstes hervorgehobenes Wort, sonst Videomitte');
+    T.coverRestore({ t: 3, dark: 999, title: 'Hallo Welt', kw: [1, 'x', -2, 7], style: 'evil', size: 9, pos: 'left', guides: false });
+    const cs = T.getCover();
+    ok(cs.t === 3 && cs.dark === 70 && cs.title === 'Hallo Welt' && cs.kw.join() === '1,7' && cs.style === 'tight' && cs.size === 1.4 && cs.pos === 'bottom' && cs.guides === false, 'Cover: gespeicherte Einstellungen werden geprüft/begrenzt');
+    T.coverRestore(null);
+    ok(T.getCover().title === '' && T.getCover().style === 'tight', 'Cover: ohne Eintrag Standard');
   }
 
   // Style Drops (styles.json): bereinigt, nur lokale Schriften, nie eingebaute IDs überschreiben, „New“ 30 Tage
