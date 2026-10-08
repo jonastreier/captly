@@ -19,3 +19,4 @@ Kern-Dateien:
 - **Token sparen:** Nur die relevanten Stellen lesen (`grep`/Offset statt Ganzdatei), Dateien nicht doppelt lesen, keine ganzen Dateien ins Gespräch dumpen. Unabhängige Tool-Calls bündeln.
 - `captly.html` ist groß (Single-File) → Änderungen **chirurgisch** per gezieltem `Edit`, nie die Datei neu schreiben.
 - Vor Commit: `node scripts/build-i18n.js` (bei Landing-/Head-Änderungen), dann `node --check server.js`, `node test-captly.js`, `node test-polish.js` und `node test-enhance.js` müssen grün sein.
+- Vor grösseren UI-/Export-Änderungen zusätzlich `node test-e2e.js` (Playwright + Chromium, nicht Teil der CI; Screenshots in `e2e-shots/`).

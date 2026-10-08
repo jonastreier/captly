@@ -341,6 +341,7 @@ hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ 
 node test-captly.js     # Editor-Logik (DOM-Stub)
 node test-polish.js     # /api/polish + polish.php
 node test-enhance.js    # /api/enhance + enhance.php
+node test-e2e.js        # Browser-E2E (Playwright, Mock-Server): Upload → Untertitel → Export → E-Mail-Gate → Cover → Login → Projekt; Desktop + 390 px; Screenshots in e2e-shots/
 ```
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,
