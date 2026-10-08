@@ -1,0 +1,21 @@
+# Hält das Supabase-Gratisprojekt wach (pausiert sonst nach ~7 Tagen ohne Aktivität → Login & Leads fallen aus).
+# Eine kleine, schreibgeschützte Abfrage mit dem öffentlichen Key pro Tag genügt. Schlägt sie fehl, meldet
+# GitHub das per Mail (Actions → Benachrichtigungen).
+name: Supabase keep-alive
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Datenbank + Auth anpingen
+        env:
+          URL: https://tghodbtdraqkfwcmedcv.supabase.co
+          KEY: sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g
+        run: |
+          set -e
+          curl -fsS -m 20 -X POST -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}' "$URL/rest/v1/rpc/ping" -o /dev/null -w "db %{http_code}\n"
+          curl -fsS -m 20 -H "apikey: $KEY" "$URL/auth/v1/health" -o /dev/null -w "auth %{http_code}\n"

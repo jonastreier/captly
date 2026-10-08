@@ -1,7 +1,7 @@
 # CaptionRush
 
 Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai).
-Upload → Auto-Transkript → Karaoke-Preview in 15 kuratierten Styles → Export als **MP4** (mit
+Upload → Auto-Transkript → Karaoke-Preview in 24 kuratierten Styles → Export als **MP4** (mit
 eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
 - **Ein Modus, immer beste Qualität:** `whisper-large-v3` + KI-Feinschliff (Polish, läuft nach dem Anzeigen im
@@ -33,6 +33,9 @@ Dateien, kein Build:
   mit `node scripts/build-i18n.js` (`--check` prüft nur). Übersetzt sind `<head>` (Titel, Description, OG, JSON-LD) und
   die Landing; der Editor bleibt englisch. Beide Seiten verlinken sich per `hreflang` + Sprachumschalter (Nav/Footer);
   kein Auto-Redirect, nur ein wegklickbarer Hinweis für deutschsprachige Browser auf der EN-Seite.
+  Die FAQ-Strukturdaten (JSON-LD) entstehen aus der sichtbaren FAQ: der Build schreibt sie auch in `captly.html` zurück
+  (EN), der erste JSON-LD-Block ist ein `@graph` (Organization, WebSite, SoftwareApplication; DE ersetzt nur den App-Knoten).
+  [`llms.txt`](llms.txt) fasst die Fakten für KI-Suchmaschinen zusammen (bei Feature-/Preisänderungen mitpflegen).
   `sitemap.xml`/`robots.txt` listen beide Versionen. **Domainwechsel** (z. B. `captionrush.com`): Basis-URL in
   `captly.html` (canonical, hreflang, og:url/og:image), `i18n/de.js` (canonical, og:url, og:image) und `sitemap.xml`/`robots.txt` ersetzen.
 - [`transcribe.php`](transcribe.php) — serverseitiger Transkriptions-Proxy für Webhosting (hält den
@@ -42,6 +45,33 @@ Dateien, kein Build:
 - [`server.js`](server.js) — **altes, optionales** Node-Backend. Wird nicht mehr gebraucht:
   Transkription läuft über `transcribe.php`, Login/Projekte über Supabase. Bleibt als Referenz
   für Quota- und Stripe-Logik liegen, falls Bezahlung dazukommt.
+
+## Reel-Cover (Titelbild)
+
+Nach dem Export (Knopf «Create cover») oder jederzeit im Export-Menü: Standbild per Regler (oder eigenes Foto) + kurzer Titel im Look eines Styles
+(Tight, Mix, Statement, Accent, Serif Bold, Bold Pop, Elegant), Wörter antippen = Akzent, Grösse/Position, Abdunkeln/Verlauf. Hilfslinien zeigen den
+3:4-Ausschnitt des Instagram-Profilrasters und die Reels/TikTok-Sicherheitszone; der Text wird automatisch darin gehalten.
+Export: PNG 1080×1920, `<titel>-cover.png`. Vorschau und Export rechnen in denselben 1080×1920-Einheiten. Einstellungen (ohne Foto) liegen im Projekt-Autosave.
+Code: Abschnitt «REEL-COVER» in `captly.html`; reine Funktionen in `test-captly.js`.
+
+## Style Drops (neue Looks ohne Code-Änderung)
+
+Neue Caption-Styles kommen über [`styles.json`](styles.json) (Array; Felder: `id`, `name`, `added` (JJJJ-MM-TT), optional `photo` (Datei in
+`assets/showcase`) und `layout`, `style` = Style-Felder wie in `STYLES`). Beim Laden bereinigt die Seite jeden Eintrag (`dropToStyle`: nur lokale
+Schriften, keine fremden IDs, 30 Tage Abzeichen «New», Looks stehen vorn). Ein Eintrag mit Fehler wird übersprungen, die Seite läuft weiter.
+Nach dem Eintragen: `node test-captly.js` (prüft die Datei) und je Style Vorschau/Export im Browser prüfen.
+
+## Live-Betrieb auf Hostpoint (Ziel-Setup)
+
+Die Seite läuft als statische Dateien + die PHP-Dateien (`transcribe.php`, `polish.php`, `enhance.php`, `lead.php`, `confirm.php`) auf
+Hostpoint (Apache/PHP). **Schritt-für-Schritt-Einrichtung: [`SETUP.md`](SETUP.md).** Deployment: GitHub-Action [`deploy.yml`](.github/workflows/deploy.yml)
+(FTPS, bei jedem Merge nach `main`; `scripts/build-dist.js` baut das Paket, `scripts/write-config.js` schreibt `config.php` aus GitHub-Secrets).
+[`.htaccess`](.htaccess) bildet `vercel.json` nach (`/`, `/de`, `/api/*` → PHP, Header, Caching).
+Schriften (`vendor/fonts`, `scripts/fetch-fonts.js`) und supabase-js (`vendor/supabase`, `scripts/fetch-supabase.sh`) liegen lokal —
+der Browser ruft beim normalen Besuch **keinen** Fremdserver auf (Datenschutz). Missbrauchsschutz: Audiodauer wird serverseitig aus dem
+Header gelesen (≤ 130 s pro Anfrage, 30 Min./Stunde und IP), bei Groq-Limit Push über `ALERT_URL` (ntfy).
+Leads/Newsletter: `lead.php` schreibt mit dem service_role-Key serverseitig, Double-Opt-in über `confirm.php`, Mail per SMTP (`mail.php`).
+Vercel bleibt als Alternative nutzbar (`api/*.js`, `vercel.json`), ist aber nicht mehr der Haupt-Weg.
 
 ## Transkription einrichten auf Vercel (empfohlen, aktueller Live-Weg)
 
@@ -302,7 +332,7 @@ captly.deinedomain.ch {
 `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `captly.html` eingetragen · eigenes SMTP in Supabase
 hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ .Token }}` ·
 `canonical`/`og:url`/`og:image` zeigen auf die Live-Domain
-(aktuell `https://captly.vercel.app` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Transkription + Polish
+(aktuell `https://captionrush.com` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Transkription + Polish
 → Export → Login-Code kommt an → Projekt speichern & wieder laden).
 
 ## Tests

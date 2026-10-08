@@ -1,7 +1,9 @@
--- CaptionRush — Datenbankschema für Login & Cloud-Projekte (Supabase / Postgres).
--- Einmalig im Supabase-Dashboard unter "SQL Editor" ausführen.
+-- CaptionRush — Datenbankschema für Login, Cloud-Projekte und Leads (Supabase / Postgres).
+-- Einmalig im Supabase-Dashboard unter "SQL Editor" ausführen — und nach jedem Update dieser Datei erneut:
+-- alles ist idempotent (kann beliebig oft laufen) und löscht NIE Daten.
 -- Nutzerkonten selbst verwaltet Supabase Auth (auth.users) — hier steht nur, was CaptionRush speichert.
 
+-- ── Cloud-Projekte ──
 create table if not exists public.projects (
   id         bigint generated always as identity primary key,
   user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
@@ -17,32 +19,67 @@ create index if not exists projects_user_updated_idx
 -- öffentlichen anon key). Jede Policy bindet den Zugriff an die eingeloggte Session.
 alter table public.projects enable row level security;
 
+drop policy if exists "own projects: read"   on public.projects;
+drop policy if exists "own projects: insert" on public.projects;
+drop policy if exists "own projects: update" on public.projects;
+drop policy if exists "own projects: delete" on public.projects;
 create policy "own projects: read"   on public.projects for select using (auth.uid() = user_id);
 create policy "own projects: insert" on public.projects for insert with check (auth.uid() = user_id);
 create policy "own projects: update" on public.projects for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
 create policy "own projects: delete" on public.projects for delete using (auth.uid() = user_id);
+
+-- Explizite Rechte (Supabase vergibt sie für neue Tabellen nicht mehr automatisch; für Projekte ab
+-- 30.5.2026 bzw. neue Tabellen ab 30.10.2026 Pflicht). Nur eingeloggte Nutzer, nie anon.
+revoke all on public.projects from anon;
+grant select, insert, update, delete on public.projects to authenticated;
 
 -- Hinweis: Eigene Caption-Templates eines Nutzers liegen als EINE reservierte Zeile in dieser Tabelle
 -- (title = '__capivo_templates__', payload = { kind: 'capivo_templates', templates: [...] }).
 -- Kein eigenes Schema nötig — die RLS-Policies oben schützen sie wie jedes Projekt; das Frontend
 -- blendet sie in der Projektliste aus.
 
--- ── Beta-E-Mail-Gate: Leads (Download ohne Wasserzeichen gegen E-Mail) ──
--- Das Frontend schreibt per REST (publishable key, Rolle anon) NUR per INSERT. Es gibt bewusst keine
--- SELECT/UPDATE/DELETE-Policy: niemand kann die Liste über die API lesen — Export nur im Dashboard
--- (Table Editor → leads → Export CSV) bzw. mit dem service_role-Key serverseitig.
--- newsletter = true nur bei aktivem Opt-in; consent_text hält den angezeigten Einwilligungstext fest.
+-- ── Leads (E-Mail für den Download, optional Newsletter mit Double-Opt-in) ──
+-- Geschrieben wird NUR serverseitig von lead.php/confirm.php mit dem service_role-Key (der nur in der
+-- config.php auf dem Server liegt). anon/authenticated haben KEINEN Zugriff: niemand kann die Liste über
+-- die öffentliche API lesen, fremde Adressen eintragen oder Einwilligungen selbst bestätigen.
+-- Export: Dashboard → Table Editor → leads → Export CSV.
 create table if not exists public.leads (
   id           uuid primary key default gen_random_uuid(),
   email        text not null check (char_length(email) between 3 and 254 and position('@' in email) > 1),
-  newsletter   boolean not null default false,
+  newsletter   boolean not null default false,   -- hat das Häkchen gesetzt
   consent_text text check (char_length(consent_text) <= 300),
   source       text check (char_length(source) <= 40),
   lang         text check (char_length(lang) <= 20),
   created_at   timestamptz not null default now()
 );
+-- Double-Opt-in: Newsletter darf nur an Zeilen mit confirmed_at gehen. Der Token liegt nur gehasht in der DB.
+alter table public.leads add column if not exists confirm_hash  text;
+alter table public.leads add column if not exists confirm_sent  timestamptz;
+alter table public.leads add column if not exists confirmed_at  timestamptz;
+alter table public.leads add column if not exists confirmed_ip  text;      -- nur gekürzt/gehasht, als Nachweis
+alter table public.leads add column if not exists unsubscribed_at timestamptz;
+
 alter table public.leads enable row level security;
-drop policy if exists "leads: insert only" on public.leads;
-create policy "leads: insert only" on public.leads for insert to anon, authenticated with check (true);
-grant insert on public.leads to anon, authenticated;
+drop policy if exists "leads: insert only" on public.leads;   -- alte, offene Policy: weg
+revoke all on public.leads from anon, authenticated;
 create index if not exists leads_email_idx on public.leads (lower(email));
+create index if not exists leads_confirm_hash_idx on public.leads (confirm_hash) where confirm_hash is not null;
+
+-- ── Keep-alive ──
+-- Supabase pausiert Gratisprojekte nach ~7 Tagen ohne Aktivität. Der tägliche GitHub-Workflow ruft diese
+-- Funktion auf (zählt als Datenbank-Aktivität, gibt nichts Sensibles zurück).
+create or replace function public.ping() returns text
+language sql security definer set search_path = public as $$ select 'ok'::text $$;
+revoke all on function public.ping() from public;
+grant execute on function public.ping() to anon, authenticated;
+
+-- ── Konto löschen (DSGVO Art. 17 / nDSG Art. 32) ──
+-- Eingeloggte Nutzer können ihr Konto selbst löschen; die Projekte verschwinden per on delete cascade.
+create or replace function public.delete_my_account() returns void
+language plpgsql security definer set search_path = public, auth as $$
+begin
+  if auth.uid() is null then raise exception 'not authenticated'; end if;
+  delete from auth.users where id = auth.uid();
+end $$;
+revoke all on function public.delete_my_account() from public, anon;
+grant execute on function public.delete_my_account() to authenticated;

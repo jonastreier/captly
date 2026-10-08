@@ -1,7 +1,7 @@
 // Täglicher Vercel-Cron (vercel.json → crons): hält das Supabase-Gratisprojekt wach.
 // Supabase pausiert Free-Projekte nach ~7 Tagen ohne Datenbank-Aktivität; dann scheitern Login und das
 // Speichern der Download-E-Mails. Eine kleine REST-Abfrage zählt als Aktivität. Liest nichts Sensibles:
-// die Tabelle leads ist per RLS nur beschreibbar, die Abfrage liefert daher immer [].
+// die Funktion public.ping() (schema.sql) gibt nur 'ok' zurück.
 // URL/Key sind dieselben öffentlichen Werte wie im Frontend (überschreibbar per Env).
 const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tghodbtdraqkfwcmedcv.supabase.co';
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g';
@@ -14,7 +14,7 @@ module.exports = async function handler(req, res) {
   }
   const out = {};
   try {
-    const r = await fetch(SUPABASE_URL + '/rest/v1/leads?select=id&limit=1', { headers: { apikey: SUPABASE_ANON_KEY } });
+    const r = await fetch(SUPABASE_URL + '/rest/v1/rpc/ping', { method: 'POST', headers: { apikey: SUPABASE_ANON_KEY, 'Content-Type': 'application/json' }, body: '{}' });
     out.db = r.status;
   } catch (e) { out.db = 'error'; }
   try {

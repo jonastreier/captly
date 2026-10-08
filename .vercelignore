@@ -9,3 +9,8 @@ schema.sql
 scripts/
 *.md
 i18n/
+polish.php
+enhance.php
+test-polish.js
+test-enhance.js
+.env.example

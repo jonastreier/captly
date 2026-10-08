@@ -30,6 +30,7 @@
 
 const MODELS = ['openai/gpt-oss-120b', 'openai/gpt-oss-20b'];
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const guard = require('./_guard');
 const MAX_BYTES = 256 * 1024;
 const MAX_CHARS = 12000;
 const MAX_SEGMENTS = 1000;
@@ -340,6 +341,7 @@ async function callGroq(key, model, messages, timeoutMs, temperature, check) {
       body: JSON.stringify(body), signal: AbortSignal.timeout(Math.max(1000, timeoutMs)) });
     text = await r.text();
   } catch (e) { return { ok: false, status: 0, retry: true, err: e && e.name === 'TimeoutError' ? 'timeout' : 'network' }; }
+  if (r.status === 429) guard.alertOps('groq-429-llm', 'Groq-Limit erreicht (KI-Feinschliff, HTTP 429). Captions kommen ohne Polish/Enhance.');
   if (r.status < 200 || r.status >= 300) return { ok: false, status: r.status, retry: r.status !== 401 && r.status !== 403, err: 'http' };
   let data = null; try { data = JSON.parse(text); } catch (e) {}
   const ch = data && data.choices && data.choices[0];

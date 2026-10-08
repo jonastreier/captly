@@ -1,0 +1,11 @@
+Fonts in this folder were downloaded from Google Fonts (https://fonts.google.com) with scripts/fetch-fonts.js
+and are served from this site so that visitors' IP addresses are not sent to Google.
+
+Almost all families are licensed under the SIL Open Font License, Version 1.1 (https://openfontlicense.org/open-font-license-official-text/).
+Roboto and Open Sans are licensed under the Apache License, Version 2.0 (https://www.apache.org/licenses/LICENSE-2.0).
+The copyright notice of each family (its author/foundry) is shown on its page at https://fonts.google.com/specimen/<Family+Name>
+and in the Google Fonts repository: https://github.com/google/fonts (folders ofl/ and apache/).
+
+SIL OFL 1.1 in short: the fonts may be used, studied, modified and redistributed freely, including commercially, as long as
+they are not sold on their own, the copyright notices and this licence stay with them, and modified versions do not use
+the Reserved Font Name. The fonts are provided "as is", without warranty of any kind.

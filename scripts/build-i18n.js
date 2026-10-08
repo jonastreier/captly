@@ -7,6 +7,11 @@
 //                                          oder auf der Landing noch englischer Text übrig ist)
 //
 // Übersetzt wird nur <head> und die Landing (#landing). Der Editor bleibt englisch.
+//
+// JSON-LD im <head> von captly.html: Block 1 = @graph (Organization, WebSite, SoftwareApplication),
+// Block 2 = FAQPage. Die FAQ-Strukturdaten werden IMMER aus den sichtbaren FAQ-Einträgen der Landing
+// gebaut — auf EN schreibt dieses Skript sie auch in captly.html zurück (--check meldet Abweichungen),
+// auf DE aus den übersetzten Einträgen. Den App-Knoten im @graph ersetzt i18n/<lang>.js → app.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -30,6 +35,20 @@ function replaceAll(text, pairs, where, errors) {
   }
   return text;
 }
+const LD_RE = /<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/g;
+// FAQPage-JSON-LD aus den FAQ-Einträgen (.faq-q / .faq-a) eines Landing-Abschnitts
+function faqLd(landing, lang) {
+  const faq = [...landing.matchAll(/<button class="faq-q"[^>]*>([\s\S]*?)<span class="faq-plus">[\s\S]*?<div class="faq-a">([\s\S]*?)<\/div>/g)]
+    .map(m => ({ '@type': 'Question', name: unesc(m[1]), acceptedAnswer: { '@type': 'Answer', text: unesc(m[2]) } }));
+  return { '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: lang, mainEntity: faq };
+}
+// captly.html mit FAQ-JSON-LD passend zur sichtbaren EN-FAQ (unverändert, wenn schon aktuell)
+function syncSource(src) {
+  const ld = [...src.slice(0, src.indexOf('<style>')).matchAll(LD_RE)];
+  if (ld.length !== 2) throw new Error('captly.html: erwartet 2 JSON-LD-Blöcke im <head>, gefunden ' + ld.length);
+  const want = JSON.stringify(faqLd(src.slice(src.indexOf(LAND_START), src.indexOf(LAND_END)), 'en'));
+  return ld[1][1] === want ? src : src.replace(ld[1][1], () => want);
+}
 // Sichtbare Texte + Attribut-Texte eines HTML-Abschnitts (für die „noch englisch?“-Prüfung)
 function texts(html) {
   const out = new Set();
@@ -41,7 +60,7 @@ function texts(html) {
 
 function build(lang) {
   const cfg = require(path.join(ROOT, 'i18n', lang + '.js'));
-  const src = fs.readFileSync(SRC, 'utf8');
+  const src = syncSource(fs.readFileSync(SRC, 'utf8'));
   const errors = [];
   const hEnd = src.indexOf('<style>');
   const lStart = src.indexOf(LAND_START), lEnd = src.indexOf(LAND_END);
@@ -51,14 +70,19 @@ function build(lang) {
   let landing = replaceAll(src.slice(lStart, lEnd), cfg.landing, 'landing', errors);
 
   // JSON-LD: App-Beschreibung aus der Konfiguration, FAQ aus den übersetzten FAQ-Einträgen der Seite
-  const ld = [...head.matchAll(/<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/g)];
+  const ld = [...head.matchAll(LD_RE)];
   if (ld.length !== 2) errors.push('head: erwartet 2 JSON-LD-Blöcke, gefunden ' + ld.length);
   else {
-    const faq = [...landing.matchAll(/<button class="faq-q"[^>]*>([\s\S]*?)<span class="faq-plus">[\s\S]*?<div class="faq-a">([\s\S]*?)<\/div>/g)]
-      .map(m => ({ '@type': 'Question', name: unesc(m[1]), acceptedAnswer: { '@type': 'Answer', text: unesc(m[2]) } }));
-    if (!faq.length) errors.push('landing: keine FAQ-Einträge gefunden');
-    head = head.replace(ld[0][1], JSON.stringify(cfg.app))
-               .replace(ld[1][1], JSON.stringify({ '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: cfg.lang, mainEntity: faq }));
+    const faq = faqLd(landing, cfg.lang);
+    if (!faq.mainEntity.length) errors.push('landing: keine FAQ-Einträge gefunden');
+    // Block 1: im @graph nur den SoftwareApplication-Knoten durch cfg.app ersetzen (Organization/WebSite bleiben)
+    let app = JSON.parse(ld[0][1]);
+    if (Array.isArray(app['@graph'])) {
+      const i = app['@graph'].findIndex(n => n['@type'] === 'SoftwareApplication');
+      if (i < 0) errors.push('head: kein SoftwareApplication-Knoten im JSON-LD-@graph');
+      else { const node = Object.assign({}, cfg.app); delete node['@context']; app['@graph'][i] = node; }
+    } else app = cfg.app;
+    head = head.replace(ld[0][1], () => JSON.stringify(app)).replace(ld[1][1], () => JSON.stringify(faq));
   }
 
   // Noch englisch? Jeder Landing-Text, der unverändert aus dem Original stammt und nicht in keep steht
@@ -70,11 +94,16 @@ function build(lang) {
 
   const banner = '<!-- GENERIERT von scripts/build-i18n.js aus captly.html + i18n/' + lang + '.js — nicht direkt bearbeiten. -->\n';
   const html = head.replace('<!DOCTYPE html>\n', '<!DOCTYPE html>\n' + banner) + src.slice(hEnd, lStart) + landing + src.slice(lEnd);
-  return { file: path.join(ROOT, cfg.out), html, errors };
+  return { file: path.join(ROOT, cfg.out), html, errors, src };
 }
 
 function run(check) {
   let ok = true;
+  const cur = fs.readFileSync(SRC, 'utf8'), synced = syncSource(cur);
+  if (synced !== cur) {
+    if (check) { ok = false; console.error('✗ [en] captly.html: FAQ-JSON-LD passt nicht zur sichtbaren FAQ → node scripts/build-i18n.js'); }
+    else { fs.writeFileSync(SRC, synced); console.log('✓ [en] captly.html: FAQ-JSON-LD aus der sichtbaren FAQ aktualisiert'); }
+  } else console.log('✓ [en] captly.html: FAQ-JSON-LD passt zur sichtbaren FAQ');
   for (const lang of LANGS) {
     const r = build(lang);
     r.errors.forEach(e => { console.error('✗ [' + lang + '] ' + e); });
@@ -92,4 +121,4 @@ function run(check) {
 }
 
 if (require.main === module) process.exit(run(process.argv.includes('--check')) ? 0 : 1);
-module.exports = { run, build };
+module.exports = { run, build, faqLd, syncSource };

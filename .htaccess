@@ -1,0 +1,65 @@
+# CaptionRush auf Hostpoint (Apache + PHP). Entspricht vercel.json: Clean URLs, Weiterleitungen, Header, Caching.
+# Wird mit hochgeladen (scripts/build-dist.js). Die Direktiven sind in <IfModule> gekapselt, damit ein
+# fehlendes Modul die Seite nicht mit einem 500er lahmlegt.
+
+DirectoryIndex captly.html
+Options -Indexes -MultiViews
+AddDefaultCharset UTF-8
+AddType application/wasm .wasm
+AddType text/javascript .js .mjs
+
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# HTTPS erzwingen (auch hinter einem Proxy) und www → ohne www
+RewriteCond %{HTTPS} !=on
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+
+# Schöne URLs: / = Startseite, /de = deutsche Startseite; die Dateinamen selbst sind nicht kanonisch
+RewriteRule ^captly\.html$ / [R=301,L]
+RewriteRule ^captly\.de\.html$ /de [R=301,L]
+RewriteRule ^de/$ /de [R=301,L]
+RewriteRule ^de$ captly.de.html [L]
+RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)$ $1.html [L]
+RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)\.html$ /$1 [R=301,L]
+
+# API: gleiche Pfade wie auf Vercel (/api/transcribe …) → PHP-Gegenstücke
+RewriteRule ^api/(transcribe|polish|enhance|lead|confirm)/?$ $1.php [L,QSA]
+</IfModule>
+
+# Interne Dateien nie ausliefern
+<FilesMatch "(^\.|^config(\.example)?\.php$|\.(md|sql|sh|log)$|^test-.*|^server\.js$|^schema\.sql$)">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Permissions-Policy "microphone=(), camera=(), geolocation=()"
+  Header always set Content-Security-Policy "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+  # Statische Bibliotheken/Schriften/Bilder: lange cachen (Dateinamen ändern sich bei neuer Version)
+  <FilesMatch "\.(wasm|woff2|jpg|jpeg|png|mp4|mjs)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # HTML und PHP-Antworten nie zwischenspeichern
+  <FilesMatch "\.(html|php)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css text/javascript application/javascript application/json application/wasm image/svg+xml
+</IfModule>
+
+ErrorDocument 404 /404.html

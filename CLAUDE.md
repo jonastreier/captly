@@ -8,6 +8,9 @@ Kern-Dateien:
 - `api/transcribe.js` — **primärer** Transkriptions-Proxy auf **Vercel** (Serverless Function, Key als Env `GROQ_API_KEY`). Frontend probiert `api/transcribe` → `transcribe.php` → lokal.
 - `transcribe.php` — gleicher Proxy für klassisches PHP-Webhosting: hält den Groq-Key (aus nicht-committeter `config.php`), ruft Groq `whisper-large-v3(-turbo)`, gibt Wort-Timings zurück. **Kein Modell-Download für den Nutzer.** Frontend (`serverTranscribe`) ruft ihn; ist er nicht da → lokaler transformers.js-Fallback.
 - Login & Cloud-Projekte laufen über **Supabase** (Magic-Code-Login + Postgres mit RLS), buildless per ESM-CDN direkt aus `captly.html`. Schema: `schema.sql`. Credentials (`SUPABASE_URL`/`SUPABASE_ANON_KEY`) stehen bewusst öffentlich im Frontend — geschützt wird über RLS, nie den service_role-Key eintragen.
+- **Live-Betrieb auf Hostpoint** (Apache/PHP): `.htaccess`, `.github/workflows/deploy.yml` (FTPS-Deploy bei Merge), `scripts/build-dist.js`/`write-config.js`, `lead.php`/`confirm.php`/`mail.php`. Einrichtung (nur Jonas): [SETUP.md](SETUP.md). Vercel (`api/*.js`) bleibt Alternative.
+- **Datenschutz:** Schriften (`vendor/fonts`, `scripts/fetch-fonts.js`) und supabase-js (`vendor/supabase`) liegen lokal — im Browser nie Google/CDN einbinden (Test prüft das). Neue Schrift → in `CAP_FONT_GROUPS` eintragen + `node scripts/fetch-fonts.js`.
+- **Style Drops:** neue Looks gehören in [`styles.json`](styles.json) (Format: Kommentar bei `dropToStyle` in `captly.html`), nicht in `STYLES`. Anzeigenamen nie nach Personen/Marken benennen; IDs bleiben stabil.
 - `server.js` — **altes** Node-Backend, nicht mehr im Einsatz (Transkription → `transcribe.php`, Login/Projekte → Supabase). Bleibt als Referenz für Quota-/Stripe-Logik.
 
 ## Effizient arbeiten (Token & Modellwahl)

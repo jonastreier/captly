@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Bei Domainwechsel (captionrush.com) zusammen mit canonical/hreflang/og:url in captly.html + i18n/de.js anpassen -->
+<!-- Bei Domainwechsel: Basis-URL zusammen mit canonical/hreflang/og:url in captly.html + i18n/de.js anpassen -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://captly.vercel.app/</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://captly.vercel.app/"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://captly.vercel.app/de"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://captly.vercel.app/"/>
+    <loc>https://captionrush.com/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://captionrush.com/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://captionrush.com/de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://captionrush.com/"/>
   </url>
   <url>
-    <loc>https://captly.vercel.app/de</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://captly.vercel.app/"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://captly.vercel.app/de"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://captly.vercel.app/"/>
+    <loc>https://captionrush.com/de</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://captionrush.com/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://captionrush.com/de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://captionrush.com/"/>
   </url>
 </urlset>

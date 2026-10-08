@@ -87,7 +87,7 @@ polishEnabled:polishEnabled,turboFallbackOk:turboFallbackOk,polishInPlace:polish
 splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
 loadProjects:loadProjects,restoreSavedStyle:restoreSavedStyle,setUserTemplates:function(l){userTemplates=l;},pruneTemplates:pruneTemplates,
 TPL_ROW_TITLE:TPL_ROW_TITLE,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
-countMatches:countMatches,replaceAllCaptions:replaceAllCaptions,displayWord:displayWord,togglePunct:togglePunct,setCaptionCase:setCaptionCase,
+countMatches:countMatches,replaceAllCaptions:replaceAllCaptions,wordSwap:wordSwap,fixAllHits:fixAllHits,fixWordEverywhere:fixWordEverywhere,displayWord:displayWord,togglePunct:togglePunct,setCaptionCase:setCaptionCase,
 transcriptText:transcriptText,copyTranscript:copyTranscript,exportTXT:exportTXT,seedCustomFields:seedCustomFields,buildCustomStyle:buildCustomStyle,
 setCsDirty:function(d){_csDirty=d;},saveTemplate:saveTemplate,loadTemplates:loadTemplates,getUserTemplates:function(){return userTemplates;},
 mergeTemplates:mergeTemplates,importTemplatesFromText:importTemplatesFromText,renameTemplate:renameTemplate,duplicateTemplate:duplicateTemplate,
@@ -104,7 +104,7 @@ encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSup
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
-brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,fontCssUrl:fontCssUrl,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
@@ -132,7 +132,7 @@ let fails = 0;
 const ok = (c, m) => { if (!c) { fails++; console.log('FAIL:', m); } };
 
 // 1) Grunddaten
-ok(T.STYLES.length === 19, '19 kuratierte Presets erwartet (15 + 4 ruhige: Reveal/Note/Script/Soft): ' + T.STYLES.length);
+ok(T.STYLES.length === 24, '24 kuratierte Presets erwartet (15 + 4 ruhige + 5 neue Looks): ' + T.STYLES.length);
 
 // 2) Zeitformate
 ok(T.srtT(61.5) === '00:01:01,500', 'srtT: ' + T.srtT(61.5));
@@ -300,7 +300,7 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   const st = T.STYLES.find(x => !x.boxBg && !x.pill && !x.hlPillBg && !x.circle && !(parseFloat(x.ls) > 0) && !x.fs && !x.motion);
   const fsMul = st.fs ? (parseFloat(st.fs) || 1) : 1;
   const maxW = T.capFitMaxW(st);
-  ok(Math.abs(maxW - 270 * 0.86) < 1e-9, 'Fit: nutzbare Breite = 86% Rahmen: ' + maxW);
+  ok(Math.abs(maxW - 270 * 0.75) < 1e-9, 'Fit: nutzbare Breite = Safe-Zone (75% Rahmen): ' + maxW);
   const wStub = (str, px) => str.length * px * fsMul * 0.55;
   const long = 'Rindfleischverarbeitungsbetriebe';
   ok(long.length === 32, 'Testwort hat 32 Zeichen');
@@ -320,8 +320,8 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   // Wort, das per Verkleinerung allein passt → keine Trennung
   const f2 = T.fitCaptionWords(['Highland'], st, 54, maxW);
   ok(f2.words.length === 1 && f2.px < 54 && wStub('Highland', f2.px) <= maxW, 'Fit: nur verkleinert, nicht getrennt: ' + f2.px);
-  const f3 = T.fitCaptionWords(['kurz', 'und', 'gut'], st, 54, maxW);
-  ok(f3.px === 54 && f3.words.length === 3, 'Fit: passende Woerter bleiben unveraendert');
+  const f3 = T.fitCaptionWords(['kurz', 'und', 'gut'], st, 40, maxW);
+  ok(f3.px === 40 && f3.words.length === 3, 'Fit: passende Woerter bleiben unveraendert: ' + f3.px);
   // Vorschau nutzt die verkleinerte Größe
   const capHtml = T.buildCap(['Unsere', long], st, 1, 54, [0, 1], 1);
   // Vorschau ruft fitCaptionWords mit der Zeilenvorgabe (hier 1) auf — „Max lines“ kann zusätzlich verkleinern
@@ -467,7 +467,7 @@ ok(initialLang === 'auto', 'Sprache startet auf Auto-Erkennung: ' + initialLang)
 // 13) Showcase-Reihe crasht nicht (Stub leert children nicht → Vielfaches von 31:
 // Auto-Init beim Skript-Load + ein Rebuild via goBack() weiter unten in Test 8)
 const showN = document.getElementById('showcaseRow').children.length;
-ok(showN >= 19 && showN % 19 === 0, 'Showcase: Vielfaches von 19 Karten erwartet, habe ' + showN);
+ok(showN >= 24 && showN % 24 === 0, 'Showcase: Vielfaches von 24 Karten erwartet, habe ' + showN);
 
 // 14) cleanWords ist jetzt async (yielded) — Assertions unten in der async IIFE (Test 20b).
 const mkW = arr => arr.map((w, i) => ({ word: w, start: i * 0.3, end: i * 0.3 + 0.25 }));
@@ -491,7 +491,7 @@ ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animat
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
 T.applyCustomStyle();
-ok(T.STYLES.length === 20 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
+ok(T.STYLES.length === 25 && T.STYLES.find(x => x.id === 'custom'), 'Custom Style angelegt');
 // Fixtures: frühere Presets (vor der Kuratierung) — der Custom-Editor/Glow-/Pill-/Farbwechsel-Code muss
 // diese Formen weiter verarbeiten (Templates/Projekte enthalten sie). Nur im Test als eigene IDs.
 const OS = T.outlineShadow;
@@ -612,10 +612,10 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   // Box-Style (Box Karaoke): Hintergrund aus rgba
   T.selectStyle('tbox');
   ok(E('csBox').value === 'box' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '60' && E('csHl').value === '#22c55e', 'Box Karaoke: Box schwarz 60 %, Pill gruen');
-  // Kontur-Style (Hormozi): Kontur 3 px, Schatten an, Textfarbe-Highlight
+  // Kontur-Style (Bold Pop): Kontur 3 px, Schatten an, Textfarbe-Highlight
   T.selectStyle('hormozi');
   ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Active' && E('csAnim').value === 'scale',
-     'Hormozi: Kontur/Schatten/Active-Farbe/Animation');
+     'Bold Pop: Kontur/Schatten/Active-Farbe/Animation');
   // Glow-Style (Jolt/amplify): Glow an mit Stärke 20, Regler aktiv
   T.selectStyle('tamp');
   ok(E('csGlow').checked === true && String(E('csGlowInt').value) === '20' && E('csGlowInt').disabled === false && E('csHl').value === '#d7ff1f', 'Jolt: Glow an, Staerke 20');
@@ -635,11 +635,11 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   E('csHlType').value = 'color'; T.setCsDirty({ hlc: true, glow: true, hltype: true });
   cs = T.buildCustomStyle();
   ok(!cs.hlPillBg && cs.hl === '#ff3366' && /0 0 20px #ff3366/.test(cs.hls), 'Pill → Textfarbe uebernimmt die Farbe: ' + cs.hls);
-  // Beast: nur Glow anschalten → Farbwechsel (hlCycle) bleibt
+  // Comic: nur Glow anschalten → Farbwechsel (hlCycle) bleibt
   T.selectStyle('tbeast');
   E('csGlow').checked = true; E('csGlowInt').value = '10'; T.setCsDirty({ glow: true });
   cs = T.buildCustomStyle();
-  ok(cs.hlCycle && cs.hlCycle.length === 4 && /0 0 10px/.test(cs.hls) && T.parseOutline(cs.hls).w === 3, 'Beast: Glow an, Farbwechsel + Kontur bleiben');
+  ok(cs.hlCycle && cs.hlCycle.length === 4 && /0 0 10px/.test(cs.hls) && T.parseOutline(cs.hls).w === 3, 'Comic: Glow an, Farbwechsel + Kontur bleiben');
   // Nur Kontur geändert → Glow des Ausgangs-Highlights bleibt unverändert (Jolt)
   T.selectStyle('tamp');
   E('csOutlineW').value = '4'; T.setCsDirty({ stroke: true });
@@ -711,7 +711,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
 {
   ['hormozi', 'beast', 'boxkara', 'minimal', 'popone'].forEach(id => ok(T.STYLES.find(x => x.id === id), 'Preset vorhanden: ' + id));
   const beast = T.STYLES.find(x => x.id === 'beast');
-  ok(!beast.hlCycle && T.hlColorFor(beast, 0) === T.hlColorFor(beast, 1), 'Beast: aktives Wort in EINER Farbe (kein Farbwechsel pro Wort)');
+  ok(!beast.hlCycle && T.hlColorFor(beast, 0) === T.hlColorFor(beast, 1), 'Comic: aktives Wort in EINER Farbe (kein Farbwechsel pro Wort)');
   const tbeast = T.STYLES.find(x => x.id === 'tbeast');
   ok(T.hlColorFor(tbeast, 0) !== T.hlColorFor(tbeast, 1) && T.buildCap(['a', 'b'], tbeast, 1, 22, null).includes(tbeast.hlCycle[1]), 'hlCycle (alte Templates) funktioniert weiter');
   T.selectStyle('classic');
@@ -821,10 +821,10 @@ ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200
   const cs = T.buildCustomStyle();
   ok(cs.hl === '#ff00ff' && T.parseOutline(cs.hls).w === 0 && /1px 2px 0px #000/.test(cs.hls) && /0px 3px 6px rgba/.test(cs.hls) && cs.ts === '1px 2px 0 #000',
      'nur Highlight-Farbe: keine Fake-Kontur, Schatten bleiben: ' + cs.hls);
-  // Beast: Drop-Shadow im Highlight bleibt auch beim Farbwechsel
+  // Comic: Drop-Shadow im Highlight bleibt auch beim Farbwechsel
   T.selectStyle('tbeast'); T.setCsDirty({ hl: true });
   const cb = T.buildCustomStyle();
-  ok(T.parseOutline(cb.hls).w === 3 && /0px 5px 0px rgba\(0,0,0,\.85\)/.test(cb.hls), 'Beast: Kontur + Drop-Shadow im Highlight erhalten: ' + cb.hls.slice(-60));
+  ok(T.parseOutline(cb.hls).w === 3 && /0px 5px 0px rgba\(0,0,0,\.85\)/.test(cb.hls), 'Comic: Kontur + Drop-Shadow im Highlight erhalten: ' + cb.hls.slice(-60));
   T.setCsDirty({});
   T.STYLES.splice(T.STYLES.findIndex(x => x.id === 'tdrop'), 1);
   T.selectStyle('classic');
@@ -866,7 +866,7 @@ ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200
   T.setState(T.buildCaptionBlocks([{ word: 'Das', start: 0, end: 0.3 }, { word: 'ist', start: 0.35, end: 0.6 }, { word: 'echt', start: 0.65, end: 0.9 }, { word: 'gut', start: 0.95, end: 1.2 }]), [], 'karaoke');
   const hz = T.STYLES.find(x => x.id === 'hormozi');
   const plan = T.capShadowPlan(hz.ts);
-  ok(plan.ring && plan.ring.w === 3 && plan.ring.color === '#000' && plan.rest.length === 1, 'Hormozi: Ring erkannt, 1 Restschicht (weicher Schatten)');
+  ok(plan.ring && plan.ring.w === 3 && plan.ring.color === '#000' && plan.rest.length === 1, 'Bold Pop: Ring erkannt, 1 Restschicht (weicher Schatten)');
   const c1 = mkCtx();
   T.drawCaptionsOnCtx(c1, 0.4, hz, 1080, 1920, false);
   const words = 4, oldCalls = words * (T.parseTextShadows(hz.ts).length + 1);
@@ -1282,7 +1282,7 @@ ok(T.webmToMp4Trim(33.96).join(' ') === '-t 33.960 -shortest' && T.webmToMp4Trim
   T.applyPlayability('ok'); T.enableExports(true);
   ok(document.getElementById('btnVideo').disabled === false && document.getElementById('vidWarn').style.display === 'none', 'abspielbar: alles normal');
 }
-ok(T.DEFAULT_STYLE === 'reveal', 'Standard-Style fuer neue Nutzer: Reveal (ruhig, wie die Captions-App)');
+ok(T.DEFAULT_STYLE === 'tight', 'Standard-Style fuer neue Nutzer: Tight');
 
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
@@ -1391,7 +1391,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(store[T.LEAD_KEY] === 'treier@example.ch' && T.needsWatermark() === false, 'Adresse gemerkt → kein Wasserzeichen');
     const pend = JSON.parse(store[T.LEAD_PENDING_KEY] || 'null');
     ok(pend && pend.newsletter === true && pend.consent_text === 'Send me tips' && pend.source === 'export', 'Fehlschlag → Lead bleibt in Warteschlange (mit Einwilligungstext)');
-    ok(calls.length === 1 && /\/rest\/v1\/leads$/.test(calls[0].url) && calls[0].o.headers.apikey && calls[0].o.method === 'POST', 'POST an /rest/v1/leads mit apikey');
+    ok(calls.length === 1 && /api\/lead$/.test(calls[0].url) && !calls[0].o.headers.apikey && calls[0].o.method === 'POST', 'POST an api/lead (ohne Datenbank-Schlüssel im Browser)');
     ok(T.passEmailGate() === true && calls.length === 1, 'zweiter Export: keine erneute Abfrage');
     fail = false;
     ok(await T.flushLead() === true && !(T.LEAD_PENDING_KEY in store), 'Retry erfolgreich → Warteschlange leer');
@@ -1450,7 +1450,10 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   const ovS = document.getElementById('capOverlay').style;
   ok(ovS.display === 'flex' && ovS.alignItems === 'center' && ovS.transform === '', 'Mitte via Flex, kein transform');
   T.setPosState('bottom'); T.applyPos();
-  ok(ovS.bottom === '12%' && ovS.display === '', 'Unten wieder normal');
+  ok(ovS.bottom === '24.44%' && ovS.display === '', 'Unten wieder normal, Unterkante über der Safe-Zone: ' + ovS.bottom);
+  T.setPosState('top'); T.setVOffState(20); T.applyPos();
+  ok(ovS.top === '12.46%', 'Oben mit Versatz bleibt unter der Reels-Leiste: ' + ovS.top);
+  T.setVOffState(0); T.setPosState('bottom'); T.applyPos();
 
   // 19) Regression: driftende null-Timestamps am Fensterende duerfen das Folgefenster NICHT leeren.
   // Fenster 0 (28s): 80 Woerter, deren End-Timestamps null sind -> chunksToWords verkettet und die
@@ -1951,6 +1954,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const { Readable } = require('stream');
     const handler = require(path.join(__dirname, 'api', 'transcribe.js'));
+    // gültiges WAV (16 kHz mono 16 bit) mit secs Sekunden — der Server prüft die Dauer im Header
+    const wav = secs => { const n = Math.round(secs * 32000), b = Buffer.alloc(44 + n); b.write('RIFF', 0); b.writeUInt32LE(36 + n, 4); b.write('WAVE', 8);
+      b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(16000, 24); b.writeUInt32LE(32000, 28);
+      b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n, 40); return b; };
+    const ogg = Buffer.from(T.buildOggOpus(Array.from({ length: 50 }, () => new Uint8Array([0x48, 1, 2, 3])), { preSkip: 312, totalSamples48: 50 * 960 }));
     const run = async (method, url, body, env, headers) => {
       Object.assign(process.env, { GROQ_API_KEY: '', RATE_LIMIT_PER_HOUR: '0', REQUIRE_LOGIN: '' }, env || {});
       const req = Readable.from(body ? [Buffer.from(body)] : []);
@@ -1960,33 +1968,38 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       return res;
     };
     ok((await run('GET', '/api/transcribe')).statusCode === 200, 'Function: GET Health-Check');
-    ok((await run('POST', '/api/transcribe', Buffer.alloc(500))).statusCode === 500, 'Function: ohne Key → 500 "nicht konfiguriert"');
+    ok((await run('POST', '/api/transcribe', wav(1))).statusCode === 500, 'Function: ohne Key → 500 "nicht konfiguriert"');
     let sent = null;
     global.fetch = async (u, o) => { sent = { u, o }; return { status: 200, headers: { get: () => null }, text: async () => '{"words":[]}' }; };
-    const r1 = await run('POST', '/api/transcribe?model=evil&lang=de!', Buffer.alloc(500), { GROQ_API_KEY: 'gsk_x' });
+    const r1 = await run('POST', '/api/transcribe?model=evil&lang=de!', wav(1), { GROQ_API_KEY: 'gsk_x' });
     ok(r1.statusCode === 200 && r1.body === '{"words":[]}', 'Function: reicht Groq-Antwort durch');
     ok(sent.o.headers.Authorization === 'Bearer gsk_x' && /transcriptions$/.test(sent.u), 'Function: Key nur serverseitig + Endpoint');
     ok(sent.o.body.get('model') === 'whisper-large-v3-turbo' && sent.o.body.get('language') === 'de', 'Function: Modell-Whitelist + lang bereinigt');
-    await run('POST', '/api/transcribe?model=whisper-large-v3-turbo&translate=1', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    await run('POST', '/api/transcribe?model=whisper-large-v3-turbo&translate=1', wav(1), { GROQ_API_KEY: 'k' });
     ok(sent.o.body.get('model') === 'whisper-large-v3' && /translations$/.test(sent.u), 'Function: Translate erzwingt large-v3 (turbo kann nicht uebersetzen)');
     // Vokabular-Prompt: bereinigt + gedeckelt, nur bei Transkription
     const rawPrompt = 'Birkenhof,\n\tHighland  Beef\u0007 ' + 'x'.repeat(400);
-    await run('POST', '/api/transcribe?prompt=' + encodeURIComponent(rawPrompt), Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    await run('POST', '/api/transcribe?prompt=' + encodeURIComponent(rawPrompt), wav(1), { GROQ_API_KEY: 'k' });
     const fp = sent.o.body.get('prompt');
     ok(typeof fp === 'string' && fp.startsWith('Birkenhof, Highland Beef x') && fp.length <= 300 && !/[\u0000-\u001f]/.test(fp),
        'Function: prompt bereinigt + max 300 Zeichen: ' + JSON.stringify(fp && fp.slice(0, 30)) + ' len=' + (fp && fp.length));
-    await run('POST', '/api/transcribe?translate=1&prompt=Birkenhof', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    await run('POST', '/api/transcribe?translate=1&prompt=Birkenhof', wav(1), { GROQ_API_KEY: 'k' });
     ok(sent.o.body.get('prompt') === null, 'Function: kein prompt beim Uebersetzen');
-    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k' });
     ok(sent.o.body.get('prompt') === null, 'Function: ohne prompt-Param kein prompt-Feld');
     ok(sent.o.body.get('file').name === 'audio.wav' && sent.o.body.get('file').type === 'audio/wav', 'Function: ohne Content-Type → audio.wav');
-    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' }, { 'content-type': 'audio/ogg' });
+    await run('POST', '/api/transcribe', ogg, { GROQ_API_KEY: 'k' }, { 'content-type': 'audio/ogg' });
     ok(sent.o.body.get('file').name === 'audio.ogg' && sent.o.body.get('file').type === 'audio/ogg', 'Function: audio/ogg → audio.ogg an Groq');
-    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' }, { 'content-type': 'text/html; charset=utf-8' });
+    await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k' }, { 'content-type': 'text/html; charset=utf-8' });
     ok(sent.o.body.get('file').name === 'audio.wav' && sent.o.body.get('file').type === 'audio/wav', 'Function: unbekannter Content-Type → WAV (Whitelist)');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(5 * 1024 * 1024), { GROQ_API_KEY: 'k' })).statusCode === 413, 'Function: zu grosser Body → 413');
-    ok((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', REQUIRE_LOGIN: '1', SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'a' })).statusCode === 401, 'Function: Login-Pflicht ohne Token → 401');
-    const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
+    ok((await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k', REQUIRE_LOGIN: '1', SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'a' })).statusCode === 401, 'Function: Login-Pflicht ohne Token → 401');
+    ok((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' })).statusCode === 400, 'Function: kein WAV/Ogg → 400');
+    ok((await run('POST', '/api/transcribe', wav(131), { GROQ_API_KEY: 'k' })).statusCode === 413, 'Function: Stück > 130 s → 413');
+    const al = []; for (let i = 0; i < 3; i++) al.push((await run('POST', '/api/transcribe', wav(40), { GROQ_API_KEY: 'k', MAX_AUDIO_SEC_PER_HOUR: '100' }, { 'x-forwarded-for': '9.9.9.' + 1 })).statusCode);
+    ok(al.join() === '200,200,429', 'Function: Ton-Kontingent pro IP und Stunde (' + al.join() + ')');
+    process.env.MAX_AUDIO_SEC_PER_HOUR = '';
+    const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
     ok(rl[2] === 429, 'Function: Rate-Limit greift: ' + rl);
   }
 
@@ -2039,6 +2052,13 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(String.fromCharCode(...pg[1].body.subarray(0, 8)) === 'OpusTags' && pg[1].granule === 0, 'Muxer: OpusTags-Seite');
       ok(pg[2].flags === 0x04 && pg[2].granule === 2312, 'Muxer: letzte Seite EOS, Granule = preSkip + Länge (End-Trimming): ' + pg[2].granule);
       ok(pg.map(p => p.seq).join() === '0,1,2', 'Muxer: Seitennummern fortlaufend');
+    }
+    {
+      // Server-Missbrauchsschutz (api/_guard.js) liest die Dauer der App-eigenen Ogg-Dateien korrekt
+      const guard = require('./api/_guard.js');
+      const ogg = Buffer.from(T.buildOggOpus(Array.from({ length: 300 }, () => P(0x48, 1, 2, 3)), { preSkip: 312, totalSamples48: 300 * 960 }));
+      ok(Math.abs(guard.audioSeconds(ogg, true) - 6) < 0.01, 'Guard: Dauer aus App-Ogg = 6 s (' + guard.audioSeconds(ogg, true) + ')');
+      ok(guard.audioSeconds(Buffer.from('OggS' + 'x'.repeat(60)), true) === null && guard.audioSeconds(Buffer.alloc(10), false) === null, 'Guard: Müll → null');
     }
     {
       // 300 kleine Pakete → 255 auf Seite 2, Rest auf Seite 3; Granule = dekodierte Samples bis Seitenende
@@ -2270,8 +2290,18 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.capLineH({}) === 1.3 && T.capLineH({ lh: 1.6 }) === 1.6 && T.capLineH({ lh: 9 }) === 1.3, 'capLineH: Standard/Wert/ungültig');
     // Schriften
     ok(T.cleanFontName(' Rubik  Mono One ') === 'Rubik Mono One' && T.cleanFontName("x');}<b") === '' && T.cleanFontName('A') === '', 'Fontname validiert');
-    ok(T.fontCssUrl('Luckiest Guy', '') === 'https://fonts.googleapis.com/css2?family=Luckiest+Guy&display=swap'
-       && /family=Lato:wght@700;900&/.test(T.fontCssUrl('Lato', '700;900')), 'Google-Fonts-URL');
+    ok(T.isKnownFont('Luckiest Guy') && T.isKnownFont('Inter Tight') && T.isKnownFont('Instrument Serif') && !T.isKnownFont('Rubik Mono One'), 'Schriftliste kennt nur lokale Schriften');
+    ok(await T.ensureCapFont('Rubik Mono One') === false && await T.ensureCapFont('Inter Tight') === true, 'unbekannte Schrift → false, lokale → true');
+    {
+      // Datenschutz: keine Anfragen an Google; jede Schrift der Auswahlliste + jedes Styles liegt lokal vor (vendor/fonts)
+      const html2 = fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8'), fcss = fs.readFileSync(path.join(__dirname, 'vendor', 'fonts', 'fonts.css'), 'utf8');
+      ok(!/fonts\.(googleapis|gstatic)\.com/.test(html2.replace(/<!--[\s\S]*?-->/g, '')), 'captly.html ruft nichts bei Google Fonts ab');
+      const miss = Object.keys(T.CAP_FONT_W).filter(f => fcss.indexOf("font-family: '" + f + "'") < 0);
+      ok(miss.length === 0, 'alle Auswahl-Schriften lokal vorhanden (fehlt: ' + miss.join(', ') + ')');
+      const used = new Set(); T.STYLES.forEach(st => [st.fl, st.emFont, st.hlFont].forEach(f => { f = T.cleanFontName(String(f || '').replace(/^'|'$/g, '').split(',')[0]); if (f) used.add(f); }));
+      const miss2 = [...used].filter(f => fcss.indexOf("font-family: '" + f + "'") < 0);
+      ok(miss2.length === 0, 'alle Style-Schriften lokal vorhanden (fehlt: ' + miss2.join(', ') + ')');
+    }
     // Kachel-Worte aus dem Transkript
     T.setState([{ text: 'Grüezi Rindfleischverarbeitung, so isch es', start: 0, end: 2, words: [] }], [], 'karaoke');
     ok(T.tileWords().join(' ') === 'so isch', 'Kachel: zwei kurze aufeinanderfolgende Wörter: ' + T.tileWords());
@@ -2615,14 +2645,16 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setFontSizeState(22); const a22 = T.capAutoChars();
     T.setFontSizeState(40); const a40 = T.capAutoChars();
     ok(a22 > a40 && a40 >= 6, 'Auto: größere Schrift → kleineres Limit (' + a22 + ' / ' + a40 + ')');
-    T.setFontSizeState(22);
+    // Schrift so, dass Auto (~14 Zeichen) dieselbe Gruppierung wie Limit 32 ergibt → Auto an/aus erzeugt
+    // keinen eigenen Undo-Schritt und Redo bleibt verfügbar (hängt von der Safe-Zone-Breite ab).
+    T.setFontSizeState(19);
     // Unbearbeitet: Limit-Wechsel gruppiert neu (Undo-fähig)
     T.resetUndo(); T.setCaptionsEdited(false); T.setMaxCharsState(32);
     const ws = seq('Die Tiere sind das ganze Jahr draussen und fressen');
     T.setState(T.buildCaptionBlocks(ws), ws.slice());
     const n32 = T.getBlocks().length;
-    T.setMaxChars('12');
-    ok(T.getBlocks().length > n32 && T.getBlocks().every(b => lineFit(b.text, 12, 2)), 'unbearbeitet: neu gruppiert bei Limit 12: ' + T.getBlocks().map(b => b.text).join('|'));
+    T.setMaxChars('10');
+    ok(T.getBlocks().length > n32 && T.getBlocks().every(b => lineFit(b.text, 10, 2)), 'unbearbeitet: neu gruppiert bei Limit 10: ' + T.getBlocks().map(b => b.text).join('|'));
     ok(T.undoDepth()[0] === 1, 'Limit-Wechsel ist ein Undo-Schritt');
     T.undoCaptions();
     ok(T.getBlocks().length === n32, 'Undo stellt die alten Blöcke wieder her');
@@ -2635,7 +2667,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.projectPayload().maxChars === T.capAutoChars() || T.projectPayload().maxChars >= 8, 'Auto aus → fester Wert = abgeleiteter Auto-Wert');
     T.setMaxChars('32');
     T.redoCaptions();
-    ok(T.projectPayload().maxChars === 12 && T.getBlocks().length > n32, 'Redo stellt Limit + Blöcke wieder her');
+    ok(T.projectPayload().maxChars === 10 && T.getBlocks().length > n32, 'Redo stellt Limit + Blöcke wieder her');
     T.undoCaptions();
     // Bearbeitet: nur überlaufende Blöcke teilen, die anderen bleiben exakt
     T.setMaxCharsState(32);
@@ -2665,17 +2697,17 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const removed = ['amplify', 'impact2', 'volt', 'pulse', 'evo', 'prime', 'linen', 'carbon', 'tokyo', 'chrome', 'ignite', 'ember', 'y2k',
       'prismpro', 'elevate', 'bloom', 'sonnet', 'align', 'paper2', 'muse', 'sketch', 'chalk'];
-    const ids = new Set(T.STYLES.slice(0, 19).map(x => x.id)); // eingebaute Presets stehen vorn (Custom/Templates/Fixtures danach)
+    const ids = new Set(T.STYLES.slice(0, 24).map(x => x.id)); // eingebaute Presets stehen vorn (Custom/Templates/Fixtures danach)
     ok(removed.every(id => T.STYLE_ALIASES[id] && ids.has(T.STYLE_ALIASES[id])), 'jede entfernte ID zeigt auf ein vorhandenes Preset');
     ok(Object.keys(T.STYLE_ALIASES).every(id => !ids.has(id)), 'kein Alias verdeckt ein vorhandenes Preset');
     ok(T.resolveStyleId('y2k') === 'neon' && T.resolveStyleId('pulse') === 'boxkara' && T.resolveStyleId('hormozi') === 'hormozi' && T.resolveStyleId('tpl_abc') === 'tpl_abc', 'resolveStyleId');
     ['classic', 'hormozi', 'boxkara', 'beast', 'minimal', 'popone', 'tiktok', 'hush', 'neon', 'editorial', 'marker'].forEach(id => ok(ids.has(id), 'Standard-Look vorhanden: ' + id));
-    ok(T.STYLES.filter(x => ids.has(x.id)).every(x => ['none', 'scale', 'punch', 'bounce'].includes(x.anim) && !x.hlCycle), 'Presets: nur ruhige Animationen, kein Farbwechsel pro Wort');
+    ok(T.STYLES.filter(x => ids.has(x.id)).every(x => ['none', 'scale', 'punch', 'bounce', 'flash'].includes(x.anim) && !x.hlCycle), 'Presets: nur ruhige Animationen, kein Farbwechsel pro Wort');
     // Projekt/Autosave mit entferntem Style
     T.restoreSavedStyle({ style: 'chalk' });
     ok(T.getActiveId() === 'marker', 'Projekt mit „chalk“ → Marker: ' + T.getActiveId());
     T.restoreSavedStyle({ style: 'amplify' });
-    ok(T.getActiveId() === 'hormozi', 'Projekt mit „amplify“ → Hormozi');
+    ok(T.getActiveId() === 'hormozi', 'Projekt mit „amplify“ → Bold Pop');
     T.selectStyle('prismpro');
     ok(T.getActiveId() === 'neon', 'selectStyle mit alter ID → Neon');
     // Brand-Default mit alter ID
@@ -2904,7 +2936,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // Farben: Style-Akzent, Pill-Styles behalten Text-Schatten, One Word nur Grösse
     ok(T.emphColor(hz) === '#FFD60A' && T.emphColor(T.STYLES.find(x => x.id === 'popone')) === null && T.emphColor(T.STYLES.find(x => x.id === 'minimal')) === '#fff'
        && T.emphColor(T.STYLES.find(x => x.id === 'stack')) === '#f7c204' && !T.emphShadowIsHl(T.STYLES.find(x => x.id === 'focus')), 'Akzentfarben je Style');
-    ok(T.STYLES.filter(s => !s._isTpl && s.id !== 'custom').every(s => T.emphColor(s) !== null || s.id === 'popone'), 'alle 15 Styles haben eine sichtbare Betonung');
+    ok(T.STYLES.filter(s => !s._isTpl && s.id !== 'custom').every(s => T.emphColor(s) !== null || ['popone', 'tight', 'statement'].includes(s.id)), 'alle Styles haben eine sichtbare Betonung (ausser One Word, Tight, Statement: nur Grösse/keine)');
     const h1 = T.buildCap(['auf', 'der', 'Weide.'], hz, 0, 24, [0, 0.3, 0.6], 2, { em: [false, false, true], emoji: '🌿', age: 0.1 });
     ok(/font-size:1\.12em/.test(h1) && /FFD60A/.test(h1) && /class="cap-emo"/.test(h1) && /🌿/.test(h1) && /animation-delay:-0\.100s/.test(h1) && /position:relative/.test(h1),
        'buildCap: Betonung (Grösse + Farbe) und Emoji mit Pop-in-Phase');
@@ -2999,7 +3031,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // Modi
     ok(T.capMotion(ST('reveal')) === 'reveal' && T.capMotion(ST('note')) === 'fill' && T.capMotion(ST('script')) === 'reveal' && T.capMotion(ST('soft')) === 'fill'
        && T.capMotion(ST('hormozi')) === 'highlight' && T.capMotion({ motion: 'quatsch' }) === 'highlight', 'capMotion: neue Presets + Fallback Highlight');
-    ok(T.STYLES.slice(0, 4).map(x => x.id).join() === 'reveal,note,script,soft', 'ruhige Presets stehen vorn im Picker');
+    ok(T.STYLES.slice(0, 9).map(x => x.id).join() === 'tight,mix,statement,accent,serifbold,reveal,note,script,soft', 'neue Looks und ruhige Presets stehen vorn im Picker');
     // Reveal: unsichtbar vor dem Wort, ~220 ms Einblenden mit Anstieg, danach voll
     const rv = ST('reveal'), fx = (s, i, t, f, rm) => T.capWordFx(s, b, i, T.activeWordIdx(b, t), t, !!f, !!rm);
     ok(fx(rv, 1, 1.49).op === 0 && fx(rv, 2, 1.6).op === 0, 'Reveal: kommende Woerter unsichtbar');
@@ -3022,7 +3054,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(h1.hk > 0 && h1.hk < 1 && h0.hk > 0 && h0.hk < 1, 'Highlight: Farbwechsel weich (aktiv ' + h1.hk.toFixed(2) + ', vorher ' + h0.hk.toFixed(2) + ')');
     ok(fx(hz, 1, 1.5 + M.hl).hk === 1 && fx(hz, 0, 1.5 + M.hl).hk === 0 && fx(hz, 2, 1.53).hk === 0, 'Highlight: danach eindeutig');
     let peak = 1; for (let k = 0; k <= 40; k++) { const a = fx(hz, 1, 1.5 + k * 0.01).a; if (a) peak = Math.max(peak, a.sx); }
-    ok(peak > 1 && peak <= 1.04 + 1e-9, 'Hormozi: Pop hoechstens 1.04: ' + peak.toFixed(3));
+    ok(peak > 1 && peak <= 1.04 + 1e-9, 'Bold Pop: Pop hoechstens 1.04: ' + peak.toFixed(3));
     ok(T.STYLES.slice(0, 19).every(x => !['punch'].includes(x.anim)), 'Presets ohne Punch-Bounce');
     ok(T.capMixColor('#ffffff', '#000000', 0.5) === 'rgba(128,128,128,1)' && T.capMixColor('#fff', '#FFD60A', 0) === '#fff' && T.capMixColor('#fff', '#FFD60A', 1) === '#FFD60A', 'capMixColor');
     // Block ein-/ausblenden (Lücke nach dem Block → Ausblenden; direkt anschliessender Block → kein Flackern)
@@ -3147,11 +3179,77 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
         global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem() {}, removeItem() {} };
         try { return new Function(script + ';return activeId;')(); } finally { delete global.localStorage; }
       };
-      ok(runWith({}) === 'reveal', 'neuer Nutzer startet mit Reveal');
-      ok(runWith({ 'capivo.style': 'hormozi' }) === 'hormozi', 'gemerkter Style bleibt (Hormozi)');
+      ok(runWith({}) === 'tight', 'neuer Nutzer startet mit Tight');
+      ok(runWith({ 'capivo.style': 'reveal' }) === 'reveal', 'gemerkter Style bleibt (Reveal) — nur neue Nutzer starten mit Tight');
+      ok(runWith({ 'capivo.style': 'hormozi' }) === 'hormozi', 'gemerkter Style bleibt (Bold Pop)');
       ok(runWith({ 'capivo.style': 'prime' }) === 'lift', 'gemerkter alter Style folgt dem Alias');
     }
     T.setEmphState(true, false, 'off');
+  }
+
+  // „Überall korrigieren?“: genau ein ersetztes Wort → Vorschlag, gleiche Fehler in anderen Zeilen
+  {
+    const sw = T.wordSwap('Ich bin auf dem Birkenhoff.', 'Ich bin auf dem Birkenhof.');
+    ok(sw && sw.from === 'Birkenhoff' && sw.to === 'Birkenhof', 'wordSwap: Satzzeichen werden ignoriert');
+    ok(T.wordSwap('a b c', 'a b c') === null && T.wordSwap('eins zwei', 'eins zwei drei') === null && T.wordSwap('Hallo Welt', 'Hallo, Welt') === null,
+      'wordSwap: keine Änderung / andere Wortzahl / nur Satzzeichen → kein Vorschlag');
+    ok(T.wordSwap('das ist gut', 'dies ist toll') === null, 'wordSwap: zwei geänderte Wörter → kein Vorschlag');
+    ok(T.wordSwap('die Kuh', 'der Kuh') === null && T.wordSwap('mit max', 'mit Max') !== null, 'wordSwap: kurze Allerweltswörter nur, wenn ein Name entsteht');
+    const mk = t => ({ text: t, start: 0, end: 1, words: t.split(' ').map(w => ({ word: w, start: 0, end: 1 })) });
+    T.setState([mk('Willkommen am Birkenhof'), mk('Der birkenhoff ist schön'), mk('Birkenhoff, Birkenhoffs Hof'), mk('Birkenhof bleibt')], []);
+    ok(T.fixAllHits('Birkenhoff', 'Birkenhof', 0) === 2, 'fixAllHits: nur ganze Wörter, Gross/klein egal, fertige Treffer zählen nicht');
+    ok(T.fixWordEverywhere('Birkenhoff', 'Birkenhof') === 2 && T.getBlocks()[1].text === 'Der Birkenhof ist schön'
+      && T.getBlocks()[2].text === 'Birkenhof, Birkenhoffs Hof' && T.getBlocks()[3].text === 'Birkenhof bleibt', 'fixWordEverywhere: ersetzt nur echte Treffer');
+  }
+
+  // Neue Looks (Tight, Mix, Statement, Accent, Serif Bold): Eigenschaften, em-Buchstabenabstand, Betonung aufrecht in kursivem Text
+  {
+    const st = id => T.STYLES.find(x => x.id === id);
+    ok(st('tight').layout.wpb === 1 && st('tight').layout.lines === 1 && st('tight').tt === undefined && st('tight').em === 'none', 'Tight: 1 Wort/Caption, Schreibung wie gesprochen, kein Farb-Highlight');
+    ok(st('statement').tt === 'uppercase' && st('statement').tc === '#FACC15' && st('statement').hl === '#fff' && st('statement').lh < 1 && st('statement').layout.lines === 3, 'Statement: gelbe Caps, aktives Wort weiss, enge Zeilen, bis 3 Zeilen');
+    ok(st('mix').em === '#4ade80' && st('mix').emFont === "'Instrument Serif'" && st('mix').emItalic && st('mix').layout.wpb === 3, 'Mix: Keyword grün in kursiver Serif, 3 Wörter');
+    ok(['Tight', 'Mix', 'Statement', 'Accent', 'Serif Bold', 'Bold Pop', 'Comic'].every(n => T.STYLES.some(x => x.name === n)) && !T.STYLES.slice(0, 24).some(x => /hormozi|beast|tiktok/i.test(x.name)), 'Anzeigenamen: keine Personen-/Markennamen (IDs bleiben)');
+    ok(st('hormozi') && st('beast') && st('tiktok'), 'IDs hormozi/beast/tiktok bleiben (gespeicherte Daten)');
+    // em-Buchstabenabstand folgt der tatsächlichen Schriftgrösse
+    ok(Math.abs(T.capLsPx({ ls: '-.04em', fs: '1.5em' }, 20) - (-1.2)) < 1e-9 && T.capLsPx({ ls: '2px' }, 20) === 2 && T.capLsPx({ ls: 'normal' }, 20) === 0 && T.capLsPx({}, 20) === 0, 'capLsPx: em × Schrift × fs, px unverändert');
+    const sb = st('serifbold');
+    ok(T.capWordFace(sb, false, false).it === true && T.capWordFace(sb, false, true).it === false && T.capWordFace(sb, false, true).fam === 'Inter Tight' && T.capWordFace(sb, false, true).fw === '900', 'Serif Bold: Text kursiv, Keyword aufrecht (Inter Tight 900)');
+    ok(T.capWordFace(st('accent'), false, true).it === true && T.capWordFace(st('accent'), false, false).it === false, 'Accent: nur Keyword kursiv');
+  }
+
+  // Reel-Cover: reine Funktionen (3:4-Ausschnitt, Sicherheitsbereich, Umbruch, Dateiname, Titelvorschlag, Standbild)
+  {
+    const c = T.coverCropRect(1080, 1920);
+    ok(c.x === 0 && c.y === 240 && c.w === 1080 && c.h === 1440, 'Cover: 3:4-Ausschnitt 1080×1440 mittig (y 240)');
+    const r = T.coverSafeRegion(1080, 1920);
+    ok(r.y >= c.y && r.y + r.h <= c.y + c.h && r.x === 0 && r.x + r.w <= 1080 * (1 - 0.125) + 1 && r.h > 800, 'Cover: Sicherheitsbereich liegt im 3:4-Ausschnitt und links von der Aktionsleiste');
+    ok(T.coverInRect({ x: 100, y: 300, w: 500, h: 400 }, r) && !T.coverInRect({ x: 100, y: 100, w: 500, h: 400 }, r) && !T.coverInRect({ x: 600, y: 300, w: 500, h: 400 }, r), 'Cover: Prüfung Text in Sicherheitsbereich');
+    ok(JSON.stringify(T.coverWrap([300, 300, 300, 300], 700, 20)) === '[[0,1],[2,3]]' && JSON.stringify(T.coverWrap([900, 100], 700, 20)) === '[[0],[1]]' && JSON.stringify(T.coverWrap([], 700, 20)) === '[]', 'Cover: Zeilenumbruch (zu breites Einzelwort allein)');
+    ok(T.coverBlockY('top', r, 200) === r.y && T.coverBlockY('bottom', r, 200) === r.y + r.h - 200 && T.coverBlockY('mid', r, 200) === r.y + (r.h - 200) / 2, 'Cover: Position oben/Mitte/unten');
+    ok(T.coverFileName('Mein Reel über Käse!') === 'mein-reel-ueber-kaese-cover.png' && T.coverFileName('', 'hof-captionrush') === 'hof-captionrush-cover.png' && T.coverFileName('???') === 'captionrush-cover.png', 'Cover: Dateiname <titel>-cover.png');
+    ok(T.coverHook('Das ist der Hook. Und noch mehr Text hier. #reels #hof', 'x') === 'Das ist der Hook.' && T.coverHook('', 'Eins zwei drei vier fünf sechs sieben acht') === 'Eins zwei drei vier fünf sechs' && T.coverHook('', '') === '', 'Cover: Titelvorschlag ≤ 6 Wörter (Post-Text, sonst Transkript)');
+    ok(T.coverDefaultTime(20, []) === 10 && T.coverDefaultTime(20, [{ words: [{ kw: 0, start: 1 }, { kw: 1, start: 4.26 }] }]) === 4.3 && T.coverDefaultTime(0, []) === 0, 'Cover: Standardbild = erstes hervorgehobenes Wort, sonst Videomitte');
+    T.coverRestore({ t: 3, dark: 999, title: 'Hallo Welt', kw: [1, 'x', -2, 7], style: 'evil', size: 9, pos: 'left', guides: false });
+    const cs = T.getCover();
+    ok(cs.t === 3 && cs.dark === 70 && cs.title === 'Hallo Welt' && cs.kw.join() === '1,7' && cs.style === 'tight' && cs.size === 1.4 && cs.pos === 'bottom' && cs.guides === false, 'Cover: gespeicherte Einstellungen werden geprüft/begrenzt');
+    T.coverRestore(null);
+    ok(T.getCover().title === '' && T.getCover().style === 'tight', 'Cover: ohne Eintrag Standard');
+  }
+
+  // Style Drops (styles.json): bereinigt, nur lokale Schriften, nie eingebaute IDs überschreiben, „New“ 30 Tage
+  {
+    const now = Date.parse('2026-11-01');
+    const good = { id: 'dropone', name: 'Drop <b>One</b>', added: '2026-10-20', photo: 'bloom', layout: { wpb: 2, lines: 1 },
+      style: { fl: 'Inter Tight', font: "'Inter Tight'", fw: '800', tc: '#fff', ts: '0 2px 8px rgba(0,0,0,.5);}<script>', hl: '#ff0', emFont: "'Instrument Serif'", em: '#0f0', evil: 'x' } };
+    const d = T.dropToStyle(good, now);
+    ok(d && d.id === 'dropone' && d.name === 'Drop bOne/b' && d.badge === 'New' && d.layout.wpb === 2 && d.emFont === "'Instrument Serif'" && d.evil === undefined && !/[<>{};]/.test(d.ts), 'Drop: gültiger Eintrag, bereinigt, Abzeichen New');
+    ok(T.dropToStyle(Object.assign({}, good, { added: '2026-08-01' }), now).badge === undefined, 'Drop: nach 30 Tagen kein Abzeichen');
+    ok(T.dropToStyle(Object.assign({}, good, { id: 'tight' }), now) === null && T.dropToStyle(Object.assign({}, good, { id: 'Bad Id' }), now) === null, 'Drop: eingebaute/ungültige ID abgelehnt');
+    ok(T.dropToStyle(Object.assign({}, good, { style: Object.assign({}, good.style, { fl: 'Rubik Mono One', font: "'Rubik Mono One'" }) }), now) === null, 'Drop: Schrift ohne lokale Datei abgelehnt');
+    const d2 = T.dropToStyle(Object.assign({}, good, { id: 'droptwo', style: Object.assign({}, good.style, { emFont: "'Unknown Font'" }) }), now);
+    ok(d2 && d2.emFont === undefined, 'Drop: unbekannte Keyword-Schrift wird entfernt');
+    const file = JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8'));
+    ok(Array.isArray(file) && file.every(o => T.dropToStyle(o, now) !== null || T.STYLES.some(x => x.id === o.id)), 'styles.json: gültig, jeder Eintrag besteht die Prüfung');
   }
 
   // Sprachversionen (captly.de.html): aus captly.html erzeugt, aktuell, vollständig übersetzt
@@ -3163,7 +3261,15 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(fs.existsSync(de.file) && fs.readFileSync(de.file, 'utf8') === de.html, 'i18n de: captly.de.html aktuell (sonst: node scripts/build-i18n.js)');
     ok(/<html lang="de">/.test(de.html) && /hreflang="de" href="https:\/\/[^"]+\/de"/.test(de.html), 'i18n de: lang + hreflang gesetzt');
     const ldFaq = JSON.parse(de.html.match(/<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/g)[1].replace(/^<script[^>]*>\n|\n<\/script>$/g, ''));
-    ok(ldFaq['@type'] === 'FAQPage' && ldFaq.mainEntity.length === 6 && /kostenlos/.test(ldFaq.mainEntity[0].name), 'i18n de: FAQ-Strukturdaten aus den deutschen FAQ');
+    ok(ldFaq['@type'] === 'FAQPage' && ldFaq.mainEntity.length === 10 && /kostenlos/.test(ldFaq.mainEntity[0].name), 'i18n de: FAQ-Strukturdaten aus den deutschen FAQ');
+    const ldApp = JSON.parse(de.html.match(/<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/)[1]);
+    const deNode = (ldApp['@graph'] || []).find(n => n['@type'] === 'SoftwareApplication');
+    ok(deNode && deNode.inLanguage === 'de' && /\/de$/.test(deNode.url) && ldApp['@graph'].some(n => n['@type'] === 'Organization') && ldApp['@graph'].some(n => n['@type'] === 'WebSite'),
+      'i18n de: JSON-LD-@graph mit deutschem App-Knoten, Organization + WebSite bleiben');
+    // EN: FAQ-Strukturdaten = sichtbare FAQ (Wort für Wort), keine Bewertungen/Rezensionen in den Strukturdaten
+    const enSrc = fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8');
+    ok(i18n.syncSource(enSrc) === enSrc, 'i18n en: FAQ-JSON-LD in captly.html passt zur sichtbaren FAQ (sonst: node scripts/build-i18n.js)');
+    ok(!/aggregateRating|"review"/.test(enSrc.slice(0, enSrc.indexOf('<style>'))) && (enSrc.match(/<h1[\s>]/g) || []).length === 1, 'Landing: genau ein <h1>, keine Fake-Bewertungen im JSON-LD');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
