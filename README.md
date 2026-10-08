@@ -352,6 +352,7 @@ node test-enhance.js    # /api/enhance + enhance.php
 node test-lead.js       # lead.php, confirm.php, unsubscribe.php (Mock-Supabase + Mock-SMTP, braucht php)
 node test-telemetry.js  # log.php + stat.php (Mock-Supabase, braucht php)
 node test-billing.js    # Abo-Vorbereitung: Webhook, Plan, Kontingent, Portal (Mock-Supabase/Groq/Paddle, braucht php)
+node test-e2e.js        # Browser-E2E (Playwright, Mock-Server): Upload → Untertitel → Export → E-Mail-Gate → Cover → Login → Projekt; Desktop + 390 px; Screenshots in e2e-shots/
 ```
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,

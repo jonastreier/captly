@@ -22,3 +22,4 @@ av.getInt16*
 .claude/
 dist/
 captionrush-dist.zip
+e2e-shots/
