@@ -1,0 +1,36 @@
+# CaptionRush
+
+> CaptionRush is a free browser tool that turns the speech in a video into animated, word-by-word captions for Instagram Reels, TikTok and YouTube Shorts. Upload a clip, check the captions, pick a style and download an MP4 with burned-in captions, or SRT/VTT subtitle files. Free during the beta, no account needed.
+
+CaptionRush (formerly Capivo) is made in Switzerland by web&meh, a sole proprietorship in Frick, Aargau. It is currently in beta.
+
+## Key facts
+
+- What it does: automatic captions/subtitles for short vertical videos (Reels, TikToks, Shorts).
+- Transcription: server-side with the Whisper large-v3 speech model (via Groq), followed by an AI proofreading pass for names, places and dialect words. Nothing to download for the user.
+- Languages: 16 spoken languages with automatic detection: English, German, Spanish, French, Italian, Portuguese, Dutch, Polish, Turkish, Russian, Ukrainian, Japanese, Korean, Chinese, Arabic, Hindi. The language can also be set manually.
+- German: fully supported. Swiss German and other strong dialects can still contain mistakes and should be checked in the editor before export.
+- Caption styles: 19, from bold karaoke-style captions to calm subtitles, with word-by-word highlighting.
+- Editor: fix words and timing, "Names & terms" field for tricky names and brand terms, templates, optional AI emphasis (keywords, emojis, zoom), suggested post caption and hashtags.
+- Export: MP4 with burned-in captions (1080p by default, no watermark), SRT, VTT and a plain TXT transcript.
+- Privacy: only the audio track is sent for transcription; the video stays on the device and the MP4 is rendered locally in the browser. Audio and transcripts are not stored on CaptionRush servers.
+- Devices: runs in desktop and mobile browsers (including iPhone and Android); no app or plugin to install.
+- Price: free during the beta, no account needed; an email address is asked before the first video download. Paid plans Creator ($9/month, 300 transcription minutes) and Pro ($24/month, 1,500 transcription minutes) are announced as "coming soon" and are not available yet.
+
+## Pages
+
+- [CaptionRush (English)](https://captly.vercel.app/): app and landing page with features, pricing and FAQ
+- [CaptionRush (Deutsch)](https://captly.vercel.app/de): German landing page ("Untertitel automatisch erstellen")
+- [Impressum](https://captly.vercel.app/impressum.html): legal notice (German)
+- [Datenschutz](https://captly.vercel.app/datenschutz.html): privacy policy (German), incl. which data goes to Groq and Vercel
+
+## FAQ highlights
+
+- How do I add captions to Instagram Reels, TikTok or YouTube Shorts? Upload the video on the page, check the captions, pick a style and download the MP4. The captions are burned into the video, so the file can be posted as it is.
+- Is it free? Is there a watermark? Free during the beta, no account needed; MP4 export has no watermark. Only an email is asked before the first video download.
+- Do I need to install anything? No, it runs in the browser.
+- Is my video uploaded? No, only the audio track is sent for transcription.
+
+## Contact
+
+- Email: hallo@webundmeh.ch

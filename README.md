@@ -1,7 +1,7 @@
 # CaptionRush
 
 Web-Tool für Instagram/TikTok-Untertitel (Auto-Captions im Stil von captions.ai).
-Upload → Auto-Transkript → Karaoke-Preview in 15 kuratierten Styles → Export als **MP4** (mit
+Upload → Auto-Transkript → Karaoke-Preview in 19 kuratierten Styles → Export als **MP4** (mit
 eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
 
 - **Ein Modus, immer beste Qualität:** `whisper-large-v3` + KI-Feinschliff (Polish, läuft nach dem Anzeigen im
@@ -33,6 +33,9 @@ Dateien, kein Build:
   mit `node scripts/build-i18n.js` (`--check` prüft nur). Übersetzt sind `<head>` (Titel, Description, OG, JSON-LD) und
   die Landing; der Editor bleibt englisch. Beide Seiten verlinken sich per `hreflang` + Sprachumschalter (Nav/Footer);
   kein Auto-Redirect, nur ein wegklickbarer Hinweis für deutschsprachige Browser auf der EN-Seite.
+  Die FAQ-Strukturdaten (JSON-LD) entstehen aus der sichtbaren FAQ: der Build schreibt sie auch in `captly.html` zurück
+  (EN), der erste JSON-LD-Block ist ein `@graph` (Organization, WebSite, SoftwareApplication; DE ersetzt nur den App-Knoten).
+  [`llms.txt`](llms.txt) fasst die Fakten für KI-Suchmaschinen zusammen (bei Feature-/Preisänderungen mitpflegen).
   `sitemap.xml`/`robots.txt` listen beide Versionen. **Domainwechsel** (z. B. `captionrush.com`): Basis-URL in
   `captly.html` (canonical, hreflang, og:url/og:image), `i18n/de.js` (canonical, og:url, og:image) und `sitemap.xml`/`robots.txt` ersetzen.
 - [`transcribe.php`](transcribe.php) — serverseitiger Transkriptions-Proxy für Webhosting (hält den
