@@ -1954,6 +1954,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const { Readable } = require('stream');
     const handler = require(path.join(__dirname, 'api', 'transcribe.js'));
+    // gültiges WAV (16 kHz mono 16 bit) mit secs Sekunden — der Server prüft die Dauer im Header
+    const wav = secs => { const n = Math.round(secs * 32000), b = Buffer.alloc(44 + n); b.write('RIFF', 0); b.writeUInt32LE(36 + n, 4); b.write('WAVE', 8);
+      b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(16000, 24); b.writeUInt32LE(32000, 28);
+      b.writeUInt16LE(2, 32); b.writeUInt16LE(16, 34); b.write('data', 36); b.writeUInt32LE(n, 40); return b; };
+    const ogg = Buffer.from(T.buildOggOpus(Array.from({ length: 50 }, () => new Uint8Array([0x48, 1, 2, 3])), { preSkip: 312, totalSamples48: 50 * 960 }));
     const run = async (method, url, body, env, headers) => {
       Object.assign(process.env, { GROQ_API_KEY: '', RATE_LIMIT_PER_HOUR: '0', REQUIRE_LOGIN: '' }, env || {});
       const req = Readable.from(body ? [Buffer.from(body)] : []);
@@ -1963,33 +1968,38 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       return res;
     };
     ok((await run('GET', '/api/transcribe')).statusCode === 200, 'Function: GET Health-Check');
-    ok((await run('POST', '/api/transcribe', Buffer.alloc(500))).statusCode === 500, 'Function: ohne Key → 500 "nicht konfiguriert"');
+    ok((await run('POST', '/api/transcribe', wav(1))).statusCode === 500, 'Function: ohne Key → 500 "nicht konfiguriert"');
     let sent = null;
     global.fetch = async (u, o) => { sent = { u, o }; return { status: 200, headers: { get: () => null }, text: async () => '{"words":[]}' }; };
-    const r1 = await run('POST', '/api/transcribe?model=evil&lang=de!', Buffer.alloc(500), { GROQ_API_KEY: 'gsk_x' });
+    const r1 = await run('POST', '/api/transcribe?model=evil&lang=de!', wav(1), { GROQ_API_KEY: 'gsk_x' });
     ok(r1.statusCode === 200 && r1.body === '{"words":[]}', 'Function: reicht Groq-Antwort durch');
     ok(sent.o.headers.Authorization === 'Bearer gsk_x' && /transcriptions$/.test(sent.u), 'Function: Key nur serverseitig + Endpoint');
     ok(sent.o.body.get('model') === 'whisper-large-v3-turbo' && sent.o.body.get('language') === 'de', 'Function: Modell-Whitelist + lang bereinigt');
-    await run('POST', '/api/transcribe?model=whisper-large-v3-turbo&translate=1', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    await run('POST', '/api/transcribe?model=whisper-large-v3-turbo&translate=1', wav(1), { GROQ_API_KEY: 'k' });
     ok(sent.o.body.get('model') === 'whisper-large-v3' && /translations$/.test(sent.u), 'Function: Translate erzwingt large-v3 (turbo kann nicht uebersetzen)');
     // Vokabular-Prompt: bereinigt + gedeckelt, nur bei Transkription
     const rawPrompt = 'Birkenhof,\n\tHighland  Beef\u0007 ' + 'x'.repeat(400);
-    await run('POST', '/api/transcribe?prompt=' + encodeURIComponent(rawPrompt), Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    await run('POST', '/api/transcribe?prompt=' + encodeURIComponent(rawPrompt), wav(1), { GROQ_API_KEY: 'k' });
     const fp = sent.o.body.get('prompt');
     ok(typeof fp === 'string' && fp.startsWith('Birkenhof, Highland Beef x') && fp.length <= 300 && !/[\u0000-\u001f]/.test(fp),
        'Function: prompt bereinigt + max 300 Zeichen: ' + JSON.stringify(fp && fp.slice(0, 30)) + ' len=' + (fp && fp.length));
-    await run('POST', '/api/transcribe?translate=1&prompt=Birkenhof', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    await run('POST', '/api/transcribe?translate=1&prompt=Birkenhof', wav(1), { GROQ_API_KEY: 'k' });
     ok(sent.o.body.get('prompt') === null, 'Function: kein prompt beim Uebersetzen');
-    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' });
+    await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k' });
     ok(sent.o.body.get('prompt') === null, 'Function: ohne prompt-Param kein prompt-Feld');
     ok(sent.o.body.get('file').name === 'audio.wav' && sent.o.body.get('file').type === 'audio/wav', 'Function: ohne Content-Type → audio.wav');
-    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' }, { 'content-type': 'audio/ogg' });
+    await run('POST', '/api/transcribe', ogg, { GROQ_API_KEY: 'k' }, { 'content-type': 'audio/ogg' });
     ok(sent.o.body.get('file').name === 'audio.ogg' && sent.o.body.get('file').type === 'audio/ogg', 'Function: audio/ogg → audio.ogg an Groq');
-    await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' }, { 'content-type': 'text/html; charset=utf-8' });
+    await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k' }, { 'content-type': 'text/html; charset=utf-8' });
     ok(sent.o.body.get('file').name === 'audio.wav' && sent.o.body.get('file').type === 'audio/wav', 'Function: unbekannter Content-Type → WAV (Whitelist)');
     ok((await run('POST', '/api/transcribe', Buffer.alloc(5 * 1024 * 1024), { GROQ_API_KEY: 'k' })).statusCode === 413, 'Function: zu grosser Body → 413');
-    ok((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', REQUIRE_LOGIN: '1', SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'a' })).statusCode === 401, 'Function: Login-Pflicht ohne Token → 401');
-    const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
+    ok((await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k', REQUIRE_LOGIN: '1', SUPABASE_URL: 'https://x', SUPABASE_ANON_KEY: 'a' })).statusCode === 401, 'Function: Login-Pflicht ohne Token → 401');
+    ok((await run('POST', '/api/transcribe', Buffer.alloc(500), { GROQ_API_KEY: 'k' })).statusCode === 400, 'Function: kein WAV/Ogg → 400');
+    ok((await run('POST', '/api/transcribe', wav(131), { GROQ_API_KEY: 'k' })).statusCode === 413, 'Function: Stück > 130 s → 413');
+    const al = []; for (let i = 0; i < 3; i++) al.push((await run('POST', '/api/transcribe', wav(40), { GROQ_API_KEY: 'k', MAX_AUDIO_SEC_PER_HOUR: '100' }, { 'x-forwarded-for': '9.9.9.' + 1 })).statusCode);
+    ok(al.join() === '200,200,429', 'Function: Ton-Kontingent pro IP und Stunde (' + al.join() + ')');
+    process.env.MAX_AUDIO_SEC_PER_HOUR = '';
+    const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
     ok(rl[2] === 429, 'Function: Rate-Limit greift: ' + rl);
   }
 
@@ -2042,6 +2052,13 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(String.fromCharCode(...pg[1].body.subarray(0, 8)) === 'OpusTags' && pg[1].granule === 0, 'Muxer: OpusTags-Seite');
       ok(pg[2].flags === 0x04 && pg[2].granule === 2312, 'Muxer: letzte Seite EOS, Granule = preSkip + Länge (End-Trimming): ' + pg[2].granule);
       ok(pg.map(p => p.seq).join() === '0,1,2', 'Muxer: Seitennummern fortlaufend');
+    }
+    {
+      // Server-Missbrauchsschutz (api/_guard.js) liest die Dauer der App-eigenen Ogg-Dateien korrekt
+      const guard = require('./api/_guard.js');
+      const ogg = Buffer.from(T.buildOggOpus(Array.from({ length: 300 }, () => P(0x48, 1, 2, 3)), { preSkip: 312, totalSamples48: 300 * 960 }));
+      ok(Math.abs(guard.audioSeconds(ogg, true) - 6) < 0.01, 'Guard: Dauer aus App-Ogg = 6 s (' + guard.audioSeconds(ogg, true) + ')');
+      ok(guard.audioSeconds(Buffer.from('OggS' + 'x'.repeat(60)), true) === null && guard.audioSeconds(Buffer.alloc(10), false) === null, 'Guard: Müll → null');
     }
     {
       // 300 kleine Pakete → 255 auf Seite 2, Rest auf Seite 3; Granule = dekodierte Samples bis Seitenende

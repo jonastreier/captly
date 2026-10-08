@@ -128,6 +128,66 @@ if (!empty($_FILES['file']['tmp_name']) && is_uploaded_file($_FILES['file']['tmp
   $cleanup = true;
 }
 
+// ── Missbrauchsschutz 2: Dauer aus dem Header (nicht der Client-Angabe) — ein Stück ≤ 130 s, pro IP ein
+// Stunden-Kontingent an Ton (Dateien in sys_get_temp_dir → gilt über alle Requests, anders als auf Vercel).
+function audio_seconds($path, $isOgg) {
+  $b = (string)@file_get_contents($path);
+  if (strlen($b) < 44) return null;
+  if (!$isOgg) {
+    if (substr($b, 0, 4) !== 'RIFF' || substr($b, 8, 4) !== 'WAVE') return null;
+    $byteRate = unpack('V', substr($b, 28, 4))[1];
+    if (!$byteRate) return null;
+    $p = 12;
+    while ($p + 8 <= strlen($b)) {
+      $id = substr($b, $p, 4); $len = unpack('V', substr($b, $p + 4, 4))[1];
+      if ($id === 'data') return min($len, strlen($b) - $p - 8) / $byteRate;
+      $p += 8 + $len + ($len & 1);
+    }
+    return null;
+  }
+  // Ogg Seite für Seite (27-Byte-Kopf + Segmenttabelle); Granule der letzten Seite (48 kHz) minus Pre-Skip
+  $p = 0; $gran = -1; $pre = 0; $n = strlen($b);
+  while ($p + 27 <= $n && substr($b, $p, 4) === 'OggS') {
+    $ns = ord($b[$p + 26]);
+    if ($p + 27 + $ns > $n) break;
+    $body = 0; for ($i = 0; $i < $ns; $i++) $body += ord($b[$p + 27 + $i]);
+    $st = $p + 27 + $ns;
+    if ($st + $body > $n) break;
+    if ($p === 0 && $body >= 12 && substr($b, $st, 8) === 'OpusHead') $pre = unpack('v', substr($b, $st + 10, 2))[1];
+    $gran = unpack('P', substr($b, $p + 6, 8))[1];
+    $p = $st + $body;
+  }
+  return $gran > 0 ? max(0, $gran - $pre) / 48000 : null;
+}
+$isOgg = strpos($ctype, 'ogg') !== false;
+$secs = audio_seconds($tmp, $isOgg);
+if ($secs === null) { if ($cleanup) @unlink($tmp); fail(400, 'Audioformat nicht erkannt (erwartet WAV oder Ogg/Opus).'); }
+if ($secs > 130) { if ($cleanup) @unlink($tmp); fail(413, 'Audio-Stück zu lang (max. 130 s pro Request).'); }
+$AUDIO_CAP = (int)($cfg['MAX_AUDIO_SEC_PER_HOUR'] ?? 1800);
+if ($AUDIO_CAP > 0) {
+  $af = sys_get_temp_dir() . '/capivo_audio_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json';
+  $now = time(); $use = [];
+  if (is_file($af)) { $d = json_decode((string)@file_get_contents($af), true); if (is_array($d)) $use = array_values(array_filter($d, function($e) use ($now) { return is_array($e) && $e[0] > $now - 3600; })); }
+  $used = 0; foreach ($use as $e) $used += $e[1];
+  if ($used + $secs > $AUDIO_CAP) { if ($cleanup) @unlink($tmp); header('Retry-After: 900'); fail(429, 'Stundenlimit für diese Adresse erreicht – bitte später erneut versuchen.'); }
+  $use[] = [$now, $secs];
+  @file_put_contents($af, json_encode($use), LOCK_EX);
+}
+
+// Push an den Betreiber (z. B. ntfy.sh-Thema aus config.php ALERT_URL), höchstens einmal pro Stunde
+function alert_ops($key, $msg) {
+  global $cfg;
+  $url = (string)($cfg['ALERT_URL'] ?? '');
+  if (!preg_match('~^https://~', $url)) return;
+  $f = sys_get_temp_dir() . '/capivo_alert_' . md5($key);
+  if (is_file($f) && filemtime($f) > time() - 3600) return;
+  @touch($f);
+  $c = curl_init($url);
+  curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => mb_substr($msg, 0, 500), CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_TIMEOUT => 3, CURLOPT_HTTPHEADER => ['Title: CaptionRush', 'Tags: warning']]);
+  @curl_exec($c); curl_close($c);
+}
+
 // ── Multipart-Request an Groq bauen ──────────────────────────────────
 $endpoint = 'https://api.groq.com/openai/v1/audio/' . ($translate ? 'translations' : 'transcriptions');
 $post = [
@@ -162,6 +222,7 @@ curl_close($ch);
 if ($cleanup && $tmp) @unlink($tmp);
 
 if ($body === false) fail(502, 'Transkriptions-Dienst nicht erreichbar: ' . $cerr);
+if ($status == 429) alert_ops('groq-429-whisper', 'Groq-Limit erreicht (Transkription, HTTP 429). Nutzer bekommen gerade Fehler bzw. den langsamen lokalen Fallback.');
 
 // Groq-Status & -Body 1:1 durchreichen (Frontend kennt 401/402/413/429/503 und wiederholt 429/5xx selbst).
 if ($retryAfter !== null && is_numeric($retryAfter)) header('Retry-After: ' . (int)$retryAfter);

@@ -17,6 +17,13 @@ return [
   // Optional: max. Requests pro IP und Stunde (jedes ~100 s Audio = 1 Request). 0 = aus.
   'RATE_LIMIT_PER_HOUR' => 120,
 
+  // Optional: max. Sekunden Ton pro IP und Stunde (Default 1800 = 30 Min.). 0 = aus.
+  'MAX_AUDIO_SEC_PER_HOUR' => 1800,
+
+  // Optional: Push-Meldung an dich, wenn Groq sein Limit meldet (z. B. https://ntfy.sh/<geheimes-thema>,
+  // dazu die ntfy-App abonnieren). Leer = aus.
+  'ALERT_URL' => '',
+
   // Optional: Transkription nur für eingeloggte Nutzer (Supabase-Session wird serverseitig geprüft).
   // Werte = dieselben öffentlichen wie in captly.html (SUPABASE_URL / publishable key). Standard: aus.
   'REQUIRE_LOGIN'     => false,

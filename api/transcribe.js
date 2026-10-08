@@ -10,6 +10,7 @@
 //   REQUIRE_LOGIN=1 + SUPABASE_URL + SUPABASE_ANON_KEY (optional) → nur Eingeloggte dürfen transkribieren
 const { URL } = require('url');
 const { Blob } = require('buffer');
+const guard = require('./_guard');
 const ALLOWED = ['whisper-large-v3', 'whisper-large-v3-turbo'];
 const MAX_BYTES = 4 * 1024 * 1024; // Vercel kappt Bodies ab 4,5 MB ohnehin
 
@@ -88,6 +89,13 @@ module.exports = async function handler(req, res) {
 
   // Dateiname/Typ nach Content-Type (Whitelist: nur audio/ogg, sonst WAV) — Groq erkennt das Format am Namen
   const ogg = String(req.headers['content-type'] || '').split(';')[0].trim().toLowerCase() === 'audio/ogg';
+  // Missbrauchsschutz: Dauer aus dem Header (nicht der Client-Angabe) — ein Stück ≤ 130 s, pro IP ein Stunden-Kontingent
+  const secs = guard.audioSeconds(audio, ogg);
+  if (secs === null) return send(res, 400, { error: 'Audioformat nicht erkannt (erwartet WAV oder Ogg/Opus).' });
+  if (secs > guard.MAX_CHUNK_SEC) return send(res, 413, { error: 'Audio-Stück zu lang (max. ' + guard.MAX_CHUNK_SEC + ' s pro Request).' });
+  if (!guard.takeAudio(guard.clientIp(req), secs)) {
+    return send(res, 429, { error: 'Stundenlimit für diese Adresse erreicht – bitte später erneut versuchen.' }, { 'Retry-After': '900' });
+  }
   const fd = new FormData();
   fd.append('file', new Blob([audio], { type: ogg ? 'audio/ogg' : 'audio/wav' }), ogg ? 'audio.ogg' : 'audio.wav');
   fd.append('model', model);
@@ -105,6 +113,7 @@ module.exports = async function handler(req, res) {
     body = await r.text();
   } catch (e) { return send(res, 502, { error: 'Transkriptions-Dienst nicht erreichbar.' }); }
 
+  if (r.status === 429) guard.alertOps('groq-429-whisper', 'Groq-Limit erreicht (Transkription, HTTP 429). Nutzer bekommen gerade Fehler bzw. den langsamen lokalen Fallback.');
   const ra = r.headers.get('retry-after');
   res.statusCode = r.status || 502;
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
