@@ -32,6 +32,7 @@ jobs:
           node test-enhance.js
           node test-lead.js
           node test-telemetry.js
+          node test-billing.js
       - name: Paket bauen
         run: node scripts/build-dist.js
       - name: config.php aus Secrets schreiben

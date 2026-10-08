@@ -25,6 +25,16 @@ const cfg = [
   ['SMTP_USER', q(e.SMTP_USER || '')],
   ['SMTP_PASS', q(e.SMTP_PASS || '')],
   ['LEAD_SECRET', q(e.LEAD_SECRET || '')],
+  // Abos (Standard aus). Werte kommen aus GitHub-Secrets/-Variablen; ohne BILLING_ENABLED=1 ändert sich nichts.
+  ['BILLING_ENABLED', e.BILLING_ENABLED === '1' || e.BILLING_ENABLED === 'true' ? 'true' : 'false'],
+  ['ANON_SEC_PER_DAY', num(e.ANON_SEC_PER_DAY, 600)],
+  ['PADDLE_ENV', q(e.PADDLE_ENV === 'production' ? 'production' : 'sandbox')],
+  ['PADDLE_CLIENT_TOKEN', q(e.PADDLE_CLIENT_TOKEN || '')],
+  ['PADDLE_PRICE_CREATOR', q(e.PADDLE_PRICE_CREATOR || '')],
+  ['PADDLE_PRICE_PRO', q(e.PADDLE_PRICE_PRO || '')],
+  ['PADDLE_API_KEY', q(e.PADDLE_API_KEY || '')],
+  ['PADDLE_WEBHOOK_SECRET', q(e.PADDLE_WEBHOOK_SECRET || '')],
+  ['PADDLE_TOLERANCE_SEC', num(e.PADDLE_TOLERANCE_SEC, 300)],
 ];
 const php = '<?php\n// Automatisch erzeugt von scripts/write-config.js (GitHub-Action). Nicht bearbeiten, nicht committen.\nreturn [\n'
   + cfg.map(([k, v]) => '  ' + q(k) + ' => ' + v + ',').join('\n') + '\n];\n';
