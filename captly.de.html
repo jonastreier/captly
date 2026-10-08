@@ -40,7 +40,7 @@
 <link rel="preload" as="font" type="font/woff2" href="vendor/fonts/inter-latin-n-6ab57b.woff2" crossorigin>
 <link rel="stylesheet" href="vendor/fonts/fonts.css">
 <style>
-/* Design-Tokens (ruhiger, neutraler Look à la captions.ai; Lila ist der EINZIGE Akzent).
+/* Design-Tokens (ruhiger, neutraler Look; Lila ist der EINZIGE Akzent).
    --muted: Hinweis-/Sekundärtext (≥ 4.5:1 auf Weiß) · --faint nur für Trenner/Deko, nie für wichtigen Text.
    Abstände 4/8/12/16/24 · Radien: Knöpfe 10, Karten 16, Blätter 20/24, Chips/Pillen 999. */
 :root{--ink:#1d1f20;--ink2:#474c4d;--muted:#5f6566;--faint:#9aa1a3;
@@ -72,7 +72,7 @@ body.editor-open{height:100vh;overflow:hidden}
 
 #app{display:flex;min-height:100vh}
 
-/* LANDING — ruhig wie captions.ai: weicher Himmel/Pfirsich-Verlauf mit feinem Korn, viel Weißraum,
+/* LANDING — ruhig: weicher Himmel/Pfirsich-Verlauf mit feinem Korn, viel Weißraum,
    EINE große Upload-Karte, weiße Karten mit zarten Rändern, Lila nur als Akzent. */
 #landing{position:relative;display:flex;flex-direction:column;align-items:center;width:100%;padding:0 16px 40px;background:#fff;color:var(--ink)}
 .land-bg{position:absolute;left:0;right:0;top:0;height:min(1000px,120vh);pointer-events:none;z-index:0;
@@ -108,7 +108,7 @@ body.editor-open{height:100vh;overflow:hidden}
 .uz-ic{display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;background:#fff;color:var(--brand);box-shadow:var(--sh-2);margin-bottom:8px;transition:transform .2s}
 .uz-ic .ic{width:22px;height:22px}
 .upload-zone:hover .uz-ic{transform:translateY(-2px)}
-.upload-zone h3{font-size:18px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+.upload-zone .uz-h{font-size:18px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
 .upload-zone p{font-size:13px;color:var(--muted);line-height:1.5}
 .hc-styles{padding:14px 4px 4px}
 .hc-sh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 2px 10px}
@@ -654,6 +654,8 @@ input[type=checkbox]{accent-color:var(--brand)}
 @media (min-width:900px){.show-row{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 calc(100% - 150px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 calc(100% - 150px),transparent 100%)}}
 .show-card{flex:0 0 auto;width:174px;height:310px;border-radius:20px;overflow:hidden;position:relative;scroll-snap-align:center;box-shadow:var(--sh-2);cursor:pointer;transition:box-shadow .25s,transform .25s;animation:showIn .5s both}
 .show-card:hover{transform:translateY(-2px);box-shadow:var(--sh-3)}
+/* Unterhalb des ersten Bildschirms: Layout/Style erst beim Hinscrollen berechnen (schnellerer erster Paint, v. a. auf dem Handy) */
+.how-sec,.feat-sec,.pricing-sec,.faq-sec,.cta-band,.land-foot{content-visibility:auto;contain-intrinsic-size:auto 640px}
 @keyframes showIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 .show-bg{position:absolute;inset:0}
 .show-photo{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;display:block;transition:opacity .35s ease}
@@ -709,6 +711,9 @@ body.editor-open .lang-hint{display:none}
 /* Kopfzeile */
 .tb-left,.tb-right{display:flex;align-items:center;gap:6px;flex-shrink:0}
 .tb-right{position:relative}
+.min-left{border:0;font:600 12px/1 inherit;font-family:inherit;padding:6px 10px;border-radius:999px;background:var(--fill);color:var(--ink2);cursor:pointer;white-space:nowrap;margin-right:6px}
+.min-left.low{background:#fdf3e7;color:#b45309}
+@media(max-width:640px){.min-left{display:none!important}}
 .tb-back{display:inline-flex;align-items:center;gap:4px;padding:5px 10px 5px 6px}
 .tb-mid{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:8px}
 .tb-title{min-width:0;width:auto;max-width:360px;field-sizing:content;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 8px;font:600 14px 'Inter',sans-serif;color:var(--ink);text-overflow:ellipsis;outline:none;text-align:center}
@@ -806,6 +811,7 @@ body.editor-open .lang-hint{display:none}
 .sh-bar{height:5px;border-radius:99px;background:rgba(124,58,237,.12);overflow:hidden}
 .sh-fill{height:100%;width:0;background:linear-gradient(90deg,var(--brand),#ec4899);border-radius:99px;transition:width .35s cubic-bezier(.2,.7,.2,1)}
 .stile-badge{font-size:11px}
+.stile-tag{position:absolute;top:5px;right:5px;z-index:2;background:var(--brand);color:#fff;font-size:9.5px;font-weight:700;letter-spacing:.02em;line-height:1;padding:3px 6px;border-radius:999px;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.25)}
 .q-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
 .q-k{flex:0 0 64px;font-size:12.5px;font-weight:600;color:var(--ink2)}
 .q-row .pos-row{flex:1;margin:0}
@@ -1009,7 +1015,7 @@ body.editor-open .lang-hint{display:none}
     </nav>
     <button class="nav-cta" onclick="openEditorClean();showAcct()">Anmelden</button>
   </div>
-  <!-- Hero wie captions.ai: zentrierte Überschrift direkt über EINER großen Upload-Karte (Sprache, Ablagefläche,
+  <!-- Hero: zentrierte Überschrift direkt über EINER großen Upload-Karte (Sprache, Ablagefläche,
        Style-Chips mit Live-Vorschau). Gewählter Chip = Style fürs nächste Video (landPick). -->
   <section class="hero">
     <h1 class="land-h">Untertitel automatisch erstellen – für Reels und TikToks, Wort für Wort in Sekunden.</h1>
@@ -1026,7 +1032,7 @@ body.editor-open .lang-hint{display:none}
       <label class="upload-zone" id="landZone">
         <input type="file" accept="video/*" id="landInput">
         <span class="uz-ic"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
-        <h3><span class="hint-desk">Video hinzufügen und loslegen</span><span class="hint-touch">Tippen, um ein Video zu wählen</span></h3>
+        <p class="uz-h"><span class="hint-desk">Video hinzufügen und loslegen</span><span class="hint-touch">Tippen, um ein Video zu wählen</span></p>
         <p><span class="hint-desk">Hierher ziehen oder klicken · </span>MP4, MOV oder WebM</p>
       </label>
       <div class="hc-styles">
@@ -1226,6 +1232,7 @@ body.editor-open .lang-hint{display:none}
       </div>
     </div>
     <p class="foot-legal">Dein Video bleibt auf deinem Gerät; nur die Tonspur wird zur Transkription gesendet. Details in der <a href="datenschutz.html">Datenschutzerklärung</a>.</p>
+    <p class="foot-legal">Alle genannten Marken und Produktnamen sind Eigentum ihrer jeweiligen Inhaber. CaptionRush steht in keiner Verbindung zu ihnen.</p>
     <p class="foot-lang"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg><a href="/" hreflang="en" lang="en">English</a><a href="/de" hreflang="de" lang="de" aria-current="page">Deutsch</a></p>
     <p class="foot-copy">© 2026 CaptionRush · Gemacht in der Schweiz von Jonas Treier</p>
   </footer>
@@ -1249,6 +1256,7 @@ body.editor-open .lang-hint{display:none}
       <span class="save-ind" id="saveInd" role="status" aria-live="polite"></span>
     </div>
     <div class="tb-right">
+      <button type="button" class="min-left" id="minLeft" style="display:none" onclick="showUpgrade()" title="Transcription minutes left this month"></button>
       <div class="tb-undo" id="tbUndo">
         <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Undo caption edit (Ctrl/⌘+Z)" aria-label="Undo"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg></button>
         <button type="button" class="tb-icon" id="redoBtn" onclick="redoCaptions()" disabled title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo"><svg class="ic" aria-hidden="true"><use href="#i-redo"/></svg></button>
@@ -1256,6 +1264,7 @@ body.editor-open .lang-hint{display:none}
       <div class="tb-more">
         <button type="button" class="tb-icon" id="moreBtn" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu" title="Account, projects &amp; shortcuts" aria-label="More"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></button>
         <div class="tb-menu" id="moreMenu" style="display:none" onclick="event.stopPropagation()">
+          <button type="button" class="tm-item" id="mmMin" style="display:none" onclick="closeMoreMenu();showUpgrade()"></button>
           <button type="button" class="tm-item" id="acctBtn" onclick="closeMoreMenu();showAcct()">Sign in</button>
           <button type="button" class="tm-item" onclick="closeMoreMenu();saveProject()" title="Save captions + style to your free account">Save to account</button>
           <label class="tm-item tm-sel">Load project
@@ -1538,7 +1547,7 @@ body.editor-open .lang-hint{display:none}
         <div class="style-grid" id="stylePicker"></div>
       </div>
 
-      <!-- Reihenfolge wie captions.ai: zuerst der Look (Raster oben), dann Layout, dann Hervorhebung, dann „Customize“ -->
+      <!-- Reihenfolge: zuerst der Look (Raster oben), dann Layout, dann Hervorhebung, dann „Customize“ -->
       <div class="csect" data-tab="style">
         <h3 class="sec-h">Layout</h3>
         <!-- Layout: Größe, Position, Wörter pro Caption, Zeilenlänge, Zeilen, Schreibweise -->
@@ -1764,9 +1773,11 @@ body.editor-open .lang-hint{display:none}
     </div>
     <div id="acctStep3" style="display:none">
       <p style="font-size:12.5px;margin-bottom:10px" id="acctInfo"></p>
-      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('creator')" title="Paid plans are coming soon">Creator · 300 min/mo · $7.99 — coming soon</button>
-      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" onclick="startCheckout('pro')" title="Paid plans are coming soon">Pro · 1200 min/mo · $14.99 — coming soon</button>
+      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" id="btnPlanCreator" onclick="startCheckout('creator')" title="Paid plans are coming soon">Creator · 300 min/mo · $7.99 — coming soon</button>
+      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" id="btnPlanPro" onclick="startCheckout('pro')" title="Paid plans are coming soon">Pro · 1200 min/mo · $14.99 — coming soon</button>
+      <button class="pos-btn" id="btnPortal" style="width:100%;padding:8px;margin-bottom:5px;display:none" onclick="openPortal()">Manage subscription &amp; invoices</button>
       <button class="pos-btn" style="width:100%;padding:8px" onclick="logout()">Sign out</button>
+      <button type="button" id="acctDelBtn" style="display:block;margin:10px auto 0;background:none;border:0;padding:4px;font-size:11.5px;color:#9a3b3b;text-decoration:underline;cursor:pointer" onclick="deleteAccount()">Delete account and all saved projects</button>
     </div>
     <p id="acctMsg" style="font-size:12px;color:#7c3aed;margin-top:8px"></p>
   </div>
@@ -1944,7 +1955,7 @@ function resolveStyleId(id) {
 // STATE
 // ═══════════════════════════════════════
 // Standard-Style für neue Nutzer: Reveal (ruhig wie die Captions-App, kleiner weicher Schatten → schneller
-// Export). Vorher Hormozi, davor „Petal“ (große Blur-Glows, Export bis 6× langsamer). Eine bewusste frühere
+// Export). Vorher Bold Pop, davor „Petal“ (große Blur-Glows, Export bis 6× langsamer). Eine bewusste frühere
 // Wahl (gemerkter Style, Brand-Default) bleibt erhalten.
 var DEFAULT_STYLE   = 'tight', STYLE_KEY = 'capivo.style';
 var activeId        = (function(){ try { return resolveStyleId((typeof localStorage !== 'undefined' && localStorage.getItem(STYLE_KEY)) || DEFAULT_STYLE); } catch (e) { return DEFAULT_STYLE; } })();
@@ -1989,7 +2000,7 @@ var VOCAB_KEY       = 'capivo.vocab';
 var vocabText       = '';
 var _vocabUsed      = null;
 try { vocabText = (typeof localStorage !== 'undefined' && localStorage.getItem(VOCAB_KEY)) || ''; } catch (eV) { vocabText = ''; }
-var autoCutSilence  = false; // Stille & Füllwörter beim Export überspringen — opt-in (wie Submagic), sonst ändert der Export ungefragt Länge/Schnitt
+var autoCutSilence  = false; // Stille & Füllwörter beim Export überspringen — opt-in, sonst ändert der Export ungefragt Länge/Schnitt
 function isKeywordWord(w) {
   if (!hlKeywords.length || !w) return false;
   return hlKeywords.indexOf(String(w).toLowerCase().replace(/[^\wäöüàéèêß]/g, '')) >= 0;
@@ -2192,7 +2203,7 @@ async function encodeUploadAudio(samples, sr) {
 // ── Robuste Server-Transkription: Audio in Stücken statt als ein grosser Upload ──────────────
 // Warum: Ein einziger WAV-Upload scheitert auf Webhosting still an post_max_size (oft 8 MB ≈ 4 Min),
 // an Timeouts und an Groq-Limits; ein Fehler kostet ausserdem die ganze Transkription. Wie die
-// Profi-Tools (Opus Clip, FireCut) wird deshalb in ~100 s-Stücke geteilt (≤ ~3,2 MB/Request), jedes
+// Profi-Tools wird deshalb in ~100 s-Stücke geteilt (≤ ~3,2 MB/Request), jedes
 // Stück einzeln mit Retry gesendet, die Wort-Timings um den Stück-Offset verschoben und gemerged.
 var MAX_AUDIO_SEC = 1200; // 20 Min — darüber wird (sichtbar!) gekürzt
 var CHUNK_SEC = 100;      // Ziellänge pro Request
@@ -2904,7 +2915,7 @@ function workerCall(cmd, payload, onProgress) {
   });
 }
 // Pipeline-Factory: tiny/base/small über transformers.js v2 (WASM, stabil),
-// turbo über v3 + WebGPU + whisper-large-v3-turbo (Studio-Qualität, wie captions.ai serverseitig).
+// turbo über v3 + WebGPU + whisper-large-v3-turbo (Studio-Qualität, serverseitig).
 // Lädt/baut die Pipeline im Worker; gibt nur ein leichtes Handle zurück (kein echter Aufruf hier).
 async function getPipe(model) {
   if (whisperPipes[model]) return whisperPipes[model];
@@ -2952,7 +2963,7 @@ var WORDS_PER_BLOCK = 4;
 var displayMode     = 'karaoke';   // 'karaoke' = nur aktiver Block | 'all' = Block bleibt bis zum nächsten
 var CAPTION_LINES   = 2;    // max. Zeilen pro Caption-Block — 2 verhindert, dass lange deutsche Wörter auf eine Zeile geschrumpft werden
 // „Max characters per line“ (Style-Tab): 0 = Auto (aus Schriftgröße/Style/Safe-Zone-Breite abgeleitet), sonst
-// fester Wert. Blöcke werden beim Bauen früher geschlossen, statt die Schrift zu verkleinern (wie Submagic/Captions).
+// fester Wert. Blöcke werden beim Bauen früher geschlossen, statt die Schrift zu verkleinern.
 var CAP_MAX_CHARS   = 0;
 var CAP_CHARS_MIN   = 8, CAP_CHARS_MAX = 40;
 // Lücken zwischen Captions < GAP_CLOSE_SEC werden geschlossen (Blockende → Start des nächsten Blocks),
@@ -4645,7 +4656,7 @@ function startCapLoop() {
 // ═══════════════════════════════════════
 // CAPTION BLOCKS
 // ═══════════════════════════════════════
-// Blöcke à max. WORDS_PER_BLOCK Wörter — bricht zusätzlich bei Sprechpausen (>0.8s) und Satzenden (wie captions.ai)
+// Blöcke à max. WORDS_PER_BLOCK Wörter — bricht zusätzlich bei Sprechpausen (>0.8s) und Satzenden
 // ═══════════════════════════════════════
 // SCENE CUTS — harte Schnitte im hochgeladenen Video erkennen (im Hintergrund)
 // ═══════════════════════════════════════
@@ -5410,12 +5421,17 @@ function splitOverflowingBlocks(blocks, lim) {
 // Reicht das nicht, nur dann verschmelzen, wenn das Ergebnis höchstens „Wörter pro Block“ hat, nicht über
 // ein Satzende (. ! ? …) und nicht über einen Schnitt läuft — sonst bleibt der Block, wie er ist
 // (vorher entstanden z. B. „SIE IN DIE KOMMENTARE. HALLO“ mit 5 Wörtern bei 4 pro Block).
-var MIN_BLOCK_SEC = 0.3;
+// Ein-Wort-Layouts (Tight, wpb = 1): schnelle Sprecher liefern Wörter < 0,25 s, die man nicht lesen kann.
+// Reicht das Verlängern nicht, wird das Wort mit dem Nachbarn zu einem Block mit höchstens 2 Wörtern
+// zusammengefasst (gleiche Grenzen wie oben: kein Satzende, kein Schnitt, Zeichenlimit).
+var MIN_BLOCK_SEC = 0.3, MIN_WORD_SEC = 0.25;
 function enforceMinBlockDuration(blocks, cuts, charLim) {
   cuts = cuts || [];
+  var single = WORDS_PER_BLOCK <= 1, maxJoin = single ? 2 : WORDS_PER_BLOCK;
   function canJoin(a, b2) {
     if (!a || !b2) return false;
-    if (WORDS_PER_BLOCK <= 1 || a.words.length + b2.words.length > WORDS_PER_BLOCK) return false;
+    if (a.words.length + b2.words.length > maxJoin) return false;
+    if (single && (a.words.length > 1 || b2.words.length > 1)) return false;
     if (charLim && !capWordsFit(a.words.concat(b2.words), charLim)) return false; // Zeichenlimit gilt auch beim Verschmelzen
     if (b2.start - a.end >= 0.8) return false;
     var la = a.words[a.words.length - 1], fb = b2.words[0];
@@ -5437,7 +5453,7 @@ function enforceMinBlockDuration(blocks, cuts, charLim) {
     if (next) lim = Math.min(lim, next.start);
     var c = cutBetween(cuts, b.start + 1e-6, lim); if (c !== null) lim = Math.min(lim, c);
     if (lim > b.end) b.end = lim;
-    if (b.end - b.start >= MIN_BLOCK_SEC - 1e-9) continue;
+    if (b.end - b.start >= (single ? MIN_WORD_SEC : MIN_BLOCK_SEC) - 1e-9) continue;
     // 2) nur unter strengen Bedingungen verschmelzen
     var okP = canJoin(prev, b), okN = canJoin(b, next);
     if (okP && (!okN || (b.start - prev.end) <= (next.start - b.end))) { out.splice(i - 1, 2, join(prev, b)); i -= 2; continue; }
@@ -5508,7 +5524,7 @@ function resplitBlock(b) {
     return { word: w, start: b.start + dur * i / ws.length, end: b.start + dur * (i + 1) / ws.length };
   });
 }
-// Nach Text-Edit: ECHTE Wort-Timings erhalten (wie Opus Clip/Descript) statt alles gleichmäßig zu verteilen —
+// Nach Text-Edit: ECHTE Wort-Timings erhalten statt alles gleichmäßig zu verteilen —
 // sonst verschiebt ein einzelner Tippfehler-Fix sämtliche Karaoke-Highlights im Block.
 // Referenz ist b.srcWords (stabile, getimte Wörter seit Transkription/Split/Merge/Regroup/Projekt-Load),
 // NICHT der Stand vom letzten Tastendruck — sonst würde „Wort löschen, neues tippen“ über den
@@ -6914,7 +6930,11 @@ function makeStyleTile(s) {
     });
     var info = document.createElement('div');
     info.className = 'stile-info';
-    var badge = s.badge ? (' <span class="stile-badge">' + s.badge + '</span>') : '';
+    // Text-Abzeichen («New», «Trending») als kleine Marke oben rechts auf der Kachel (im Namen würden sie ihn abschneiden);
+    // Emoji-Abzeichen (❤️ ⭐) bleiben hinter dem Namen.
+    var tagBadge = s.badge && /^[A-Za-z]/.test(s.badge);
+    var badge = s.badge && !tagBadge ? (' <span class="stile-badge">' + s.badge + '</span>') : '';
+    if (tagBadge) { var tg = document.createElement('span'); tg.className = 'stile-tag'; tg.textContent = s.badge; tile.appendChild(tg); }
     // Nur Name (+ Badge) — die Schriftart-Zeile in 7 px war unlesbar und für die Wahl unwichtig. Status
     // (eigener Entwurf / Standard-Template) bleibt als zweite Zeile.
     var sub = s.id === 'custom' ? 'unsaved' : (s._isTpl && s.id === brandTplId() ? '★ default' : '');
@@ -7412,6 +7432,51 @@ function loadStyleDrops() {
     return n;
   }).catch(function(){ return 0; }); // fehlt die Datei (Entwicklung, offline) → nur die eingebauten Looks
 }
+// ── Anonyme Messung: Fehlerberichte (api/log → log.php) und Style-Zählung (api/stat → stat.php) ──
+// Ohne Personendaten (Details in der Datenschutzerklärung): nur bereinigter Fehlertext + Seitenpfad bzw. die Style-ID beim
+// erfolgreichen Export. Nur über https auf der echten Domain, nicht bei «Do Not Track»/GPC. Ruft nie etwas anderes auf.
+var TELE_ON = (function(){ try { return location.protocol === 'https:' && !/^(localhost|127\.|\[::1\])/.test(location.hostname) && navigator.doNotTrack !== '1' && !navigator.globalPrivacyControl; } catch (e) { return false; } })();
+var _teleSent = 0, _teleSeen = {}, _teleSample = Math.random() < 0.5; // jede zweite Sitzung meldet, max. 5 verschiedene Fehler
+function telePost(url, obj) {
+  try { fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(obj), keepalive: true }).catch(function(){}); } catch (e) {}
+}
+function teleError(msg, src) {
+  if (!TELE_ON || !_teleSample || _teleSent >= 5) return;
+  msg = String(msg || '').slice(0, 300);
+  if (!msg || /^Script error\.?$|ResizeObserver loop/.test(msg) || _teleSeen[msg]) return;
+  _teleSeen[msg] = 1; _teleSent++;
+  telePost('api/log', { m: msg, s: String(src || '').slice(0, 160), p: location.pathname });
+}
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('error', function(e){ teleError(e && e.message, ((e && e.filename) || '').split('/').pop() + ':' + ((e && e.lineno) || 0)); });
+  window.addEventListener('unhandledrejection', function(e){ var r = e && e.reason; teleError('Unhandled rejection: ' + ((r && r.message) || r), ''); });
+}
+// Erfolgreicher MP4-Export → ein Zähler für den verwendeten, eingebauten Style (keine eigenen Looks/Vorlagen)
+function statExport() {
+  if (!TELE_ON) return;
+  var s = (typeof STYLES !== 'undefined') && STYLES.filter(function(x){ return x.id === activeId; })[0];
+  if (!s || s._isTpl || s.id === 'custom' || !/^[a-z0-9_-]{1,32}$/.test(s.id)) return;
+  telePost('api/stat', { style: s.id });
+}
+// «Trending»-Abzeichen: die 3 meistexportierten Looks der letzten 30 Tage, erst ab genug Daten (sonst Zufall)
+var TREND_MIN_TOTAL = 50;
+function applyTrending(res) {
+  if (!res || !(res.total >= TREND_MIN_TOTAL) || !Array.isArray(res.top)) return 0;
+  var n = 0;
+  res.top.slice(0, 3).forEach(function(t) {
+    var st = STYLES.filter(function(x){ return x.id === t.style; })[0];
+    if (st && !st._isTpl && !st.badge) { st.badge = 'Trending'; st._trend = true; n++; }
+  });
+  return n;
+}
+function loadStyleStats() {
+  if (typeof fetch !== 'function' || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return Promise.resolve(0);
+  return fetch('api/stat').then(function(r) { return r.ok ? r.json() : null; }).then(function(res) {
+    var n = applyTrending(res);
+    if (n) { try { buildPicker(); } catch (e) {} }
+    return n;
+  }).catch(function(){ return 0; });
+}
 var LAND_CHIPS = ['tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'hormozi', 'classic', 'boxkara', 'beast'];
 var landPick = null;
 function renderLandChips() {
@@ -7572,7 +7637,7 @@ async function verifyCode() {
   } catch (e) { m.textContent = authErrText(e); return; }
   m.textContent = '';
   document.getElementById('acctModal').style.display = 'none';
-  await fetchMe(); loadProjects();
+  await fetchMe(); loadProjects(); loadBilling();
   if (_pendingWmExport && meEmail) { _pendingWmExport = false; exportVideoWithCaptions(); } // Export ohne Logo nach Login
 }
 // Anonymer Export-Button „Export without watermark“ → Login, danach startet der Export automatisch.
@@ -7587,14 +7652,38 @@ async function exportWithoutWatermark() {
 async function logout() {
   var sb = await getSb();
   if (sb) await sb.auth.signOut();
-  mePlan = 'anon'; meEmail = '';
+  resetAcctUI();
+}
+function resetAcctUI() {
+  mePlan = 'anon'; meEmail = ''; billing = null; renderBilling();
   document.getElementById('acctBtn').textContent = 'Sign in';
   document.getElementById('acctModal').style.display = 'none';
   var pl = document.getElementById('projList'); if (pl) pl.innerHTML = '<option value="">— Load project —</option>';
   updateAcctUI();
 }
+// Konto selbst löschen (DSGVO Art. 17 / nDSG Art. 32): delete_my_account() in schema.sql löscht auth.users,
+// Projekte/Vorlagen/Abo-Zeilen verschwinden per on delete cascade. Newsletter-Leads hängen an der E-Mail,
+// nicht am Konto, und bleiben (Abmeldung separat über den Link in jeder Mail).
+async function deleteAccount() {
+  if (!meEmail) return;
+  var m = document.getElementById('acctMsg');
+  // Laufendes Paddle-Abo würde sonst weiter abbuchen, ohne dass ein Konto existiert → erst kündigen.
+  if (billingOn() && billing.loggedIn && billing.plan && billing.plan !== 'free') {
+    if (m) m.textContent = 'Please cancel your ' + (PLAN_NAMES[billing.plan] || billing.plan) + ' plan first (Manage billing). Once it has ended you can delete the account here, or email contact@captionrush.com.';
+    return;
+  }
+  if (!confirm('Delete your account ' + meEmail + ' and all saved projects and templates? This cannot be undone.')) return;
+  var sb = await getSb();
+  if (!sb) { if (m) m.textContent = 'Sign-in service is unavailable right now. Please try again later.'; return; }
+  var res;
+  try { res = await sb.rpc('delete_my_account'); } catch (e) { res = { error: e }; }
+  if (res && res.error) { if (m) m.textContent = 'Could not delete the account: ' + (res.error.message || res.error); return; }
+  try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {} // Nutzer existiert nicht mehr → nur lokal abmelden
+  resetAcctUI();
+  capToast('Your account and saved projects were deleted');
+}
 function applyUser(user) {
-  meEmail = user.email || user.phone || 'account'; mePlan = 'free';
+  meEmail = user.email || user.phone || 'account'; mePlan = (billing && billing.loggedIn && billing.plan) || 'free';
   var b = document.getElementById('acctBtn'), i = document.getElementById('acctInfo');
   if (b) b.textContent = 'Account · ' + meEmail.split('@')[0];
   if (i) i.textContent = meEmail + ' · signed in';
@@ -7627,7 +7716,8 @@ function waitAuth() {
 }
 function updateAcctUI() {
   var wo = document.getElementById('wmOpt');
-  if (wo) wo.style.display = needsWatermark() && !document.getElementById('expGate') ? '' : 'none'; // Beta: E-Mail-Gate statt Wasserzeichen // Hinweis im Export-Blatt VOR dem Rendern (keine Überraschung)
+  if (wo && billingOn()) { wo.style.display = needsWatermark() ? '' : 'none'; wo.innerHTML = 'Free plan adds a small CaptionRush mark · <a href="#" onclick="closeExportSheet();showUpgrade();return false">Upgrade to remove it</a>'; }
+  else if (wo) wo.style.display = needsWatermark() && !document.getElementById('expGate') ? '' : 'none'; // Beta: E-Mail-Gate statt Wasserzeichen // Hinweis im Export-Blatt VOR dem Rendern (keine Überraschung)
   var rw = document.getElementById('expRmWm');
   if (rw && !needsWatermark()) rw.style.display = 'none';
   var qi = document.getElementById('quotaInfo');
@@ -7637,8 +7727,96 @@ function updateAcctUI() {
 }
 // Bezahlung ist noch nicht angebunden (kein Stripe im aktuellen Umfang) — die Plan-Buttons
 // bleiben sichtbar, sagen aber ehrlich, dass es noch nichts zu kaufen gibt.
-function startCheckout(plan) {
-  document.getElementById('acctMsg').textContent = 'Paid plans are coming soon — everything is free while CaptionRush is in beta.';
+// ── Abos (Vorbereitung, nur aktiv wenn api/plan {enabled:true} liefert; Standard: aus → alles wie in der Beta) ──
+var billing = null, _paddleReady = false;
+function billingOn() { return !!(billing && billing.enabled); }
+function minOf(sec) { return Math.max(0, Math.floor((sec || 0) / 60)); }
+var PLAN_NAMES = { anon: 'Guest', free: 'Free', creator: 'Creator', pro: 'Pro' };
+function quotaText(plan) {
+  return plan === 'anon' ? 'Today\'s guest minutes are used up. Sign in free for ' + minOf(billing && billing.limits && billing.limits.free) + ' minutes a month.'
+    : plan === 'free' ? 'You\'ve used your free minutes for this month. Upgrade for more minutes, or come back next month.'
+    : 'You\'ve used all minutes of your plan this month. They reset next month.';
+}
+async function loadBilling() {
+  if (typeof fetch !== 'function' || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return null;
+  try {
+    var tok = await authToken();
+    var r = await fetch('api/plan', { headers: tok ? { 'X-Capivo-Token': tok } : {}, cache: 'no-store' });
+    var j = r.ok ? await r.json() : null;
+    billing = j && j.enabled ? j : null;
+  } catch (e) { billing = null; }
+  if (billing && billing.loggedIn && billing.plan) mePlan = billing.plan;
+  renderBilling(); updateAcctUI();
+  return billing;
+}
+function renderBilling() {
+  var on = billingOn() && billing.loggedIn, pill = document.getElementById('minLeft'), mm = document.getElementById('mmMin');
+  var txt = on ? '⏱ ' + minOf(billing.left_sec) + ' min left' : '';
+  [pill, mm].forEach(function(el) {
+    if (!el) return;
+    el.style.display = on ? '' : 'none'; el.textContent = txt;
+    if (el.classList) el.classList.toggle('low', on && billing.left_sec < billing.limit_sec * 0.1);
+  });
+  var info = document.getElementById('acctInfo');
+  if (info && meEmail) info.textContent = meEmail + ' · signed in' + (on ? ' · ' + PLAN_NAMES[billing.plan] + ' plan · ' + minOf(billing.left_sec) + ' of ' + minOf(billing.limit_sec) + ' min left this month' : '');
+  var c = document.getElementById('btnPlanCreator'), p = document.getElementById('btnPlanPro'), po = document.getElementById('btnPortal');
+  if (c && p) {
+    var lim = (billing && billing.limits) || {};
+    c.textContent = billingOn() ? 'Creator · ' + minOf(lim.creator) + ' min/month' : 'Creator · 300 min/mo · $7.99 — coming soon';
+    p.textContent = billingOn() ? 'Pro · ' + minOf(lim.pro) + ' min/month' : 'Pro · 1200 min/mo · $14.99 — coming soon';
+    c.title = p.title = billingOn() ? 'Price shown in your local currency at checkout' : 'Paid plans are coming soon';
+    c.style.display = on && billing.plan === 'creator' ? 'none' : ''; p.style.display = on && billing.plan === 'pro' ? 'none' : '';
+  }
+  if (po) po.style.display = on && billing.canPortal ? '' : 'none';
+}
+function showUpgrade() { showAcct(); renderBilling(); }
+function loadPaddleJs() {
+  return new Promise(function(res, rej) {
+    if (window.Paddle) { res(); return; }
+    var sc = document.createElement('script'), t = setTimeout(function(){ rej(new Error('timeout')); }, 12000);
+    // Einzige Stelle mit Fremdserver: erst beim Klick auf «Upgrade» geladen (Zahlungsanbieter Paddle, siehe Datenschutzerklärung)
+    sc.src = 'https://cdn.paddle.com/paddle/v2/paddle.js';
+    sc.onload = function(){ clearTimeout(t); res(); }; sc.onerror = function(){ clearTimeout(t); rej(new Error('load')); };
+    document.head.appendChild(sc);
+  });
+}
+async function startCheckout(plan) {
+  var m = document.getElementById('acctMsg');
+  if (!billingOn()) { m.textContent = 'Paid plans are coming soon — everything is free while CaptionRush is in beta.'; return; }
+  if (!meEmail) { showAcct(); m.textContent = 'Sign in first, then pick a plan.'; return; }
+  var pd = billing.paddle || {}, price = pd.prices && pd.prices[plan];
+  if (!pd.clientToken || !price) { m.textContent = 'Checkout is not available yet — please try again later.'; return; }
+  m.textContent = 'Opening checkout…';
+  try { await loadPaddleJs(); } catch (e) { m.textContent = 'Could not load the payment window. Please check your connection and try again.'; return; }
+  try {
+    if (!_paddleReady) {
+      if (pd.env === 'sandbox') window.Paddle.Environment.set('sandbox');
+      window.Paddle.Initialize({ token: pd.clientToken, eventCallback: function(ev) { if (ev && ev.name === 'checkout.completed') onCheckoutDone(); } });
+      _paddleReady = true;
+    }
+    window.Paddle.Checkout.open({ items: [{ priceId: price, quantity: 1 }], customer: { email: meEmail }, customData: { user_id: billing.userId },
+      settings: { displayMode: 'overlay', theme: 'light', locale: String(navigator.language || 'en').slice(0, 2) } });
+    m.textContent = '';
+  } catch (e) { m.textContent = 'Checkout could not start. Please try again.'; }
+}
+// Nach dem Bezahlen: der Webhook braucht einen Moment → Plan ein paar Mal nachladen
+async function onCheckoutDone() {
+  var m = document.getElementById('acctMsg'); if (m) m.textContent = 'Thank you! Activating your plan…';
+  for (var i = 0; i < 8; i++) {
+    await new Promise(function(r){ setTimeout(r, 2500); });
+    await loadBilling();
+    if (billing && billing.plan && billing.plan !== 'free') { if (m) m.textContent = 'Your ' + PLAN_NAMES[billing.plan] + ' plan is active.'; return; }
+  }
+  if (m) m.textContent = 'Payment received — your plan will show up in a minute. Reload if it doesn\'t.';
+}
+async function openPortal() {
+  var m = document.getElementById('acctMsg'); m.textContent = 'Opening…';
+  try {
+    var r = await fetch('api/portal', { method: 'POST', headers: { 'X-Capivo-Token': await authToken() } });
+    var j = r.ok ? await r.json() : null;
+    if (j && /^https:\/\//.test(j.url || '')) { m.textContent = ''; window.open(j.url, '_blank', 'noopener'); return; }
+  } catch (e) {}
+  m.textContent = 'Could not open the billing portal. Please try again.';
 }
 // Landing-Preiskarten: „Coming soon“ öffnet das Konto-Modal mit derselben ehrlichen Beta-Meldung
 // (anmelden lohnt sich trotzdem: entfernt das Wasserzeichen, speichert Projekte).
@@ -7877,6 +8055,7 @@ function applyProjectPayload(p) {
 // Wird zum Exportzeitpunkt ausgewertet (Nutzer kann sich nach dem Video-Laden noch anmelden).
 function needsWatermark() {
   if (mePlan === 'creator' || mePlan === 'pro') return false;
+  if (billingOn()) return true; // Abos aktiv: nur bezahlte Pläne exportieren ohne Marke (sonst Beta: E-Mail statt Marke)
   return !meEmail && !leadEmail();
 }
 // ── Beta-E-Mail-Gate ──
@@ -7976,7 +8155,7 @@ function setTProgress(pct) {
   var pm = document.getElementById('procMsg'); if (pm) pm.textContent = 'Transcribing… ' + Math.round(p) + '%';
   ['procFill', 'shFill'].forEach(function(id) { var f = document.getElementById(id); if (f) f.style.width = p + '%'; });
 }
-// ── Verarbeitungs-Schritt = Style-Wahl (wie Submagic/Captions.ai) ──
+// ── Verarbeitungs-Schritt = Style-Wahl ──
 // Während der ERSTEN Transkription eines Videos: Fortschritt als Überlagerung auf der Vorschau, Panel im
 // Style-Tab mit „Choose a style while we transcribe“, Transkriptions-Einstellungen bleiben verborgen.
 // Danach: Captions-Tab + einmaliger Hinweis-Toast. Re-Transkriptionen (Modell/Sprache) laufen ohne das.
@@ -8060,8 +8239,8 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       _trIdx = 0; throw transcribeErr('no proxy', { noProxy: true });
     }
     if (!resp.ok) {
-      var detail = '';
-      try { var ej = await resp.json(); detail = (ej && (typeof ej.error === 'string' ? ej.error : ej.error && ej.error.message)) || ''; } catch (e2) {}
+      var detail = '', ej = null;
+      try { ej = await resp.json(); detail = (ej && (typeof ej.error === 'string' ? ej.error : ej.error && ej.error.message)) || ''; } catch (e2) {}
       // Proxy da, aber Key nicht hinterlegt → wie "kein Proxy" behandeln (lokaler Fallback statt toter Button)
       if (!openaiKey && resp.status === 500 && /nicht konfiguriert/i.test(detail)) {
         console.warn('Transkriptions-Proxy ohne Key:', detail);
@@ -8079,6 +8258,10 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       var rlMsg = isFinite(raSec) && raSec > 0
         ? 'Free-tier limit reached — please try again in ~' + Math.max(1, Math.ceil(raSec / 60)) + ' min.'
         : 'Free-tier limit reached (too many requests) — wait a minute and try again.';
+      if (resp.status === 402 && detail === 'quota') {
+        var qj = null; try { qj = ej; } catch (e3) {}
+        throw transcribeErr(quotaText(qj && qj.plan), { status: 402, quota: true });
+      }
       throw transcribeErr(resp.status === 401 && detail === 'login_required' ? 'Please log in (top right) to transcribe videos.'
         : resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
         : resp.status === 413 ? 'Audio too large for the server — please trim the video.'
@@ -8468,6 +8651,8 @@ async function transcribeVideo(file) {
     var dec = await decodeToMono16k(file, stale);
     bailIfStale();
     var audioData = dec.audioData, peak = dec.peak, len = audioData.length;
+    // Abos: reicht das Restkontingent nicht für das ganze Video, gleich melden statt mittendrin zu scheitern
+    if (billingOn() && billing.loggedIn && billing.left_sec < len / 16000) throw transcribeErr(quotaText(billing.plan), { quota: true });
     setTProgress(50);
 
     // Normalisieren — leiser Ton ist Hauptursache für "keine Sprache erkannt"
@@ -8645,6 +8830,7 @@ async function transcribeVideo(file) {
     // niemand etwas geändert hat (sonst still verworfen).
     emSrc = null; postCaption = null; _zoomPlanKey = null; syncPostUI(); syncEmphUI();
     postTranscribeAI(run, CODE_BY_LANG[usedLang] || lc || '', vocab);
+    if (billingOn()) loadBilling(); // Restminuten nach dem Lauf aktualisieren
 
   } catch(err) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
@@ -8665,6 +8851,7 @@ async function transcribeVideo(file) {
       setTStatus('❌', 'Error: ' + (err.message || err), false, false);
     }
     document.getElementById('retryWrap').style.display = 'block';
+    if (err && err.quota) setTimeout(showUpgrade, 400);
   }
 }
 
@@ -10950,6 +11137,7 @@ function exportDone(wmOn) {
   ['expDlFile', 'expDlSep'].forEach(function(id) { var e2 = document.getElementById(id); if (e2) e2.style.display = share ? '' : 'none'; });
   if (m) m.style.display = 'none'; if (d) d.style.display = '';
   if (!exportSheetOpen()) capToast('✓ Saved — ' + _lastDlName);
+  statExport();
 }
 
 // ═══════════════════════════════════════
@@ -11716,7 +11904,7 @@ if (typeof window !== 'undefined' && window.addEventListener) window.addEventLis
 })();
 
 // ═══════════════════════════════════════
-// TIMELINE — Captions zeitlich ziehen, trimmen, an Schnitte fangen (wie CapCut/Descript)
+// TIMELINE — Captions zeitlich ziehen, trimmen, an Schnitte fangen
 // ═══════════════════════════════════════
 // EIN <canvas> unter der Vorschau: Lineal, Wellenform (Hüllkurve aus dem 16-kHz-Audio der Transkription),
 // Sprachbereiche, Szenenschnitte, Abspielkopf und Caption-Balken. Gezeichnet wird nur bei Bedarf (rAF +
@@ -11779,7 +11967,7 @@ var tlView = { start: 0, pps: 0 };  // linker Rand (s) + Pixel pro Sekunde
 var _tl = { cv: null, ctx: null, raf: 0, drag: null, ptrs: {}, pinch: null, fit: true, userAt: 0, lastTap: null,
             snap: null, tw: {}, twN: 0, open: false, shown: false, hover: '',
             mob: false, mpps: 70, scrubT: null, pendSeek: null, seekAt: 0, fling: null, flingRaf: 0, actKey: '' };
-// Handy/Touch (≤ 760 px oder grober Zeiger) wie CapCut/Captions-App: Abspielkopf FEST in der Mitte, die Spur
+// Handy/Touch (≤ 760 px oder grober Zeiger) wie in gängigen Mobile-Editoren: Abspielkopf FEST in der Mitte, die Spur
 // läuft darunter (Wischen = Scrubben mit Schwung, Abspielen scrollt mit). Zoom in px pro Sekunde, Pinch 30–200.
 // Antippen wählt (Bewegung < TL_SLOP px), Kanten nur am gewählten Block (≥ 44 px Griff), Long-Press verschiebt.
 var TL_MOB_PPS = 70, TL_MOB_MIN = 30, TL_MOB_MAX = 200, TL_SLOP = 10, TL_HOLD_MS = 450, TL_HANDLE = 22, TL_STEP = 0.1;
@@ -12686,7 +12874,7 @@ function tlMobMove(e, p, d) {
     if (d.type === 'block' && !tlBeginBlockDrag(d)) { _tl.drag = null; return; }
     if (d.type === 'pan') {
       var vid = document.getElementById('mainVid');
-      if (vid && !vid.paused) vid.pause(); // Spur anfassen = Video anhalten (wie CapCut)
+      if (vid && !vid.paused) vid.pause(); // Spur anfassen = Video anhalten
       d.c0 = tlMobCenter(); d.x0 = p.x; // ab hier ohne Sprung um die Schwelle
     }
   }
@@ -12908,10 +13096,10 @@ syncTimeOffUI(); syncTextFormatUI(); updateTrSetSum(); syncUndoBtns(); buildFont
 // Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
 renderShowcase(); renderLandChips();
-loadStyleDrops();
+loadStyleDrops().then(loadStyleStats);
 updateAcctUI();
 // Bereits eingeloggte Nutzer erkennen (supabase-js hält die Session in localStorage).
-fetchMe().then(function(){ if (meEmail) loadProjects(); });
+fetchMe().then(function(){ if (meEmail) loadProjects(); return loadBilling(); });
 initLandingNavScroll();
 initScrollReveal();
 initHowDemo();

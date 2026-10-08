@@ -163,6 +163,32 @@ $isOgg = strpos($ctype, 'ogg') !== false;
 $secs = audio_seconds($tmp, $isOgg);
 if ($secs === null) { if ($cleanup) @unlink($tmp); fail(400, 'Audioformat nicht erkannt (erwartet WAV oder Ogg/Opus).'); }
 if ($secs > 130) { if ($cleanup) @unlink($tmp); fail(413, 'Audio-Stück zu lang (max. 130 s pro Request).'); }
+// ── Abo-Kontingent (nur mit BILLING_ENABLED, Standard aus): eingeloggt = Plan-Minuten pro Monat, anonym = ANON_SEC_PER_DAY pro IP.
+// Antwort 402 {error:'quota', ...} VOR dem Groq-Aufruf; gezählt wird eingeloggt erst nach erfolgreicher Transkription.
+$quotaUid = null;
+if (!empty($cfg['BILLING_ENABLED'])) {
+  define('CR_INCLUDE', 1);
+  require_once __DIR__ . '/billing.php';
+  $qu = cr_user_from_token($cfg, $_SERVER['HTTP_X_CAPIVO_TOKEN'] ?? '');
+  $quotaFail = function($code, $payload) use (&$cleanup, &$tmp) { if ($cleanup && $tmp) @unlink($tmp); http_response_code($code); echo json_encode($payload); exit; };
+  if ($qu) {
+    $plan = cr_effective_plan(cr_profile($cfg, $qu['id']));
+    $limit = cr_plan_seconds($cfg)[$plan]; $usedM = cr_month_used($cfg, $qu['id']);
+    if ($usedM === null) $quotaFail(503, ['error' => 'Kontingent konnte nicht geprüft werden – bitte später erneut versuchen.']);
+    if ($usedM + $secs > $limit) $quotaFail(402, ['error' => 'quota', 'plan' => $plan, 'limit_sec' => $limit, 'used_sec' => $usedM]);
+    $quotaUid = $qu['id'];
+  } else {
+    $anonCap = (int)($cfg['ANON_SEC_PER_DAY'] ?? 600);
+    if ($anonCap > 0) {
+      $nf = sys_get_temp_dir() . '/capivo_anon_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json';
+      $nowA = time(); $ua = [];
+      if (is_file($nf)) { $d = json_decode((string)@file_get_contents($nf), true); if (is_array($d)) $ua = array_values(array_filter($d, function($e) use ($nowA) { return is_array($e) && $e[0] > $nowA - 86400; })); }
+      $usedA = 0; foreach ($ua as $e) $usedA += $e[1];
+      if ($usedA + $secs > $anonCap) $quotaFail(402, ['error' => 'quota', 'plan' => 'anon', 'limit_sec' => $anonCap, 'used_sec' => (int)$usedA]);
+      $ua[] = [$nowA, $secs]; @file_put_contents($nf, json_encode($ua), LOCK_EX);
+    }
+  }
+}
 $AUDIO_CAP = (int)($cfg['MAX_AUDIO_SEC_PER_HOUR'] ?? 1800);
 if ($AUDIO_CAP > 0) {
   $af = sys_get_temp_dir() . '/capivo_audio_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json';
@@ -189,7 +215,7 @@ function alert_ops($key, $msg) {
 }
 
 // ── Multipart-Request an Groq bauen ──────────────────────────────────
-$endpoint = 'https://api.groq.com/openai/v1/audio/' . ($translate ? 'translations' : 'transcriptions');
+$endpoint = rtrim((string)($cfg['GROQ_BASE'] ?? 'https://api.groq.com'), '/') . '/openai/v1/audio/' . ($translate ? 'translations' : 'transcriptions');
 $post = [
   'model'           => $model,
   'response_format' => 'verbose_json',
@@ -222,6 +248,7 @@ curl_close($ch);
 if ($cleanup && $tmp) @unlink($tmp);
 
 if ($body === false) fail(502, 'Transkriptions-Dienst nicht erreichbar: ' . $cerr);
+if ($quotaUid && $status >= 200 && $status < 300) cr_add_usage($cfg, $quotaUid, $secs); // Abo-Nutzung erst nach Erfolg zählen
 if ($status == 429) alert_ops('groq-429-whisper', 'Groq-Limit erreicht (Transkription, HTTP 429). Nutzer bekommen gerade Fehler bzw. den langsamen lokalen Fallback.');
 
 // Groq-Status & -Body 1:1 durchreichen (Frontend kennt 401/402/413/429/503 und wiederholt 429/5xx selbst).

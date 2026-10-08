@@ -1,0 +1,24 @@
+# Verzeichnis der Bearbeitungstätigkeiten (Art. 30 DSGVO / Art. 12 DSG)
+
+**Verantwortlicher:** Jonas Treier, Einzelunternehmen web&meh, Hauptstrasse 84A, 5070 Frick, Schweiz · contact@captionrush.com
+**Datenschutzberater / EU-Vertreter:** keiner bestellt (Stand Oktober 2026; zum EU-Vertreter siehe [`eu-vertreter.md`](eu-vertreter.md))
+**Dienst:** CaptionRush (captionrush.com) · **Stand:** Oktober 2026 · **Prüfung:** bei jeder Änderung des Dienstes, mindestens jährlich
+
+> Interne Pflichtdokumentation, nicht veröffentlichen. Nach jeder Änderung an Anbietern, Zwecken oder Fristen nachführen.
+
+| # | Tätigkeit | Zweck | Betroffene | Datenkategorien | Empfänger / Auftragsbearbeiter | Drittland | Rechtsgrundlage | Löschfrist | Schutzmassnahmen |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | Transkription (`transcribe.php`) | Untertitel aus der Tonspur erzeugen | Nutzer, im Video sprechende Personen | Tonspur in Stücken (≤ ~100 s), Spracheinstellung; IP kurzzeitig für Limits | Hostpoint AG (Hosting, CH); Groq, Inc. (Spracherkennung) | USA (Groq), DPA mit SCC | Art. 6 Abs. 1 lit. b | Ton/Text werden bei uns nicht gespeichert; Rate-Limit-Dateien (gehashte IP) ≤ 1 Std. | TLS; Key nur serverseitig; Audiolänge serverseitig begrenzt |
+| 2 | Feinschliff und Hervorhebung (`polish.php`, `enhance.php`) | Satzzeichen, Schlüsselwörter, Emojis, Post-Text | wie 1 | Transkripttext (kein Ton) | Hostpoint; Groq | USA (SCC) | Art. 6 Abs. 1 lit. b | nicht gespeichert | wie 1; optional abschaltbar im Editor |
+| 3 | E-Mail vor dem Download, Leads (`lead.php`) | Download freischalten, Info bei wichtigen Änderungen | Nutzer | E-Mail, Zeitpunkt, Browsersprache, Quelle, Newsletter-Wahl | Supabase (Datenbank, Region Frankfurt, vor Go-Live prüfen); Hostpoint | USA (Supabase Inc., SCC) | Art. 6 Abs. 1 lit. b/f | bis Löschwunsch oder Dienstende | RLS: Tabelle nur über service_role-Key serverseitig erreichbar |
+| 4 | Newsletter mit Double-Opt-in (`confirm.php`, `unsubscribe.php`, `mail.php`) | Neuigkeiten senden, Einwilligung nachweisen | Abonnenten | E-Mail, Einwilligungstext, Bestätigungszeitpunkt, gehashte IP (16 Zeichen), Abmeldezeitpunkt | Hostpoint (SMTP); Supabase | USA (Supabase) | Art. 6 Abs. 1 lit. a | Nachweis solange Newsletter besteht + Verjährung; abgemeldete Adressen nur als Sperrliste | Token nur gehasht gespeichert; HMAC-signierter Abmeldelink |
+| 5 | Konto und Projekte (Supabase Auth) | Login per Code, Projekte/Vorlagen speichern | registrierte Nutzer | E-Mail, Auth-Protokolle (IP), Untertitel-Text, Stil-Einstellungen | Supabase; Hostpoint (Code-Mails) | USA (SCC) | Art. 6 Abs. 1 lit. b | mit Konto-Löschung (`delete_my_account()`, Kaskade) | RLS pro Nutzer; kein Video, kein Ton gespeichert |
+| 6 | Hosting und Server-Logs | Betrieb, Sicherheit | alle Besucher | IP, Zeit, URL, Browsertyp | Hostpoint AG | CH | Art. 6 Abs. 1 lit. f | gemäss Hostpoint | HTTPS, HSTS, keine Tracking-Cookies |
+| 7 | Lokale Speicherung im Browser | Einstellungen, Sicherung, eigene Schriften | Nutzer | Einstellungen, Projektsicherung, E-Mail (gemerkt), Schriftdateien | keine (nur Gerät des Nutzers) | – | berechtigtes Interesse / technisch notwendig | Nutzer löscht im Browser | kein Abfluss |
+| 8 | Betreiber-Alarm (optional, ntfy) | Hinweis bei Groq-Limit | – | keine Personendaten (nur Ereignistext) | ntfy.sh | – | – | – | Thema geheim halten |
+| 10 | Fehlerberichte und Style-Zählung (`log.php`, `stat.php`) | Stabilität, «Trending»-Abzeichen | Besucher (bei jeder 2. Sitzung bzw. bei Export) | bereinigter Fehlertext, Dateiname der Programmdatei, Seitenpfad, Browser-Familie; Zähler pro Tag und Style (kein Personenbezug, keine IP) | Hostpoint; Supabase | USA (Supabase, SCC) | Art. 6 Abs. 1 lit. f | Fehler 30 Tage; Zähler unbegrenzt (anonym) | Client schaltet bei «Do Not Track»/GPC ab; Server bereinigt, Rate-Limit pro IP, Tabellen nur über service_role |
+| 9 | Abo und Zahlung (in Vorbereitung, Schalter aus; Tabellen `profiles`, `usage`, `paddle_events`) | Pläne, Rechnung | zahlende Nutzer | Plan, Status, Laufzeit, Nutzung (Sekunden); Zahlungsdaten nur beim Zahlungsanbieter | Paddle (Merchant of Record) | je nach Paddle | Art. 6 Abs. 1 lit. b/c | Vertragsdauer + gesetzliche Fristen | Webhook signiert; keine Karten-Daten bei uns. Vor Aktivierung dieses Verzeichnis und die Datenschutzerklärung ergänzen |
+
+**Technische und organisatorische Massnahmen (Kurzfassung):** TLS überall; Geheimnisse nur als GitHub-Secrets/`config.php` (nicht im Repo, per `.htaccess` gesperrt); RLS auf allen Tabellen; service_role-Key nie im Frontend; Missbrauchsbegrenzung pro IP; keine Inhalte in Logs; Deploy nur über GitHub-Action mit Tests.
+
+**Offene Punkte für Jonas:** Supabase-Region bestätigen · Groq-Einstellung zur Datenspeicherung prüfen (Data Controls) · AVV/DPA bei Groq, Supabase und Paddle abschliessen/ablegen · Hostpoint-AVV ablegen · EU-Vertreter entscheiden.

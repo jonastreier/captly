@@ -76,7 +76,9 @@ if ($needMail) {
     $text = $de
       ? "Hallo\n\nDu hast dich für Neuigkeiten von CaptionRush angemeldet. Bitte bestätige das mit diesem Link:\n\n$link\n\nHast du dich nicht angemeldet, ignoriere diese Mail – du bekommst dann nichts von uns.\n\nCaptionRush · Jonas Treier · Hauptstrasse 84A · 5070 Frick · Schweiz\n"
       : "Hi\n\nYou signed up for CaptionRush news. Please confirm with this link:\n\n$link\n\nIf you didn't sign up, just ignore this email – you won't hear from us.\n\nCaptionRush · Jonas Treier · Hauptstrasse 84A · 5070 Frick · Switzerland\n";
-    $mailed = cr_send_mail($cfg, $email, $subject, $text);
+    $unsub = cr_unsub_link($cfg, $email);
+    if ($unsub !== '') $text .= ($de ? "\nAbmelden: " : "\nUnsubscribe: ") . $unsub . "\n";
+    $mailed = cr_send_mail($cfg, $email, $subject, $text, cr_unsub_headers($cfg, $email));
   }
 }
 out(200, ['ok' => true, 'confirm_mail' => $needMail ? $mailed : null]);

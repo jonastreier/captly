@@ -104,7 +104,7 @@ encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSup
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
-brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,tlRange:tlRange,tlDeleteSel:tlDeleteSel,tlToggleMulti:tlToggleMulti,tlSelState:function(a,b){tlSel=a;tlSelEnd=b;},tlGet:function(){return {sel:tlSel,end:tlSelEnd,multi:tlMulti};},coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,applyTrending:applyTrending,teleError:teleError,statExport:statExport,tlRange:tlRange,tlDeleteSel:tlDeleteSel,tlToggleMulti:tlToggleMulti,tlSelState:function(a,b){tlSel=a;tlSelEnd=b;},tlGet:function(){return {sel:tlSel,end:tlSelEnd,multi:tlMulti};},coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
@@ -122,7 +122,7 @@ setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKe
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
-capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle};`;
+capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -1158,8 +1158,21 @@ ok(T.editListEnd([{ media_time: 0, segment_duration: 0 }], 600) === Infinity, 'e
   const ja = bl.find(b => b.text === 'Ja.');
   ok(ja.end <= 1.25 + 1e-9, 'Verlaengerung stoppt am Schnitt');
   T.onWpbChange('1');
-  bl = T.buildCaptionBlocks(W([['Pop', 0, 0.1], ['eins', 0.2, 0.3], ['zwei', 0.5, 0.6]]), []);
-  ok(bl.length === 3 && bl[0].end >= 0.2 - 1e-9, '1 Wort/Block: nicht verschmelzen, nur verlaengern (bis zum naechsten Block)');
+  bl = T.buildCaptionBlocks(W([['Pop', 0, 0.1], ['eins', 0.3, 0.4], ['zwei', 0.8, 0.9]]), []);
+  ok(bl.length === 3 && bl[0].end >= 0.3 - 1e-9, '1 Wort/Block: nicht verschmelzen, nur verlaengern (bis zum naechsten Block)');
+  // Schneller Sprecher (Tight): Wörter ohne Lücke à 0,12 s → Mindest-Anzeigedauer 0,25 s durch Zusammenfassen (max. 2 Wörter)
+  const fast = W([['ich', 0, 0.12], ['habe', 0.12, 0.24], ['das', 0.24, 0.36], ['wirklich', 0.36, 0.48], ['gemacht', 0.48, 0.6], ['heute', 0.6, 0.72]]);
+  bl = T.buildCaptionBlocks(fast, []);
+  ok(bl.every(b => b.words.length <= 2 && b.end - b.start >= 0.24 - 1e-9), 'Tight schnell: jeder Block >= 0,25 s, max. 2 Woerter: ' + bl.map(b => b.text + ' ' + (b.end - b.start).toFixed(2)).join(' | '));
+  ok(bl.map(b => b.text).join(' ') === 'ich habe das wirklich gemacht heute', 'Tight schnell: kein Wort verloren, Reihenfolge stabil');
+  // Langsamer Sprecher bleibt bei 1 Wort pro Block
+  bl = T.buildCaptionBlocks(W([['ganz', 0, 0.4], ['ruhig', 0.4, 0.8], ['gesprochen', 0.8, 1.3]]), []);
+  ok(bl.length === 3, 'Tight langsam: weiter ein Wort pro Block');
+  // Satzende und Schnitt bremsen das Zusammenfassen
+  bl = T.buildCaptionBlocks(W([['Stopp.', 0, 0.1], ['Weiter', 0.1, 0.2], ['jetzt', 0.2, 0.7]]), []);
+  ok(!bl.some(b => /Stopp\. Weiter/.test(b.text)), 'Tight: nie ueber ein Satzende zusammenfassen');
+  bl = T.buildCaptionBlocks(W([['links', 0, 0.1], ['rechts', 0.1, 0.2], ['mitte', 0.2, 0.7]]), [0.1]);
+  ok(!bl.some(b => /links rechts/.test(b.text)), 'Tight: nie ueber einen Szenenschnitt zusammenfassen');
   T.onWpbChange('4');
 }
 
@@ -3269,6 +3282,19 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.tlGet().multi === false && T.tlGet().end === -1, 'Ausschalten hebt den Bereich auf');
   }
 
+  // «Trending»: nur ab genug Daten, nur eingebaute Styles ohne eigenes Abzeichen, höchstens 3
+  {
+    const top = [{ style: 'tight', n: 40 }, { style: 'hormozi', n: 20 }, { style: 'mix', n: 10 }, { style: 'statement', n: 5 }];
+    const had = T.STYLES.map(x => x.badge);
+    ok(T.applyTrending({ total: 49, top }) === 0 && !T.STYLES.some(x => x.badge === 'Trending'), 'Trending: unter 50 Exporten kein Abzeichen');
+    ok(T.applyTrending(null) === 0 && T.applyTrending({ total: 99, top: 'x' }) === 0, 'Trending: kaputte Antwort wird ignoriert');
+    ok(T.applyTrending({ total: 100, top: top.concat([{ style: 'gibtsnicht', n: 1 }]) }) === 3, 'Trending: genau die Top 3');
+    ok(T.STYLES.filter(x => x.badge === 'Trending').map(x => x.id).sort().join() === 'hormozi,mix,tight', 'Trending: richtige Styles markiert');
+    T.STYLES.forEach((x, i) => { if (had[i] === undefined) delete x.badge; else x.badge = had[i]; delete x._trend; });
+    T.teleError('Fehler', 'a.js:1'); T.statExport(); // ausserhalb von https/echter Domain: tut nichts, wirft nicht
+    ok(true, 'Messung ist ausserhalb der echten Domain inaktiv (kein Fehler)');
+  }
+
   // Sprachversionen (captly.de.html): aus captly.html erzeugt, aktuell, vollständig übersetzt
   {
     const i18n = require('./scripts/build-i18n.js');
@@ -3287,6 +3313,30 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const enSrc = fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8');
     ok(i18n.syncSource(enSrc) === enSrc, 'i18n en: FAQ-JSON-LD in captly.html passt zur sichtbaren FAQ (sonst: node scripts/build-i18n.js)');
     ok(!/aggregateRating|"review"/.test(enSrc.slice(0, enSrc.indexOf('<style>'))) && (enSrc.match(/<h1[\s>]/g) || []).length === 1, 'Landing: genau ein <h1>, keine Fake-Bewertungen im JSON-LD');
+  }
+
+  // ── Konto selbst löschen: RPC delete_my_account, danach lokal abgemeldet; Abbruch/Fehler lassen alles stehen ──
+  {
+    const calls = []; let rpcErr = null, asked = 0;
+    const fakeSb = { rpc: async n => { calls.push('rpc:' + n); return { error: rpcErr }; }, auth: { signOut: async o => { calls.push('signOut:' + (o && o.scope)); return {}; } } };
+    const realConfirm = global.confirm; T.setSbState(fakeSb);
+    global.confirm = () => { asked++; return false; }; T.setMeEmail('a@b.ch');
+    await T.deleteAccount();
+    ok(asked === 1 && calls.length === 0 && T.getMeEmail() === 'a@b.ch', 'Konto löschen: ohne Bestätigung passiert nichts');
+    global.confirm = () => true; rpcErr = { message: 'boom' };
+    await T.deleteAccount();
+    ok(calls.join() === 'rpc:delete_my_account' && T.getMeEmail() === 'a@b.ch', 'Konto löschen: RPC-Fehler → bleibt angemeldet');
+    rpcErr = null; calls.length = 0;
+    await T.deleteAccount();
+    ok(calls.join() === 'rpc:delete_my_account,signOut:local' && T.getMeEmail() === '', 'Konto löschen: RPC, lokal abmelden, UI zurückgesetzt');
+    T.setMeEmail('a@b.ch'); T.setBillingState({ enabled: true, loggedIn: true, plan: 'pro' }); calls.length = 0; asked = 0;
+    global.confirm = () => { asked++; return true; };
+    await T.deleteAccount();
+    ok(calls.length === 0 && asked === 0 && T.getMeEmail() === 'a@b.ch', 'Konto löschen: aktives Abo blockiert (erst kündigen)');
+    T.setBillingState(null);
+    T.setSbState(null); global.confirm = realConfirm; if (!realConfirm) delete global.confirm;
+    const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
+    ok(/grant execute on function public\.delete_my_account\(\) to authenticated/.test(sql), 'Konto löschen: schema.sql gibt delete_my_account an angemeldete Nutzer frei');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

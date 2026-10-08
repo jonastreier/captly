@@ -55,7 +55,7 @@ li{margin-bottom:4px}
     </ul>
 
     <h2>4. Account (optional)</h2>
-    <p>If you sign in to save projects, we use <strong>Supabase</strong> (Supabase Inc., USA; database location Frankfurt, Germany) for the code sign-in and for your projects: captions, style settings and templates, but not the video. Supabase also keeps technically necessary sign-in data, including your IP address in logs. We send the codes through Hostpoint's mail server. You can have your account deleted at any time by emailing us; all projects are deleted with it. <em>Legal basis (GDPR):</em> performance of a contract (Art. 6(1)(b)).</p>
+    <p>If you sign in to save projects, we use <strong>Supabase</strong> (Supabase Inc., USA; database location Frankfurt, Germany) for the code sign-in and for your projects: captions, style settings and templates, but not the video. Supabase also keeps technically necessary sign-in data, including your IP address in logs. We send the codes through Hostpoint's mail server. You can delete your account at any time yourself (menu → account → “Delete account”) or ask us by email; all projects and templates are deleted with it. <em>Legal basis (GDPR):</em> performance of a contract (Art. 6(1)(b)).</p>
 
     <h2>5. Hosting and server logs</h2>
     <p>CaptionRush is hosted by <strong>Hostpoint AG</strong> in Switzerland. When you visit, technically necessary access data (such as IP address, time, requested address, browser type) is processed in server logs, which are deleted according to the hosting provider's retention periods. Our server functions also use the IP address briefly to limit abuse (a cap on requests and audio minutes per hour). <em>Legal basis (GDPR):</em> legitimate interest in security and stability (Art. 6(1)(f)).</p>
@@ -64,6 +64,7 @@ li{margin-bottom:4px}
     <ul>
       <li><strong>Fonts and software libraries</strong> are served from our own server. A normal visit loads nothing from Google or any other CDN.</li>
       <li><strong>Fallbacks:</strong> if our speech recognition is unreachable, your browser recognises speech itself. It then loads code from <strong>jsDelivr</strong> and the speech model from <strong>Hugging Face</strong>. If a local file is missing when converting to MP4, <strong>unpkg</strong> can serve as a substitute. These providers then see your IP address.</li>
+      <li><strong>Error reports and anonymous statistics:</strong> If a technical error occurs in your browser, it may send the error text, the name of the program file and the page path to our server (in every second session, at most five different messages). We clean the message before saving it (file names, email addresses, URL parameters and long numbers are removed) and store only the browser family (for example “Safari mobile”), no IP address and no user agent; entries are deleted after 30 days. When an export succeeds we also count, anonymously, which built-in style was used (a counter per day and style, with no link to a person); this drives the “Trending” badge. Both are switched off if your browser sends “Do Not Track” or “Global Privacy Control”. Legal basis (GDPR): legitimate interest in the stability and improvement of the service (Art. 6(1)(f)).</li>
       <li>We use no tracking or advertising cookies and no analytics tools that build user profiles.</li>
     </ul>
 
