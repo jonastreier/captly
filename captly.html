@@ -859,13 +859,6 @@ body.editor-open .lang-hint{display:none}
 .tl-mob .tl-act{display:block}
 .tl-mob .tl-hint,.tl-mob #tlSnapBtn,.tl-mob #tlGapBtn,.tl-mob .tl-fit{display:none}
 .ta-hint{display:flex;align-items:center;justify-content:center;height:48px;margin:0;font-size:12.5px;color:var(--muted);text-align:center;line-height:1.35;padding:0 8px}
-.ta-steps{display:flex;gap:8px;height:48px}
-.ta-step{flex:1 1 0;display:flex;align-items:stretch;min-width:0;background:var(--fill);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.ta-b{flex:0 0 48px;border:none;background:transparent;font:500 22px/1 'Inter',sans-serif;color:var(--ink);cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-.ta-b:active{background:var(--fill2)}
-.ta-v{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.1}
-.ta-v small{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-.ta-v b{font-size:14px;font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
 .ta-tools{display:flex;gap:4px;margin-top:8px}
 .ta-tool{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;padding:4px 2px;border:none;border-radius:12px;background:transparent;color:var(--ink);font:500 11.5px 'Inter',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .ta-tool .ic{width:20px;height:20px}
@@ -1379,7 +1372,7 @@ body.editor-open .lang-hint{display:none}
       <div class="tl-wrap" id="tlWrap" style="display:none">
         <div class="tl-bar">
           <button type="button" class="tl-tog" id="tlTog" onclick="tlToggle()" aria-expanded="true" aria-controls="tlBody"><svg class="ic" aria-hidden="true"><use href="#i-timeline"/></svg><span id="tlTogLbl">Hide timeline</span></button>
-          <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · double-click to edit</span>
+          <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · Shift+click to select several</span>
           <span class="tl-sp"></span>
           <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" aria-label="Snap" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span class="tl-lbl"> Snap</span></button>
           <button type="button" class="tl-btn" id="tlGapBtn" onclick="tlCloseGaps()" aria-label="Close gaps" title="Close all gaps: each caption stays until the next one starts (at a scene cut both meet exactly at the cut)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span class="tl-lbl"> Close gaps</span></button>
@@ -1388,18 +1381,14 @@ body.editor-open .lang-hint{display:none}
           <button type="button" class="tl-btn tl-fit" onclick="tlFit()" title="Show the whole video">Fit</button>
         </div>
         <div class="tl-body" id="tlBody">
-          <canvas id="tlCanvas" tabindex="0" title="Drag to move · drag edges to trim · double-click to edit"
+          <canvas id="tlCanvas" tabindex="0" title="Drag to move · drag edges to trim · Shift+click to select several · double-click to edit"
             aria-label="Caption timeline. Drag captions to move them, drag their edges to trim, double-click to edit. With a caption selected, arrow keys nudge it and Delete removes it."></canvas>
         </div>
         <!-- Handy/Touch: feste Mitte als Abspielkopf, darunter EINE Aktionsleiste (gleich hoch mit/ohne Auswahl →
-             nichts springt). Ohne Auswahl: Hinweis + Snap/Close gaps; mit Auswahl: Start/End ±0.1 s (gedrückt
-             halten = wiederholen), Split, Edit, Delete. -->
+             nichts springt). Hinweis + Split, Edit, Delete, Snap, Close gaps; Zeiten ändert man direkt durch
+             Ziehen (Block halten = verschieben, Kanten = trimmen). -->
         <div class="tl-act" id="tlAct">
           <p class="ta-hint" id="taHint">Tap a caption to adjust it · swipe to scrub · pinch to zoom</p>
-          <div class="ta-steps" id="taSteps" style="display:none">
-            <div class="ta-step"><button type="button" class="ta-b" data-edge="start" data-d="-1" aria-label="Start 0.1 s earlier">−</button><span class="ta-v"><small>Start</small><b id="taStart">0:00.0</b></span><button type="button" class="ta-b" data-edge="start" data-d="1" aria-label="Start 0.1 s later">+</button></div>
-            <div class="ta-step"><button type="button" class="ta-b" data-edge="end" data-d="-1" aria-label="End 0.1 s earlier">−</button><span class="ta-v"><small>End</small><b id="taEnd">0:00.0</b></span><button type="button" class="ta-b" data-edge="end" data-d="1" aria-label="End 0.1 s later">+</button></div>
-          </div>
           <div class="ta-tools">
             <button type="button" class="ta-tool" id="taSplit" onclick="tlSplitAtPlayhead()" disabled><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span>Split</span></button>
             <button type="button" class="ta-tool" id="taEdit" onclick="tlEditText(tlSel)" disabled><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edit text</span></button>
@@ -5622,7 +5611,7 @@ function selectSegRow(row) {
   document.querySelectorAll('.cap-seg.sel').forEach(function(r){ if (r !== row) r.classList.remove('sel'); });
   if (row && row.classList) row.classList.add('sel');
   var m = row && /^seg(\d+)$/.exec(row.id || ''); // Zeile gewählt → derselbe Balken in der Timeline
-  if (m && tlSel !== +m[1]) { tlSel = +m[1]; tlRequestDraw(); }
+  if (m && tlSel !== +m[1]) { tlSel = +m[1]; tlSelEnd = -1; tlRequestDraw(); }
 }
 function setActiveSeg(idx) {
   document.querySelectorAll('.cap-seg').forEach(function(s, i){ s.classList.toggle('active', i === idx); });
@@ -11099,6 +11088,43 @@ var TL_OPEN_KEY = 'capivo.tlOpen', TL_HINT_KEY = 'capivo.tlHint';
 var tlWave = null;      // { peaks: Int8Array [min,max,…], rate } — nur nach einer Transkription in dieser Sitzung
 var tlSpeech = [];      // [{start,end}] Sprachbereiche (VAD) — reisen im Projekt/Autosave mit
 var tlSnapOn = true, tlSel = -1;
+// Shift+Klick (Desktop): zusammenhängender Bereich tlSel … tlSelEnd. Ziehen eines Blocks darin verschiebt alle
+// gemeinsam (Abstände bleiben), ←/→ ebenso, Entf löscht alle. Ein normaler Klick hebt die Mehrfachauswahl auf.
+var tlSelEnd = -1;
+function tlRange() {
+  if (!(tlSel >= 0) || !(tlSelEnd >= 0) || tlSel === tlSelEnd || !captionBlocks[tlSel] || !captionBlocks[tlSelEnd]) return null;
+  return { a: Math.min(tlSel, tlSelEnd), b: Math.max(tlSel, tlSelEnd) };
+}
+function tlInRange(i, r) { r = r || tlRange(); return !!r && i >= r.a && i <= r.b; }
+// Gruppe als EIN virtueller Block (Start des ersten … Ende des letzten) → gleiche Grenzen/Fangpunkte wie ein Block
+function tlGroupSetup(r) {
+  var bl = captionBlocks, v = { start: bl[r.a].start, end: bl[r.b].end, words: [] };
+  return { v: v, arr: bl.slice(0, r.a).concat([v], bl.slice(r.b + 1)), bases: bl.slice(r.a, r.b + 1).map(tlClone) };
+}
+function tlGroupApply(r, bases, delta) {
+  for (var k = 0; k < bases.length; k++) applyTimelineEdit(r.a + k, bases[k].start + delta, bases[k].end + delta, bases[k], { live: true });
+}
+// Bereich per Tastatur um delta s verschieben (ein Undo-Schritt pro Serie)
+function tlNudgeRange(r, delta) {
+  if (!r || !delta || isExporting) return false;
+  var g = tlGroupSetup(r);
+  var bd = tlBounds(g.arr, r.a, { base: g.v, dur: tlDur(), cuts: activeCuts(), off: timeOff || 0, respectCuts: tlSnapOn });
+  var dl = tlDragSpan(g.v, 'move', delta, bd).start - g.v.start;
+  if (Math.abs(dl) < 1e-6) return false;
+  var snap = captionSnapshot();
+  tlGroupApply(r, g.bases, dl);
+  pushUndo('tlgrp:' + r.a + ':' + r.b, snap); markCaptionsEdited();
+  return true;
+}
+function tlDeleteRange(r) {
+  if (!r || isExporting) return;
+  var n = r.b - r.a + 1;
+  pushUndo();
+  captionBlocks.splice(r.a, n);
+  tlSel = -1; tlSelEnd = -1;
+  markCaptionsEdited(); refreshCaptionViews();
+  capToast(n + ' captions deleted — Ctrl/⌘+Z to undo');
+}
 var tlView = { start: 0, pps: 0 };  // linker Rand (s) + Pixel pro Sekunde
 var _tl = { cv: null, ctx: null, raf: 0, drag: null, ptrs: {}, pinch: null, fit: true, userAt: 0, lastTap: null,
             snap: null, tw: {}, twN: 0, open: false, shown: false, hover: '',
@@ -11440,7 +11466,7 @@ function tlSeekVideo(tv) {
 // Auswahl ↔ Zeilenliste: Balken wählen markiert die Zeile (und scrollt sie in Sicht), Zeile wählen markiert den Balken.
 function tlSelect(idx, seek) {
   var b = captionBlocks[idx];
-  tlSel = b ? idx : -1;
+  tlSel = b ? idx : -1; tlSelEnd = -1;
   var row = b ? document.getElementById('seg' + idx) : null;
   selectSegRow(row && row.classList ? row : null);
   if (row) tlScrollRowIntoView(row);
@@ -11493,7 +11519,7 @@ function tlApplyMode() {
   var pcol = wrap && wrap.parentElement;
   if (pcol && pcol.style && pcol.style.setProperty) pcol.style.setProperty('--tl-h', g.h + 'px');
   var hint = document.getElementById('tlHint');
-  if (hint) hint.textContent = g.coarse ? 'Tap a caption to select it · drag its edges to trim · hold to move it' : 'Drag to move · drag edges to trim · double-click to edit';
+  if (hint) hint.textContent = g.coarse ? 'Tap a caption to select it · drag its edges to trim · hold to move it' : 'Drag to move · drag edges to trim · Shift+click to select several';
   _tl.actKey = ''; tlSyncAct();
   tlRequestDraw();
 }
@@ -11561,43 +11587,15 @@ function tlSyncAct() {
   var b = captionBlocks[tlSel], key = _tl.mob + '|' + tlSel + '|' + (b ? b.start + '|' + b.end : '') + '|' + tlSnapOn + '|' + captionBlocks.length;
   if (key === _tl.actKey) return;
   _tl.actKey = key;
-  var hint = document.getElementById('taHint'), steps = document.getElementById('taSteps');
-  if (hint) hint.style.display = b ? 'none' : '';
-  if (steps) steps.style.display = b ? '' : 'none';
-  var st = document.getElementById('taStart'), en = document.getElementById('taEnd');
-  if (b && st) st.textContent = fmtT1(b.start);
-  if (b && en) en.textContent = fmtT1(b.end);
+  var hint = document.getElementById('taHint');
+  if (hint) hint.textContent = b ? (fmtT1(b.start) + ' – ' + fmtT1(b.end) + ' · hold to move · drag the edges to trim')
+                                 : 'Tap a caption to adjust it · swipe to scrub · pinch to zoom';
   ['taSplit', 'taEdit', 'taDel'].forEach(function(id){ var el = document.getElementById(id); if (el) el.disabled = !b; });
   var sp = document.getElementById('taSplit');
   if (sp && b) sp.disabled = !(b.words && b.words.length > 1);
   var gp = document.getElementById('taGaps'); if (gp) gp.disabled = !captionBlocks.length;
   var sn = document.getElementById('taSnap');
   if (sn) { sn.classList.toggle('on', tlSnapOn); if (sn.setAttribute) sn.setAttribute('aria-pressed', tlSnapOn ? 'true' : 'false'); }
-}
-// −/+ in der Aktionsleiste: Tippen = ein Schritt, gedrückt halten = wiederholen (nach 400 ms alle 80 ms).
-function tlStepBind(btn) {
-  var timer = 0, rep = 0;
-  function one(first) {
-    var ok = tlNudgeEdge(tlSel, btn.dataset.edge, (+btn.dataset.d || 0) * TL_STEP);
-    if (!ok && first) capToast(tlNudgeWhy(tlSel, btn.dataset.edge, +btn.dataset.d || 0));
-    var b = captionBlocks[tlSel], vid = document.getElementById('mainVid');
-    if (ok && b && vid && vid.paused) { // Vorschau zeigt den Block (Mitte springt an die bearbeitete Kante)
-      var tv = btn.dataset.edge === 'end' ? Math.max(b.start, b.end - 0.05) : b.start + 0.01;
-      tlScrubTo(tv - (timeOff || 0)); tlScrubEnd();
-    }
-    return ok;
-  }
-  function stop() { clearTimeout(timer); clearInterval(rep); timer = 0; rep = 0; }
-  btn.addEventListener('pointerdown', function(e) {
-    if (e.button > 0 || btn.disabled) return;
-    e.preventDefault(); stop();
-    try { btn.setPointerCapture(e.pointerId); } catch (err) {}
-    one(true);
-    timer = setTimeout(function(){ rep = setInterval(function(){ if (!one()) stop(); }, 80); }, 400);
-  });
-  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function(ev){ btn.addEventListener(ev, stop); });
-  btn.addEventListener('keydown', function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); one(true); } });
-  btn.addEventListener('contextmenu', function(e){ e.preventDefault(); });
 }
 // Ein rAF pro Frame, egal wie viele Auslöser (Overlay-Loop, Zeiger, Daten) — sonst nichts zeichnen.
 function tlRequestDraw() {
@@ -11740,11 +11738,11 @@ function tlDraw() {
   var act = nb ? currentBlockIdx(ph + off) : -1, dragIdx = d && d.type === 'block' && d.base ? d.idx : -1;
   var rad = mob ? 10 : Math.min(6, hB / 4), padT = mob ? 10 : 5;
   ctx.font = g.font; ctx.lineWidth = 1;
-  var selH = null;
+  var selH = null, rng = tlRange(), gDrag = d && d.type === 'block' && d.base && d.group ? d.group : null;
   for (i = tlFirstEndAfter(bl, t0 + off); i < nb; i++) {
     var b = bl[i], xs = tlTimeToX(b.start - off, v), xe = tlTimeToX(b.end - off, v);
     if (xs > w) break;
-    var bw = Math.max(2, xe - xs), sel = i === tlSel, isAct = i === act, isDrag = i === dragIdx;
+    var bw = Math.max(2, xe - xs), sel = i === tlSel || tlInRange(i, rng), isAct = i === act, isDrag = i === dragIdx || (gDrag && tlInRange(i, gDrag));
     // Stark gezoomt: Balken auf den sichtbaren Bereich kappen (riesige Pfade kosten Raster-Zeit),
     // Beschriftung bleibt am linken Rand „kleben“, solange der Block angeschnitten ist.
     var dxs = Math.max(xs, -12), dxe = Math.min(xe, w + 12), dw = Math.max(2, dxe - dxs);
@@ -11824,7 +11822,8 @@ function tlHit(x, y, touch) {
 var TL_MIN_HIT = 12; // px — Mindest-Trefferbreite eines Blocks in der Timeline
 function tlPos(e) { var r = _tl.rect || _tl.cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
 function tlRevertDrag(d) {
-  if (d && d.type === 'block' && d.base && d.arr === captionBlocks && captionBlocks[d.idx]) applyTimelineEdit(d.idx, d.base.start, d.base.end, d.base, { undoSnap: d.undoSnap });
+  if (d && d.type === 'block' && d.base && d.arr === captionBlocks && d.group) tlGroupApply(d.group, d.gBases, 0);
+  else if (d && d.type === 'block' && d.base && d.arr === captionBlocks && captionBlocks[d.idx]) applyTimelineEdit(d.idx, d.base.start, d.base.end, d.base, { undoSnap: d.undoSnap });
   _tl.snap = null;
 }
 // Zieh-Geste vorbereiten (erst beim ersten echten Bewegen: ein Klick kostet keinen Schnappschuss).
@@ -11832,12 +11831,21 @@ function tlBeginBlockDrag(d) {
   var b = captionBlocks[d.idx];
   if (!b) return false;
   var vid = document.getElementById('mainVid'), off = timeOff || 0;
+  if (d.group) { // Mehrfachauswahl gemeinsam verschieben
+    var g = tlGroupSetup(d.group), gc = { base: g.v, dur: tlDur(), cuts: activeCuts(), off: off };
+    d.arr = captionBlocks; d.base = g.v; d.gBases = g.bases; d.undoSnap = captionSnapshot();
+    d.bCut = tlBounds(g.arr, d.group.a, Object.assign({ respectCuts: true }, gc));
+    d.bFree = tlBounds(g.arr, d.group.a, Object.assign({ respectCuts: false }, gc));
+    d.cands = tlSnapCands(g.arr, d.group.a, { cuts: sceneCuts, off: off, playhead: vid ? vid.currentTime : NaN, speech: tlSpeech, words: [] });
+    tlHintSeen();
+    return true;
+  }
   d.arr = captionBlocks; d.base = tlClone(b); d.undoSnap = captionSnapshot();
   var common = { base: d.base, dur: tlDur(), cuts: activeCuts(), off: off };
   d.bCut = tlBounds(captionBlocks, d.idx, Object.assign({ respectCuts: true }, common));
   d.bFree = tlBounds(captionBlocks, d.idx, Object.assign({ respectCuts: false }, common));
   d.cands = tlSnapCands(captionBlocks, d.idx, { cuts: sceneCuts, off: off, playhead: vid ? vid.currentTime : NaN, speech: tlSpeech, words: d.base.words });
-  tlSel = d.idx; tlHintSeen();
+  tlSel = d.idx; tlSelEnd = -1; tlHintSeen();
   return true;
 }
 function tlOnDown(e) {
@@ -11862,7 +11870,10 @@ function tlOnDown(e) {
   var touch = e.pointerType === 'touch', hit = tlHit(p.x, p.y, touch);
   var d = { id: e.pointerId, x0: p.x, y0: p.y, moved: false, touch: touch, hit: hit, tDown: tlXToTime(p.x, tlView), view0: { start: tlView.start, pps: tlView.pps } };
   if (hit.type === 'ruler') { d.type = 'seek'; tlSeekVideo(tlXToTime(p.x, tlView)); }
-  else if (hit.type === 'block' && (!touch || hit.idx === tlSel)) { d.type = 'block'; d.idx = hit.idx; d.mode = hit.mode; }
+  else if (hit.type === 'block' && (!touch || hit.idx === tlSel)) {
+    d.type = 'block'; d.idx = hit.idx; d.mode = hit.mode;
+    if (!e.shiftKey && hit.mode === 'move' && tlInRange(hit.idx)) d.group = tlRange();
+  }
   else {
     d.type = 'pan';
     if (hit.type === 'block' && touch) { // Touch: lange drücken = auswählen und direkt weiterziehen
@@ -11936,7 +11947,8 @@ function tlOnMove(e) {
   var snapping = tlSnapOn && !e.altKey, bd = snapping ? d.bCut : d.bFree;
   var r = tlDragSpan(d.base, d.mode, tlXToTime(p.x, tlView) - d.tDown, { lo: bd.lo, hi: bd.hi, cands: snapping ? d.cands : null, pps: tlView.pps, thr: TL_SNAP_PX });
   d.cur = r; _tl.snap = r.snap;
-  applyTimelineEdit(d.idx, r.start, r.end, d.base, { live: true });
+  if (d.group) tlGroupApply(d.group, d.gBases, r.start - d.base.start);
+  else applyTimelineEdit(d.idx, r.start, r.end, d.base, { live: true });
   var vid = document.getElementById('mainVid'), off = timeOff || 0;
   if (vid && vid.paused) { // Vorschau zeigt das Bild an der gezogenen Kante → passgenau an Schnitt/Bild anlegen
     var tv = d.mode === 'end' ? r.end - off - 0.04 : r.start - off + 0.01;
@@ -11955,6 +11967,16 @@ function tlOnUp(e) {
   _tl.drag = null; _tl.hover = '';
   _tl.cv.style.cursor = '';
   if (e.type === 'pointercancel') { tlRevertDrag(d); tlRequestDraw(); return; }
+  if (d.type === 'block' && d.base && d.group) {
+    _tl.snap = null;
+    if (d.arr === captionBlocks && d.cur) {
+      var gdl = d.cur.start - d.base.start;
+      tlGroupApply(d.group, d.gBases, gdl);
+      if (Math.abs(gdl) > 1e-6) { pushUndo(null, d.undoSnap); markCaptionsEdited(); }
+    }
+    tlRequestDraw();
+    return;
+  }
   if (d.type === 'block' && d.base) {
     _tl.snap = null;
     if (d.arr === captionBlocks && d.cur) { applyTimelineEdit(d.idx, d.cur.start, d.cur.end, d.base, { undoSnap: d.undoSnap }); tlSelect(d.idx, false); }
@@ -11964,6 +11986,7 @@ function tlOnUp(e) {
   if (d.moved || d.lpDone) { tlRequestDraw(); return; }
   var now = Date.now();
   if (d.hit.type === 'block') {
+    if (e.shiftKey && captionBlocks[tlSel] && d.hit.idx !== tlSel) { tlSelEnd = d.hit.idx; _tl.lastTap = null; tlRequestDraw(); return; }
     var lt = _tl.lastTap;
     if (lt && lt.idx === d.hit.idx && now - lt.t < 380) { _tl.lastTap = null; tlEditText(d.hit.idx); return; }
     _tl.lastTap = { idx: d.hit.idx, t: now };
@@ -12075,16 +12098,19 @@ function tlOnKey(e) {
   var b = captionBlocks[tlSel];
   if (!b) return; // nichts gewählt → globale Shortcuts (←/→ = Seek, Leertaste)
   var k = e.key;
+  var rg = tlRange();
   if (k === 'ArrowLeft' || k === 'ArrowRight') {
     e.preventDefault(); e.stopPropagation();
-    tlNudge(tlSel, (k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 0.1 : TL_FRAME));
+    if (rg) tlNudgeRange(rg, (k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 0.1 : TL_FRAME));
+    else tlNudge(tlSel, (k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 0.1 : TL_FRAME));
     var vid = document.getElementById('mainVid');
     if (vid && vid.paused && captionBlocks[tlSel]) tlSeekVideo(captionBlocks[tlSel].start - (timeOff || 0) + 0.01);
   } else if (k === 'Delete' || k === 'Backspace') {
     e.preventDefault(); e.stopPropagation();
-    var i = tlSel; tlSel = -1; deleteSeg(i);
+    if (rg) tlDeleteRange(rg);
+    else { var i = tlSel; tlSel = -1; deleteSeg(i); }
   } else if (k === 'Enter') { e.preventDefault(); e.stopPropagation(); tlEditText(tlSel); }
-  else if (k === 'Escape') { e.stopPropagation(); tlSel = -1; selectSegRow(null); tlRequestDraw(); }
+  else if (k === 'Escape') { e.stopPropagation(); tlSel = -1; tlSelEnd = -1; selectSegRow(null); tlRequestDraw(); }
 }
 // ── Kopfzeile: Ein-/Ausklappen, Snap, Zoom, Einpassen ──
 function tlSetOpen(open, save) {
@@ -12172,7 +12198,6 @@ function tlReset() {
   cv.addEventListener('keydown', tlOnKey);
   cv.addEventListener('contextmenu', function(e){ e.preventDefault(); }); // Long-Press öffnet sonst das Kontextmenü
   if (typeof ResizeObserver === 'function') { try { new ResizeObserver(function(){ tlRequestDraw(); }).observe(cv); } catch (e) {} }
-  document.querySelectorAll('#tlAct .ta-b').forEach(tlStepBind);
   // Scrubben: das neueste Ziel nachreichen, sobald der vorige Seek fertig ist
   var vid = document.getElementById('mainVid');
   if (vid && vid.addEventListener) vid.addEventListener('seeked', function() {
