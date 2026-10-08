@@ -90,7 +90,7 @@ Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eine
 5. Menü (drei Punkte) → Sign in → Code per Mail → eingeloggt → «Save to account» → Seite neu laden → «Load project» → Projekt ist da.
 6. Cover erstellen (Export-Fenster → «Create cover»), PNG öffnen.
 7. Supabase `style_stats` hat nach dem Export eine Zeile (nur, wenn dein Browser nicht «Do Not Track» sendet).
-8. Absichtlich Spam-Test: Mail an `check-auth@verifier.port25.com` oder mail-tester.com: Wert ≥ 8/10.
+8. Spam-Test: auf mail-tester.com die angezeigte Adresse als Newsletter-Anmeldung verwenden (Export mit Häkchen) und den Wert ansehen: Ziel ≥ 8/10.
 ✅ Wenn etwas hakt: Screenshot/Fehlertext an mich.
 
 **C4. Google Search Console** (search.google.com/search-console)
@@ -98,10 +98,13 @@ Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eine
 2. Bestätigung per **DNS-TXT-Eintrag**: im Hostpoint-Control-Panel die DNS-Zone bearbeiten, TXT-Eintrag mit dem von Google angezeigten Wert anlegen, in Google «Bestätigen» (kann bis zu einigen Stunden dauern).
 3. Sitemaps → `https://captionrush.com/sitemap.xml` einreichen. ✅ Status «Erfolgreich».
 
-**C5. Aufräumen**: Alte Vercel-Adresse: Projekt in Vercel löschen oder pausieren, sobald die neue Domain läuft. Das Repo-Secret `CRON_SECRET` o. ä. von Vercel wird nicht mehr gebraucht.
+**C5. Aufräumen**: Alte Vercel-Adresse: Projekt in Vercel löschen oder pausieren, sobald die neue Domain läuft (der Vercel-Keep-alive-Cron wird dann nicht mehr gebraucht; der GitHub-Workflow übernimmt).
 
 **Reihenfolge der offenen Pull Requests** (die Themen-PRs bauen aufeinander auf; GitHub zeigt die Basis oben an):
-1. [#15](https://github.com/jonastreier/captly/pull/15) (Go-live) mergen. 2. Dann #16 (Recht/Texte), #20 (Telemetrie), #22 (Abo-Vorbereitung): jeweils «Edit» beim PR-Titel → Basis auf `main` ändern, Konflikte gibt es nicht zu erwarten, mergen. 3. Unabhängig davon jederzeit #17, #18, #19, #21 (Tight, E2E-Test, Performance, Mobile-Mehrfachauswahl). Wenn ein PR ein Konflikt-Banner zeigt: sag mir Bescheid, ich löse ihn.
+1. [#15](https://github.com/jonastreier/captly/pull/15) (Go-live) mergen und den Branch danach löschen (Knopf «Delete branch»). GitHub stellt PRs, die auf diesem Branch aufbauen, dann automatisch auf `main` um; sonst beim PR-Titel «Edit» → Basis auf `main`.
+2. Danach in dieser Reihenfolge: [#16](https://github.com/jonastreier/captly/pull/16) (Recht/Texte) → [#20](https://github.com/jonastreier/captly/pull/20) (Telemetrie) → [#22](https://github.com/jonastreier/captly/pull/22) (Abo-Vorbereitung, Schalter aus) → dieser PR (Anleitung). Die Reihenfolge ist wichtig, weil sie aufeinander aufbauen.
+3. Unabhängig davon, jederzeit nach #15: [#17](https://github.com/jonastreier/captly/pull/17) (Tight), [#18](https://github.com/jonastreier/captly/pull/18) (E2E-Test), [#19](https://github.com/jonastreier/captly/pull/19) (Performance), [#21](https://github.com/jonastreier/captly/pull/21) (Mobile-Mehrfachauswahl).
+Zeigt ein PR ein Konflikt-Banner (selten, z. B. weil zwei PRs dieselbe Zeile in `README.md` ändern): sag mir Bescheid, ich löse ihn.
 
 ---
 
