@@ -127,7 +127,7 @@ if (require.main !== module) return;
     await page.evaluate(() => selectStyle('hormozi'));
     const sty = await page.evaluate(() => activeId);
     ok(sty === 'hormozi', 'Style gewählt: ' + sty);
-    await page.evaluate(() => { var v = document.getElementById('vid'); if (v) v.currentTime = 0.5; });
+    await page.evaluate(() => { var v = document.getElementById('mainVid'); if (v) v.currentTime = 0.5; });
     await page.waitForTimeout(600);
     await shot('03-style');
 
