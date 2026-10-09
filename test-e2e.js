@@ -131,6 +131,137 @@ if (require.main !== module) return;
     await page.waitForTimeout(600);
     await shot('03-style');
 
+    // 2b) Timeline: Auswahlrahmen (Desktop) bzw. Wisch im «Select»-Modus (Handy) → Bereich gemeinsam verschieben → Undo
+    {
+      const tlInfo = () => page.evaluate(() => {
+        const cv = _tl.cv, r = cv.getBoundingClientRect(), g = tlGeom(), v = tlView, off = timeOff || 0;
+        return { l: r.left, t: r.top, w: r.width, g: { ruler: g.ruler, barY: g.barY, bar: g.bar, wave: g.wave, h: g.h }, pps: v.pps, vs: v.start,
+          starts: captionBlocks.map(b => b.start), blocks: captionBlocks.map(b => ({ x0: tlTimeToX(b.start - off, v), x1: tlTimeToX(b.end - off, v) })) };
+      });
+      const rangeOf = () => page.evaluate(() => { const r = tlRange(); return r ? { a: r.a, b: r.b } : (tlSel >= 0 ? { a: tlSel, b: tlSel } : null); });
+      const nbT = await page.evaluate(() => captionBlocks.length);
+      await page.evaluate(() => { tlSnapOn = false; var v = document.getElementById('mainVid'); if (v) v.pause(); });
+      if (!prof.mobile) {
+        await page.evaluate(() => { tlSetOpen(true, false); _tl.cv.scrollIntoView({ block: 'center' }); });
+        await page.waitForTimeout(500);
+        let I = await tlInfo();
+        const yWave = I.t + I.g.ruler + I.g.wave / 2, yBar = I.t + I.g.barY + I.g.bar / 2, bx = i => I.l + (I.blocks[i].x0 + I.blocks[i].x1) / 2;
+        // Rahmen von der Wellenform über die ersten drei Blöcke
+        await page.mouse.move(I.l + I.blocks[0].x0 + 3, yWave);
+        await page.mouse.down();
+        await page.mouse.move(I.l + I.blocks[1].x1, yBar, { steps: 6 });
+        await page.mouse.move(I.l + I.blocks[2].x1 - 3, yBar, { steps: 6 });
+        await page.waitForTimeout(150);
+        await shot('02b-timeline-marquee');
+        await page.mouse.up();
+        let R = await rangeOf();
+        ok(R && R.a === 0 && R.b - R.a === 2, 'Timeline Desktop: Rahmen über drei Blöcke → tlRange b−a = 2 (' + JSON.stringify(R) + ')');
+        // Klick (< 3 px) auf leere Fläche: abwählen wie bisher
+        await page.mouse.click(I.l + 4, yWave);
+        ok((await rangeOf()) === null, 'Timeline Desktop: Klick auf leere Fläche hebt die Auswahl auf');
+        // Rahmen über die letzten drei Blöcke, dann gemeinsam um +0,5 s verschieben
+        const i0 = nbT - 3;
+        await page.mouse.move(I.l + I.blocks[nbT - 1].x1 - 3, yWave);
+        await page.mouse.down();
+        await page.mouse.move(I.l + I.blocks[i0 + 1].x0, yBar, { steps: 6 });
+        await page.mouse.move(I.l + I.blocks[i0].x0 + 3, yBar, { steps: 6 });
+        await page.mouse.up();
+        R = await rangeOf();
+        ok(R && R.a === i0 && R.b === nbT - 1, 'Timeline Desktop: Rahmen von rechts nach links (umgekehrte Richtung) wählt die letzten drei (' + JSON.stringify(R) + ')');
+        const before = I.starts, dxPx = 0.5 * I.pps;
+        await page.mouse.move(bx(i0 + 1), yBar);
+        await page.mouse.down();
+        await page.mouse.move(bx(i0 + 1) + dxPx / 2, yBar, { steps: 5 });
+        await page.mouse.move(bx(i0 + 1) + dxPx, yBar, { steps: 5 });
+        await page.mouse.up();
+        let after = (await tlInfo()).starts;
+        ok(before.every((v, i) => i < i0 ? Math.abs(after[i] - v) < 1e-6 : Math.abs(after[i] - v - 0.5) < 0.02), 'Timeline Desktop: Bereich um +0,5 s verschoben, davor unverändert (' + (after[i0] - before[i0]).toFixed(3) + ' s)');
+        ok(JSON.stringify(await rangeOf()) === JSON.stringify({ a: i0, b: nbT - 1 }), 'Timeline Desktop: Auswahl bleibt nach dem Verschieben bestehen');
+        await page.mouse.move(I.l + 4, yWave); // Fokus: Tastatur an die Seite
+        await page.keyboard.press('Control+z');
+        await page.waitForTimeout(200);
+        after = (await tlInfo()).starts;
+        ok(before.every((v, i) => Math.abs(after[i] - v) < 1e-6), 'Timeline Desktop: Strg+Z macht das gemeinsame Verschieben rückgängig');
+        // Shift+Rahmen erweitert die bestehende Auswahl
+        await page.evaluate(() => tlSelect(0, false));
+        await page.mouse.move(I.l + I.blocks[nbT - 1].x1 - 3, yWave);
+        await page.keyboard.down('Shift');
+        await page.mouse.down();
+        await page.mouse.move(I.l + I.blocks[nbT - 1].x0 + 3, yBar, { steps: 4 });
+        await page.mouse.up();
+        await page.keyboard.up('Shift');
+        R = await rangeOf();
+        ok(R && R.a === 0 && R.b === nbT - 1, 'Timeline Desktop: Shift+Rahmen erweitert die Auswahl (' + JSON.stringify(R) + ')');
+        // Gezoomt: Mittelklick-Ziehen scrollt, Rahmen am Rand scrollt automatisch weiter
+        await page.evaluate(() => { tlSel = -1; tlSelEnd = -1; tlView = tlZoomAt(tlView, 3, 0, tlDur(), _tl.cv.clientWidth); _tl.fit = false; tlRequestDraw(); });
+        await page.waitForTimeout(200);
+        I = await tlInfo();
+        const vs0 = I.vs;
+        await page.mouse.move(I.l + 400, yWave);
+        await page.mouse.down({ button: 'middle' });
+        await page.mouse.move(I.l + 300, yWave, { steps: 5 });
+        await page.mouse.up({ button: 'middle' });
+        const vs1 = (await tlInfo()).vs;
+        ok(vs1 > vs0 + 0.05 && (await rangeOf()) === null, 'Timeline Desktop: Mittelklick-Ziehen scrollt (' + vs0.toFixed(2) + ' → ' + vs1.toFixed(2) + ' s), ohne Auswahl zu ändern');
+        await page.evaluate(() => { tlView = tlClampView({ start: 0, pps: tlView.pps }, tlDur(), _tl.cv.clientWidth); tlRequestDraw(); });
+        await page.waitForTimeout(150);
+        I = await tlInfo();
+        await page.mouse.move(I.l + 6, yWave);
+        await page.mouse.down();
+        await page.mouse.move(I.l + I.w - 8, yWave, { steps: 8 });
+        await page.waitForTimeout(700); // am Rand verharren → scrollt weiter
+        await shot('02c-timeline-autoscroll');
+        await page.mouse.up();
+        const I2 = await tlInfo();
+        R = await rangeOf();
+        ok(I2.vs > 0.3 && R && R.b > R.a, 'Timeline Desktop: Rahmen am Rand scrollt automatisch weiter (Start ' + I2.vs.toFixed(2) + ' s, Bereich ' + JSON.stringify(R) + ')');
+        await page.evaluate(() => { tlSel = -1; tlSelEnd = -1; tlFit(); tlRequestDraw(); });
+        await page.mouse.move(I.l + 4, yWave);
+      } else {
+        // Handy: Tab «Timeline», Modus «Select», Wisch über die letzten drei Blöcke, Halten + Ziehen verschiebt sie gemeinsam
+        await page.evaluate(() => { switchTab('timeline'); });
+        await page.waitForTimeout(500);
+        const i0 = nbT - 3;
+        await page.evaluate(i => { const b = captionBlocks[i], e = captionBlocks[i + 2]; document.getElementById('mainVid').currentTime = (b.start + e.end) / 2 - (timeOff || 0); _tl.cv.scrollIntoView({ block: 'center' }); }, i0);
+        await page.waitForTimeout(600);
+        const cdp = await ctx.newCDPSession(page);
+        const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
+        await page.click('#taMulti');
+        ok(await page.evaluate(() => tlMulti), 'Timeline Handy: «Select»-Modus an');
+        let I = await tlInfo();
+        const yB = I.t + I.g.barY + I.g.bar / 2, bx = i => I.l + (I.blocks[i].x0 + I.blocks[i].x1) / 2;
+        await touch('touchStart', bx(i0), yB);
+        for (let k = 1; k <= 8; k++) await touch('touchMove', bx(i0) + (bx(i0 + 2) - bx(i0)) * k / 8, yB);
+        await shot('02b-timeline-sweep');
+        await touch('touchEnd');
+        await page.waitForTimeout(200);
+        let R = await rangeOf();
+        ok(R && R.a === i0 && R.b === nbT - 1, 'Timeline Handy: Wisch im Select-Modus wählt den Bereich (' + JSON.stringify(R) + ')');
+        const before = I.starts, dxPx = 0.3 * 70;
+        await touch('touchStart', bx(i0 + 1), yB);
+        await page.waitForTimeout(650);
+        await touch('touchMove', bx(i0 + 1) + dxPx / 2, yB);
+        await touch('touchMove', bx(i0 + 1) + dxPx, yB);
+        await touch('touchEnd');
+        await page.waitForTimeout(200);
+        const after = (await tlInfo()).starts;
+        ok(before.every((v, i) => i < i0 ? Math.abs(after[i] - v) < 1e-6 : Math.abs(after[i] - v - 0.3) < 0.04), 'Timeline Handy: Bereich gemeinsam um ~0,3 s verschoben (' + (after[i0] - before[i0]).toFixed(3) + ' s)');
+        await page.evaluate(() => { undoCaptions(); });
+        const back = (await tlInfo()).starts;
+        ok(before.every((v, i) => Math.abs(back[i] - v) < 1e-6), 'Timeline Handy: Undo macht es rückgängig');
+        // Wisch auf leerer Fläche scrubbt weiter wie bisher (Auswahl bleibt)
+        const c0 = await page.evaluate(() => document.getElementById('mainVid').currentTime);
+        await touch('touchStart', I.l + 40, I.t + I.g.ruler + 3);
+        for (let k = 1; k <= 6; k++) await touch('touchMove', I.l + 40 + k * 10, I.t + I.g.ruler + 3);
+        await touch('touchEnd');
+        await page.waitForTimeout(300);
+        const c1 = await page.evaluate(() => document.getElementById('mainVid').currentTime);
+        ok(Math.abs(c1 - c0) > 0.2, 'Timeline Handy: Wisch auf leerer Fläche scrubbt weiterhin (' + c0.toFixed(2) + ' → ' + c1.toFixed(2) + ' s)');
+        await page.evaluate(() => { tlMulti = false; tlSel = -1; tlSelEnd = -1; switchTab('captions'); });
+      }
+      await page.evaluate(() => { tlSnapOn = true; });
+    }
+
     // 3) Export: Gate verlangt E-Mail (Beta) → ungültig/leer wird abgelehnt, gültig + Newsletter geht durch
     await page.click('#tbExport');
     await page.waitForSelector('#expSheet', { state: 'visible' });
