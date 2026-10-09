@@ -49,6 +49,8 @@ const T0 = Date.now();
 const EXPECT_FAIL = [
   // Aktuell leer: P1 (Layout-Preset/Zeilenhöhe/Export-Zeilenabstand), P2 (Word pop), P3 (Cover-Rand) sind gemergt.
   { re: /^ctl\/cvWords\/changes:cover\.hash$/, why: 'NEU gefunden (noch nicht behoben): Cover-Akzent-Chips («Tap words to accent them») bewirken bei Looks ohne Betonung (Standard «tight», «statement») nichts — captly.html coverIsEm() ~Z. 11279 verlangt emphColor/emFont' },
+  { re: /^geom\/y\/(popone|headline|editorial|script)$/, why: 'NEU gefunden (noch nicht behoben): Position «Middle» — Export zentriert mit fester Konstante «fsS * 0.35» statt mit den Schrift-Metriken (captly.html capLayout ~Z. 10653: y0 = centerY - … + fsS * 0.35); bei Anton/Playfair/Kalam liegt der Export 11–17 px (Export-Breite 1080) anders als die Vorschau' },
+  { re: /^geom\/(y\/(serifbold|boxkara)|linepitch\/boxkara)$/, why: 'NEU gefunden (noch nicht behoben): Position «Bottom»/Zeilenhöhe 0.9/1.8 bei Serif Bold bzw. Highlight Box: Block liegt in Vorschau und Export 11–14 px (von 1080) versetzt, Highlight Box 0.9 hat in der Vorschau grösseren Zeilenabstand (81 vs 76 px) — Ursache vermutlich clampCapVertical (Vorschau) vs. Clamp in capLayout' },
   // Neuer Eintrag: { re: /^ctl\/csLh@layoutPreset\//, why: 'Branch xyz: Kurzbeschreibung' },
 ];
 
@@ -106,9 +108,14 @@ function qaMain() {
     },
     // Zeilen (= verschiedene offsetTop der Wort-Spans) im aktuellen Overlay
     domLines() {
-      const sp = document.getElementById('capOverlay').querySelectorAll('[data-oi]'), tops = {};
-      sp.forEach(s => { tops[Math.round(s.offsetTop)] = 1; });
-      return Object.keys(tops).length;
+      // Zeilen = Cluster der Span-Mitten (offsetTop + Höhe/2); Betonungswörter haben eine andere Höhe, aber dieselbe Zeile
+      const sp = document.getElementById('capOverlay').querySelectorAll('[data-oi]'), ys = [];
+      sp.forEach(s => { ys.push(s.offsetTop + s.offsetHeight / 2); });
+      ys.sort((a, b) => a - b);
+      const tolY = ((sp[0] && parseFloat(getComputedStyle(sp[0]).fontSize)) || 20) * 0.5;
+      let n = 0, last = -1e9;
+      ys.forEach(y => { if (y - last > tolY) n++; last = y; });
+      return n;
     },
     // Block wählen: need.lines = genau so viele DOM-Zeilen, need.emph = enthält hervorgehobenes Wort, need.words ≥ n. → { bi, t }
     async pickBlock(need) {
@@ -228,19 +235,39 @@ function qaMain() {
       spans.forEach(x => { x.style.transform = 'none'; }); // laufende Pop-/Lift-Animation würde die Rechtecke verschieben
       const pieces = []; L.lines.forEach((ln, li) => ln.forEach(wo => pieces.push({ wo, li })));
       const out = { n: spans.length, nExp: pieces.length, linesDom: qa.domLines(), linesExp: L.lines.length, scale: L.scale, fsS: L.fsS, lhExp: L.lh, dx: 0, dw: 0, dy: 0, dh: 0, pitchDom: null, W, H, worst: '' };
-      const rows = {};
+      const rows = {}, wraps = [];
       for (let i = 0; i < Math.min(spans.length, pieces.length); i++) {
         const r = spans[i].getBoundingClientRect(), p = pieces[i].wo, k = W / (previewFrameW() * ratio);
         const x = (r.left - fr.left) * k, w = r.width * k, top = (r.top - fr.top) * k, h = r.height * k;
-        const dx = Math.abs(x - p.x), dw = Math.abs(w - p.w), dy = Math.abs(top - (p.y - L.capA)), dh = Math.abs(h - (L.capA + L.capD));
+        const isEm = parseFloat(getComputedStyle(spans[i]).fontSize) > parseFloat(getComputedStyle(spans[i].closest('.cap-root')).fontSize) * 1.001;
+        const dx = Math.abs(x - p.x), dw = Math.abs(w - p.w), dy = Math.abs(top - (p.y - L.capA)), dh = isEm ? 0 : Math.abs(h - (L.capA + L.capD));
         if (dx > out.dx) { out.dx = dx; out.worst = 'x ' + spans[i].textContent; }
-        out.dw = Math.max(out.dw, dw); out.dy = Math.max(out.dy, dy); out.dh = Math.max(out.dh, dh);
-        rows[pieces[i].li] = top;
+        out.dw = Math.max(out.dw, dw); if (dy > out.dy) { out.dy = dy; out.worstY = spans[i].textContent + (isEm ? ' (Betonung)' : '') + ' Zeile ' + pieces[i].li + ' DOM ' + top.toFixed(1) + ' / Export ' + (p.y - L.capA).toFixed(1); } out.dh = Math.max(out.dh, dh);
+        const wr = spans[i].parentElement; if (wraps.indexOf(wr) < 0) wraps.push(wr);
       }
-      const ks = Object.keys(rows).sort();
-      if (ks.length > 1) out.pitchDom = (rows[ks[1]] - rows[ks[0]]);
-      out.topDom = rows[ks[0]]; out.topExp = pieces.length ? pieces[0].wo.y - L.capA : null;
+      if (wraps.length > 1) { const t0 = wraps[0].getBoundingClientRect().top, t1 = wraps[1].getBoundingClientRect().top; out.pitchDom = (t1 - t0) * W / (previewFrameW() * ratio); }
+      out.topDom = null; out.topExp = null;
       out.pitchExp = L.lh;
+      return out;
+    },
+    // Geometrie-Matrix für EINEN Style: Zeilen × Position × Zeilenhöhe → Liste von Messergebnissen (geom)
+    async geomStyle(id, linesList, posList, lhList, W) {
+      await qa.useStyle(id);
+      onWpbChange(4); // Presets mit eigenem Layout (1 Wort/Block …) → Nutzer stellt 4 Wörter ein
+      const idx = STYLES.findIndex(x => x.id === id), orig = STYLES[idx], out = [];
+      try {
+        for (const ln of linesList) for (const pos of posList) {
+          document.querySelector('#linesRow [data-lines="' + ln + '"]').click();
+          document.querySelector('#posRow [data-pos="' + pos + '"]').click();
+          const pk = await qa.pickBlock({ words: 3 });
+          if (!pk) continue;
+          for (const lh of lhList) {
+            STYLES[idx] = Object.assign({}, orig); if (lh === 1.3) delete STYLES[idx].lh; else STYLES[idx].lh = lh;
+            _lastKey = null; updateOverlay(); applyPos(); await qa.raf2();
+            const g = qa.geom(W); if (g) { g.tag = ln + 'Z/' + pos + '/lh' + lh; out.push(g); }
+          }
+        }
+      } finally { STYLES[idx] = orig; }
       return out;
     },
     // Pixel-Fall: Export-Render des aktuellen Blocks (Hintergrund #808080) als ImageData-Maske in Zielgrösse w×h
@@ -644,6 +671,35 @@ SECTIONS.anim = async (browser, prof) => {
     // nach Ende der Animation (Wortstart + 0.5 s) wieder in Ruhe
     const rest = await p.evaluate(async () => { const b = captionBlocks[0], t = b.words[1].start + 0.14 - timeOff; await __qa.seekTo(t); return t; });
     void rest;
+  }
+  await sc.close();
+};
+
+
+// ═══════════ Abschnitt geom: Vorschau = Export (Geometrie) ═══════════
+// DOM-Wortrechtecke (auf Export-Breite W skaliert) vs. capLayout. Toleranz ≤ 1 % von W für Position/Breite, Zeilenabstand strenger (1.2 % der Schriftgrösse; Export rundet die Schrift auf ganze px).
+const GEOM_W = 1080;
+SECTIONS.geom = async (browser, prof) => {
+  const sc = await newScenario(browser, prof);
+  const p = sc.page;
+  await goTab(sc, 'style');
+  let ids = await p.evaluate(() => STYLES.filter(s => s.id !== 'custom' && !s._isTpl).map(s => s.id));
+  const lines = QUICK ? [2] : [1, 2], poss = QUICK ? ['top', 'bottom'] : ['top', 'center', 'bottom'], lhs = QUICK ? [1.3, 1.8] : [0.9, 1.3, 1.8];
+  if (QUICK) ids = ids.filter((x, i) => i % 3 === 0);
+  const tol = GEOM_W * 0.01;
+  for (const id of ids) {
+    const res = await p.evaluate(a => window.__qa.geomStyle(a.id, a.lines, a.poss, a.lhs, a.W), { id, lines, poss, lhs, W: GEOM_W });
+    const bad = (f, lim) => res.filter(r => f(r) > lim).sort((a, b) => f(b) - f(a));
+    const cnt = res.filter(r => r.n !== r.nExp || r.linesDom !== r.linesExp);
+    check('geom/words/' + id, !cnt.length && res.length > 0, res.length + ' Fälle: gleiche Wort- und Zeilenzahl in Vorschau und Export' + (cnt.length ? ' — ' + cnt[0].tag + ': DOM ' + cnt[0].n + ' Wörter/' + cnt[0].linesDom + ' Zeilen, Export ' + cnt[0].nExp + '/' + cnt[0].linesExp : ''));
+    const bx = bad(r => r.dx, tol), bw = bad(r => r.dw, tol), by = bad(r => r.dy, tol), bh = bad(r => r.dh, tol);
+    check('geom/x/' + id, !bx.length, 'Wort-x ≤ 1 % von W (max ' + Math.max(0, ...res.map(r => r.dx)).toFixed(1) + ' px von ' + tol + ')' + (bx.length ? ' — ' + bx[0].tag + ' «' + bx[0].worst + '»' : ''));
+    check('geom/w/' + id, !bw.length, 'Wortbreite ≤ 1 % von W (max ' + Math.max(0, ...res.map(r => r.dw)).toFixed(1) + ' px)' + (bw.length ? ' — ' + bw[0].tag : ''));
+    check('geom/y/' + id, !by.length, 'Zeilen-y (Oberkante) ≤ 1 % von W (max ' + Math.max(0, ...res.map(r => r.dy)).toFixed(1) + ' px)' + (by.length ? ' — ' + by[0].tag + ': ' + by[0].worstY : ''));
+    check('geom/h/' + id, !bh.length, 'Zeilenbox-Höhe ≤ 1 % von W (max ' + Math.max(0, ...res.map(r => r.dh)).toFixed(1) + ' px)' + (bh.length ? ' — ' + bh[0].tag : ''));
+    const two = res.filter(r => r.pitchDom !== null && r.linesExp > 1);
+    const pbad = two.filter(r => Math.abs(r.pitchDom - r.pitchExp) > 0.012 * r.fsS);
+    check('geom/linepitch/' + id, !pbad.length, 'Zeilenabstand Vorschau = Export (' + two.length + ' Fälle)' + (pbad.length ? ' — ' + pbad[0].tag + ': DOM ' + pbad[0].pitchDom.toFixed(1) + ' px, Export ' + pbad[0].pitchExp.toFixed(1) + ' px (Schrift ' + pbad[0].fsS + ' px)' : ''));
   }
   await sc.close();
 };
