@@ -122,6 +122,7 @@ setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKe
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
+setLines:setLines,splitBlockAtCursor:splitBlockAtCursor,getLines:function(){return CAPTION_LINES;},getMaxChars:function(){return CAP_MAX_CHARS;},getPresetPrevLayout:function(){return _presetPrevLayout;},setFontSizeState:function(v){fontSize=v;},
 capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3313,6 +3314,88 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const enSrc = fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8');
     ok(i18n.syncSource(enSrc) === enSrc, 'i18n en: FAQ-JSON-LD in captly.html passt zur sichtbaren FAQ (sonst: node scripts/build-i18n.js)');
     ok(!/aggregateRating|"review"/.test(enSrc.slice(0, enSrc.indexOf('<style>'))) && (enSrc.match(/<h1[\s>]/g) || []).length === 1, 'Landing: genau ein <h1>, keine Fake-Bewertungen im JSON-LD');
+  }
+
+  // ── Customize-Regler ändern NIE Zeilen, Wörter/Caption, Zeichenlimit oder Blöcke (Bug: „Line height“ bei
+  //    Tight/Mix/Statement/One Word sprang auf das Preset-Layout zurück und verwarf manuelle Splits) ──
+  {
+    const qs0 = document.querySelector; document.querySelector = () => null; // splitBlockAtCursor fokussiert danach
+    const E = id => document.getElementById(id);
+    const lw = 'eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf'.split(' ').map((w, i) => ({ word: w, start: i * 0.4, end: i * 0.4 + 0.35 }));
+    const GROUPS = {
+      lh: () => { E('csLh').value = '1.6'; }, ls: () => { E('csLs').value = '3'; }, text: () => { E('csText').value = '#ff0000'; },
+      hlc: () => { E('csHl').value = '#00ff00'; }, font: () => { E('csFont').value = 'Inter'; }, weight: () => { E('csWeight').value = '400'; },
+      stroke: () => { E('csOutlineW').value = '3'; E('csOutlineC').value = '#112233'; }, glow: () => { E('csGlow').checked = true; E('csGlowInt').value = '20'; },
+      box: () => { E('csBox').value = 'box'; }, boxc: () => { E('csBoxC').value = '#2040ff'; }, hltype: () => { E('csHlType').value = 'pill'; },
+      motion: () => { E('csMotion').value = 'reveal'; }, anim: () => { E('csAnim').value = 'pop'; }, em: () => { E('csEm').value = '#ff00ff'; },
+      emfont: () => { E('csEmFont').value = 'Inter'; }
+    };
+    const presets = T.STYLES.filter(s => s.layout && s.id !== 'custom').map(s => s.id);
+    ok(['tight', 'mix', 'statement', 'popone'].every(id => presets.includes(id)), 'Layout-Presets vorhanden: ' + presets.join());
+    const mc0 = T.getMaxChars(), bad = [];
+    const prep = async pid => {
+      T.setState(T.buildCaptionBlocks(lw), lw.slice(), 'karaoke'); T.setCaptionsEdited(false);
+      T.selectStyle(pid); // Preset setzt sein Layout (z. B. 1 Wort, 1 Zeile)
+      T.setLines({ dataset: { lines: '2' } }); T.onWpbChange(4);
+      const b0 = T.getBlocks()[0];
+      await T.splitBlockAtCursor(0, { selectionStart: b0.text.indexOf(' '), value: b0.text }); // manueller Split
+      return T.captionSnapshot();
+    };
+    for (const pid of presets) for (const g of Object.keys(GROUPS)) {
+      const snap = await prep(pid);
+      GROUPS[g](); T.applyCustomStyle(g); T.flushCustomStyle();
+      const why = [T.getActiveId() !== 'custom' && 'aktiv ' + T.getActiveId(), T.getLines() !== 2 && 'Zeilen ' + T.getLines(),
+        T.getWpb() !== 4 && 'Wörter ' + T.getWpb(), T.getMaxChars() !== mc0 && 'Zeichen ' + T.getMaxChars(),
+        T.captionSnapshot() !== snap && 'Blöcke'].filter(Boolean);
+      if (why.length) bad.push(pid + '/' + g + ': ' + why.join(', '));
+    }
+    ok(!bad.length, 'Customize-Regler behalten Zeilen/Wörter/Zeichenlimit/Blöcke (' + presets.length + ' Presets × ' + Object.keys(GROUPS).length + ' Gruppen)' + (bad.length ? ': ' + bad.slice(0, 6).join(' | ') : ''));
+    ok(!('layout' in T.buildCustomStyle()), 'Custom-Style trägt kein Preset-Layout');
+    // Erneuter Klick auf die Custom-Kachel (ohne fromEditor) fasst das Layout nicht an
+    let snap = await prep('tight');
+    E('csLh').value = '1.5'; T.applyCustomStyle('lh'); T.flushCustomStyle();
+    T.selectStyle('custom');
+    ok(T.getActiveId() === 'custom' && T.getLines() === 2 && T.getWpb() === 4 && T.captionSnapshot() === snap, 'Klick auf Custom-Kachel: Layout + Blöcke bleiben');
+    // Preset gewählt (ohne manuelle Änderung) → Regler → Custom behält das Preset-Layout; danach normales Preset = vorheriges Layout zurück
+    T.setState(T.buildCaptionBlocks(lw), lw.slice(), 'karaoke'); T.setCaptionsEdited(false);
+    T.selectStyle('classic'); T.setLines({ dataset: { lines: '2' } }); T.onWpbChange(4);
+    T.selectStyle('tight');
+    const tl = T.getLines(), tw = T.getWpb(); snap = T.captionSnapshot();
+    E('csLh').value = '1.7'; T.applyCustomStyle('lh'); T.flushCustomStyle();
+    ok(T.getLines() === tl && T.getWpb() === tw && T.captionSnapshot() === snap && T.getPresetPrevLayout(), 'Tight → Zeilenhöhe: Layout/Blöcke unverändert, vorheriges Layout gemerkt');
+    T.selectStyle('custom');
+    ok(T.getLines() === tl && T.getWpb() === tw && T.captionSnapshot() === snap && T.getPresetPrevLayout(), 'Tight → Zeilenhöhe → Klick auf aktive Custom-Kachel: Layout unverändert');
+    T.selectStyle('classic');
+    ok(T.getLines() === 2 && T.getWpb() === 4 && !T.getPresetPrevLayout(), 'Danach normales Preset: vorheriges Layout zurück (2 Zeilen, 4 Wörter)');
+    document.querySelector = qs0; if (!qs0) delete document.querySelector;
+
+    // Zeilenhöhe 0.9–1.8 ändert weder Zeilenzahl (auch nicht über die Höhenbremse) noch die Zeilenverteilung
+    const texts = [['Heute', 'zeigen', 'wir', 'dir', 'alles'], ['Das', 'Rindfleischverarbeitungsbetriebe'], ['Bundesverfassungsgericht'],
+      ['eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht']];
+    const fs0 = T.getFontSize(), lines0 = T.getLines(), lhBad = [];
+    // Mess-Kontext wie der Stub, aber mit canvas.letterSpacing (Export setzt es; fitCaptionWords rechnet es selbst dazu)
+    const ctx = Object.assign(document.createElement('canvas').getContext('2d'), { letterSpacing: '0px',
+      measureText(str) { const m = /([\d.]+)px/.exec(this.font), n = (str || '').length; return { width: n * (m ? parseFloat(m[1]) : 16) * 0.55 + n * (parseFloat(this.letterSpacing) || 0) }; } });
+    for (const sid of ['classic', 'statement', 'tiktok', 'tight']) for (const px of [16, 30, 54]) for (const nl of [1, 2, 3]) for (const ws of texts) {
+      const base = T.STYLES.find(x => x.id === sid);
+      const sig = lh => {
+        const s = Object.assign({}, base, { id: 'lhtest', lh });
+        const f = T.fitCaptionWords(ws, s, px, T.capFitMaxW(s), nl);
+        const wr = T.wrapCaptionLines(ws, s, -1, f.px, nl);
+        T.setLinesState(nl); T.setFontSizeState(px);
+        const bw = ws.map((w, i) => ({ word: w, start: i, end: i + 0.5 }));
+        T.setState([{ words: bw, start: 0, end: ws.length, text: ws.join(' ') }], bw, 'karaoke');
+        const L = T.capLayout(ctx, T.getBlocks()[0], 0, -1, s, 1080, 1920);
+        if (Math.abs(L.lh - L.fsS * lh) > 1e-9) lhBad.push(sid + ': Export-Zeilenabstand ' + L.lh + ' ≠ fs·L ' + L.fsS * lh);
+        return [f.lines, f.words.join(' '), JSON.stringify(wr), L.lines.map(l => l.length).join('/')].join(' | ');
+      };
+      const ref = sig(1.3);
+      for (let lh = 0.9; lh <= 1.8001; lh += 0.05) { const v = sig(Math.round(lh * 100) / 100); if (v !== ref) { lhBad.push(sid + ' ' + px + 'px ' + nl + 'Z „' + ws.join(' ') + '“ lh ' + lh.toFixed(2) + ': ' + v + ' ≠ ' + ref); break; } }
+    }
+    T.setLinesState(lines0); T.setFontSizeState(fs0);
+    ok(!lhBad.length, 'Zeilenhöhe 0.9–1.8 ändert Zeilenzahl/Umbruch nie (fitCaptionWords, wrapCaptionLines, capLayout)' + (lhBad.length ? ': ' + lhBad.slice(0, 4).join(' | ') : ''));
+    ok(T.getFontSize() === fs0, 'Schriftgrösse unverändert');
+    ok(/#capOverlay\{[^}]*line-height:0[;}]/.test(htmlContent), 'Vorschau: #capOverlay ohne Strut (line-height:0) — Box-Geometrie wie im Export');
   }
 
   // ── Konto selbst löschen: RPC delete_my_account, danach lokal abgemeldet; Abbruch/Fehler lassen alles stehen ──

@@ -311,7 +311,8 @@ body.editor-open{height:100vh;overflow:hidden}
 .fdz-btn{background:var(--brand);color:#fff;font:600 13px 'Inter',sans-serif;padding:10px 18px;border-radius:999px;box-shadow:var(--sh-2)}
 #frameDropZone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:4}
 #frameDropZone p{font-size:12px;color:#b3babc;text-align:center;padding:0 12px;line-height:1.5}
-#capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
+/* line-height:0: kein Strut der Body-Schrift unter/über der Caption-Box (sonst lag sie bei kleiner Schrift/Zeilenhöhe höher als im Export) */
+#capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;line-height:0;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
 #capOverlay:active{cursor:grabbing}
 #capOverlay.dragging{cursor:grabbing}
 .vid-ctrls{display:none;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 10px 5px 6px;box-shadow:var(--sh-1);width:220px;max-width:100%}
@@ -5872,9 +5873,16 @@ function selectStyle(id, fromEditor) {
   // Erster Regler-Eingriff: die Custom-Kachel (oben in „My templates“) im Picker sichtbar machen — sonst
   // sah es aus, als bliebe das vorige Preset aktiv bzw. die Änderung käme nicht an.
   if (fromEditor && prevId !== id) scrollPickerTo(id, false);
-  if (s && s._tpl) { _presetPrevLayout = null; applyTemplateSettings(s._tpl); } // Template bringt eigenes Layout mit
-  else if (s && s.layout) applyPresetLayout(s.layout); // eingebaute Presets mit eigener Blockgröße (Pop One)
-  else if (s && _presetPrevLayout) restorePresetLayout(); // jeder andere Style (auch Custom): vorheriges Layout zurück
+  // Customize-Regler (fromEditor) bzw. erneuter Klick auf die aktive Custom-Kachel fassen das Layout NIE an:
+  // Zeilen, Wörter/Caption, Zeichenlimit und Blöcke (inkl. manueller Splits/Timeline-Edits) bleiben — vorher
+  // setzte jeder Regler das Layout des Ausgangs-Presets (Tight: 1 Wort/1 Zeile) zurück. _presetPrevLayout
+  // bleibt gemerkt. Wechsel von einem anderen Style zur Custom-Kachel: wie jeder Style ohne eigenes Layout.
+  var keepLayout = id === 'custom' && (fromEditor || prevId === 'custom');
+  if (s && !keepLayout) {
+    if (s._tpl) { _presetPrevLayout = null; applyTemplateSettings(s._tpl); } // Template bringt eigenes Layout mit
+    else if (s.layout) applyPresetLayout(s.layout); // eingebaute Presets mit eigener Blockgröße (Pop One)
+    else if (_presetPrevLayout) restorePresetLayout(); // jeder andere Style: vorheriges Layout zurück
+  }
   onCapMetricsChange('style'); // Auto-Zeichenlimit hängt von Schrift/Style ab
   _lastKey = null;
   updateOverlay();
@@ -6229,6 +6237,7 @@ function buildCustomStyle() {
   var base = _csBase || cloneStyle(STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0]);
   var cs = cloneStyle(base), d = _csDirty;
   cs.id = 'custom'; cs.name = 'My style'; cs.badge = '❤️';
+  delete cs.layout; // Preset-Blockgröße (Tight/Mix/Statement/One Word) gehört nicht zum Look — s. selectStyle
   if (!cs.thumbBg) cs.thumbBg = CS_THUMB_BG;
   // Neue Schrift gilt auch fürs aktive Wort (eigene hlFont des Styles fällt weg) — vorher wechselte nur der Rest.
   if (d.font)   { var f = (csEl('csFont') || {}).value || cs.fl || 'Poppins'; cs.fl = f; cs.font = "'" + f + "'"; delete cs.hlFont; }
@@ -10556,7 +10565,9 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   // „Max lines“, solange die Mindestgröße reicht.
   var lines = capDistributeLines(wordInfo, CAPTION_LINES, sp, maxW);
 
-  var lh   = fsS * 1.28 * (capLineH(s) / 1.3); // gleiche Relation wie CSS line-height in der Vorschau
+  // Zeilenabstand = CSS line-height der Vorschau (L·fs, gemessen in Chromium: Abstand der [data-oi]-Zeilen = L·fs).
+  // Vorher fs·1.28·L/1.3 → Export ~1.5 % enger als die Vorschau.
+  var lh   = fsS * capLineH(s);
   // Muss exakt applyPos() (DOM-Vorschau, #capOverlay) nachbilden, sonst weicht die Position im
   // exportierten Video vom Editor ab. off = capVOff, gleiche Formeln wie dort (inkl. clampPct).
   // CSS-Geometrie der Vorschau: die Caption ist ein inline-block (Box-Padding p, line-height L·fs); jede
@@ -10581,13 +10592,13 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
     var bottomPct = capBottomPct(off);
     y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh - gapBelow;
   }
-  // Box/Akzent-Hintergrund bei eigener Zeilenhöhe ≠ 1.3 entsprechend höher (CSS: halber Durchschuss je Seite)
-  var halfLead = (Lh - 1.3) / 2 * fsS;
-  // Letzter Ausweg wie clampCapVertical() in der Vorschau: Block komplett im Bild halten.
-  var padYc = (s.boxBg ? 5 * scale : 0) + 4 * scale + Math.max(0, halfLead);
-  var blkBot = y0 + (lines.length - 1) * lh + fsS * 0.45 + padYc;
+  // Letzter Ausweg wie clampCapVertical() in der Vorschau: Block komplett im Bild halten (4 px Luft). Box-Kanten
+  // exakt wie die CSS-Box (Grundlinie ± gapAbove/gapBelow, gilt für jede Zeilenhöhe) — vorher grob fs·1.05 /
+  // fs·0.45 (+ halber Durchschuss nur bei L > 1.3) → geklemmte Captions lagen bis ~15 Vorschau-px daneben.
+  var padYc = 4 * scale;
+  var blkBot = y0 + (lines.length - 1) * lh + gapBelow + padYc;
   if (blkBot > H) y0 -= (blkBot - H);
-  var blkTop = y0 - fsS * 1.05 - padYc;
+  var blkTop = y0 - gapAbove - padYc;
   if (blkTop < 0) y0 -= blkTop; // oben hat Vorrang (erste Zeile ist die, die gelesen wird)
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
