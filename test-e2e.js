@@ -28,6 +28,29 @@ if (!fs.existsSync(VIDEO)) {
   if (r.status !== 0) { console.log('ffmpeg fehlt – test-e2e übersprungen'); process.exit(0); }
 }
 
+// ── Helles, einfarbiges Testvideo (Sand-Ton) für den Randtest: dunkle Pixel am Bildrand können dann nur vom Rahmen kommen
+const LIGHT = path.join(os.tmpdir(), 'cr-e2e-light.webm');
+if (!fs.existsSync(LIGHT)) {
+  spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=0xd8c8a8:size=540x960:rate=30:duration=4', '-f', 'lavfi', '-i', 'sine=frequency=300:duration=4',
+    '-c:v', 'libvpx', '-b:v', '300k', '-pix_fmt', 'yuv420p', '-c:a', 'libvorbis', '-shortest', LIGHT]);
+}
+// Unterer Rand eines Elements: mittlere 60 % der Spalten, Helligkeit der untersten 3 Pixelreihen (je Reihe der Mittelwert) und
+// zum Vergleich der Reihen 8–11 darüber. Ein dunkler Streifen innerhalb der Rundung wäre ein Sprung gegenüber `ref`.
+async function edgeStats(page, loc) {
+  const buf = await loc.screenshot();
+  return page.evaluate(async b64 => {
+    const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode();
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+    const x0 = Math.round(im.width * 0.2), w = Math.round(im.width * 0.6);
+    const row = r => { const d = x.getImageData(x0, r, w, 1).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += (d[i] + d[i + 1] + d[i + 2]) / 3; return s / w; };
+    const h = im.height, last = [row(h - 1), row(h - 2), row(h - 3)], ref = [8, 9, 10, 11].map(k => row(h - k)).reduce((a, b) => a + b, 0) / 4;
+    return { bottom: Math.min(...last), ref, w: im.width, h };
+  }, buf.toString('base64'));
+}
+// abs: Kacheln mit weisser Beschriftung am unteren Rand (Verlauf + Text) taugen nicht für den Vergleich mit den Reihen darüber → fester Mindestwert (ein Streifen wäre ~0)
+const edgeOk = (st, abs) => abs ? st.bottom >= abs : st.bottom >= st.ref * 0.75 - 2;
+
 // ── Mock-Server: statische Dateien + /api/* + minimales Supabase (Auth + projects)
 const WORDS = 'Das ist ein kurzer Test für die Untertitel. Heute zeigen wir dir, wie schnell das geht und warum es so gut funktioniert.'.split(' ')
   .map((w, i) => ({ word: w, start: 0.3 + i * 0.22, end: 0.3 + i * 0.22 + 0.2 }));
@@ -116,6 +139,18 @@ if (require.main !== module) return;
 
     await page.goto(base + '/', { waitUntil: 'load' });
     await shot('01-landing');
+    // Rand: Showcase-Karten und Landing-Style-Kacheln haben unten keinen dunklen Streifen (Sprung gegenüber den Reihen darüber)
+    await page.waitForTimeout(900);
+    for (const [sel, abs] of [['.show-card', 0], ['.hc-th', 25]]) {
+      let bad = [];
+      for (let i = 0; i < 3; i++) {
+        const loc = page.locator(sel).nth(i);
+        if (!(await loc.count()) || !(await loc.isVisible())) continue;
+        const st = await edgeStats(page, loc);
+        if (!edgeOk(st, abs)) bad.push(i + ':' + Math.round(st.bottom) + '/' + Math.round(st.ref));
+      }
+      ok(bad.length === 0, 'Rand ' + sel + ': kein dunkler Streifen am unteren Rand' + (bad.length ? ' (' + bad.join(', ') + ')' : ''));
+    }
     // 1) Upload
     await page.setInputFiles('#landInput', VIDEO);
     await page.waitForFunction(() => typeof captionBlocks !== 'undefined' && captionBlocks.length > 0, null, { timeout: 60000 }).catch(() => {});
@@ -247,10 +282,79 @@ if (require.main !== module) return;
     await page.fill('#cvTitle', 'Mein Titel');
     await page.waitForTimeout(700);
     await shot('07-cover');
+    // Cover-Editor: Titel ziehen, Ausrichtung, einzelnes Wort (erst antippen, dann ziehen), Reset
+    const cvInfo = () => page.evaluate(() => { const r = document.getElementById('cvCanvas').getBoundingClientRect(), b = _coverHit; return b && { left: r.left, top: r.top, k: r.width / 1080, h: r.height, box: { x: b.x, y: b.y, w: b.w, h: b.h }, words: b.words.map(w => ({ i: w.i, x: w.x, y: w.y, w: w.w, h: w.h })), st: JSON.parse(JSON.stringify({ ox: coverState.ox, oy: coverState.oy, align: coverState.align, wo: coverState.wo })), sel: _coverSel, maxW: coverMaxW(1080, 1920) }; });
+    const cvDrag = async (fromU, dxPx, dyPx) => { // fromU: Punkt in 1080er-Einheiten; Verschiebung in CSS-px
+      await page.locator('#cvCanvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(150);
+      const i = await cvInfo(), sx = i.left + fromU.x * i.k, sy = i.top + fromU.y * i.k;
+      await page.mouse.move(sx, sy); await page.mouse.down();
+      for (let s = 1; s <= 8; s++) await page.mouse.move(sx + dxPx * s / 8, sy + dyPx * s / 8);
+      await page.mouse.up(); await page.waitForTimeout(350);
+    };
+    const cvTap = async u => { await page.locator('#cvCanvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(150); const i = await cvInfo(); await page.mouse.click(i.left + u.x * i.k, i.top + u.y * i.k); await page.waitForTimeout(300); };
+    const ctr = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    await page.evaluate(() => coverSet('pos', 'mid')); await page.waitForTimeout(400);
+    let c0 = await cvInfo();
+    ok(c0 && c0.st.align === 'center' && c0.words.length === 2 && Math.abs(c0.box.x + c0.box.w / 2 - 540) < 1, 'Cover: Titel mittig, zwei Wort-Trefferflächen');
+    await cvDrag(ctr(c0.box), 0, -0.15 * c0.h); // von der Mitte nach oben
+    let c1 = await cvInfo();
+    ok(c1.box.y < c0.box.y - 30 && c1.st.oy < -0.03 && Math.abs(c1.st.ox) < 0.05 && Object.keys(c1.st.wo).length === 0 && c1.sel === -1, 'Cover: Ziehen nach oben verschiebt den ganzen Titel (box.y ' + Math.round(c0.box.y) + ' → ' + Math.round(c1.box.y) + ')');
+    await shot('07b-cover-dragged');
+    await page.click('#cvAlign button[data-align="left"]'); await page.waitForTimeout(400);
+    let c2 = await cvInfo();
+    ok(Math.abs(c2.box.x - (1080 - c2.maxW) / 2) < 1 && c2.st.align === 'left', 'Cover: Ausrichtung links → Box an linker Kante von maxW');
+    await page.click('#cvAlign button[data-align="right"]'); await page.waitForTimeout(400);
+    let c3 = await cvInfo();
+    ok(Math.abs(c3.box.x + c3.box.w - (1080 + c3.maxW) / 2) < 1, 'Cover: Ausrichtung rechts → Box an rechter Kante von maxW');
+    // Wort: ohne vorheriges Antippen verschiebt Ziehen den ganzen Titel; angetippt (Umriss) nur das Wort
+    await cvTap(ctr(c3.words[0]));
+    let c4 = await cvInfo();
+    ok(c4.sel === c3.words[0].i, 'Cover: Tippen wählt das Wort (Umriss)');
+    await cvDrag(ctr(c4.words[0]), 0, 0.08 * c4.h);
+    let c5 = await cvInfo();
+    ok(Object.keys(c5.st.wo).length === 1 && c5.st.wo[c4.sel] && c5.st.wo[c4.sel][1] > 0.02 && Math.abs(c5.st.oy - c4.st.oy) < 1e-9 && Math.abs(c5.words[1].y - c4.words[1].y) < 0.5, 'Cover: angetipptes Wort wird einzeln verschoben, das andere bleibt');
+    await shot('07c-cover-word');
+    await cvTap({ x: 20, y: 20 });
+    ok((await cvInfo()).sel === -1, 'Cover: Tippen daneben hebt die Wortauswahl auf');
+    const rsDis = await page.evaluate(() => document.getElementById('cvReset').disabled);
+    ok(rsDis === false, 'Cover: „Reset position“ aktiv, wenn verschoben');
+    await page.click('#cvReset'); await page.waitForTimeout(400);
+    let c6 = await cvInfo();
+    ok(c6.st.ox === 0 && c6.st.oy === 0 && Object.keys(c6.st.wo).length === 0 && Math.abs(c6.box.y - c0.box.y) < 0.5 && await page.evaluate(() => document.getElementById('cvReset').disabled), 'Cover: Reset position stellt die Grundposition wieder her');
+    if (prof.mobile) { // Touch: echtes Wischen (CDP) verschiebt den Titel; touch-action:none verhindert das Scrollen
+      await page.locator('#cvCanvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(150);
+      const cdp = await ctx.newCDPSession(page), i = await cvInfo(), t0 = { x: i.left + ctr(i.box).x * i.k, y: i.top + ctr(i.box).y * i.k };
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [t0] });
+      for (let k = 1; k <= 6; k++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: t0.x, y: t0.y - 0.1 * i.h * k / 6 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(400);
+      const it = await cvInfo();
+      ok(it.st.oy < -0.03 && it.box.y < i.box.y - 20, 'Cover (Touch): Wischen nach oben verschiebt den Titel (oy ' + it.st.oy.toFixed(3) + ')');
+      await page.click('#cvReset'); await page.waitForTimeout(300);
+    }
+    // PNG = Vorschau: wieder verschieben (Titel + Wort), Hilfslinien aus, dann PNG und Vorschau pixelweise vergleichen
+    await page.click('#cvAlign button[data-align="center"]'); await page.waitForTimeout(300);
+    await cvDrag(ctr(c6.box), -0.1 * c6.h * 0.5625, 0.12 * c6.h);
+    await page.uncheck('#cvGuides'); await page.waitForTimeout(500);
+    const cvEdge = await edgeStats(page, page.locator('#cvCanvas'));
+    ok(edgeOk(cvEdge), 'Rand #cvCanvas: kein dunkler Streifen am unteren Rand (' + Math.round(cvEdge.bottom) + ' vs ' + Math.round(cvEdge.ref) + ')');
     const cdl = page.waitForEvent('download', { timeout: 20000 }).catch(() => null);
     await page.click('#cvDl');
     const cd = await cdl;
     ok(!!cd && /\.png$/i.test(cd.suggestedFilename()), 'Cover als PNG heruntergeladen');
+    if (cd) {
+      const pngPath = path.join(os.tmpdir(), 'cr-e2e-cover-' + prof.name + '.png');
+      await cd.saveAs(pngPath);
+      const cmp = await page.evaluate(async b64 => {
+        const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode();
+        const cv = document.getElementById('cvCanvas'), c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height;
+        const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, 0, c.width, c.height);
+        const a = x.getImageData(0, 0, c.width, c.height).data, b = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+        let s = 0, big = 0; for (let i = 0; i < a.length; i += 4) { const d = Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]); s += d; if (d > 150) big++; }
+        return { mean: s / (a.length / 4 * 3), big: big / (a.length / 4), w: im.width, h: im.height };
+      }, fs.readFileSync(pngPath).toString('base64'));
+      ok(cmp.w === 1080 && cmp.h === 1920 && cmp.mean < 3 && cmp.big < 0.01, 'Cover: PNG 1080×1920 entspricht der Vorschau (mittlere Abweichung ' + cmp.mean.toFixed(2) + ', starke Abweichung ' + (cmp.big * 100).toFixed(2) + ' %)');
+    }
     await page.evaluate(() => closeCover());
 
     // 5) Login per Code + Projekt speichern/laden
@@ -283,7 +387,36 @@ if (require.main !== module) return;
     ok(nb2 === nbSave, 'Projekt geladen: ' + nb2 + ' Blöcke');
     await shot('09-project-loaded');
 
-    // 6) Hygiene
+    // 6) Rand der Vorschau: helles einfarbiges Video → in den untersten Pixelreihen innerhalb der Rundung kein dunkler Streifen
+    //    (bei Zoom 1 und 1.25), das Video steht über den Rahmen hinaus und der Hintergrund dahinter ist nicht schwarz
+    {
+      const p2 = await ctx.newPage();
+      await p2.goto(base + '/', { waitUntil: 'load' });
+      await p2.setInputFiles('#landInput', LIGHT);
+      await p2.waitForFunction(() => typeof vidReady !== 'undefined' && vidReady, null, { timeout: 60000 }).catch(() => {});
+      await p2.waitForTimeout(1500);
+      for (const z of [1, 1.25]) {
+        await p2.evaluate(zz => setZoom(zz), z); await p2.waitForTimeout(400);
+        const st = await edgeStats(p2, p2.locator('#prevFrame'));
+        ok(st.bottom >= 80, 'Rand #prevFrame (Zoom ' + z + '): unterste 3 Pixelreihen hell genug (' + Math.round(st.bottom) + ' ≥ 80)');
+        const g = await p2.evaluate(() => { const f = document.getElementById('prevFrame').getBoundingClientRect(), v = document.getElementById('mainVid').getBoundingClientRect(); return { over: v.bottom - f.bottom, overTop: f.top - v.top, bg: getComputedStyle(document.getElementById('prevBg')).backgroundColor }; });
+        ok(g.over >= 1.5 * z - 0.2 && g.overTop >= 1.5 * z - 0.2, 'Vorschau (Zoom ' + z + '): Video steht über den Rahmen hinaus (' + g.over.toFixed(1) + ' px unten)');
+        ok(/rgba\(0, 0, 0, 0\)|transparent/.test(g.bg), 'Vorschau: Hintergrund hinter dem Video nicht schwarz (' + g.bg + ')');
+      }
+      await p2.evaluate(() => setZoom(1));
+      await p2.evaluate(() => switchTab('style')); await p2.waitForTimeout(800);
+      let bad = [];
+      for (let i = 0; i < 3; i++) {
+        const loc = p2.locator('#stylePicker .stile').nth(i);
+        if (!(await loc.count()) || !(await loc.isVisible())) continue;
+        const st = await edgeStats(p2, loc);
+        if (!edgeOk(st)) bad.push(i + ':' + Math.round(st.bottom) + '/' + Math.round(st.ref));
+      }
+      ok(bad.length === 0, 'Rand Style-Kacheln: kein dunkler Streifen am unteren Rand' + (bad.length ? ' (' + bad.join(', ') + ')' : ''));
+      await p2.close();
+    }
+
+    // 7) Hygiene
     ok(errors.length === 0, 'keine Konsolen-/Seitenfehler' + (errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''));
     ok(external.length === 0, 'keine Fremdserver-Anfragen' + (external.length ? ': ' + external.slice(0, 3).join(' | ') : ''));
     const hscroll = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
