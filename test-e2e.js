@@ -108,25 +108,32 @@ const server = http.createServer(async (req, res) => {
   res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' }); fs.createReadStream(file).pipe(res);
 });
 
-module.exports = { WORDS, state };
+// Für test-ui-sweep.js wiederverwendbar: Mock-Server starten (→ Basis-URL) und die Supabase-Aufrufe der Seite darauf umleiten
+async function startServer() {
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  return 'http://127.0.0.1:' + server.address().port;
+}
+async function routeSupabase(ctx, base) {
+  await ctx.route('https://tghodbtdraqkfwcmedcv.supabase.co/**', async route => {
+    const rq = route.request(), u = new URL(rq.url());
+    const r = await fetch(base + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD', 'OPTIONS'].includes(rq.method()) ? undefined : rq.postDataBuffer() });
+    const h = {}; r.headers.forEach((v, k) => { h[k] = v; });
+    h['access-control-allow-origin'] = '*'; h['access-control-allow-headers'] = '*'; h['access-control-allow-methods'] = '*';
+    await route.fulfill({ status: r.status, headers: h, body: Buffer.from(await r.arrayBuffer()) });
+  });
+}
+module.exports = { WORDS, state, server, VIDEO, startServer, routeSupabase, chromium };
 if (require.main !== module) return;
 
 (async () => {
-  await new Promise(r => server.listen(0, '127.0.0.1', r));
-  const base = 'http://127.0.0.1:' + server.address().port;
+  const base = await startServer();
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--autoplay-policy=no-user-gesture-required'] });
   const profiles = [{ name: 'desktop', viewport: { width: 1280, height: 800 }, mobile: false }, { name: 'phone', viewport: { width: 390, height: 844 }, mobile: true }];
   for (const prof of profiles) {
     console.log('\n== ' + prof.name + ' ' + prof.viewport.width + 'px ==');
     const ctx = await browser.newContext({ viewport: prof.viewport, isMobile: prof.mobile, hasTouch: prof.mobile, acceptDownloads: true, deviceScaleFactor: 1 });
     // Supabase-Aufrufe der Seite auf den Mock umleiten
-    await ctx.route('https://tghodbtdraqkfwcmedcv.supabase.co/**', async route => {
-      const rq = route.request(), u = new URL(rq.url());
-      const r = await fetch(base + u.pathname + u.search, { method: rq.method(), headers: rq.headers(), body: ['GET', 'HEAD', 'OPTIONS'].includes(rq.method()) ? undefined : rq.postDataBuffer() });
-      const h = {}; r.headers.forEach((v, k) => { h[k] = v; });
-      h['access-control-allow-origin'] = '*'; h['access-control-allow-headers'] = '*'; h['access-control-allow-methods'] = '*';
-      await route.fulfill({ status: r.status, headers: h, body: Buffer.from(await r.arrayBuffer()) });
-    });
+    await routeSupabase(ctx, base);
     const page = await ctx.newPage();
     const errors = [], external = [];
     page.on('dialog', d => { errors.push('dialog: ' + d.message()); d.dismiss(); });

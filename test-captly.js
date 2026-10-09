@@ -128,7 +128,8 @@ setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_K
 capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
 capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},setProgDrag:function(v){_progDrag=v;},
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
-coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved};`;
+coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
+styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -3694,6 +3695,157 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setCaptionCase('upper'); ok(E('caseSel').value === 'upper' && E('caseOrig').checked === false, 'Style-Panel: Case „AA“ → caseSel upper');
     T.setCaptionCase('orig'); ok(E('caseSel').value === 'orig' && E('caseOrig').checked === true, 'Style-Panel: „As typed“ (Erweitert) ↔ caseSel orig');
     T.setCaptionCase('asis'); ok(E('caseOrig').checked === false, 'Style-Panel: zurück auf Style-Standard');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════════════
+  // INVARIANTEN-BLOCK (QA-Gerüst, s. test-ui-sweep.js): Regler ↔ Style-Feld ↔ Speicherpfade ↔ Vorschau/Export-Umbruch
+  // Erwartete Fehlschläge: okx(bedingung, meldung, grund) — scheitert die Bedingung, wird sie nur als «xfail» gemeldet;
+  // besteht sie, kommt eine «XPASS»-Warnung (Markierung dann entfernen). Nie auskommentieren.
+  // ═══════════════════════════════════════════════════════════════════════════════════════
+  {
+    const okx = (c, m, why) => { if (c) console.log('XPASS-Warnung (erwarteter Fehler besteht jetzt, okx-Markierung entfernen):', m, '—', why); else console.log('xfail (erwartet):', m, '—', why); };
+    const E = id => document.getElementById(id);
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    // ── 1) CONTROL_MAP: Regler-ID → Gruppe (_csDirty) → Style-Feld ──
+    // set(): Regler auf einen Wert stellen, der vom Ausgangs-Style «hormozi» abweicht. group = Schlüssel in _csDirty (strokec → stroke, boxc → box wie in applyCustomStyle).
+    const CONTROL_MAP = {
+      csLs:       { group: 'ls',      field: 'ls',        set: () => { E('csLs').value = '3'; } },
+      csLh:       { group: 'lh',      field: 'lh',        set: () => { E('csLh').value = '1.6'; } },
+      csText:     { group: 'text',    field: 'tc',        set: () => { E('csText').value = '#ff0000'; } },
+      csHl:       { group: 'hlc',     field: 'hl',        set: () => { E('csHl').value = '#00ffaa'; E('csHlType').value = 'color'; } },
+      csFont:     { group: 'font',    field: 'fl',        set: () => { E('csFont').value = 'Anton'; } },
+      csWeight:   { group: 'weight',  field: 'fw',        set: () => { E('csWeight').value = '400'; } },
+      csEm:       { group: 'em',      field: 'em',        set: () => { E('csEm').value = '#ff00ff'; } },
+      csEmFont:   { group: 'emfont',  field: 'emFont',    set: () => { E('csEmFont').value = 'Anton'; } },
+      csOutlineW: { group: 'stroke',  field: 'ts',        set: () => { E('csOutlineW').value = '5'; E('csOutlineC').value = '#112233'; } },
+      csOutlineC: { group: 'stroke',  field: 'cstroke',   set: () => { E('csOutlineW').value = '2'; E('csOutlineC').value = '#ff0000'; } },
+      csShadow:   { group: 'stroke',  field: 'ts',        set: () => { E('csShadow').checked = false; E('csShadow').classList.remove('on'); E('csOutlineW').value = '4'; } },
+      csGlow:     { group: 'glow',    field: 'hls',       set: () => { E('csGlow').checked = true; E('csGlowInt').value = '9'; } },
+      csGlowInt:  { group: 'glow',    field: 'hls',       set: () => { E('csGlow').checked = true; E('csGlowInt').value = '25'; } },
+      csBox:      { group: 'box',     field: 'boxBg',     set: () => { E('csBox').value = 'box'; E('csBoxC').value = '#223344'; E('csBoxO').value = '60'; } },
+      csBoxC:     { group: 'box',     field: 'boxBg',     set: () => { E('csBox').value = 'box'; E('csBoxC').value = '#ff0000'; } },
+      csBoxO:     { group: 'box',     field: 'boxBg',     set: () => { E('csBox').value = 'box'; E('csBoxO').value = '30'; } },
+      csBoxR:     { group: 'box',     field: 'boxBr',     set: () => { E('csBox').value = 'box'; E('csBoxR').value = '21'; } },
+      csHlType:   { group: 'hltype',  field: 'hlPillBg',  set: () => { E('csHlType').value = 'pill'; E('csHl').value = '#ff3366'; } },
+      csMotion:   { group: 'motion',  field: 'motion',    set: () => { E('csMotion').value = 'reveal'; } },
+      csAnim:     { group: 'anim',    field: 'anim',      set: () => { E('csAnim').value = 'flash'; } },
+    };
+    // Abdeckung: jedes <input>/<select> mit id="cs…" im Panel-Markup braucht einen Eintrag (neuer Regler ohne Eintrag → Test scheitert)
+    const NON_STYLE_CS = ['csUpper']; // bewusst ohne Style-Feld (falls im Markup vorhanden)
+    const panelIds = [...htmlContent.matchAll(/<(?:input|select)\b[^>]*\bid="(cs[A-Za-z0-9]+)"/g)].map(m => m[1]);
+    const missing = panelIds.filter(id => !CONTROL_MAP[id] && !NON_STYLE_CS.includes(id));
+    ok(missing.length === 0 && panelIds.length >= 18, 'CONTROL_MAP deckt alle Customize-Regler ab (fehlt: ' + missing.join(', ') + '; im Markup ' + panelIds.length + ')');
+    const stale = Object.keys(CONTROL_MAP).filter(id => !panelIds.includes(id));
+    ok(stale.length === 0, 'CONTROL_MAP enthält nur existierende Regler (veraltet: ' + stale.join(', ') + ')');
+    // Jede Gruppe muss in buildCustomStyle() gelesen werden (sonst bewirkt der Regler nichts)
+    const bcs = script.slice(script.indexOf('function buildCustomStyle()'), script.indexOf('function applyCustomStyle('));
+    Object.values(CONTROL_MAP).forEach(c => ok(new RegExp('d\\.' + c.group + '\\b').test(bcs), 'buildCustomStyle liest Gruppe «' + c.group + '»'));
+    // Pro Regler: Feld wird gesetzt und übersteht alle Speicherpfade
+    Object.keys(CONTROL_MAP).forEach(id => {
+      const c = CONTROL_MAP[id];
+      T.selectStyle('hormozi');                       // seedet alle Regler + Basis (Ausgangs-Style ohne Layout-Preset)
+      const base = JSON.parse(JSON.stringify(T.STYLES.find(x => x.id === 'hormozi')));
+      c.set(); T.setCsDirty({ [c.group]: true });
+      const cs = T.buildCustomStyle();
+      ok(cs[c.field] !== undefined && !eq(cs[c.field], base[c.field]), id + ': buildCustomStyle setzt «' + c.field + '» (' + JSON.stringify(cs[c.field]) + ' vs. Basis ' + JSON.stringify(base[c.field]) + ')');
+      const sane = T.sanitizeStyle(cs);
+      ok(eq(sane[c.field], cs[c.field]), id + ': «' + c.field + '» übersteht sanitizeStyle');
+      const tpl = T.normalizeTemplate({ id: 'inv_' + id, name: 'x', style: cs, layout: {}, createdAt: 1, updatedAt: 1 });
+      ok(tpl && eq(tpl.style[c.field], cs[c.field]), id + ': «' + c.field + '» übersteht normalizeTemplate');
+      const st = tpl && T.styleFromTemplate(tpl);
+      ok(st && eq(st[c.field], cs[c.field]), id + ': «' + c.field + '» übersteht styleFromTemplate');
+      // projectPayload → restoreSavedStyle (neue Sitzung): Custom-Style aus dem Payload
+      const i = T.STYLES.findIndex(x => x.id === 'custom'); if (i >= 0) T.STYLES[i] = cs; else T.STYLES.push(cs);
+      T.setActiveId('custom');
+      const pl = JSON.parse(JSON.stringify(T.projectPayload()));
+      ok(pl.styleDef && eq(pl.styleDef[c.field], cs[c.field]), id + ': «' + c.field + '» steht im Projekt-Payload (styleDef)');
+      T.STYLES.splice(T.STYLES.findIndex(x => x.id === 'custom'), 1);
+      T.restoreSavedStyle(pl);
+      const back = T.STYLES.find(x => x.id === 'custom');
+      ok(back && eq(back[c.field], cs[c.field]), id + ': «' + c.field + '» übersteht restoreSavedStyle');
+    });
+    T.setCsDirty({}); T.selectStyle('hormozi');
+
+    // ── 2) TPL_STYLE_KEYS: jedes Feld übersteht den Rundlauf; jedes Style-Feld der Presets hat einen Eintrag ──
+    {
+      const bool = ['hlItalic', 'hlUpper', 'circle', 'emItalic'], num = ['lh', 'emS'];
+      const sample = k => bool.includes(k) ? true : num.includes(k) ? 1.25 : k === 'hlCycle' ? ['#ff0000', '#00ff00'] :
+        k === 'pill' ? { bg: '#fff', br: '5px', p: '1px 2px', border: '1px solid #000', borderLeft: '2px solid #f00' } : 'v-' + k;
+      T.TPL_STYLE_KEYS.forEach(k => {
+        const o = { [k]: sample(k) }, s1 = T.sanitizeStyle(o);
+        ok(eq(s1[k], o[k]), 'TPL_STYLE_KEYS «' + k + '» übersteht sanitizeStyle (' + JSON.stringify(s1[k]) + ')');
+        const t = T.normalizeTemplate({ id: 'k_' + k, name: 'k', style: Object.assign({ fl: 'Poppins', font: "'Poppins'", fw: '800', tc: '#fff', hl: '#fff', anim: 'none' }, o), layout: {} });
+        ok(t && eq(t.style[k], o[k]) && eq(T.styleFromTemplate(t)[k], o[k]), 'TPL_STYLE_KEYS «' + k + '» übersteht normalizeTemplate → styleFromTemplate');
+      });
+      // Neues Style-Feld in STYLES ohne Eintrag in TPL_STYLE_KEYS → Nutzer-Templates/Projekte verlieren es still
+      const NOT_PERSISTED = ['id', 'name', 'badge', 'layout']; // Identität bzw. Preset-Layout (Templates führen es separat in .layout)
+      const used = new Set(); T.STYLES.forEach(s => Object.keys(s).forEach(k => { if (!NOT_PERSISTED.includes(k) && !k.startsWith('_')) used.add(k); }));
+      const unknown = [...used].filter(k => !T.TPL_STYLE_KEYS.includes(k));
+      ok(unknown.length === 0, 'Jedes Style-Feld der Presets steht in TPL_STYLE_KEYS (fehlt: ' + unknown.join(', ') + ')');
+      // … und buildCustomStyle() erzeugt nur bekannte Felder
+      T.selectStyle('hormozi'); T.setCsDirty({ text: 1, stroke: 1, hlc: 1, glow: 1, hltype: 1, box: 1, anim: 1, motion: 1, ls: 1, lh: 1, weight: 1, font: 1, em: 1, emfont: 1 });
+      E('csLh').value = '1.5'; E('csEmFont').value = 'Anton'; E('csBox').value = 'pill'; E('csHlType').value = 'pill'; E('csMotion').value = 'fill';
+      const ck = Object.keys(T.buildCustomStyle()).filter(k => !NOT_PERSISTED.includes(k) && !k.startsWith('_') && !T.TPL_STYLE_KEYS.includes(k));
+      ok(ck.length === 0, 'buildCustomStyle erzeugt nur Felder aus TPL_STYLE_KEYS (unbekannt: ' + ck.join(', ') + ')');
+      T.setCsDirty({}); T.selectStyle('hormozi');
+    }
+
+    // ── 3) Keine toten Optionen: jede Option jedes Style-<select> ändert Style oder buildCap-Ausgabe ──
+    {
+      const selects = [...htmlContent.matchAll(/<select\b[^>]*\bid="(cs[A-Za-z0-9]+)"[^>]*>([\s\S]*?)<\/select>/g)].map(m => ({ id: m[1], opts: [...m[2].matchAll(/<option\b([^>]*)>([^<]*)/g)].map(o => { const v = /value="([^"]*)"/.exec(o[1]); return v ? v[1] : o[2]; }) }));
+      ok(selects.length >= 6, 'Panel-<select>s gefunden: ' + selects.map(s => s.id).join(', '));
+      const words = ['Das', 'ist', 'ein', 'Test'];
+      selects.forEach(sel => {
+        const opts = sel.opts.filter(o => o && o !== '__other');
+        if (opts.length < 2) return; // csEmFont: Optionen werden erst zur Laufzeit gefüllt (eigene Prüfung oben)
+        const outs = opts.map(v => {
+          T.selectStyle('hormozi'); T.setCaseState('asis');
+          const grp = CONTROL_MAP[sel.id] && CONTROL_MAP[sel.id].group;
+          if (sel.id === 'csBox') { E('csBox').value = v; E('csBoxR').value = v === 'pill' ? '22' : '8'; }
+          else E(sel.id).value = v;
+          T.setCsDirty(grp ? { [grp]: true } : {});
+          const cs = T.buildCustomStyle();
+          return JSON.stringify(cs) + '||' + T.buildCap(words, cs, 1, 24, null);
+        });
+        const seen = {}; outs.forEach((o, i) => { (seen[o] = seen[o] || []).push(opts[i]); });
+        const dead = Object.values(seen).filter(a => a.length > 1);
+        ok(dead.length === 0, '«' + sel.id + '»: jede Option erzeugt anderen Style/buildCap-Output (gleich: ' + dead.map(a => a.join('=')).join(' | ') + ')');
+      });
+      T.setCsDirty({}); T.selectStyle('hormozi');
+    }
+
+    // ── 4) Vorschau-Umbruch = Export-Umbruch (buildCap vs. capLayout, deterministische Stub-Messung, zufällige Wortfolgen × Styles) ──
+    {
+      let seed = 20260101; const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+      const POOL = ['Ja', 'und', 'das', 'Test', 'kurzer', 'Untertitel', 'Heute', 'zeigen', 'wir', 'dir,', 'schnell', 'Rindfleischverarbeitungsbetriebe', 'warum', 'es', 'so', 'gut', 'funktioniert.', 'Wald', 'Birkenhof', 'Gipf-Oberfrick', 'Hochlandrinder', 'ok'];
+      T.setEmphState(false, false, 'off'); T.setCaseState('asis'); T.setFontSizeState(22);
+      const ctx = document.createElement('canvas').getContext('2d');
+      let cases = 0; const bad = [];
+      const lineWords = html => { // Zeilen aus der Vorschau-HTML (jede Zeile = display:block-Span mit Wort-Spans)
+        const parts = html.split('<span style="display:block;white-space:nowrap">').slice(1);
+        const grab = h => [...h.matchAll(/<span data-oi="\d+"[^>]*>([^<]*)<\/span>/g)].map(m => m[1].toLowerCase());
+        return parts.length ? parts.map(grab) : [grab(html)];
+      };
+      T.STYLES.filter(s => s.id !== 'custom' && !s._isTpl).forEach(s => {
+        [1, 2].forEach(lines => {
+          T.setLines({ dataset: { lines: String(lines) } });
+          for (let n = 0; n < 6; n++) {
+            const cnt = 2 + Math.floor(rnd() * 3), ws = Array.from({ length: cnt }, () => POOL[Math.floor(rnd() * POOL.length)]);
+            const blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+            T.setState([blk], blk.words, 'karaoke');
+            const html = T.buildCap(ws, s, -1, 22, null, lines, { em: null });
+            const L = T.capLayout(ctx, blk, 0, 0, s, 1080, 1920);
+            const dom = lineWords(html), exp = L.lines.map(line => line.map(wo => String(wo.t).toLowerCase()));
+            cases++;
+            if (!eq(dom, exp)) bad.push(s.id + '/' + lines + 'Z «' + ws.join(' ') + '»: Vorschau ' + dom.map(x => x.join(' ')).join(' / ') + ' ≠ Export ' + exp.map(x => x.join(' ')).join(' / '));
+          }
+        });
+      });
+      T.setLines({ dataset: { lines: '2' } }); T.setState([], [], 'karaoke');
+      const where = [...new Set(bad.map(x => x.split(':')[0].replace(/ «.*/, '')))].join(', ');
+      okx(bad.length === 0, 'Vorschau-Umbruch (buildCap) = Export-Umbruch (capLayout) in ' + cases + ' Zufallsfällen — ' + bad.length + ' Abweichung(en) bei ' + where + ': ' + bad.slice(0, 2).join(' ;; '),
+        'NEU gefunden, nicht behoben: mit der Stub-Messung (0.55 em/Zeichen) bricht der Export (clampLinesToWidth in capLayout) bei zu breiten Wörtern/«1 Zeile» in 2 Zeilen, die Vorschau (wrapCaptionLines) nicht; mit echten Schriften im Browser (test-ui-sweep geom) tritt es nicht auf → Extremfall bei Mindest-Schriftgrösse');
+    }
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
