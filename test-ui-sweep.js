@@ -51,6 +51,7 @@ const EXPECT_FAIL = [
   { re: /^ctl\/cvWords\/changes:cover\.hash$/, why: 'NEU gefunden (noch nicht behoben): Cover-Akzent-Chips («Tap words to accent them») bewirken bei Looks ohne Betonung (Standard «tight», «statement») nichts — captly.html coverIsEm() ~Z. 11279 verlangt emphColor/emFont' },
   { re: /^geom\/y\/(popone|headline|editorial|script)$/, why: 'NEU gefunden (noch nicht behoben): Position «Middle» — Export zentriert mit fester Konstante «fsS * 0.35» statt mit den Schrift-Metriken (captly.html capLayout ~Z. 10653: y0 = centerY - … + fsS * 0.35); bei Anton/Playfair/Kalam liegt der Export 11–17 px (Export-Breite 1080) anders als die Vorschau' },
   { re: /^geom\/(y\/(serifbold|boxkara)|linepitch\/boxkara)$/, why: 'NEU gefunden (noch nicht behoben): Position «Bottom»/Zeilenhöhe 0.9/1.8 bei Serif Bold bzw. Highlight Box: Block liegt in Vorschau und Export 11–14 px (von 1080) versetzt, Highlight Box 0.9 hat in der Vorschau grösseren Zeilenabstand (81 vs 76 px) — Ursache vermutlich clampCapVertical (Vorschau) vs. Clamp in capLayout' },
+  { re: /^pixel\/iou$/, why: 'NEU gefunden (noch nicht behoben): Export-Text liegt in den meisten Styles 8–16 px (bei 1080×1920) tiefer als in der Vorschau (Position «Bottom», 1–2 Zeilen) → rohe IoU < 0.9, nach Ausrichtung ≥ 0.6; gleiche Ursache wie geom/y (capLayout gapBelow/Clamp vs. applyPos/clampCapVertical)' },
   // Neuer Eintrag: { re: /^ctl\/csLh@layoutPreset\//, why: 'Branch xyz: Kurzbeschreibung' },
 ];
 
@@ -278,19 +279,20 @@ function qaMain() {
       ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, W, H);
       _capLayoutCache = { key: null, s: null, ctx: null, val: null }; _capStaticLayer = null;
       drawCaptionsOnCtx(ctx, (vid().currentTime || 0), s0, W, H, true);
+      qa.lastExport = cv;
       return qa.mask(cv, w);
     },
-    // Canvas → Binärmaske (Zelle gesetzt, wenn ≥ 18 % ihrer Pixel von #808080 abweichen), Ecken (r) ausgeblendet
+    // Canvas → Binärmaske (Zelle gesetzt, wenn ≥ 30 % ihrer Pixel deutlich von #808080 abweichen), Ecken (r) ausgeblendet
     mask(src, w, cornerR) {
       const h = Math.round(w * src.height / src.width), c2 = document.createElement('canvas'); c2.width = src.width; c2.height = src.height;
       const x2 = c2.getContext('2d'); x2.drawImage(src, 0, 0);
       const d = x2.getImageData(0, 0, src.width, src.height).data, cw = src.width / w, ch = src.height / h, m = new Uint8Array(w * h);
       const diff = new Uint8Array(src.width * src.height);
-      for (let i = 0, j = 0; i < d.length; i += 4, j++) diff[j] = (Math.abs(d[i] - 128) + Math.abs(d[i + 1] - 128) + Math.abs(d[i + 2] - 128) > 60) ? 1 : 0;
+      for (let i = 0, j = 0; i < d.length; i += 4, j++) diff[j] = Math.max(Math.abs(d[i] - 128), Math.abs(d[i + 1] - 128), Math.abs(d[i + 2] - 128)) > 44 ? 1 : 0; // Text/Kontur/Box (auch halbtransparente Boxen); sehr weiche Schatten fallen meist darunter
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
         let n = 0, tot = 0; const x0 = Math.floor(x * cw), x1 = Math.floor((x + 1) * cw), y0 = Math.floor(y * ch), y1 = Math.floor((y + 1) * ch);
         for (let yy = y0; yy < y1; yy++) for (let xx = x0; xx < x1; xx++) { n += diff[yy * src.width + xx]; tot++; }
-        m[y * w + x] = tot && n / tot >= 0.18 ? 1 : 0;
+        m[y * w + x] = tot && n / tot >= 0.3 ? 1 : 0;
       }
       return { w, h, bits: Array.from(m) };
     },
@@ -704,6 +706,60 @@ SECTIONS.geom = async (browser, prof) => {
   await sc.close();
 };
 
+
+// ═══════════ Abschnitt pixel: Vorschau = Export (Pixel) ═══════════
+// Video aus, #prevBg #808080 → Screenshot von #prevFrame und Export-Render (drawCaptionsOnCtx) werden binarisiert (Zelle gesetzt, wenn ≥ 18 % der
+// Pixel von Grau abweichen) und per IoU verglichen (Ecken des runden Rahmens ausgeblendet).
+const PIX_STYLES = ['hormozi', 'tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'note', 'script', 'soft', 'classic', 'boxkara', 'beast', 'minimal', 'lift', 'popone', 'tiktok', 'hush', 'focus', 'headline', 'stack', 'neon', 'editorial', 'marker'];
+const IOU_MIN = 0.9;
+// IoU der Masken (8-px-Zellen). Äusserste Zellreihe (Screenshot-Rand/Subpixel) und die Ecken des runden Rahmens bleiben aussen vor
+function dilate(m, w, h) { const o = new Uint8Array(w * h); for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (m[y * w + x]) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const xx = x + dx, yy = y + dy; if (xx >= 0 && yy >= 0 && xx < w && yy < h) o[yy * w + xx] = 1; } return o; }
+function iou(a, b, w, h, cut, sx, sy) { // sx/sy: Maske b um Zellen verschieben (Ausrichtung)
+  sx = sx || 0; sy = sy || 0;
+  const da = a, db = b; let i = 0, u = 0;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    if ((x < cut || x >= w - cut) && (y < cut || y >= h - cut)) continue;
+    const xb = x - sx, yb = y - sy, A = da[y * w + x], B = (xb >= 0 && yb >= 0 && xb < w && yb < h) ? db[yb * w + xb] : 0; if (A && B) i++; if (A || B) u++;
+  }
+  return u ? i / u : 1;
+}
+function iouAligned(a, b, w, h, cut) { let best = { v: 0, sx: 0, sy: 0 }; for (let sy = -4; sy <= 4; sy++) for (let sx = -3; sx <= 3; sx++) { const v = iou(a, b, w, h, cut, sx, sy); if (v > best.v) best = { v, sx, sy }; } return best; }
+SECTIONS.pixel = async (browser, prof) => {
+  const sc = await newScenario(browser, prof);
+  const p = sc.page; await goTab(sc, 'style');
+  const ids = process.env.SWEEP_STYLES ? process.env.SWEEP_STYLES.split(',') : QUICK ? ['hormozi', 'mix', 'note', 'boxkara', 'popone', 'editorial'] : PIX_STYLES;
+  const raw = [], W = 1080, CELLS = 135; // 8-px-Zellen (Export-px)
+  for (const id of ids) {
+    const have = await p.evaluate(i => !!STYLES.find(s => s.id === i), id); if (!have) continue;
+    const info = await p.evaluate(async i => {
+      await __qa.useStyle(i); onWpbChange(4);
+      const pk = await __qa.pickBlock({ words: 3, lines: 2 });
+      document.getElementById('mainVid').style.visibility = 'hidden';
+      ['prevBlurBg', 'playOverlay'].forEach(x => { const e = document.getElementById(x); if (e) e.style.visibility = 'hidden'; });
+      _lastKey = null; updateOverlay(); document.getElementById('prevBg').style.background = '#808080'; await __qa.raf2(); await __qa.wait(400);
+      document.getElementById('prevBg').style.background = '#808080';
+      return { fw: previewFrameW(), fh: previewFrameH(), lines: pk && pk.lines };
+    }, id);
+    const buf = await p.locator('#prevFrame').screenshot({ animations: 'disabled' });
+    const H = Math.round(W * info.fh / info.fw);
+    const A = await p.evaluate(a => __qa.maskFromImage('data:image/png;base64,' + a.b64, a.W, a.H, a.w), { b64: buf.toString('base64'), W, H, w: CELLS });
+    const B = await p.evaluate(a => __qa.exportMask(a.W, a.w), { W, w: CELLS });
+    const cut = Math.ceil(18 / info.fw * CELLS);
+    const v = iou(A.bits, B.bits, A.w, A.h, cut);
+    const stat = m => { let n = 0, sx = 0, sy = 0, x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1; for (let y = 1; y < m.h - 1; y++) for (let x = 1; x < m.w - 1; x++) if (m.bits[y * m.w + x]) { n++; sx += x; sy += y; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } const c = W / m.w; return { n, cx: sx / n * c, cy: sy / n * c, x0: x0 * c, x1: (x1 + 1) * c, y0: y0 * c, y1: (y1 + 1) * c }; };
+    if (process.env.SWEEP_STAT) { const a = stat(A), b = stat(B); console.log('   stat ' + id + ' Vorschau/Export: Fläche ' + a.n + '/' + b.n + ', Schwerpunkt (' + a.cx.toFixed(0) + ',' + a.cy.toFixed(0) + ')/(' + b.cx.toFixed(0) + ',' + b.cy.toFixed(0) + '), bbox x ' + a.x0.toFixed(0) + '–' + a.x1.toFixed(0) + '/' + b.x0.toFixed(0) + '–' + b.x1.toFixed(0) + ' y ' + a.y0.toFixed(0) + '–' + a.y1.toFixed(0) + '/' + b.y0.toFixed(0) + '–' + b.y1.toFixed(0)); }
+    const al = iouAligned(A.bits, B.bits, A.w, A.h, cut), cellPx = W / CELLS;
+    raw.push([id, v, al]);
+    check('pixel/shape/' + id, al.v >= 0.6, 'Text/Box in Vorschau und Export deckungsgleich nach Ausrichtung (IoU ' + al.v.toFixed(3) + ', Versatz Export ' + (-al.sx * cellPx).toFixed(0) + ' px rechts, ' + (-al.sy * cellPx).toFixed(0) + ' px tiefer, roh ' + v.toFixed(3) + ')');
+    if (al.v >= 0.6 && al.v < IOU_MIN) warn('pixel/shape/' + id, 'IoU nach Ausrichtung nur ' + al.v.toFixed(3) + ' (< ' + IOU_MIN + ')');
+    if (v < IOU_MIN && SHOTS) { fs.writeFileSync(path.join(SHOTS, curVp + '-pixel-' + id + '-preview.png'), buf); fs.writeFileSync(path.join(SHOTS, curVp + '-pixel-' + id + '-export.png'), Buffer.from((await p.evaluate(() => __qa.lastExport.toDataURL())).split(',')[1], 'base64')); }
+    await p.evaluate(() => { document.getElementById('mainVid').style.visibility = ''; ['prevBlurBg', 'playOverlay'].forEach(x => { const e = document.getElementById(x); if (e) e.style.visibility = ''; }); });
+  }
+  const badRaw = raw.filter(r => r[1] < IOU_MIN).sort((a, b) => a[1] - b[1]);
+  check('pixel/iou', !badRaw.length, 'Vorschau-Screenshot ≙ Export-Render ohne Ausrichtung, IoU ≥ ' + IOU_MIN + ' bei allen ' + raw.length + ' Styles' + (badRaw.length ? ' — ' + badRaw.length + ' darunter: ' + badRaw.slice(0, 6).map(r => r[0] + ' ' + r[1].toFixed(2) + ' (Export ' + (-r[2].sy * W / CELLS).toFixed(0) + ' px tiefer)').join(', ') : ''));
+  await sc.close();
+};
+
 //__SECTIONS__
 
 (async () => {
@@ -717,7 +773,7 @@ SECTIONS.geom = async (browser, prof) => {
       if (!want(sec) || !SECTIONS[sec]) continue;
       const t1 = Date.now();
       console.log('-- ' + sec);
-      try { await SECTIONS[sec](browser, prof); } catch (e) { check(sec + '/crash', false, 'Abschnitt abgebrochen: ' + (e && e.stack || e).toString().split('\n').slice(0, 3).join(' | ')); }
+      try { await SECTIONS[sec](browser, prof); } catch (e) { check(sec + '/crash', false, 'Abschnitt abgebrochen: ' + (e && e.stack || e).toString().split('\n').slice(0, 8).join(' | ')); }
       flush(sec);
       console.log('   (' + ((Date.now() - t1) / 1000).toFixed(1) + ' s)');
     }
