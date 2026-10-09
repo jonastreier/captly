@@ -760,6 +760,80 @@ SECTIONS.pixel = async (browser, prof) => {
   await sc.close();
 };
 
+
+// ═══════════ Abschnitt edge: Rand-Check abgerundeter Karten ═══════════
+// Einfarbig helles Testvideo (0xd8c8a8) und helle Showcase-Fotos: in den untersten 3 Pixelreihen INNERHALB der Rundung darf kein Pixel dunkler
+// als 80 sein (sonst blutet ein dunkler Hintergrund durch). Zoom 1 und 1.25 (devicePixelRatio), je Viewport.
+const LIGHT_VIDEO = path.join(os.tmpdir(), 'cr-sweep-light.webm'), LIGHT_JPG = path.join(os.tmpdir(), 'cr-sweep-light.jpg');
+function makeLightMedia() {
+  const ff = (args, out) => { if (!fs.existsSync(out)) { const r = spawnSync('ffmpeg', ['-y', '-loglevel', 'error'].concat(args, [out])); if (r.status !== 0) throw new Error('ffmpeg: ' + String(r.stderr).slice(0, 200)); } };
+  ff(['-f', 'lavfi', '-i', 'color=c=0xd8c8a8:size=540x960:rate=30:duration=6', '-f', 'lavfi', '-i', 'sine=frequency=300:duration=6', '-f', 'lavfi', '-i', 'anoisesrc=amplitude=0.2:duration=6',
+    '-filter_complex', '[1][2]amix=inputs=2:duration=first[a]', '-map', '0:v', '-map', '[a]', '-c:v', 'libvpx', '-b:v', '600k', '-pix_fmt', 'yuv420p', '-c:a', 'libvorbis', '-shortest'], LIGHT_VIDEO);
+  ff(['-f', 'lavfi', '-i', 'color=c=0xd8c8a8:size=348x620', '-frames:v', '1'], LIGHT_JPG);
+}
+// Unterste 3 Reihen des Screenshots (PNG) ausserhalb der Eckrundung (r CSS-px) prüfen → { min, x, row, w, h }
+function edgeScan(page, buf, rCss, dpr) {
+  return page.evaluate(({ b64, r }) => new Promise(res => {
+    const img = new Image(); img.onload = () => {
+      const cv = document.createElement('canvas'); cv.width = img.width; cv.height = img.height; const c = cv.getContext('2d'); c.drawImage(img, 0, 0);
+      const d = c.getImageData(0, img.height - 3, img.width, 3).data; let min = 999, mx = -1, my = -1;
+      for (let row = 0; row < 3; row++) for (let x = Math.ceil(r) + 1; x < img.width - Math.ceil(r) - 1; x++) {
+        const i = (row * img.width + x) * 4, luma = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+        if (luma < min) { min = luma; mx = x; my = row; }
+      }
+      res({ min: Math.round(min), x: mx, row: my, w: img.width, h: img.height });
+    }; img.src = 'data:image/png;base64,' + b64;
+  }), { b64: buf.toString('base64'), r: rCss * dpr });
+}
+SECTIONS.edge = async (browser, prof) => {
+  makeLightMedia();
+  const lightJpg = fs.readFileSync(LIGHT_JPG);
+  for (const dpr of QUICK ? [1.25] : [1, 1.25]) {
+    const tag = '/dpr' + dpr;
+    const sc = await newScenario(browser, prof, {
+      dpr, video: LIGHT_VIDEO,
+      route: async ctx => { await ctx.route('**/assets/showcase/*.jpg', r => r.fulfill({ status: 200, contentType: 'image/jpeg', body: lightJpg })); await ctx.route('**/assets/showcase/*.mp4', r => r.abort()); },
+    });
+    const p = sc.page;
+    const scan = async (name, loc, r) => {
+      const n = await loc.count(); if (!n) { check('edge/' + name + tag, false, 'Element nicht gefunden'); return; }
+      const bad = [];
+      for (let i = 0; i < Math.min(n, name === 'tiles' ? 8 : 3); i++) {
+        const el = loc.nth(i); await el.scrollIntoViewIfNeeded().catch(() => {});
+        const buf = await el.screenshot({ animations: 'disabled' }), e = await edgeScan(p, buf, r, dpr);
+        if (e.min < 80) bad.push('#' + i + ' min ' + e.min + ' bei x=' + e.x + ' (Reihe ' + (e.row - 3) + ', ' + e.w + '×' + e.h + ')');
+      }
+      check('edge/' + name + tag, !bad.length, name + ': unterste 3 Pixelreihen (innerhalb der Rundung) nicht dunkler als 80' + (bad.length ? ' — ' + bad.slice(0, 2).join('; ') : ''));
+    };
+    // Landing-Showcase wurde vor dem Upload geladen → über goBack() nicht erreichbar; Karten stehen in der Landing, die der Scenario-Start schon verlassen hat
+    await p.waitForTimeout(300);
+    await p.evaluate(() => { const v = document.getElementById('mainVid'); v.pause(); v.currentTime = 1; }); await p.waitForTimeout(500);
+    await scan('prevFrame', p.locator('#prevFrame'), 16);
+    const bg = await p.evaluate(() => getComputedStyle(document.getElementById('prevBg')).backgroundColor);
+    check('edge/prevBg' + tag, !/^rgb\(\s*(\d+),\s*(\d+),\s*(\d+)\)$/.test(bg) || Math.max(...bg.match(/\d+/g).map(Number)) >= 80, 'Hintergrund hinter dem Video ist nicht schwarz (' + bg + ') — sonst blutet er an der Rundung durch');
+    await goTab(sc, 'style'); await p.waitForTimeout(300);
+    await scan('tiles', p.locator('#stylePicker .stile'), 12);
+    await OPEN_COVER(sc);
+    await p.evaluate(() => { coverSet('dark', 0); coverSet('grad', false); coverSet('guides', false); }); await p.waitForTimeout(700);
+    await scan('cvCanvas', p.locator('#cvCanvas'), 12);
+    await p.evaluate(() => closeCover());
+    // Landing-Showcase: neue Seite im selben Kontext (Fotos hell, Videos aus)
+    const lp = await sc.ctx.newPage();
+    await lp.goto(BASE.url + '/', { waitUntil: 'load' }); await lp.waitForTimeout(1800);
+    await lp.evaluate(() => document.getElementById('showcaseRow') && document.getElementById('showcaseRow').scrollIntoView());
+    await lp.waitForTimeout(600);
+    const cards = lp.locator('.show-card'), nC = await cards.count(), badC = [];
+    for (let i = 0; i < Math.min(nC, 4); i++) {
+      const el = cards.nth(i); await el.scrollIntoViewIfNeeded().catch(() => {}); await lp.waitForTimeout(250);
+      const e = await edgeScan(lp, await el.screenshot({ animations: 'disabled' }), 20, dpr);
+      if (e.min < 80) badC.push('#' + i + ' min ' + e.min + ' bei x=' + e.x + ' (' + e.w + '×' + e.h + ')');
+    }
+    check('edge/show-card' + tag, nC > 0 && !badC.length, 'show-card: unterste 3 Pixelreihen (innerhalb der Rundung) nicht dunkler als 80' + (badC.length ? ' — ' + badC.slice(0, 2).join('; ') : ''));
+    await lp.close();
+    await sc.close();
+  }
+};
+
 //__SECTIONS__
 
 (async () => {
