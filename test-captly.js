@@ -112,6 +112,7 @@ tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomA
 tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
 resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,toggleMaxCharsAuto:toggleMaxCharsAuto,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
 tlNudge:tlNudge,tlNudgeEdge:tlNudgeEdge,tlNudgeWhy:tlNudgeWhy,tlCenterView:tlCenterView,tlClampPps:tlClampPps,tlClassify:tlClassify,tlFlingVelocity:tlFlingVelocity,tlFlingDecay:tlFlingDecay,tlSplitIndex:tlSplitIndex,tlSplitAt:tlSplitAt,tlHit:tlHit,setTlMob:function(m){_tl.mob=m;},setTlView:function(v){tlView=v;},setTlSel:function(i){tlSel=i;},getTlSel:function(){return tlSel;},TL_MOB_PPS:TL_MOB_PPS,switchTabT:switchTab,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
+tlSweepRange:tlSweepRange,tlSweepApply:tlSweepApply,
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
 capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
 wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBaseName:exportBaseName,openExportSheet:openExportSheet,closeExportSheet:closeExportSheet,
@@ -3392,6 +3393,54 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.tlGet().multi === !m0 && T.tlGet().end === (m0 ? -1 : 1), 'Select-Knopf schaltet den Modus um');
     if (T.tlGet().multi) T.tlToggleMulti();
     ok(T.tlGet().multi === false && T.tlGet().end === -1, 'Ausschalten hebt den Bereich auf');
+  }
+
+  // Timeline Auswahlrahmen / Wisch: tlSweepRange (reine Funktion) + tlSweepApply (live Auswahl)
+  {
+    const R = (bl, a, b) => JSON.stringify(T.tlSweepRange(bl, a, b));
+    const bl = [0, 2, 4, 6, 8].map(s => ({ start: s, end: s + 1, text: 't' + s }));   // Lücken [1,2] [3,4] …
+    ok(R(bl, 0.2, 4.5) === '{"a":0,"b":2}', 'Sweep: Fenster über drei Blöcke → 0…2: ' + R(bl, 0.2, 4.5));
+    ok(R(bl, 4.5, 0.2) === '{"a":0,"b":2}', 'Sweep: umgekehrte Richtung gleich');
+    ok(R(bl, 2.5, 2.9) === '{"a":1,"b":1}', 'Sweep: Fenster in einem Block → genau dieser: ' + R(bl, 2.5, 2.9));
+    ok(R(bl, 1.2, 1.8) === 'null' && R(bl, 1.2, 1.8) === R(bl, 1.8, 1.2), 'Sweep: Fenster in der Lücke → null');
+    ok(R(bl, 1, 2) === '{"a":0,"b":1}' && R(bl, 1.001, 1.999) === 'null', 'Sweep: Berühren der Kante zählt (inklusive)');
+    ok(R(bl, -5, 0) === '{"a":0,"b":0}' && R(bl, 9, 50) === '{"a":4,"b":4}', 'Sweep: Ränder der Liste (Fenster ragt hinaus)');
+    ok(R(bl, -5, -1) === 'null' && R(bl, 9, 50) === '{"a":4,"b":4}' && R(bl, 9.001, 50) === 'null', 'Sweep: ausserhalb → null');
+    ok(R(bl, -100, 100) === '{"a":0,"b":4}', 'Sweep: Fenster über alles → ganze Liste');
+    ok(R([], 0, 5) === 'null' && R(null, 0, 5) === 'null' && R(bl, NaN, 3) === 'null', 'Sweep: leere Liste / ungültige Zeit → null');
+    // Viele Blöcke: Binärsuche gleicht einer linearen Referenz
+    const big = Array.from({ length: 500 }, (_, i) => ({ start: i * 0.7, end: i * 0.7 + 0.5 }));
+    let bad = 0;
+    for (let k = 0; k < 300; k++) {
+      const a = (k * 37 % 350) + 0.013 * k, b = a + (k % 9) * 0.31;
+      let ra = -1, rb = -1;
+      big.forEach((x, i) => { if (x.end >= a && x.start <= b) { if (ra < 0) ra = i; rb = i; } });
+      const r = T.tlSweepRange(big, a, b);
+      if (ra < 0 ? r !== null : !r || r.a !== ra || r.b !== rb) bad++;
+    }
+    ok(bad === 0, 'Sweep: 500 Blöcke stimmen mit linearer Referenz überein (' + bad + ' Abweichungen)');
+    // Blöcke mit timeOff: Achse = Videozeit, Block-Zeit = Videozeit + off (tlSweepApply rechnet um)
+    T.setState([0, 2, 4, 6].map(s => ({ words: [{ word: 'w', start: s + 1, end: s + 2 }], start: s + 1, end: s + 2, text: 'w' + s })), [], null);
+    T.setTimeOffState(1);
+    const dn = { tDown: 1.2, sweepKey: null };   // Videozeit 1,2 = Block-Zeit 2,2 → Block 0 beginnt bei Block-Zeit 1…2 (Video 0…1)
+    T.tlSweepApply(dn, 3.6);                        // Video 1,2…3,6 = Block 2,2…4,6 → Block 1 (3…4) und Block 2 (5…6 nein, 4,6 < 5)
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[1,-1]', 'Sweep mit timeOff: Videozeit→Blockzeit umgerechnet: ' + [T.tlGet().sel, T.tlGet().end]);
+    T.tlSweepApply({ tDown: 0.5, sweepKey: null }, 4.5);
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[0,2]', 'Sweep mit timeOff: Bereich 0…2: ' + [T.tlGet().sel, T.tlGet().end]);
+    // Shift: bestehende Auswahl bleibt enthalten; Fenster in Lücke ohne Shift hebt auf
+    T.tlSweepApply({ tDown: 4.5, sweepKey: null, sweepBase: { a: 0, b: 0 } }, 5.2);   // Video 4,5…5,2 = Block-Zeit 5,5…6,2 → Block 2
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[0,2]', 'Sweep+Shift: erweitert die bestehende Auswahl: ' + [T.tlGet().sel, T.tlGet().end]);
+    T.tlSweepApply({ tDown: 3.1, sweepKey: null, sweepBase: { a: 1, b: 1 } }, 3.3);   // Lücke, aber Shift → Basis bleibt
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[1,-1]', 'Sweep+Shift in der Lücke: bestehende Auswahl bleibt: ' + [T.tlGet().sel, T.tlGet().end]);
+    T.tlSweepApply({ tDown: 3.1, sweepKey: null }, 3.3);   // Video 3,1…3,3 = Block-Zeit 4,1…4,3 → Lücke zwischen Block 1 (3…4) und 2 (5…6)
+    ok(T.tlGet().sel === -1 && T.tlGet().end === -1, 'Sweep ohne Shift in der Lücke: Auswahl aufgehoben');
+    T.setTimeOffState(0); T.tlSelState(-1, -1);
+    // tlHit auf der Wellenform (Desktop) = leere Fläche → Auswahlrahmen statt Block-Treffer
+    const mkH = () => [0, 2, 4].map(s => ({ words: [{ word: 'w', start: s, end: s + 1 }], start: s, end: s + 1, text: 'w' }));
+    T.setState(mkH(), [], null); T.setTlMob(false); T.setTlView({ start: 0, pps: 100 }); T.setTlSel(-1);
+    ok(T.tlHit(250, 30, false).type === 'empty' && T.tlHit(250, 18 + 10, false).type === 'empty', 'tlHit: Wellenform über einem Block = leer (Rahmen startet dort)');
+    ok(T.tlHit(250, 40, false).type === 'empty' || T.tlHit(250, 40, false).type === 'block', 'tlHit: Wellenform/Spur liefern keinen Fehler');
+    ok(T.tlHit(250, 10, false).type === 'ruler', 'tlHit: Lineal bleibt Seek');
   }
 
   // «Trending»: nur ab genug Daten, nur eingebaute Styles ohne eigenes Abzeichen, höchstens 3
