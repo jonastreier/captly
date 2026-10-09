@@ -166,6 +166,27 @@ if (require.main !== module) return;
     await page.waitForTimeout(600);
     await shot('03-style');
 
+    // 2a) Style-Panel: feste Reihenfolge, «Erweitert» zu, Segment-Klick steuert das Select, kein seitliches Scrollen (auch mit «Erweitert» offen)
+    {
+      const r = await page.evaluate(() => {
+        switchTab('style');
+        const ids = ['stylePicker', 'csgText', 'csgAnim', 'csgLayout', 'csgFx', 'advSet', 'csgTpl'], els = ids.map(id => document.getElementById(id));
+        const inOrder = els.every((e, i) => e && (i === 0 || (els[i - 1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING)));
+        const adv = document.getElementById('advSet'), pn = document.getElementById('csPanel');
+        const seg = v => document.querySelector('.cs-seg[data-sel=csMotion] [data-v=' + v + ']');
+        const out = { inOrder, advClosed: !adv.open, tplVisible: !!document.getElementById('csgTpl').offsetParent };
+        seg('reveal').click();
+        out.reveal = { sel: document.getElementById('csMotion').value, pressed: seg('reveal').getAttribute('aria-pressed'), rowHidden: !document.getElementById('csAnimRow').offsetParent };
+        seg('highlight').click();
+        out.hl = { sel: document.getElementById('csMotion').value, rowShown: !!document.getElementById('csAnimRow').offsetParent };
+        adv.open = true; out.overflowX = pn.scrollWidth > pn.clientWidth + 1; adv.open = false;
+        return out;
+      });
+      ok(r.inOrder && r.advClosed && r.tplVisible, 'Style-Panel: Reihenfolge Looks · Text · Animation · Layout · Effekte · Erweitert · Template, «Erweitert» zu, Template sichtbar');
+      ok(r.reveal.sel === 'reveal' && r.reveal.pressed === 'true' && r.reveal.rowHidden && r.hl.sel === 'highlight' && r.hl.rowShown, 'Style-Panel: Animation-Segment setzt csMotion, Word pop nur bei Highlight');
+      ok(!r.overflowX, 'Style-Panel: «Erweitert» offen ohne seitliches Scrollen');
+    }
+
     // 2b) Word pop (Customize → Highlight & animation): bei PAUSIERTEM Video muss jede Option sofort sichtbar etwas tun (Demo ~0,6 s)
     if (!prof.mobile) {
       // Pausenzeit 0,5 s nach Beginn des zweiten Worts (Folgewörter um 0,6 s verschoben): die 0,34-s-Animation ist dort längst vorbei,

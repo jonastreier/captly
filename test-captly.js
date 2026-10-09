@@ -127,6 +127,7 @@ setLines:setLines,splitBlockAtCursor:splitBlockAtCursor,getLines:function(){retu
 setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
 capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
 capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},setProgDrag:function(v){_progDrag=v;},
+csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -523,22 +524,22 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   let cs = T.buildCustomStyle();
   ok(cs.tc === '#ff0000' && cs.boxBg === base.boxBg && cs.hlPillBg === base.hlPillBg && cs.anim === 'scale' && cs.fw === base.fw,
      'Custom behaelt Box/Pill/Animation/Gewicht des Ausgangs-Styles');
-  // Kontur, Großbuchstaben, Abstand, Gewicht, Hintergrund, Highlight-Typ, Animation
+  // Kontur, Abstand, Gewicht, Hintergrund, Highlight-Typ, Animation
   E('csOutlineW').value = '4'; E('csOutlineC').value = '#112233';
-  E('csUpper').classList.add('on'); E('csLs').value = '2'; E('csWeight').value = '900';
+  E('csLs').value = '2'; E('csWeight').value = '900';
   E('csBox').value = 'pill'; E('csBoxR').value = '22'; E('csBoxC').value = '#ffffff'; E('csBoxO').value = '40';
   E('csHlType').value = 'color'; E('csHl').value = '#00ffaa'; E('csAnim').value = 'wobble';
-  T.setCsDirty({ text: true, stroke: true, upper: true, ls: true, weight: true, box: true, hl: true, anim: true });
+  T.setCsDirty({ text: true, stroke: true, ls: true, weight: true, box: true, hl: true, anim: true });
   cs = T.buildCustomStyle();
   ok(T.parseOutline(cs.ts).w === 4 && cs.ts.includes('#112233'), 'Kontur 4px in ts: ' + cs.ts.slice(0, 40));
-  ok(cs.tt === 'uppercase' && cs.ls === '2px' && cs.fw === '900' && cs.anim === 'wobble', 'Caps/Abstand/Gewicht/Animation');
+  ok(cs.ls === '2px' && cs.fw === '900' && cs.anim === 'wobble', 'Abstand/Gewicht/Animation');
   ok(cs.boxBg === 'rgba(255,255,255,0.4)' && cs.boxBr === '22px', 'Hintergrund-Pill mit Deckkraft: ' + cs.boxBg);
   E('csBoxR').value = '13'; ok(T.buildCustomStyle().boxBr === '13px', 'Eckenradius frei einstellbar (Corners)');
   E('csBoxR').value = '99'; ok(T.buildCustomStyle().boxBr === '30px', 'Eckenradius auf 30px gedeckelt');
   E('csBoxR').value = '22';
   ok(!cs.hlPillBg && cs.hl === '#00ffaa' && T.parseOutline(cs.hls).w === 4, 'Highlight als Textfarbe mit Kontur');
   const html = T.buildCap(['eins', 'zwei'], cs, 1, 22, null);
-  ok(html.includes('letter-spacing:2px') && html.includes('text-transform:uppercase') && html.includes('rgba(255,255,255,0.4)') && html.includes('captly-wobble'),
+  ok(html.includes('letter-spacing:2px') && html.includes('rgba(255,255,255,0.4)') && html.includes('captly-wobble'),
      'Vorschau rendert alle Custom-Eigenschaften');
   // Pill-Modus: dasselbe Farbfeld („Pill“) ist die Pill-Farbe
   E('csHlType').value = 'pill'; E('csHl').value = '#fde047';
@@ -611,7 +612,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   E('csHl').value = '#facc15'; E('csGlow').checked = true; // Reste eines vorigen Styles
   T.selectStyle('tpulse');
   ok(E('csHl').value === '#00ff85' && E('csHlType').value === 'pill' && E('csHlLbl').textContent === 'Pill', 'Pill-Style: Farbfeld = Pill-Farbe, Label „Pill“: ' + E('csHl').value);
-  ok(E('csText').value === '#ffffff' && E('csFont').value === 'Montserrat' && E('csWeight').value === '900' && E('csUpper').classList.contains('on'), 'Pill-Style: Text/Font/Gewicht/Caps');
+  ok(E('csText').value === '#ffffff' && E('csFont').value === 'Montserrat' && E('csWeight').value === '900', 'Pill-Style: Text/Font/Gewicht');
   ok(E('csGlow').checked === false && E('csGlowInt').disabled === true, 'Glow aus → Regler deaktiviert');
   ok(E('csBox').value === 'off' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '70', 'kein Hintergrund → neutrale Box-Werte statt Resten');
   // Box-Style (Box Karaoke): Hintergrund aus rgba
@@ -619,7 +620,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   ok(E('csBox').value === 'box' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '60' && E('csHl').value === '#22c55e', 'Box Karaoke: Box schwarz 60 %, Pill gruen');
   // Kontur-Style (Bold Pop): Kontur 3 px, Schatten an, Textfarbe-Highlight
   T.selectStyle('hormozi');
-  ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Active' && E('csAnim').value === 'scale',
+  ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Highlight' && E('csAnim').value === 'scale',
      'Bold Pop: Kontur/Schatten/Active-Farbe/Animation');
   // Glow-Style (Jolt/amplify): Glow an mit Stärke 20, Regler aktiv
   T.selectStyle('tamp');
@@ -3646,6 +3647,53 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setSbState(null); global.confirm = realConfirm; if (!realConfirm) delete global.confirm;
     const sql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
     ok(/grant execute on function public\.delete_my_account\(\) to authenticated/.test(sql), 'Konto löschen: schema.sql gibt delete_my_account an angemeldete Nutzer frei');
+  }
+
+  // ── Style-Panel (P4): Struktur, IDs, Reihenfolge, abhängige Zeilen ──
+  {
+    const E = id => document.getElementById(id);
+    // Alle Kontroll-IDs des alten Customize-Panels (Stand 91a81c1; ohne die reinen Container qQuick/csMore) gibt es weiterhin genau einmal
+    const OLD_IDS = ('szSlider szDisp posRow wpbSlider wpbDisp mcAuto mcSel mcDisp linesRow caseSel emGrp emKwBtn emEmoBtn emZoomRow emNote advSet csLs csLsDisp csLh csLhDisp ' +
+      'csText csHlSw csHl csHlLbl csFont fontUpload csWeight csEm csEmFont csOutlineW csOutlineDisp csOutlineC csShadow csGlow csGlowInt csBox csBoxC csBoxO csBoxR csBoxRDisp ' +
+      'csHlType csMotion csAnimRow csAnim csAnimHint pauseChk cutChk punctBtn toSlider toDisp tplCount tplName tplSaveBtn tplStatus tplEditing tplImport').split(' ');
+    const dup = OLD_IDS.filter(id => (htmlContent.match(new RegExp('\\bid="' + id + '"', 'g')) || []).length !== 1);
+    ok(dup.length === 0, 'Style-Panel: alle ' + OLD_IDS.length + ' Kontroll-IDs des alten Panels existieren genau einmal' + (dup.length ? ' (Abweichung: ' + dup.join(', ') + ')' : ''));
+    ok(!/csUpper/.test(htmlContent), 'Style-Panel: toter Code csUpper entfernt');
+    // Gruppenreihenfolge: Looks → Text → Animation → Layout → Effekte → Erweitert → Template speichern
+    const order = ['id="stylePicker"', 'id="csgText"', 'id="csgAnim"', 'id="csgLayout"', 'id="csgFx"', 'id="advSet"', 'id="csgTpl"'].map(k => htmlContent.indexOf(k));
+    ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), 'Style-Panel: Gruppenreihenfolge Looks · Text · Animation · Layout · Effekte · Erweitert · Template: ' + order.join(','));
+    // Wichtigste Kontrollen an der richtigen Stelle (Segment Animation vor Layout; Zeilenlängen-Hinweis unter „Erweitert“, nicht unter „Spacing“)
+    const at = id => htmlContent.indexOf('id="' + id + '"');
+    ok(at('csgText') < at('csFont') && at('csFont') < at('szSlider') && at('szSlider') < at('csText') && at('csText') < at('csgAnim') && at('csgAnim') < at('csMotion')
+       && at('csMotion') < at('csAnimRow') && at('csAnimRow') < at('emKwBtn') && at('emKwBtn') < at('csgLayout') && at('csgLayout') < at('posRow') && at('posRow') < at('wpbSlider')
+       && at('wpbSlider') < at('linesRow') && at('linesRow') < at('csgFx') && at('csgFx') < at('csOutlineW') && at('csOutlineW') < at('csShadow') && at('csShadow') < at('csBox')
+       && at('csBox') < at('advSet'), 'Style-Panel: Kontrollen in der vorgesehenen Reihenfolge');
+    const adv = htmlContent.slice(at('advSet'), at('csgTpl'));
+    ok(['csLs', 'csLh', 'csEmFont', 'caseOrig', 'csGlow', 'csGlowInt', 'csBoxO', 'csBoxR', 'mcAuto', 'mcSel', 'toSlider', 'pauseChk', 'cutChk', 'punctBtn'].every(id => adv.includes('id="' + id + '"'))
+       && /Long captions break into more/.test(adv) && !/id="csOutlineW"|id="csMotion"/.test(adv), 'Style-Panel: Feinheiten unter „Erweitert“ (Zeilenlängen-Hinweis dort)');
+    ok(!/<details[^>]*id="csgTpl"/.test(htmlContent) && htmlContent.slice(at('csgTpl') - 200, at('csgTpl')).indexOf('<details') < 0, 'Style-Panel: „Save as template“ liegt nicht im Aufklapper');
+    // Abhängige Zeilen: ausgeblendet statt ausgegraut
+    const disp = id => E(id).style.display;
+    E('csMotion').value = 'highlight'; E('csBox').value = 'off'; E('csGlow').checked = false; T.syncCsUi();
+    ok(disp('csAnimRow') === '' && disp('csHlTypeRow') === '', 'Style-Panel: Highlight → Word pop + Highlight-Art sichtbar');
+    ok(disp('csBoxC') === 'none' && disp('csBoxOpRow') === 'none' && disp('csBoxRRow') === 'none', 'Style-Panel: kein Hintergrund → Farbe/Deckkraft/Ecken weg');
+    ok(disp('csGlowStrRow') === 'none' && E('csGlowInt').disabled === true, 'Style-Panel: kein Glow → Glow-Stärke weg');
+    E('csMotion').value = 'reveal'; E('csBox').value = 'pill'; E('csGlow').checked = true; T.syncCsUi();
+    ok(disp('csAnimRow') === 'none' && disp('csHlTypeRow') === 'none', 'Style-Panel: Reveal → Word pop + Highlight-Art weg');
+    ok(disp('csBoxC') === '' && disp('csBoxOpRow') === '' && disp('csBoxRRow') === '', 'Style-Panel: Hintergrund aktiv → Farbe/Deckkraft/Ecken sichtbar');
+    ok(disp('csGlowStrRow') === '' && E('csGlowInt').disabled === false, 'Style-Panel: Glow an → Glow-Stärke sichtbar');
+    E('csMotion').value = 'fill'; T.syncCsUi(); ok(disp('csAnimRow') === 'none' && disp('csHlTypeRow') === 'none', 'Style-Panel: Fill → Word pop + Highlight-Art weg');
+    E('csMotion').value = 'highlight'; E('csBox').value = 'off'; T.syncCsUi();
+    // Segment-Klick setzt das versteckte Select und ruft dessen Handler; Case-Segment ↔ caseSel ↔ „As typed“
+    let fired = 0;
+    const seg = { getAttribute: k => k === 'data-sel' ? 'csMotion' : null };
+    E('csMotion').onchange = function () { fired++; };
+    T.csSegPick({ parentNode: seg, getAttribute: k => k === 'data-v' ? 'fill' : null });
+    ok(E('csMotion').value === 'fill' && fired === 1, 'Style-Panel: Segment-Klick setzt Select und feuert onchange');
+    E('csMotion').onchange = null; E('csMotion').value = 'highlight';
+    T.setCaptionCase('upper'); ok(E('caseSel').value === 'upper' && E('caseOrig').checked === false, 'Style-Panel: Case „AA“ → caseSel upper');
+    T.setCaptionCase('orig'); ok(E('caseSel').value === 'orig' && E('caseOrig').checked === true, 'Style-Panel: „As typed“ (Erweitert) ↔ caseSel orig');
+    T.setCaptionCase('asis'); ok(E('caseOrig').checked === false, 'Style-Panel: zurück auf Style-Standard');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

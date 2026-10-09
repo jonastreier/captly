@@ -367,12 +367,12 @@ body.editor-open{height:100vh;overflow:hidden}
 .tr-set:not([open]) summary{margin-bottom:0}
 .tr-set-ttl{font-size:12.5px;font-weight:600;color:var(--ink2);white-space:nowrap}
 .tr-set-sum{font-size:12px;color:var(--brand);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.cs-adv{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
-.cs-adv summary{font-size:12.5px;font-weight:600;color:var(--brand-ink);cursor:pointer;user-select:none;list-style:none;padding:4px 0}
+.cs-adv{border-top:1px solid var(--fill2)}
+.cs-adv summary{display:flex;align-items:center;justify-content:space-between;min-height:48px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;user-select:none;list-style:none;border-radius:8px}
 .cs-adv summary::-webkit-details-marker{display:none}
-.cs-adv summary::after{content:' ▸'}
-.cs-adv[open] summary::after{content:' ▾'}
-.cs-adv[open] summary{margin-bottom:8px}
+.cs-adv summary::after{content:'';width:7px;height:7px;margin-right:4px;border-right:1.5px solid var(--muted);border-bottom:1.5px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
+.cs-adv[open] summary::after{transform:rotate(45deg)}
+.cs-adv-body{padding:0 0 14px}
 .tb-export{display:inline-flex;align-items:center;gap:6px;background:var(--brand);color:#fff;border:none;border-radius:var(--r-btn);padding:7px 14px;font:600 13px 'Inter',sans-serif;cursor:pointer;box-shadow:var(--sh-1);transition:background .15s,opacity .15s}
 .tb-export:hover:not(:disabled){background:var(--brand-ink)}
 .tb-export:disabled{opacity:.4;cursor:not-allowed;box-shadow:none}
@@ -402,13 +402,45 @@ body.editor-open{height:100vh;overflow:hidden}
 .lang-sel{width:100%;background:#fff;border:1px solid var(--line2);color:var(--ink);border-radius:var(--r-btn);padding:8px 10px;font-family:'Inter',sans-serif;font-size:12.5px;margin-bottom:7px;cursor:pointer}
 .lang-sel:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(124,58,237,.14)}
 .cs-col{width:30px;height:26px;border:none;background:none;cursor:pointer;padding:0;flex:0 0 auto}
-.cs-swatch{display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;flex:0 0 auto}
-.cs-swatch span{font-size:12px;line-height:1;color:var(--muted);letter-spacing:.02em}
 /* Farbfelder immer mit sichtbarem Rand: Weiß auf weißem Panel sah sonst „leer“ aus (Nutzer-Report) */
 .cs-col::-webkit-color-swatch-wrapper{padding:2px}
 .cs-col::-webkit-color-swatch{border:1px solid var(--line2);border-radius:5px}
 .cs-col::-moz-color-swatch{border:1px solid var(--line2);border-radius:5px}
 #csGlowInt:disabled{opacity:.35;cursor:not-allowed;filter:grayscale(1)}
+/* Style-Panel (Text · Animation · Layout · Effekte · Erweitert): ruhige Zeilen mit fester Beschriftungsspalte */
+.cs-panel{position:relative}
+.cs-panel .q-row{margin:0 0 10px;min-height:32px}
+.cs-panel .q-k{flex:0 0 84px;font-weight:500;color:var(--ink2)}
+.cs-panel .q-row>.cs-sel,.cs-panel .q-row>.pos-row{flex:1 1 0;min-width:0}
+.cs-panel .sz-val{min-width:34px;text-align:right}
+.cs-sh{font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:16px 0 8px}
+.cs-sh span{text-transform:none;letter-spacing:0;font-weight:500}
+.cs-panel .em-row .q-k{flex:0 0 84px;font-weight:500}
+.cs-adv-body .cs-sh:first-child{margin-top:4px}
+.cs-adv-body .mode-hint{margin:-4px 0 12px 94px}
+.em-grp .cs-sh{margin-top:16px}
+/* verstecktes Quell-<select> hinter einem Segment-Control: bleibt im DOM (Tests, Handler), nicht sichtbar/fokussierbar */
+.cs-hide{position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;opacity:0;pointer-events:none}
+.cs-fontrow{display:flex;gap:8px;margin-bottom:10px}
+.cs-fontrow .cs-sel{flex:1 1 auto;min-width:0;width:auto}
+.cs-fontrow #csWeight{flex:0 0 96px}
+.cs-cols{display:flex;gap:8px;margin-top:12px}
+.cs-chipcol{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:8px;min-height:36px;padding:4px 10px 4px 6px;border:1px solid var(--line2);border-radius:var(--r-btn);background:#fff;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.cs-chipcol:hover{border-color:var(--line3)}
+.cs-chipcol:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(124,58,237,.14)}
+.cs-chipcol span{font-size:12.5px;font-weight:500;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-chipcol .cs-col,.cs-dot .cs-col{width:24px;height:24px;border-radius:50%}
+.cs-chipcol .cs-col::-webkit-color-swatch-wrapper,.cs-dot .cs-col::-webkit-color-swatch-wrapper{padding:0}
+.cs-chipcol .cs-col::-webkit-color-swatch,.cs-dot .cs-col::-webkit-color-swatch{border:1px solid rgba(16,24,28,.2);border-radius:50%}
+.cs-chipcol .cs-col::-moz-color-swatch,.cs-dot .cs-col::-moz-color-swatch{border:1px solid rgba(16,24,28,.2);border-radius:50%}
+.cs-dot{display:flex;flex:0 0 auto;cursor:pointer;border-radius:50%}
+.cs-dot:focus-within{box-shadow:0 0 0 3px rgba(124,58,237,.25)}
+.cs-tog{cursor:pointer}
+.cs-tog .q-k{flex:1 1 auto}
+.cs-panel input[type=checkbox].cs-switch{-webkit-appearance:none;appearance:none;position:relative;flex:0 0 auto;width:36px;height:22px;margin:0;border-radius:999px;background:var(--line3);cursor:pointer;transition:background .15s}
+.cs-panel input[type=checkbox].cs-switch::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(16,24,28,.3);transition:transform .15s}
+.cs-panel input[type=checkbox].cs-switch:checked{background:var(--brand)}
+.cs-panel input[type=checkbox].cs-switch:checked::after{transform:translateX(14px)}
 .cs-sel{margin:0!important;padding:5px 7px;font-size:12px}
 .cs-line{margin-top:7px}
 .cs-k{font-size:12px;color:var(--muted);min-width:64px}
@@ -531,10 +563,6 @@ input.lang-sel{cursor:text}
 .stile.on::after{content:'✓';position:absolute;top:6px;left:6px;z-index:4;width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/20px 'Inter',sans-serif;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.3)}
 .sec-h{display:flex;align-items:baseline;gap:8px;font-size:13px;font-weight:600;color:var(--ink);margin:0 0 12px}
 .sec-h span{font-size:12.5px;font-weight:400;color:var(--muted)}
-.q-quick{margin:0 0 8px}
-.q-quick .q-row{margin-bottom:6px}
-.q-quick .q-row:last-child{margin-bottom:0}
-.q-quick .q-k{flex-basis:84px}
 .em-grp{margin:0}
 .em-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .em-row+.em-row{margin-top:7px}
@@ -578,7 +606,7 @@ input.lang-sel{cursor:text}
 .mc-auto.on{background:var(--brand-soft);border-color:var(--brand-line);color:var(--brand-ink)}
 .mc-auto:hover{border-color:var(--line3)}
 .mc-row .sz-val{min-width:22px}
-.q-quick .lines-row .pos-row{flex:0 0 120px}
+.cs-panel .q-row.lines-row>.pos-row{flex:0 0 120px}
 .stile:hover .stile-thumb{filter:brightness(1.12) saturate(1.15)}
 .stile-inner{text-align:center;padding:0 4px;width:100%;position:relative;z-index:2}
 .stile-info{background:var(--fill);padding:5px 5px 6px;text-align:center}
@@ -825,10 +853,12 @@ body.editor-open .lang-hint{display:none}
 .pos-row.seg{gap:0;background:var(--fill);border-radius:9px;padding:3px}
 .pos-row.seg .pos-btn{border:none;background:transparent;box-shadow:none;border-radius:7px;padding:6px 4px;font-size:12.5px;color:var(--ink2)}
 .pos-row.seg .pos-btn.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(30,20,60,.14)}
-.cs-grp{padding:10px 0;border-top:1px solid var(--fill2)}
-.cs-grp:first-of-type{border-top:none}
-.cs-gh{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
-.cs-sub{font-weight:500;text-transform:none;letter-spacing:0;color:var(--faint)}
+.pos-row.seg .pos-btn{min-height:32px}
+.pos-row.seg .pos-btn:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
+.cs-grp{padding:14px 0;border-top:1px solid var(--fill2)}
+.cs-grp:first-child{padding-top:2px;border-top:none}
+.cs-gh{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:10px}
+.cs-sub{font-weight:400;color:var(--muted);font-size:12px;margin-left:4px}
 .cs-note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:6px}
 .cs-k{font-size:12.5px}
 .cs-v{font-size:12px}
@@ -863,17 +893,6 @@ body.editor-open .lang-hint{display:none}
   .nav-cta{min-height:40px}
   .land-lang select{min-height:36px}
   .es-gate-in{font-size:16px}
-}
-/* Handy: Schnellregler als 2×2-Raster (Beschriftung über dem Regler), damit die Style-Kacheln sichtbar bleiben */
-@media (max-width:640px){
-  .q-quick{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;padding:0}
-  .q-quick .q-row{grid-column:1/-1;margin:0}
-  .q-quick .q-row.qq-half{grid-column:auto;flex-wrap:wrap;gap:8px 8px;min-height:0}
-  .q-quick .qq-half .q-k{flex:0 0 100%;font-size:12px}
-  .q-quick .qq-half input[type=range]{flex:1 1 0;min-width:0}
-  .q-quick .q-row:nth-child(1){grid-row:1;grid-column:1}
-  .q-quick .q-row:nth-child(3){grid-row:1;grid-column:2}
-  .q-quick .q-k{flex-basis:72px}
 }
 @media (pointer:coarse){.tl-bar{flex-wrap:wrap;gap:4px 3px;padding:3px 4px}.tl-tog{padding:4px 3px}}
 /* Touch/Handy: Tap-Ziele ≥ 36 px, Eingaben mit 16 px Schrift (kleiner → iOS Safari zoomt beim Fokus
@@ -1551,16 +1570,100 @@ body.editor-open .lang-hint{display:none}
         <div class="style-grid" id="stylePicker"></div>
       </div>
 
-      <!-- Reihenfolge: zuerst der Look (Raster oben), dann Layout, dann Hervorhebung, dann „Customize“ -->
-      <div class="csect" data-tab="style">
-        <h3 class="sec-h">Layout</h3>
-        <!-- Layout: Größe, Position, Wörter pro Caption, Zeilenlänge, Zeilen, Schreibweise -->
-        <div class="q-quick" id="qQuick">
-          <div class="q-row sz-row qq-half">
+      <!-- Style-Panel in fester Reihenfolge (wie bei CapCut/Submagic: wenige, klar gruppierte Kontrollen, Feinheiten dahinter):
+           Looks (Raster oben) → Text → Animation → Layout → Effekte → Erweitert (zu) → Template speichern.
+           Alle IDs/Handler sind unverändert; die Segment-Knöpfe (.cs-seg) steuern ein verstecktes <select> (Quelle der Wahrheit). -->
+      <div class="csect cs-panel" data-tab="style" id="csPanel">
+
+        <section class="cs-grp" id="csgText" aria-labelledby="csgTextH">
+          <h3 class="cs-gh" id="csgTextH">Text <span class="cs-sub">edits the selected look</span></h3>
+          <div class="cs-fontrow">
+            <select id="csFont" class="lang-sel cs-sel" onchange="onFontPick(this)" aria-label="Font" title="Font — 55+ fonts, or upload your own (.ttf / .otf / .woff2)">
+              <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
+              <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
+              <option>Inter</option><option>Oswald</option>
+            </select>
+            <input type="file" id="fontUpload" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" style="display:none" onchange="onFontFile(this)">
+            <select id="csWeight" class="lang-sel cs-sel" onchange="applyCustomStyle('weight')" aria-label="Font weight" title="Font weight">
+              <option value="400">Regular</option><option value="600">Semi</option><option value="700">Bold</option>
+              <option value="800">Extra</option><option value="900">Black</option>
+            </select>
+          </div>
+          <div class="q-row sz-row">
             <span class="q-k">Size</span>
             <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)" aria-label="Caption size">
             <span class="sz-val" id="szDisp">22px</span>
           </div>
+          <div class="q-row case-row">
+            <span class="q-k">Case</span>
+            <div class="pos-row seg cs-seg" data-sel="caseSel" role="group" aria-label="Letter case">
+              <button type="button" class="pos-btn on" data-v="asis" aria-pressed="true" onclick="csSegPick(this)" title="Keep the look's own capitalisation">Style</button>
+              <button type="button" class="pos-btn" data-v="upper" aria-pressed="false" onclick="csSegPick(this)" title="UPPERCASE">AA</button>
+              <button type="button" class="pos-btn" data-v="lower" aria-pressed="false" onclick="csSegPick(this)" title="lowercase">aa</button>
+            </div>
+            <select id="caseSel" class="cs-hide" tabindex="-1" aria-hidden="true" onchange="setCaptionCase(this.value)" title="Letter case for captions and subtitle files">
+              <option value="asis">Style default</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="orig">As typed</option>
+            </select>
+          </div>
+          <div class="cs-cols">
+            <label class="cs-chipcol" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
+            <label class="cs-chipcol" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Highlight</span></label>
+            <label class="cs-chipcol" title="Color of the highlighted keywords (Emphasis)"><input type="color" id="csEm" class="cs-col" value="#facc15" oninput="applyCustomStyle('em')"><span>Keywords</span></label>
+          </div>
+        </section>
+
+        <section class="cs-grp" id="csgAnim" aria-labelledby="csgAnimH">
+          <h3 class="cs-gh" id="csgAnimH">Animation</h3>
+          <div class="q-row">
+            <div class="pos-row seg cs-seg" data-sel="csMotion" role="group" aria-label="Animation">
+              <button type="button" class="pos-btn on" data-v="highlight" aria-pressed="true" onclick="csSegPick(this)" title="The spoken word stands out">Highlight</button>
+              <button type="button" class="pos-btn" data-v="reveal" aria-pressed="false" onclick="csSegPick(this)" title="Words appear as they are spoken and stay">Reveal</button>
+              <button type="button" class="pos-btn" data-v="fill" aria-pressed="false" onclick="csSegPick(this)" title="The whole caption is visible, spoken words turn solid">Fill</button>
+              <button type="button" class="pos-btn" data-v="none" aria-pressed="false" onclick="csSegPick(this)" title="Static captions">None</button>
+            </div>
+            <select id="csMotion" class="cs-hide" tabindex="-1" aria-hidden="true" onchange="applyCustomStyle('motion')" title="Highlight: the spoken word stands out · Reveal: words appear as they are spoken and stay · Fill: the whole caption is visible, spoken words turn solid · None: static">
+              <option value="highlight">Highlight</option><option value="reveal">Reveal</option><option value="fill">Fill</option><option value="none">None</option>
+            </select>
+          </div>
+          <div class="q-row" id="csHlTypeRow">
+            <span class="q-k">Active word</span>
+            <div class="pos-row seg cs-seg" data-sel="csHlType" role="group" aria-label="How the active word stands out">
+              <button type="button" class="pos-btn on" data-v="color" aria-pressed="true" onclick="csSegPick(this)" title="The active word changes its color">Text color</button>
+              <button type="button" class="pos-btn" data-v="pill" aria-pressed="false" onclick="csSegPick(this)" title="A pill appears behind the active word">Pill</button>
+            </div>
+            <select id="csHlType" class="cs-hide" tabindex="-1" aria-hidden="true" onchange="applyCustomStyle('hltype')" title="How the active word stands out — its color is the “Highlight”/“Pill” swatch above">
+              <option value="color">Text color</option><option value="pill">Pill behind word</option>
+            </select>
+          </div>
+          <div class="q-row" id="csAnimRow">
+            <span class="q-k">Word pop</span>
+            <select id="csAnim" class="lang-sel cs-sel" onchange="applyCustomStyle('anim')" title="Short extra motion on the spoken word (Animation: Highlight only). Changing it plays a short demo while the video is paused.">
+              <option value="none">None</option><option value="scale">Pop</option><option value="punch">Punch</option>
+              <option value="bounce">Lift</option><option value="flash">Fade in</option><option value="glow">Glow</option>
+            </select>
+          </div>
+          <p class="cs-note" id="csAnimHint" style="display:none"></p>
+          <!-- Emphasis: KI wählt Schlüsselwörter, Emojis und Zoom-Momente (pro Wort/Caption im Captions-Tab änderbar) -->
+          <div class="em-grp" id="emGrp">
+            <div class="cs-sh">Emphasis <span>AI picks the key words</span></div>
+            <div class="em-row">
+              <button type="button" class="em-chip on" id="emKwBtn" onclick="setEmphKw(!emKw)" aria-pressed="true" title="AI picks the important words and highlights them in the style's accent colour — tap words in the Captions tab to change"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg>Highlight keywords</button>
+              <button type="button" class="em-chip" id="emEmoBtn" onclick="setEmphEmoji(!emEmoji)" aria-pressed="false" title="A fitting emoji on some captions — change or remove it per caption in the Captions tab"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg>Emojis</button>
+            </div>
+            <div class="em-row">
+              <span class="q-k" title="Smooth punch-in zooms on key moments (video only, never across a scene cut)">Auto zoom</span>
+              <div class="pos-row seg" id="emZoomRow">
+                <button type="button" class="pos-btn on" data-z="off" onclick="setEmphZoom('off')">Off</button>
+                <button type="button" class="pos-btn" data-z="subtle" onclick="setEmphZoom('subtle')" title="Gentle 10 % punch-in">Subtle</button>
+                <button type="button" class="pos-btn" data-z="punchy" onclick="setEmphZoom('punchy')" title="Stronger 18 % punch-in">Punchy</button>
+              </div>
+            </div>
+            <p class="em-note" id="emNote" role="status" aria-live="polite" style="display:none"></p>
+          </div>
+        </section>
+
+        <section class="cs-grp" id="csgLayout" aria-labelledby="csgLayoutH">
+          <h3 class="cs-gh" id="csgLayoutH">Layout</h3>
           <div class="q-row">
             <span class="q-k">Position</span>
             <div class="pos-row seg" id="posRow">
@@ -1569,16 +1672,10 @@ body.editor-open .lang-hint{display:none}
               <button type="button" class="pos-btn on" data-pos="bottom" onclick="setPos(this)">Bottom</button>
             </div>
           </div>
-          <div class="q-row sz-row qq-half">
+          <div class="q-row sz-row">
             <span class="q-k" title="Words per caption">Words</span>
             <input type="range" min="1" max="6" value="4" id="wpbSlider" oninput="onWpbChange(this.value)" aria-label="Words per caption" title="Words per caption">
             <span class="sz-val" id="wpbDisp">4</span>
-          </div>
-          <div class="q-row sz-row mc-row" title="Captions break into more, shorter captions instead of shrinking the text. Recommended for Reels: 15–20 characters per line">
-            <span class="q-k">Line length</span>
-            <button type="button" class="mc-auto on" id="mcAuto" onclick="toggleMaxCharsAuto()" aria-pressed="true" title="Auto: derived from size, style and frame width. Recommended for Reels: 15–20 characters per line">Auto</button>
-            <input type="range" min="8" max="40" step="1" value="20" id="mcSel" class="mc-off" oninput="setMaxChars(this.value)" aria-label="Maximum characters per line" title="Exact characters per line (8–40). Recommended for Reels: 15–20">
-            <span class="sz-val" id="mcDisp" style="display:none"></span>
           </div>
           <div class="q-row lines-row">
             <span class="q-k" title="Maximum lines per caption">Lines</span>
@@ -1587,139 +1684,95 @@ body.editor-open .lang-hint{display:none}
               <button type="button" class="pos-btn on" data-lines="2" onclick="setLines(this)" title="Up to two lines per caption">2</button>
             </div>
           </div>
-          <div class="q-row case-row">
-            <span class="q-k">Case</span>
-            <select id="caseSel" class="lang-sel cs-sel" onchange="setCaptionCase(this.value)" title="Letter case for captions and subtitle files">
-              <option value="asis">Style default</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="orig">As typed</option>
-            </select>
-          </div>
-        </div>
-        <p class="q-hint">Drag the caption in the preview to fine-tune its height.</p>
-      </div>
-      <div class="csect" data-tab="style">
-        <h3 class="sec-h">Emphasis <span>AI picks the key words</span></h3>
-        <!-- Emphasis: KI wählt Schlüsselwörter, Emojis und Zoom-Momente (pro Wort/Caption im Captions-Tab änderbar) -->
-        <div class="em-grp" id="emGrp">
-          <div class="em-row">
-            <button type="button" class="em-chip on" id="emKwBtn" onclick="setEmphKw(!emKw)" aria-pressed="true" title="AI picks the important words and highlights them in the style's accent colour — tap words in the Captions tab to change"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg>Highlight keywords</button>
-            <button type="button" class="em-chip" id="emEmoBtn" onclick="setEmphEmoji(!emEmoji)" aria-pressed="false" title="A fitting emoji on some captions — change or remove it per caption in the Captions tab"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg>Emojis</button>
-          </div>
-          <div class="em-row">
-            <span class="q-k" title="Smooth punch-in zooms on key moments (video only, never across a scene cut)">Auto zoom</span>
-            <div class="pos-row seg" id="emZoomRow">
-              <button type="button" class="pos-btn on" data-z="off" onclick="setEmphZoom('off')">Off</button>
-              <button type="button" class="pos-btn" data-z="subtle" onclick="setEmphZoom('subtle')" title="Gentle 10 % punch-in">Subtle</button>
-              <button type="button" class="pos-btn" data-z="punchy" onclick="setEmphZoom('punchy')" title="Stronger 18 % punch-in">Punchy</button>
-            </div>
-          </div>
-          <p class="em-note" id="emNote" role="status" aria-live="polite" style="display:none"></p>
-        </div>
-      </div>
+          <p class="q-hint">Drag the caption in the preview to fine-tune its height.</p>
+        </section>
 
-      <!-- Alles Weitere hinter „Customize“ -->
-      <div class="csect" data-tab="style">
+        <section class="cs-grp" id="csgFx" aria-labelledby="csgFxH">
+          <h3 class="cs-gh" id="csgFxH">Effects</h3>
+          <div class="q-row sz-row"><span class="q-k">Outline</span>
+            <input type="range" min="0" max="8" step="1" value="0" id="csOutlineW" oninput="applyCustomStyle('stroke')" aria-label="Outline width">
+            <span class="cs-v" id="csOutlineDisp">0px</span>
+            <label class="cs-dot" title="Outline color"><input type="color" id="csOutlineC" class="cs-col" value="#000000" aria-label="Outline color" oninput="applyCustomStyle('strokec')"></label></div>
+          <label class="q-row sz-row cs-tog" title="Soft drop shadow"><span class="q-k">Shadow</span>
+            <input type="checkbox" id="csShadow" class="cs-switch" onchange="this.classList.toggle('on', this.checked);applyCustomStyle('stroke')" aria-label="Drop shadow on/off"></label>
+          <div class="q-row sz-row"><span class="q-k">Background</span>
+            <div class="pos-row seg cs-seg" data-sel="csBox" role="group" aria-label="Background">
+              <button type="button" class="pos-btn on" data-v="off" aria-pressed="true" onclick="csSegPick(this)">None</button>
+              <button type="button" class="pos-btn" data-v="box" aria-pressed="false" onclick="csSegPick(this)" title="Rounded box behind the caption">Box</button>
+              <button type="button" class="pos-btn" data-v="pill" aria-pressed="false" onclick="csSegPick(this)" title="Fully rounded pill behind the caption">Pill</button>
+            </div>
+            <select id="csBox" class="cs-hide" tabindex="-1" aria-hidden="true" onchange="onBoxModeChange(this.value)" title="Background behind the caption">
+              <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
+            </select>
+            <label class="cs-dot" title="Background color"><input type="color" id="csBoxC" class="cs-col" value="#000000" aria-label="Background color" oninput="applyCustomStyle('boxc')"></label></div>
+        </section>
+
         <details class="cs-adv" id="advSet">
-          <summary>Customize</summary>
-          <div class="cs-grp"><div class="cs-gh">Spacing</div>
-            <p class="cs-note">Long captions break into more, shorter captions (see Line length) instead of shrinking. Only a single word too long for the frame gets smaller.</p>
-            <div class="sz-row cs-line"><span class="cs-k">Spacing</span>
-              <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')" title="Letter spacing">
+          <summary>Advanced</summary>
+          <div class="cs-adv-body">
+            <div class="cs-sh">Typography</div>
+            <div class="q-row sz-row"><span class="q-k" title="Letter spacing">Spacing</span>
+              <input type="range" min="-1" max="4" step="0.5" value="0" id="csLs" oninput="applyCustomStyle('ls')" title="Letter spacing" aria-label="Letter spacing">
               <span class="cs-v" id="csLsDisp">0px</span></div>
-            <div class="sz-row cs-line"><span class="cs-k">Line height</span>
-              <input type="range" min="0.9" max="1.8" step="0.05" value="1.3" id="csLh" oninput="applyCustomStyle('lh')" title="Space between the two caption lines">
+            <div class="q-row sz-row"><span class="q-k">Line height</span>
+              <input type="range" min="0.9" max="1.8" step="0.05" value="1.3" id="csLh" oninput="applyCustomStyle('lh')" title="Space between the two caption lines" aria-label="Line height">
               <span class="cs-v" id="csLhDisp">1.30</span></div>
-          </div>
-          <div class="cs-grp"><div class="cs-gh">Colours &amp; font <span class="cs-sub">edits the selected style</span></div>
-            <div class="cs-line" style="display:flex;gap:8px;align-items:center">
-              <label class="cs-swatch" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
-              <label class="cs-swatch" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Active</span></label>
-              <select id="csFont" class="lang-sel cs-sel" style="flex:1;min-width:0" onchange="onFontPick(this)" title="Font — 55+ fonts, or upload your own (.ttf / .otf / .woff2)">
-                <option>Poppins</option><option>Anton</option><option>Bangers</option><option>Playfair Display</option><option>Kalam</option>
-                <option>Bebas Neue</option><option>Montserrat</option><option>Space Grotesk</option><option>Caveat</option>
-                <option>Inter</option><option>Oswald</option>
-              </select>
-              <input type="file" id="fontUpload" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2" style="display:none" onchange="onFontFile(this)">
-              <select id="csWeight" class="lang-sel cs-sel" style="flex:0 0 76px" onchange="applyCustomStyle('weight')" title="Font weight">
-                <option value="400">Regular</option><option value="600">Semi</option><option value="700">Bold</option>
-                <option value="800">Extra</option><option value="900">Black</option>
-              </select>
-            </div>
-            <div class="cs-line" style="display:flex;gap:8px;align-items:center">
-              <label class="cs-swatch" title="Color of the highlighted keywords (Emphasis)"><input type="color" id="csEm" class="cs-col" value="#facc15" oninput="applyCustomStyle('em')"><span>Keywords</span></label>
-              <select id="csEmFont" class="lang-sel cs-sel" style="flex:1;min-width:0" onchange="applyCustomStyle('emfont')" title="Font of the highlighted keywords">
+            <div class="q-row"><span class="q-k">Keyword font</span>
+              <select id="csEmFont" class="lang-sel cs-sel" onchange="applyCustomStyle('emfont')" aria-label="Keyword font" title="Font of the highlighted keywords">
                 <option value="">Keywords: same font as text</option>
-              </select>
-            </div>
-          </div>
-          <div class="cs-grp" id="csMore"><div class="cs-gh">Outline, shadow &amp; background</div>
-            <div class="sz-row cs-line"><span class="cs-k">Outline</span>
-              <input type="range" min="0" max="8" step="1" value="0" id="csOutlineW" oninput="applyCustomStyle('stroke')">
-              <span class="cs-v" id="csOutlineDisp">0px</span>
-              <input type="color" id="csOutlineC" class="cs-col" value="#000000" title="Outline color" oninput="applyCustomStyle('strokec')"></div>
-            <label class="sz-row cs-line" style="cursor:pointer" title="Soft drop shadow"><span class="cs-k">Shadow</span>
-              <input type="checkbox" id="csShadow" onchange="this.classList.toggle('on', this.checked);applyCustomStyle('stroke')" style="cursor:pointer" aria-label="Drop shadow on/off">
-              <span class="cs-v" style="min-width:0;text-align:left">Drop shadow</span></label>
-            <label class="sz-row cs-line" style="cursor:pointer"><span class="cs-k">Glow</span>
-              <input type="checkbox" id="csGlow" checked onchange="applyCustomStyle('glow')" style="cursor:pointer" aria-label="Glow on/off">
-              <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('glow')" title="Glow strength"></label>
-            <div class="sz-row cs-line"><span class="cs-k">Background</span>
-              <select id="csBox" class="lang-sel cs-sel" style="flex:1 1 auto;min-width:78px" onchange="onBoxModeChange(this.value)">
-                <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
-              </select>
-              <input type="color" id="csBoxC" class="cs-col" value="#000000" title="Background color" oninput="applyCustomStyle('boxc')">
-              <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" style="flex:0 0 64px;max-width:64px;min-width:0" title="Background opacity" oninput="applyCustomStyle('boxc')"></div>
-            <div class="sz-row cs-line"><span class="cs-k">Corners</span>
-              <input type="range" min="0" max="30" step="1" value="8" id="csBoxR" oninput="applyCustomStyle('boxc')" title="Corner radius of the background">
+              </select></div>
+            <label class="q-row sz-row cs-tog" title="Case exactly as transcribed — ignores the look's own capitalisation"><span class="q-k">As typed</span>
+              <input type="checkbox" id="caseOrig" class="cs-switch" onchange="setCaptionCase(this.checked ? 'orig' : 'asis')" aria-label="Show text as typed"></label>
+
+            <div class="cs-sh">Glow &amp; background</div>
+            <label class="q-row sz-row cs-tog" id="csGlowRow" title="Soft glow around the active word"><span class="q-k">Glow</span>
+              <input type="checkbox" id="csGlow" class="cs-switch" checked onchange="applyCustomStyle('glow')" aria-label="Glow on/off"></label>
+            <div class="q-row sz-row" id="csGlowStrRow"><span class="q-k">Glow strength</span>
+              <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('glow')" title="Glow strength" aria-label="Glow strength"></div>
+            <div class="q-row sz-row" id="csBoxOpRow"><span class="q-k">Box opacity</span>
+              <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" oninput="applyCustomStyle('boxc')" title="Background opacity" aria-label="Background opacity"></div>
+            <div class="q-row sz-row" id="csBoxRRow"><span class="q-k">Corners</span>
+              <input type="range" min="0" max="30" step="1" value="8" id="csBoxR" oninput="applyCustomStyle('boxc')" title="Corner radius of the background" aria-label="Background corners">
               <span class="cs-v" id="csBoxRDisp">8px</span></div>
-          </div>
-          <div class="cs-grp"><div class="cs-gh">Highlight &amp; animation</div>
-            <div class="sz-row cs-line"><span class="cs-k">Highlight</span>
-              <select id="csHlType" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('hltype')" title="How the active word stands out — its color is the “Active”/“Pill” swatch above">
-                <option value="color">Text color</option><option value="pill">Pill behind word</option>
-              </select></div>
-            <div class="sz-row cs-line"><span class="cs-k">Animation</span>
-              <select id="csMotion" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('motion')" title="Highlight: the spoken word stands out · Reveal: words appear as they are spoken and stay · Fill: the whole caption is visible, spoken words turn solid · None: static">
-                <option value="highlight">Highlight</option><option value="reveal">Reveal</option><option value="fill">Fill</option><option value="none">None</option>
-              </select></div>
-            <div class="sz-row cs-line" id="csAnimRow"><span class="cs-k">Word pop</span>
-              <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')" title="Short extra motion on the spoken word (Animation: Highlight only). Changing it plays a short demo while the video is paused.">
-                <option value="none">None</option><option value="scale">Pop</option><option value="punch">Punch</option>
-                <option value="bounce">Lift</option><option value="flash">Fade in</option><option value="glow">Glow</option>
-              </select></div>
-            <p class="cs-note" id="csAnimHint" style="display:none"></p>
-          </div>
-          <div class="cs-grp"><div class="cs-gh">Timing &amp; text</div>
-            <label class="chk-row" title="Captions disappear during silence and only show while someone is speaking. Off: the last caption stays up until the next one starts.">
-              <input type="checkbox" id="pauseChk" checked onchange="setPauseHide(this.checked)"> Hide captions during pauses
-            </label>
-            <label class="chk-row" title="Never let a caption run across a hard cut in your video">
-              <input type="checkbox" id="cutChk" checked onchange="onBreakAtCutsChange(this.checked)"> Break captions at scene cuts
-            </label>
-            <label class="chk-row" title="Hide . , ! ? ; : … in the video (subtitle files keep punctuation)">
-              <input type="checkbox" id="punctBtn" onchange="togglePunct()"> Remove punctuation
-            </label>
-            <div class="sz-row cs-line"><span class="cs-k">Timing</span>
+
+            <div class="cs-sh">Captions &amp; timing</div>
+            <div class="q-row sz-row mc-row" title="Captions break into more, shorter captions instead of shrinking the text. Recommended for Reels: 15–20 characters per line">
+              <span class="q-k">Line length</span>
+              <button type="button" class="mc-auto on" id="mcAuto" onclick="toggleMaxCharsAuto()" aria-pressed="true" title="Auto: derived from size, style and frame width. Recommended for Reels: 15–20 characters per line">Auto</button>
+              <input type="range" min="8" max="40" step="1" value="20" id="mcSel" class="mc-off" oninput="setMaxChars(this.value)" aria-label="Maximum characters per line" title="Exact characters per line (8–40). Recommended for Reels: 15–20">
+              <span class="sz-val" id="mcDisp" style="display:none"></span>
+            </div>
+            <p class="cs-note">Long captions break into more, shorter captions instead of shrinking. Only a single word too long for the frame gets smaller.</p>
+            <div class="q-row sz-row"><span class="q-k">Timing</span>
               <span class="cs-v" style="min-width:0">Earlier</span>
-              <input type="range" min="-0.5" max="0.5" step="0.05" value="0" id="toSlider" oninput="onTimeOffChange(this.value)" title="Shift all captions earlier or later">
+              <input type="range" min="-0.5" max="0.5" step="0.05" value="0" id="toSlider" oninput="onTimeOffChange(this.value)" title="Shift all captions earlier or later" aria-label="Caption timing offset">
               <span class="cs-v" style="min-width:0">Later</span>
             </div>
             <div class="mode-hint" id="toDisp">Captions in sync with the audio</div>
-          </div>
-          <div class="cs-grp"><div class="cs-gh">Save as template <span id="tplCount" class="cs-sub"></span></div>
-            <div style="display:flex;gap:6px;align-items:center">
-              <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTemplate();}">
-              <button class="pos-btn" id="tplSaveBtn" type="button" style="flex:0 0 auto;padding:6px 12px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">Save</button>
-            </div>
-            <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
-            <div class="tpl-io">
-              <span id="tplEditing" style="display:none"></span>
-              <a href="#" onclick="exportTemplates(event)" title="Download your templates as a JSON file">Export templates</a>
-              <a href="#" onclick="document.getElementById('tplImport').click();return false" title="Load templates from a JSON file">Import</a>
-              <input type="file" id="tplImport" accept="application/json,.json" style="display:none" onchange="importTemplates(this)">
-            </div>
-            <p class="cs-note">Brand default: open a template's ⋯ menu → “Use for every new video”.</p>
+            <label class="q-row sz-row cs-tog" title="Captions disappear during silence and only show while someone is speaking. Off: the last caption stays up until the next one starts."><span class="q-k">Hide captions in pauses</span>
+              <input type="checkbox" id="pauseChk" class="cs-switch" checked onchange="setPauseHide(this.checked)"></label>
+            <label class="q-row sz-row cs-tog" title="Never let a caption run across a hard cut in your video"><span class="q-k">Break at scene cuts</span>
+              <input type="checkbox" id="cutChk" class="cs-switch" checked onchange="onBreakAtCutsChange(this.checked)"></label>
+            <label class="q-row sz-row cs-tog" title="Hide . , ! ? ; : … in the video (subtitle files keep punctuation)"><span class="q-k">Remove punctuation</span>
+              <input type="checkbox" id="punctBtn" class="cs-switch" onchange="togglePunct()"></label>
           </div>
         </details>
+
+        <section class="cs-grp cs-tpl" id="csgTpl" aria-labelledby="csgTplH">
+          <h3 class="cs-gh" id="csgTplH">Save as template <span id="tplCount" class="cs-sub"></span></h3>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTemplate();}">
+            <button class="pos-btn" id="tplSaveBtn" type="button" style="flex:0 0 auto;padding:6px 12px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">Save</button>
+          </div>
+          <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
+          <div class="tpl-io">
+            <span id="tplEditing" style="display:none"></span>
+            <a href="#" onclick="exportTemplates(event)" title="Download your templates as a JSON file">Export templates</a>
+            <a href="#" onclick="document.getElementById('tplImport').click();return false" title="Load templates from a JSON file">Import</a>
+            <input type="file" id="tplImport" accept="application/json,.json" style="display:none" onchange="importTemplates(this)">
+          </div>
+          <p class="cs-note">Brand default: open a template's ⋯ menu → “Use for every new video”.</p>
+        </section>
       </div>
 
     </div>
@@ -6213,18 +6266,44 @@ function csActiveColor(st) {
   if (st.hlCycle && st.hlCycle.length) return cssColorToHex(st.hlCycle[0], '#facc15');
   return cssColorToHex(st.hl, null) || cssColorToHex(st.hlg, null) || '#ffffff';
 }
-// Abhängige Anzeige-Zustände der Regler: Label des Aktiv-Felds (Active ↔ Pill), Glow-Regler nur bei
-// aktivem Glow bedienbar, Pixel-Anzeigen.
+// Zeile/Feld ein-/ausblenden (statt auszugrauen): abhängige Regler verschwinden, solange sie nichts bewirken.
+function csShow(id, on) { var e = csEl(id); if (e && e.style) e.style.display = on ? '' : 'none'; }
+// Segment-Controls (.cs-seg): zeigen den Wert ihres versteckten <select> (data-sel) — das Select bleibt die Quelle der
+// Wahrheit (Tests, Handler, Seed), ein Klick setzt es und ruft dessen onchange. Auch für den Case-Schalter (caseSel).
+function syncCsSegs() {
+  var segs = document.querySelectorAll ? document.querySelectorAll('.cs-seg[data-sel]') : [];
+  Array.prototype.forEach.call(segs, function(sg) {
+    var sel = csEl(sg.getAttribute('data-sel')), v = sel ? String(sel.value) : '';
+    Array.prototype.forEach.call(sg.querySelectorAll('button'), function(b) {
+      var on = b.getAttribute('data-v') === v;
+      b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  });
+}
+function csSegPick(btn) {
+  var sg = btn && btn.parentNode, sel = sg && csEl(sg.getAttribute('data-sel'));
+  if (!sel) return;
+  sel.value = btn.getAttribute('data-v');
+  if (typeof sel.onchange === 'function') sel.onchange(); else syncCsSegs();
+  syncCsSegs();
+}
+// Abhängige Anzeige-Zustände der Regler: Label des Aktiv-Felds (Highlight ↔ Pill), Zeilen nur wenn sie wirken
+// (Highlight-Art + Word pop nur bei Animation „Highlight“, Box-Farbe/-Deckkraft/-Ecken nur mit Hintergrund,
+// Glow-Stärke nur mit Glow), Segment-Stände, Pixel-Anzeigen.
 function syncCsUi() {
   var pill = (csEl('csHlType') || {}).value === 'pill';
-  var lbl = csEl('csHlLbl'); if (lbl) lbl.textContent = pill ? 'Pill' : 'Active';
+  var lbl = csEl('csHlLbl'); if (lbl) lbl.textContent = pill ? 'Pill' : 'Highlight';
   var sw = csEl('csHlSw'); if (sw) sw.title = pill ? 'Pill color behind the active (spoken) word' : 'Color of the active (spoken) word';
-  var gi = csEl('csGlowInt'); if (gi) gi.disabled = !_cbChecked('csGlow', false);
+  var glowOn = _cbChecked('csGlow', false);
+  var gi = csEl('csGlowInt'); if (gi) gi.disabled = !glowOn;
+  csShow('csGlowStrRow', glowOn);
+  var boxV = (csEl('csBox') || {}).value, boxOn = !!boxV && boxV !== 'off';
+  csShow('csBoxC', boxOn); csShow('csBoxOpRow', boxOn); csShow('csBoxRRow', boxOn);
   // Word pop gibt es nur beim Highlight: sonst Zeile ausblenden (nicht nur ausgrauen) + Hinweis; bei „Bewegung reduzieren“
   // (Systemeinstellung) bleibt die Vorschau still, der Export animiert trotzdem → ebenfalls Hinweis.
   var mo = (csEl('csMotion') || {}).value, an = csEl('csAnim'), hlMode = !mo || mo === 'highlight';
   if (an) an.disabled = !hlMode;
-  var arow = csEl('csAnimRow'); if (arow) arow.style.display = hlMode ? '' : 'none';
+  csShow('csAnimRow', hlMode); csShow('csHlTypeRow', hlMode);
   var ahint = csEl('csAnimHint');
   if (ahint) {
     var ahMsg = !hlMode ? 'Word pop works with Animation: Highlight.'
@@ -6235,6 +6314,7 @@ function syncCsUi() {
   var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
   var rd = csEl('csBoxRDisp'), rEl = csEl('csBoxR'); if (rd && rEl) rd.textContent = (rEl.value || 0) + 'px';
   var hd = csEl('csLhDisp'), hEl = csEl('csLh'); if (hd && hEl) hd.textContent = (parseFloat(hEl.value) || 1.3).toFixed(2);
+  syncCsSegs();
 }
 // Box ↔ Pill: Eckenradius auf den typischen Wert setzen (danach frei per „Corners“ einstellbar)
 function onBoxModeChange(v) {
@@ -6276,7 +6356,6 @@ function seedCustomFields(st) {
   csSeedEmFields(st);
   var fw = parseInt(st.fw, 10) || 700;
   csSetVal('csWeight', String([400, 600, 700, 800, 900].reduce(function(b, v){ return Math.abs(v - fw) < Math.abs(b - fw) ? v : b; }, 700)));
-  csSetOn('csUpper', st.tt === 'uppercase');
   var ol = parseOutline(st.ts);
   csSetVal('csOutlineW', ol.w); csSetVal('csOutlineC', ol.c);
   var od = csEl('csOutlineDisp'); if (od) od.textContent = ol.w + 'px';
@@ -6314,7 +6393,6 @@ function buildCustomStyle() {
     if (efv) { cs.emFont = "'" + efv + "'"; ensureCapFont(efv); } else delete cs.emFont;
   }
   if (d.weight) cs.fw = (csEl('csWeight') || {}).value || cs.fw || '800';
-  if (d.upper)  cs.tt = csIsOn('csUpper') ? 'uppercase' : 'none';
   if (d.ls)     { var lv = parseFloat((csEl('csLs') || {}).value) || 0; cs.ls = lv ? lv + 'px' : 'normal'; }
   if (d.lh)     { var lhv = parseFloat((csEl('csLh') || {}).value); if (lhv >= 0.8 && lhv <= 2 && Math.abs(lhv - 1.3) > 1e-6) cs.lh = Math.round(lhv * 100) / 100; else delete cs.lh; }
   if (d.text)   {
@@ -6620,7 +6698,6 @@ function editTemplate(id) {
   selectStyle(id);           // Regler aus dem Template befüllen (seedCustomFields)
   setTplEditing(id);
   setTplStatus('Editing “' + t.name + '”: change the style below, then click Update.');
-  var more = csEl('advSet'); if (more && 'open' in more) more.open = true; // Regler liegen unter „Customize“
   var nm = csEl('tplName'); if (nm && nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 var _tplMenuEl = null;
@@ -6891,7 +6968,6 @@ function scrollPickerTo(id, withPage, flash) {
 }
 function focusTemplateSave(e) {
   if (e && e.preventDefault) e.preventDefault();
-  var adv = csEl('advSet'); if (adv && 'open' in adv) adv.open = true; // liegt jetzt unter „Customize“
   var nm = csEl('tplName');
   if (nm) { if (nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (nm.focus) nm.focus({ preventScroll: true }); }
 }
@@ -9318,13 +9394,15 @@ function subtitleText(t) { return applyCase(t); }                               
 function syncTextFormatUI() {
   var pb = document.getElementById('punctBtn'); if (pb) { pb.checked = capNoPunct; if (pb.classList) pb.classList.toggle('on', capNoPunct); }
   var cs = document.getElementById('caseSel'); if (cs) cs.value = capCase;
+  var co = document.getElementById('caseOrig'); if (co) co.checked = capCase === 'orig';
+  syncCsSegs();
 }
 function togglePunct() { capNoPunct = !capNoPunct; syncTextFormatUI(); onCapMetricsChange('punct'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
 function setCaptionCase(v) { capCase = (['upper', 'lower', 'orig'].indexOf(v) >= 0) ? v : 'asis'; syncTextFormatUI(); onCapMetricsChange('case'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
 // EIN Schalter für Groß/Klein: „Style default“ (asis) lässt den Style entscheiden (z. B. Bold Pop = GROSS);
 // UPPERCASE/lowercase/„As typed“ überstimmen die Schreibweise des Styles (text-transform + hlUpper) in
 // Vorschau UND Export — vorher konnte „Case: as spoken“ neben einem Großbuchstaben-Style stehen
-// (Widerspruch) und der doppelte „AA Uppercase“-Knopf im Customize-Bereich verwirrte. Stabiles Objekt je
+// (Widerspruch) und ein doppelter „AA Uppercase“-Knopf im Style-Panel verwirrte. Stabiles Objekt je
 // Style+Case, weil Layout-Caches (capLayout/_capStaticLayer) die Style-Identität vergleichen.
 var _caseStyleCache = { s: null, c: null, v: null };
 function caseStyle(s) {
