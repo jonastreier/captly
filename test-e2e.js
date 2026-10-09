@@ -28,6 +28,29 @@ if (!fs.existsSync(VIDEO)) {
   if (r.status !== 0) { console.log('ffmpeg fehlt – test-e2e übersprungen'); process.exit(0); }
 }
 
+// ── Helles, einfarbiges Testvideo (Sand-Ton) für den Randtest: dunkle Pixel am Bildrand können dann nur vom Rahmen kommen
+const LIGHT = path.join(os.tmpdir(), 'cr-e2e-light.webm');
+if (!fs.existsSync(LIGHT)) {
+  spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'color=c=0xd8c8a8:size=540x960:rate=30:duration=4', '-f', 'lavfi', '-i', 'sine=frequency=300:duration=4',
+    '-c:v', 'libvpx', '-b:v', '300k', '-pix_fmt', 'yuv420p', '-c:a', 'libvorbis', '-shortest', LIGHT]);
+}
+// Unterer Rand eines Elements: mittlere 60 % der Spalten, Helligkeit der untersten 3 Pixelreihen (je Reihe der Mittelwert) und
+// zum Vergleich der Reihen 8–11 darüber. Ein dunkler Streifen innerhalb der Rundung wäre ein Sprung gegenüber `ref`.
+async function edgeStats(page, loc) {
+  const buf = await loc.screenshot();
+  return page.evaluate(async b64 => {
+    const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode();
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+    const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+    const x0 = Math.round(im.width * 0.2), w = Math.round(im.width * 0.6);
+    const row = r => { const d = x.getImageData(x0, r, w, 1).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += (d[i] + d[i + 1] + d[i + 2]) / 3; return s / w; };
+    const h = im.height, last = [row(h - 1), row(h - 2), row(h - 3)], ref = [8, 9, 10, 11].map(k => row(h - k)).reduce((a, b) => a + b, 0) / 4;
+    return { bottom: Math.min(...last), ref, w: im.width, h };
+  }, buf.toString('base64'));
+}
+// abs: Kacheln mit weisser Beschriftung am unteren Rand (Verlauf + Text) taugen nicht für den Vergleich mit den Reihen darüber → fester Mindestwert (ein Streifen wäre ~0)
+const edgeOk = (st, abs) => abs ? st.bottom >= abs : st.bottom >= st.ref * 0.75 - 2;
+
 // ── Mock-Server: statische Dateien + /api/* + minimales Supabase (Auth + projects)
 const WORDS = 'Das ist ein kurzer Test für die Untertitel. Heute zeigen wir dir, wie schnell das geht und warum es so gut funktioniert.'.split(' ')
   .map((w, i) => ({ word: w, start: 0.3 + i * 0.22, end: 0.3 + i * 0.22 + 0.2 }));
@@ -123,6 +146,18 @@ if (require.main !== module) return;
 
     await page.goto(base + '/', { waitUntil: 'load' });
     await shot('01-landing');
+    // Rand: Showcase-Karten und Landing-Style-Kacheln haben unten keinen dunklen Streifen (Sprung gegenüber den Reihen darüber)
+    await page.waitForTimeout(900);
+    for (const [sel, abs] of [['.show-card', 0], ['.hc-th', 25]]) {
+      let bad = [];
+      for (let i = 0; i < 3; i++) {
+        const loc = page.locator(sel).nth(i);
+        if (!(await loc.count()) || !(await loc.isVisible())) continue;
+        const st = await edgeStats(page, loc);
+        if (!edgeOk(st, abs)) bad.push(i + ':' + Math.round(st.bottom) + '/' + Math.round(st.ref));
+      }
+      ok(bad.length === 0, 'Rand ' + sel + ': kein dunkler Streifen am unteren Rand' + (bad.length ? ' (' + bad.join(', ') + ')' : ''));
+    }
     // 1) Upload
     await page.setInputFiles('#landInput', VIDEO);
     await page.waitForFunction(() => typeof captionBlocks !== 'undefined' && captionBlocks.length > 0, null, { timeout: 60000 }).catch(() => {});
@@ -137,6 +172,205 @@ if (require.main !== module) return;
     await page.evaluate(() => { var v = document.getElementById('mainVid'); if (v) v.currentTime = 0.5; });
     await page.waitForTimeout(600);
     await shot('03-style');
+
+    // 2b) Word pop (Customize → Highlight & animation): bei PAUSIERTEM Video muss jede Option sofort sichtbar etwas tun (Demo ~0,6 s)
+    if (!prof.mobile) {
+      // Pausenzeit 0,5 s nach Beginn des zweiten Worts (Folgewörter um 0,6 s verschoben): die 0,34-s-Animation ist dort längst vorbei,
+      // jede Bewegung nach der Auswahl stammt also aus der Demo und nicht aus einem eingefrorenen Bild.
+      const tp = await page.evaluate(() => {
+        switchTab('style'); document.getElementById('advSet').open = true;
+        var b = captionBlocks[0], w = b.words;
+        for (var i = 2; i < w.length; i++) { w[i].start += 0.6; w[i].end += 0.6; }
+        b.end += 0.6;
+        var v = document.getElementById('mainVid'); v.pause(); v.currentTime = w[1].start + 0.5 - timeOff; _lastKey = null; updateOverlay();
+        return { n: w.length, t: v.currentTime };
+      });
+      await page.waitForTimeout(600);
+      ok(tp.n >= 2 && await page.evaluate(() => document.getElementById('mainVid').paused), 'Word pop: Video pausiert bei ' + tp.t.toFixed(2) + ' s');
+      // Sampler im Seitenkontext: grösste Skalierung, kleinste Deckkraft, grösster Versatz und Text-Schatten des aktiven Worts über 300 ms
+      const sample = async (value) => {
+        await page.evaluate(() => {
+          window.__wp = { sc: 1, op: 1, ty: 0, sh: 0, spans: 0, n: 0 };
+          const t0 = performance.now();
+          (function tick() {
+            const all = [...document.querySelectorAll('#capOverlay [data-oi]')];
+            window.__wp.spans = all.length;
+            all.forEach(el => {
+              const cs = getComputedStyle(el), m = /matrix\(([^)]+)\)/.exec(cs.transform);
+              if (m) { const v = m[1].split(',').map(parseFloat); window.__wp.sc = Math.max(window.__wp.sc, v[0]); window.__wp.ty = Math.max(window.__wp.ty, v[5]); }
+              window.__wp.op = Math.min(window.__wp.op, parseFloat(cs.opacity));
+              const shs = (el.style.textShadow.match(/\d+(\.\d+)?px/g) || []).length;
+              window.__wp.sh = Math.max(window.__wp.sh, shs);
+            });
+            window.__wp.n++;
+            if (performance.now() - t0 < 300) requestAnimationFrame(tick);
+          })();
+        });
+        await page.selectOption('#csAnim', value);
+        await page.waitForTimeout(350);
+        return page.evaluate(() => window.__wp);
+      };
+      await page.selectOption('#csAnim', 'none');
+      await page.waitForTimeout(800); // Demo von «None» (keine) ausklingen lassen
+      const base = await sample('none');
+      const ev = {};
+      for (const o of ['punch', 'scale', 'bounce', 'flash', 'glow']) {
+        await page.selectOption('#csAnim', 'none'); await page.waitForTimeout(800);
+        ev[o] = await sample(o);
+      }
+      ok(ev.punch.sc > 1.1, 'Word pop «Punch» bei pausiertem Video: scale > 1.1 innerhalb von 300 ms (max ' + ev.punch.sc.toFixed(3) + ', ' + ev.punch.n + ' Bilder)');
+      ok(ev.scale.sc > 1.1, 'Word pop «Pop»: scale > 1.1 (max ' + ev.scale.sc.toFixed(3) + ')');
+      ok(ev.bounce.ty > 1 && ev.bounce.op < 0.95, 'Word pop «Lift»: Versatz + Deckkraft (ty ' + ev.bounce.ty.toFixed(1) + 'px, op ' + ev.bounce.op.toFixed(2) + ')');
+      ok(ev.flash.op < 0.6, 'Word pop «Fade in»: Deckkraft startet niedrig (min ' + ev.flash.op.toFixed(2) + ')');
+      ok(ev.glow.sh > base.sh, 'Word pop «Glow»: zusätzlicher Leucht-Schatten (' + base.sh + ' → ' + ev.glow.sh + ' Werte)');
+      ok(base.sc <= 1.0001 && base.op >= 0.999, 'Word pop «None»: keine Bewegung (scale ' + base.sc.toFixed(3) + ')');
+      // Screenshot des Effekts mitten in der Demo (Punch, ~100 ms nach der Auswahl)
+      await page.selectOption('#csAnim', 'none'); await page.waitForTimeout(800);
+      await page.selectOption('#csAnim', 'punch'); await page.waitForTimeout(90);
+      await shot('03b-wordpop-punch');
+      await page.waitForTimeout(700);
+      await page.selectOption('#csAnim', 'glow'); await page.waitForTimeout(90);
+      await shot('03c-wordpop-glow');
+      await page.waitForTimeout(700);
+      // Nur im Modus Highlight: sonst Zeile ausgeblendet + Hinweis
+      await page.selectOption('#csMotion', 'reveal');
+      ok(!(await page.isVisible('#csAnimRow')) && /Animation: Highlight/.test(await page.textContent('#csAnimHint')) && await page.isVisible('#csAnimHint'), 'Word pop: bei Reveal Zeile weg + Hinweis');
+      await page.selectOption('#csMotion', 'highlight');
+      ok(await page.isVisible('#csAnimRow') && !(await page.isVisible('#csAnimHint')), 'Word pop: bei Highlight wieder sichtbar');
+      await page.evaluate(() => { document.getElementById('advSet').open = false; selectStyle('hormozi'); var v = document.getElementById('mainVid'); v.currentTime = 0.5; });
+      await page.waitForTimeout(400);
+    }
+
+    // 2c) Timeline: Auswahlrahmen (Desktop) bzw. Wisch im «Select»-Modus (Handy) → Bereich gemeinsam verschieben → Undo
+    {
+      const tlInfo = () => page.evaluate(() => {
+        const cv = _tl.cv, r = cv.getBoundingClientRect(), g = tlGeom(), v = tlView, off = timeOff || 0;
+        return { l: r.left, t: r.top, w: r.width, g: { ruler: g.ruler, barY: g.barY, bar: g.bar, wave: g.wave, h: g.h }, pps: v.pps, vs: v.start,
+          starts: captionBlocks.map(b => b.start), blocks: captionBlocks.map(b => ({ x0: tlTimeToX(b.start - off, v), x1: tlTimeToX(b.end - off, v) })) };
+      });
+      const rangeOf = () => page.evaluate(() => { const r = tlRange(); return r ? { a: r.a, b: r.b } : (tlSel >= 0 ? { a: tlSel, b: tlSel } : null); });
+      const nbT = await page.evaluate(() => captionBlocks.length);
+      await page.evaluate(() => { tlSnapOn = false; var v = document.getElementById('mainVid'); if (v) v.pause(); });
+      if (!prof.mobile) {
+        await page.evaluate(() => { tlSetOpen(true, false); _tl.cv.scrollIntoView({ block: 'center' }); });
+        await page.waitForTimeout(500);
+        let I = await tlInfo();
+        const yWave = I.t + I.g.ruler + I.g.wave / 2, yBar = I.t + I.g.barY + I.g.bar / 2, bx = i => I.l + (I.blocks[i].x0 + I.blocks[i].x1) / 2;
+        // Rahmen von der Wellenform über die ersten drei Blöcke
+        await page.mouse.move(I.l + I.blocks[0].x0 + 3, yWave);
+        await page.mouse.down();
+        await page.mouse.move(I.l + I.blocks[1].x1, yBar, { steps: 6 });
+        await page.mouse.move(I.l + I.blocks[2].x1 - 3, yBar, { steps: 6 });
+        await page.waitForTimeout(150);
+        await shot('02b-timeline-marquee');
+        await page.mouse.up();
+        let R = await rangeOf();
+        ok(R && R.a === 0 && R.b - R.a === 2, 'Timeline Desktop: Rahmen über drei Blöcke → tlRange b−a = 2 (' + JSON.stringify(R) + ')');
+        // Klick (< 3 px) auf leere Fläche: abwählen wie bisher
+        await page.mouse.click(I.l + 4, yWave);
+        ok((await rangeOf()) === null, 'Timeline Desktop: Klick auf leere Fläche hebt die Auswahl auf');
+        // Rahmen über die letzten drei Blöcke, dann gemeinsam um +0,5 s verschieben
+        const i0 = nbT - 3;
+        await page.mouse.move(I.l + I.blocks[nbT - 1].x1 - 3, yWave);
+        await page.mouse.down();
+        await page.mouse.move(I.l + I.blocks[i0 + 1].x0, yBar, { steps: 6 });
+        await page.mouse.move(I.l + I.blocks[i0].x0 + 3, yBar, { steps: 6 });
+        await page.mouse.up();
+        R = await rangeOf();
+        ok(R && R.a === i0 && R.b === nbT - 1, 'Timeline Desktop: Rahmen von rechts nach links (umgekehrte Richtung) wählt die letzten drei (' + JSON.stringify(R) + ')');
+        const before = I.starts, dxPx = 0.5 * I.pps;
+        await page.mouse.move(bx(i0 + 1), yBar);
+        await page.mouse.down();
+        await page.mouse.move(bx(i0 + 1) + dxPx / 2, yBar, { steps: 5 });
+        await page.mouse.move(bx(i0 + 1) + dxPx, yBar, { steps: 5 });
+        await page.mouse.up();
+        let after = (await tlInfo()).starts;
+        ok(before.every((v, i) => i < i0 ? Math.abs(after[i] - v) < 1e-6 : Math.abs(after[i] - v - 0.5) < 0.02), 'Timeline Desktop: Bereich um +0,5 s verschoben, davor unverändert (' + (after[i0] - before[i0]).toFixed(3) + ' s)');
+        ok(JSON.stringify(await rangeOf()) === JSON.stringify({ a: i0, b: nbT - 1 }), 'Timeline Desktop: Auswahl bleibt nach dem Verschieben bestehen');
+        await page.mouse.move(I.l + 4, yWave); // Fokus: Tastatur an die Seite
+        await page.keyboard.press('Control+z');
+        await page.waitForTimeout(200);
+        after = (await tlInfo()).starts;
+        ok(before.every((v, i) => Math.abs(after[i] - v) < 1e-6), 'Timeline Desktop: Strg+Z macht das gemeinsame Verschieben rückgängig');
+        // Shift+Rahmen erweitert die bestehende Auswahl
+        await page.evaluate(() => tlSelect(0, false));
+        await page.mouse.move(I.l + I.blocks[nbT - 1].x1 - 3, yWave);
+        await page.keyboard.down('Shift');
+        await page.mouse.down();
+        await page.mouse.move(I.l + I.blocks[nbT - 1].x0 + 3, yBar, { steps: 4 });
+        await page.mouse.up();
+        await page.keyboard.up('Shift');
+        R = await rangeOf();
+        ok(R && R.a === 0 && R.b === nbT - 1, 'Timeline Desktop: Shift+Rahmen erweitert die Auswahl (' + JSON.stringify(R) + ')');
+        // Gezoomt: Mittelklick-Ziehen scrollt, Rahmen am Rand scrollt automatisch weiter
+        await page.evaluate(() => { tlSel = -1; tlSelEnd = -1; tlView = tlZoomAt(tlView, 3, 0, tlDur(), _tl.cv.clientWidth); _tl.fit = false; tlRequestDraw(); });
+        await page.waitForTimeout(200);
+        I = await tlInfo();
+        const vs0 = I.vs;
+        await page.mouse.move(I.l + 400, yWave);
+        await page.mouse.down({ button: 'middle' });
+        await page.mouse.move(I.l + 300, yWave, { steps: 5 });
+        await page.mouse.up({ button: 'middle' });
+        const vs1 = (await tlInfo()).vs;
+        ok(vs1 > vs0 + 0.05 && (await rangeOf()) === null, 'Timeline Desktop: Mittelklick-Ziehen scrollt (' + vs0.toFixed(2) + ' → ' + vs1.toFixed(2) + ' s), ohne Auswahl zu ändern');
+        await page.evaluate(() => { tlView = tlClampView({ start: 0, pps: tlView.pps }, tlDur(), _tl.cv.clientWidth); tlRequestDraw(); });
+        await page.waitForTimeout(150);
+        I = await tlInfo();
+        await page.mouse.move(I.l + 6, yWave);
+        await page.mouse.down();
+        await page.mouse.move(I.l + I.w - 8, yWave, { steps: 8 });
+        await page.waitForTimeout(700); // am Rand verharren → scrollt weiter
+        await shot('02c-timeline-autoscroll');
+        await page.mouse.up();
+        const I2 = await tlInfo();
+        R = await rangeOf();
+        ok(I2.vs > 0.3 && R && R.b > R.a, 'Timeline Desktop: Rahmen am Rand scrollt automatisch weiter (Start ' + I2.vs.toFixed(2) + ' s, Bereich ' + JSON.stringify(R) + ')');
+        await page.evaluate(() => { tlSel = -1; tlSelEnd = -1; tlFit(); tlRequestDraw(); });
+        await page.mouse.move(I.l + 4, yWave);
+      } else {
+        // Handy: Tab «Timeline», Modus «Select», Wisch über die letzten drei Blöcke, Halten + Ziehen verschiebt sie gemeinsam
+        await page.evaluate(() => { switchTab('timeline'); });
+        await page.waitForTimeout(500);
+        const i0 = nbT - 3;
+        await page.evaluate(i => { const b = captionBlocks[i], e = captionBlocks[i + 2]; document.getElementById('mainVid').currentTime = (b.start + e.end) / 2 - (timeOff || 0); _tl.cv.scrollIntoView({ block: 'center' }); }, i0);
+        await page.waitForTimeout(600);
+        const cdp = await ctx.newCDPSession(page);
+        const touch = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id: 1 }] });
+        await page.click('#taMulti');
+        ok(await page.evaluate(() => tlMulti), 'Timeline Handy: «Select»-Modus an');
+        let I = await tlInfo();
+        const yB = I.t + I.g.barY + I.g.bar / 2, bx = i => I.l + (I.blocks[i].x0 + I.blocks[i].x1) / 2;
+        await touch('touchStart', bx(i0), yB);
+        for (let k = 1; k <= 8; k++) await touch('touchMove', bx(i0) + (bx(i0 + 2) - bx(i0)) * k / 8, yB);
+        await shot('02b-timeline-sweep');
+        await touch('touchEnd');
+        await page.waitForTimeout(200);
+        let R = await rangeOf();
+        ok(R && R.a === i0 && R.b === nbT - 1, 'Timeline Handy: Wisch im Select-Modus wählt den Bereich (' + JSON.stringify(R) + ')');
+        const before = I.starts, dxPx = 0.3 * 70;
+        await touch('touchStart', bx(i0 + 1), yB);
+        await page.waitForTimeout(650);
+        await touch('touchMove', bx(i0 + 1) + dxPx / 2, yB);
+        await touch('touchMove', bx(i0 + 1) + dxPx, yB);
+        await touch('touchEnd');
+        await page.waitForTimeout(200);
+        const after = (await tlInfo()).starts;
+        ok(before.every((v, i) => i < i0 ? Math.abs(after[i] - v) < 1e-6 : Math.abs(after[i] - v - 0.3) < 0.04), 'Timeline Handy: Bereich gemeinsam um ~0,3 s verschoben (' + (after[i0] - before[i0]).toFixed(3) + ' s)');
+        await page.evaluate(() => { undoCaptions(); });
+        const back = (await tlInfo()).starts;
+        ok(before.every((v, i) => Math.abs(back[i] - v) < 1e-6), 'Timeline Handy: Undo macht es rückgängig');
+        // Wisch auf leerer Fläche scrubbt weiter wie bisher (Auswahl bleibt)
+        const c0 = await page.evaluate(() => document.getElementById('mainVid').currentTime);
+        await touch('touchStart', I.l + 40, I.t + I.g.ruler + 3);
+        for (let k = 1; k <= 6; k++) await touch('touchMove', I.l + 40 + k * 10, I.t + I.g.ruler + 3);
+        await touch('touchEnd');
+        await page.waitForTimeout(300);
+        const c1 = await page.evaluate(() => document.getElementById('mainVid').currentTime);
+        ok(Math.abs(c1 - c0) > 0.2, 'Timeline Handy: Wisch auf leerer Fläche scrubbt weiterhin (' + c0.toFixed(2) + ' → ' + c1.toFixed(2) + ' s)');
+        await page.evaluate(() => { tlMulti = false; tlSel = -1; tlSelEnd = -1; switchTab('captions'); });
+      }
+      await page.evaluate(() => { tlSnapOn = true; });
+    }
 
     // 3) Export: Gate verlangt E-Mail (Beta) → ungültig/leer wird abgelehnt, gültig + Newsletter geht durch
     await page.click('#tbExport');
@@ -186,10 +420,79 @@ if (require.main !== module) return;
     await page.fill('#cvTitle', 'Mein Titel');
     await page.waitForTimeout(700);
     await shot('07-cover');
+    // Cover-Editor: Titel ziehen, Ausrichtung, einzelnes Wort (erst antippen, dann ziehen), Reset
+    const cvInfo = () => page.evaluate(() => { const r = document.getElementById('cvCanvas').getBoundingClientRect(), b = _coverHit; return b && { left: r.left, top: r.top, k: r.width / 1080, h: r.height, box: { x: b.x, y: b.y, w: b.w, h: b.h }, words: b.words.map(w => ({ i: w.i, x: w.x, y: w.y, w: w.w, h: w.h })), st: JSON.parse(JSON.stringify({ ox: coverState.ox, oy: coverState.oy, align: coverState.align, wo: coverState.wo })), sel: _coverSel, maxW: coverMaxW(1080, 1920) }; });
+    const cvDrag = async (fromU, dxPx, dyPx) => { // fromU: Punkt in 1080er-Einheiten; Verschiebung in CSS-px
+      await page.locator('#cvCanvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(150);
+      const i = await cvInfo(), sx = i.left + fromU.x * i.k, sy = i.top + fromU.y * i.k;
+      await page.mouse.move(sx, sy); await page.mouse.down();
+      for (let s = 1; s <= 8; s++) await page.mouse.move(sx + dxPx * s / 8, sy + dyPx * s / 8);
+      await page.mouse.up(); await page.waitForTimeout(350);
+    };
+    const cvTap = async u => { await page.locator('#cvCanvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(150); const i = await cvInfo(); await page.mouse.click(i.left + u.x * i.k, i.top + u.y * i.k); await page.waitForTimeout(300); };
+    const ctr = r => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+    await page.evaluate(() => coverSet('pos', 'mid')); await page.waitForTimeout(400);
+    let c0 = await cvInfo();
+    ok(c0 && c0.st.align === 'center' && c0.words.length === 2 && Math.abs(c0.box.x + c0.box.w / 2 - 540) < 1, 'Cover: Titel mittig, zwei Wort-Trefferflächen');
+    await cvDrag(ctr(c0.box), 0, -0.15 * c0.h); // von der Mitte nach oben
+    let c1 = await cvInfo();
+    ok(c1.box.y < c0.box.y - 30 && c1.st.oy < -0.03 && Math.abs(c1.st.ox) < 0.05 && Object.keys(c1.st.wo).length === 0 && c1.sel === -1, 'Cover: Ziehen nach oben verschiebt den ganzen Titel (box.y ' + Math.round(c0.box.y) + ' → ' + Math.round(c1.box.y) + ')');
+    await shot('07b-cover-dragged');
+    await page.click('#cvAlign button[data-align="left"]'); await page.waitForTimeout(400);
+    let c2 = await cvInfo();
+    ok(Math.abs(c2.box.x - (1080 - c2.maxW) / 2) < 1 && c2.st.align === 'left', 'Cover: Ausrichtung links → Box an linker Kante von maxW');
+    await page.click('#cvAlign button[data-align="right"]'); await page.waitForTimeout(400);
+    let c3 = await cvInfo();
+    ok(Math.abs(c3.box.x + c3.box.w - (1080 + c3.maxW) / 2) < 1, 'Cover: Ausrichtung rechts → Box an rechter Kante von maxW');
+    // Wort: ohne vorheriges Antippen verschiebt Ziehen den ganzen Titel; angetippt (Umriss) nur das Wort
+    await cvTap(ctr(c3.words[0]));
+    let c4 = await cvInfo();
+    ok(c4.sel === c3.words[0].i, 'Cover: Tippen wählt das Wort (Umriss)');
+    await cvDrag(ctr(c4.words[0]), 0, 0.08 * c4.h);
+    let c5 = await cvInfo();
+    ok(Object.keys(c5.st.wo).length === 1 && c5.st.wo[c4.sel] && c5.st.wo[c4.sel][1] > 0.02 && Math.abs(c5.st.oy - c4.st.oy) < 1e-9 && Math.abs(c5.words[1].y - c4.words[1].y) < 0.5, 'Cover: angetipptes Wort wird einzeln verschoben, das andere bleibt');
+    await shot('07c-cover-word');
+    await cvTap({ x: 20, y: 20 });
+    ok((await cvInfo()).sel === -1, 'Cover: Tippen daneben hebt die Wortauswahl auf');
+    const rsDis = await page.evaluate(() => document.getElementById('cvReset').disabled);
+    ok(rsDis === false, 'Cover: „Reset position“ aktiv, wenn verschoben');
+    await page.click('#cvReset'); await page.waitForTimeout(400);
+    let c6 = await cvInfo();
+    ok(c6.st.ox === 0 && c6.st.oy === 0 && Object.keys(c6.st.wo).length === 0 && Math.abs(c6.box.y - c0.box.y) < 0.5 && await page.evaluate(() => document.getElementById('cvReset').disabled), 'Cover: Reset position stellt die Grundposition wieder her');
+    if (prof.mobile) { // Touch: echtes Wischen (CDP) verschiebt den Titel; touch-action:none verhindert das Scrollen
+      await page.locator('#cvCanvas').scrollIntoViewIfNeeded(); await page.waitForTimeout(150);
+      const cdp = await ctx.newCDPSession(page), i = await cvInfo(), t0 = { x: i.left + ctr(i.box).x * i.k, y: i.top + ctr(i.box).y * i.k };
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [t0] });
+      for (let k = 1; k <= 6; k++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: t0.x, y: t0.y - 0.1 * i.h * k / 6 }] });
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+      await page.waitForTimeout(400);
+      const it = await cvInfo();
+      ok(it.st.oy < -0.03 && it.box.y < i.box.y - 20, 'Cover (Touch): Wischen nach oben verschiebt den Titel (oy ' + it.st.oy.toFixed(3) + ')');
+      await page.click('#cvReset'); await page.waitForTimeout(300);
+    }
+    // PNG = Vorschau: wieder verschieben (Titel + Wort), Hilfslinien aus, dann PNG und Vorschau pixelweise vergleichen
+    await page.click('#cvAlign button[data-align="center"]'); await page.waitForTimeout(300);
+    await cvDrag(ctr(c6.box), -0.1 * c6.h * 0.5625, 0.12 * c6.h);
+    await page.uncheck('#cvGuides'); await page.waitForTimeout(500);
+    const cvEdge = await edgeStats(page, page.locator('#cvCanvas'));
+    ok(edgeOk(cvEdge), 'Rand #cvCanvas: kein dunkler Streifen am unteren Rand (' + Math.round(cvEdge.bottom) + ' vs ' + Math.round(cvEdge.ref) + ')');
     const cdl = page.waitForEvent('download', { timeout: 20000 }).catch(() => null);
     await page.click('#cvDl');
     const cd = await cdl;
     ok(!!cd && /\.png$/i.test(cd.suggestedFilename()), 'Cover als PNG heruntergeladen');
+    if (cd) {
+      const pngPath = path.join(os.tmpdir(), 'cr-e2e-cover-' + prof.name + '.png');
+      await cd.saveAs(pngPath);
+      const cmp = await page.evaluate(async b64 => {
+        const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode();
+        const cv = document.getElementById('cvCanvas'), c = document.createElement('canvas'); c.width = cv.width; c.height = cv.height;
+        const x = c.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(im, 0, 0, c.width, c.height);
+        const a = x.getImageData(0, 0, c.width, c.height).data, b = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+        let s = 0, big = 0; for (let i = 0; i < a.length; i += 4) { const d = Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]); s += d; if (d > 150) big++; }
+        return { mean: s / (a.length / 4 * 3), big: big / (a.length / 4), w: im.width, h: im.height };
+      }, fs.readFileSync(pngPath).toString('base64'));
+      ok(cmp.w === 1080 && cmp.h === 1920 && cmp.mean < 3 && cmp.big < 0.01, 'Cover: PNG 1080×1920 entspricht der Vorschau (mittlere Abweichung ' + cmp.mean.toFixed(2) + ', starke Abweichung ' + (cmp.big * 100).toFixed(2) + ' %)');
+    }
     await page.evaluate(() => closeCover());
 
     // 5) Login per Code + Projekt speichern/laden
@@ -222,7 +525,36 @@ if (require.main !== module) return;
     ok(nb2 === nbSave, 'Projekt geladen: ' + nb2 + ' Blöcke');
     await shot('09-project-loaded');
 
-    // 6) Hygiene
+    // 6) Rand der Vorschau: helles einfarbiges Video → in den untersten Pixelreihen innerhalb der Rundung kein dunkler Streifen
+    //    (bei Zoom 1 und 1.25), das Video steht über den Rahmen hinaus und der Hintergrund dahinter ist nicht schwarz
+    {
+      const p2 = await ctx.newPage();
+      await p2.goto(base + '/', { waitUntil: 'load' });
+      await p2.setInputFiles('#landInput', LIGHT);
+      await p2.waitForFunction(() => typeof vidReady !== 'undefined' && vidReady, null, { timeout: 60000 }).catch(() => {});
+      await p2.waitForTimeout(1500);
+      for (const z of [1, 1.25]) {
+        await p2.evaluate(zz => setZoom(zz), z); await p2.waitForTimeout(400);
+        const st = await edgeStats(p2, p2.locator('#prevFrame'));
+        ok(st.bottom >= 80, 'Rand #prevFrame (Zoom ' + z + '): unterste 3 Pixelreihen hell genug (' + Math.round(st.bottom) + ' ≥ 80)');
+        const g = await p2.evaluate(() => { const f = document.getElementById('prevFrame').getBoundingClientRect(), v = document.getElementById('mainVid').getBoundingClientRect(); return { over: v.bottom - f.bottom, overTop: f.top - v.top, bg: getComputedStyle(document.getElementById('prevBg')).backgroundColor }; });
+        ok(g.over >= 1.5 * z - 0.2 && g.overTop >= 1.5 * z - 0.2, 'Vorschau (Zoom ' + z + '): Video steht über den Rahmen hinaus (' + g.over.toFixed(1) + ' px unten)');
+        ok(/rgba\(0, 0, 0, 0\)|transparent/.test(g.bg), 'Vorschau: Hintergrund hinter dem Video nicht schwarz (' + g.bg + ')');
+      }
+      await p2.evaluate(() => setZoom(1));
+      await p2.evaluate(() => switchTab('style')); await p2.waitForTimeout(800);
+      let bad = [];
+      for (let i = 0; i < 3; i++) {
+        const loc = p2.locator('#stylePicker .stile').nth(i);
+        if (!(await loc.count()) || !(await loc.isVisible())) continue;
+        const st = await edgeStats(p2, loc);
+        if (!edgeOk(st)) bad.push(i + ':' + Math.round(st.bottom) + '/' + Math.round(st.ref));
+      }
+      ok(bad.length === 0, 'Rand Style-Kacheln: kein dunkler Streifen am unteren Rand' + (bad.length ? ' (' + bad.join(', ') + ')' : ''));
+      await p2.close();
+    }
+
+    // 7) Hygiene
     ok(errors.length === 0, 'keine Konsolen-/Seitenfehler' + (errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''));
     ok(external.length === 0, 'keine Fremdserver-Anfragen' + (external.length ? ': ' + external.slice(0, 3).join(' | ') : ''));
     const hscroll = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);

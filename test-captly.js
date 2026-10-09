@@ -112,6 +112,7 @@ tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomA
 tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
 resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,toggleMaxCharsAuto:toggleMaxCharsAuto,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
 tlNudge:tlNudge,tlNudgeEdge:tlNudgeEdge,tlNudgeWhy:tlNudgeWhy,tlCenterView:tlCenterView,tlClampPps:tlClampPps,tlClassify:tlClassify,tlFlingVelocity:tlFlingVelocity,tlFlingDecay:tlFlingDecay,tlSplitIndex:tlSplitIndex,tlSplitAt:tlSplitAt,tlHit:tlHit,setTlMob:function(m){_tl.mob=m;},setTlView:function(v){tlView=v;},setTlSel:function(i){tlSel=i;},getTlSel:function(){return tlSel;},TL_MOB_PPS:TL_MOB_PPS,switchTabT:switchTab,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
+tlSweepRange:tlSweepRange,tlSweepApply:tlSweepApply,
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
 capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
 wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBaseName:exportBaseName,openExportSheet:openExportSheet,closeExportSheet:closeExportSheet,
@@ -122,7 +123,10 @@ setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKe
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
-capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;}};`;
+setLines:setLines,splitBlockAtCursor:splitBlockAtCursor,getLines:function(){return CAPTION_LINES;},getMaxChars:function(){return CAP_MAX_CHARS;},getPresetPrevLayout:function(){return _presetPrevLayout;},setFontSizeState:function(v){fontSize=v;},
+setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
+capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
+coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -3030,7 +3034,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
         save() { this._st.push([this.globalAlpha, this.ty, this.fillStyle, this._font]); },
         restore() { const v = this._st.pop(); if (v) { this.globalAlpha = v[0]; this.ty = v[1]; this.fillStyle = v[2]; this._font = v[3]; } },
         translate(x, y) { this.ty += y; }, scale() {}, rotate() {},
-        fillText(t, x, y) { this.calls.push({ t, x, y: y + this.ty, a: this.globalAlpha, fs: this.fillStyle, font: this._font }); }, strokeText() {},
+        fillText(t, x, y) { this.calls.push({ t, x, y: y + this.ty, a: this.globalAlpha, fs: this.fillStyle, font: this._font, sb: this.shadowBlur, sc: this.shadowColor }); }, strokeText() {},
         roundRect(x, y, w, h) { this.rects.push({ x, y: y + this.ty, w, h, a: this.globalAlpha, fs: this.fillStyle }); }, rect(x, y, w, h) { this.rects.push({ x, y, w, h, a: this.globalAlpha }); },
         beginPath() {}, fill() {}, stroke() {}, ellipse() {}, fillRect() {}, drawImage() { this.imgs++; }, createLinearGradient() { return { addColorStop() {} }; } };
       return c;
@@ -3067,7 +3071,57 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(h1.hk > 0 && h1.hk < 1 && h0.hk > 0 && h0.hk < 1, 'Highlight: Farbwechsel weich (aktiv ' + h1.hk.toFixed(2) + ', vorher ' + h0.hk.toFixed(2) + ')');
     ok(fx(hz, 1, 1.5 + M.hl).hk === 1 && fx(hz, 0, 1.5 + M.hl).hk === 0 && fx(hz, 2, 1.53).hk === 0, 'Highlight: danach eindeutig');
     let peak = 1; for (let k = 0; k <= 40; k++) { const a = fx(hz, 1, 1.5 + k * 0.01).a; if (a) peak = Math.max(peak, a.sx); }
-    ok(peak > 1 && peak <= 1.04 + 1e-9, 'Bold Pop: Pop hoechstens 1.04: ' + peak.toFixed(3));
+    ok(peak >= 1.1 && peak <= 1.14 + 1e-9, 'Bold Pop: Pop deutlich sichtbar, hoechstens 1.14: ' + peak.toFixed(3));
+    // Word pop (csAnim): jede Option sofort deutlich erkennbar — auch ein einzelnes Bild kurz nach Wortbeginn (80 ms)
+    {
+      const csHtml = htmlContent.match(/<select id="csAnim"[\s\S]*?<\/select>/)[0];
+      const opts = [...csHtml.matchAll(/<option value="(\w+)">/g)].map(m => m[1]);
+      ok(opts.join() === 'none,scale,punch,bounce,flash,glow', 'csAnim: Optionen None/Pop/Punch/Lift/Fade/Glow: ' + opts.join());
+      const strong = a => a && (Math.abs(a.sx - 1) >= 0.1 || Math.abs(a.ty) >= 0.15 || a.op <= 0.3 || a.glow >= 0.5);
+      ok(T.animState('none', 0.08) === null && T.animState('scale', T.ANIM_DUR) === null && T.animState('scale', -0.1) === null, 'animState: none/abgelaufen/vorher → null');
+      opts.filter(o => o !== 'none').forEach(o => {
+        const a = T.animState(o, 0.08);
+        ok(a !== null && strong(a), 'Word pop «' + o + '» bei 80 ms deutlich erkennbar: ' + JSON.stringify(a));
+        let mx = { sx: 1, ty: 0, op: 1, glow: 0 };
+        for (let k = 0; k <= 339; k++) { const q = T.animState(o, k * 0.001); mx = { sx: Math.max(mx.sx, q.sx), ty: Math.max(mx.ty, q.ty), op: Math.min(mx.op, q.op), glow: Math.max(mx.glow, q.glow) }; }
+        ok(mx.sx >= 1.14 - 1e-9 || mx.ty >= 0.22 - 1e-9 || mx.op <= 1e-9 || mx.glow >= 1 - 1e-9, 'Word pop «' + o + '»: Spitzenausschlag: ' + JSON.stringify(mx));
+        const e = T.animState(o, T.ANIM_DUR - 1e-6);
+        ok(Math.abs(e.sx - 1) < 0.02 && Math.abs(e.ty) < 0.01 && e.op > 0.98 && e.glow < 0.02, 'Word pop «' + o + '» endet im Ruhezustand');
+      });
+      ok(near(T.animState('punch', 0).sx, 1.28) && near(T.animState('punch', 0.17).sx, 1.0 + 0.28 * Math.pow(0.5, 3)) && T.animState('punch', 0.08).sx < T.animState('punch', 0.0).sx, 'Punch: 1.28 → 1 mit ease-out');
+      ok(near(T.animState('bounce', 0).ty, 0.22) && near(T.animState('bounce', 0).op, 0.5) && near(T.animState('flash', 0).op, 0) && near(T.animState('wobble', 0.1).ty, T.animState('bounce', 0.1).ty), 'Lift: 0,22 em + Deckkraft .5; Fade: 0; wobble = Lift');
+      // Vorschau = Export: die CSS-Keyframes (Kacheln/Hover) tragen dieselben Werte wie ANIM_KEYFRAMES
+      const css = n => (htmlContent.match(new RegExp('@keyframes captly-' + n + '(\\{.*)')) || [, ''])[1];
+      const nums = (str, re) => [...str.matchAll(re)].map(m => parseFloat(m[1]));
+      const kfMax = (n, k) => Math.max(...T.ANIM_KEYFRAMES[n].map(e => e[1][k] === undefined ? -Infinity : e[1][k]));
+      ok(Math.max(...nums(css('scale'), /scale\(([\d.]+)\)/g)) === kfMax('scale', 'sx'), 'CSS = JS: Pop-Spitze ' + kfMax('scale', 'sx'));
+      ok(nums(css('punch'), /scale\(([\d.]+)\)/g)[0] === kfMax('punch', 'sx') && /cubic-bezier\(\.33,1,\.68,1\)/.test(css('punch')), 'CSS = JS: Punch-Start ' + kfMax('punch', 'sx') + ' + ease-out');
+      ok(nums(css('bounce'), /translateY\(([\d.]+)em\)/g)[0] === kfMax('bounce', 'ty') && nums(css('bounce'), /opacity:([\d.]+)/g)[0] === T.ANIM_KEYFRAMES.bounce[0][1].op, 'CSS = JS: Lift ty (em) + Deckkraft');
+      ok(nums(css('flash'), /opacity:([\d.]+)/g)[0] === T.ANIM_KEYFRAMES.flash[0][1].op && css('wobble') === css('bounce'), 'CSS = JS: Fade-Start; wobble = Lift');
+      ok(/drop-shadow\(0 0 \.35em currentColor\)/.test(css('glow')) && !/brightness/.test(css('glow')) && !/bright|brightness/.test(htmlContent.match(/var ANIM_KEYFRAMES[\s\S]*?\n\};/)[0]), 'Glow: Leuchten statt brightness (CSS + JS)');
+      // Glow im Export: Schatten in der Highlight-Farbe nur während der Animation, Pop ohne Schatten-Zusatz
+      const gs = Object.assign({}, ST('hormozi'), { anim: 'glow', hls: 'none', hl: '#ff3366', motion: undefined });
+      const glowCalls = (t, st) => { const c = mkCtx(null); T.drawCaptionsOnCtx(c, t, st, 1080, 1920, false); return c.calls.filter(k => k.t.toLowerCase() === 'zwei'); };
+      const g1 = glowCalls(1.5 + 0.1, gs), g2 = glowCalls(1.5 + 0.45, gs), g3 = glowCalls(1.5 + 0.1, Object.assign({}, gs, { anim: 'scale' }));
+      ok(g1.some(k => k.sb > 4 && k.sc === '#ff3366'), 'Export Glow: Leuchten in der Highlight-Farbe am aktiven Wort: ' + JSON.stringify(g1.map(k => [k.sb, k.sc])));
+      ok(g2.every(k => !(k.sb > 0)) && g3.every(k => !(k.sb > 0)), 'Export Glow: nach 0,34 s und bei Pop kein Leuchten');
+      ok(T.capGlowLayers(gs, 1, 0, 40).length === 0 && T.capGlowLayers(gs, 1, 1, 40).length === 3 && T.capGlowLayers({ hlPillBg: '#0f0', hl: '#fff' }, 1, 1, 40)[0].color === '#0f0', 'capGlowLayers: Farbe = Highlight (Pill: Pill-Farbe), 0 = aus');
+      // Panel: Word pop nur beim Highlight — sonst Zeile weg + Hinweis; reduzierte Bewegung → Hinweis, keine Demo
+      const E = id => document.getElementById(id);
+      E('csMotion').value = 'reveal'; E('csAnim').value = 'scale'; T.syncCsUi();
+      ok(E('csAnimRow').style.display === 'none' && E('csAnim').disabled === true && /Animation: Highlight/.test(E('csAnimHint').textContent) && E('csAnimHint').style.display === '', 'Reveal: Word-pop-Zeile ausgeblendet + Hinweis «Word pop works with Animation: Highlight»');
+      E('csMotion').value = 'fill'; T.syncCsUi();
+      ok(E('csAnimRow').style.display === 'none', 'Fill: Zeile ausgeblendet');
+      E('csMotion').value = 'highlight'; T.syncCsUi();
+      ok(E('csAnimRow').style.display === '' && E('csAnim').disabled === false && E('csAnimHint').textContent === '' && E('csAnimHint').style.display === 'none', 'Highlight: Zeile sichtbar, kein Hinweis');
+      T.setReduceMotion(true); T.syncCsUi();
+      ok(/reduce motion/.test(E('csAnimHint').textContent) && /export includes the animation/.test(E('csAnimHint').textContent) && T.capAnimDemoStart() === false && T.getAnimDemo() === null, 'Bewegung reduzieren: Hinweis, keine Demo');
+      E('csAnim').value = 'none'; T.syncCsUi();
+      ok(E('csAnimHint').textContent === '', 'Bewegung reduzieren + «None»: kein Hinweis');
+      T.setReduceMotion(false); E('csAnim').value = 'scale'; T.syncCsUi();
+      ok(E('csAnimHint').textContent === '' && T.capAnimDemoStart() === true && T.getAnimDemo() && T.getAnimDemo().until > T.getAnimDemo().t0, 'Pausiert: Demo startet (~0,6 s virtuelle Zeit)');
+      T.clearAnimDemo();
+    }
     ok(T.STYLES.slice(0, 19).every(x => !['punch'].includes(x.anim)), 'Presets ohne Punch-Bounce');
     ok(T.capMixColor('#ffffff', '#000000', 0.5) === 'rgba(128,128,128,1)' && T.capMixColor('#fff', '#FFD60A', 0) === '#fff' && T.capMixColor('#fff', '#FFD60A', 1) === '#FFD60A', 'capMixColor');
     // Block ein-/ausblenden (Lücke nach dem Block → Ausblenden; direkt anschliessender Block → kein Flackern)
@@ -3247,6 +3301,64 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(cs.t === 3 && cs.dark === 70 && cs.title === 'Hallo Welt' && cs.kw.join() === '1,7' && cs.style === 'tight' && cs.size === 1.4 && cs.pos === 'bottom' && cs.guides === false, 'Cover: gespeicherte Einstellungen werden geprüft/begrenzt');
     T.coverRestore(null);
     ok(T.getCover().title === '' && T.getCover().style === 'tight', 'Cover: ohne Eintrag Standard');
+    ok(cs.align === 'center' && cs.ox === 0 && cs.oy === 0 && JSON.stringify(cs.wo) === '{}', 'Cover: Projekt ohne Ausrichtung/Verschiebung sieht aus wie bisher (mittig, Offsets 0)');
+    // Ausrichtung/Verschiebung: kaputte Werte werden verworfen bzw. auf ±0.5 begrenzt
+    T.coverRestore({ title: 'A B C', align: 'diagonal', ox: 9, oy: 'x', wo: { 0: [0.9, -9], 1: [1], 2: ['a', 0], x: [0.1, 0.1], 99: [0.1, 0.1], 3: [0, 0], 4: [0.25, -0.125] } });
+    let cs2 = T.getCover();
+    ok(cs2.align === 'center' && cs2.ox === 0.5 && cs2.oy === 0, 'Cover: unbekannte Ausrichtung → mittig, Offset ±0.5 begrenzt, Text-Offset → 0');
+    ok(JSON.stringify(cs2.wo) === '{"0":[0.5,-0.5],"4":[0.25,-0.125]}', 'Cover: Wort-Offsets: nur gültige Indizes/Paare, begrenzt, Nullen entfallen: ' + JSON.stringify(cs2.wo));
+    const manyWo = {}; for (let i = 0; i < 40; i++) manyWo[i] = [0.1, 0.1]; manyWo[55] = [0.1, 0.1]; manyWo['__proto__'] = [0.1, 0.1];
+    T.coverRestore({ wo: manyWo });
+    ok(Object.keys(T.getCover().wo).length === 40 && T.getCover().wo[55] === undefined && ({}).polluted === undefined, 'Cover: höchstens 40 Wort-Offsets, nur Indizes 0–39');
+    T.coverRestore({ wo: [[0.1, 0.1]] }); ok(JSON.stringify(T.getCover().wo) === '{}', 'Cover: wo als Liste → leer');
+    T.coverRestore({ wo: 'x', align: 'left', ox: -0.3, oy: 0.2 }); cs2 = T.getCover();
+    ok(cs2.align === 'left' && cs2.ox === -0.3 && cs2.oy === 0.2 && JSON.stringify(cs2.wo) === '{}', 'Cover: gültige Ausrichtung/Verschiebung bleiben');
+    // Titel zeichnen: Ausrichtung links/rechts liegt an den Kanten von maxW, Offsets verschieben (und sind begrenzt), Wörter haben Trefferflächen
+    {
+      const sty = T.STYLES.find(x => x.id === 'tight'), ctx = document.createElement('canvas').getContext('2d');
+      const draw = o => T.coverDrawTitle(ctx, 1080, 1920, Object.assign({ title: 'Hallo schöne Welt heute', kw: [], style: 'tight', size: 1, pos: 'mid', align: 'center', ox: 0, oy: 0, wo: {} }, o), sty);
+      const maxW = T.coverMaxW(1080, 1920), base = draw({});
+      ok(base && base.words.length === 4 && Math.abs(base.x + base.w / 2 - 540) < 1, 'Cover: mittig → Box in der Bildmitte (vier Wort-Trefferflächen)');
+      const L = draw({ align: 'left' }), R = draw({ align: 'right' });
+      ok(Math.abs(L.x - (1080 - maxW) / 2) < 0.01 && Math.abs(R.x + R.w - (1080 + maxW) / 2) < 0.01, 'Cover: links/rechts → Box an der linken/rechten Kante von maxW (' + L.x + ' / ' + (R.x + R.w) + ')');
+      ok(T.coverAlignX('left', 1080, 800, 300) === 140 && T.coverAlignX('right', 1080, 800, 300) === 640 && T.coverAlignX('center', 1080, 800, 300) === 390 && T.coverAlignX('???', 1080, 800, 300) === 390, 'Cover: coverAlignX');
+      const mv = draw({ ox: 0.1, oy: -0.1 });
+      ok(Math.abs(mv.x - base.x - 108) < 0.01 && Math.abs(mv.y - base.y + 192) < 0.01 && mv.w === base.w && mv.h === base.h, 'Cover: Offsets ox/oy verschieben die Box in Anteilen von W/H');
+      const cl = draw({ ox: 7, oy: -7 });
+      ok(Math.abs(cl.x - base.x - 540) < 0.01 && Math.abs(cl.y - base.y + 960) < 0.01, 'Cover: Offsets sind auf ±0.5 begrenzt (auch direkt im Zustand)');
+      const bad = draw({ ox: NaN, oy: 'x', align: 'x', wo: 'x' });
+      ok(Math.abs(bad.x - base.x) < 0.01 && Math.abs(bad.y - base.y) < 0.01, 'Cover: kaputte Zustandswerte zeichnen wie Standard');
+      const w1 = draw({ wo: { 1: [0.1, 0.05] } });
+      ok(Math.abs(w1.words[1].x - base.words[1].x - 108) < 0.01 && Math.abs(w1.words[1].y - base.words[1].y - 96) < 0.01 && w1.words[0].x === base.words[0].x && w1.words[2].y === base.words[2].y, 'Cover: Wort-Offset verschiebt nur dieses Wort');
+      ok(w1.y + w1.h >= w1.words[1].y + w1.words[1].h - 0.01 && w1.x <= base.x + 0.01, 'Cover: Box umschliesst auch verschobene Wörter (Safe-Zone-Prüfung)');
+      const hw = base.words[2];
+      ok(T.coverHitWord(base.words, { x: hw.x + hw.w / 2, y: hw.y + hw.h / 2 }) === hw.i && T.coverHitWord(base.words, { x: 5, y: 5 }) === -1 && T.coverHitWord(base.words, { x: hw.x - 4, y: hw.y + 2 }, 8) >= 0, 'Cover: Treffer auf Wort (mit Toleranz), daneben -1');
+    }
+    // Einrasten: Mittellinie und Safe-Zone-Ränder, nur innerhalb der Schwelle
+    {
+      const reg = T.coverSafeRegion(1080, 1920);
+      const sn = T.coverSnap({ x: 440, y: 900, w: 200, h: 100 }, reg, 1080, 1920, 10); // Mitte x = 540 → rastet; y-Mitte 950 ≠ 960 (Δ10) → rastet auch
+      ok(sn.dx === 0 && sn.vx === 540 && sn.dy === 10 && sn.vy === 960, 'Cover: Einrasten an Bild-Mitte (x/y)');
+      const sn2 = T.coverSnap({ x: 100, y: 400, w: 200, h: 100 }, reg, 1080, 1920, 10);
+      ok(sn2.dx === 0 && sn2.vx === null && sn2.dy === 0 && sn2.vy === null, 'Cover: weit weg → kein Einrasten');
+      const sn3 = T.coverSnap({ x: reg.x + 6, y: reg.y + 3, w: 200, h: 100 }, reg, 1080, 1920, 10);
+      ok(sn3.dx === -6 && sn3.vx === reg.x && sn3.dy === -3 && sn3.vy === reg.y, 'Cover: Einrasten am Safe-Zone-Rand oben/links');
+      const sn4 = T.coverSnap({ x: reg.x + reg.w - 200 - 4, y: reg.y + reg.h - 100 + 5, w: 200, h: 100 }, reg, 1080, 1920, 10);
+      ok(sn4.dx === 4 && sn4.vx === reg.x + reg.w && sn4.dy === -5 && sn4.vy === reg.y + reg.h, 'Cover: Einrasten am Safe-Zone-Rand unten/rechts');
+    }
+    // Zustand: Position-/Ausrichtungs-Knopf setzt die jeweilige Verschiebung zurück, Reset leert alles, Wortanzahl ändern leert wo, Payload trägt alles
+    {
+      T.coverRestore({ title: 'Eins zwei drei', kw: [0], align: 'right', ox: 0.2, oy: -0.2, wo: { 1: [0.1, 0.1] }, pos: 'top' });
+      ok(T.coverMoved(T.getCover()), 'Cover: verschoben → Reset-Knopf aktiv');
+      const pc = T.projectPayload().cover;
+      ok(pc && pc.align === 'right' && pc.ox === 0.2 && pc.oy === -0.2 && JSON.stringify(pc.wo) === '{"1":[0.1,0.1]}', 'Cover: Projekt-Payload enthält align/ox/oy/wo');
+      T.coverOnTitle('Eins zwei drei'); ok(JSON.stringify(T.getCover().wo) === '{"1":[0.1,0.1]}', 'Cover: gleiche Wortanzahl → Wort-Offsets bleiben');
+      T.coverOnTitle('Eins zwei'); ok(JSON.stringify(T.getCover().wo) === '{}' && T.getCover().ox === 0.2, 'Cover: andere Wortanzahl → Wort-Offsets zurück (Titel-Offset bleibt)');
+      T.coverSet('pos', 'mid'); ok(T.getCover().oy === 0 && T.getCover().ox === 0.2, 'Cover: Position wählen setzt nur die senkrechte Verschiebung zurück');
+      T.coverSet('align', 'left'); ok(T.getCover().ox === 0 && T.getCover().align === 'left', 'Cover: Ausrichtung wählen setzt nur die waagrechte Verschiebung zurück');
+      T.coverRestore({ title: 'A', ox: 0.1, oy: 0.1, wo: { 0: [0.1, 0.1] } }); T.coverResetPos();
+      ok(!T.coverMoved(T.getCover()) && T.getCover().align === 'center', 'Cover: Reset position → keine Verschiebung');
+    }
   }
 
   // Style Drops (styles.json): bereinigt, nur lokale Schriften, nie eingebaute IDs überschreiben, „New“ 30 Tage
@@ -3282,6 +3394,54 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.tlGet().multi === false && T.tlGet().end === -1, 'Ausschalten hebt den Bereich auf');
   }
 
+  // Timeline Auswahlrahmen / Wisch: tlSweepRange (reine Funktion) + tlSweepApply (live Auswahl)
+  {
+    const R = (bl, a, b) => JSON.stringify(T.tlSweepRange(bl, a, b));
+    const bl = [0, 2, 4, 6, 8].map(s => ({ start: s, end: s + 1, text: 't' + s }));   // Lücken [1,2] [3,4] …
+    ok(R(bl, 0.2, 4.5) === '{"a":0,"b":2}', 'Sweep: Fenster über drei Blöcke → 0…2: ' + R(bl, 0.2, 4.5));
+    ok(R(bl, 4.5, 0.2) === '{"a":0,"b":2}', 'Sweep: umgekehrte Richtung gleich');
+    ok(R(bl, 2.5, 2.9) === '{"a":1,"b":1}', 'Sweep: Fenster in einem Block → genau dieser: ' + R(bl, 2.5, 2.9));
+    ok(R(bl, 1.2, 1.8) === 'null' && R(bl, 1.2, 1.8) === R(bl, 1.8, 1.2), 'Sweep: Fenster in der Lücke → null');
+    ok(R(bl, 1, 2) === '{"a":0,"b":1}' && R(bl, 1.001, 1.999) === 'null', 'Sweep: Berühren der Kante zählt (inklusive)');
+    ok(R(bl, -5, 0) === '{"a":0,"b":0}' && R(bl, 9, 50) === '{"a":4,"b":4}', 'Sweep: Ränder der Liste (Fenster ragt hinaus)');
+    ok(R(bl, -5, -1) === 'null' && R(bl, 9, 50) === '{"a":4,"b":4}' && R(bl, 9.001, 50) === 'null', 'Sweep: ausserhalb → null');
+    ok(R(bl, -100, 100) === '{"a":0,"b":4}', 'Sweep: Fenster über alles → ganze Liste');
+    ok(R([], 0, 5) === 'null' && R(null, 0, 5) === 'null' && R(bl, NaN, 3) === 'null', 'Sweep: leere Liste / ungültige Zeit → null');
+    // Viele Blöcke: Binärsuche gleicht einer linearen Referenz
+    const big = Array.from({ length: 500 }, (_, i) => ({ start: i * 0.7, end: i * 0.7 + 0.5 }));
+    let bad = 0;
+    for (let k = 0; k < 300; k++) {
+      const a = (k * 37 % 350) + 0.013 * k, b = a + (k % 9) * 0.31;
+      let ra = -1, rb = -1;
+      big.forEach((x, i) => { if (x.end >= a && x.start <= b) { if (ra < 0) ra = i; rb = i; } });
+      const r = T.tlSweepRange(big, a, b);
+      if (ra < 0 ? r !== null : !r || r.a !== ra || r.b !== rb) bad++;
+    }
+    ok(bad === 0, 'Sweep: 500 Blöcke stimmen mit linearer Referenz überein (' + bad + ' Abweichungen)');
+    // Blöcke mit timeOff: Achse = Videozeit, Block-Zeit = Videozeit + off (tlSweepApply rechnet um)
+    T.setState([0, 2, 4, 6].map(s => ({ words: [{ word: 'w', start: s + 1, end: s + 2 }], start: s + 1, end: s + 2, text: 'w' + s })), [], null);
+    T.setTimeOffState(1);
+    const dn = { tDown: 1.2, sweepKey: null };   // Videozeit 1,2 = Block-Zeit 2,2 → Block 0 beginnt bei Block-Zeit 1…2 (Video 0…1)
+    T.tlSweepApply(dn, 3.6);                        // Video 1,2…3,6 = Block 2,2…4,6 → Block 1 (3…4) und Block 2 (5…6 nein, 4,6 < 5)
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[1,-1]', 'Sweep mit timeOff: Videozeit→Blockzeit umgerechnet: ' + [T.tlGet().sel, T.tlGet().end]);
+    T.tlSweepApply({ tDown: 0.5, sweepKey: null }, 4.5);
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[0,2]', 'Sweep mit timeOff: Bereich 0…2: ' + [T.tlGet().sel, T.tlGet().end]);
+    // Shift: bestehende Auswahl bleibt enthalten; Fenster in Lücke ohne Shift hebt auf
+    T.tlSweepApply({ tDown: 4.5, sweepKey: null, sweepBase: { a: 0, b: 0 } }, 5.2);   // Video 4,5…5,2 = Block-Zeit 5,5…6,2 → Block 2
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[0,2]', 'Sweep+Shift: erweitert die bestehende Auswahl: ' + [T.tlGet().sel, T.tlGet().end]);
+    T.tlSweepApply({ tDown: 3.1, sweepKey: null, sweepBase: { a: 1, b: 1 } }, 3.3);   // Lücke, aber Shift → Basis bleibt
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[1,-1]', 'Sweep+Shift in der Lücke: bestehende Auswahl bleibt: ' + [T.tlGet().sel, T.tlGet().end]);
+    T.tlSweepApply({ tDown: 3.1, sweepKey: null }, 3.3);   // Video 3,1…3,3 = Block-Zeit 4,1…4,3 → Lücke zwischen Block 1 (3…4) und 2 (5…6)
+    ok(T.tlGet().sel === -1 && T.tlGet().end === -1, 'Sweep ohne Shift in der Lücke: Auswahl aufgehoben');
+    T.setTimeOffState(0); T.tlSelState(-1, -1);
+    // tlHit auf der Wellenform (Desktop) = leere Fläche → Auswahlrahmen statt Block-Treffer
+    const mkH = () => [0, 2, 4].map(s => ({ words: [{ word: 'w', start: s, end: s + 1 }], start: s, end: s + 1, text: 'w' }));
+    T.setState(mkH(), [], null); T.setTlMob(false); T.setTlView({ start: 0, pps: 100 }); T.setTlSel(-1);
+    ok(T.tlHit(250, 30, false).type === 'empty' && T.tlHit(250, 18 + 10, false).type === 'empty', 'tlHit: Wellenform über einem Block = leer (Rahmen startet dort)');
+    ok(T.tlHit(250, 40, false).type === 'empty' || T.tlHit(250, 40, false).type === 'block', 'tlHit: Wellenform/Spur liefern keinen Fehler');
+    ok(T.tlHit(250, 10, false).type === 'ruler', 'tlHit: Lineal bleibt Seek');
+  }
+
   // «Trending»: nur ab genug Daten, nur eingebaute Styles ohne eigenes Abzeichen, höchstens 3
   {
     const top = [{ style: 'tight', n: 40 }, { style: 'hormozi', n: 20 }, { style: 'mix', n: 10 }, { style: 'statement', n: 5 }];
@@ -3313,6 +3473,88 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const enSrc = fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8');
     ok(i18n.syncSource(enSrc) === enSrc, 'i18n en: FAQ-JSON-LD in captly.html passt zur sichtbaren FAQ (sonst: node scripts/build-i18n.js)');
     ok(!/aggregateRating|"review"/.test(enSrc.slice(0, enSrc.indexOf('<style>'))) && (enSrc.match(/<h1[\s>]/g) || []).length === 1, 'Landing: genau ein <h1>, keine Fake-Bewertungen im JSON-LD');
+  }
+
+  // ── Customize-Regler ändern NIE Zeilen, Wörter/Caption, Zeichenlimit oder Blöcke (Bug: „Line height“ bei
+  //    Tight/Mix/Statement/One Word sprang auf das Preset-Layout zurück und verwarf manuelle Splits) ──
+  {
+    const qs0 = document.querySelector; document.querySelector = () => null; // splitBlockAtCursor fokussiert danach
+    const E = id => document.getElementById(id);
+    const lw = 'eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf'.split(' ').map((w, i) => ({ word: w, start: i * 0.4, end: i * 0.4 + 0.35 }));
+    const GROUPS = {
+      lh: () => { E('csLh').value = '1.6'; }, ls: () => { E('csLs').value = '3'; }, text: () => { E('csText').value = '#ff0000'; },
+      hlc: () => { E('csHl').value = '#00ff00'; }, font: () => { E('csFont').value = 'Inter'; }, weight: () => { E('csWeight').value = '400'; },
+      stroke: () => { E('csOutlineW').value = '3'; E('csOutlineC').value = '#112233'; }, glow: () => { E('csGlow').checked = true; E('csGlowInt').value = '20'; },
+      box: () => { E('csBox').value = 'box'; }, boxc: () => { E('csBoxC').value = '#2040ff'; }, hltype: () => { E('csHlType').value = 'pill'; },
+      motion: () => { E('csMotion').value = 'reveal'; }, anim: () => { E('csAnim').value = 'pop'; }, em: () => { E('csEm').value = '#ff00ff'; },
+      emfont: () => { E('csEmFont').value = 'Inter'; }
+    };
+    const presets = T.STYLES.filter(s => s.layout && s.id !== 'custom').map(s => s.id);
+    ok(['tight', 'mix', 'statement', 'popone'].every(id => presets.includes(id)), 'Layout-Presets vorhanden: ' + presets.join());
+    const mc0 = T.getMaxChars(), bad = [];
+    const prep = async pid => {
+      T.setState(T.buildCaptionBlocks(lw), lw.slice(), 'karaoke'); T.setCaptionsEdited(false);
+      T.selectStyle(pid); // Preset setzt sein Layout (z. B. 1 Wort, 1 Zeile)
+      T.setLines({ dataset: { lines: '2' } }); T.onWpbChange(4);
+      const b0 = T.getBlocks()[0];
+      await T.splitBlockAtCursor(0, { selectionStart: b0.text.indexOf(' '), value: b0.text }); // manueller Split
+      return T.captionSnapshot();
+    };
+    for (const pid of presets) for (const g of Object.keys(GROUPS)) {
+      const snap = await prep(pid);
+      GROUPS[g](); T.applyCustomStyle(g); T.flushCustomStyle();
+      const why = [T.getActiveId() !== 'custom' && 'aktiv ' + T.getActiveId(), T.getLines() !== 2 && 'Zeilen ' + T.getLines(),
+        T.getWpb() !== 4 && 'Wörter ' + T.getWpb(), T.getMaxChars() !== mc0 && 'Zeichen ' + T.getMaxChars(),
+        T.captionSnapshot() !== snap && 'Blöcke'].filter(Boolean);
+      if (why.length) bad.push(pid + '/' + g + ': ' + why.join(', '));
+    }
+    ok(!bad.length, 'Customize-Regler behalten Zeilen/Wörter/Zeichenlimit/Blöcke (' + presets.length + ' Presets × ' + Object.keys(GROUPS).length + ' Gruppen)' + (bad.length ? ': ' + bad.slice(0, 6).join(' | ') : ''));
+    ok(!('layout' in T.buildCustomStyle()), 'Custom-Style trägt kein Preset-Layout');
+    // Erneuter Klick auf die Custom-Kachel (ohne fromEditor) fasst das Layout nicht an
+    let snap = await prep('tight');
+    E('csLh').value = '1.5'; T.applyCustomStyle('lh'); T.flushCustomStyle();
+    T.selectStyle('custom');
+    ok(T.getActiveId() === 'custom' && T.getLines() === 2 && T.getWpb() === 4 && T.captionSnapshot() === snap, 'Klick auf Custom-Kachel: Layout + Blöcke bleiben');
+    // Preset gewählt (ohne manuelle Änderung) → Regler → Custom behält das Preset-Layout; danach normales Preset = vorheriges Layout zurück
+    T.setState(T.buildCaptionBlocks(lw), lw.slice(), 'karaoke'); T.setCaptionsEdited(false);
+    T.selectStyle('classic'); T.setLines({ dataset: { lines: '2' } }); T.onWpbChange(4);
+    T.selectStyle('tight');
+    const tl = T.getLines(), tw = T.getWpb(); snap = T.captionSnapshot();
+    E('csLh').value = '1.7'; T.applyCustomStyle('lh'); T.flushCustomStyle();
+    ok(T.getLines() === tl && T.getWpb() === tw && T.captionSnapshot() === snap && T.getPresetPrevLayout(), 'Tight → Zeilenhöhe: Layout/Blöcke unverändert, vorheriges Layout gemerkt');
+    T.selectStyle('custom');
+    ok(T.getLines() === tl && T.getWpb() === tw && T.captionSnapshot() === snap && T.getPresetPrevLayout(), 'Tight → Zeilenhöhe → Klick auf aktive Custom-Kachel: Layout unverändert');
+    T.selectStyle('classic');
+    ok(T.getLines() === 2 && T.getWpb() === 4 && !T.getPresetPrevLayout(), 'Danach normales Preset: vorheriges Layout zurück (2 Zeilen, 4 Wörter)');
+    document.querySelector = qs0; if (!qs0) delete document.querySelector;
+
+    // Zeilenhöhe 0.9–1.8 ändert weder Zeilenzahl (auch nicht über die Höhenbremse) noch die Zeilenverteilung
+    const texts = [['Heute', 'zeigen', 'wir', 'dir', 'alles'], ['Das', 'Rindfleischverarbeitungsbetriebe'], ['Bundesverfassungsgericht'],
+      ['eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht']];
+    const fs0 = T.getFontSize(), lines0 = T.getLines(), lhBad = [];
+    // Mess-Kontext wie der Stub, aber mit canvas.letterSpacing (Export setzt es; fitCaptionWords rechnet es selbst dazu)
+    const ctx = Object.assign(document.createElement('canvas').getContext('2d'), { letterSpacing: '0px',
+      measureText(str) { const m = /([\d.]+)px/.exec(this.font), n = (str || '').length; return { width: n * (m ? parseFloat(m[1]) : 16) * 0.55 + n * (parseFloat(this.letterSpacing) || 0) }; } });
+    for (const sid of ['classic', 'statement', 'tiktok', 'tight']) for (const px of [16, 30, 54]) for (const nl of [1, 2, 3]) for (const ws of texts) {
+      const base = T.STYLES.find(x => x.id === sid);
+      const sig = lh => {
+        const s = Object.assign({}, base, { id: 'lhtest', lh });
+        const f = T.fitCaptionWords(ws, s, px, T.capFitMaxW(s), nl);
+        const wr = T.wrapCaptionLines(ws, s, -1, f.px, nl);
+        T.setLinesState(nl); T.setFontSizeState(px);
+        const bw = ws.map((w, i) => ({ word: w, start: i, end: i + 0.5 }));
+        T.setState([{ words: bw, start: 0, end: ws.length, text: ws.join(' ') }], bw, 'karaoke');
+        const L = T.capLayout(ctx, T.getBlocks()[0], 0, -1, s, 1080, 1920);
+        if (Math.abs(L.lh - L.fsS * lh) > 1e-9) lhBad.push(sid + ': Export-Zeilenabstand ' + L.lh + ' ≠ fs·L ' + L.fsS * lh);
+        return [f.lines, f.words.join(' '), JSON.stringify(wr), L.lines.map(l => l.length).join('/')].join(' | ');
+      };
+      const ref = sig(1.3);
+      for (let lh = 0.9; lh <= 1.8001; lh += 0.05) { const v = sig(Math.round(lh * 100) / 100); if (v !== ref) { lhBad.push(sid + ' ' + px + 'px ' + nl + 'Z „' + ws.join(' ') + '“ lh ' + lh.toFixed(2) + ': ' + v + ' ≠ ' + ref); break; } }
+    }
+    T.setLinesState(lines0); T.setFontSizeState(fs0);
+    ok(!lhBad.length, 'Zeilenhöhe 0.9–1.8 ändert Zeilenzahl/Umbruch nie (fitCaptionWords, wrapCaptionLines, capLayout)' + (lhBad.length ? ': ' + lhBad.slice(0, 4).join(' | ') : ''));
+    ok(T.getFontSize() === fs0, 'Schriftgrösse unverändert');
+    ok(/#capOverlay\{[^}]*line-height:0[;}]/.test(htmlContent), 'Vorschau: #capOverlay ohne Strut (line-height:0) — Box-Geometrie wie im Export');
   }
 
   // ── Konto selbst löschen: RPC delete_my_account, danach lokal abgemeldet; Abbruch/Fehler lassen alles stehen ──
