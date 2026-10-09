@@ -1,5 +1,7 @@
 # Anleitung für Jonas: alles, was nur du erledigen kannst
 
+**Kurzfassung zum Abhaken: [`START-HIER.md`](START-HIER.md)** (eine Seite, mit Werten zum Kopieren). Diese Datei ist die ausführliche Fassung mit Hintergründen.
+
 Stand: Oktober 2026. Reihenfolge einhalten: **A** (Basis) → **B** (Dienste) → **C** (Deploy und Test) → **D** (später: Abos) → **E** (Firma und Marke).
 Wo ich die Oberfläche von Hostpoint, Groq oder Paddle nicht live prüfen konnte, steht «Bezeichnung kann abweichen»: dann dem Sinn nach suchen oder den Support fragen. Die Schritte zu Supabase und GitHub kenne ich aus dem Repo und sind genau.
 Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eines Schritts sagt dir, woran du merkst, dass er geklappt hat.
