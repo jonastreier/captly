@@ -54,15 +54,16 @@
 body{background:var(--canvas);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 body.editor-open{height:100vh;overflow:hidden}
 
-/* Wort-Animationen bewusst ruhig (kein Blinken/Wackeln/Schrumpfen): Pop ≤ 1.04, Punch ≤ 1.06, Lift = sanft
-   von unten, Fade = einblenden, Glow = leichtes Aufhellen. flash/wobble bleiben als Namen für alte Templates.
-   Nur noch für Kacheln/Showcase — die Editor-Vorschau rechnet dieselben Keyframes (ANIM_KEYFRAMES) aus der Videozeit. */
-@keyframes captly-bounce{0%{transform:translateY(3px)}60%{transform:translateY(-1px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
-@keyframes captly-scale{0%{transform:scale(1)}45%{transform:scale(1.04)}100%{transform:scale(1)}}
-@keyframes captly-flash{0%{opacity:.45}100%{opacity:1}}
-@keyframes captly-glow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
-@keyframes captly-punch{0%{transform:scale(1)}45%{transform:scale(1.06)}100%{transform:scale(1)}}
-@keyframes captly-wobble{0%{transform:translateY(3px)}60%{transform:translateY(-1px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
+/* Wort-Animationen: sofort erkennbar, aber nur 0,34 s kurz. Pop 1 → 1.14 → 1 · Punch 1.28 → 1 (ease-out) · Lift = 0,22 em
+   von unten (Deckkraft .5 → 1) · Fade in = 0 → 1 · Glow = Leuchten in der Textfarbe. flash/wobble bleiben als Namen für alte Templates.
+   Nur noch für Kacheln/Showcase — die Editor-Vorschau rechnet dieselben Keyframes (ANIM_KEYFRAMES) aus der Videozeit;
+   Werte hier und dort müssen übereinstimmen (test-captly.js prüft das). */
+@keyframes captly-bounce{0%{transform:translateY(.22em);opacity:.5}100%{transform:translateY(0);opacity:1}}
+@keyframes captly-scale{0%{transform:scale(1)}30%{transform:scale(1.14)}100%{transform:scale(1)}}
+@keyframes captly-flash{0%{opacity:0}100%{opacity:1}}
+@keyframes captly-glow{0%,100%{filter:drop-shadow(0 0 0 currentColor) drop-shadow(0 0 0 currentColor)}30%{filter:drop-shadow(0 0 .35em currentColor) drop-shadow(0 0 .8em currentColor)}}
+@keyframes captly-punch{0%{transform:scale(1.28);animation-timing-function:cubic-bezier(.33,1,.68,1)}100%{transform:scale(1)}}
+@keyframes captly-wobble{0%{transform:translateY(.22em);opacity:.5}100%{transform:translateY(0);opacity:1}}
 @keyframes capWordIn{from{opacity:0;transform:translateY(.25em)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -270,7 +271,7 @@ body.editor-open{height:100vh;overflow:hidden}
 
 /* PREVIEW */
 .prev-col{flex:1;min-width:0;background:var(--canvas);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;position:relative}
-.prev-frame{position:relative;border-radius:16px;overflow:hidden;border:none;box-shadow:var(--sh-3);width:220px;height:390px;flex-shrink:0;transform-origin:center center;transition:transform .12s ease-out}
+.prev-frame{position:relative;isolation:isolate;border-radius:16px;overflow:hidden;border:none;box-shadow:var(--sh-3);width:220px;height:390px;flex-shrink:0;transform-origin:center center;transition:transform .12s ease-out}
 
 /* TIMELINE (unter der Vorschau) */
 .tl-wrap{display:none;align-self:stretch;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--sh-1);overflow:hidden;flex-shrink:0}
@@ -296,13 +297,14 @@ body.editor-open{height:100vh;overflow:hidden}
 #prevBg{position:absolute;inset:0;z-index:0;background:var(--ink);transition:background .3s}
 #prevBlurBg{position:absolute;inset:-8%;z-index:0;width:116%;height:116%;display:none;filter:blur(14px) brightness(.55);pointer-events:none}
 .prev-frame.reframe-blur #prevBlurBg{display:block}
-.prev-frame.reframe-blur #mainVid{object-fit:contain!important}
+.prev-frame.reframe-blur #mainVid{object-fit:contain!important;inset:0;width:100%;height:100%}
 .vid-warn{max-width:360px;width:100%;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:9px;padding:8px 10px;font-size:12.5px;line-height:1.45}
 .exp-opts{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
 .exp-opt{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2)}
 .exp-opt > span{min-width:74px}
 .exp-opt .lang-sel{margin:0;flex:1;padding:6px 8px;font-size:12.5px}
-#mainVid{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none}
+/* Video steht 2px über den Rahmen hinaus (overflow:hidden schneidet es ab): an der gerundeten Unterkante (Zoom, Subpixel, GPU-Video-Ebene) blitzt sonst eine dunkle Linie durch. Nicht im Blur-Modus (contain). */
+#mainVid{position:absolute;inset:-2px;z-index:1;width:calc(100% + 4px);height:calc(100% + 4px);object-fit:cover;display:none}
 /* Play-Overlay: dezentes Glas-Icon statt deckender weißer Scheibe — der Untertitel (z-index 10) liegt
    darüber und bleibt lesbar; positionPlayIcon() schiebt das Icon zusätzlich aus dem Untertitel-Bereich. */
 #playOverlay{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.14);cursor:pointer}
@@ -312,7 +314,8 @@ body.editor-open{height:100vh;overflow:hidden}
 .fdz-btn{background:var(--brand);color:#fff;font:600 13px 'Inter',sans-serif;padding:10px 18px;border-radius:999px;box-shadow:var(--sh-2)}
 #frameDropZone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;z-index:4}
 #frameDropZone p{font-size:12px;color:#b3babc;text-align:center;padding:0 12px;line-height:1.5}
-#capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
+/* line-height:0: kein Strut der Body-Schrift unter/über der Caption-Box (sonst lag sie bei kleiner Schrift/Zeilenhöhe höher als im Export) */
+#capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;line-height:0;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
 #capOverlay:active{cursor:grabbing}
 #capOverlay.dragging{cursor:grabbing}
 .vid-ctrls{display:none;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 10px 5px 6px;box-shadow:var(--sh-1);width:220px;max-width:100%}
@@ -429,7 +432,10 @@ body.editor-open{height:100vh;overflow:hidden}
 .cv-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
 .cv-body{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:20px;padding:16px;overflow:auto}
 .cv-prev{display:flex;flex-direction:column;align-items:center;gap:8px}
-.cv-prev canvas{width:100%;max-width:320px;aspect-ratio:9/16;border-radius:12px;background:#14161a;box-shadow:0 6px 24px rgba(20,10,40,.25)}
+.cv-prev canvas{width:100%;max-width:320px;aspect-ratio:9/16;border-radius:12px;background:#14161a;box-shadow:0 6px 24px rgba(20,10,40,.25);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.cv-prev canvas.dragging{cursor:grabbing}
+.pos-btn.cv-reset{flex:0 0 auto;padding:7px 12px;min-height:36px}
+.pos-btn.cv-reset[disabled]{opacity:.45;cursor:default}
 .cv-warn{margin:0;font-size:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:6px 9px;text-align:center}
 .cv-ctrl{display:flex;flex-direction:column;gap:10px;min-width:0}
 .cv-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -1379,8 +1385,7 @@ body.editor-open .lang-hint{display:none}
       <div class="prev-frame" id="prevFrame" onclick="if(vidReady && !capDragMoved)togglePlay()">
         <div id="prevBg"></div>
         <canvas id="prevBlurBg" width="36" height="64" aria-hidden="true"></canvas>
-        <video id="mainVid" playsinline preload="auto"
-          style="position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none"></video>
+        <video id="mainVid" playsinline preload="auto" style="display:none"></video>
         <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
@@ -1421,7 +1426,7 @@ body.editor-open .lang-hint{display:none}
       <div class="tl-wrap" id="tlWrap" style="display:none">
         <div class="tl-bar">
           <button type="button" class="tl-tog" id="tlTog" onclick="tlToggle()" aria-expanded="true" aria-controls="tlBody"><svg class="ic" aria-hidden="true"><use href="#i-timeline"/></svg><span id="tlTogLbl">Hide timeline</span></button>
-          <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · Shift+click to select several</span>
+          <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · drag over captions to select several</span>
           <span class="tl-sp"></span>
           <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" aria-label="Snap" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span class="tl-lbl"> Snap</span></button>
           <button type="button" class="tl-btn" id="tlGapBtn" onclick="tlCloseGaps()" aria-label="Close gaps" title="Close all gaps: each caption stays until the next one starts (at a scene cut both meet exactly at the cut)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span class="tl-lbl"> Close gaps</span></button>
@@ -1430,7 +1435,7 @@ body.editor-open .lang-hint{display:none}
           <button type="button" class="tl-btn tl-fit" onclick="tlFit()" title="Show the whole video">Fit</button>
         </div>
         <div class="tl-body" id="tlBody">
-          <canvas id="tlCanvas" tabindex="0" title="Drag to move · drag edges to trim · Shift+click to select several · double-click to edit"
+          <canvas id="tlCanvas" tabindex="0" title="Drag to move · drag edges to trim · drag over empty space to select several · double-click to edit"
             aria-label="Caption timeline. Drag captions to move them, drag their edges to trim, double-click to edit. With a caption selected, arrow keys nudge it and Delete removes it."></canvas>
         </div>
         <!-- Handy/Touch: feste Mitte als Abspielkopf, darunter EINE Aktionsleiste (gleich hoch mit/ohne Auswahl →
@@ -1441,7 +1446,7 @@ body.editor-open .lang-hint{display:none}
           <div class="ta-tools">
             <button type="button" class="ta-tool" id="taSplit" onclick="tlSplitAtPlayhead()" disabled><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span>Split</span></button>
             <button type="button" class="ta-tool" id="taEdit" onclick="tlEditText(tlSel)" disabled><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Edit text</span></button>
-            <button type="button" class="ta-tool" id="taMulti" onclick="tlToggleMulti()" aria-pressed="false" title="Select several captions: tap the first, then the last"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Select</span></button>
+            <button type="button" class="ta-tool" id="taMulti" onclick="tlToggleMulti()" aria-pressed="false" title="Select several captions: swipe across them, or tap the first, then the last"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Select</span></button>
             <button type="button" class="ta-tool ta-del" id="taDel" onclick="tlDeleteSel()" disabled><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg><span>Delete</span></button>
             <button type="button" class="ta-tool on" id="taSnap" onclick="tlToggleSnap()" aria-pressed="true" title="Snap edges to scene cuts, the playhead and neighbouring captions"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span>Snap</span></button>
             <button type="button" class="ta-tool" id="taGaps" onclick="tlCloseGaps()" title="Close all gaps: each caption stays until the next one starts (at a scene cut both meet exactly at the cut)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span>Close gaps</span></button>
@@ -1677,11 +1682,12 @@ body.editor-open .lang-hint{display:none}
               <select id="csMotion" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('motion')" title="Highlight: the spoken word stands out · Reveal: words appear as they are spoken and stay · Fill: the whole caption is visible, spoken words turn solid · None: static">
                 <option value="highlight">Highlight</option><option value="reveal">Reveal</option><option value="fill">Fill</option><option value="none">None</option>
               </select></div>
-            <div class="sz-row cs-line"><span class="cs-k">Word pop</span>
-              <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')" title="Small extra motion on the spoken word (Highlight only)">
+            <div class="sz-row cs-line" id="csAnimRow"><span class="cs-k">Word pop</span>
+              <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')" title="Short extra motion on the spoken word (Animation: Highlight only). Changing it plays a short demo while the video is paused.">
                 <option value="none">None</option><option value="scale">Pop</option><option value="punch">Punch</option>
                 <option value="bounce">Lift</option><option value="flash">Fade in</option><option value="glow">Glow</option>
               </select></div>
+            <p class="cs-note" id="csAnimHint" style="display:none"></p>
           </div>
           <div class="cs-grp"><div class="cs-gh">Timing &amp; text</div>
             <label class="chk-row" title="Captions disappear during silence and only show while someone is speaking. Off: the last caption stays up until the next one starts.">
@@ -1750,6 +1756,11 @@ body.editor-open .lang-hint{display:none}
           <input type="range" id="cvSize" min="0.6" max="1.4" step="0.05" oninput="coverSet('size', +this.value)">
           <div class="cv-pos" id="cvPos" role="group" aria-label="Position">
             <button type="button" data-pos="top" onclick="coverSet('pos','top')">Top</button><button type="button" data-pos="mid" onclick="coverSet('pos','mid')">Middle</button><button type="button" data-pos="bottom" onclick="coverSet('pos','bottom')">Bottom</button></div></div>
+        <div class="cv-row"><span class="cv-lbl" id="cvAlignLbl">Align</span>
+          <div class="cv-pos" id="cvAlign" role="group" aria-labelledby="cvAlignLbl">
+            <button type="button" data-align="left" onclick="coverSet('align','left')">Left</button><button type="button" data-align="center" onclick="coverSet('align','center')">Center</button><button type="button" data-align="right" onclick="coverSet('align','right')">Right</button></div>
+          <button type="button" class="pos-btn cv-reset" id="cvReset" onclick="coverResetPos()">Reset position</button></div>
+        <p class="cv-hint">Drag the title in the preview to move it. Tap a word first, then drag, to move just that word.</p>
         <label class="cv-chk"><input type="checkbox" id="cvGuides" onchange="coverSet('guides', this.checked)"> Show guides (profile grid 3:4, Reels/TikTok safe area)</label>
         <button type="button" class="exp-btn hi cv-dl" id="cvDl" onclick="downloadCover()">
           <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
@@ -4579,9 +4590,17 @@ function updateOverlay(t) {
       if (ov._capClamped) applyPos(); else clampCapVertical(); // Höhe kann sich je Block ändern
       if (showSafeZone) checkSafeZoneCollision();
     }
-    if (b) capDomMotion(ov, s, b, bi, wi, t, forced); // jedes Frame: Ein-/Ausblenden, Reveal/Fill, Farb-/Box-Übergänge
+    if (b) {
+      // Word-pop-Demo (pausiert, Wahl gerade geändert): virtuelle Zeit am aktiven Wort, Video bleibt stehen (s. capAnimDemoStart)
+      var demoT = null;
+      if (_capAnimDemo) {
+        if (playing || !(s.anim && s.anim !== 'none') || capMotion(s) !== 'highlight') _capAnimDemo = null;
+        else demoT = (b.words[wi] ? b.words[wi].start : t) + (Date.now() - _capAnimDemo.t0) / 1000;
+      }
+      capDomMotion(ov, s, b, bi, wi, demoT !== null ? demoT : t, forced || demoT !== null); // jedes Frame: Ein-/Ausblenden, Reveal/Fill, Farb-/Box-Übergänge
+    }
   }
-  document.getElementById('prevBg').style.background = vidReady ? '#000' : s.thumbBg;
+  document.getElementById('prevBg').style.background = vidReady ? 'transparent' : s.thumbBg; // mit Video nie schwarz hinterlegen (sonst Randlinie an der Rundung)
   applyPreviewZoom(t - timeOff); // Auto-Zoom: nur das Video (CSS-Transform), nie die Captions
   if (!vidReady || vid.paused) positionPlayIcon(); // nur im Pausenzustand sichtbar → kein Layout-Read pro Frame
   tlRequestDraw(); // Abspielkopf + aktiver Balken (ein rAF pro Frame, egal wie oft gerufen)
@@ -4589,6 +4608,13 @@ function updateOverlay(t) {
 // Vorschau-Gegenstück zu den Bewegungen in drawCaptionsOnCtx — gleiche Zustandsfunktionen (capBlockFx/capWordFx/
 // capSlideBoxes), gleiche Einheiten (em der angepassten Schriftgröße bzw. Vorschau-px). Schreibt nur geänderte
 // Werte (kein Layout: nur opacity/transform/color/filter; Box-Rechtecke einmal je DOM-Aufbau gemessen).
+// Glow-Animation: Leuchten in der Highlight-Farbe (bei Pill-Styles die Pill-Farbe) als drei weiche Schatten-Schichten
+// {blur (px der Schriftgrösse px), color}; glow 0..1. Vorschau (text-shadow) und Export (capShadowPlan-Schichten) nutzen sie gleich.
+function capGlowLayers(s, oi, glow, px) {
+  if (!(glow > 0.01) || !(px > 0)) return [];
+  var c = s.hlPillBg || (s.hlg ? (s.hl || '#fff') : hlColorFor(s, oi));
+  return [0.3, 0.65, 1.2].map(function(k) { return { x: 0, y: 0, blur: k * px * glow, color: c }; });
+}
 function capSetSt(el, k, v) { var c = el._capSt || (el._capSt = {}); if (c[k] !== v) { c[k] = v; el.style[k] = v; } }
 function capDomMotion(ov, s, b, bi, wi, t, forced) {
   var M = ov._capM;
@@ -4596,7 +4622,7 @@ function capDomMotion(ov, s, b, bi, wi, t, forced) {
     var root = ov.querySelector ? ov.querySelector('.cap-root') : null;
     if (!root) return;
     M = ov._capM = { root: root, fpx: parseFloat(root.getAttribute('data-fpx')) || fontSize,
-                     spans: Array.prototype.slice.call(root.querySelectorAll('[data-oi]')).map(function(sp){ sp._c0 = sp.style.color; return sp; }), // _c0 = Farbe aus buildCap
+                     spans: Array.prototype.slice.call(root.querySelectorAll('[data-oi]')).map(function(sp){ sp._c0 = sp.style.color; sp._ts0 = sp.style.textShadow; return sp; }), // _c0/_ts0 = Farbe/Schatten aus buildCap
                      boxes: Array.prototype.slice.call(root.querySelectorAll('.cap-hlbox')), rects: null };
   }
   var mode = capMotion(s), rm = capReduceMotion(), em = blockEmph(b);
@@ -4607,10 +4633,12 @@ function capDomMotion(ov, s, b, bi, wi, t, forced) {
   M.spans.forEach(function(sp) {
     var oi = +sp.getAttribute('data-oi');
     var f = fxs[oi] || (fxs[oi] = capWordFx(s, b, oi, wi, t, forced, rm));
-    var a = f.a, op = f.op * (a ? a.op : 1), dy = f.dy * M.fpx + (a ? a.ty : 0), sc = a ? a.sx : 1;
+    var a = f.a, op = f.op * (a ? a.op : 1), dy = (f.dy + (a ? a.ty : 0)) * M.fpx, sc = a ? a.sx : 1; // ty/dy in em
     capSetSt(sp, 'opacity', op < 1 ? op.toFixed(3) : '');
     capSetSt(sp, 'transform', (Math.abs(dy) > 1e-3 ? 'translateY(' + dy.toFixed(2) + 'px)' : '') + (Math.abs(sc - 1) > 1e-4 ? ' scale(' + sc.toFixed(4) + ')' : ''));
-    capSetSt(sp, 'filter', (a && a.bright !== 1) ? 'brightness(' + a.bright.toFixed(3) + ')' : '');
+    // Glow = zusätzliche text-shadow-Schichten (unter denen des Styles) in der Highlight-Farbe; Export: dieselben Schichten im Zeichenplan
+    var gl = capGlowLayers(s, oi, a ? a.glow : 0, M.fpx);
+    capSetSt(sp, 'textShadow', gl.length ? (sp._ts0 && sp._ts0 !== 'none' ? sp._ts0 + ', ' : '') + gl.map(function(l){ return '0 0 ' + l.blur.toFixed(2) + 'px ' + l.color; }).join(', ') : (sp._ts0 || ''));
     // Farbe: Fill immer (gesprochen = „an“), Highlight nur während des Übergangs (danach gilt die Farbe aus buildCap)
     var col = '';
     if (mode === 'fill' || (mode === 'highlight' && f.hk > 0 && f.hk < 1)) {
@@ -4640,6 +4668,23 @@ function capDomMotion(ov, s, b, bi, wi, t, forced) {
     capSetSt(el, 'width', r.w.toFixed(2) + 'px'); capSetSt(el, 'height', r.h.toFixed(2) + 'px');
     capSetSt(el, 'opacity', r.op < 1 ? r.op.toFixed(3) : '1');
   });
+}
+// Word-pop-Demo: Ändert man die Wahl bei pausiertem Video, sähe man sonst nichts (der Effekt läuft nur 0,34 s ab
+// Wortbeginn). Dann spielt updateOverlay ihn ~0,6 s mit virtueller Zeit am aktiven Wort ab (_capAnimDemo = {t0, until}, ms);
+// das Video wird nicht verschoben. Bei „Bewegung reduzieren“ keine Demo (Hinweis in syncCsUi).
+var _capAnimDemo = null, _capDemoRaf = 0, CAP_ANIM_DEMO_MS = 600;
+function capAnimDemoStart() {
+  var vid = document.getElementById('mainVid');
+  if (capReduceMotion() || (vidReady && vid && !vid.paused && !vid.ended)) return false;
+  _capAnimDemo = { t0: Date.now(), until: Date.now() + CAP_ANIM_DEMO_MS };
+  cancelAnimationFrame(_capDemoRaf);
+  (function loop() {
+    if (!_capAnimDemo) return;
+    if (Date.now() >= _capAnimDemo.until) { _capAnimDemo = null; updateOverlay(); return; } // letztes Bild: Ruhezustand
+    updateOverlay();
+    _capDemoRaf = requestAnimationFrame(loop);
+  })();
+  return true;
 }
 function syncCaption(t) { updateOverlay(t); }
 function startCapLoop() {
@@ -5873,9 +5918,16 @@ function selectStyle(id, fromEditor) {
   // Erster Regler-Eingriff: die Custom-Kachel (oben in „My templates“) im Picker sichtbar machen — sonst
   // sah es aus, als bliebe das vorige Preset aktiv bzw. die Änderung käme nicht an.
   if (fromEditor && prevId !== id) scrollPickerTo(id, false);
-  if (s && s._tpl) { _presetPrevLayout = null; applyTemplateSettings(s._tpl); } // Template bringt eigenes Layout mit
-  else if (s && s.layout) applyPresetLayout(s.layout); // eingebaute Presets mit eigener Blockgröße (Pop One)
-  else if (s && _presetPrevLayout) restorePresetLayout(); // jeder andere Style (auch Custom): vorheriges Layout zurück
+  // Customize-Regler (fromEditor) bzw. erneuter Klick auf die aktive Custom-Kachel fassen das Layout NIE an:
+  // Zeilen, Wörter/Caption, Zeichenlimit und Blöcke (inkl. manueller Splits/Timeline-Edits) bleiben — vorher
+  // setzte jeder Regler das Layout des Ausgangs-Presets (Tight: 1 Wort/1 Zeile) zurück. _presetPrevLayout
+  // bleibt gemerkt. Wechsel von einem anderen Style zur Custom-Kachel: wie jeder Style ohne eigenes Layout.
+  var keepLayout = id === 'custom' && (fromEditor || prevId === 'custom');
+  if (s && !keepLayout) {
+    if (s._tpl) { _presetPrevLayout = null; applyTemplateSettings(s._tpl); } // Template bringt eigenes Layout mit
+    else if (s.layout) applyPresetLayout(s.layout); // eingebaute Presets mit eigener Blockgröße (Pop One)
+    else if (_presetPrevLayout) restorePresetLayout(); // jeder andere Style: vorheriges Layout zurück
+  }
   onCapMetricsChange('style'); // Auto-Zeichenlimit hängt von Schrift/Style ab
   _lastKey = null;
   updateOverlay();
@@ -6156,7 +6208,17 @@ function syncCsUi() {
   var lbl = csEl('csHlLbl'); if (lbl) lbl.textContent = pill ? 'Pill' : 'Active';
   var sw = csEl('csHlSw'); if (sw) sw.title = pill ? 'Pill color behind the active (spoken) word' : 'Color of the active (spoken) word';
   var gi = csEl('csGlowInt'); if (gi) gi.disabled = !_cbChecked('csGlow', false);
-  var mo = (csEl('csMotion') || {}).value, an = csEl('csAnim'); if (an && mo) an.disabled = mo !== 'highlight'; // Pop gibt es nur beim Highlight
+  // Word pop gibt es nur beim Highlight: sonst Zeile ausblenden (nicht nur ausgrauen) + Hinweis; bei „Bewegung reduzieren“
+  // (Systemeinstellung) bleibt die Vorschau still, der Export animiert trotzdem → ebenfalls Hinweis.
+  var mo = (csEl('csMotion') || {}).value, an = csEl('csAnim'), hlMode = !mo || mo === 'highlight';
+  if (an) an.disabled = !hlMode;
+  var arow = csEl('csAnimRow'); if (arow) arow.style.display = hlMode ? '' : 'none';
+  var ahint = csEl('csAnimHint');
+  if (ahint) {
+    var ahMsg = !hlMode ? 'Word pop works with Animation: Highlight.'
+      : (capReduceMotion() && an && an.value && an.value !== 'none' ? 'Preview is still (system setting \u201Creduce motion\u201D) \u2014 the export includes the animation.' : '');
+    ahint.textContent = ahMsg; ahint.style.display = ahMsg ? '' : 'none';
+  }
   var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
   var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
   var rd = csEl('csBoxRDisp'), rEl = csEl('csBoxR'); if (rd && rEl) rd.textContent = (rEl.value || 0) + 'px';
@@ -6230,6 +6292,7 @@ function buildCustomStyle() {
   var base = _csBase || cloneStyle(STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0]);
   var cs = cloneStyle(base), d = _csDirty;
   cs.id = 'custom'; cs.name = 'My style'; cs.badge = '❤️';
+  delete cs.layout; // Preset-Blockgröße (Tight/Mix/Statement/One Word) gehört nicht zum Look — s. selectStyle
   if (!cs.thumbBg) cs.thumbBg = CS_THUMB_BG;
   // Neue Schrift gilt auch fürs aktive Wort (eigene hlFont des Styles fällt weg) — vorher wechselte nur der Rest.
   if (d.font)   { var f = (csEl('csFont') || {}).value || cs.fl || 'Poppins'; cs.fl = f; cs.font = "'" + f + "'"; delete cs.hlFont; }
@@ -6295,13 +6358,14 @@ function buildCustomStyle() {
   if (d.motion) { var mv = (csEl('csMotion') || {}).value; if (mv && mv !== 'highlight') cs.motion = mv; else delete cs.motion; }
   return cs;
 }
-var _csLast = 0, _csTimer = null;
+var _csLast = 0, _csTimer = null, _capDemoPending = false;
 function applyCustomStyle(group) {
   // Farbe/Deckkraft bei „Background: None“ bzw. Konturfarbe bei 0 px hatten keinerlei Wirkung („Änderung
   // kommt nicht an“) → den zugehörigen Schalter automatisch einschalten.
   if (group === 'boxc') { var bxs = csEl('csBox'); if (bxs && (bxs.value || 'off') === 'off') bxs.value = 'box'; group = 'box'; }
   if (group === 'strokec') { var oww = csEl('csOutlineW'); if (oww && !(parseFloat(oww.value) > 0)) oww.value = 2; group = 'stroke'; }
   if (group) _csDirty[group] = true;
+  if (group === 'anim') _capDemoPending = true; // nach dem Anwenden: Effekt bei pausiertem Video kurz vorführen (capAnimDemoStart)
   syncCsUi();
   // Throttled: Farbregler feuern beim Ziehen dutzende Events — max. alle 200 ms neu bauen (1. Aufruf sofort).
   // Der nachlaufende Timer liest die Regler erst beim Ausführen → der LETZTE Wert kommt immer an.
@@ -6318,6 +6382,7 @@ function runCustomStyle() {
   // Nur die Custom-Kachel ersetzen statt alle 36+ Kacheln neu zu bauen (Scroll-Position bleibt, schneller)
   if (i < 0 || !replacePickerTile(cs)) buildPicker();
   selectStyle('custom', true);
+  if (_capDemoPending) { _capDemoPending = false; capAnimDemoStart(); }
 }
 // Noch ausstehende (gedrosselte) Regler-Änderung sofort anwenden — z. B. vor dem Speichern als Template.
 function flushCustomStyle() { if (_csTimer) runCustomStyle(); }
@@ -7943,7 +8008,8 @@ function projectPayload() {
            emph: { kw: emKw, emoji: emEmoji, zoom: emZoom, src: emSrc } };
   // Cover-Einstellungen (ohne Bild: eigene Fotos bleiben auf dem Gerät und werden nicht im Projekt gespeichert)
   if (coverState.title) p.cover = { t: coverState.t, dark: coverState.dark, grad: coverState.grad, title: coverState.title, kw: coverState.kw || [],
-    style: coverState.style, size: coverState.size, pos: coverState.pos, guides: coverState.guides };
+    style: coverState.style, size: coverState.size, pos: coverState.pos, guides: coverState.guides,
+    align: coverState.align, ox: coverState.ox, oy: coverState.oy, wo: coverState.wo };
   if (postCaption) p.post = { caption: postCaption.caption, hashtags: (postCaption.hashtags || []).slice(0, 10), src: postCaption.src };
   if (tlSpeech.length) p.speech = tlSpeech.slice(0, 2000); // Sprachbereiche für die Timeline (klein, gerundet)
   // Eigener Style bzw. Template mitspeichern — die IDs allein existieren in einer neuen Sitzung/auf
@@ -9041,7 +9107,7 @@ function loadVideo(file) {
     document.getElementById('vidCtrls').style.width = Math.max(w, 320) + 'px';
     vid.style.display = 'block';
     document.getElementById('frameDropZone').style.display = 'none';
-    document.getElementById('prevBg').style.background    = '#000';
+    document.getElementById('prevBg').style.background    = 'transparent';
     document.getElementById('vidCtrls').style.display     = 'flex';
     document.getElementById('uploadLabel').innerHTML       = icon('upload') + ' Replace video';
     vidReady = true;
@@ -10396,6 +10462,9 @@ function capShadowPlan(str) {
 // fsS/tw (optional): Schriftgröße und Textbreite — dann werden große Blur-Glows (≥ 16 px) in einem auf
 // 1/4 verkleinerten Puffer gerechnet und hochskaliert eingesetzt (Gauß-Blur kostet ~Radius² → 16× billiger,
 // optisch gleich, weil der Glow ohnehin unscharf ist).
+// shMul (optional): Skalierung der aktuellen Animations-Transformation für kleine Schatten-Schichten (Canvas-Schatten
+// wachsen nicht mit der Transformation, DOM-text-shadow schon). Große Blur-Schichten (drawBigBlurLayer) und die
+// Ring-Kontur wachsen über die Transformation selbst mit (strokeDiv 1) — Vorschau = Export auch bei Punch (1.28×).
 var _glowBuf = null;
 function drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw) {
   var q = 0.25, blur = l.blur * scale;
@@ -10421,7 +10490,7 @@ function drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw) {
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   ctx.drawImage(c, 0, 0, sw, sh, x - m, y - fsS * 1.05 - m, sw / q, sh / q);
 }
-function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw) {
+function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul) {
   if (plan.rest.length) {
     ctx.save();
     var lowRes = fsS > 0 && tw > 0 && typeof document !== 'undefined' && !!ctx.canvas;
@@ -10429,8 +10498,9 @@ function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw) {
     for (var i = plan.rest.length - 1; i >= 0; i--) {
       var l = plan.rest[i];
       if (lowRes && l.blur * scale >= 16) { drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw); continue; }
-      ctx.shadowOffsetX = l.x * scale; ctx.shadowOffsetY = l.y * scale;
-      ctx.shadowBlur = l.blur * scale; ctx.shadowColor = l.color;
+      var ks = scale * (shMul > 0 ? shMul : 1);
+      ctx.shadowOffsetX = l.x * ks; ctx.shadowOffsetY = l.y * ks;
+      ctx.shadowBlur = l.blur * ks; ctx.shadowColor = l.color;
       ctx.fillText(text, x, y);
     }
     ctx.restore();
@@ -10459,15 +10529,16 @@ function fillTextWithShadow(ctx, text, x, y, shadowStr, scale) {
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   ctx.fillText(text, x, y);
 }
-// Keyframes der @keyframes captly-* (0.34s ease) — reproduziert die Wort-Pop-Animation beim Highlight-
-// Wechsel im Export, den der Canvas (anders als DOM/CSS) sonst komplett ignoriert.
-var ANIM_KEYFRAMES = { // ruhig, s. CSS — Lift (bounce/wobble), Pop (scale), Punch, Fade (flash), Glow
-  bounce: [[0,{ty:3,sx:1,sy:1}],[60,{ty:-1,sx:1.02,sy:1.02}],[100,{ty:0,sx:1,sy:1}]],
-  scale:  [[0,{sx:1,sy:1}],[45,{sx:1.04,sy:1.04}],[100,{sx:1,sy:1}]],
-  flash:  [[0,{op:.45}],[100,{op:1}]],
-  glow:   [[0,{bright:1,sat:1}],[50,{bright:1.25,sat:1}],[100,{bright:1,sat:1}]],
-  punch:  [[0,{sx:1,sy:1}],[45,{sx:1.06,sy:1.06}],[100,{sx:1,sy:1}]],
-  wobble: [[0,{ty:3,sx:1,sy:1}],[60,{ty:-1,sx:1.02,sy:1.02}],[100,{ty:0,sx:1,sy:1}]]
+// Keyframes der @keyframes captly-* (0.34 s) — Vorschau (capDomMotion) UND Export (drawCaptionsOnCtx) rechnen sie aus der
+// Videozeit; die CSS-Keyframes oben (Kacheln/Hover) haben dieselben Werte. Felder: sx/sy Skalierung · ty Versatz in em
+// (+ = tiefer) · op Deckkraft · glow 0..1 Leuchten in der Highlight-Farbe. Dritter Eintrag 'out' = ease-out bis zum nächsten Keyframe.
+var ANIM_KEYFRAMES = {
+  bounce: [[0,{ty:.22,op:.5}],[100,{ty:0,op:1}]],                      // Lift: steigt 0,22 em von unten, blendet .5 → 1 ein
+  scale:  [[0,{sx:1,sy:1}],[30,{sx:1.14,sy:1.14}],[100,{sx:1,sy:1}]],  // Pop: 1 → 1.14 → 1
+  flash:  [[0,{op:0}],[100,{op:1}]],                                   // Fade in: 0 → 1
+  glow:   [[0,{glow:0}],[30,{glow:1}],[100,{glow:0}]],                 // Glow: Leuchten in der Highlight-Farbe
+  punch:  [[0,{sx:1.28,sy:1.28},'out'],[100,{sx:1,sy:1}]],             // Punch: 1.28 → 1 (ease-out)
+  wobble: [[0,{ty:.22,op:.5}],[100,{ty:0,op:1}]]                       // Alt-Name = Lift
 };
 var ANIM_DUR = 0.34;
 function animState(anim, elapsed) {
@@ -10477,7 +10548,8 @@ function animState(anim, elapsed) {
   var lo = kf[0], hi = kf[kf.length - 1];
   for (var i = 0; i < kf.length - 1; i++) { if (pct >= kf[i][0] && pct <= kf[i + 1][0]) { lo = kf[i]; hi = kf[i + 1]; break; } }
   var span = hi[0] - lo[0], f = span > 0 ? (pct - lo[0]) / span : 0;
-  var out = { sx: 1, sy: 1, ty: 0, rot: 0, op: 1, bright: 1, sat: 1 };
+  if (lo[2] === 'out') f = 1 - (1 - f) * (1 - f) * (1 - f);
+  var out = { sx: 1, sy: 1, ty: 0, rot: 0, op: 1, glow: 0 };
   Object.keys(out).forEach(function(k) {
     var a = lo[1][k], b = hi[1][k];
     if (a === undefined && b === undefined) return;
@@ -10557,7 +10629,9 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   // „Max lines“, solange die Mindestgröße reicht.
   var lines = capDistributeLines(wordInfo, CAPTION_LINES, sp, maxW);
 
-  var lh   = fsS * 1.28 * (capLineH(s) / 1.3); // gleiche Relation wie CSS line-height in der Vorschau
+  // Zeilenabstand = CSS line-height der Vorschau (L·fs, gemessen in Chromium: Abstand der [data-oi]-Zeilen = L·fs).
+  // Vorher fs·1.28·L/1.3 → Export ~1.5 % enger als die Vorschau.
+  var lh   = fsS * capLineH(s);
   // Muss exakt applyPos() (DOM-Vorschau, #capOverlay) nachbilden, sonst weicht die Position im
   // exportierten Video vom Editor ab. off = capVOff, gleiche Formeln wie dort (inkl. clampPct).
   // CSS-Geometrie der Vorschau: die Caption ist ein inline-block (Box-Padding p, line-height L·fs); jede
@@ -10582,13 +10656,13 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
     var bottomPct = capBottomPct(off);
     y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh - gapBelow;
   }
-  // Box/Akzent-Hintergrund bei eigener Zeilenhöhe ≠ 1.3 entsprechend höher (CSS: halber Durchschuss je Seite)
-  var halfLead = (Lh - 1.3) / 2 * fsS;
-  // Letzter Ausweg wie clampCapVertical() in der Vorschau: Block komplett im Bild halten.
-  var padYc = (s.boxBg ? 5 * scale : 0) + 4 * scale + Math.max(0, halfLead);
-  var blkBot = y0 + (lines.length - 1) * lh + fsS * 0.45 + padYc;
+  // Letzter Ausweg wie clampCapVertical() in der Vorschau: Block komplett im Bild halten (4 px Luft). Box-Kanten
+  // exakt wie die CSS-Box (Grundlinie ± gapAbove/gapBelow, gilt für jede Zeilenhöhe) — vorher grob fs·1.05 /
+  // fs·0.45 (+ halber Durchschuss nur bei L > 1.3) → geklemmte Captions lagen bis ~15 Vorschau-px daneben.
+  var padYc = 4 * scale;
+  var blkBot = y0 + (lines.length - 1) * lh + gapBelow + padYc;
   if (blkBot > H) y0 -= (blkBot - H);
-  var blkTop = y0 - fsS * 1.05 - padYc;
+  var blkTop = y0 - gapAbove - padYc;
   if (blkTop < 0) y0 -= blkTop; // oben hat Vorrang (erste Zeile ist die, die gelesen wird)
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
@@ -10731,10 +10805,9 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       }
       return isHL ? capOnColor(s, wo.idx, !!wo.e) : capOffColor(s, !!wo.e);
     }
-    function activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt) {
-      // Filter-Animation (glow) in 8 Helligkeits-/Sättigungsstufen; Transformationen kommen beim Einsetzen dazu
-      var fb = animSt ? Math.round((animSt.bright || 1) * 8) / 8 : 1, fs2 = animSt ? Math.round((animSt.sat || 1) * 8) / 8 : 1;
-      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txtH + '|' + fb + '|' + fs2 + '|' + ctx.font + '|' + lsPxS;
+    function activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, gq) {
+      // plan enthält schon die Glow-Schichten der Animation (in 1/16-Stufen gq quantisiert); Transformationen kommen beim Einsetzen dazu
+      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txtH + '|' + gq + '|' + ctx.font + '|' + lsPxS;
       var hit = _wordSpriteCache.get(key);
       if (hit) return hit;
       var m = 6, fsW = wo.e ? fsS * L0.esc : fsS;
@@ -10748,7 +10821,6 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       // zurückgesetzt sein — dann wäre das Sprite breiter als gemessen und der Text rechts abgeschnitten (bei negativem Abstand).
       if ('letterSpacing' in c) c.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px';
       c.textAlign = 'left'; c.textBaseline = 'alphabetic';
-      if (fb !== 1 || fs2 !== 1) c.filter = 'brightness(' + fb + ') saturate(' + fs2 + ')';
       c.fillStyle = wordFill(c, wo, m, tw, isHL, isKw);
       drawTextWithPlan(c, wo.txtH, m, m + fsW * 1.05, plan, scale, 1, fsW, tw);
       var res = { cv: cv, m: m, fsW: fsW };
@@ -10787,15 +10859,20 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
           var c0 = capOffColor(s, !!wo.e), c1 = capOnColor(s, wo.idx, !!wo.e);
           if (c0 && c1) mixCol = capMixColor(c0, c1, f.hk);
         }
-        var dyPx = f.dy * fsS + (animSt ? animSt.ty * scale : 0);
+        var dyPx = (f.dy + (animSt ? animSt.ty : 0)) * fsS; // dy/ty in em der Schriftgrösse (wie die Vorschau)
+        // Glow-Animation: zusätzliche Schatten-Schichten in der Highlight-Farbe, unterhalb der Style-Schatten (wie im DOM)
+        var gq = animSt ? Math.round(animSt.glow * 16) / 16 : 0;
+        var glowL = capGlowLayers(s, wo.idx, gq, fsS / scale);
+        if (glowL.length) plan = { ring: plan.ring, rest: plan.rest.concat(glowL) };
         // Teure Glows (große Blur-Schatten, Glow-Animation per Filter) des AKTIVEN Worts als Sprite: Text +
         // Schatten (+ Filter-Stufe) einmal je (Layout, Wort, quantisierte Animationsstufe) rendern, pro Frame
         // nur noch per drawImage unter der Animations-Transformation einsetzen. Konturierte Styles (Ring →
         // strokeText) sind live billig und bleiben beim direkten Zeichnen (Kontur-Breite animationsstabil).
-        var hasFilter = !!(animSt && (animSt.bright !== 1 || animSt.sat !== 1));
+        // Ab ~1.08× (Punch/Pop-Spitze) nicht als Sprite: ein hochskaliertes Bitmap wäre unscharf, direkt gezeichnet bleibt der Text scharf.
         if (mode2 === 'live' && isHL && !mixCol && ctx.canvas && !plan.ring && typeof document !== 'undefined'
-            && (hasFilter || plan.rest.some(function(l){ return l.blur * scale >= 8; }))) {
-          var spr = activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt);
+            && !(animSt && Math.max(animSt.sx, animSt.sy) > 1.08)
+            && plan.rest.some(function(l){ return l.blur * scale >= 8; })) {
+          var spr = activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, gq);
           ctx.save();
           if (op < 1) ctx.globalAlpha *= op;
           if (animSt || dyPx) {
@@ -10818,7 +10895,6 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
           if (animSt && animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
           if (animSt) ctx.scale(animSt.sx, animSt.sy);
           ctx.translate(-pvx, -pvy);
-          if (animSt && (animSt.bright !== 1 || animSt.sat !== 1)) ctx.filter = 'brightness(' + animSt.bright + ') saturate(' + animSt.sat + ')';
         }
 
         // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) in der Betonungsfarbe des Styles
@@ -10827,7 +10903,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
         // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
         // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
         var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
-        drawTextWithPlan(ctx, txt, tx, y, plan, scale, animK, wo.e ? fsS * L0.esc : fsS, tw);
+        drawTextWithPlan(ctx, txt, tx, y, plan, scale, 1, wo.e ? fsS * L0.esc : fsS, tw, animK);
         ctx.restore();
       });
     });
@@ -11204,8 +11280,54 @@ function coverDefaultTime(duration, blocks) {
 function coverIsEm(s, kw, i) { return kw.indexOf(i) >= 0 && (emphColor(s) !== null || !!s.emFont); }
 // Buchstabenabstand in Cover-px: em folgt der Cover-Schrift, px (Vorschau-Einheiten) skaliert mit der Schriftgrösse
 function coverLs(s, base) { var v = String(s.ls || ''), n = parseFloat(v) || 0; return /em\s*$/.test(v) ? n * base : n * base / 28; }
-var coverState = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true };
+var coverState = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true, align: 'center', ox: 0, oy: 0, wo: {} };
 var _coverImg = null, _coverVid = null, _coverBusy = 0;
+var _coverHit = null, _coverSel = -1, _coverDrag = null; // letzte Titel-Box (mit .words), gewähltes Wort, laufendes Ziehen
+// Verschiebung des Titels: Anteile von W (x) bzw. H (y), auf ±0.5 begrenzt; wo = Wort-Offsets je Wortindex (max. 40)
+var COVER_ALIGNS = ['left', 'center', 'right'], COVER_OFF_MAX = 0.5, COVER_WO_MAX = 40;
+function coverClampOff(v) { v = +v; return isFinite(v) ? Math.max(-COVER_OFF_MAX, Math.min(COVER_OFF_MAX, v)) : 0; }
+// Wort-Offsets prüfen: nur Indizes 0…39, je [dx, dy] endlich → begrenzt; Nullverschiebungen entfallen
+function coverCleanWo(wo) {
+  var out = {}, n = 0;
+  if (!wo || typeof wo !== 'object' || Array.isArray(wo)) return out;
+  Object.keys(wo).forEach(function(k) {
+    var v = wo[k];
+    if (n >= COVER_WO_MAX || !/^\d{1,2}$/.test(k) || +k >= COVER_WO_MAX || !Array.isArray(v) || v.length !== 2) return;
+    if (typeof v[0] !== 'number' || typeof v[1] !== 'number') return;
+    var dx = coverClampOff(v[0]), dy = coverClampOff(v[1]);
+    if (dx || dy) { out[+k] = [Math.round(dx * 10000) / 10000, Math.round(dy * 10000) / 10000]; n++; }
+  });
+  return out;
+}
+function coverMoved(st) { return !!(st && (st.ox || st.oy || Object.keys(st.wo || {}).length)); }
+// Maximale Textbreite (1080er-Einheiten): mittig auf dem Bild, wie die Untertitel
+function coverMaxW(W, H) { return Math.min(coverSafeRegion(W, H).w, W * CAP_SAFE_W); }
+// Linke Kante einer Zeile der Breite tw je Ausrichtung innerhalb der Spalte maxW (mittig im Bild)
+function coverAlignX(align, W, maxW, tw) {
+  if (align === 'left') return (W - maxW) / 2;
+  if (align === 'right') return (W + maxW) / 2 - tw;
+  return (W - tw) / 2;
+}
+// Einrasten beim Ziehen: Rechteck r (schon verschoben) rastet mit Mitte/Rändern an Bildmitte und Safe-Zone-Rändern ein,
+// wenn näher als thr. → {dx, dy, vx, vy}: Zusatzverschiebung und die Hilfslinien-Position (null = nicht eingerastet)
+function coverSnap(r, region, W, H, thr) {
+  function axis(a0, len, centre, lo, hi) {
+    var best = null, c = [[centre - (a0 + len / 2), centre], [lo - a0, lo], [hi - (a0 + len), hi]];
+    c.forEach(function(k) { if (Math.abs(k[0]) <= thr && (!best || Math.abs(k[0]) < Math.abs(best[0]))) best = k; });
+    return best ? { d: best[0], line: best[1] } : { d: 0, line: null };
+  }
+  var ax = axis(r.x, r.w, W / 2, region.x, region.x + region.w), ay = axis(r.y, r.h, H / 2, region.y, region.y + region.h);
+  return { dx: ax.d, dy: ay.d, vx: ax.line, vy: ay.line };
+}
+// Treffer: oberstes Wort (zuletzt gezeichnet) unter dem Punkt p, mit pad Toleranz (Finger) → Index oder -1
+function coverHitWord(words, p, pad) {
+  pad = pad || 0;
+  for (var k = (words || []).length - 1; k >= 0; k--) {
+    var r = words[k];
+    if (p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad) return r.i;
+  }
+  return -1;
+}
 // Hintergrund (Standbild aus dem Video oder eigenes Bild) so zeichnen, dass er das Format ausfüllt
 function coverDrawBg(ctx, W, H, src, sw, sh) {
   ctx.fillStyle = '#14161a'; ctx.fillRect(0, 0, W, H);
@@ -11221,7 +11343,8 @@ function coverDrawTitle(ctx, W, H, st, s) {
   s = caseStyle(s);
   var region = coverSafeRegion(W, H), kw = st.kw || [];
   var base = W * 0.1 * (st.size || 1), esc = emphScale(s), lh = capLineH(s);
-  var up = s.tt === 'uppercase', box = null, lines, maxW = Math.min(region.w, W * CAP_SAFE_W); // mittig auf dem Bild, wie die Untertitel
+  var up = s.tt === 'uppercase', box = null, lines, maxW = coverMaxW(W, H), align = COVER_ALIGNS.indexOf(st.align) >= 0 ? st.align : 'center';
+  var gx = coverClampOff(st.ox) * W, gy = coverClampOff(st.oy) * H, wo = coverCleanWo(st.wo), rects = [];
   for (var tries = 0; tries < 40 && base > W * 0.02; tries++) {
     var wid = words.map(function(w, i) {
       var isE = coverIsEm(s, kw, i);
@@ -11235,13 +11358,14 @@ function coverDrawTitle(ctx, W, H, st, s) {
     lines = coverWrap(wid, maxW, space);
     var lineH = base * lh * 1.02, blockH = lines.length * lineH;
     if (blockH <= region.h && lines.every(function(L){ var tw = 0; L.forEach(function(i, k){ tw += wid[i] + (k ? space : 0); }); return tw <= maxW + 0.5; })) {
-      var y0 = coverBlockY(st.pos, region, blockH), minX = W, maxX = 0;
+      var y0 = coverBlockY(st.pos, region, blockH);
       var plan = capShadowPlan(s.ts), shScale = base / 28;
       lines.forEach(function(L, li) {
         var tw = 0; L.forEach(function(i, k){ tw += wid[i] + (k ? space : 0); });
-        var x = (W - tw) / 2; minX = Math.min(minX, x); maxX = Math.max(maxX, x + tw);
-        var y = y0 + li * lineH + lineH * 0.5 + base * 0.34;
+        var x = coverAlignX(align, W, maxW, tw), lineTop = y0 + li * lineH;
+        var y = lineTop + lineH * 0.5 + base * 0.34;
         L.forEach(function(i) {
+          var ow = wo[i] || [0, 0], wx = x + gx + ow[0] * W, wy = y + gy + ow[1] * H; // Wortposition samt Verschiebung
           var isE = coverIsEm(s, kw, i);
           var f = capWordFace(s, false, isE), sz = base * (isE ? esc : 1), t = up ? words[i].toUpperCase() : words[i];
           ctx.font = capFaceFont(f, sz);
@@ -11251,11 +11375,15 @@ function coverDrawTitle(ctx, W, H, st, s) {
           if (isE && emphColor(s)) col = emphColor(s);
           ctx.fillStyle = col || s.tc || '#fff';
           var tws = ctx.measureText(t).width;
-          drawTextWithPlan(ctx, t, x, y, isE && emphShadowIsHl(s) ? capShadowPlan(s.hls) : plan, shScale, 1, sz, tws);
+          drawTextWithPlan(ctx, t, wx, wy, isE && emphShadowIsHl(s) ? capShadowPlan(s.hls) : plan, shScale, 1, sz, tws);
+          rects.push({ i: i, x: wx, y: lineTop + gy + ow[1] * H, w: wid[i], h: lineH }); // Trefferfläche des Worts
           x += wid[i] + space;
         });
       });
-      box = { x: minX, y: y0, w: maxX - minX, h: blockH };
+      // Box = Umriss aller Wörter (ohne Verschiebung genau der Textblock) → Safe-Zone-Prüfung gilt auch nach dem Verschieben
+      var bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
+      rects.forEach(function(r) { bx0 = Math.min(bx0, r.x); bx1 = Math.max(bx1, r.x + r.w); by0 = Math.min(by0, r.y); by1 = Math.max(by1, r.y + r.h); });
+      box = { x: bx0, y: by0, w: bx1 - bx0, h: by1 - by0, words: rects };
       break;
     }
     base *= 0.94; // zu gross für die Sicherheitszone → verkleinern
@@ -11278,8 +11406,30 @@ function coverRender(ctx, outW, outH, withGuides) {
   var box = coverDrawTitle(ctx, W, H, st, s);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   if (withGuides && st.guides) coverDrawGuides(ctx, W, H, box);
+  if (withGuides) coverDrawEdit(ctx, W, H, box); // nur Vorschau: Wortauswahl + Einrast-Hilfslinien (nie im PNG)
   ctx.restore();
+  _coverHit = box; // Titel-Box samt Wort-Trefferflächen für den Zeiger (1080er-Einheiten)
   return { box: box, hasBg: ok };
+}
+// Bearbeitungs-Hilfen der Vorschau: Umriss des gewählten Worts, beim Ziehen Mittellinie/Safe-Zone-Rand wenn eingerastet
+function coverDrawEdit(ctx, W, H, box) {
+  var u = 2;
+  ctx.save();
+  if (box && _coverSel >= 0) {
+    var r = (box.words || []).filter(function(w){ return w.i === _coverSel; })[0];
+    if (r) {
+      ctx.lineWidth = 2 * u; ctx.setLineDash([]); ctx.strokeStyle = 'rgba(167,139,250,.95)';
+      var pd = 6 * u; ctx.strokeRect(r.x - pd, r.y - pd * 0.5, r.w + 2 * pd, r.h + pd);
+    }
+  }
+  if (_coverDrag && _coverDrag.snap) {
+    ctx.lineWidth = 1.5 * u; ctx.setLineDash([8 * u, 6 * u]); ctx.strokeStyle = 'rgba(250,204,21,.9)';
+    ctx.beginPath();
+    if (_coverDrag.snap.vx !== null) { ctx.moveTo(_coverDrag.snap.vx, 0); ctx.lineTo(_coverDrag.snap.vx, H); }
+    if (_coverDrag.snap.vy !== null) { ctx.moveTo(0, _coverDrag.snap.vy); ctx.lineTo(W, _coverDrag.snap.vy); }
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 function coverDrawGuides(ctx, W, H, box) {
   var c = coverCropRect(W, H), r = coverSafeRegion(W, H), u = 2; // u: Linienstärke/Schrift in 1080er-Einheiten
@@ -11312,6 +11462,7 @@ function openCover() {
   if (!coverState.kw) coverState.kw = coverDefaultKw(coverTitleWords());
   if (coverState.t === null || coverState.t > (vid.duration || 0)) coverState.t = coverDefaultTime(vid.duration, captionBlocks);
   m.style.display = 'flex'; document.body.style.overflow = 'hidden';
+  _coverSel = -1; _coverDrag = null;
   coverSyncUI();
   coverLoadFrame(coverState.t);
   var ta = coverEl('cvTitle'); if (ta && ta.focus && pointerFine()) try { ta.focus({ preventScroll: true }); } catch (e) {}
@@ -11372,6 +11523,8 @@ function coverSyncUI() {
   var gu = coverEl('cvGuides'); if (gu) gu.checked = !!st.guides;
   var rm = coverEl('cvUseFrame'); if (rm) rm.style.display = _coverImg ? '' : 'none';
   document.querySelectorAll('#cvPos button').forEach(function(b){ b.classList.toggle('on', b.dataset.pos === st.pos); });
+  document.querySelectorAll('#cvAlign button').forEach(function(b){ b.classList.toggle('on', b.dataset.align === st.align); });
+  var rs = coverEl('cvReset'); if (rs) rs.disabled = !coverMoved(st);
   var lk = coverEl('cvLooks');
   if (lk) {
     lk.innerHTML = '';
@@ -11398,7 +11551,8 @@ function coverSyncUI() {
 // Gespeicherte Cover-Einstellungen prüfen und übernehmen (Projekt laden); ohne Eintrag → Standard (frisch vorschlagen)
 function coverRestore(c) {
   _coverImg = null; _coverVid = null;
-  var d = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true };
+  var d = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true, align: 'center', ox: 0, oy: 0, wo: {} };
+  _coverSel = -1; _coverDrag = null;
   if (c && typeof c === 'object') {
     if (typeof c.t === 'number' && c.t >= 0 && c.t < 36000) d.t = c.t;
     if (typeof c.dark === 'number') d.dark = Math.max(0, Math.min(70, c.dark));
@@ -11409,17 +11563,78 @@ function coverRestore(c) {
     if (typeof c.size === 'number') d.size = Math.max(0.6, Math.min(1.4, c.size));
     if (['top', 'mid', 'bottom'].indexOf(c.pos) >= 0) d.pos = c.pos;
     if (typeof c.guides === 'boolean') d.guides = c.guides;
+    // Ausrichtung/Verschiebung: ältere Projekte haben die Felder nicht → wie bisher (mittig, keine Verschiebung)
+    if (COVER_ALIGNS.indexOf(c.align) >= 0) d.align = c.align;
+    if (typeof c.ox === 'number') d.ox = Math.round(coverClampOff(c.ox) * 10000) / 10000;
+    if (typeof c.oy === 'number') d.oy = Math.round(coverClampOff(c.oy) * 10000) / 10000;
+    d.wo = coverCleanWo(c.wo);
   }
   coverState = d;
 }
 function coverOnTitle(v) {
   var before = coverTitleWords().length;
   coverState.title = String(v || '').slice(0, 90);
-  if (coverTitleWords().length !== before) coverState.kw = coverDefaultKw(coverTitleWords()); // Wortanzahl geändert → Akzent neu vorschlagen
+  if (coverTitleWords().length !== before) { coverState.kw = coverDefaultKw(coverTitleWords()); coverState.wo = {}; _coverSel = -1; } // Wortanzahl geändert → Akzent neu vorschlagen, Wort-Verschiebungen passen nicht mehr
+  if (_coverSel >= coverTitleWords().length) _coverSel = -1;
   coverSyncUI(); coverRedraw(); scheduleAutosave();
 }
 function coverOnTime(v) { coverState.t = +v || 0; var tl = coverEl('cvTimeLbl'); if (tl) tl.textContent = fmtS(coverState.t); coverLoadFrame(coverState.t); scheduleAutosave(); }
-function coverSet(k, v) { coverState[k] = v; coverSyncUI(); coverRedraw(); scheduleAutosave(); }
+function coverSet(k, v) {
+  coverState[k] = v;
+  if (k === 'pos') coverState.oy = 0; // Voreinstellung Oben/Mitte/Unten gilt wieder ab der Grundlinie
+  if (k === 'align') coverState.ox = 0;
+  coverSyncUI(); coverRedraw(); scheduleAutosave();
+}
+// ── Titel per Zeiger verschieben (Maus + Touch): ganzer Titel; ein Wort nur, wenn es zuvor angetippt wurde ──
+// CSS-px des Canvas → 1080er-Einheiten (k = Einheiten je CSS-px; Handy: Canvas 38dvh hoch, also anderer Massstab als am Desktop)
+function coverPoint(cv, e) {
+  var r = cv.getBoundingClientRect();
+  if (!(r.width > 0 && r.height > 0)) return null;
+  return { x: (e.clientX - r.left) * COVER_W / r.width, y: (e.clientY - r.top) * COVER_H / r.height, k: COVER_W / r.width };
+}
+(function() {
+  var cv = document.getElementById('cvCanvas');
+  if (!cv || !cv.addEventListener) return;
+  var SLOP = 5; // CSS-px: weniger Bewegung gilt als Tippen (Wort wählen), mehr als Ziehen
+  function end(e) {
+    var d = _coverDrag;
+    if (!d || (e && e.pointerId !== undefined && e.pointerId !== d.id)) return;
+    _coverDrag = null; cv.classList.remove('dragging');
+    try { cv.releasePointerCapture(d.id); } catch (er) {}
+    if (!d.moved && e && e.type === 'pointerup') _coverSel = (d.hit >= 0 && d.hit !== _coverSel) ? d.hit : -1; // Tippen: Wort wählen/abwählen
+    if (d.moved) { coverState.wo = coverCleanWo(coverState.wo); scheduleAutosave(); }
+    coverSyncUI(); coverRedraw();
+  }
+  cv.addEventListener('pointerdown', function(e) {
+    if (e.isPrimary === false || (e.button !== undefined && e.button > 0) || !_coverHit) return;
+    var p = coverPoint(cv, e); if (!p) return;
+    var hit = coverHitWord(_coverHit.words, p, 8 * p.k), word = _coverSel >= 0 && hit === _coverSel;
+    var rect = word ? _coverHit.words.filter(function(w){ return w.i === hit; })[0] : _coverHit;
+    if (!rect) return;
+    _coverDrag = { id: e.pointerId, p0: p, x0: e.clientX, y0: e.clientY, hit: hit, word: word, moved: false, snap: null,
+      rect: { x: rect.x, y: rect.y, w: rect.w, h: rect.h }, o0: word ? (coverState.wo[hit] || [0, 0]).slice() : [coverState.ox || 0, coverState.oy || 0] };
+    try { cv.setPointerCapture(e.pointerId); } catch (er) {}
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove', function(e) {
+    var d = _coverDrag; if (!d || e.pointerId !== d.id) return;
+    if (!d.moved) { if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < SLOP) return; d.moved = true; cv.classList.add('dragging'); }
+    var p = coverPoint(cv, e); if (!p) return;
+    var dx = p.x - d.p0.x, dy = p.y - d.p0.y, sn = null;
+    if (!e.altKey) { // Alt hält das Einrasten aus
+      sn = coverSnap({ x: d.rect.x + dx, y: d.rect.y + dy, w: d.rect.w, h: d.rect.h }, coverSafeRegion(COVER_W, COVER_H), COVER_W, COVER_H, 8 * p.k);
+      dx += sn.dx; dy += sn.dy;
+    }
+    d.snap = sn && (sn.vx !== null || sn.vy !== null) ? sn : null;
+    var nx = coverClampOff(d.o0[0] + dx / COVER_W), ny = coverClampOff(d.o0[1] + dy / COVER_H);
+    if (d.word) { var wo = Object.assign({}, coverState.wo); wo[d.hit] = [nx, ny]; coverState.wo = wo; }
+    else { coverState.ox = nx; coverState.oy = ny; }
+    coverRedraw();
+  });
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+})();
+function coverResetPos() { coverState.ox = 0; coverState.oy = 0; coverState.wo = {}; _coverSel = -1; coverSyncUI(); coverRedraw(); scheduleAutosave(); }
 function coverOnImage(inp) {
   var f = inp && inp.files && inp.files[0]; if (inp) inp.value = '';
   if (!f || !/^image\//.test(f.type)) { if (f) capToast('Please choose an image (JPG, PNG, WebP)'); return; }
@@ -11934,6 +12149,62 @@ function tlRange() {
   return { a: Math.min(tlSel, tlSelEnd), b: Math.max(tlSel, tlSelEnd) };
 }
 function tlInRange(i, r) { r = r || tlRange(); return !!r && i >= r.a && i <= r.b; }
+// Auswahlrahmen / Wisch: alle Blöcke, die das Zeitfenster t0…t1 (Block-Zeit, Richtung egal) berühren. Blöcke sind sortiert
+// und überlappen nicht → immer eine zusammenhängende Indexfolge {a,b}; null, wenn das Fenster in einer Lücke liegt.
+// Berühren zählt inklusive (Fenster-Rand genau auf einer Blockkante trifft den Block).
+function tlSweepRange(bl, t0, t1) {
+  var n = bl ? bl.length : 0;
+  if (!n || !isFinite(t0) || !isFinite(t1)) return null;
+  var lo = Math.min(t0, t1), hi = Math.max(t0, t1), a = tlFirstEndAfter(bl, lo);
+  if (a >= n) return null;
+  var z = a, e = n; // erster Block, der erst NACH dem Fenster beginnt (Starts monoton)
+  while (z < e) { var m = (z + e) >> 1; if (bl[m].start <= hi) z = m + 1; else e = m; }
+  return z - 1 >= a ? { a: a, b: z - 1 } : null;
+}
+// Auswahl live auf den überstrichenen Bereich setzen (Desktop-Rahmen und Handy-Wisch). tNow = Videozeit unter dem Zeiger;
+// mit Shift (d.sweepBase) bleibt die bisherige Auswahl enthalten. Nur bei Änderung wird die Auswahl neu gesetzt.
+function tlSweepApply(d, tNow) {
+  var off = timeOff || 0, r = tlSweepRange(captionBlocks, Math.min(d.tDown, tNow) + off, Math.max(d.tDown, tNow) + off);
+  var a = r ? r.a : -1, z = r ? r.b : -1, bs = d.sweepBase;
+  if (bs) { a = a < 0 ? bs.a : Math.min(a, bs.a); z = z < 0 ? bs.b : Math.max(z, bs.b); }
+  var key = a + ':' + z;
+  if (key === d.sweepKey) return;
+  d.sweepKey = key;
+  if (a < 0) { tlSel = -1; tlSelEnd = -1; selectSegRow(null); }
+  else if (a === z) tlSelect(a, false);
+  else { tlSel = a; tlSelEnd = z; selectSegRow(null); }
+  tlHintSeen(); tlRequestDraw();
+}
+// Auswahl vor dem Rahmen merken / bei Abbruch (pointercancel) wiederherstellen
+function tlSweepRestore(d) {
+  if (!d || !d.sel0) return;
+  tlSel = d.sel0.sel; tlSelEnd = d.sel0.end;
+  var row = captionBlocks[tlSel] && !tlRange() ? document.getElementById('seg' + tlSel) : null;
+  selectSegRow(row && row.classList ? row : null);
+}
+// Am Rand weiterscrollen, solange der Zeiger dort verharrt (rAF, zeitbasiert: bis ~700 px/s am äussersten Rand).
+// Desktop nur, wenn gezoomt; Handy bewegt die feste Mitte (Video folgt) wie beim Block-Ziehen.
+function tlSweepLoop() {
+  var d = _tl.drag;
+  _tl.sweepRaf = 0;
+  if (!d || !d.moved || (d.type !== 'marquee' && d.type !== 'sweep') || !_tl.cv) return;
+  var w = _tl.cv.clientWidth || 1, edge = d.mob ? 28 : 24, now = Date.now(), dt = Math.min(0.05, (now - (d.autoAt || now)) / 1000);
+  d.autoAt = now;
+  var depth = d.px < edge ? (d.px - edge) / edge : d.px > w - edge ? (d.px - (w - edge)) / edge : 0;
+  depth = Math.max(-1.5, Math.min(1.5, depth));
+  if (depth && dt > 0) {
+    var dpx = depth * 700 * dt;
+    if (d.mob) tlScrubTo(tlMobCenter() + dpx / _tl.mpps);
+    else if (!_tl.fit) { tlView = tlClampView({ start: tlView.start + dpx / tlView.pps, pps: tlView.pps }, tlDur(), w); _tl.userAt = Date.now(); }
+    d.t1 = tlXToTime(d.px, tlView); tlSweepApply(d, d.t1); tlRequestDraw();
+  }
+  if (typeof requestAnimationFrame === 'function') _tl.sweepRaf = requestAnimationFrame(tlSweepLoop);
+}
+function tlSweepMove(d, x) {
+  d.px = x; d.t1 = tlXToTime(x, tlView);
+  tlSweepApply(d, d.t1);
+  if (!_tl.sweepRaf && typeof requestAnimationFrame === 'function') { d.autoAt = Date.now(); _tl.sweepRaf = requestAnimationFrame(tlSweepLoop); }
+}
 // Gruppe als EIN virtueller Block (Start des ersten … Ende des letzten) → gleiche Grenzen/Fangpunkte wie ein Block
 function tlGroupSetup(r) {
   var bl = captionBlocks, v = { start: bl[r.a].start, end: bl[r.b].end, words: [] };
@@ -12359,7 +12630,7 @@ function tlApplyMode() {
   var pcol = wrap && wrap.parentElement;
   if (pcol && pcol.style && pcol.style.setProperty) pcol.style.setProperty('--tl-h', g.h + 'px');
   var hint = document.getElementById('tlHint');
-  if (hint) hint.textContent = g.coarse ? 'Tap a caption to select it · drag its edges to trim · hold to move it' : 'Drag to move · drag edges to trim · Shift+click to select several';
+  if (hint) hint.textContent = g.coarse ? 'Tap a caption to select it · drag its edges to trim · hold to move it' : 'Drag to move · drag edges to trim · drag over captions to select several';
   _tl.actKey = ''; tlSyncAct();
   tlRequestDraw();
 }
@@ -12429,7 +12700,7 @@ function tlSyncAct() {
   _tl.actKey = key;
   var hint = document.getElementById('taHint');
   if (hint) hint.textContent = rg ? ((rg.b - rg.a + 1) + ' captions selected · hold one to move them · Delete removes them')
-                             : tlMulti ? (b ? 'Tap the last caption of the range' : 'Tap the first caption, then the last')
+                             : tlMulti ? (b ? 'Tap the last caption of the range' : 'Swipe across captions to select them, or tap the first and the last')
                              : b ? (fmtT1(b.start) + ' – ' + fmtT1(b.end) + ' · hold to move · drag the edges to trim')
                                  : 'Tap a caption to adjust it · swipe to scrub · pinch to zoom';
   ['taSplit', 'taEdit', 'taDel'].forEach(function(id){ var el = document.getElementById(id); if (el) el.disabled = !b; });
@@ -12613,6 +12884,16 @@ function tlDraw() {
     ctx.fillStyle = '#fff';
     ctx.beginPath(); tlRRect(ctx, selH.xs - 8.5, yB + hB * 0.32, 3, hB * 0.36, 1.5); tlRRect(ctx, selH.xe + 5.5, yB + hB * 0.32, 3, hB * 0.36, 1.5); ctx.fill();
   }
+  // Auswahlrahmen (Desktop-Ziehen auf leerer Fläche bzw. Handy-Wisch im «Select»-Modus)
+  if (d && (d.type === 'marquee' || d.type === 'sweep') && d.moved && d.t1 !== undefined) {
+    var mx0 = tlTimeToX(Math.min(d.tDown, d.t1), v), mx1 = tlTimeToX(Math.max(d.tDown, d.t1), v), my0 = mob ? yB - 4 : g.ruler + 1;
+    mx0 = Math.max(-2, mx0); mx1 = Math.min(w + 2, mx1);
+    if (mx1 - mx0 >= 1) {
+      ctx.beginPath(); tlRRect(ctx, mx0 + 0.5, my0 + 0.5, mx1 - mx0 - 1, g.h - my0 - 1.5, 3);
+      ctx.fillStyle = 'rgba(124,58,237,.14)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(109,40,217,.6)'; ctx.lineWidth = 1; ctx.stroke();
+    }
+  }
   // Fang-Linie + Zeitanzeige beim Ziehen
   if (_tl.snap) {
     x = Math.round(tlTimeToX(_tl.snap.t - off, v)) + 0.5;
@@ -12694,7 +12975,7 @@ function tlBeginBlockDrag(d) {
   return true;
 }
 function tlOnDown(e) {
-  if (!_tl.cv || isExporting || (e.pointerType === 'mouse' && e.button !== 0)) return;
+  if (!_tl.cv || isExporting || (e.pointerType === 'mouse' && e.button !== 0 && e.button !== 1)) return;
   _tl.rect = _tl.cv.getBoundingClientRect();
   if (e.isPrimary !== false || e.pointerType === 'mouse') _tl.ptrs = {}; // erster Finger/Maus: verwaiste Zeiger vergessen
   var p = tlPos(e);
@@ -12712,12 +12993,18 @@ function tlOnDown(e) {
   }
   if (!(tlDur() > 0)) return;
   if (_tl.mob) { tlMobDown(e, p); e.preventDefault(); return; }
-  var touch = e.pointerType === 'touch', hit = tlHit(p.x, p.y, touch);
+  var touch = e.pointerType === 'touch', mid = e.pointerType === 'mouse' && e.button === 1, hit = mid ? { type: 'empty' } : tlHit(p.x, p.y, touch);
   var d = { id: e.pointerId, x0: p.x, y0: p.y, moved: false, touch: touch, hit: hit, tDown: tlXToTime(p.x, tlView), view0: { start: tlView.start, pps: tlView.pps } };
-  if (hit.type === 'ruler') { d.type = 'seek'; tlSeekVideo(tlXToTime(p.x, tlView)); }
+  if (mid) { d.type = 'pan'; d.mid = true; } // Mittelklick-Ziehen = Scrollen
+  else if (hit.type === 'ruler') { d.type = 'seek'; tlSeekVideo(tlXToTime(p.x, tlView)); }
   else if (hit.type === 'block' && (!touch || hit.idx === tlSel)) {
     d.type = 'block'; d.idx = hit.idx; d.mode = hit.mode;
     if (!e.shiftKey && hit.mode === 'move' && tlInRange(hit.idx)) d.group = tlRange();
+  }
+  else if (!touch) { // Maus/Stift auf leerer Fläche: Auswahlrahmen (Shift erweitert die bestehende Auswahl)
+    d.type = 'marquee'; d.px = p.x;
+    d.sel0 = { sel: tlSel, end: tlSelEnd };
+    if (e.shiftKey && captionBlocks[tlSel]) d.sweepBase = tlRange() || { a: tlSel, b: tlSel };
   }
   else {
     d.type = 'pan';
@@ -12732,6 +13019,7 @@ function tlOnDown(e) {
   }
   _tl.drag = d;
   if (d.type === 'block') _tl.cv.style.cursor = d.mode === 'move' ? 'grabbing' : 'ew-resize';
+  else if (d.type === 'pan' && d.mid) _tl.cv.style.cursor = 'grabbing';
   e.preventDefault();
 }
 function tlOnMove(e) {
@@ -12757,14 +13045,14 @@ function tlOnMove(e) {
   if (d && d.mob) { if (d.id === e.pointerId) tlMobMove(e, p, d); return; }
   if (!d) { // Hover: Cursor + Tooltip je Bereich
     if (e.pointerType !== 'mouse' || _tl.mob) return;
-    var h = tlHit(p.x, p.y, false), cur = h.type === 'ruler' ? 'pointer' : h.type === 'block' ? (h.mode === 'move' ? 'grab' : 'ew-resize') : 'default';
+    var h = tlHit(p.x, p.y, false), cur = h.type === 'ruler' ? 'pointer' : h.type === 'block' ? (h.mode === 'move' ? 'grab' : 'ew-resize') : 'crosshair';
     var hb = h.type === 'block' ? captionBlocks[h.idx] : null, hk = cur + '|' + (hb ? h.idx + '|' + hb.text + '|' + hb.start + '|' + hb.end : '');
     if (_tl.hover !== hk) {
       _tl.hover = hk; _tl.cv.style.cursor = cur;
       // Block-Tooltip mit Text + Zeit: schmale Balken haben keinen Platz für eine Beschriftung
       _tl.cv.title = h.type === 'ruler' ? 'Click or drag to seek'
         : hb ? ('“' + (String(hb.text || '').trim() || '(empty caption)') + '”  ' + fmtT1(hb.start - (timeOff || 0)) + '–' + fmtT1(hb.end - (timeOff || 0)) + '\nDrag to move · drag edges to trim · double-click to edit')
-        : 'Drag to scroll · Ctrl/⌘+wheel to zoom · click to seek';
+        : 'Drag to select several captions (Shift adds) · scroll or middle-drag to pan · Ctrl/⌘+wheel to zoom · click to seek';
     }
     return;
   }
@@ -12781,6 +13069,7 @@ function tlOnMove(e) {
     _tl.userAt = Date.now(); tlRequestDraw();
     return;
   }
+  if (d.type === 'marquee') { _tl.cv.style.cursor = 'crosshair'; tlSweepMove(d, p.x); return; }
   if (d.type !== 'block' || !d.base) return;
   if (d.arr !== captionBlocks || !captionBlocks[d.idx]) { _tl.drag = null; _tl.snap = null; tlRequestDraw(); return; } // Daten wurden ersetzt (z. B. Neu-Gruppierung)
   // Am Rand mitscrollen (gezoomt): Zeit unter dem Zeiger zählt, nicht der Pixelweg → Block folgt dem Finger
@@ -12811,7 +13100,8 @@ function tlOnUp(e) {
   if (d.mob) { _tl.drag = null; tlMobUp(e, d); return; }
   _tl.drag = null; _tl.hover = '';
   _tl.cv.style.cursor = '';
-  if (e.type === 'pointercancel') { tlRevertDrag(d); tlRequestDraw(); return; }
+  if (e.type === 'pointercancel') { if (d.type === 'marquee') tlSweepRestore(d); tlRevertDrag(d); tlRequestDraw(); return; }
+  if (d.type === 'marquee' && d.moved) { tlRequestDraw(); return; } // Auswahl steht schon (live gesetzt)
   if (d.type === 'block' && d.base && d.group) {
     _tl.snap = null;
     if (d.arr === captionBlocks && d.cur) {
@@ -12836,9 +13126,9 @@ function tlOnUp(e) {
     if (lt && lt.idx === d.hit.idx && now - lt.t < 380) { _tl.lastTap = null; tlEditText(d.hit.idx); return; }
     _tl.lastTap = { idx: d.hit.idx, t: now };
     tlSelect(d.hit.idx, true);
-  } else if (d.type === 'pan') {
+  } else if ((d.type === 'pan' && !d.mid) || d.type === 'marquee') { // Klick auf leere Fläche: abwählen + springen (Shift behält die Auswahl)
     _tl.lastTap = null;
-    tlSel = -1; selectSegRow(null);
+    if (!e.shiftKey) { tlSel = -1; tlSelEnd = -1; selectSegRow(null); }
     tlSeekVideo(tlXToTime(d.x0, tlView));
   }
 }
@@ -12853,6 +13143,7 @@ function tlMobDown(e, p) {
   if (hit.type === 'block' && hit.idx === tlSel && hit.mode !== 'move') { d.type = 'block'; d.idx = hit.idx; d.mode = hit.mode; }
   else {
     d.type = 'pan';
+    if (tlMulti && hit.type === 'block') { d.sweep = true; d.px = p.x; d.sel0 = { sel: tlSel, end: tlSelEnd }; } // «Select»-Modus: Wisch ab einem Block wählt den Bereich
     if (hit.type === 'block') d.lp = setTimeout(function() {
       if (_tl.drag !== d || d.moved) return;
       if (tlInRange(hit.idx)) d.group = tlRange(); else tlSelect(hit.idx, false); // Teil der Auswahl: ganzen Bereich verschieben
@@ -12872,13 +13163,18 @@ function tlMobMove(e, p, d) {
     if (k === 'pending' || k === 'hold') return;
     d.moved = true; clearTimeout(d.lp);
     if (d.type === 'block' && !tlBeginBlockDrag(d)) { _tl.drag = null; return; }
-    if (d.type === 'pan') {
+    if (d.type === 'pan' && d.sweep) { // Auswahl-Wisch statt Scrubben: Video anhalten, Spur bleibt stehen
+      d.type = 'sweep';
+      var vs = document.getElementById('mainVid');
+      if (vs && !vs.paused) vs.pause();
+    } else if (d.type === 'pan') {
       var vid = document.getElementById('mainVid');
       if (vid && !vid.paused) vid.pause(); // Spur anfassen = Video anhalten
       d.c0 = tlMobCenter(); d.x0 = p.x; // ab hier ohne Sprung um die Schwelle
     }
   }
   if (d.type === 'pan') { tlScrubTo(d.c0 - (p.x - d.x0) / _tl.mpps); return; }
+  if (d.type === 'sweep') { tlSweepMove(d, p.x); return; }
   if (d.type !== 'block' || !d.base) return;
   if (d.arr !== captionBlocks || !captionBlocks[d.idx]) { _tl.drag = null; _tl.snap = null; tlRequestDraw(); return; }
   // Am Rand mitscrollen (Mitte wandert → Video folgt), Zeit unter dem Finger zählt
@@ -12893,7 +13189,8 @@ function tlMobMove(e, p, d) {
 }
 function tlMobUp(e, d) {
   var now = Date.now();
-  if (e.type === 'pointercancel') { tlRevertDrag(d); tlScrubEnd(); tlRequestDraw(); return; }
+  if (e.type === 'pointercancel') { if (d.type === 'sweep') tlSweepRestore(d); tlRevertDrag(d); tlScrubEnd(); tlRequestDraw(); return; }
+  if (d.type === 'sweep') { tlScrubEnd(); tlRequestDraw(); return; } // Auswahl steht schon (live gesetzt)
   if (d.type === 'block' && d.base && d.group) { // Bereich gemeinsam verschoben: Auswahl bleibt bestehen
     _tl.snap = null;
     if (d.arr === captionBlocks && d.cur) {
@@ -13045,7 +13342,7 @@ function tlZoomBtn(f) {
 }
 // Neues Video: Wellenform/Sprache/Auswahl gehören zum alten
 function tlReset() {
-  tlWave = null; tlSpeech = []; tlSel = -1; tlMulti = false; _tl.fit = true; tlView = { start: 0, pps: 0 }; _tl.drag = null; _tl.snap = null; _tl.tw = {}; _tl.twN = 0;
+  tlWave = null; tlSpeech = []; tlSel = -1; tlSelEnd = -1; tlMulti = false; _tl.fit = true; tlView = { start: 0, pps: 0 }; _tl.drag = null; _tl.snap = null; _tl.tw = {}; _tl.twN = 0;
   tlFlingStop(); _tl.scrubT = null; _tl.pendSeek = null; _tl.mpps = TL_MOB_PPS; _tl.actKey = '';
 }
 (function tlInit() {
@@ -13060,6 +13357,8 @@ function tlReset() {
   cv.addEventListener('pointerleave', function(){ if (!_tl.drag) _tl.hover = ''; });
   cv.addEventListener('wheel', tlOnWheel, { passive: false });
   cv.addEventListener('keydown', tlOnKey);
+  cv.addEventListener('mousedown', function(e){ if (e.button === 1) e.preventDefault(); }); // Mittelklick: kein Browser-Autoscroll
+  cv.addEventListener('auxclick', function(e){ e.preventDefault(); });
   cv.addEventListener('contextmenu', function(e){ e.preventDefault(); }); // Long-Press öffnet sonst das Kontextmenü
   if (typeof ResizeObserver === 'function') { try { new ResizeObserver(function(){ tlRequestDraw(); }).observe(cv); } catch (e) {} }
   // Scrubben: das neueste Ziel nachreichen, sobald der vorige Seek fertig ist
