@@ -149,8 +149,9 @@ function qaMain() {
       const o = {};
       const s = STYLES.find(x => x.id === activeId) || {};
       Object.keys(s).forEach(k => { if (['id', 'name', 'badge', '_tpl', '_isTpl', '_tplId'].indexOf(k) >= 0) return; const v = s[k]; o['style.' + k] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v; });
+      // cfg.fontRel = Schrift relativ zur Rahmenbreite: ändert sich nicht, wenn der Rahmen (Handy: kompakt beim Tippen) schrumpft
       o['cfg.active'] = activeId; o['cfg.lines'] = CAPTION_LINES; o['cfg.wpb'] = WORDS_PER_BLOCK; o['cfg.maxChars'] = CAP_MAX_CHARS;
-      o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; // relativ zur Rahmenbreite: ändert sich nicht, wenn der Rahmen (Handy: kompakt beim Tippen) schrumpft o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
+      o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
       o['cfg.punct'] = capNoPunct ? 1 : 0; o['cfg.kw'] = emKw ? 1 : 0; o['cfg.emoji'] = emEmoji ? 1 : 0; o['cfg.zoom'] = emZoom; o['cfg.timeOff'] = timeOff;
       o['cfg.blocks'] = captionBlocks.length;
       o['cfg.text'] = hash(captionBlocks.map(b => b.text).join('|'));
@@ -588,7 +589,9 @@ async function runControl(browser, prof, def, variant) {
 }
 SECTIONS.ctl = async (browser, prof) => {
   const only = argVal('ctl');
-  for (const def of CTL) {
+  const CORE = ['csLh', 'csAnim', 'szSlider', 'pos', 'wpbSlider', 'lines', 'cvTitle', 'btnSRT', 'tlSelect', 'undoBtn', 'csHl', 'csBox']; // --quick: jede zweite Kontrolle + diese
+  for (const [ix, def] of CTL.entries()) {
+    if (QUICK && ix % 2 && !CORE.includes(def.id)) continue;
     if (def.vp && !def.vp.includes(prof.name)) continue;
     if (only && !only.split(',').includes(def.id)) continue;
     const variants = def.custom && !QUICK ? CUSTOM_VARIANTS : ['plain'];
@@ -696,7 +699,7 @@ SECTIONS.geom = async (browser, prof) => {
   const p = sc.page;
   await goTab(sc, 'style');
   let ids = await p.evaluate(() => STYLES.filter(s => s.id !== 'custom' && !s._isTpl).map(s => s.id));
-  const lines = QUICK ? [2] : [1, 2], poss = QUICK ? ['top', 'bottom'] : ['top', 'center', 'bottom'], lhs = QUICK ? [1.3, 1.8] : [0.9, 1.3, 1.8];
+  const lines = QUICK ? [2] : [1, 2], poss = QUICK ? ['center', 'bottom'] : ['top', 'center', 'bottom'], lhs = QUICK ? [1.3, 1.8] : [0.9, 1.3, 1.8];
   if (QUICK) ids = ids.filter((x, i) => i % 3 === 0);
   const tol = GEOM_W * 0.01;
   for (const id of ids) {
