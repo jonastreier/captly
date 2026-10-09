@@ -8,6 +8,7 @@
 //   node test-ui-sweep.js --verbose         auch bestandene Prüfungen auflisten
 //   node test-ui-sweep.js --strict          unerwartetes PASS (XPASS) zählt als Fehler
 //   SWEEP_SHOTS=/pfad                       bei Fehlern Screenshots dorthin (sonst nur Meldungen)
+//   SWEEP_STAT=1 / SWEEP_ALLSHOTS=1         pixel: alle Messwerte ausgeben / Vorschau+Export jedes Styles speichern (mit SWEEP_SHOTS)
 //
 // Abschnitte
 //   hyg    Hygiene nach jedem Tab/Sheet/Dialog: keine Konsolen-/Seitenfehler, kein horizontales Scrollen, nichts ragt aus dem
@@ -17,7 +18,7 @@
 //          Erwartete Felder ändern sich, Invarianten (Zeilen, Wörter/Block, Blockanzahl, Schriftgrösse …) bleiben.
 //          Eine Kontrolle, die GAR NICHTS ändert, ist ein Fehler — ausser sie ist als noopOk (mit Begründung) markiert.
 //   geom   Vorschau = Export (Geometrie): DOM-Wortrechtecke × Export-Skala vs. capLayout (alle Presets × Zeilen × Position × Zeilenhöhe)
-//   pixel  Vorschau = Export (Pixel): Video aus, Hintergrund #808080, binarisieren, IoU ≥ 0.9
+//   pixel  Vorschau = Export (Pixel): Video aus, Hintergrund #808080, binarisieren, tolerante IoU ≥ 0.9 + kein Versatz
 //   anim   Animation: bei Wortstart + 0.08 s ist die gewählte Wort-Animation am aktiven Span sichtbar
 //   edge   Rand-Check: einfarbig helles Video — in den untersten 3 Pixelreihen (innerhalb der Rundung) nichts Dunkles (Zoom 1 und 1.25)
 //
@@ -49,10 +50,6 @@ const T0 = Date.now();
 const EXPECT_FAIL = [
   // Aktuell leer: P1 (Layout-Preset/Zeilenhöhe/Export-Zeilenabstand), P2 (Word pop), P3 (Cover-Rand) sind gemergt.
   { re: /^ctl\/cvWords\/changes:cover\.hash$/, why: 'NEU gefunden (noch nicht behoben): Cover-Akzent-Chips («Tap words to accent them») bewirken bei Looks ohne Betonung (Standard «tight», «statement») nichts — captly.html coverIsEm() ~Z. 11279 verlangt emphColor/emFont' },
-  { re: /^geom\/y\/(serifbold|popone|headline)$/, why: 'NEU gefunden (noch nicht behoben): Position «Middle» — Export zentriert mit fester Konstante «fsS * 0.35» statt mit den Schrift-Metriken (captly.html capLayout ~Z. 10653: y0 = centerY - … + fsS * 0.35); bei Anton/Playfair/Kalam liegt der Export 11–17 px (Export-Breite 1080) anders als die Vorschau' },
-  { re: /^geom\/y\/(editorial|script|boxkara)$/, vp: ['phone'], why: 'NEU gefunden (noch nicht behoben): Position «Middle» — Export zentriert mit fester Konstante «fsS * 0.35» statt mit den Schrift-Metriken (captly.html capLayout ~Z. 10653: y0 = centerY - … + fsS * 0.35); bei Anton/Playfair/Kalam liegt der Export 11–17 px (Export-Breite 1080) anders als die Vorschau' },
-  { re: /^geom\/(y\/serifbold|linepitch\/boxkara)$/, vp: ['phone'], why: 'NEU gefunden (noch nicht behoben): Position «Bottom»/Zeilenhöhe 0.9/1.8 bei Serif Bold bzw. Highlight Box: Block liegt in Vorschau und Export 11–14 px (von 1080) versetzt, Highlight Box 0.9 hat in der Vorschau grösseren Zeilenabstand (81 vs 76 px) — Ursache vermutlich clampCapVertical (Vorschau) vs. Clamp in capLayout' },
-  { re: /^pixel\/iou$/, why: 'NEU gefunden (noch nicht behoben): Export-Text liegt in den meisten Styles 8–16 px (bei 1080×1920) tiefer als in der Vorschau (Position «Bottom», 1–2 Zeilen) → rohe IoU < 0.9, nach Ausrichtung ≥ 0.6; gleiche Ursache wie geom/y (capLayout gapBelow/Clamp vs. applyPos/clampCapVertical)' },
   // Neuer Eintrag: { re: /^ctl\/csLh@layoutPreset\//, why: 'Branch xyz: Kurzbeschreibung' },
 ];
 
@@ -237,7 +234,7 @@ function qaMain() {
       const spans = Array.prototype.slice.call(ov.querySelectorAll('[data-oi]'));
       spans.forEach(x => { x.style.transform = 'none'; }); // laufende Pop-/Lift-Animation würde die Rechtecke verschieben
       const pieces = []; L.lines.forEach((ln, li) => ln.forEach(wo => pieces.push({ wo, li })));
-      const out = { n: spans.length, nExp: pieces.length, linesDom: qa.domLines(), linesExp: L.lines.length, scale: L.scale, fsS: L.fsS, lhExp: L.lh, dx: 0, dw: 0, dy: 0, dh: 0, pitchDom: null, W, H, worst: '' };
+      const out = { n: spans.length, nExp: pieces.length, linesDom: qa.domLines(), linesExp: L.lines.length, scale: L.scale, fsS: L.fsS, lhExp: L.lh, dx: 0, dw: 0, dy: 0, dh: 0, db: 0, pitchDom: null, W, H, worst: '' };
       const rows = {}, wraps = [];
       for (let i = 0; i < Math.min(spans.length, pieces.length); i++) {
         const r = spans[i].getBoundingClientRect(), p = pieces[i].wo, k = W / (previewFrameW() * ratio);
@@ -247,8 +244,17 @@ function qaMain() {
         if (dx > out.dx) { out.dx = dx; out.worst = 'x ' + spans[i].textContent; }
         out.dw = Math.max(out.dw, dw); if (dy > out.dy) { out.dy = dy; out.worstY = spans[i].textContent + (isEm ? ' (Betonung)' : '') + ' Zeile ' + pieces[i].li + ' DOM ' + top.toFixed(1) + ' / Export ' + (p.y - L.capA).toFixed(1); } out.dh = Math.max(out.dh, dh);
         const wr = spans[i].parentElement; if (wraps.indexOf(wr) < 0) wraps.push(wr);
+        // Grundlinie (sichtbare Schriftlage, auch für Betonungswörter): 0×0-Marker im Wort, einzeln eingefügt/entfernt
+        const m = document.createElement('span'); m.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline'; spans[i].appendChild(m);
+        const bDom = (r.top + m.getBoundingClientRect().top - spans[i].getBoundingClientRect().top - fr.top) * k; m.remove();
+        const db = Math.abs(bDom - p.y); if (db > out.db) { out.db = db; out.worstB = spans[i].textContent + ' Zeile ' + pieces[i].li + ' DOM ' + bDom.toFixed(1) + ' / Export ' + p.y.toFixed(1); }
       }
-      if (wraps.length > 1) { const t0 = wraps[0].getBoundingClientRect().top, t1 = wraps[1].getBoundingClientRect().top; out.pitchDom = (t1 - t0) * W / (previewFrameW() * ratio); }
+      // Zeilenabstand = Abstand der GRUNDLINIEN (0×0-Marker im ersten Wort jeder Zeile), nicht der Zeilenbox-Oberkanten: ein grösseres
+      // Betonungswort lässt seine Zeile nach oben wachsen (gerundete Schriftmetrik), die Schrift selbst rückt dabei nicht weiter
+      if (wraps.length > 1) {
+        const bl = wraps.slice(0, 2).map(wr => { const w0 = wr.querySelector('[data-oi]') || wr, m = document.createElement('span'); m.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline'; w0.appendChild(m); const y = m.getBoundingClientRect().top; m.remove(); return y; });
+        out.pitchDom = (bl[1] - bl[0]) * W / (previewFrameW() * ratio);
+      }
       out.topDom = null; out.topExp = null;
       out.pitchExp = L.lh;
       return out;
@@ -296,7 +302,10 @@ function qaMain() {
         for (let yy = y0; yy < y1; yy++) for (let xx = x0; xx < x1; xx++) { n += diff[yy * src.width + xx]; tot++; }
         m[y * w + x] = tot && n / tot >= 0.3 ? 1 : 0;
       }
-      return { w, h, bits: Array.from(m) };
+      // Zeilen-/Spaltenprofil der abweichenden Pixel in voller Auflösung (für die Versatz-Schätzung pixel/shift, s. profShift)
+      const rows = new Array(src.height).fill(0), cols = new Array(src.width).fill(0);
+      for (let y = 0; y < src.height; y++) for (let x = 0; x < src.width; x++) if (diff[y * src.width + x]) { rows[y]++; cols[x]++; }
+      return { w, h, bits: Array.from(m), rows, cols };
     },
     maskFromImage(dataUrl, W, H, w) {
       return new Promise(res => {
@@ -692,7 +701,8 @@ SECTIONS.anim = async (browser, prof) => {
 
 
 // ═══════════ Abschnitt geom: Vorschau = Export (Geometrie) ═══════════
-// DOM-Wortrechtecke (auf Export-Breite W skaliert) vs. capLayout. Toleranz ≤ 1 % von W für Position/Breite, Zeilenabstand strenger (1.2 % der Schriftgrösse; Export rundet die Schrift auf ganze px).
+// DOM-Wortrechtecke und -Grundlinien (auf Export-Breite W skaliert) vs. capLayout. Toleranzen s. unten (vorher pauschal 1 % von W, Zeilenabstand 1.2 % der
+// Schrift, solange der Export die Schrift auf ganze px rundete und die Zeilen mit der Canvas-Metrik setzte).
 const GEOM_W = 1080;
 SECTIONS.geom = async (browser, prof) => {
   const sc = await newScenario(browser, prof);
@@ -701,28 +711,34 @@ SECTIONS.geom = async (browser, prof) => {
   let ids = await p.evaluate(() => STYLES.filter(s => s.id !== 'custom' && !s._isTpl).map(s => s.id));
   const lines = QUICK ? [2] : [1, 2], poss = QUICK ? ['center', 'bottom'] : ['top', 'center', 'bottom'], lhs = QUICK ? [1.3, 1.8] : [0.9, 1.3, 1.8];
   if (QUICK) ids = ids.filter((x, i) => i % 3 === 0);
-  const tol = GEOM_W * 0.01;
+  // Toleranzen (Export-px bei 1080): Grundlinie 0.2 % (Export misst die Vorschau-Zeilen im DOM nach, Rest = Subpixel), Wort-x/-Breite 0.5 %
+  // (Canvas- vs. DOM-Textmessung), Wortbox-Oberkante/-Höhe 1 % (Betonungswörter/Zweitschriften haben bewusst eine eigene Box),
+  // Zeilenabstand der Grundlinien 0.5 % der Schrift.
+  const tol = GEOM_W * 0.01, tolX = GEOM_W * 0.005, tolB = GEOM_W * 0.002, tolP = 0.005;
   for (const id of ids) {
     const res = await p.evaluate(a => window.__qa.geomStyle(a.id, a.lines, a.poss, a.lhs, a.W), { id, lines, poss, lhs, W: GEOM_W });
     const bad = (f, lim) => res.filter(r => f(r) > lim).sort((a, b) => f(b) - f(a));
+    const mx = f => Math.max(0, ...res.map(f)).toFixed(1);
     const cnt = res.filter(r => r.n !== r.nExp || r.linesDom !== r.linesExp);
     check('geom/words/' + id, !cnt.length && res.length > 0, res.length + ' Fälle: gleiche Wort- und Zeilenzahl in Vorschau und Export' + (cnt.length ? ' — ' + cnt[0].tag + ': DOM ' + cnt[0].n + ' Wörter/' + cnt[0].linesDom + ' Zeilen, Export ' + cnt[0].nExp + '/' + cnt[0].linesExp : ''));
-    const bx = bad(r => r.dx, tol), bw = bad(r => r.dw, tol), by = bad(r => r.dy, tol), bh = bad(r => r.dh, tol);
-    check('geom/x/' + id, !bx.length, 'Wort-x ≤ 1 % von W (max ' + Math.max(0, ...res.map(r => r.dx)).toFixed(1) + ' px von ' + tol + ')' + (bx.length ? ' — ' + bx[0].tag + ' «' + bx[0].worst + '»' : ''));
-    check('geom/w/' + id, !bw.length, 'Wortbreite ≤ 1 % von W (max ' + Math.max(0, ...res.map(r => r.dw)).toFixed(1) + ' px)' + (bw.length ? ' — ' + bw[0].tag : ''));
-    check('geom/y/' + id, !by.length, 'Zeilen-y (Oberkante) ≤ 1 % von W (max ' + Math.max(0, ...res.map(r => r.dy)).toFixed(1) + ' px)' + (by.length ? ' — ' + by[0].tag + ': ' + by[0].worstY : ''));
-    check('geom/h/' + id, !bh.length, 'Zeilenbox-Höhe ≤ 1 % von W (max ' + Math.max(0, ...res.map(r => r.dh)).toFixed(1) + ' px)' + (bh.length ? ' — ' + bh[0].tag : ''));
+    const bx = bad(r => r.dx, tolX), bw = bad(r => r.dw, tolX), by = bad(r => r.dy, tol), bh = bad(r => r.dh, tol), bb = bad(r => r.db, tolB);
+    check('geom/x/' + id, !bx.length, 'Wort-x ≤ 0.5 % von W (max ' + mx(r => r.dx) + ' px von ' + tolX + ')' + (bx.length ? ' — ' + bx[0].tag + ' «' + bx[0].worst + '»' : ''));
+    check('geom/w/' + id, !bw.length, 'Wortbreite ≤ 0.5 % von W (max ' + mx(r => r.dw) + ' px)' + (bw.length ? ' — ' + bw[0].tag : ''));
+    check('geom/base/' + id, !bb.length, 'Grundlinie jedes Worts ≤ 0.2 % von W (max ' + mx(r => r.db) + ' px von ' + tolB.toFixed(1) + ')' + (bb.length ? ' — ' + bb[0].tag + ': ' + bb[0].worstB : ''));
+    check('geom/y/' + id, !by.length, 'Wortbox-Oberkante ≤ 1 % von W (max ' + mx(r => r.dy) + ' px)' + (by.length ? ' — ' + by[0].tag + ': ' + by[0].worstY : ''));
+    check('geom/h/' + id, !bh.length, 'Wortbox-Höhe ≤ 1 % von W (max ' + mx(r => r.dh) + ' px)' + (bh.length ? ' — ' + bh[0].tag : ''));
     const two = res.filter(r => r.pitchDom !== null && r.linesExp > 1);
-    const pbad = two.filter(r => Math.abs(r.pitchDom - r.pitchExp) > 0.012 * r.fsS);
-    check('geom/linepitch/' + id, !pbad.length, 'Zeilenabstand Vorschau = Export (' + two.length + ' Fälle)' + (pbad.length ? ' — ' + pbad[0].tag + ': DOM ' + pbad[0].pitchDom.toFixed(1) + ' px, Export ' + pbad[0].pitchExp.toFixed(1) + ' px (Schrift ' + pbad[0].fsS + ' px)' : ''));
+    const pbad = two.filter(r => Math.abs(r.pitchDom - r.pitchExp) > tolP * r.fsS);
+    check('geom/linepitch/' + id, !pbad.length, 'Zeilenabstand (Grundlinien) Vorschau = Export ±0.5 % der Schrift (' + two.length + ' Fälle, max ' + Math.max(0, ...two.map(r => Math.abs(r.pitchDom - r.pitchExp))).toFixed(2) + ' px)' + (pbad.length ? ' — ' + pbad[0].tag + ': DOM ' + pbad[0].pitchDom.toFixed(1) + ' px, Export ' + pbad[0].pitchExp.toFixed(1) + ' px (Schrift ' + pbad[0].fsS + ' px)' : ''));
   }
   await sc.close();
 };
 
 
 // ═══════════ Abschnitt pixel: Vorschau = Export (Pixel) ═══════════
-// Video aus, #prevBg #808080 → Screenshot von #prevFrame und Export-Render (drawCaptionsOnCtx) werden binarisiert (Zelle gesetzt, wenn ≥ 18 % der
-// Pixel von Grau abweichen) und per IoU verglichen (Ecken des runden Rahmens ausgeblendet).
+// Video aus, #prevBg #808080 → Screenshot von #prevFrame und Export-Render (drawCaptionsOnCtx) werden binarisiert (Zelle gesetzt, wenn ≥ 30 % der
+// Pixel von Grau abweichen) und verglichen (Ecken des runden Rahmens ausgeblendet): pixel/iou = tolerante IoU (±1 Zelle) ≥ 0.9,
+// pixel/shift = keine Verschiebung verbessert die strenge IoU, pixel/shape/<id> = ausgerichtet ≥ 0.6. SWEEP_STAT=1 zeigt alle Werte.
 const PIX_STYLES = ['hormozi', 'tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'note', 'script', 'soft', 'classic', 'boxkara', 'beast', 'minimal', 'lift', 'popone', 'tiktok', 'hush', 'focus', 'headline', 'stack', 'neon', 'editorial', 'marker'];
 const IOU_MIN = 0.9;
 // IoU der Masken (8-px-Zellen). Äusserste Zellreihe (Screenshot-Rand/Subpixel) und die Ecken des runden Rahmens bleiben aussen vor
@@ -736,6 +752,26 @@ function iou(a, b, w, h, cut, sx, sy) { // sx/sy: Maske b um Zellen verschieben 
   }
   return u ? i / u : 1;
 }
+// Toleranter Vergleich (F-Mass mit 1 Zelle = 8 Export-px Spielraum, unter der 1-%-Toleranz von geom): Anteil der gesetzten Zellen
+// beider Masken, die in der jeweils anderen (um 1 Zelle verbreitert) liegen. Grund: die Vorschau wird bei 1× DPR (≈ 300 px breit)
+// abfotografiert und 3,6× hochskaliert — weiche Kanten, Schatten und gedimmte Wörter (Fill 40 %) kippen an der Schwelle zellweise,
+// die strenge IoU lag deshalb auch bei deckungsgleichem Text nur bei 0.79–0.89. Einen echten Versatz meldet pixel/shift.
+function iouTol(a, b, w, h, cut) {
+  const da = dilate(a, w, h), db = dilate(b, w, h); let na = 0, nb = 0, ha = 0, hb = 0;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    if ((x < cut || x >= w - cut) && (y < cut || y >= h - cut)) continue;
+    const k = y * w + x; if (a[k]) { na++; if (db[k]) ha++; } if (b[k]) { nb++; if (da[k]) hb++; }
+  }
+  return na + nb ? (ha + hb) / (na + nb) : 1;
+}
+// Versatz (px) des Exports gegenüber der Vorschau aus den Pixelprofilen: Verschiebung mit der kleinsten L1-Differenz (Rand r bleibt aussen vor,
+// dort liegen die Rundungs-Ecken des Rahmens). + = Export tiefer bzw. weiter rechts. Pixelgenau statt in 8-px-Zellen.
+function profShift(a, b, r, max) {
+  let best = 0, bv = Infinity;
+  for (let s = -max; s <= max; s++) { let d = 0; for (let i = r; i < a.length - r; i++) { const j = i + s; d += Math.abs(a[i] - (j >= 0 && j < b.length ? b[j] : 0)); } if (d < bv - 1e-9 || (Math.abs(d - bv) < 1e-9 && Math.abs(s) < Math.abs(best))) { bv = d; best = s; } }
+  return best;
+}
+const SHIFT_MAX = 4; // px bei 1080 Breite (vorher 8–16 px tiefer; Rest: Kantenglättung der 1×-Vorschau)
 function iouAligned(a, b, w, h, cut) { let best = { v: 0, sx: 0, sy: 0 }; for (let sy = -4; sy <= 4; sy++) for (let sx = -3; sx <= 3; sx++) { const v = iou(a, b, w, h, cut, sx, sy); if (v > best.v) best = { v, sx, sy }; } return best; }
 SECTIONS.pixel = async (browser, prof) => {
   const sc = await newScenario(browser, prof);
@@ -751,6 +787,12 @@ SECTIONS.pixel = async (browser, prof) => {
       ['prevBlurBg', 'playOverlay'].forEach(x => { const e = document.getElementById(x); if (e) e.style.visibility = 'hidden'; });
       _lastKey = null; updateOverlay(); document.getElementById('prevBg').style.background = '#808080'; await __qa.raf2(); await __qa.wait(400);
       document.getElementById('prevBg').style.background = '#808080';
+      // Vorschau zeitgenau wie beim Abspielen/Scrubben (rest = false): pausiert zeigt sie sonst den Endzustand aller Übergänge
+      // (bewusste, einzige Abweichung, s. capDomMotion) — der Export rechnet immer zeitgenau. Bei 0,22 s Wortabstand (Mock) läuft
+      // in Reveal/Fill/Pop-Styles zu JEDER Zeit ein Übergang → ohne das misst die IoU den Ruhezustand statt der Geometrie.
+      const t = document.getElementById('mainVid').currentTime + timeOff, bi = __qa.curBi(), b = captionBlocks[bi];
+      capDomMotion(document.getElementById('capOverlay'), caseStyle(STYLES.find(x => x.id === activeId)), b, bi, activeWordIdx(b, t), t, currentBlockIdx(t) < 0, false);
+      await __qa.raf2();
       return { fw: previewFrameW(), fh: previewFrameH(), lines: pk && pk.lines };
     }, id);
     const buf = await p.locator('#prevFrame').screenshot({ animations: 'disabled' });
@@ -762,14 +804,20 @@ SECTIONS.pixel = async (browser, prof) => {
     const stat = m => { let n = 0, sx = 0, sy = 0, x0 = 1e9, x1 = -1, y0 = 1e9, y1 = -1; for (let y = 1; y < m.h - 1; y++) for (let x = 1; x < m.w - 1; x++) if (m.bits[y * m.w + x]) { n++; sx += x; sy += y; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); } const c = W / m.w; return { n, cx: sx / n * c, cy: sy / n * c, x0: x0 * c, x1: (x1 + 1) * c, y0: y0 * c, y1: (y1 + 1) * c }; };
     if (process.env.SWEEP_STAT) { const a = stat(A), b = stat(B); console.log('   stat ' + id + ' Vorschau/Export: Fläche ' + a.n + '/' + b.n + ', Schwerpunkt (' + a.cx.toFixed(0) + ',' + a.cy.toFixed(0) + ')/(' + b.cx.toFixed(0) + ',' + b.cy.toFixed(0) + '), bbox x ' + a.x0.toFixed(0) + '–' + a.x1.toFixed(0) + '/' + b.x0.toFixed(0) + '–' + b.x1.toFixed(0) + ' y ' + a.y0.toFixed(0) + '–' + a.y1.toFixed(0) + '/' + b.y0.toFixed(0) + '–' + b.y1.toFixed(0)); }
     const al = iouAligned(A.bits, B.bits, A.w, A.h, cut), cellPx = W / CELLS;
-    raw.push([id, v, al]);
+    const vt = iouTol(A.bits, B.bits, A.w, A.h, cut);
+    if (process.env.SWEEP_STAT) console.log('   iou ' + id + ' streng ' + v.toFixed(3) + ', tolerant ' + vt.toFixed(3) + ', beste Verschiebung ' + al.sx + '/' + al.sy + ' Zellen (IoU ' + al.v.toFixed(3) + ')');
+    const edge = Math.ceil(18 / info.fw * W), shY = profShift(A.rows, B.rows, edge, 40), shX = profShift(A.cols, B.cols, edge, 40);
+    if (process.env.SWEEP_STAT) console.log('   shift ' + id + ' Export ' + shX + ' px rechts, ' + shY + ' px tiefer');
+    raw.push([id, vt, al, v, shX, shY]);
     check('pixel/shape/' + id, al.v >= 0.6, 'Text/Box in Vorschau und Export deckungsgleich nach Ausrichtung (IoU ' + al.v.toFixed(3) + ', Versatz Export ' + (-al.sx * cellPx).toFixed(0) + ' px rechts, ' + (-al.sy * cellPx).toFixed(0) + ' px tiefer, roh ' + v.toFixed(3) + ')');
-    if (al.v >= 0.6 && al.v < IOU_MIN) warn('pixel/shape/' + id, 'IoU nach Ausrichtung nur ' + al.v.toFixed(3) + ' (< ' + IOU_MIN + ')');
-    if (v < IOU_MIN && SHOTS) { fs.writeFileSync(path.join(SHOTS, curVp + '-pixel-' + id + '-preview.png'), buf); fs.writeFileSync(path.join(SHOTS, curVp + '-pixel-' + id + '-export.png'), Buffer.from((await p.evaluate(() => __qa.lastExport.toDataURL())).split(',')[1], 'base64')); }
+    if ((vt < IOU_MIN || process.env.SWEEP_ALLSHOTS) && SHOTS) { fs.writeFileSync(path.join(SHOTS, curVp + '-pixel-' + id + '-preview.png'), buf); fs.writeFileSync(path.join(SHOTS, curVp + '-pixel-' + id + '-export.png'), Buffer.from((await p.evaluate(() => __qa.lastExport.toDataURL())).split(',')[1], 'base64')); }
     await p.evaluate(() => { document.getElementById('mainVid').style.visibility = ''; ['prevBlurBg', 'playOverlay'].forEach(x => { const e = document.getElementById(x); if (e) e.style.visibility = ''; }); });
   }
   const badRaw = raw.filter(r => r[1] < IOU_MIN).sort((a, b) => a[1] - b[1]);
-  check('pixel/iou', !badRaw.length, 'Vorschau-Screenshot ≙ Export-Render ohne Ausrichtung, IoU ≥ ' + IOU_MIN + ' bei allen ' + raw.length + ' Styles' + (badRaw.length ? ' — ' + badRaw.length + ' darunter: ' + badRaw.slice(0, 6).map(r => r[0] + ' ' + r[1].toFixed(2) + ' (Export ' + (-r[2].sy * W / CELLS).toFixed(0) + ' px tiefer)').join(', ') : ''));
+  check('pixel/iou', !badRaw.length, 'Vorschau-Screenshot ≙ Export-Render ohne Ausrichtung, tolerante IoU (±1 Zelle) ≥ ' + IOU_MIN + ' bei allen ' + raw.length + ' Styles' + (badRaw.length ? ' — ' + badRaw.length + ' darunter: ' + badRaw.slice(0, 6).map(r => r[0] + ' ' + r[1].toFixed(2) + ' (streng ' + r[3].toFixed(2) + ', Export ' + (-r[2].sy * W / CELLS).toFixed(0) + ' px tiefer)').join(', ') : ''));
+  // Systematischer Versatz, pixelgenau aus den Zeilen-/Spaltenprofilen (vorher: Export 8–16 px tiefer → streng 0.28–0.64)
+  const shifted = raw.filter(r => Math.abs(r[4]) > SHIFT_MAX || Math.abs(r[5]) > SHIFT_MAX).sort((a, b) => Math.abs(b[5]) - Math.abs(a[5]));
+  check('pixel/shift', !shifted.length, 'Export-Versatz zur Vorschau ≤ ' + SHIFT_MAX + ' px (von ' + W + ') bei allen ' + raw.length + ' Styles (max |y| ' + Math.max(0, ...raw.map(r => Math.abs(r[5]))) + ' px, |x| ' + Math.max(0, ...raw.map(r => Math.abs(r[4]))) + ' px)' + (shifted.length ? ' — ' + shifted.slice(0, 6).map(r => r[0] + ' ' + r[4] + ' px rechts/' + r[5] + ' px tiefer').join(', ') : ''));
   await sc.close();
 };
 

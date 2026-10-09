@@ -3843,9 +3843,30 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       });
       T.setLines({ dataset: { lines: '2' } }); T.setState([], [], 'karaoke');
       const where = [...new Set(bad.map(x => x.split(':')[0].replace(/ «.*/, '')))].join(', ');
-      okx(bad.length === 0, 'Vorschau-Umbruch (buildCap) = Export-Umbruch (capLayout) in ' + cases + ' Zufallsfällen — ' + bad.length + ' Abweichung(en) bei ' + where + ': ' + bad.slice(0, 2).join(' ;; '),
-        'NEU gefunden, nicht behoben: mit der Stub-Messung (0.55 em/Zeichen) bricht der Export (clampLinesToWidth in capLayout) bei zu breiten Wörtern/«1 Zeile» in 2 Zeilen, die Vorschau (wrapCaptionLines) nicht; mit echten Schriften im Browser (test-ui-sweep geom) tritt es nicht auf → Extremfall bei Mindest-Schriftgrösse');
+      // Früher 13 Abweichungen: 12 davon Stub-Artefakt (Stub-Canvas ignorierte letterSpacing, s. mkEl.getContext), 1 echt — capLayout
+      // rundete die Export-Schrift auf ganze px (bis ~1 % breiter) → knapp passende Zeile brach im Export um (Mindest-Schriftgrösse).
+      ok(bad.length === 0, 'Vorschau-Umbruch (buildCap) = Export-Umbruch (capLayout) in ' + cases + ' Zufallsfällen — ' + bad.length + ' Abweichung(en) bei ' + where + ': ' + bad.slice(0, 2).join(' ;; '));
     }
+  }
+
+  // ── capLayout ohne DOM (Fallback-Modell, z. B. Node): Mitte aus der Schriftmetrik statt fester Konstante fs·0.35 ──
+  // (im Browser misst capLayout die Vorschau-Zeilen per capDomVMetrics nach, s. test-ui-sweep geom/base und pixel/shift)
+  {
+    const ctxM = { font: '', letterSpacing: '0px', measureText(str) { const m = /([\d.]+)px/.exec(this.font), px = m ? +m[1] : 16; return { width: (str || '').length * px * 0.55, fontBoundingBoxAscent: px * 1.2, fontBoundingBoxDescent: px * 0.3 }; } };
+    const ws = ['Das', 'ist', 'ein', 'Test'], blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+    T.setState([blk], blk.words, 'karaoke'); T.setLines({ dataset: { lines: '1' } }); T.setVOffState(0);
+    const st = T.STYLES.find(x => x.id === 'hormozi');
+    T.setPosState('center');
+    const Lc = T.capLayout(ctxM, blk, 0, 0, st, 1080, 1920);
+    ok(!Lc.dom && Math.abs(Lc.y0 - (960 + (1.2 - 0.3) / 2 * Lc.fsS)) < 0.01, 'capLayout Mitte (ohne DOM): Grundlinie = Mitte + (Ober − Unterlänge)/2 · fs (' + Lc.y0.toFixed(2) + ', fs ' + Lc.fsS + ')');
+    ok(Math.abs((Lc.boxT + Lc.boxB) / 2 - 960) < 0.01 && Math.abs(Lc.boxB - Lc.boxT - Lc.lh) < 0.01, 'capLayout Mitte: Caption-Box (1 Zeile = L·fs hoch) mittig (' + Lc.boxT.toFixed(1) + '–' + Lc.boxB.toFixed(1) + ')');
+    ok(Math.abs(Lc.y0 - Lc.capA - Lc.boxT) < 0.01 && Math.abs(Lc.y0 + Lc.capD - Lc.boxB) < 0.01, 'capLayout: Wortbox = Box-Kanten (ohne Box-Padding)');
+    T.setPosState('bottom');
+    const Lb = T.capLayout(ctxM, blk, 0, 0, st, 1080, 1920);
+    ok(Math.abs(Lb.boxB - Lb.y0 - Lb.capD) < 0.01 && Lb.boxB < 1920 && Lb.boxB > 1920 * 0.6, 'capLayout unten: Box-Unterkante = Grundlinie + Unterteil der Zeile (' + Lb.boxB.toFixed(1) + ')');
+    const exact = Lb.fitPx * Lb.scale * ((st.fs && parseFloat(st.fs)) || 1);
+    ok(Math.abs(Lb.fsS - exact) < 0.006, 'capLayout: Export-Schrift = Vorschau-Schrift × Skala, nicht auf ganze px gerundet (' + Lb.fsS + ' vs. ' + exact.toFixed(3) + ')');
+    T.setLines({ dataset: { lines: '2' } }); T.setState([], [], 'karaoke');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
