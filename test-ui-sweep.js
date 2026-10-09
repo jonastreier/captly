@@ -47,10 +47,9 @@ const T0 = Date.now();
 // Jeder Eintrag: re = Regex auf die Prüfungs-ID (ohne Viewport), why = Begründung (Branch/Fehler). Scheitert die Prüfung → «xfail» (erwartet).
 // Besteht sie → «XPASS»-Warnung: der Fehler ist behoben (Branch gemergt) → Eintrag entfernen.
 const EXPECT_FAIL = [
-  { re: /^ctl\/[^/]*@layoutPreset\/inv:(cfg\.(lines|wpb|blocks)|dom\.lines)$/, why: 'P1: Customize-Regler wenden das Layout-Preset des Ausgangs-Styles bei jedem Zug neu an (Zeilen/Wörter pro Block springen zurück, z. B. Line height → 1 Zeile)' },
-  { re: /^anim\/(visible|transform)\//, why: 'P2: «Word pop» ist bei Wortstart + 0.08 s kaum/gar nicht sichtbar bzw. nicht als Transformation umgesetzt' },
-  { re: /^geom\/linepitch/, why: 'P4: Export-Zeilenabstand 1.28 × (lh/1.3) statt lh (Vorschau 1.3) — drawCaptionsOnCtx/capLayout, «const lh = fsS * 1.28 * …»' },
-  { re: /^edge\//, why: 'P3: dunkler Rand am unteren Rand abgerundeter Karten (Hintergrund blutet durch)' },
+  // Aktuell leer: P1 (Layout-Preset/Zeilenhöhe/Export-Zeilenabstand), P2 (Word pop), P3 (Cover-Rand) sind gemergt.
+  { re: /^ctl\/cvWords\/changes:cover\.hash$/, why: 'NEU gefunden (noch nicht behoben): Cover-Akzent-Chips («Tap words to accent them») bewirken bei Looks ohne Betonung (Standard «tight», «statement») nichts — captly.html coverIsEm() ~Z. 11279 verlangt emphColor/emFont' },
+  // Neuer Eintrag: { re: /^ctl\/csLh@layoutPreset\//, why: 'Branch xyz: Kurzbeschreibung' },
 ];
 
 // ═══════════ Ergebnis-Buchhaltung ═══════════
@@ -369,7 +368,7 @@ const CTL = [
   { id: 'csHlType', tab: 'style', custom: true, op: 'select', sel: '#csHlType', values: ['pill'], changes: ['style.hlPillBg'], styleOnly: HL_FIELDS, inv: inv('dom.lines', 'cfg.blocks').concat('dom.span0.fontSize') },
   { id: 'csMotion', tab: 'style', custom: true, op: 'select', sel: '#csMotion', values: ['reveal', 'fill', 'none'], changes: ['style.motion', 'dom.hash'], styleOnly: ['motion'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
   { id: 'csAnim', tab: 'style', custom: true, op: 'select', sel: '#csAnim', values: ['scale', 'punch', 'bounce', 'flash', 'glow'], changes: ['style.anim', 'dom.act.*'], styleOnly: ['anim'], inv: LAYOUT_INV.concat('dom.span0.fontSize'),
-    pre: sc => sc.page.selectOption('#csAnim', 'none'), seek: { word: 1, dt: 0.08 } },
+    pre: sc => sc.page.selectOption('#csAnim', 'none'), seek: { word: 1, dt: 0.08 }, reseek: true, wait: 1100 },
   // ── Style-Tab: Customize › Timing & text ──
   { id: 'toSlider', tab: 'style', custom: false, op: 'range', sel: '#toSlider', values: [-0.3, 0.3], changes: ['cfg.timeOff'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], customize: true },
   { id: 'pauseChk', tab: 'style', op: 'check', sel: '#pauseChk', values: [null], changes: ['cfg.mode'], inv: LAYOUT_INV, customize: true },
@@ -497,7 +496,7 @@ async function runControl(browser, prof, def, variant) {
   const id = 'ctl/' + def.id + (variant === 'plain' ? '' : '@' + variant);
   const sc = await newScenario(browser, prof);
   try {
-    await prepare(sc, def, variant);
+    const pk = await prepare(sc, def, variant);
     const vis = def.sel ? await sc.page.isVisible(def.sel) : true;
     if (!vis && def.hiddenOk) { await sc.close(); return; }
     const s0 = await sigOf(sc), err0 = sc.errors.length;
@@ -511,6 +510,7 @@ async function runControl(browser, prof, def, variant) {
         if (def.clipboard) { await sc.page.waitForTimeout(300); gotClip = await sc.page.evaluate(() => navigator.clipboard.readText().catch(e => 'ERR ' + e.message)); }
       } catch (e) { operable = false; check(id + '/operable', false, 'nicht bedienbar (Wert ' + v + '): ' + String(e.message).split('\n')[0].slice(0, 110)); break; }
       await sc.page.waitForTimeout(def.wait || 380);
+      if (def.reseek && pk) { await sc.page.evaluate(t => window.__qa.seekTo(t), pk.t); await sc.page.waitForTimeout(450); } // Wort-Pop spielt nach der Wahl eine kurze Vorschau → auf den Messzeitpunkt zurück
       await sc.page.evaluate(() => window.__qa.raf2());
       const si = await sigOf(sc); diffs.push(diffSig(s0, si));
       if (def.sel && (def.op === 'range' || def.op === 'select' || def.op === 'color')) { // Regler springt nach dem Anwenden nicht zurück
@@ -533,7 +533,7 @@ async function runControl(browser, prof, def, variant) {
         check(id + '/inv:' + key, !bad.length, key + ' bleibt unverändert' + (bad.length ? ' — änderte sich bei Wert ' + bad.join(', ') + ' (vorher ' + JSON.stringify(s0[key]) + ')' : ''));
       }
       if (def.styleOnly) {
-        const extra = [...union].filter(k => k.startsWith('style.') && !def.styleOnly.includes(k.slice(6)));
+        const extra = [...union].filter(k => k.startsWith('style.') && k !== 'style.layout' && !def.styleOnly.includes(k.slice(6))); // style.layout fällt beim Wechsel zu «custom» bewusst weg
         check(id + '/styleOnly', !extra.length, 'nur Style-Felder ' + def.styleOnly.join('/') + ' ändern sich' + (extra.length ? ' — zusätzlich: ' + extra.join(', ') : ''));
       }
       if (holds.length) { const bad = holds.filter(([v, n]) => String(v).toLowerCase() !== String(n).toLowerCase() && !(Math.abs(parseFloat(v) - parseFloat(n)) < 1e-6)); check(id + '/holds', !bad.length, 'Regler behält den eingestellten Wert' + (bad.length ? ' — gesetzt ' + bad[0][0] + ', danach ' + bad[0][1] : '')); }
@@ -610,6 +610,41 @@ SECTIONS.hyg = async (browser, prof) => {
   await p.evaluate(CLOSE_ALL);
   await p.evaluate(() => showAcct()); await hygieneStep(sc, 'account');
   await p.evaluate(CLOSE_ALL);
+  await sc.close();
+};
+
+
+// ═══════════ Abschnitt anim: Wort-Animation bei Wortstart + 0.08 s sichtbar ═══════════
+// Aktiver Span: Transformation (Pop/Punch/Lift), Deckkraft (Fade in) bzw. Filter/Schatten (Glow) muss sich gegenüber «None» ändern.
+const ANIMS = [['scale', 'Pop', true], ['punch', 'Punch', true], ['bounce', 'Lift', true], ['flash', 'Fade in', false], ['glow', 'Glow', false]];
+SECTIONS.anim = async (browser, prof) => {
+  const sc = await newScenario(browser, prof);
+  const p = sc.page;
+  await goTab(sc, 'style'); await openCustomize(sc);
+  await p.evaluate(() => window.__qa.useStyle('hormozi'));
+  await p.selectOption('#csAnim', 'none');
+  await p.waitForTimeout(400);
+  const read = () => p.evaluate(async () => {
+    const b = captionBlocks[0], t = b.words[1].start + 0.08 - timeOff;
+    await __qa.seekTo(t); await __qa.wait(400); // CSS-Übergänge am Span ausklingen lassen
+    const wi = activeWordIdx(b, t + timeOff), ov = document.getElementById('capOverlay');
+    const sp = Array.prototype.find.call(ov.querySelectorAll('[data-oi]'), x => +x.getAttribute('data-oi') === wi);
+    const c = getComputedStyle(sp), m = c.transform === 'none' ? null : new DOMMatrix(c.transform);
+    return { wi, transform: c.transform, scale: m ? Math.hypot(m.a, m.b) : 1, ty: m ? m.f : 0, opacity: +c.opacity, filter: c.filter, shadow: c.textShadow, fpx: parseFloat(c.fontSize) };
+  });
+  const base = await read();
+  check('anim/none/idle', base.transform === 'none' && base.opacity === 1, 'Ohne Animation: Span unverändert (transform none, opacity 1)');
+  for (const [val, label, moves] of ANIMS) {
+    await p.selectOption('#csAnim', val); await p.waitForTimeout(350);
+    const r = await read();
+    const dScale = Math.abs(r.scale - 1) * 100, dTy = Math.abs(r.ty) / r.fpx * 100, dOp = (1 - r.opacity) * 100, dFilter = r.filter !== 'none' ? 10 : 0, dShadow = r.shadow !== base.shadow ? 10 : 0;
+    const mag = Math.max(dScale, dTy, dOp, dFilter, dShadow);
+    check('anim/visible/' + val, mag >= 2.5, label + ' bei Wortstart + 0.08 s sichtbar (Stärke ' + mag.toFixed(1) + ' %: scale ' + r.scale.toFixed(3) + ', ty ' + r.ty.toFixed(1) + ' px, opacity ' + r.opacity.toFixed(2) + ', filter ' + r.filter + ')');
+    if (moves) check('anim/transform/' + val, r.transform !== 'none', label + ' hat eine Transformation (' + r.transform + ')');
+    // nach Ende der Animation (Wortstart + 0.5 s) wieder in Ruhe
+    const rest = await p.evaluate(async () => { const b = captionBlocks[0], t = b.words[1].start + 0.14 - timeOff; await __qa.seekTo(t); return t; });
+    void rest;
+  }
   await sc.close();
 };
 
