@@ -25,11 +25,11 @@ function mkEl(id) {
     getContext(type) {
       if (type !== '2d') return null;
       return {
-        font: '',
+        font: '', letterSpacing: '0px', // wie ein echter Canvas: letterSpacing zählt je Zeichen mit (sonst misst capLayout ohne, die Vorschau mit Buchstabenabstand)
         measureText(str) {
           var m = /([\d.]+)px/.exec(this.font);
           var px = m ? parseFloat(m[1]) : 16;
-          return { width: (str || '').length * px * 0.55 };
+          return { width: (str || '').length * (px * 0.55 + (parseFloat(this.letterSpacing) || 0)) };
         },
         roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {},
         translate() {}, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},

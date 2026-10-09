@@ -4420,8 +4420,8 @@ function drawCapEmoji(ctx, emo, L, s, age, W) {
   var px = Math.round(L.fitPx * EMO_REL) * L.scale; // wie die Vorschau: dort auf ganze CSS-px gerundet
   if (!(px > 4)) return;
   var spr = emojiSprite(emo, px), padB = s.boxBg ? 5 * L.scale : 0, gap = px * EMO_GAP, top;
-  if (capPos === 'top') top = L.y0 + (L.lines.length - 1) * L.lh + L.capD + padB + gap;
-  else top = L.y0 - L.capA - padB - gap - px;
+  if (capPos === 'top') top = (L.boxB !== undefined ? L.boxB : L.y0 + (L.lines.length - 1) * L.lh + L.capD + padB) + gap; // unter bzw. über der .cap-root-Box
+  else top = (L.boxT !== undefined ? L.boxT : L.y0 - L.capA - padB) - gap - px;
   var st = emojiPopState(age);
   if (st.op <= 0) return;
   ctx.save();
@@ -10679,6 +10679,59 @@ function capFontMetrics(ctx, fsS) {
   } catch (e) {}
   return { a: 0.93, d: 0.24 };
 }
+// Vertikale Geometrie der Vorschau, im DOM gemessen (Vorschau-px, relativ zur Oberkante der Caption-Box .cap-root):
+// derselbe buildCap-Aufbau in einem unsichtbaren Nachbau von #capOverlay. Grund: Chromium & Co. runden Ober-/Unterlänge
+// der Schrift für die Zeilenbox auf ganze CSS-px (Linux: borgt 1 px von der Oberlänge) und lassen grössere Betonungs-
+// wörter die Zeile wachsen — die Canvas-Metrik (fontBoundingBox, ungerundet) lag deshalb je nach Schrift 2–15 Export-px
+// (bei 1080 Breite) neben der Vorschau. → { base: [Grundlinie je Zeile], h: Box-Höhe, offTop/offBot: Box ↔ Overlay-Kante,
+// pillT/pillB: Akzent-Box (s.pill), wA/wD: Wortbox über/unter der Grundlinie (Highlight-Box) } oder null (kein DOM).
+var _capVProbe = null;
+function capDomVMetrics(words, s, px, lineTarget, em) {
+  try {
+    if (typeof document === 'undefined' || !document.body || typeof document.body.appendChild !== 'function' || typeof getComputedStyle !== 'function') return null;
+    var host = _capVProbe;
+    if (!host || !host.isConnected) {
+      host = document.createElement('div'); if (host.setAttribute) host.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(host); _capVProbe = host;
+    }
+    var ov = document.getElementById('capOverlay'), oc = ov ? getComputedStyle(ov) : null;
+    // wie #capOverlay (CSS oben): volle Rahmenbreite, padding 0 10px, line-height 0, zentriert; Schrift des Overlays (Strut)
+    host.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;box-sizing:border-box;width:' + previewFrameW()
+      + 'px;padding:0 10px;line-height:0;text-align:center;' + (oc ? 'font-family:' + oc.fontFamily + ';font-size:' + oc.fontSize + ';' : '');
+    host.innerHTML = buildCap(words, s, -1, px, null, lineTarget, { em: em });
+    var root = host.firstElementChild;
+    if (!root || typeof root.getBoundingClientRect !== 'function') { host.innerHTML = ''; return null; }
+    var hr = host.getBoundingClientRect(), rr = root.getBoundingClientRect();
+    if (!(rr.height > 0)) { host.innerHTML = ''; return null; }
+    var cont = s.pill ? root.firstElementChild : root, kids = cont ? Array.prototype.slice.call(cont.children) : [];
+    var rows = kids.filter(function(k) { return k.style && k.style.display === 'block'; });
+    if (!rows.length && cont) rows = [cont]; // ein Wort: keine Zeilen-Spans
+    // Phase 1: Wortboxen messen (ohne Marker) — je Zeile ein normales Wort (sonst das erste)
+    var basePx = parseFloat(root.getAttribute('data-fpx')) || 0;
+    var pick = rows.map(function(r) {
+      var ws = Array.prototype.slice.call(r.querySelectorAll('[data-oi]'));
+      var w = ws.find(function(x) { return !(parseFloat(getComputedStyle(x).fontSize) > basePx * 1.001); }) || ws[0];
+      return w ? { w: w, r: w.getBoundingClientRect(), em: parseFloat(getComputedStyle(w).fontSize) > basePx * 1.001 } : null;
+    });
+    if (pick.some(function(p) { return !p; })) { host.innerHTML = ''; return null; }
+    var pr = s.pill && cont !== root ? cont.getBoundingClientRect() : null;
+    // Phase 2: Marker (0×0, Grundlinie) ins Wort → Abstand Wort-Oberkante → Grundlinie. Ein Marker kann die Wortbox nur
+    // nach UNTEN vergrössern (bei sehr kleiner Zeilenhöhe) — der Abstand oben bleibt, gemessen wird nach dem Einfügen.
+    var base = pick.map(function(p) {
+      var m = document.createElement('span'); m.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+      p.w.appendChild(m);
+      var off = m.getBoundingClientRect().top - p.w.getBoundingClientRect().top;
+      p.off = off;
+      return p.r.top + off - rr.top;
+    });
+    var nrm = pick.find(function(p) { return !p.em; });
+    var out = { base: base, h: rr.height, offTop: rr.top - hr.top, offBot: hr.bottom - rr.bottom,
+                pillT: pr ? pr.top - rr.top : null, pillB: pr ? pr.bottom - rr.top : null,
+                wA: nrm ? nrm.off : null, wD: nrm ? nrm.r.height - nrm.off : null };
+    host.innerHTML = '';
+    return out.base.every(isFinite) && isFinite(out.h) ? out : null;
+  } catch (e) { return null; }
+}
 // Unabhängig vom aktiven Wort: jedes Wort hat einen festen Platz (max. aus normaler/aktiver Variante, s.
 // capHlVariant), die Highlight-Box belegt keine Breite → das Layout eines Blocks ändert sich nie während er läuft.
 function capLayout(ctx, b, bi, wi, s, W, H) {
@@ -10691,7 +10744,9 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   var scale = W / previewFrameW(); // Vorschau-Rahmen ist variabel breit (Video-AR-abhängig) — NIE eine feste Zahl hier
   // Gleiches Auto-Fit wie die Vorschau (buildCap), in Vorschau-Einheiten berechnet → identisches Ergebnis.
   var fit = fitCaptionWords(b.words.map(function(w){ return displayWord(w.word); }), s, fontSize, capFitMaxW(s), CAPTION_LINES, emk);
-  var fsS = Math.round(fit.px * scale * fsMul);
+  // Nicht auf ganze px runden: die Vorschau misst/umbricht mit der exakten Grösse — gerundet war der Export bis ~1 %
+  // breiter und brach knapp passende Zeilen anders um (z. B. Mindest-Schriftgrösse, test-captly «Vorschau-Umbruch»).
+  var fsS = Math.round(fit.px * scale * fsMul * 100) / 100;
   var fn  = (s.font || "'Inter'").replace(/'/g,'');
   var fw  = s.fw || '400';
   var fi  = s.fi === 'italic' ? 'italic ' : '';
@@ -10732,51 +10787,59 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   // „Max lines“, solange die Mindestgröße reicht.
   var lines = capDistributeLines(wordInfo, CAPTION_LINES, sp, maxW);
 
-  // Zeilenabstand = CSS line-height der Vorschau (L·fs, gemessen in Chromium: Abstand der [data-oi]-Zeilen = L·fs).
-  // Vorher fs·1.28·L/1.3 → Export ~1.5 % enger als die Vorschau.
-  var lh   = fsS * capLineH(s);
-  // Muss exakt applyPos() (DOM-Vorschau, #capOverlay) nachbilden, sonst weicht die Position im
-  // exportierten Video vom Editor ab. off = capVOff, gleiche Formeln wie dort (inkl. clampPct).
-  // CSS-Geometrie der Vorschau: die Caption ist ein inline-block (Box-Padding p, line-height L·fs); jede
-  // Zeile trägt den halben Durchschuss oben/unten → letzte Grundlinie liegt um
-  //   gapBelow = p + L·fs/2 + (Unterlänge − Oberlänge)/2 · fs
-  // ÜBER der Overlay-Unterkante (bzw. erste Grundlinie um p + L·fs/2 + (Ober − Unterlänge)/2 · fs unter der
-  // Oberkante). Früher galt Grundlinie = Overlay-Kante → Export lag ~2–3 % tiefer als die Vorschau.
-  var fm = capFontMetrics(ctx, fsS), Lh = capLineH(s), padB = s.boxBg ? 5 * scale : 0;
+  // Vertikal: Vorschau = Referenz. Die Caption ist ein inline-block (.cap-root, Box-Padding p, line-height L·fs), den
+  // applyPos() oben/unten an die Overlay-Kante bzw. in die Mitte setzt. Grundlinien, Box-Höhe und Wortboxen kommen aus
+  // dem DOM (capDomVMetrics: gerundete Schriftmetrik, Betonungswörter, Akzent-Box wie im Browser), skaliert mit `scale`.
+  // Ohne DOM (Tests/Node) Modell aus der Canvas-Metrik: jede Zeile trägt den halben Durchschuss oben/unten →
+  //   Grundlinie = Zeilen-Oberkante + L·fs/2 + (Ober − Unterlänge)/2 · fs.
+  // Vorher: Mitte mit fester Konstante fs·0.35 (Anton/Kalam/Playfair 6–8 px daneben), oben/unten ungerundete
+  // Canvas-Metrik (Playfair/Montserrat-Betonung bis 15 px tiefer als die Vorschau, s. test-ui-sweep geom/pixel).
+  var Lh = capLineH(s), lh = fsS * Lh, nL = lines.length;
+  var fm = capFontMetrics(ctx, fsS), padB = s.boxBg ? 5 * scale : 0;
   var gapBelow = padB + Lh * fsS / 2 + (fm.d - fm.a) / 2 * fsS;
   var gapAbove = padB + Lh * fsS / 2 + (fm.a - fm.d) / 2 * fsS;
-  var off = capVOff;
-  var y0;
-  if (capPos === 'top') {
-    var topPct = capTopPct(off);
-    y0 = H * (topPct / 100) + gapAbove;
-  } else if (capPos === 'center') {
+  var dm = capDomVMetrics(b.words.map(function(w){ return displayWord(w.word); }), s, fontSize, CAPTION_LINES, emk);
+  if (dm && dm.base.length !== nL) dm = null; // anderer Umbruch als der Export (sollte nie passieren) → Modell
+  var baseRel, boxH, offTop = 0, offBot = 0, capA = gapAbove - padB, capD = gapBelow - padB, pillT = null, pillB = null;
+  if (dm) {
+    baseRel = dm.base.map(function(v){ return v * scale; });
+    boxH = dm.h * scale; offTop = dm.offTop * scale; offBot = dm.offBot * scale;
+    if (dm.wA !== null) { capA = dm.wA * scale; capD = dm.wD * scale; }
+    if (dm.pillT !== null) { pillT = dm.pillT * scale; pillB = dm.pillB * scale; }
+    if (nL > 1) lh = (baseRel[nL - 1] - baseRel[0]) / (nL - 1); // mittlerer Zeilenabstand (Zeilen selbst: baseRel)
+  } else {
+    baseRel = lines.map(function(L, li){ return gapAbove + li * lh; });
+    boxH = (nL - 1) * lh + gapAbove + gapBelow;
+  }
+  // Position der Box-Oberkante: exakt applyPos() (off = capVOff, gleiche Formeln inkl. clampPct)
+  var off = capVOff, boxT;
+  function centerTop(o) {
     // applyPos() verschiebt die Mitte per Padding, das (CSS-Eigenheit) relativ zur Breite berechnet
     // wird, nicht zur Höhe — hier mit W statt H nachgebildet, damit es exakt übereinstimmt.
-    var centerY = H * 0.5 - (off / 100) * W;
-    y0 = centerY - ((lines.length - 1) * lh) / 2 + fsS * 0.35;
-  } else {
-    var bottomPct = capBottomPct(off);
-    y0 = H * (1 - bottomPct / 100) - (lines.length - 1) * lh - gapBelow;
+    return H * 0.5 - (o / 100) * W - boxH / 2;
   }
-  // Letzter Ausweg wie clampCapVertical() in der Vorschau: Block komplett im Bild halten (4 px Luft). Box-Kanten
-  // exakt wie die CSS-Box (Grundlinie ± gapAbove/gapBelow, gilt für jede Zeilenhöhe) — vorher grob fs·1.05 /
-  // fs·0.45 (+ halber Durchschuss nur bei L > 1.3) → geklemmte Captions lagen bis ~15 Vorschau-px daneben.
+  if (capPos === 'top') boxT = H * (capTopPct(off) / 100) + offTop;
+  else if (capPos === 'center') boxT = centerTop(off);
+  else boxT = H * (1 - capBottomPct(off) / 100) - offBot - boxH;
+  // Wie clampCapVertical() in der Vorschau: Box komplett im Bild halten (4 px Luft); in der Mitte opfert die Vorschau
+  // zuerst die Feinjustierung (Padding weg → echte Mitte). Danach als letzter Ausweg verschieben (oben hat Vorrang).
   var padYc = 4 * scale;
-  var blkBot = y0 + (lines.length - 1) * lh + gapBelow + padYc;
-  if (blkBot > H) y0 -= (blkBot - H);
-  var blkTop = y0 - gapAbove - padYc;
-  if (blkTop < 0) y0 -= blkTop; // oben hat Vorrang (erste Zeile ist die, die gelesen wird)
+  if (capPos === 'center' && off && (boxT - padYc < 0 || boxT + boxH + padYc > H)) boxT = centerTop(0);
+  if (boxT + boxH + padYc > H) boxT -= (boxT + boxH + padYc - H);
+  if (boxT - padYc < 0) boxT = padYc;
+  var y0 = boxT + baseRel[0];
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
   // Feste Position jedes Wortplatzes (x = linke Kante, y = Grundlinie) — gilt für den ganzen Block
   lines.forEach(function(L, li) {
     var x = W/2 - lineWs[li]/2;
-    L.forEach(function(wo) { wo.x = x; wo.y = y0 + li * lh; wo.li = li; x += wo.w + sp; });
+    L.forEach(function(wo) { wo.x = x; wo.y = boxT + baseRel[li]; wo.li = li; x += wo.w + sp; });
   });
 
+  // capA/capD: Grundlinie → Ober-/Unterkante einer (normalen) Wortbox · boxT/boxB: .cap-root inkl. Padding (Box-Hintergrund,
+  // Emoji) · pillT/pillB: Akzent-Box (s.pill) oder null
   var val = { scale: scale, fsS: fsS, fn: fn, fw: fw, fi: fi, lsPxS: lsPxS, sp: sp, lines: lines, lineWs: lineWs, lh: lh, y0: y0, fitPx: fit.px, esc: esc,
-              capA: gapAbove - padB, capD: gapBelow - padB }; // Grundlinie → Ober-/Unterkante der CSS-Zeile
+              capA: capA, capD: capD, boxT: boxT, boxB: boxT + boxH, pillT: pillT === null ? null : boxT + pillT, pillB: pillB === null ? null : boxT + pillB, dom: !!dm };
   _capLayoutCache = { key: key, s: s, ctx: ctx, val: val };
   return val;
 }
@@ -10851,7 +10914,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
       ctx.fillStyle = s.boxBg;
       ctx.beginPath();
-      var bx = W/2 - widest/2 - padX, by = y0 - capA - padY, bw = widest + padX*2, bh = (lines.length - 1) * lh + capA + capD + padY*2;
+      var bx = W/2 - widest/2 - padX, by = L0.boxT, bw = widest + padX*2, bh = L0.boxB - L0.boxT; // = .cap-root inkl. Padding (capLayout)
       if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
       ctx.fill(); ctx.restore();
     }
@@ -10866,7 +10929,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       var borderW = 0, borderColor = null;
       var bm = s.pill.borderLeft && s.pill.borderLeft.match(/^([\d.]+)px\s+\S+\s+(.+)$/);
       if (bm) { borderW = parseFloat(bm[1]) * scale; borderColor = bm[2]; }
-      var pillT = y0 - capA - pT, pillB = y0 + (lines.length - 1) * lh + capD + pB;
+      var pillT = L0.pillT !== null ? L0.pillT : y0 - capA - pT, pillB = L0.pillB !== null ? L0.pillB : y0 + (lines.length - 1) * lh + capD + pB; // gemessen (DOM) bzw. Modell
       var pillL = W/2 - widest2/2 - pL - borderW, pillR = W/2 + widest2/2 + pR;
       if (s.pill.bg && s.pill.bg !== 'transparent') {
         ctx.save(); ctx.fillStyle = s.pill.bg; ctx.fillRect(pillL, pillT, pillR - pillL, pillB - pillT); ctx.restore();
