@@ -131,6 +131,74 @@ if (require.main !== module) return;
     await page.waitForTimeout(600);
     await shot('03-style');
 
+    // 2b) Word pop (Customize → Highlight & animation): bei PAUSIERTEM Video muss jede Option sofort sichtbar etwas tun (Demo ~0,6 s)
+    if (!prof.mobile) {
+      // Pausenzeit 0,5 s nach Beginn des zweiten Worts (Folgewörter um 0,6 s verschoben): die 0,34-s-Animation ist dort längst vorbei,
+      // jede Bewegung nach der Auswahl stammt also aus der Demo und nicht aus einem eingefrorenen Bild.
+      const tp = await page.evaluate(() => {
+        switchTab('style'); document.getElementById('advSet').open = true;
+        var b = captionBlocks[0], w = b.words;
+        for (var i = 2; i < w.length; i++) { w[i].start += 0.6; w[i].end += 0.6; }
+        b.end += 0.6;
+        var v = document.getElementById('mainVid'); v.pause(); v.currentTime = w[1].start + 0.5 - timeOff; _lastKey = null; updateOverlay();
+        return { n: w.length, t: v.currentTime };
+      });
+      await page.waitForTimeout(600);
+      ok(tp.n >= 2 && await page.evaluate(() => document.getElementById('mainVid').paused), 'Word pop: Video pausiert bei ' + tp.t.toFixed(2) + ' s');
+      // Sampler im Seitenkontext: grösste Skalierung, kleinste Deckkraft, grösster Versatz und Text-Schatten des aktiven Worts über 300 ms
+      const sample = async (value) => {
+        await page.evaluate(() => {
+          window.__wp = { sc: 1, op: 1, ty: 0, sh: 0, spans: 0, n: 0 };
+          const t0 = performance.now();
+          (function tick() {
+            const all = [...document.querySelectorAll('#capOverlay [data-oi]')];
+            window.__wp.spans = all.length;
+            all.forEach(el => {
+              const cs = getComputedStyle(el), m = /matrix\(([^)]+)\)/.exec(cs.transform);
+              if (m) { const v = m[1].split(',').map(parseFloat); window.__wp.sc = Math.max(window.__wp.sc, v[0]); window.__wp.ty = Math.max(window.__wp.ty, v[5]); }
+              window.__wp.op = Math.min(window.__wp.op, parseFloat(cs.opacity));
+              const shs = (el.style.textShadow.match(/\d+(\.\d+)?px/g) || []).length;
+              window.__wp.sh = Math.max(window.__wp.sh, shs);
+            });
+            window.__wp.n++;
+            if (performance.now() - t0 < 300) requestAnimationFrame(tick);
+          })();
+        });
+        await page.selectOption('#csAnim', value);
+        await page.waitForTimeout(350);
+        return page.evaluate(() => window.__wp);
+      };
+      await page.selectOption('#csAnim', 'none');
+      await page.waitForTimeout(800); // Demo von «None» (keine) ausklingen lassen
+      const base = await sample('none');
+      const ev = {};
+      for (const o of ['punch', 'scale', 'bounce', 'flash', 'glow']) {
+        await page.selectOption('#csAnim', 'none'); await page.waitForTimeout(800);
+        ev[o] = await sample(o);
+      }
+      ok(ev.punch.sc > 1.1, 'Word pop «Punch» bei pausiertem Video: scale > 1.1 innerhalb von 300 ms (max ' + ev.punch.sc.toFixed(3) + ', ' + ev.punch.n + ' Bilder)');
+      ok(ev.scale.sc > 1.1, 'Word pop «Pop»: scale > 1.1 (max ' + ev.scale.sc.toFixed(3) + ')');
+      ok(ev.bounce.ty > 1 && ev.bounce.op < 0.95, 'Word pop «Lift»: Versatz + Deckkraft (ty ' + ev.bounce.ty.toFixed(1) + 'px, op ' + ev.bounce.op.toFixed(2) + ')');
+      ok(ev.flash.op < 0.6, 'Word pop «Fade in»: Deckkraft startet niedrig (min ' + ev.flash.op.toFixed(2) + ')');
+      ok(ev.glow.sh > base.sh, 'Word pop «Glow»: zusätzlicher Leucht-Schatten (' + base.sh + ' → ' + ev.glow.sh + ' Werte)');
+      ok(base.sc <= 1.0001 && base.op >= 0.999, 'Word pop «None»: keine Bewegung (scale ' + base.sc.toFixed(3) + ')');
+      // Screenshot des Effekts mitten in der Demo (Punch, ~100 ms nach der Auswahl)
+      await page.selectOption('#csAnim', 'none'); await page.waitForTimeout(800);
+      await page.selectOption('#csAnim', 'punch'); await page.waitForTimeout(90);
+      await shot('03b-wordpop-punch');
+      await page.waitForTimeout(700);
+      await page.selectOption('#csAnim', 'glow'); await page.waitForTimeout(90);
+      await shot('03c-wordpop-glow');
+      await page.waitForTimeout(700);
+      // Nur im Modus Highlight: sonst Zeile ausgeblendet + Hinweis
+      await page.selectOption('#csMotion', 'reveal');
+      ok(!(await page.isVisible('#csAnimRow')) && /Animation: Highlight/.test(await page.textContent('#csAnimHint')) && await page.isVisible('#csAnimHint'), 'Word pop: bei Reveal Zeile weg + Hinweis');
+      await page.selectOption('#csMotion', 'highlight');
+      ok(await page.isVisible('#csAnimRow') && !(await page.isVisible('#csAnimHint')), 'Word pop: bei Highlight wieder sichtbar');
+      await page.evaluate(() => { document.getElementById('advSet').open = false; selectStyle('hormozi'); var v = document.getElementById('mainVid'); v.currentTime = 0.5; });
+      await page.waitForTimeout(400);
+    }
+
     // 3) Export: Gate verlangt E-Mail (Beta) → ungültig/leer wird abgelehnt, gültig + Newsletter geht durch
     await page.click('#tbExport');
     await page.waitForSelector('#expSheet', { state: 'visible' });

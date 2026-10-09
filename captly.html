@@ -53,15 +53,16 @@
 body{background:var(--canvas);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 body.editor-open{height:100vh;overflow:hidden}
 
-/* Wort-Animationen bewusst ruhig (kein Blinken/Wackeln/Schrumpfen): Pop ≤ 1.04, Punch ≤ 1.06, Lift = sanft
-   von unten, Fade = einblenden, Glow = leichtes Aufhellen. flash/wobble bleiben als Namen für alte Templates.
-   Nur noch für Kacheln/Showcase — die Editor-Vorschau rechnet dieselben Keyframes (ANIM_KEYFRAMES) aus der Videozeit. */
-@keyframes captly-bounce{0%{transform:translateY(3px)}60%{transform:translateY(-1px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
-@keyframes captly-scale{0%{transform:scale(1)}45%{transform:scale(1.04)}100%{transform:scale(1)}}
-@keyframes captly-flash{0%{opacity:.45}100%{opacity:1}}
-@keyframes captly-glow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
-@keyframes captly-punch{0%{transform:scale(1)}45%{transform:scale(1.06)}100%{transform:scale(1)}}
-@keyframes captly-wobble{0%{transform:translateY(3px)}60%{transform:translateY(-1px) scale(1.02)}100%{transform:translateY(0) scale(1)}}
+/* Wort-Animationen: sofort erkennbar, aber nur 0,34 s kurz. Pop 1 → 1.14 → 1 · Punch 1.28 → 1 (ease-out) · Lift = 0,22 em
+   von unten (Deckkraft .5 → 1) · Fade in = 0 → 1 · Glow = Leuchten in der Textfarbe. flash/wobble bleiben als Namen für alte Templates.
+   Nur noch für Kacheln/Showcase — die Editor-Vorschau rechnet dieselben Keyframes (ANIM_KEYFRAMES) aus der Videozeit;
+   Werte hier und dort müssen übereinstimmen (test-captly.js prüft das). */
+@keyframes captly-bounce{0%{transform:translateY(.22em);opacity:.5}100%{transform:translateY(0);opacity:1}}
+@keyframes captly-scale{0%{transform:scale(1)}30%{transform:scale(1.14)}100%{transform:scale(1)}}
+@keyframes captly-flash{0%{opacity:0}100%{opacity:1}}
+@keyframes captly-glow{0%,100%{filter:drop-shadow(0 0 0 currentColor) drop-shadow(0 0 0 currentColor)}30%{filter:drop-shadow(0 0 .35em currentColor) drop-shadow(0 0 .8em currentColor)}}
+@keyframes captly-punch{0%{transform:scale(1.28);animation-timing-function:cubic-bezier(.33,1,.68,1)}100%{transform:scale(1)}}
+@keyframes captly-wobble{0%{transform:translateY(.22em);opacity:.5}100%{transform:translateY(0);opacity:1}}
 @keyframes capWordIn{from{opacity:0;transform:translateY(.25em)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -1677,11 +1678,12 @@ body.editor-open .lang-hint{display:none}
               <select id="csMotion" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('motion')" title="Highlight: the spoken word stands out · Reveal: words appear as they are spoken and stay · Fill: the whole caption is visible, spoken words turn solid · None: static">
                 <option value="highlight">Highlight</option><option value="reveal">Reveal</option><option value="fill">Fill</option><option value="none">None</option>
               </select></div>
-            <div class="sz-row cs-line"><span class="cs-k">Word pop</span>
-              <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')" title="Small extra motion on the spoken word (Highlight only)">
+            <div class="sz-row cs-line" id="csAnimRow"><span class="cs-k">Word pop</span>
+              <select id="csAnim" class="lang-sel cs-sel" style="flex:1" onchange="applyCustomStyle('anim')" title="Short extra motion on the spoken word (Animation: Highlight only). Changing it plays a short demo while the video is paused.">
                 <option value="none">None</option><option value="scale">Pop</option><option value="punch">Punch</option>
                 <option value="bounce">Lift</option><option value="flash">Fade in</option><option value="glow">Glow</option>
               </select></div>
+            <p class="cs-note" id="csAnimHint" style="display:none"></p>
           </div>
           <div class="cs-grp"><div class="cs-gh">Timing &amp; text</div>
             <label class="chk-row" title="Captions disappear during silence and only show while someone is speaking. Off: the last caption stays up until the next one starts.">
@@ -4579,7 +4581,15 @@ function updateOverlay(t) {
       if (ov._capClamped) applyPos(); else clampCapVertical(); // Höhe kann sich je Block ändern
       if (showSafeZone) checkSafeZoneCollision();
     }
-    if (b) capDomMotion(ov, s, b, bi, wi, t, forced); // jedes Frame: Ein-/Ausblenden, Reveal/Fill, Farb-/Box-Übergänge
+    if (b) {
+      // Word-pop-Demo (pausiert, Wahl gerade geändert): virtuelle Zeit am aktiven Wort, Video bleibt stehen (s. capAnimDemoStart)
+      var demoT = null;
+      if (_capAnimDemo) {
+        if (playing || !(s.anim && s.anim !== 'none') || capMotion(s) !== 'highlight') _capAnimDemo = null;
+        else demoT = (b.words[wi] ? b.words[wi].start : t) + (Date.now() - _capAnimDemo.t0) / 1000;
+      }
+      capDomMotion(ov, s, b, bi, wi, demoT !== null ? demoT : t, forced || demoT !== null); // jedes Frame: Ein-/Ausblenden, Reveal/Fill, Farb-/Box-Übergänge
+    }
   }
   document.getElementById('prevBg').style.background = vidReady ? '#000' : s.thumbBg;
   applyPreviewZoom(t - timeOff); // Auto-Zoom: nur das Video (CSS-Transform), nie die Captions
@@ -4589,6 +4599,13 @@ function updateOverlay(t) {
 // Vorschau-Gegenstück zu den Bewegungen in drawCaptionsOnCtx — gleiche Zustandsfunktionen (capBlockFx/capWordFx/
 // capSlideBoxes), gleiche Einheiten (em der angepassten Schriftgröße bzw. Vorschau-px). Schreibt nur geänderte
 // Werte (kein Layout: nur opacity/transform/color/filter; Box-Rechtecke einmal je DOM-Aufbau gemessen).
+// Glow-Animation: Leuchten in der Highlight-Farbe (bei Pill-Styles die Pill-Farbe) als drei weiche Schatten-Schichten
+// {blur (px der Schriftgrösse px), color}; glow 0..1. Vorschau (text-shadow) und Export (capShadowPlan-Schichten) nutzen sie gleich.
+function capGlowLayers(s, oi, glow, px) {
+  if (!(glow > 0.01) || !(px > 0)) return [];
+  var c = s.hlPillBg || (s.hlg ? (s.hl || '#fff') : hlColorFor(s, oi));
+  return [0.3, 0.65, 1.2].map(function(k) { return { x: 0, y: 0, blur: k * px * glow, color: c }; });
+}
 function capSetSt(el, k, v) { var c = el._capSt || (el._capSt = {}); if (c[k] !== v) { c[k] = v; el.style[k] = v; } }
 function capDomMotion(ov, s, b, bi, wi, t, forced) {
   var M = ov._capM;
@@ -4596,7 +4613,7 @@ function capDomMotion(ov, s, b, bi, wi, t, forced) {
     var root = ov.querySelector ? ov.querySelector('.cap-root') : null;
     if (!root) return;
     M = ov._capM = { root: root, fpx: parseFloat(root.getAttribute('data-fpx')) || fontSize,
-                     spans: Array.prototype.slice.call(root.querySelectorAll('[data-oi]')).map(function(sp){ sp._c0 = sp.style.color; return sp; }), // _c0 = Farbe aus buildCap
+                     spans: Array.prototype.slice.call(root.querySelectorAll('[data-oi]')).map(function(sp){ sp._c0 = sp.style.color; sp._ts0 = sp.style.textShadow; return sp; }), // _c0/_ts0 = Farbe/Schatten aus buildCap
                      boxes: Array.prototype.slice.call(root.querySelectorAll('.cap-hlbox')), rects: null };
   }
   var mode = capMotion(s), rm = capReduceMotion(), em = blockEmph(b);
@@ -4607,10 +4624,12 @@ function capDomMotion(ov, s, b, bi, wi, t, forced) {
   M.spans.forEach(function(sp) {
     var oi = +sp.getAttribute('data-oi');
     var f = fxs[oi] || (fxs[oi] = capWordFx(s, b, oi, wi, t, forced, rm));
-    var a = f.a, op = f.op * (a ? a.op : 1), dy = f.dy * M.fpx + (a ? a.ty : 0), sc = a ? a.sx : 1;
+    var a = f.a, op = f.op * (a ? a.op : 1), dy = (f.dy + (a ? a.ty : 0)) * M.fpx, sc = a ? a.sx : 1; // ty/dy in em
     capSetSt(sp, 'opacity', op < 1 ? op.toFixed(3) : '');
     capSetSt(sp, 'transform', (Math.abs(dy) > 1e-3 ? 'translateY(' + dy.toFixed(2) + 'px)' : '') + (Math.abs(sc - 1) > 1e-4 ? ' scale(' + sc.toFixed(4) + ')' : ''));
-    capSetSt(sp, 'filter', (a && a.bright !== 1) ? 'brightness(' + a.bright.toFixed(3) + ')' : '');
+    // Glow = zusätzliche text-shadow-Schichten (unter denen des Styles) in der Highlight-Farbe; Export: dieselben Schichten im Zeichenplan
+    var gl = capGlowLayers(s, oi, a ? a.glow : 0, M.fpx);
+    capSetSt(sp, 'textShadow', gl.length ? (sp._ts0 && sp._ts0 !== 'none' ? sp._ts0 + ', ' : '') + gl.map(function(l){ return '0 0 ' + l.blur.toFixed(2) + 'px ' + l.color; }).join(', ') : (sp._ts0 || ''));
     // Farbe: Fill immer (gesprochen = „an“), Highlight nur während des Übergangs (danach gilt die Farbe aus buildCap)
     var col = '';
     if (mode === 'fill' || (mode === 'highlight' && f.hk > 0 && f.hk < 1)) {
@@ -4640,6 +4659,23 @@ function capDomMotion(ov, s, b, bi, wi, t, forced) {
     capSetSt(el, 'width', r.w.toFixed(2) + 'px'); capSetSt(el, 'height', r.h.toFixed(2) + 'px');
     capSetSt(el, 'opacity', r.op < 1 ? r.op.toFixed(3) : '1');
   });
+}
+// Word-pop-Demo: Ändert man die Wahl bei pausiertem Video, sähe man sonst nichts (der Effekt läuft nur 0,34 s ab
+// Wortbeginn). Dann spielt updateOverlay ihn ~0,6 s mit virtueller Zeit am aktiven Wort ab (_capAnimDemo = {t0, until}, ms);
+// das Video wird nicht verschoben. Bei „Bewegung reduzieren“ keine Demo (Hinweis in syncCsUi).
+var _capAnimDemo = null, _capDemoRaf = 0, CAP_ANIM_DEMO_MS = 600;
+function capAnimDemoStart() {
+  var vid = document.getElementById('mainVid');
+  if (capReduceMotion() || (vidReady && vid && !vid.paused && !vid.ended)) return false;
+  _capAnimDemo = { t0: Date.now(), until: Date.now() + CAP_ANIM_DEMO_MS };
+  cancelAnimationFrame(_capDemoRaf);
+  (function loop() {
+    if (!_capAnimDemo) return;
+    if (Date.now() >= _capAnimDemo.until) { _capAnimDemo = null; updateOverlay(); return; } // letztes Bild: Ruhezustand
+    updateOverlay();
+    _capDemoRaf = requestAnimationFrame(loop);
+  })();
+  return true;
 }
 function syncCaption(t) { updateOverlay(t); }
 function startCapLoop() {
@@ -6163,7 +6199,17 @@ function syncCsUi() {
   var lbl = csEl('csHlLbl'); if (lbl) lbl.textContent = pill ? 'Pill' : 'Active';
   var sw = csEl('csHlSw'); if (sw) sw.title = pill ? 'Pill color behind the active (spoken) word' : 'Color of the active (spoken) word';
   var gi = csEl('csGlowInt'); if (gi) gi.disabled = !_cbChecked('csGlow', false);
-  var mo = (csEl('csMotion') || {}).value, an = csEl('csAnim'); if (an && mo) an.disabled = mo !== 'highlight'; // Pop gibt es nur beim Highlight
+  // Word pop gibt es nur beim Highlight: sonst Zeile ausblenden (nicht nur ausgrauen) + Hinweis; bei „Bewegung reduzieren“
+  // (Systemeinstellung) bleibt die Vorschau still, der Export animiert trotzdem → ebenfalls Hinweis.
+  var mo = (csEl('csMotion') || {}).value, an = csEl('csAnim'), hlMode = !mo || mo === 'highlight';
+  if (an) an.disabled = !hlMode;
+  var arow = csEl('csAnimRow'); if (arow) arow.style.display = hlMode ? '' : 'none';
+  var ahint = csEl('csAnimHint');
+  if (ahint) {
+    var ahMsg = !hlMode ? 'Word pop works with Animation: Highlight.'
+      : (capReduceMotion() && an && an.value && an.value !== 'none' ? 'Preview is still (system setting \u201Creduce motion\u201D) \u2014 the export includes the animation.' : '');
+    ahint.textContent = ahMsg; ahint.style.display = ahMsg ? '' : 'none';
+  }
   var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
   var ld = csEl('csLsDisp'), lsEl = csEl('csLs'); if (ld && lsEl) ld.textContent = (lsEl.value || 0) + 'px';
   var rd = csEl('csBoxRDisp'), rEl = csEl('csBoxR'); if (rd && rEl) rd.textContent = (rEl.value || 0) + 'px';
@@ -6303,13 +6349,14 @@ function buildCustomStyle() {
   if (d.motion) { var mv = (csEl('csMotion') || {}).value; if (mv && mv !== 'highlight') cs.motion = mv; else delete cs.motion; }
   return cs;
 }
-var _csLast = 0, _csTimer = null;
+var _csLast = 0, _csTimer = null, _capDemoPending = false;
 function applyCustomStyle(group) {
   // Farbe/Deckkraft bei „Background: None“ bzw. Konturfarbe bei 0 px hatten keinerlei Wirkung („Änderung
   // kommt nicht an“) → den zugehörigen Schalter automatisch einschalten.
   if (group === 'boxc') { var bxs = csEl('csBox'); if (bxs && (bxs.value || 'off') === 'off') bxs.value = 'box'; group = 'box'; }
   if (group === 'strokec') { var oww = csEl('csOutlineW'); if (oww && !(parseFloat(oww.value) > 0)) oww.value = 2; group = 'stroke'; }
   if (group) _csDirty[group] = true;
+  if (group === 'anim') _capDemoPending = true; // nach dem Anwenden: Effekt bei pausiertem Video kurz vorführen (capAnimDemoStart)
   syncCsUi();
   // Throttled: Farbregler feuern beim Ziehen dutzende Events — max. alle 200 ms neu bauen (1. Aufruf sofort).
   // Der nachlaufende Timer liest die Regler erst beim Ausführen → der LETZTE Wert kommt immer an.
@@ -6326,6 +6373,7 @@ function runCustomStyle() {
   // Nur die Custom-Kachel ersetzen statt alle 36+ Kacheln neu zu bauen (Scroll-Position bleibt, schneller)
   if (i < 0 || !replacePickerTile(cs)) buildPicker();
   selectStyle('custom', true);
+  if (_capDemoPending) { _capDemoPending = false; capAnimDemoStart(); }
 }
 // Noch ausstehende (gedrosselte) Regler-Änderung sofort anwenden — z. B. vor dem Speichern als Template.
 function flushCustomStyle() { if (_csTimer) runCustomStyle(); }
@@ -10404,6 +10452,9 @@ function capShadowPlan(str) {
 // fsS/tw (optional): Schriftgröße und Textbreite — dann werden große Blur-Glows (≥ 16 px) in einem auf
 // 1/4 verkleinerten Puffer gerechnet und hochskaliert eingesetzt (Gauß-Blur kostet ~Radius² → 16× billiger,
 // optisch gleich, weil der Glow ohnehin unscharf ist).
+// shMul (optional): Skalierung der aktuellen Animations-Transformation für kleine Schatten-Schichten (Canvas-Schatten
+// wachsen nicht mit der Transformation, DOM-text-shadow schon). Große Blur-Schichten (drawBigBlurLayer) und die
+// Ring-Kontur wachsen über die Transformation selbst mit (strokeDiv 1) — Vorschau = Export auch bei Punch (1.28×).
 var _glowBuf = null;
 function drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw) {
   var q = 0.25, blur = l.blur * scale;
@@ -10429,7 +10480,7 @@ function drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw) {
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   ctx.drawImage(c, 0, 0, sw, sh, x - m, y - fsS * 1.05 - m, sw / q, sh / q);
 }
-function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw) {
+function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul) {
   if (plan.rest.length) {
     ctx.save();
     var lowRes = fsS > 0 && tw > 0 && typeof document !== 'undefined' && !!ctx.canvas;
@@ -10437,8 +10488,9 @@ function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw) {
     for (var i = plan.rest.length - 1; i >= 0; i--) {
       var l = plan.rest[i];
       if (lowRes && l.blur * scale >= 16) { drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw); continue; }
-      ctx.shadowOffsetX = l.x * scale; ctx.shadowOffsetY = l.y * scale;
-      ctx.shadowBlur = l.blur * scale; ctx.shadowColor = l.color;
+      var ks = scale * (shMul > 0 ? shMul : 1);
+      ctx.shadowOffsetX = l.x * ks; ctx.shadowOffsetY = l.y * ks;
+      ctx.shadowBlur = l.blur * ks; ctx.shadowColor = l.color;
       ctx.fillText(text, x, y);
     }
     ctx.restore();
@@ -10467,15 +10519,16 @@ function fillTextWithShadow(ctx, text, x, y, shadowStr, scale) {
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   ctx.fillText(text, x, y);
 }
-// Keyframes der @keyframes captly-* (0.34s ease) — reproduziert die Wort-Pop-Animation beim Highlight-
-// Wechsel im Export, den der Canvas (anders als DOM/CSS) sonst komplett ignoriert.
-var ANIM_KEYFRAMES = { // ruhig, s. CSS — Lift (bounce/wobble), Pop (scale), Punch, Fade (flash), Glow
-  bounce: [[0,{ty:3,sx:1,sy:1}],[60,{ty:-1,sx:1.02,sy:1.02}],[100,{ty:0,sx:1,sy:1}]],
-  scale:  [[0,{sx:1,sy:1}],[45,{sx:1.04,sy:1.04}],[100,{sx:1,sy:1}]],
-  flash:  [[0,{op:.45}],[100,{op:1}]],
-  glow:   [[0,{bright:1,sat:1}],[50,{bright:1.25,sat:1}],[100,{bright:1,sat:1}]],
-  punch:  [[0,{sx:1,sy:1}],[45,{sx:1.06,sy:1.06}],[100,{sx:1,sy:1}]],
-  wobble: [[0,{ty:3,sx:1,sy:1}],[60,{ty:-1,sx:1.02,sy:1.02}],[100,{ty:0,sx:1,sy:1}]]
+// Keyframes der @keyframes captly-* (0.34 s) — Vorschau (capDomMotion) UND Export (drawCaptionsOnCtx) rechnen sie aus der
+// Videozeit; die CSS-Keyframes oben (Kacheln/Hover) haben dieselben Werte. Felder: sx/sy Skalierung · ty Versatz in em
+// (+ = tiefer) · op Deckkraft · glow 0..1 Leuchten in der Highlight-Farbe. Dritter Eintrag 'out' = ease-out bis zum nächsten Keyframe.
+var ANIM_KEYFRAMES = {
+  bounce: [[0,{ty:.22,op:.5}],[100,{ty:0,op:1}]],                      // Lift: steigt 0,22 em von unten, blendet .5 → 1 ein
+  scale:  [[0,{sx:1,sy:1}],[30,{sx:1.14,sy:1.14}],[100,{sx:1,sy:1}]],  // Pop: 1 → 1.14 → 1
+  flash:  [[0,{op:0}],[100,{op:1}]],                                   // Fade in: 0 → 1
+  glow:   [[0,{glow:0}],[30,{glow:1}],[100,{glow:0}]],                 // Glow: Leuchten in der Highlight-Farbe
+  punch:  [[0,{sx:1.28,sy:1.28},'out'],[100,{sx:1,sy:1}]],             // Punch: 1.28 → 1 (ease-out)
+  wobble: [[0,{ty:.22,op:.5}],[100,{ty:0,op:1}]]                       // Alt-Name = Lift
 };
 var ANIM_DUR = 0.34;
 function animState(anim, elapsed) {
@@ -10485,7 +10538,8 @@ function animState(anim, elapsed) {
   var lo = kf[0], hi = kf[kf.length - 1];
   for (var i = 0; i < kf.length - 1; i++) { if (pct >= kf[i][0] && pct <= kf[i + 1][0]) { lo = kf[i]; hi = kf[i + 1]; break; } }
   var span = hi[0] - lo[0], f = span > 0 ? (pct - lo[0]) / span : 0;
-  var out = { sx: 1, sy: 1, ty: 0, rot: 0, op: 1, bright: 1, sat: 1 };
+  if (lo[2] === 'out') f = 1 - (1 - f) * (1 - f) * (1 - f);
+  var out = { sx: 1, sy: 1, ty: 0, rot: 0, op: 1, glow: 0 };
   Object.keys(out).forEach(function(k) {
     var a = lo[1][k], b = hi[1][k];
     if (a === undefined && b === undefined) return;
@@ -10741,10 +10795,9 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       }
       return isHL ? capOnColor(s, wo.idx, !!wo.e) : capOffColor(s, !!wo.e);
     }
-    function activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt) {
-      // Filter-Animation (glow) in 8 Helligkeits-/Sättigungsstufen; Transformationen kommen beim Einsetzen dazu
-      var fb = animSt ? Math.round((animSt.bright || 1) * 8) / 8 : 1, fs2 = animSt ? Math.round((animSt.sat || 1) * 8) / 8 : 1;
-      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txtH + '|' + fb + '|' + fs2 + '|' + ctx.font + '|' + lsPxS;
+    function activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, gq) {
+      // plan enthält schon die Glow-Schichten der Animation (in 1/16-Stufen gq quantisiert); Transformationen kommen beim Einsetzen dazu
+      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txtH + '|' + gq + '|' + ctx.font + '|' + lsPxS;
       var hit = _wordSpriteCache.get(key);
       if (hit) return hit;
       var m = 6, fsW = wo.e ? fsS * L0.esc : fsS;
@@ -10758,7 +10811,6 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
       // zurückgesetzt sein — dann wäre das Sprite breiter als gemessen und der Text rechts abgeschnitten (bei negativem Abstand).
       if ('letterSpacing' in c) c.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px';
       c.textAlign = 'left'; c.textBaseline = 'alphabetic';
-      if (fb !== 1 || fs2 !== 1) c.filter = 'brightness(' + fb + ') saturate(' + fs2 + ')';
       c.fillStyle = wordFill(c, wo, m, tw, isHL, isKw);
       drawTextWithPlan(c, wo.txtH, m, m + fsW * 1.05, plan, scale, 1, fsW, tw);
       var res = { cv: cv, m: m, fsW: fsW };
@@ -10797,15 +10849,20 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
           var c0 = capOffColor(s, !!wo.e), c1 = capOnColor(s, wo.idx, !!wo.e);
           if (c0 && c1) mixCol = capMixColor(c0, c1, f.hk);
         }
-        var dyPx = f.dy * fsS + (animSt ? animSt.ty * scale : 0);
+        var dyPx = (f.dy + (animSt ? animSt.ty : 0)) * fsS; // dy/ty in em der Schriftgrösse (wie die Vorschau)
+        // Glow-Animation: zusätzliche Schatten-Schichten in der Highlight-Farbe, unterhalb der Style-Schatten (wie im DOM)
+        var gq = animSt ? Math.round(animSt.glow * 16) / 16 : 0;
+        var glowL = capGlowLayers(s, wo.idx, gq, fsS / scale);
+        if (glowL.length) plan = { ring: plan.ring, rest: plan.rest.concat(glowL) };
         // Teure Glows (große Blur-Schatten, Glow-Animation per Filter) des AKTIVEN Worts als Sprite: Text +
         // Schatten (+ Filter-Stufe) einmal je (Layout, Wort, quantisierte Animationsstufe) rendern, pro Frame
         // nur noch per drawImage unter der Animations-Transformation einsetzen. Konturierte Styles (Ring →
         // strokeText) sind live billig und bleiben beim direkten Zeichnen (Kontur-Breite animationsstabil).
-        var hasFilter = !!(animSt && (animSt.bright !== 1 || animSt.sat !== 1));
+        // Ab ~1.08× (Punch/Pop-Spitze) nicht als Sprite: ein hochskaliertes Bitmap wäre unscharf, direkt gezeichnet bleibt der Text scharf.
         if (mode2 === 'live' && isHL && !mixCol && ctx.canvas && !plan.ring && typeof document !== 'undefined'
-            && (hasFilter || plan.rest.some(function(l){ return l.blur * scale >= 8; }))) {
-          var spr = activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, animSt);
+            && !(animSt && Math.max(animSt.sx, animSt.sy) > 1.08)
+            && plan.rest.some(function(l){ return l.blur * scale >= 8; })) {
+          var spr = activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, gq);
           ctx.save();
           if (op < 1) ctx.globalAlpha *= op;
           if (animSt || dyPx) {
@@ -10828,7 +10885,6 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
           if (animSt && animSt.rot) ctx.rotate(animSt.rot * Math.PI / 180);
           if (animSt) ctx.scale(animSt.sx, animSt.sy);
           ctx.translate(-pvx, -pvy);
-          if (animSt && (animSt.bright !== 1 || animSt.sat !== 1)) ctx.filter = 'brightness(' + animSt.bright + ') saturate(' + animSt.sat + ')';
         }
 
         // Füllung — inkl. Gradient-Styles (Prism); Keyword-Wörter (isKw) in der Betonungsfarbe des Styles
@@ -10837,7 +10893,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
         // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
         // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
         var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
-        drawTextWithPlan(ctx, txt, tx, y, plan, scale, animK, wo.e ? fsS * L0.esc : fsS, tw);
+        drawTextWithPlan(ctx, txt, tx, y, plan, scale, 1, wo.e ? fsS * L0.esc : fsS, tw, animK);
         ctx.restore();
       });
     });
