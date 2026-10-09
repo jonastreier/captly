@@ -429,6 +429,49 @@ if (require.main !== module) return;
       // Vorschau = Export: ein Frame aus der Mitte mit Untertitel-Pixeln prüfen (heller Text auf dem Testbild)
       const fr = path.join(SHOTS, prof.name + '-export-frame.png');
       spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '1.2', '-i', fp, '-frames:v', '1', fr]);
+      // Untertitel-Pixel im MP4 = |MP4-Frame − Quellframe| (gleiches Bild, Export «original» = Quellgrösse, kein Zoom). Verglichen mit
+      // (a) dem Export-Renderer (drawCaptionsOnCtx) und (b) der Vorschau (Screenshot von #prevFrame: Video + DOM-Captions, gleiche Zeit):
+      // Zeilenprofile → Versatz per kleinster L1-Differenz. Fängt eine Verschiebung im Aufnahme-/Encode-Weg und Vorschau ≠ MP4.
+      // Zeitpunkt: Bild k (30 fps) in der Mitte des Blocks um 1.2 s (am Blockanfang blendet die Caption gerade erst ein)
+      const kf = await page.evaluate(() => { const t0 = 1.2 + timeOff; let bi = currentBlockIdx(t0); if (bi < 0) bi = nearestBlockIdx(t0); const b = captionBlocks[bi]; return Math.round(((b.start + b.end) / 2 - timeOff) * 30); });
+      const tK = kf / 30, ssK = ((kf - 0.5) / 30).toFixed(4); // -ss knapp vor Bild k → ffmpeg liefert genau Bild k
+      const mpFr = path.join(os.tmpdir(), 'cr-e2e-mp4-frame.png'), srcFr = path.join(os.tmpdir(), 'cr-e2e-src-frame.png');
+      [mpFr, srcFr].forEach(f => { try { fs.unlinkSync(f); } catch (e) {} });
+      spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ssK, '-i', fp, '-frames:v', '1', mpFr]);
+      spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ssK, '-i', VIDEO, '-frames:v', '1', srcFr]);
+      ok(fs.existsSync(mpFr) && fs.existsSync(srcFr), 'MP4-/Quell-Frame bei ' + tK.toFixed(3) + ' s extrahiert');
+      if (fs.existsSync(mpFr) && fs.existsSync(srcFr)) {
+        await page.evaluate(() => { try { closeExportSheet(); } catch (e) {} });
+        await page.evaluate(t => new Promise(r => { const v = document.getElementById('mainVid'); v.pause(); let done = false; const f = () => { if (done) return; done = true; v.removeEventListener('seeked', f); _lastKey = null; updateOverlay(); requestAnimationFrame(() => requestAnimationFrame(r)); }; v.addEventListener('seeked', f); v.currentTime = t; setTimeout(f, 2500); }), tK);
+        // Vorschau zeitgenau wie beim Abspielen (pausiert zeigt sie sonst den Endzustand der Übergänge, s. capDomMotion)
+        await page.evaluate(t0 => { const t = t0 + timeOff, bi = currentBlockIdx(t); if (bi >= 0) capDomMotion(document.getElementById('capOverlay'), caseStyle(STYLES.find(x => x.id === activeId)), captionBlocks[bi], bi, activeWordIdx(captionBlocks[bi], t), t, false, false); }, tK);
+        await page.waitForTimeout(150);
+        const prv = await page.locator('#prevFrame').screenshot({ animations: 'disabled' });
+        const m = await page.evaluate(async a => {
+          const load = b64 => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = 'data:image/png;base64,' + b64; });
+          const [mp4, src, pv] = await Promise.all([load(a.mp4), load(a.src), load(a.prv)]);
+          const W = mp4.width, H = mp4.height;
+          const px = im => { const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.drawImage(im, 0, 0, W, H); return x.getImageData(0, 0, W, H).data; };
+          const dM = px(mp4), dS = px(src), dP = px(pv);
+          const cv = document.createElement('canvas'); cv.width = W; cv.height = H; const cx = cv.getContext('2d');
+          _capLayoutCache = { key: null, s: null, ctx: null, val: null }; _capStaticLayer = null;
+          drawCaptionsOnCtx(cx, a.t, STYLES.find(s => s.id === activeId), W, H, true);
+          const dC = cx.getImageData(0, 0, W, H).data, rM = new Array(H).fill(0), rP = new Array(H).fill(0), rC = new Array(H).fill(0);
+          const dif = (p, q, i) => Math.max(Math.abs(p[i] - q[i]), Math.abs(p[i + 1] - q[i + 1]), Math.abs(p[i + 2] - q[i + 2])) > 90;
+          let ink = 0, hit = 0, nM = 0, nP = 0;
+          for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+            const i = (y * W + x) * 4, mm = dif(dM, dS, i);
+            if (mm) { rM[y]++; nM++; } if (dif(dP, dS, i)) { rP[y]++; nP++; }
+            if (dC[i + 3] > 200) { rC[y]++; ink++; if (mm) hit++; }
+          }
+          return { W, H, rM, rP, rC, cover: ink ? hit / ink : 0, ink, nM, nP };
+        }, { mp4: fs.readFileSync(mpFr).toString('base64'), src: fs.readFileSync(srcFr).toString('base64'), prv: prv.toString('base64'), t: tK });
+        const shift = (p, q, r, max) => { let best = 0, bv = Infinity; for (let s = -max; s <= max; s++) { let d = 0; for (let i = r; i < p.length - r; i++) { const j = i + s; d += Math.abs(p[i] - (j >= 0 && j < q.length ? q[j] : 0)); } if (d < bv) { bv = d; best = s; } } return best; };
+        const edge = Math.round(m.H * 0.03), sC = shift(m.rC, m.rM, edge, 40), sP = shift(m.rP, m.rM, edge, 40), tolC = Math.max(2, m.W * 0.003), tolP = Math.max(2, m.W * 0.004); // vorher (capLayout mit Canvas-Metrik): Vorschau 4 px (von 540) höher
+        ok(m.ink > 500 && m.cover > 0.6, 'MP4-Frame (' + tK.toFixed(2) + ' s): Untertitel-Pixel liegen, wo der Export-Renderer zeichnet (' + (m.cover * 100).toFixed(0) + ' % von ' + m.ink + ' px, ' + m.W + '×' + m.H + ')');
+        ok(m.ink > 500 && Math.abs(sC) <= tolC, 'MP4-Frame: kein Versatz zum Export-Renderer (' + sC + ' px tiefer, ≤ ' + tolC.toFixed(1) + ')');
+        ok(m.nP > 500 && m.nM > 500 && Math.abs(sP) <= tolP, 'MP4-Frame = Vorschau: Untertitel-Zeilen auf gleicher Höhe (' + sP + ' px tiefer, ≤ ' + tolP.toFixed(1) + ' von ' + m.W + ')');
+      }
     }
     ok(state.leads.length === 1 && state.leads[0].email === 'e2e@example.com' && state.leads[0].newsletter === true, 'Lead an /api/lead gesendet (E-Mail + Newsletter-Häkchen)');
     await page.waitForTimeout(500);
