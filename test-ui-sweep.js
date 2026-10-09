@@ -44,13 +44,14 @@ if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
 const T0 = Date.now();
 
 // ═══════════ Bekannte Fehler (expectFail) ═══════════
-// Jeder Eintrag: re = Regex auf die Prüfungs-ID (ohne Viewport), why = Begründung (Branch/Fehler). Scheitert die Prüfung → «xfail» (erwartet).
+// Jeder Eintrag: re = Regex auf die Prüfungs-ID (ohne Viewport), vp = optional nur in diesen Viewports, why = Begründung (Branch/Fehler). Scheitert die Prüfung → «xfail» (erwartet).
 // Besteht sie → «XPASS»-Warnung: der Fehler ist behoben (Branch gemergt) → Eintrag entfernen.
 const EXPECT_FAIL = [
   // Aktuell leer: P1 (Layout-Preset/Zeilenhöhe/Export-Zeilenabstand), P2 (Word pop), P3 (Cover-Rand) sind gemergt.
   { re: /^ctl\/cvWords\/changes:cover\.hash$/, why: 'NEU gefunden (noch nicht behoben): Cover-Akzent-Chips («Tap words to accent them») bewirken bei Looks ohne Betonung (Standard «tight», «statement») nichts — captly.html coverIsEm() ~Z. 11279 verlangt emphColor/emFont' },
-  { re: /^geom\/y\/(popone|headline|editorial|script)$/, why: 'NEU gefunden (noch nicht behoben): Position «Middle» — Export zentriert mit fester Konstante «fsS * 0.35» statt mit den Schrift-Metriken (captly.html capLayout ~Z. 10653: y0 = centerY - … + fsS * 0.35); bei Anton/Playfair/Kalam liegt der Export 11–17 px (Export-Breite 1080) anders als die Vorschau' },
-  { re: /^geom\/(y\/(serifbold|boxkara)|linepitch\/boxkara)$/, why: 'NEU gefunden (noch nicht behoben): Position «Bottom»/Zeilenhöhe 0.9/1.8 bei Serif Bold bzw. Highlight Box: Block liegt in Vorschau und Export 11–14 px (von 1080) versetzt, Highlight Box 0.9 hat in der Vorschau grösseren Zeilenabstand (81 vs 76 px) — Ursache vermutlich clampCapVertical (Vorschau) vs. Clamp in capLayout' },
+  { re: /^geom\/y\/(serifbold|popone|headline)$/, why: 'NEU gefunden (noch nicht behoben): Position «Middle» — Export zentriert mit fester Konstante «fsS * 0.35» statt mit den Schrift-Metriken (captly.html capLayout ~Z. 10653: y0 = centerY - … + fsS * 0.35); bei Anton/Playfair/Kalam liegt der Export 11–17 px (Export-Breite 1080) anders als die Vorschau' },
+  { re: /^geom\/y\/(editorial|script|boxkara)$/, vp: ['phone'], why: 'NEU gefunden (noch nicht behoben): Position «Middle» — Export zentriert mit fester Konstante «fsS * 0.35» statt mit den Schrift-Metriken (captly.html capLayout ~Z. 10653: y0 = centerY - … + fsS * 0.35); bei Anton/Playfair/Kalam liegt der Export 11–17 px (Export-Breite 1080) anders als die Vorschau' },
+  { re: /^geom\/(y\/serifbold|linepitch\/boxkara)$/, vp: ['phone'], why: 'NEU gefunden (noch nicht behoben): Position «Bottom»/Zeilenhöhe 0.9/1.8 bei Serif Bold bzw. Highlight Box: Block liegt in Vorschau und Export 11–14 px (von 1080) versetzt, Highlight Box 0.9 hat in der Vorschau grösseren Zeilenabstand (81 vs 76 px) — Ursache vermutlich clampCapVertical (Vorschau) vs. Clamp in capLayout' },
   { re: /^pixel\/iou$/, why: 'NEU gefunden (noch nicht behoben): Export-Text liegt in den meisten Styles 8–16 px (bei 1080×1920) tiefer als in der Vorschau (Position «Bottom», 1–2 Zeilen) → rohe IoU < 0.9, nach Ausrichtung ≥ 0.6; gleiche Ursache wie geom/y (capLayout gapBelow/Clamp vs. applyPos/clampCapVertical)' },
   // Neuer Eintrag: { re: /^ctl\/csLh@layoutPreset\//, why: 'Branch xyz: Kurzbeschreibung' },
 ];
@@ -58,7 +59,7 @@ const EXPECT_FAIL = [
 // ═══════════ Ergebnis-Buchhaltung ═══════════
 const R = { ok: 0, fail: 0, xfail: 0, xpass: 0, warn: 0 }, LOG = [];
 let curVp = '';
-function expectedWhy(id) { const e = EXPECT_FAIL.find(x => x.re.test(id)); return e ? e.why : ''; }
+function expectedWhy(id) { const e = EXPECT_FAIL.find(x => x.re.test(id) && (!x.vp || x.vp.includes(curVp))); return e ? e.why : ''; }
 const xpassSeen = new Set();
 // check(id, cond, msg): id ohne Viewport (für expectFail), der Viewport kommt in die Ausgabe
 function check(id, cond, msg) {
@@ -149,7 +150,7 @@ function qaMain() {
       const s = STYLES.find(x => x.id === activeId) || {};
       Object.keys(s).forEach(k => { if (['id', 'name', 'badge', '_tpl', '_isTpl', '_tplId'].indexOf(k) >= 0) return; const v = s[k]; o['style.' + k] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v; });
       o['cfg.active'] = activeId; o['cfg.lines'] = CAPTION_LINES; o['cfg.wpb'] = WORDS_PER_BLOCK; o['cfg.maxChars'] = CAP_MAX_CHARS;
-      o['cfg.fontSize'] = fontSize; o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
+      o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; // relativ zur Rahmenbreite: ändert sich nicht, wenn der Rahmen (Handy: kompakt beim Tippen) schrumpft o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
       o['cfg.punct'] = capNoPunct ? 1 : 0; o['cfg.kw'] = emKw ? 1 : 0; o['cfg.emoji'] = emEmoji ? 1 : 0; o['cfg.zoom'] = emZoom; o['cfg.timeOff'] = timeOff;
       o['cfg.blocks'] = captionBlocks.length;
       o['cfg.text'] = hash(captionBlocks.map(b => b.text).join('|'));
@@ -414,7 +415,7 @@ const OPEN_COVER = async sc => { await OPEN_EXPORT(sc); await tapSel(sc, '#btnCo
 const OPEN_TRSET = sc => openDetails(sc, 'trSet');
 const GOTO_TL = async sc => { if (sc.prof.mobile) await goTab(sc, 'timeline'); else await sc.page.evaluate(() => { if (!_tl.open) tlSetOpen(true, false); }); await sc.page.waitForTimeout(400); };
 const COVER_INV = ['cfg.lines', 'cfg.wpb', 'cfg.blocks', 'cfg.text', 'cfg.fontSize', 'cfg.pos'];
-const CAP_INV = ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize'];
+const CAP_INV = ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontRel']; // Schrift relativ zum Rahmen: auf dem Handy wird der Rahmen beim Bearbeiten einer Zeile kompakt (_edCompact), die absolute px-Grösse skaliert mit
 const tlClickBlock = async (sc, idx) => { // Balken idx in der Timeline antippen/anklicken (Maus bzw. Finger)
   const pt = await sc.page.evaluate(i => { const g = tlGeom(), b = captionBlocks[i], r = _tl.cv.getBoundingClientRect(), v = tlView, off = timeOff || 0;
     const x = tlTimeToX((b.start + b.end) / 2 - off, v); return { x: r.left + x, y: r.top + g.barY + 6 }; }, idx);
@@ -430,7 +431,7 @@ CTL.push(
   // ── Captions-Tab ──
   { id: 'segEdit', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg1 .cap-seg-ta'); await sc.page.fill('#seg1 .cap-seg-ta', 'Neuer Text'); await sc.page.keyboard.press('Tab'); }, changes: ['cfg.text'], inv: ['cfg.blocks', 'cfg.wpb', 'cfg.lines'], lines: 0 },
   { id: 'segTimeShift', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg2'); await tapSel(sc, '#seg2 [data-a="start:0.1"]'); }, changes: ['cfg.timing'], inv: ['cfg.blocks', 'cfg.text', 'cfg.wpb', 'cfg.lines'], lines: 0 },
-  { id: 'segDel', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg2'); await tapSel(sc, '#seg2 [data-a="del"]'); }, changes: ['cfg.blocks', 'cfg.text'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.fontSize'], lines: 0 },
+  { id: 'segDel', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg2'); await tapSel(sc, '#seg2 [data-a="del"]'); }, changes: ['cfg.blocks', 'cfg.text'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.fontRel'], lines: 0 },
   { id: 'segWordEmph', tab: 'captions', op: 'run', values: [null], emph: true, run: async sc => { await tapSel(sc, '#seg0'); await tapSel(sc, '#seg0 .se-w[data-a="w:0"]'); }, changes: ['dom.hash'], inv: CAP_INV.concat('cfg.blocks') },
   { id: 'segEmoji', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg0'); await tapSel(sc, '#seg0 .se-emo'); await sc.page.waitForSelector('#emoPick', { state: 'visible', timeout: 3000 }); await tapSel(sc, '#emoPick button >> nth=1'); },
     changes: ['cfg.emoji', 'dom.hash'], inv: CAP_INV.concat('cfg.blocks'), lines: 0 },
@@ -444,8 +445,8 @@ CTL.push(
   // ── Timeline ──
   { id: 'tlSnap', tab: 'timeline', op: 'click', sel: '#tlSnapBtn', values: [null], vp: ['desktop'], pre: GOTO_TL, changes: ['tl.snap'], inv: ['cfg.blocks', 'cfg.text', 'cfg.timing'], lines: 0 },
   { id: 'taSnap', tab: 'timeline', op: 'click', sel: '#taSnap', values: [null], vp: ['phone'], pre: GOTO_TL, changes: ['tl.snap'], inv: ['cfg.blocks', 'cfg.text', 'cfg.timing'], lines: 0 },
-  { id: 'tlZoomIn', tab: 'timeline', op: 'click', sel: '#tlWrap button[aria-label="Zoom timeline in"]', values: [null], pre: GOTO_TL, changesAny: ['tl.pps', 'tl.mpps'], inv: ['cfg.blocks', 'cfg.text', 'cfg.timing'], lines: 0 },
-  { id: 'tlZoomOut', tab: 'timeline', op: 'click', sel: '#tlWrap button[aria-label="Zoom timeline out"]', values: [null], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => { tlZoomBtn(2.5); tlRequestDraw(); }), changesAny: ['tl.pps', 'tl.mpps'], inv: ['cfg.blocks', 'cfg.text', 'cfg.timing'], lines: 0 },
+  { id: 'tlZoomIn', tab: 'timeline', vp: ['desktop'], op: 'click', sel: '#tlWrap button[aria-label="Zoom timeline in"]', values: [null], pre: GOTO_TL, changesAny: ['tl.pps', 'tl.mpps'], inv: ['cfg.blocks', 'cfg.text', 'cfg.timing'], lines: 0 },
+  { id: 'tlZoomOut', tab: 'timeline', vp: ['desktop'], op: 'click', sel: '#tlWrap button[aria-label="Zoom timeline out"]', values: [null], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => { tlZoomBtn(2.5); tlRequestDraw(); }), changesAny: ['tl.pps', 'tl.mpps'], inv: ['cfg.blocks', 'cfg.text', 'cfg.timing'], lines: 0 },
   { id: 'tlFit', tab: 'timeline', op: 'click', sel: '#tlWrap .tl-fit', values: [null], vp: ['desktop'], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => { tlZoomBtn(2.5); tlRequestDraw(); }), changes: ['tl.fit', 'tl.pps'], inv: ['cfg.blocks', 'cfg.text', 'cfg.timing'], lines: 0 },
   { id: 'tlGaps', tab: 'timeline', op: 'click', sel: '#tlGapBtn', values: [null], vp: ['desktop'], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => { captionBlocks[1].end -= 0.3; captionBlocks[1].words[captionBlocks[1].words.length - 1].end -= 0.3; }), changes: ['cfg.timing'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'taGaps', tab: 'timeline', op: 'click', sel: '#taGaps', values: [null], vp: ['phone'], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => { captionBlocks[1].end -= 0.3; captionBlocks[1].words[captionBlocks[1].words.length - 1].end -= 0.3; }), changes: ['cfg.timing'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
@@ -538,7 +539,7 @@ async function runControl(browser, prof, def, variant) {
     const vis = def.sel ? await sc.page.isVisible(def.sel) : true;
     if (!vis && def.hiddenOk) { await sc.close(); return; }
     const s0 = await sigOf(sc), err0 = sc.errors.length;
-    const diffs = [], holds = []; let operable = true;
+    const diffs = [], holds = [], sigs = []; let operable = true;
     const vals = QUICK && def.values.length > 2 ? [def.values[0], def.values[def.values.length - 1]] : def.values;
     let gotDownload = null, gotClip = null;
     for (const v of vals) {
@@ -550,7 +551,7 @@ async function runControl(browser, prof, def, variant) {
       await sc.page.waitForTimeout(def.wait || 380);
       if (def.reseek && pk) { await sc.page.evaluate(t => window.__qa.seekTo(t), pk.t); await sc.page.waitForTimeout(450); } // Wort-Pop spielt nach der Wahl eine kurze Vorschau → auf den Messzeitpunkt zurück
       await sc.page.evaluate(() => window.__qa.raf2());
-      const si = await sigOf(sc); diffs.push(diffSig(s0, si));
+      const si = await sigOf(sc); sigs.push(si); diffs.push(diffSig(s0, si));
       if (def.sel && (def.op === 'range' || def.op === 'select' || def.op === 'color')) { // Regler springt nach dem Anwenden nicht zurück
         const now = await sc.page.inputValue(def.sel);
         holds.push([v, now]);
@@ -568,7 +569,7 @@ async function runControl(browser, prof, def, variant) {
       if (def.clipboard) check(id + '/clipboard', typeof gotClip === 'string' && gotClip.includes(def.clipboard), 'Zwischenablage enthält «' + def.clipboard + '» (ist: ' + String(gotClip).slice(0, 40) + ')');
       for (const key of def.inv || []) {
         const bad = vals.filter((v, i) => diffs[i].includes(key));
-        check(id + '/inv:' + key, !bad.length, key + ' bleibt unverändert' + (bad.length ? ' — änderte sich bei Wert ' + bad.join(', ') + ' (vorher ' + JSON.stringify(s0[key]) + ')' : ''));
+        check(id + '/inv:' + key, !bad.length, key + ' bleibt unverändert' + (bad.length ? ' — änderte sich bei Wert ' + bad.join(', ') + ' (vorher ' + JSON.stringify(s0[key]) + ', danach ' + JSON.stringify(sigs[vals.indexOf(bad[0])][key]) + ')' : ''));
       }
       if (def.styleOnly) {
         const extra = [...union].filter(k => k.startsWith('style.') && k !== 'style.layout' && !def.styleOnly.includes(k.slice(6))); // style.layout fällt beim Wechsel zu «custom» bewusst weg
