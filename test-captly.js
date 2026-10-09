@@ -129,6 +129,7 @@ capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CA
 capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},setProgDrag:function(v){_progDrag=v;},
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
+coverEmColor:coverEmColor,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3382,6 +3383,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.coverRestore({ wo: [[0.1, 0.1]] }); ok(JSON.stringify(T.getCover().wo) === '{}', 'Cover: wo als Liste → leer');
     T.coverRestore({ wo: 'x', align: 'left', ox: -0.3, oy: 0.2 }); cs2 = T.getCover();
     ok(cs2.align === 'left' && cs2.ox === -0.3 && cs2.oy === 0.2 && JSON.stringify(cs2.wo) === '{}', 'Cover: gültige Ausrichtung/Verschiebung bleiben');
+    // Cover-Akzent wirkt bei jedem Look: Looks ohne Betonung (Tight/Statement) bekommen Fallback-Farbe, die anderen behalten ihre
+    { const ce = id => T.coverEmColor(T.STYLES.find(x => x.id === id));
+      ok(ce('tight') === '#FFD60A' && ce('statement') === '#fff' && ce('mix') === '#4ade80' && ce('hormozi') && T.STYLES.filter(x => ['tight','mix','statement','accent','serifbold','hormozi','editorial'].includes(x.id)).every(x => !!T.coverEmColor(x) || !!x.emFont), 'Cover: Akzent-Farbe für jeden Look (Tight → Gelb, Statement → Weiss, Mix unverändert)'); }
     // Titel zeichnen: Ausrichtung links/rechts liegt an den Kanten von maxW, Offsets verschieben (und sind begrenzt), Wörter haben Trefferflächen
     {
       const sty = T.STYLES.find(x => x.id === 'tight'), ctx = document.createElement('canvas').getContext('2d');
