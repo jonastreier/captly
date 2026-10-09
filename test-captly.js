@@ -122,7 +122,8 @@ setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKe
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
-capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;}};`;
+capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
+coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -3247,6 +3248,64 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(cs.t === 3 && cs.dark === 70 && cs.title === 'Hallo Welt' && cs.kw.join() === '1,7' && cs.style === 'tight' && cs.size === 1.4 && cs.pos === 'bottom' && cs.guides === false, 'Cover: gespeicherte Einstellungen werden geprüft/begrenzt');
     T.coverRestore(null);
     ok(T.getCover().title === '' && T.getCover().style === 'tight', 'Cover: ohne Eintrag Standard');
+    ok(cs.align === 'center' && cs.ox === 0 && cs.oy === 0 && JSON.stringify(cs.wo) === '{}', 'Cover: Projekt ohne Ausrichtung/Verschiebung sieht aus wie bisher (mittig, Offsets 0)');
+    // Ausrichtung/Verschiebung: kaputte Werte werden verworfen bzw. auf ±0.5 begrenzt
+    T.coverRestore({ title: 'A B C', align: 'diagonal', ox: 9, oy: 'x', wo: { 0: [0.9, -9], 1: [1], 2: ['a', 0], x: [0.1, 0.1], 99: [0.1, 0.1], 3: [0, 0], 4: [0.25, -0.125] } });
+    let cs2 = T.getCover();
+    ok(cs2.align === 'center' && cs2.ox === 0.5 && cs2.oy === 0, 'Cover: unbekannte Ausrichtung → mittig, Offset ±0.5 begrenzt, Text-Offset → 0');
+    ok(JSON.stringify(cs2.wo) === '{"0":[0.5,-0.5],"4":[0.25,-0.125]}', 'Cover: Wort-Offsets: nur gültige Indizes/Paare, begrenzt, Nullen entfallen: ' + JSON.stringify(cs2.wo));
+    const manyWo = {}; for (let i = 0; i < 40; i++) manyWo[i] = [0.1, 0.1]; manyWo[55] = [0.1, 0.1]; manyWo['__proto__'] = [0.1, 0.1];
+    T.coverRestore({ wo: manyWo });
+    ok(Object.keys(T.getCover().wo).length === 40 && T.getCover().wo[55] === undefined && ({}).polluted === undefined, 'Cover: höchstens 40 Wort-Offsets, nur Indizes 0–39');
+    T.coverRestore({ wo: [[0.1, 0.1]] }); ok(JSON.stringify(T.getCover().wo) === '{}', 'Cover: wo als Liste → leer');
+    T.coverRestore({ wo: 'x', align: 'left', ox: -0.3, oy: 0.2 }); cs2 = T.getCover();
+    ok(cs2.align === 'left' && cs2.ox === -0.3 && cs2.oy === 0.2 && JSON.stringify(cs2.wo) === '{}', 'Cover: gültige Ausrichtung/Verschiebung bleiben');
+    // Titel zeichnen: Ausrichtung links/rechts liegt an den Kanten von maxW, Offsets verschieben (und sind begrenzt), Wörter haben Trefferflächen
+    {
+      const sty = T.STYLES.find(x => x.id === 'tight'), ctx = document.createElement('canvas').getContext('2d');
+      const draw = o => T.coverDrawTitle(ctx, 1080, 1920, Object.assign({ title: 'Hallo schöne Welt heute', kw: [], style: 'tight', size: 1, pos: 'mid', align: 'center', ox: 0, oy: 0, wo: {} }, o), sty);
+      const maxW = T.coverMaxW(1080, 1920), base = draw({});
+      ok(base && base.words.length === 4 && Math.abs(base.x + base.w / 2 - 540) < 1, 'Cover: mittig → Box in der Bildmitte (vier Wort-Trefferflächen)');
+      const L = draw({ align: 'left' }), R = draw({ align: 'right' });
+      ok(Math.abs(L.x - (1080 - maxW) / 2) < 0.01 && Math.abs(R.x + R.w - (1080 + maxW) / 2) < 0.01, 'Cover: links/rechts → Box an der linken/rechten Kante von maxW (' + L.x + ' / ' + (R.x + R.w) + ')');
+      ok(T.coverAlignX('left', 1080, 800, 300) === 140 && T.coverAlignX('right', 1080, 800, 300) === 640 && T.coverAlignX('center', 1080, 800, 300) === 390 && T.coverAlignX('???', 1080, 800, 300) === 390, 'Cover: coverAlignX');
+      const mv = draw({ ox: 0.1, oy: -0.1 });
+      ok(Math.abs(mv.x - base.x - 108) < 0.01 && Math.abs(mv.y - base.y + 192) < 0.01 && mv.w === base.w && mv.h === base.h, 'Cover: Offsets ox/oy verschieben die Box in Anteilen von W/H');
+      const cl = draw({ ox: 7, oy: -7 });
+      ok(Math.abs(cl.x - base.x - 540) < 0.01 && Math.abs(cl.y - base.y + 960) < 0.01, 'Cover: Offsets sind auf ±0.5 begrenzt (auch direkt im Zustand)');
+      const bad = draw({ ox: NaN, oy: 'x', align: 'x', wo: 'x' });
+      ok(Math.abs(bad.x - base.x) < 0.01 && Math.abs(bad.y - base.y) < 0.01, 'Cover: kaputte Zustandswerte zeichnen wie Standard');
+      const w1 = draw({ wo: { 1: [0.1, 0.05] } });
+      ok(Math.abs(w1.words[1].x - base.words[1].x - 108) < 0.01 && Math.abs(w1.words[1].y - base.words[1].y - 96) < 0.01 && w1.words[0].x === base.words[0].x && w1.words[2].y === base.words[2].y, 'Cover: Wort-Offset verschiebt nur dieses Wort');
+      ok(w1.y + w1.h >= w1.words[1].y + w1.words[1].h - 0.01 && w1.x <= base.x + 0.01, 'Cover: Box umschliesst auch verschobene Wörter (Safe-Zone-Prüfung)');
+      const hw = base.words[2];
+      ok(T.coverHitWord(base.words, { x: hw.x + hw.w / 2, y: hw.y + hw.h / 2 }) === hw.i && T.coverHitWord(base.words, { x: 5, y: 5 }) === -1 && T.coverHitWord(base.words, { x: hw.x - 4, y: hw.y + 2 }, 8) >= 0, 'Cover: Treffer auf Wort (mit Toleranz), daneben -1');
+    }
+    // Einrasten: Mittellinie und Safe-Zone-Ränder, nur innerhalb der Schwelle
+    {
+      const reg = T.coverSafeRegion(1080, 1920);
+      const sn = T.coverSnap({ x: 440, y: 900, w: 200, h: 100 }, reg, 1080, 1920, 10); // Mitte x = 540 → rastet; y-Mitte 950 ≠ 960 (Δ10) → rastet auch
+      ok(sn.dx === 0 && sn.vx === 540 && sn.dy === 10 && sn.vy === 960, 'Cover: Einrasten an Bild-Mitte (x/y)');
+      const sn2 = T.coverSnap({ x: 100, y: 400, w: 200, h: 100 }, reg, 1080, 1920, 10);
+      ok(sn2.dx === 0 && sn2.vx === null && sn2.dy === 0 && sn2.vy === null, 'Cover: weit weg → kein Einrasten');
+      const sn3 = T.coverSnap({ x: reg.x + 6, y: reg.y + 3, w: 200, h: 100 }, reg, 1080, 1920, 10);
+      ok(sn3.dx === -6 && sn3.vx === reg.x && sn3.dy === -3 && sn3.vy === reg.y, 'Cover: Einrasten am Safe-Zone-Rand oben/links');
+      const sn4 = T.coverSnap({ x: reg.x + reg.w - 200 - 4, y: reg.y + reg.h - 100 + 5, w: 200, h: 100 }, reg, 1080, 1920, 10);
+      ok(sn4.dx === 4 && sn4.vx === reg.x + reg.w && sn4.dy === -5 && sn4.vy === reg.y + reg.h, 'Cover: Einrasten am Safe-Zone-Rand unten/rechts');
+    }
+    // Zustand: Position-/Ausrichtungs-Knopf setzt die jeweilige Verschiebung zurück, Reset leert alles, Wortanzahl ändern leert wo, Payload trägt alles
+    {
+      T.coverRestore({ title: 'Eins zwei drei', kw: [0], align: 'right', ox: 0.2, oy: -0.2, wo: { 1: [0.1, 0.1] }, pos: 'top' });
+      ok(T.coverMoved(T.getCover()), 'Cover: verschoben → Reset-Knopf aktiv');
+      const pc = T.projectPayload().cover;
+      ok(pc && pc.align === 'right' && pc.ox === 0.2 && pc.oy === -0.2 && JSON.stringify(pc.wo) === '{"1":[0.1,0.1]}', 'Cover: Projekt-Payload enthält align/ox/oy/wo');
+      T.coverOnTitle('Eins zwei drei'); ok(JSON.stringify(T.getCover().wo) === '{"1":[0.1,0.1]}', 'Cover: gleiche Wortanzahl → Wort-Offsets bleiben');
+      T.coverOnTitle('Eins zwei'); ok(JSON.stringify(T.getCover().wo) === '{}' && T.getCover().ox === 0.2, 'Cover: andere Wortanzahl → Wort-Offsets zurück (Titel-Offset bleibt)');
+      T.coverSet('pos', 'mid'); ok(T.getCover().oy === 0 && T.getCover().ox === 0.2, 'Cover: Position wählen setzt nur die senkrechte Verschiebung zurück');
+      T.coverSet('align', 'left'); ok(T.getCover().ox === 0 && T.getCover().align === 'left', 'Cover: Ausrichtung wählen setzt nur die waagrechte Verschiebung zurück');
+      T.coverRestore({ title: 'A', ox: 0.1, oy: 0.1, wo: { 0: [0.1, 0.1] } }); T.coverResetPos();
+      ok(!T.coverMoved(T.getCover()) && T.getCover().align === 'center', 'Cover: Reset position → keine Verschiebung');
+    }
   }
 
   // Style Drops (styles.json): bereinigt, nur lokale Schriften, nie eingebaute IDs überschreiben, „New“ 30 Tage

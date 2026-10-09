@@ -269,7 +269,7 @@ body.editor-open{height:100vh;overflow:hidden}
 
 /* PREVIEW */
 .prev-col{flex:1;min-width:0;background:var(--canvas);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;position:relative}
-.prev-frame{position:relative;border-radius:16px;overflow:hidden;border:none;box-shadow:var(--sh-3);width:220px;height:390px;flex-shrink:0;transform-origin:center center;transition:transform .12s ease-out}
+.prev-frame{position:relative;isolation:isolate;border-radius:16px;overflow:hidden;border:none;box-shadow:var(--sh-3);width:220px;height:390px;flex-shrink:0;transform-origin:center center;transition:transform .12s ease-out}
 
 /* TIMELINE (unter der Vorschau) */
 .tl-wrap{display:none;align-self:stretch;max-width:100%;background:#fff;border:1px solid var(--line);border-radius:var(--r-card);box-shadow:var(--sh-1);overflow:hidden;flex-shrink:0}
@@ -295,13 +295,14 @@ body.editor-open{height:100vh;overflow:hidden}
 #prevBg{position:absolute;inset:0;z-index:0;background:var(--ink);transition:background .3s}
 #prevBlurBg{position:absolute;inset:-8%;z-index:0;width:116%;height:116%;display:none;filter:blur(14px) brightness(.55);pointer-events:none}
 .prev-frame.reframe-blur #prevBlurBg{display:block}
-.prev-frame.reframe-blur #mainVid{object-fit:contain!important}
+.prev-frame.reframe-blur #mainVid{object-fit:contain!important;inset:0;width:100%;height:100%}
 .vid-warn{max-width:360px;width:100%;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:9px;padding:8px 10px;font-size:12.5px;line-height:1.45}
 .exp-opts{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
 .exp-opt{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2)}
 .exp-opt > span{min-width:74px}
 .exp-opt .lang-sel{margin:0;flex:1;padding:6px 8px;font-size:12.5px}
-#mainVid{position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none}
+/* Video steht 2px über den Rahmen hinaus (overflow:hidden schneidet es ab): an der gerundeten Unterkante (Zoom, Subpixel, GPU-Video-Ebene) blitzt sonst eine dunkle Linie durch. Nicht im Blur-Modus (contain). */
+#mainVid{position:absolute;inset:-2px;z-index:1;width:calc(100% + 4px);height:calc(100% + 4px);object-fit:cover;display:none}
 /* Play-Overlay: dezentes Glas-Icon statt deckender weißer Scheibe — der Untertitel (z-index 10) liegt
    darüber und bleibt lesbar; positionPlayIcon() schiebt das Icon zusätzlich aus dem Untertitel-Bereich. */
 #playOverlay{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.14);cursor:pointer}
@@ -428,7 +429,10 @@ body.editor-open{height:100vh;overflow:hidden}
 .cv-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line)}
 .cv-body{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:20px;padding:16px;overflow:auto}
 .cv-prev{display:flex;flex-direction:column;align-items:center;gap:8px}
-.cv-prev canvas{width:100%;max-width:320px;aspect-ratio:9/16;border-radius:12px;background:#14161a;box-shadow:0 6px 24px rgba(20,10,40,.25)}
+.cv-prev canvas{width:100%;max-width:320px;aspect-ratio:9/16;border-radius:12px;background:#14161a;box-shadow:0 6px 24px rgba(20,10,40,.25);touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+.cv-prev canvas.dragging{cursor:grabbing}
+.pos-btn.cv-reset{flex:0 0 auto;padding:7px 12px;min-height:36px}
+.pos-btn.cv-reset[disabled]{opacity:.45;cursor:default}
 .cv-warn{margin:0;font-size:12px;color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:6px 9px;text-align:center}
 .cv-ctrl{display:flex;flex-direction:column;gap:10px;min-width:0}
 .cv-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
@@ -1378,8 +1382,7 @@ body.editor-open .lang-hint{display:none}
       <div class="prev-frame" id="prevFrame" onclick="if(vidReady && !capDragMoved)togglePlay()">
         <div id="prevBg"></div>
         <canvas id="prevBlurBg" width="36" height="64" aria-hidden="true"></canvas>
-        <video id="mainVid" playsinline preload="auto"
-          style="position:absolute;inset:0;z-index:1;width:100%;height:100%;object-fit:cover;display:none"></video>
+        <video id="mainVid" playsinline preload="auto" style="display:none"></video>
         <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
@@ -1749,6 +1752,11 @@ body.editor-open .lang-hint{display:none}
           <input type="range" id="cvSize" min="0.6" max="1.4" step="0.05" oninput="coverSet('size', +this.value)">
           <div class="cv-pos" id="cvPos" role="group" aria-label="Position">
             <button type="button" data-pos="top" onclick="coverSet('pos','top')">Top</button><button type="button" data-pos="mid" onclick="coverSet('pos','mid')">Middle</button><button type="button" data-pos="bottom" onclick="coverSet('pos','bottom')">Bottom</button></div></div>
+        <div class="cv-row"><span class="cv-lbl" id="cvAlignLbl">Align</span>
+          <div class="cv-pos" id="cvAlign" role="group" aria-labelledby="cvAlignLbl">
+            <button type="button" data-align="left" onclick="coverSet('align','left')">Left</button><button type="button" data-align="center" onclick="coverSet('align','center')">Center</button><button type="button" data-align="right" onclick="coverSet('align','right')">Right</button></div>
+          <button type="button" class="pos-btn cv-reset" id="cvReset" onclick="coverResetPos()">Reset position</button></div>
+        <p class="cv-hint">Drag the title in the preview to move it. Tap a word first, then drag, to move just that word.</p>
         <label class="cv-chk"><input type="checkbox" id="cvGuides" onchange="coverSet('guides', this.checked)"> Show guides (profile grid 3:4, Reels/TikTok safe area)</label>
         <button type="button" class="exp-btn hi cv-dl" id="cvDl" onclick="downloadCover()">
           <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
@@ -4580,7 +4588,7 @@ function updateOverlay(t) {
     }
     if (b) capDomMotion(ov, s, b, bi, wi, t, forced); // jedes Frame: Ein-/Ausblenden, Reveal/Fill, Farb-/Box-Übergänge
   }
-  document.getElementById('prevBg').style.background = vidReady ? '#000' : s.thumbBg;
+  document.getElementById('prevBg').style.background = vidReady ? 'transparent' : s.thumbBg; // mit Video nie schwarz hinterlegen (sonst Randlinie an der Rundung)
   applyPreviewZoom(t - timeOff); // Auto-Zoom: nur das Video (CSS-Transform), nie die Captions
   if (!vidReady || vid.paused) positionPlayIcon(); // nur im Pausenzustand sichtbar → kein Layout-Read pro Frame
   tlRequestDraw(); // Abspielkopf + aktiver Balken (ein rAF pro Frame, egal wie oft gerufen)
@@ -7942,7 +7950,8 @@ function projectPayload() {
            emph: { kw: emKw, emoji: emEmoji, zoom: emZoom, src: emSrc } };
   // Cover-Einstellungen (ohne Bild: eigene Fotos bleiben auf dem Gerät und werden nicht im Projekt gespeichert)
   if (coverState.title) p.cover = { t: coverState.t, dark: coverState.dark, grad: coverState.grad, title: coverState.title, kw: coverState.kw || [],
-    style: coverState.style, size: coverState.size, pos: coverState.pos, guides: coverState.guides };
+    style: coverState.style, size: coverState.size, pos: coverState.pos, guides: coverState.guides,
+    align: coverState.align, ox: coverState.ox, oy: coverState.oy, wo: coverState.wo };
   if (postCaption) p.post = { caption: postCaption.caption, hashtags: (postCaption.hashtags || []).slice(0, 10), src: postCaption.src };
   if (tlSpeech.length) p.speech = tlSpeech.slice(0, 2000); // Sprachbereiche für die Timeline (klein, gerundet)
   // Eigener Style bzw. Template mitspeichern — die IDs allein existieren in einer neuen Sitzung/auf
@@ -9040,7 +9049,7 @@ function loadVideo(file) {
     document.getElementById('vidCtrls').style.width = Math.max(w, 320) + 'px';
     vid.style.display = 'block';
     document.getElementById('frameDropZone').style.display = 'none';
-    document.getElementById('prevBg').style.background    = '#000';
+    document.getElementById('prevBg').style.background    = 'transparent';
     document.getElementById('vidCtrls').style.display     = 'flex';
     document.getElementById('uploadLabel').innerHTML       = icon('upload') + ' Replace video';
     vidReady = true;
@@ -11203,8 +11212,54 @@ function coverDefaultTime(duration, blocks) {
 function coverIsEm(s, kw, i) { return kw.indexOf(i) >= 0 && (emphColor(s) !== null || !!s.emFont); }
 // Buchstabenabstand in Cover-px: em folgt der Cover-Schrift, px (Vorschau-Einheiten) skaliert mit der Schriftgrösse
 function coverLs(s, base) { var v = String(s.ls || ''), n = parseFloat(v) || 0; return /em\s*$/.test(v) ? n * base : n * base / 28; }
-var coverState = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true };
+var coverState = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true, align: 'center', ox: 0, oy: 0, wo: {} };
 var _coverImg = null, _coverVid = null, _coverBusy = 0;
+var _coverHit = null, _coverSel = -1, _coverDrag = null; // letzte Titel-Box (mit .words), gewähltes Wort, laufendes Ziehen
+// Verschiebung des Titels: Anteile von W (x) bzw. H (y), auf ±0.5 begrenzt; wo = Wort-Offsets je Wortindex (max. 40)
+var COVER_ALIGNS = ['left', 'center', 'right'], COVER_OFF_MAX = 0.5, COVER_WO_MAX = 40;
+function coverClampOff(v) { v = +v; return isFinite(v) ? Math.max(-COVER_OFF_MAX, Math.min(COVER_OFF_MAX, v)) : 0; }
+// Wort-Offsets prüfen: nur Indizes 0…39, je [dx, dy] endlich → begrenzt; Nullverschiebungen entfallen
+function coverCleanWo(wo) {
+  var out = {}, n = 0;
+  if (!wo || typeof wo !== 'object' || Array.isArray(wo)) return out;
+  Object.keys(wo).forEach(function(k) {
+    var v = wo[k];
+    if (n >= COVER_WO_MAX || !/^\d{1,2}$/.test(k) || +k >= COVER_WO_MAX || !Array.isArray(v) || v.length !== 2) return;
+    if (typeof v[0] !== 'number' || typeof v[1] !== 'number') return;
+    var dx = coverClampOff(v[0]), dy = coverClampOff(v[1]);
+    if (dx || dy) { out[+k] = [Math.round(dx * 10000) / 10000, Math.round(dy * 10000) / 10000]; n++; }
+  });
+  return out;
+}
+function coverMoved(st) { return !!(st && (st.ox || st.oy || Object.keys(st.wo || {}).length)); }
+// Maximale Textbreite (1080er-Einheiten): mittig auf dem Bild, wie die Untertitel
+function coverMaxW(W, H) { return Math.min(coverSafeRegion(W, H).w, W * CAP_SAFE_W); }
+// Linke Kante einer Zeile der Breite tw je Ausrichtung innerhalb der Spalte maxW (mittig im Bild)
+function coverAlignX(align, W, maxW, tw) {
+  if (align === 'left') return (W - maxW) / 2;
+  if (align === 'right') return (W + maxW) / 2 - tw;
+  return (W - tw) / 2;
+}
+// Einrasten beim Ziehen: Rechteck r (schon verschoben) rastet mit Mitte/Rändern an Bildmitte und Safe-Zone-Rändern ein,
+// wenn näher als thr. → {dx, dy, vx, vy}: Zusatzverschiebung und die Hilfslinien-Position (null = nicht eingerastet)
+function coverSnap(r, region, W, H, thr) {
+  function axis(a0, len, centre, lo, hi) {
+    var best = null, c = [[centre - (a0 + len / 2), centre], [lo - a0, lo], [hi - (a0 + len), hi]];
+    c.forEach(function(k) { if (Math.abs(k[0]) <= thr && (!best || Math.abs(k[0]) < Math.abs(best[0]))) best = k; });
+    return best ? { d: best[0], line: best[1] } : { d: 0, line: null };
+  }
+  var ax = axis(r.x, r.w, W / 2, region.x, region.x + region.w), ay = axis(r.y, r.h, H / 2, region.y, region.y + region.h);
+  return { dx: ax.d, dy: ay.d, vx: ax.line, vy: ay.line };
+}
+// Treffer: oberstes Wort (zuletzt gezeichnet) unter dem Punkt p, mit pad Toleranz (Finger) → Index oder -1
+function coverHitWord(words, p, pad) {
+  pad = pad || 0;
+  for (var k = (words || []).length - 1; k >= 0; k--) {
+    var r = words[k];
+    if (p.x >= r.x - pad && p.x <= r.x + r.w + pad && p.y >= r.y - pad && p.y <= r.y + r.h + pad) return r.i;
+  }
+  return -1;
+}
 // Hintergrund (Standbild aus dem Video oder eigenes Bild) so zeichnen, dass er das Format ausfüllt
 function coverDrawBg(ctx, W, H, src, sw, sh) {
   ctx.fillStyle = '#14161a'; ctx.fillRect(0, 0, W, H);
@@ -11220,7 +11275,8 @@ function coverDrawTitle(ctx, W, H, st, s) {
   s = caseStyle(s);
   var region = coverSafeRegion(W, H), kw = st.kw || [];
   var base = W * 0.1 * (st.size || 1), esc = emphScale(s), lh = capLineH(s);
-  var up = s.tt === 'uppercase', box = null, lines, maxW = Math.min(region.w, W * CAP_SAFE_W); // mittig auf dem Bild, wie die Untertitel
+  var up = s.tt === 'uppercase', box = null, lines, maxW = coverMaxW(W, H), align = COVER_ALIGNS.indexOf(st.align) >= 0 ? st.align : 'center';
+  var gx = coverClampOff(st.ox) * W, gy = coverClampOff(st.oy) * H, wo = coverCleanWo(st.wo), rects = [];
   for (var tries = 0; tries < 40 && base > W * 0.02; tries++) {
     var wid = words.map(function(w, i) {
       var isE = coverIsEm(s, kw, i);
@@ -11234,13 +11290,14 @@ function coverDrawTitle(ctx, W, H, st, s) {
     lines = coverWrap(wid, maxW, space);
     var lineH = base * lh * 1.02, blockH = lines.length * lineH;
     if (blockH <= region.h && lines.every(function(L){ var tw = 0; L.forEach(function(i, k){ tw += wid[i] + (k ? space : 0); }); return tw <= maxW + 0.5; })) {
-      var y0 = coverBlockY(st.pos, region, blockH), minX = W, maxX = 0;
+      var y0 = coverBlockY(st.pos, region, blockH);
       var plan = capShadowPlan(s.ts), shScale = base / 28;
       lines.forEach(function(L, li) {
         var tw = 0; L.forEach(function(i, k){ tw += wid[i] + (k ? space : 0); });
-        var x = (W - tw) / 2; minX = Math.min(minX, x); maxX = Math.max(maxX, x + tw);
-        var y = y0 + li * lineH + lineH * 0.5 + base * 0.34;
+        var x = coverAlignX(align, W, maxW, tw), lineTop = y0 + li * lineH;
+        var y = lineTop + lineH * 0.5 + base * 0.34;
         L.forEach(function(i) {
+          var ow = wo[i] || [0, 0], wx = x + gx + ow[0] * W, wy = y + gy + ow[1] * H; // Wortposition samt Verschiebung
           var isE = coverIsEm(s, kw, i);
           var f = capWordFace(s, false, isE), sz = base * (isE ? esc : 1), t = up ? words[i].toUpperCase() : words[i];
           ctx.font = capFaceFont(f, sz);
@@ -11250,11 +11307,15 @@ function coverDrawTitle(ctx, W, H, st, s) {
           if (isE && emphColor(s)) col = emphColor(s);
           ctx.fillStyle = col || s.tc || '#fff';
           var tws = ctx.measureText(t).width;
-          drawTextWithPlan(ctx, t, x, y, isE && emphShadowIsHl(s) ? capShadowPlan(s.hls) : plan, shScale, 1, sz, tws);
+          drawTextWithPlan(ctx, t, wx, wy, isE && emphShadowIsHl(s) ? capShadowPlan(s.hls) : plan, shScale, 1, sz, tws);
+          rects.push({ i: i, x: wx, y: lineTop + gy + ow[1] * H, w: wid[i], h: lineH }); // Trefferfläche des Worts
           x += wid[i] + space;
         });
       });
-      box = { x: minX, y: y0, w: maxX - minX, h: blockH };
+      // Box = Umriss aller Wörter (ohne Verschiebung genau der Textblock) → Safe-Zone-Prüfung gilt auch nach dem Verschieben
+      var bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
+      rects.forEach(function(r) { bx0 = Math.min(bx0, r.x); bx1 = Math.max(bx1, r.x + r.w); by0 = Math.min(by0, r.y); by1 = Math.max(by1, r.y + r.h); });
+      box = { x: bx0, y: by0, w: bx1 - bx0, h: by1 - by0, words: rects };
       break;
     }
     base *= 0.94; // zu gross für die Sicherheitszone → verkleinern
@@ -11277,8 +11338,30 @@ function coverRender(ctx, outW, outH, withGuides) {
   var box = coverDrawTitle(ctx, W, H, st, s);
   if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   if (withGuides && st.guides) coverDrawGuides(ctx, W, H, box);
+  if (withGuides) coverDrawEdit(ctx, W, H, box); // nur Vorschau: Wortauswahl + Einrast-Hilfslinien (nie im PNG)
   ctx.restore();
+  _coverHit = box; // Titel-Box samt Wort-Trefferflächen für den Zeiger (1080er-Einheiten)
   return { box: box, hasBg: ok };
+}
+// Bearbeitungs-Hilfen der Vorschau: Umriss des gewählten Worts, beim Ziehen Mittellinie/Safe-Zone-Rand wenn eingerastet
+function coverDrawEdit(ctx, W, H, box) {
+  var u = 2;
+  ctx.save();
+  if (box && _coverSel >= 0) {
+    var r = (box.words || []).filter(function(w){ return w.i === _coverSel; })[0];
+    if (r) {
+      ctx.lineWidth = 2 * u; ctx.setLineDash([]); ctx.strokeStyle = 'rgba(167,139,250,.95)';
+      var pd = 6 * u; ctx.strokeRect(r.x - pd, r.y - pd * 0.5, r.w + 2 * pd, r.h + pd);
+    }
+  }
+  if (_coverDrag && _coverDrag.snap) {
+    ctx.lineWidth = 1.5 * u; ctx.setLineDash([8 * u, 6 * u]); ctx.strokeStyle = 'rgba(250,204,21,.9)';
+    ctx.beginPath();
+    if (_coverDrag.snap.vx !== null) { ctx.moveTo(_coverDrag.snap.vx, 0); ctx.lineTo(_coverDrag.snap.vx, H); }
+    if (_coverDrag.snap.vy !== null) { ctx.moveTo(0, _coverDrag.snap.vy); ctx.lineTo(W, _coverDrag.snap.vy); }
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 function coverDrawGuides(ctx, W, H, box) {
   var c = coverCropRect(W, H), r = coverSafeRegion(W, H), u = 2; // u: Linienstärke/Schrift in 1080er-Einheiten
@@ -11311,6 +11394,7 @@ function openCover() {
   if (!coverState.kw) coverState.kw = coverDefaultKw(coverTitleWords());
   if (coverState.t === null || coverState.t > (vid.duration || 0)) coverState.t = coverDefaultTime(vid.duration, captionBlocks);
   m.style.display = 'flex'; document.body.style.overflow = 'hidden';
+  _coverSel = -1; _coverDrag = null;
   coverSyncUI();
   coverLoadFrame(coverState.t);
   var ta = coverEl('cvTitle'); if (ta && ta.focus && pointerFine()) try { ta.focus({ preventScroll: true }); } catch (e) {}
@@ -11371,6 +11455,8 @@ function coverSyncUI() {
   var gu = coverEl('cvGuides'); if (gu) gu.checked = !!st.guides;
   var rm = coverEl('cvUseFrame'); if (rm) rm.style.display = _coverImg ? '' : 'none';
   document.querySelectorAll('#cvPos button').forEach(function(b){ b.classList.toggle('on', b.dataset.pos === st.pos); });
+  document.querySelectorAll('#cvAlign button').forEach(function(b){ b.classList.toggle('on', b.dataset.align === st.align); });
+  var rs = coverEl('cvReset'); if (rs) rs.disabled = !coverMoved(st);
   var lk = coverEl('cvLooks');
   if (lk) {
     lk.innerHTML = '';
@@ -11397,7 +11483,8 @@ function coverSyncUI() {
 // Gespeicherte Cover-Einstellungen prüfen und übernehmen (Projekt laden); ohne Eintrag → Standard (frisch vorschlagen)
 function coverRestore(c) {
   _coverImg = null; _coverVid = null;
-  var d = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true };
+  var d = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true, align: 'center', ox: 0, oy: 0, wo: {} };
+  _coverSel = -1; _coverDrag = null;
   if (c && typeof c === 'object') {
     if (typeof c.t === 'number' && c.t >= 0 && c.t < 36000) d.t = c.t;
     if (typeof c.dark === 'number') d.dark = Math.max(0, Math.min(70, c.dark));
@@ -11408,17 +11495,78 @@ function coverRestore(c) {
     if (typeof c.size === 'number') d.size = Math.max(0.6, Math.min(1.4, c.size));
     if (['top', 'mid', 'bottom'].indexOf(c.pos) >= 0) d.pos = c.pos;
     if (typeof c.guides === 'boolean') d.guides = c.guides;
+    // Ausrichtung/Verschiebung: ältere Projekte haben die Felder nicht → wie bisher (mittig, keine Verschiebung)
+    if (COVER_ALIGNS.indexOf(c.align) >= 0) d.align = c.align;
+    if (typeof c.ox === 'number') d.ox = Math.round(coverClampOff(c.ox) * 10000) / 10000;
+    if (typeof c.oy === 'number') d.oy = Math.round(coverClampOff(c.oy) * 10000) / 10000;
+    d.wo = coverCleanWo(c.wo);
   }
   coverState = d;
 }
 function coverOnTitle(v) {
   var before = coverTitleWords().length;
   coverState.title = String(v || '').slice(0, 90);
-  if (coverTitleWords().length !== before) coverState.kw = coverDefaultKw(coverTitleWords()); // Wortanzahl geändert → Akzent neu vorschlagen
+  if (coverTitleWords().length !== before) { coverState.kw = coverDefaultKw(coverTitleWords()); coverState.wo = {}; _coverSel = -1; } // Wortanzahl geändert → Akzent neu vorschlagen, Wort-Verschiebungen passen nicht mehr
+  if (_coverSel >= coverTitleWords().length) _coverSel = -1;
   coverSyncUI(); coverRedraw(); scheduleAutosave();
 }
 function coverOnTime(v) { coverState.t = +v || 0; var tl = coverEl('cvTimeLbl'); if (tl) tl.textContent = fmtS(coverState.t); coverLoadFrame(coverState.t); scheduleAutosave(); }
-function coverSet(k, v) { coverState[k] = v; coverSyncUI(); coverRedraw(); scheduleAutosave(); }
+function coverSet(k, v) {
+  coverState[k] = v;
+  if (k === 'pos') coverState.oy = 0; // Voreinstellung Oben/Mitte/Unten gilt wieder ab der Grundlinie
+  if (k === 'align') coverState.ox = 0;
+  coverSyncUI(); coverRedraw(); scheduleAutosave();
+}
+// ── Titel per Zeiger verschieben (Maus + Touch): ganzer Titel; ein Wort nur, wenn es zuvor angetippt wurde ──
+// CSS-px des Canvas → 1080er-Einheiten (k = Einheiten je CSS-px; Handy: Canvas 38dvh hoch, also anderer Massstab als am Desktop)
+function coverPoint(cv, e) {
+  var r = cv.getBoundingClientRect();
+  if (!(r.width > 0 && r.height > 0)) return null;
+  return { x: (e.clientX - r.left) * COVER_W / r.width, y: (e.clientY - r.top) * COVER_H / r.height, k: COVER_W / r.width };
+}
+(function() {
+  var cv = document.getElementById('cvCanvas');
+  if (!cv || !cv.addEventListener) return;
+  var SLOP = 5; // CSS-px: weniger Bewegung gilt als Tippen (Wort wählen), mehr als Ziehen
+  function end(e) {
+    var d = _coverDrag;
+    if (!d || (e && e.pointerId !== undefined && e.pointerId !== d.id)) return;
+    _coverDrag = null; cv.classList.remove('dragging');
+    try { cv.releasePointerCapture(d.id); } catch (er) {}
+    if (!d.moved && e && e.type === 'pointerup') _coverSel = (d.hit >= 0 && d.hit !== _coverSel) ? d.hit : -1; // Tippen: Wort wählen/abwählen
+    if (d.moved) { coverState.wo = coverCleanWo(coverState.wo); scheduleAutosave(); }
+    coverSyncUI(); coverRedraw();
+  }
+  cv.addEventListener('pointerdown', function(e) {
+    if (e.isPrimary === false || (e.button !== undefined && e.button > 0) || !_coverHit) return;
+    var p = coverPoint(cv, e); if (!p) return;
+    var hit = coverHitWord(_coverHit.words, p, 8 * p.k), word = _coverSel >= 0 && hit === _coverSel;
+    var rect = word ? _coverHit.words.filter(function(w){ return w.i === hit; })[0] : _coverHit;
+    if (!rect) return;
+    _coverDrag = { id: e.pointerId, p0: p, x0: e.clientX, y0: e.clientY, hit: hit, word: word, moved: false, snap: null,
+      rect: { x: rect.x, y: rect.y, w: rect.w, h: rect.h }, o0: word ? (coverState.wo[hit] || [0, 0]).slice() : [coverState.ox || 0, coverState.oy || 0] };
+    try { cv.setPointerCapture(e.pointerId); } catch (er) {}
+    e.preventDefault();
+  });
+  cv.addEventListener('pointermove', function(e) {
+    var d = _coverDrag; if (!d || e.pointerId !== d.id) return;
+    if (!d.moved) { if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) < SLOP) return; d.moved = true; cv.classList.add('dragging'); }
+    var p = coverPoint(cv, e); if (!p) return;
+    var dx = p.x - d.p0.x, dy = p.y - d.p0.y, sn = null;
+    if (!e.altKey) { // Alt hält das Einrasten aus
+      sn = coverSnap({ x: d.rect.x + dx, y: d.rect.y + dy, w: d.rect.w, h: d.rect.h }, coverSafeRegion(COVER_W, COVER_H), COVER_W, COVER_H, 8 * p.k);
+      dx += sn.dx; dy += sn.dy;
+    }
+    d.snap = sn && (sn.vx !== null || sn.vy !== null) ? sn : null;
+    var nx = coverClampOff(d.o0[0] + dx / COVER_W), ny = coverClampOff(d.o0[1] + dy / COVER_H);
+    if (d.word) { var wo = Object.assign({}, coverState.wo); wo[d.hit] = [nx, ny]; coverState.wo = wo; }
+    else { coverState.ox = nx; coverState.oy = ny; }
+    coverRedraw();
+  });
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+})();
+function coverResetPos() { coverState.ox = 0; coverState.oy = 0; coverState.wo = {}; _coverSel = -1; coverSyncUI(); coverRedraw(); scheduleAutosave(); }
 function coverOnImage(inp) {
   var f = inp && inp.files && inp.files[0]; if (inp) inp.value = '';
   if (!f || !/^image\//.test(f.type)) { if (f) capToast('Please choose an image (JPG, PNG, WebP)'); return; }
