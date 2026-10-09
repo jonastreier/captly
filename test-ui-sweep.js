@@ -409,9 +409,9 @@ const CTL = [
 // ── weitere Gruppen: Captions-Tab, Timeline, Export-Sheet, Cover, Einstellungen ──
 const tapSel = (sc, sel, o) => sc.prof.mobile ? sc.page.tap(sel, Object.assign({ timeout: 4000 }, o)) : sc.page.click(sel, Object.assign({ timeout: 4000 }, o));
 const OPEN_EXPORT = async sc => { await tapSel(sc, '#tbExport'); await sc.page.waitForSelector('#expSheet', { state: 'visible', timeout: 4000 }); await sc.page.waitForTimeout(250); };
-const OPEN_EXPOPTS = async sc => { await OPEN_EXPORT(sc); await tapSel(sc, '#expOpts > summary'); await sc.page.waitForTimeout(150); };
+const OPEN_EXPOPTS = async sc => { await OPEN_EXPORT(sc); await openDetails(sc, 'expOpts'); };
 const OPEN_COVER = async sc => { await OPEN_EXPORT(sc); await tapSel(sc, '#btnCover'); await sc.page.waitForSelector('#coverModal', { state: 'visible', timeout: 4000 }); await sc.page.waitForTimeout(1000); };
-const OPEN_TRSET = async sc => { await tapSel(sc, '#trSet > summary'); await sc.page.waitForTimeout(150); };
+const OPEN_TRSET = sc => openDetails(sc, 'trSet');
 const GOTO_TL = async sc => { if (sc.prof.mobile) await goTab(sc, 'timeline'); else await sc.page.evaluate(() => { if (!_tl.open) tlSetOpen(true, false); }); await sc.page.waitForTimeout(400); };
 const COVER_INV = ['cfg.lines', 'cfg.wpb', 'cfg.blocks', 'cfg.text', 'cfg.fontSize', 'cfg.pos'];
 const CAP_INV = ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize'];
@@ -421,6 +421,11 @@ const tlClickBlock = async (sc, idx) => { // Balken idx in der Timeline antippen
   if (sc.prof.mobile) await sc.page.touchscreen.tap(pt.x, pt.y); else await sc.page.mouse.click(pt.x, pt.y);
   await sc.page.waitForTimeout(200);
 };
+async function coverDragTitle(sc) { // Titel im Cover-Canvas per Maus/Zeiger verschieben
+  const r = await sc.page.evaluate(() => { const b = document.getElementById('cvCanvas').getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; });
+  await sc.page.mouse.move(r.x + r.w * 0.5, r.y + r.h * 0.8); await sc.page.mouse.down();
+  await sc.page.mouse.move(r.x + r.w * 0.4, r.y + r.h * 0.6, { steps: 6 }); await sc.page.mouse.move(r.x + r.w * 0.3, r.y + r.h * 0.45, { steps: 6 }); await sc.page.mouse.up();
+}
 CTL.push(
   // ── Captions-Tab ──
   { id: 'segEdit', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg1 .cap-seg-ta'); await sc.page.fill('#seg1 .cap-seg-ta', 'Neuer Text'); await sc.page.keyboard.press('Tab'); }, changes: ['cfg.text'], inv: ['cfg.blocks', 'cfg.wpb', 'cfg.lines'], lines: 0 },
@@ -429,7 +434,7 @@ CTL.push(
   { id: 'segWordEmph', tab: 'captions', op: 'run', values: [null], emph: true, run: async sc => { await tapSel(sc, '#seg0'); await tapSel(sc, '#seg0 .se-w[data-a="w:0"]'); }, changes: ['dom.hash'], inv: CAP_INV.concat('cfg.blocks') },
   { id: 'segEmoji', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg0'); await tapSel(sc, '#seg0 .se-emo'); await sc.page.waitForSelector('#emoPick', { state: 'visible', timeout: 3000 }); await tapSel(sc, '#emoPick button >> nth=1'); },
     changes: ['cfg.emoji', 'dom.hash'], inv: CAP_INV.concat('cfg.blocks'), lines: 0 },
-  { id: 'findReplace', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#frBox > summary'); await sc.page.fill('#frFind', 'Das'); await sc.page.fill('#frRepl', 'Dies'); await tapSel(sc, '#frBtn'); }, changes: ['cfg.text', 'cfg.undo'], inv: ['cfg.blocks', 'cfg.wpb', 'cfg.lines'], lines: 0 },
+  { id: 'findReplace', tab: 'captions', op: 'run', values: [null], run: async sc => { await openDetails(sc, 'frBox'); await sc.page.fill('#frFind', 'Das'); await sc.page.fill('#frRepl', 'Dies'); await tapSel(sc, '#frBtn'); }, changes: ['cfg.text', 'cfg.undo'], inv: ['cfg.blocks', 'cfg.wpb', 'cfg.lines'], lines: 0 },
   { id: 'undoBtn', tab: 'captions', op: 'click', sel: '#undoBtn', values: [null], setup: sc => sc.page.evaluate(() => deleteSeg(2)), changes: ['cfg.blocks', 'cfg.redo'], inv: ['cfg.wpb', 'cfg.lines'], lines: 0, wait: 500 },
   { id: 'redoBtn', tab: 'captions', op: 'click', sel: '#redoBtn', values: [null], setup: async sc => { await sc.page.evaluate(() => { deleteSeg(2); undoCaptions(); }); }, changes: ['cfg.blocks', 'cfg.redo'], inv: ['cfg.wpb', 'cfg.lines'], lines: 0, wait: 500 },
   // ── Einstellungen (Video & language) ──
@@ -471,17 +476,21 @@ CTL.push(
   { id: 'cvGuides', tab: 'style', op: 'check', sel: '#cvGuides', values: [null], setup: OPEN_COVER, changes: ['cover.hash', 'cover.state'], inv: COVER_INV, lines: 0 },
   { id: 'cvLooks', tab: 'style', op: 'click', values: ['#cvLooks .cv-chip >> nth=2', '#cvLooks .cv-chip >> nth=4'], setup: OPEN_COVER, changes: ['cover.hash', 'cover.state'], inv: COVER_INV, lines: 0 },
   { id: 'cvWords', tab: 'style', op: 'click', values: ['#cvWords .cv-chip >> nth=0'], setup: OPEN_COVER, changes: ['cover.hash', 'cover.state'], inv: COVER_INV, lines: 0 },
+  { id: 'cvAlign', tab: 'style', op: 'click', values: ['#coverModal [data-align="left"]', '#coverModal [data-align="right"]'], setup: OPEN_COVER, changes: ['cover.hash', 'cover.state'], inv: COVER_INV, lines: 0 },
+  { id: 'cvReset', tab: 'style', op: 'click', sel: '#cvReset', values: [null], setup: async sc => { await OPEN_COVER(sc); await coverDragTitle(sc); await sc.page.waitForTimeout(500); }, changes: ['cover.hash', 'cover.state'], inv: COVER_INV, lines: 0 },
+  { id: 'cvDrag', tab: 'style', op: 'run', values: [null], setup: OPEN_COVER, changes: ['cover.hash', 'cover.state'], inv: COVER_INV, lines: 0, run: coverDragTitle },
   { id: 'cvDl', tab: 'style', op: 'click', sel: '#cvDl', values: [null], setup: OPEN_COVER, download: { re: /\.png$/, bin: true }, inv: COVER_INV, lines: 0 },
 );
 
 const IGNORE_FOR_EFFECT = new Set(['cfg.active']); // Customize macht aus jedem Style «custom» — das allein ist keine Wirkung
 const DUMP = ARGS.includes('--dump');
 
-async function openCustomize(sc) {
-  const open = await sc.page.evaluate(() => document.getElementById('advSet').open);
-  if (!open) { const sel = '#advSet > summary'; sc.prof.mobile ? await sc.page.tap(sel) : await sc.page.click(sel); }
-  await sc.page.waitForTimeout(150);
+// <details id="…"> öffnen, falls vorhanden und zu (Selektoren nur über IDs — das Panel-Markup wird umgebaut, die IDs bleiben)
+async function openDetails(sc, id) {
+  const st = await sc.page.evaluate(i => { const d = document.getElementById(i); return d ? (d.open === undefined ? 'nodetails' : d.open ? 'open' : 'closed') : 'missing'; }, id);
+  if (st === 'closed') { const sel = '#' + id + ' > summary'; if (sc.prof.mobile) await sc.page.tap(sel); else await sc.page.click(sel); await sc.page.waitForTimeout(150); }
 }
+const openCustomize = sc => openDetails(sc, 'advSet');
 async function goTab(sc, tab) {
   if (tab === 'style' || tab === 'captions') { const sel = '.ed-tab[data-tab="' + tab + '"]'; sc.prof.mobile ? await sc.page.tap(sel) : await sc.page.click(sel); }
   else if (tab === 'timeline' && sc.prof.mobile) await sc.page.tap('#tabTl');
@@ -625,14 +634,14 @@ SECTIONS.hyg = async (browser, prof) => {
   await hygieneStep(sc, 'editor-captions');
   await goTab(sc, 'style'); await hygieneStep(sc, 'tab-style');
   await openCustomize(sc); await hygieneStep(sc, 'tab-style-customize');
-  await goTab(sc, 'captions'); await tap('#trSet > summary'); await hygieneStep(sc, 'captions-videolang');
-  await tap('#frBox > summary'); await hygieneStep(sc, 'captions-findreplace');
+  await goTab(sc, 'captions'); await openDetails(sc, 'trSet'); await hygieneStep(sc, 'captions-videolang');
+  await openDetails(sc, 'frBox'); await hygieneStep(sc, 'captions-findreplace');
   await tap('#seg1'); await hygieneStep(sc, 'captions-segment-selected');
   await GOTO_TL(sc); await hygieneStep(sc, 'timeline');
   if (!sc.prof.mobile) { await p.evaluate(() => tlSelect(1, false)); await hygieneStep(sc, 'timeline-selected'); }
   await goTab(sc, 'captions');
   await OPEN_EXPORT(sc); await hygieneStep(sc, 'export-sheet');
-  await tap('#expOpts > summary'); await hygieneStep(sc, 'export-options');
+  await openDetails(sc, 'expOpts'); await hygieneStep(sc, 'export-options');
   await tap('#btnCover'); await p.waitForSelector('#coverModal', { state: 'visible' }); await p.waitForTimeout(900); await hygieneStep(sc, 'cover');
   await p.evaluate(CLOSE_ALL);
   await tap('#moreBtn'); await hygieneStep(sc, 'more-menu');
