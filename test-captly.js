@@ -126,6 +126,7 @@ capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:cap
 setLines:setLines,splitBlockAtCursor:splitBlockAtCursor,getLines:function(){return CAPTION_LINES;},getMaxChars:function(){return CAP_MAX_CHARS;},getPresetPrevLayout:function(){return _presetPrevLayout;},setFontSizeState:function(v){fontSize=v;},
 setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
 capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
+capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},setProgDrag:function(v){_progDrag=v;},
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -1230,6 +1231,72 @@ ok(T.webmToMp4Trim(33.96).join(' ') === '-t 33.960 -shortest' && T.webmToMp4Trim
   T.selectStyle('popone'); T.onWpbChange('2'); T.selectStyle('classic');
   ok(T.getWpb() === 2, 'auf dem Preset manuell geaendert → Wert bleibt');
   T.onWpbChange('4');
+}
+
+// 23c) Pausierte Vorschau = Ruhezustand (kein halb animiertes Wort); Wiedergabe/Scrubben/Demo animieren
+{
+  const st = T.STYLES.find(x => x.id === 'hormozi'), anim0 = st.anim, mot0 = st.motion, act0 = T.getActiveId();
+  st.anim = 'punch'; st.motion = undefined;
+  const ws = [{ word: 'eins', start: 1, end: 1.4 }, { word: 'zwei', start: 1.5, end: 2 }];
+  T.setState([{ words: ws, start: 1, end: 2, text: 'eins zwei' }], ws, 'karaoke');
+  T.selectStyle('hormozi');
+  // Fake-DOM: Wort-Spans mit data-oi, damit capDomMotion (Vorschau) echte Werte schreibt
+  const ov = document.getElementById('capOverlay'), vid = document.getElementById('mainVid');
+  const spans = [0, 1].map(i => ({ style: {}, getAttribute: () => String(i) }));
+  const root = { style: {}, getAttribute: () => '20', querySelectorAll: sel => sel === '[data-oi]' ? spans : [] };
+  const qs0 = ov.querySelector; ov.querySelector = () => root;
+  const sc = () => { const m = /scale\(([\d.]+)\)/.exec(spans[1].style.transform || ''); return m ? +m[1] : 1; };
+  const draw = () => { T.updateOverlay(1.5); return sc(); };
+  T.setVidReady(true); vid.paused = true; vid.ended = false; vid.currentTime = 1.5;
+  ok(draw() === 1 && !spans[1].style.opacity, 'Pause am Wortbeginn: Ruhezustand (kein Punch, volle Deckkraft)');
+  vid.paused = false;
+  ok(draw() > 1.2, 'Wiedergabe am Wortbeginn: Punch animiert (scale ' + sc() + ')');
+  vid.paused = true; T.setProgDrag({});
+  ok(draw() > 1.2, 'Scrubben (Fortschrittsbalken): animiert auch bei Pause');
+  T.setProgDrag(null);
+  ok(draw() === 1, 'Scrubben beendet: wieder Ruhezustand');
+  ok(T.capAnimDemoStart() === true && sc() > 1.1, 'Demo bei Pause: animiert (scale ' + sc() + ')');
+  T.clearAnimDemo(); ok(draw() === 1, 'Nach der Demo: Ruhezustand');
+  // Export bleibt zeitgenau: capWordFx liefert den Keyframe unabhängig vom Vorschau-Ruhezustand
+  const sx = T.capWordFx(st, T.getBlocks()[0], 1, 1, 1.5, false, false);
+  ok(sx.a && sx.a.sx > 1.2, 'Export/capWordFx: Punch am Wortbeginn bleibt zeitgenau');
+  // Reveal im Ruhezustand: Wort am Beginn voll sichtbar (nicht unsichtbar)
+  st.motion = 'reveal'; T.selectStyle('hormozi'); vid.currentTime = 1.5;
+  T.updateOverlay(1.5);
+  ok(!spans[1].style.opacity, 'Reveal bei Pause am Wortbeginn: Wort voll sichtbar');
+  ov.querySelector = qs0; if (!qs0) delete ov.querySelector;
+  st.anim = anim0; st.motion = mot0; vid.paused = true; vid.currentTime = 0; T.setVidReady(false);
+  T.selectStyle(act0);
+}
+
+// 23d) Layout-Wechsel verwirft keine manuellen Block-Edits (erneuter Klick auf aktives Preset/Template), Undo hilft
+{
+  const ws = Array.from({ length: 8 }, (_, i) => ({ word: 'w' + i, start: i * 0.5, end: i * 0.5 + 0.4 }));
+  const fresh = () => { T.setState(T.buildCaptionBlocks(ws), ws.map(w => Object.assign({}, w)), 'karaoke'); T.setCaptionsEdited(false); T.resetUndo(); };
+  T.selectStyle('classic'); T.onWpbChange('4'); fresh();
+  T.selectStyle('mix'); // Layout 3 Wörter/Block → baut neu (Undo-Schritt)
+  fresh(); ok(T.tlSplitAt(0, 0.5), 'Testaufbau: manueller Split'); // manueller Split
+  const edited = T.captionSnapshot(), n = T.getBlocks().length, d0 = T.undoDepth()[0];
+  T.selectStyle('mix'); T.selectStyle('mix');
+  ok(T.captionSnapshot() === edited && T.getBlocks().length === n && T.undoDepth()[0] === d0, 'Erneuter Klick auf aktives Layout-Preset: Blöcke + Undo unverändert');
+  // Template mit gleichem Layout (auch «Edit» = erneutes Anwenden)
+  const tpl = { wpb: T.getWpb(), lines: T.getLines() };
+  T.applyTemplateSettings(tpl); T.applyTemplateSettings(tpl);
+  ok(T.captionSnapshot() === edited && T.undoDepth()[0] === d0, 'Template mit gleichem Layout erneut anwenden: Blöcke unverändert');
+  // Preset A → B mit gleichem Layout baut nicht neu
+  // Preset A → B mit gleichem Layout (classic → hormozi, beide ohne eigenes Layout) fasst die Blöcke nicht an
+  T.selectStyle('classic'); T.onWpbChange('4'); fresh(); T.tlSplitAt(0, 0.5);
+  const e2 = T.captionSnapshot();
+  T.selectStyle('hormozi'); T.selectStyle('minimal'); T.selectStyle('classic');
+  ok(T.captionSnapshot() === e2, 'Preset A → B ohne Layout-Wechsel: Blöcke unverändert');
+  // Layoutwechsel: baut neu, Undo stellt Blöcke + Wörter/Block-Regler zurück
+  fresh(); T.selectStyle('classic'); T.onWpbChange('4'); fresh(); T.tlSplitAt(0, 0.5); T.resetUndo();
+  const before = T.captionSnapshot(), wpb0 = T.getWpb();
+  T.applyTemplateSettings({ wpb: wpb0 === 2 ? 3 : 2 });
+  ok(T.getWpb() !== wpb0 && T.captionSnapshot() !== before && T.undoDepth()[0] === 1, 'Layoutwechsel (Wörter/Caption): baut neu mit genau einem Undo-Schritt');
+  T.undoCaptions();
+  ok(T.captionSnapshot() === before && T.getWpb() === wpb0, 'Undo stellt Blöcke und Wörter/Caption-Regler wieder her');
+  T.selectStyle('classic'); fresh();
 }
 
 // 21b) MediaRecorder-Format: MP4 nur mit AAC (bzw. ohne Ton), sonst WebM → Umkodierung

@@ -4596,7 +4596,9 @@ function updateOverlay(t) {
         if (playing || !(s.anim && s.anim !== 'none') || capMotion(s) !== 'highlight') _capAnimDemo = null;
         else demoT = (b.words[wi] ? b.words[wi].start : t) + (Date.now() - _capAnimDemo.t0) / 1000;
       }
-      capDomMotion(ov, s, b, bi, wi, demoT !== null ? demoT : t, forced || demoT !== null); // jedes Frame: Ein-/Ausblenden, Reveal/Fill, Farb-/Box-Übergänge
+      // Pausiert (weder Wiedergabe noch Demo noch Scrubben): Ruhezustand statt eingefrorener Halbanimation (s. capDomMotion)
+      var rest = demoT === null && !playing && !capScrubbing();
+      capDomMotion(ov, s, b, bi, wi, demoT !== null ? demoT : t, forced || demoT !== null, rest); // jedes Frame: Ein-/Ausblenden, Reveal/Fill, Farb-/Box-Übergänge
     }
   }
   document.getElementById('prevBg').style.background = vidReady ? 'transparent' : s.thumbBg; // mit Video nie schwarz hinterlegen (sonst Randlinie an der Rundung)
@@ -4615,7 +4617,12 @@ function capGlowLayers(s, oi, glow, px) {
   return [0.3, 0.65, 1.2].map(function(k) { return { x: 0, y: 0, blur: k * px * glow, color: c }; });
 }
 function capSetSt(el, k, v) { var c = el._capSt || (el._capSt = {}); if (c[k] !== v) { c[k] = v; el.style[k] = v; } }
-function capDomMotion(ov, s, b, bi, wi, t, forced) {
+// rest = Standbild bei Pause: alle Übergänge (Pop, Reveal, Fill, Highlight-Farbe/-Box, Block-Ein-/Ausblenden) im
+// Endzustand, wie bei reduzierter Bewegung (Dauer 0) — sonst zeigte ein pausiertes Video am Wortanfang ein fast
+// unsichtbares bzw. versetztes Wort („halb animiert“). Das ist die EINZIGE beabsichtigte Abweichung Vorschau ≠ Export
+// (nur Standbild bei Pause): Wiedergabe, Scrubben (capScrubbing) und die 0,6-s-Demo (capAnimDemoStart) animieren
+// zeitgenau, der Export (drawCaptionsOnCtx) rechnet immer zeitgenau und kennt kein rest.
+function capDomMotion(ov, s, b, bi, wi, t, forced, rest) {
   var M = ov._capM;
   if (!M) {
     var root = ov.querySelector ? ov.querySelector('.cap-root') : null;
@@ -4624,7 +4631,7 @@ function capDomMotion(ov, s, b, bi, wi, t, forced) {
                      spans: Array.prototype.slice.call(root.querySelectorAll('[data-oi]')).map(function(sp){ sp._c0 = sp.style.color; sp._ts0 = sp.style.textShadow; return sp; }), // _c0/_ts0 = Farbe/Schatten aus buildCap
                      boxes: Array.prototype.slice.call(root.querySelectorAll('.cap-hlbox')), rects: null };
   }
-  var mode = capMotion(s), rm = capReduceMotion(), em = blockEmph(b);
+  var mode = capMotion(s), rm = capReduceMotion() || !!rest, em = blockEmph(b);
   var bf = capBlockFx(bi, t, forced, rm);
   capSetSt(M.root, 'opacity', bf.op < 1 ? bf.op.toFixed(3) : '');
   capSetSt(M.root, 'transform', bf.dy > 1e-4 ? 'translateY(' + (bf.dy * M.fpx).toFixed(2) + 'px)' : '');
@@ -4672,6 +4679,12 @@ function capDomMotion(ov, s, b, bi, wi, t, forced) {
 // Wortbeginn). Dann spielt updateOverlay ihn ~0,6 s mit virtueller Zeit am aktiven Wort ab (_capAnimDemo = {t0, until}, ms);
 // das Video wird nicht verschoben. Bei „Bewegung reduzieren“ keine Demo (Hinweis in syncCsUi).
 var _capAnimDemo = null, _capDemoRaf = 0, CAP_ANIM_DEMO_MS = 600;
+// Scrubben = Ziehen am Fortschrittsbalken bzw. in der Timeline (Lineal ziehen, Wischen/Schwung am Handy): dort
+// animiert die pausierte Vorschau mit; ein einzelner Klick/Sprung (Wort, Block, Taste) zeigt dagegen den Ruhezustand.
+function capScrubbing() {
+  try { return !!(_progDrag || (_tl && ((_tl.drag && _tl.drag.type === 'seek') || (_tl.scrubT !== null && _tl.scrubT !== undefined)))); }
+  catch (e) { return false; }
+}
 function capAnimDemoStart() {
   var vid = document.getElementById('mainVid');
   if (capReduceMotion() || (vidReady && vid && !vid.paused && !vid.ended)) return false;
@@ -6755,7 +6768,11 @@ function templateFontSize(t, frameW) {
   var v = (typeof t.sizeRel === 'number' && t.sizeRel > 0 && frameW > 0) ? t.sizeRel * frameW : t.size;
   return (typeof v === 'number' && isFinite(v) && v > 0) ? Math.max(10, Math.min(54, Math.round(v))) : 0;
 }
+// Blöcke werden NUR neu gebaut, wenn sich Wörter/Caption tatsächlich ändern (erneuter Klick auf das aktive
+// Preset/Template, „Edit“, Preset A → B mit gleichem Layout lassen manuelle Splits/Merges/Timeline-Edits stehen);
+// ändert sich etwas, gibt es vorher einen Undo-Schritt (inkl. Reglerstand, Strg+Z stellt Blöcke + Regler zurück).
 function applyTemplateSettings(t) {
+  var prevMc = CAP_MAX_CHARS; // vor dem Überschreiben unten merken (Undo-Eintrag trägt den alten Reglerstand)
   if (t.pos) { capPos = t.pos; syncPosButtons(); }
   if (typeof t.voff === 'number') {
     capVOff = t.voff;
@@ -6785,11 +6802,20 @@ function applyTemplateSettings(t) {
   if (typeof t.maxChars === 'number') { CAP_MAX_CHARS = (t.maxChars >= CAP_CHARS_MIN && t.maxChars <= CAP_CHARS_MAX) ? t.maxChars : 0; }
   syncMaxCharsUI();
   if (typeof t.wpb === 'number') {
+    var prevW = WORDS_PER_BLOCK, wpbChanged = t.wpb !== prevW;
     WORDS_PER_BLOCK = t.wpb;
     var ws = document.getElementById('wpbSlider');
     if (ws) { ws.value = t.wpb; document.getElementById('wpbDisp').textContent = t.wpb; }
-    syncWordsFromBlocks(); // Text-Edits beim Neu-Gruppieren behalten
-    if (wordTimestamps.length) { captionBlocks = buildCaptionBlocks(wordTimestamps); renderSegments(); renderWPills(); }
+    if (wpbChanged) {
+      var wsnap = captionBlocks.length ? captionSnapshot() : null;
+      syncWordsFromBlocks(); // Text-Edits beim Neu-Gruppieren behalten
+      if (wordTimestamps.length) {
+        captionBlocks = buildCaptionBlocks(wordTimestamps);
+        // Tag 'layout' = derselbe Undo-Schritt wie die Anpassung durch relayoutCaptions unten (Coalesce)
+        if (wsnap && captionSnapshot() !== wsnap) pushUndo('layout', layoutSnapshot(prevMc, prevW, wsnap));
+        renderSegments(); renderWPills();
+      }
+    }
   }
   relayoutCaptions('layout'); // Zeilen/Zeichenlimit ohne Wörter-Vorgabe: nur anpassen, was nötig ist
   applyPos();
@@ -9249,7 +9275,7 @@ function progDragEnd(e) {
   tr.removeEventListener('pointermove', progDragMove);
   tr.removeEventListener('pointerup', progDragEnd);
   tr.removeEventListener('pointercancel', progDragEnd);
-  if (d.wasPlaying) doPlay();
+  if (d.wasPlaying) doPlay(); else updateOverlay(); // Scrub-Ende: Ruhezustand
 }
 function toggleMute() {
   if (isExporting) return;
@@ -12659,7 +12685,7 @@ function tlScrubEnd() {
   if (vid && vid.duration > 0 && Math.abs((vid.currentTime || 0) - t) > 0.0005) vid.currentTime = t;
   _tl.pendSeek = null;
   clearTimeout(_tl.scrubTimer);
-  _tl.scrubTimer = setTimeout(function(){ if (!_tl.drag && !_tl.fling) { _tl.scrubT = null; tlRequestDraw(); } }, 350);
+  _tl.scrubTimer = setTimeout(function(){ if (!_tl.drag && !_tl.fling) { _tl.scrubT = null; tlRequestDraw(); updateOverlay(); } }, 350); // updateOverlay: Ruhezustand
 }
 function tlFlingStop() {
   if (!_tl.fling) return;
@@ -13099,6 +13125,7 @@ function tlOnUp(e) {
   if (d.mob) { _tl.drag = null; tlMobUp(e, d); return; }
   _tl.drag = null; _tl.hover = '';
   _tl.cv.style.cursor = '';
+  if (d.type === 'seek') updateOverlay(); // Scrub-Ende: Ruhezustand
   if (e.type === 'pointercancel') { if (d.type === 'marquee') tlSweepRestore(d); tlRevertDrag(d); tlRequestDraw(); return; }
   if (d.type === 'marquee' && d.moved) { tlRequestDraw(); return; } // Auswahl steht schon (live gesetzt)
   if (d.type === 'block' && d.base && d.group) {
