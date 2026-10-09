@@ -122,6 +122,7 @@ setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKe
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
+setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
 capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3030,7 +3031,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
         save() { this._st.push([this.globalAlpha, this.ty, this.fillStyle, this._font]); },
         restore() { const v = this._st.pop(); if (v) { this.globalAlpha = v[0]; this.ty = v[1]; this.fillStyle = v[2]; this._font = v[3]; } },
         translate(x, y) { this.ty += y; }, scale() {}, rotate() {},
-        fillText(t, x, y) { this.calls.push({ t, x, y: y + this.ty, a: this.globalAlpha, fs: this.fillStyle, font: this._font }); }, strokeText() {},
+        fillText(t, x, y) { this.calls.push({ t, x, y: y + this.ty, a: this.globalAlpha, fs: this.fillStyle, font: this._font, sb: this.shadowBlur, sc: this.shadowColor }); }, strokeText() {},
         roundRect(x, y, w, h) { this.rects.push({ x, y: y + this.ty, w, h, a: this.globalAlpha, fs: this.fillStyle }); }, rect(x, y, w, h) { this.rects.push({ x, y, w, h, a: this.globalAlpha }); },
         beginPath() {}, fill() {}, stroke() {}, ellipse() {}, fillRect() {}, drawImage() { this.imgs++; }, createLinearGradient() { return { addColorStop() {} }; } };
       return c;
@@ -3067,7 +3068,57 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(h1.hk > 0 && h1.hk < 1 && h0.hk > 0 && h0.hk < 1, 'Highlight: Farbwechsel weich (aktiv ' + h1.hk.toFixed(2) + ', vorher ' + h0.hk.toFixed(2) + ')');
     ok(fx(hz, 1, 1.5 + M.hl).hk === 1 && fx(hz, 0, 1.5 + M.hl).hk === 0 && fx(hz, 2, 1.53).hk === 0, 'Highlight: danach eindeutig');
     let peak = 1; for (let k = 0; k <= 40; k++) { const a = fx(hz, 1, 1.5 + k * 0.01).a; if (a) peak = Math.max(peak, a.sx); }
-    ok(peak > 1 && peak <= 1.04 + 1e-9, 'Bold Pop: Pop hoechstens 1.04: ' + peak.toFixed(3));
+    ok(peak >= 1.1 && peak <= 1.14 + 1e-9, 'Bold Pop: Pop deutlich sichtbar, hoechstens 1.14: ' + peak.toFixed(3));
+    // Word pop (csAnim): jede Option sofort deutlich erkennbar — auch ein einzelnes Bild kurz nach Wortbeginn (80 ms)
+    {
+      const csHtml = htmlContent.match(/<select id="csAnim"[\s\S]*?<\/select>/)[0];
+      const opts = [...csHtml.matchAll(/<option value="(\w+)">/g)].map(m => m[1]);
+      ok(opts.join() === 'none,scale,punch,bounce,flash,glow', 'csAnim: Optionen None/Pop/Punch/Lift/Fade/Glow: ' + opts.join());
+      const strong = a => a && (Math.abs(a.sx - 1) >= 0.1 || Math.abs(a.ty) >= 0.15 || a.op <= 0.3 || a.glow >= 0.5);
+      ok(T.animState('none', 0.08) === null && T.animState('scale', T.ANIM_DUR) === null && T.animState('scale', -0.1) === null, 'animState: none/abgelaufen/vorher → null');
+      opts.filter(o => o !== 'none').forEach(o => {
+        const a = T.animState(o, 0.08);
+        ok(a !== null && strong(a), 'Word pop «' + o + '» bei 80 ms deutlich erkennbar: ' + JSON.stringify(a));
+        let mx = { sx: 1, ty: 0, op: 1, glow: 0 };
+        for (let k = 0; k <= 339; k++) { const q = T.animState(o, k * 0.001); mx = { sx: Math.max(mx.sx, q.sx), ty: Math.max(mx.ty, q.ty), op: Math.min(mx.op, q.op), glow: Math.max(mx.glow, q.glow) }; }
+        ok(mx.sx >= 1.14 - 1e-9 || mx.ty >= 0.22 - 1e-9 || mx.op <= 1e-9 || mx.glow >= 1 - 1e-9, 'Word pop «' + o + '»: Spitzenausschlag: ' + JSON.stringify(mx));
+        const e = T.animState(o, T.ANIM_DUR - 1e-6);
+        ok(Math.abs(e.sx - 1) < 0.02 && Math.abs(e.ty) < 0.01 && e.op > 0.98 && e.glow < 0.02, 'Word pop «' + o + '» endet im Ruhezustand');
+      });
+      ok(near(T.animState('punch', 0).sx, 1.28) && near(T.animState('punch', 0.17).sx, 1.0 + 0.28 * Math.pow(0.5, 3)) && T.animState('punch', 0.08).sx < T.animState('punch', 0.0).sx, 'Punch: 1.28 → 1 mit ease-out');
+      ok(near(T.animState('bounce', 0).ty, 0.22) && near(T.animState('bounce', 0).op, 0.5) && near(T.animState('flash', 0).op, 0) && near(T.animState('wobble', 0.1).ty, T.animState('bounce', 0.1).ty), 'Lift: 0,22 em + Deckkraft .5; Fade: 0; wobble = Lift');
+      // Vorschau = Export: die CSS-Keyframes (Kacheln/Hover) tragen dieselben Werte wie ANIM_KEYFRAMES
+      const css = n => (htmlContent.match(new RegExp('@keyframes captly-' + n + '(\\{.*)')) || [, ''])[1];
+      const nums = (str, re) => [...str.matchAll(re)].map(m => parseFloat(m[1]));
+      const kfMax = (n, k) => Math.max(...T.ANIM_KEYFRAMES[n].map(e => e[1][k] === undefined ? -Infinity : e[1][k]));
+      ok(Math.max(...nums(css('scale'), /scale\(([\d.]+)\)/g)) === kfMax('scale', 'sx'), 'CSS = JS: Pop-Spitze ' + kfMax('scale', 'sx'));
+      ok(nums(css('punch'), /scale\(([\d.]+)\)/g)[0] === kfMax('punch', 'sx') && /cubic-bezier\(\.33,1,\.68,1\)/.test(css('punch')), 'CSS = JS: Punch-Start ' + kfMax('punch', 'sx') + ' + ease-out');
+      ok(nums(css('bounce'), /translateY\(([\d.]+)em\)/g)[0] === kfMax('bounce', 'ty') && nums(css('bounce'), /opacity:([\d.]+)/g)[0] === T.ANIM_KEYFRAMES.bounce[0][1].op, 'CSS = JS: Lift ty (em) + Deckkraft');
+      ok(nums(css('flash'), /opacity:([\d.]+)/g)[0] === T.ANIM_KEYFRAMES.flash[0][1].op && css('wobble') === css('bounce'), 'CSS = JS: Fade-Start; wobble = Lift');
+      ok(/drop-shadow\(0 0 \.35em currentColor\)/.test(css('glow')) && !/brightness/.test(css('glow')) && !/bright|brightness/.test(htmlContent.match(/var ANIM_KEYFRAMES[\s\S]*?\n\};/)[0]), 'Glow: Leuchten statt brightness (CSS + JS)');
+      // Glow im Export: Schatten in der Highlight-Farbe nur während der Animation, Pop ohne Schatten-Zusatz
+      const gs = Object.assign({}, ST('hormozi'), { anim: 'glow', hls: 'none', hl: '#ff3366', motion: undefined });
+      const glowCalls = (t, st) => { const c = mkCtx(null); T.drawCaptionsOnCtx(c, t, st, 1080, 1920, false); return c.calls.filter(k => k.t.toLowerCase() === 'zwei'); };
+      const g1 = glowCalls(1.5 + 0.1, gs), g2 = glowCalls(1.5 + 0.45, gs), g3 = glowCalls(1.5 + 0.1, Object.assign({}, gs, { anim: 'scale' }));
+      ok(g1.some(k => k.sb > 4 && k.sc === '#ff3366'), 'Export Glow: Leuchten in der Highlight-Farbe am aktiven Wort: ' + JSON.stringify(g1.map(k => [k.sb, k.sc])));
+      ok(g2.every(k => !(k.sb > 0)) && g3.every(k => !(k.sb > 0)), 'Export Glow: nach 0,34 s und bei Pop kein Leuchten');
+      ok(T.capGlowLayers(gs, 1, 0, 40).length === 0 && T.capGlowLayers(gs, 1, 1, 40).length === 3 && T.capGlowLayers({ hlPillBg: '#0f0', hl: '#fff' }, 1, 1, 40)[0].color === '#0f0', 'capGlowLayers: Farbe = Highlight (Pill: Pill-Farbe), 0 = aus');
+      // Panel: Word pop nur beim Highlight — sonst Zeile weg + Hinweis; reduzierte Bewegung → Hinweis, keine Demo
+      const E = id => document.getElementById(id);
+      E('csMotion').value = 'reveal'; E('csAnim').value = 'scale'; T.syncCsUi();
+      ok(E('csAnimRow').style.display === 'none' && E('csAnim').disabled === true && /Animation: Highlight/.test(E('csAnimHint').textContent) && E('csAnimHint').style.display === '', 'Reveal: Word-pop-Zeile ausgeblendet + Hinweis «Word pop works with Animation: Highlight»');
+      E('csMotion').value = 'fill'; T.syncCsUi();
+      ok(E('csAnimRow').style.display === 'none', 'Fill: Zeile ausgeblendet');
+      E('csMotion').value = 'highlight'; T.syncCsUi();
+      ok(E('csAnimRow').style.display === '' && E('csAnim').disabled === false && E('csAnimHint').textContent === '' && E('csAnimHint').style.display === 'none', 'Highlight: Zeile sichtbar, kein Hinweis');
+      T.setReduceMotion(true); T.syncCsUi();
+      ok(/reduce motion/.test(E('csAnimHint').textContent) && /export includes the animation/.test(E('csAnimHint').textContent) && T.capAnimDemoStart() === false && T.getAnimDemo() === null, 'Bewegung reduzieren: Hinweis, keine Demo');
+      E('csAnim').value = 'none'; T.syncCsUi();
+      ok(E('csAnimHint').textContent === '', 'Bewegung reduzieren + «None»: kein Hinweis');
+      T.setReduceMotion(false); E('csAnim').value = 'scale'; T.syncCsUi();
+      ok(E('csAnimHint').textContent === '' && T.capAnimDemoStart() === true && T.getAnimDemo() && T.getAnimDemo().until > T.getAnimDemo().t0, 'Pausiert: Demo startet (~0,6 s virtuelle Zeit)');
+      T.clearAnimDemo();
+    }
     ok(T.STYLES.slice(0, 19).every(x => !['punch'].includes(x.anim)), 'Presets ohne Punch-Bounce');
     ok(T.capMixColor('#ffffff', '#000000', 0.5) === 'rgba(128,128,128,1)' && T.capMixColor('#fff', '#FFD60A', 0) === '#fff' && T.capMixColor('#fff', '#FFD60A', 1) === '#FFD60A', 'capMixColor');
     // Block ein-/ausblenden (Lücke nach dem Block → Ausblenden; direkt anschliessender Block → kein Flackern)
