@@ -349,9 +349,10 @@ hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ 
 node test-captly.js     # Editor-Logik (DOM-Stub)
 node test-polish.js     # /api/polish + polish.php
 node test-enhance.js    # /api/enhance + enhance.php
-node test-lead.js       # lead.php, confirm.php, unsubscribe.php (Mock-Supabase + Mock-SMTP, braucht php)
+node test-lead.js       # lead.php, confirm.php, unsubscribe.php, contact.php (Mock-Supabase + Mock-SMTP, braucht php)
 node test-telemetry.js  # log.php + stat.php (Mock-Supabase, braucht php)
 node test-billing.js    # Abo-Vorbereitung: Webhook, Plan, Kontingent, Portal (Mock-Supabase/Groq/Paddle, braucht php)
+node test-ops.js        # scripts/check-secrets.js (Deploy-Vorprüfung) + scripts/live-check.js (Live-Prüfung, gegen php -S mit Apache-Nachbau)
 node test-e2e.js        # Browser-E2E (Playwright, Mock-Server): Upload → Untertitel → Export → E-Mail-Gate → Cover → Login → Projekt; Desktop + 390 px; Screenshots in e2e-shots/
 node test-ui-sweep.js   # UI-Sweep (Playwright, nicht Teil der CI): jede Kontrolle (Style/Customize/Captions/Timeline/Export/Cover/Einstellungen) wird bedient und gegen Soll-Änderungen + Invarianten geprüft; Vorschau = Export (Geometrie, Pixel), Wort-Animation, Rand-Check, Hygiene (Overflow/Konsole/Tippflächen); Desktop + 390 px. Option --quick (ca. halbe Laufzeit), --only=ctl,geom,pixel,anim,edge,hyg, --viewport=phone, --dump, --strict
 ```

@@ -1,5 +1,7 @@
 # CaptionRush live schalten (Hostpoint) — Checkliste
 
+> **Neu: [`docs/START-HIER.md`](docs/START-HIER.md)** — die Kurzfassung zum Abhaken (Domain, Postfächer, DNS, FTP, Supabase, Groq, Secrets, Deploy, automatischer Live-Check).
+
 Alles Technische ist im Repo vorbereitet. Hier steht, was **nur du** in Dashboards erledigen kannst (je ca. 5–10 Min.).
 Reihenfolge einhalten.
 

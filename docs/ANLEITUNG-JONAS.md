@@ -1,5 +1,7 @@
 # Anleitung für Jonas: alles, was nur du erledigen kannst
 
+**Kurzfassung zum Abhaken: [`START-HIER.md`](START-HIER.md)** (eine Seite, mit Werten zum Kopieren). Diese Datei ist die ausführliche Fassung mit Hintergründen.
+
 Stand: Oktober 2026. Reihenfolge einhalten: **A** (Basis) → **B** (Dienste) → **C** (Deploy und Test) → **D** (später: Abos) → **E** (Firma und Marke).
 Wo ich die Oberfläche von Hostpoint, Groq oder Paddle nicht live prüfen konnte, steht «Bezeichnung kann abweichen»: dann dem Sinn nach suchen oder den Support fragen. Die Schritte zu Supabase und GitHub kenne ich aus dem Repo und sind genau.
 Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eines Schritts sagt dir, woran du merkst, dass er geklappt hat.
@@ -80,7 +82,7 @@ Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eine
 **C1. Deploy auslösen**: PR mergen (siehe Reihenfolge unten) → Action «Deploy» läuft automatisch. Oder: Repo → Actions → Deploy → «Run workflow». Fehlt ein Secret, nennt die Action es. ✅ Grünes Häkchen.
 
 **C2. Endpunkte prüfen** (Browser, jeweils `{"…configured":true}` bzw. JSON):
-`https://captionrush.com/api/transcribe`, `/api/lead`, `/api/stat`, `/api/log`, `/api/plan` (jetzt `{"enabled":false}`, richtig!). `https://captionrush.com/de` zeigt die deutsche Seite, `/privacy`, `/datenschutz`, `/terms`, `/impressum` laden.
+`https://captionrush.com/api/transcribe`, `/api/lead`, `/api/stat`, `/api/log`, `/api/plan` (jetzt `{"enabled":false}`, richtig!). `https://captionrush.com/de` zeigt die deutsche Seite, `/privacy`, `/datenschutz`, `/terms`, `/impressum` laden. `https://captionrush.com/kontakt` zeigt das Kontaktformular.
 
 **C3. End-to-End-Test** (Handy **und** Computer, privates Fenster):
 1. Video hochladen → Untertitel erscheinen. Style wechseln. Text korrigieren.
@@ -88,9 +90,10 @@ Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eine
 3. Mailbox: **Bestätigungsmail** kommt (nicht im Spam), Link anklicken → «Danke, bestätigt». Supabase → Table Editor → `leads`: Zeile mit `confirmed_at`.
 4. In derselben Mail unten den **Abmelde-Link** anklicken → Seite «Newsletter abmelden?» → Knopf → «Abgemeldet»; in `leads` steht `unsubscribed_at`.
 5. Menü (drei Punkte) → Sign in → Code per Mail → eingeloggt → «Save to account» → Seite neu laden → «Load project» → Projekt ist da.
-6. Cover erstellen (Export-Fenster → «Create cover»), PNG öffnen.
-7. Supabase `style_stats` hat nach dem Export eine Zeile (nur, wenn dein Browser nicht «Do Not Track» sendet).
-8. Spam-Test: auf mail-tester.com die angezeigte Adresse als Newsletter-Anmeldung verwenden (Export mit Häkchen) und den Wert ansehen: Ziel ≥ 8/10.
+6. Kontaktformular (`/kontakt`): Nachricht senden (nach mindestens 4 Sekunden) → «Danke»; in `contact@captionrush.com` kommt die Mail an, «Antworten» geht an deine Testadresse.
+7. Cover erstellen (Export-Fenster → «Create cover»), PNG öffnen.
+8. Supabase `style_stats` hat nach dem Export eine Zeile (nur, wenn dein Browser nicht «Do Not Track» sendet).
+9. Spam-Test: auf mail-tester.com die angezeigte Adresse als Newsletter-Anmeldung verwenden (Export mit Häkchen) und den Wert ansehen: Ziel ≥ 8/10.
 ✅ Wenn etwas hakt: Screenshot/Fehlertext an mich.
 
 **C4. Google Search Console** (search.google.com/search-console)

@@ -48,8 +48,7 @@ const T0 = Date.now();
 // Jeder Eintrag: re = Regex auf die Prüfungs-ID (ohne Viewport), vp = optional nur in diesen Viewports, why = Begründung (Branch/Fehler). Scheitert die Prüfung → «xfail» (erwartet).
 // Besteht sie → «XPASS»-Warnung: der Fehler ist behoben (Branch gemergt) → Eintrag entfernen.
 const EXPECT_FAIL = [
-  // Aktuell leer: P1 (Layout-Preset/Zeilenhöhe/Export-Zeilenabstand), P2 (Word pop), P3 (Cover-Rand) sind gemergt.
-  { re: /^ctl\/cvWords\/changes:cover\.hash$/, why: 'NEU gefunden (noch nicht behoben): Cover-Akzent-Chips («Tap words to accent them») bewirken bei Looks ohne Betonung (Standard «tight», «statement») nichts — captly.html coverIsEm() ~Z. 11279 verlangt emphColor/emFont' },
+  // Aktuell leer: P1 (Layout-Preset/Zeilenhöhe), P2 (Word pop), P3 (Cover-Rand), F1 (Export-Position = Vorschau), F2 (Cover-Akzent) sind behoben.
   // Neuer Eintrag: { re: /^ctl\/csLh@layoutPreset\//, why: 'Branch xyz: Kurzbeschreibung' },
 ];
 
@@ -95,8 +94,11 @@ function qaMain() {
     hash,
     raf2, wait, curBi,
     // Videozeit setzen (pausiert) und Overlay rendern, wie es ein Scrub tut
-    seekTo(t) {
+    // scrub = wie beim Ziehen am Fortschrittsbalken (_progDrag): nur dann zeigt die pausierte Vorschau Wort-Pop/Reveal-Zwischenzustände
+    // (sonst Ruhezustand, s. capDomMotion rest) — der Zustand bleibt bis zum nächsten seekTo stehen
+    seekTo(t, scrub) {
       return new Promise(res => {
+        _progDrag = scrub ? { wasPlaying: false, x: 0, raf: 0 } : null;
         const v = vid(); if (!v.paused) v.pause();
         let done = false;
         const fin = () => { if (done) return; done = true; v.removeEventListener('seeked', fin); _lastKey = null; updateOverlay(); raf2().then(res); };
@@ -376,8 +378,8 @@ const CTL = [
   { id: 'szSlider', tab: 'style', op: 'range', sel: '#szSlider', values: [14, 34], changes: ['cfg.fontSize', 'dom.span0.fontSize'], inv: inv('cfg.fontSize', 'cfg.blocks', 'dom.lines', 'cfg.maxChars') },
   { id: 'pos', tab: 'style', op: 'click', values: ['#posRow [data-pos="top"]', '#posRow [data-pos="center"]'], changes: ['cfg.pos', 'dom.root.top'], inv: inv('cfg.pos').concat('dom.span0.fontSize') },
   { id: 'wpbSlider', tab: 'style', op: 'range', sel: '#wpbSlider', values: [1, 6], changes: ['cfg.wpb', 'cfg.blocks'], inv: ['cfg.lines', 'cfg.fontSize', 'cfg.pos'] },
-  { id: 'mcAuto', tab: 'style', op: 'click', sel: '#mcAuto', values: [null], changes: ['cfg.maxChars'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.fontSize', 'cfg.pos'] },
-  { id: 'mcSel', tab: 'style', op: 'range', sel: '#mcSel', values: [8, 30], changes: ['cfg.maxChars', 'cfg.blocks'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.fontSize', 'cfg.pos'] },
+  { id: 'mcAuto', tab: 'style', customize: true, op: 'click', sel: '#mcAuto', values: [null], changes: ['cfg.maxChars'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.fontSize', 'cfg.pos'] },
+  { id: 'mcSel', tab: 'style', customize: true, op: 'range', sel: '#mcSel', values: [8, 30], changes: ['cfg.maxChars', 'cfg.blocks'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.fontSize', 'cfg.pos'] },
   { id: 'lines', tab: 'style', op: 'click', values: ['#linesRow [data-lines="1"]'], changes: ['cfg.lines', 'dom.lines'], inv: ['cfg.wpb', 'cfg.fontSize', 'cfg.pos'] },
   { id: 'caseSel', tab: 'style', op: 'select', sel: '#caseSel', values: ['lower', 'orig'], changes: ['cfg.case', 'dom.hash'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize'] },
   // ── Style-Tab: Emphasis ──
@@ -402,13 +404,13 @@ const CTL = [
   { id: 'csGlowInt', tab: 'style', custom: true, op: 'range', sel: '#csGlowInt', values: [4, 30], changes: ['style.hls'], styleOnly: HL_FIELDS, inv: LAYOUT_INV.concat('dom.span0.fontSize'),
     pre: sc => sc.page.evaluate(() => { const g = document.getElementById('csGlow'); if (!g.checked) g.click(); }) },
   { id: 'csBox', tab: 'style', custom: true, op: 'select', sel: '#csBox', values: ['box', 'pill'], changes: ['style.boxBg', 'style.boxBr', 'dom.root.backgroundColor'], styleOnly: ['boxBg', 'boxBr'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
-  { id: 'csBoxC', tab: 'style', custom: true, op: 'color', sel: '#csBoxC', values: ['#ff0000'], changes: ['style.boxBg', 'dom.root.backgroundColor'], styleOnly: ['boxBg', 'boxBr'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
-  { id: 'csBoxO', tab: 'style', custom: true, op: 'range', sel: '#csBoxO', values: [30, 100], changes: ['style.boxBg', 'dom.root.backgroundColor'], styleOnly: ['boxBg', 'boxBr'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
-  { id: 'csBoxR', tab: 'style', custom: true, op: 'range', sel: '#csBoxR', values: [0, 30], changes: ['style.boxBr', 'dom.root.borderRadius'], styleOnly: ['boxBg', 'boxBr'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
+  { id: 'csBoxC', tab: 'style', custom: true, pre: sc => sc.page.selectOption('#csBox', 'box'), op: 'color', sel: '#csBoxC', values: ['#ff0000'], changes: ['style.boxBg', 'dom.root.backgroundColor'], styleOnly: ['boxBg', 'boxBr'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
+  { id: 'csBoxO', tab: 'style', custom: true, pre: sc => sc.page.selectOption('#csBox', 'box'), op: 'range', sel: '#csBoxO', values: [30, 100], changes: ['style.boxBg', 'dom.root.backgroundColor'], styleOnly: ['boxBg', 'boxBr'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
+  { id: 'csBoxR', tab: 'style', custom: true, pre: sc => sc.page.selectOption('#csBox', 'box'), op: 'range', sel: '#csBoxR', values: [0, 30], changes: ['style.boxBr', 'dom.root.borderRadius'], styleOnly: ['boxBg', 'boxBr'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
   { id: 'csHlType', tab: 'style', custom: true, op: 'select', sel: '#csHlType', values: ['pill'], changes: ['style.hlPillBg'], styleOnly: HL_FIELDS, inv: inv('dom.lines', 'cfg.blocks').concat('dom.span0.fontSize') },
   { id: 'csMotion', tab: 'style', custom: true, op: 'select', sel: '#csMotion', values: ['reveal', 'fill', 'none'], changes: ['style.motion', 'dom.hash'], styleOnly: ['motion'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
   { id: 'csAnim', tab: 'style', custom: true, op: 'select', sel: '#csAnim', values: ['scale', 'punch', 'bounce', 'flash', 'glow'], changes: ['style.anim', 'dom.act.*'], styleOnly: ['anim'], inv: LAYOUT_INV.concat('dom.span0.fontSize'),
-    pre: sc => sc.page.selectOption('#csAnim', 'none'), seek: { word: 1, dt: 0.08 }, reseek: true, wait: 1100 },
+    pre: sc => sc.page.selectOption('#csAnim', 'none'), seek: { word: 1, dt: 0.08, scrub: true }, reseek: true, wait: 1100 },
   // ── Style-Tab: Customize › Timing & text ──
   { id: 'toSlider', tab: 'style', custom: false, op: 'range', sel: '#toSlider', values: [-0.3, 0.3], changes: ['cfg.timeOff'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], customize: true },
   { id: 'pauseChk', tab: 'style', op: 'check', sel: '#pauseChk', values: [null], changes: ['cfg.mode'], inv: LAYOUT_INV, customize: true },
@@ -525,7 +527,7 @@ async function prepare(sc, def, variant) {
   }
   if (def.setup) await def.setup(sc);
   if (def.seek) {
-    pk = await p.evaluate(async sk => { const bi = __qa.curBi(), b = captionBlocks[bi], t = b.words[sk.word].start + sk.dt - timeOff; await __qa.seekTo(t); return { bi, t }; }, def.seek);
+    pk = await p.evaluate(async sk => { const bi = __qa.curBi(), b = captionBlocks[bi], t = b.words[sk.word].start + sk.dt - timeOff; await __qa.seekTo(t, sk.scrub); return { bi, t }; }, def.seek);
   }
   await p.waitForTimeout(250);
   return pk;
@@ -559,7 +561,7 @@ async function runControl(browser, prof, def, variant) {
         if (def.clipboard) { await sc.page.waitForTimeout(300); gotClip = await sc.page.evaluate(() => navigator.clipboard.readText().catch(e => 'ERR ' + e.message)); }
       } catch (e) { operable = false; check(id + '/operable', false, 'nicht bedienbar (Wert ' + v + '): ' + String(e.message).split('\n')[0].slice(0, 110)); break; }
       await sc.page.waitForTimeout(def.wait || 380);
-      if (def.reseek && pk) { await sc.page.evaluate(t => window.__qa.seekTo(t), pk.t); await sc.page.waitForTimeout(450); } // Wort-Pop spielt nach der Wahl eine kurze Vorschau → auf den Messzeitpunkt zurück
+      if (def.reseek && pk) { await sc.page.evaluate(a => window.__qa.seekTo(a[0], a[1]), [pk.t, !!(def.seek && def.seek.scrub)]); await sc.page.waitForTimeout(450); } // Wort-Pop spielt nach der Wahl eine kurze Vorschau → auf den Messzeitpunkt zurück
       await sc.page.evaluate(() => window.__qa.raf2());
       const si = await sigOf(sc); sigs.push(si); diffs.push(diffSig(s0, si));
       if (def.sel && (def.op === 'range' || def.op === 'select' || def.op === 'color')) { // Regler springt nach dem Anwenden nicht zurück
@@ -677,7 +679,7 @@ SECTIONS.anim = async (browser, prof) => {
   await p.waitForTimeout(400);
   const read = () => p.evaluate(async () => {
     const b = captionBlocks[0], t = b.words[1].start + 0.08 - timeOff;
-    await __qa.seekTo(t); await __qa.wait(400); // CSS-Übergänge am Span ausklingen lassen
+    await __qa.seekTo(t, true); await __qa.wait(400); // CSS-Übergänge am Span ausklingen lassen
     const wi = activeWordIdx(b, t + timeOff), ov = document.getElementById('capOverlay');
     const sp = Array.prototype.find.call(ov.querySelectorAll('[data-oi]'), x => +x.getAttribute('data-oi') === wi);
     const c = getComputedStyle(sp), m = c.transform === 'none' ? null : new DOMMatrix(c.transform);

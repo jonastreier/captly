@@ -919,6 +919,20 @@ body.editor-open .lang-hint{display:none}
   .fr-row .pos-btn{min-height:36px}
   .em-chip,.mc-auto{min-height:36px;padding-left:12px;padding-right:12px}
 }
+/* Handy/Touch: Tippflächen ≥ 32 px (QA-Gerüst test-ui-sweep, hyg/tap) — Desktop-Layout bleibt unverändert */
+@media (max-width:640px), (pointer:coarse) {
+  .foot-col a,.foot-links a,.foot-lang a{display:flex;align-items:center;min-height:32px}
+  .foot-col{gap:0}
+  .tm-legal a,.es-gate-fine a,.foot-legal a{display:inline-block;padding:9px 8px;margin:-9px -8px}
+  .chk-row,.exp-chk,.cv-chk{min-height:32px}
+  .land-try-btn{min-height:36px}
+  .tb-title{min-height:36px}
+  .fr-box summary{min-height:36px}
+  .seg-emph button{height:32px}
+  .seg-emph .se-emo{min-width:32px}
+  .tm-item{padding-top:10px;padding-bottom:10px}
+  .cs-chipcol .cs-col,.cs-dot .cs-col{width:32px;height:32px}
+}
 /* Timeline-Aktionsleiste (Handy/Touch, s. tlSyncAct): immer gleich hoch → nichts springt beim Wählen */
 .tl-act{display:none;border-top:1px solid var(--line);padding:8px 8px 10px}
 .tl-mob .tl-act{display:block}
@@ -1252,7 +1266,7 @@ body.editor-open .lang-hint{display:none}
         <a href="privacy.html">Privacy</a>
         <a href="terms.html">Terms</a>
         <a href="licenses.html">Licences</a>
-        <a href="mailto:contact@captionrush.com">Contact</a>
+        <a href="contact">Contact</a>
       </div>
     </div>
     <p class="foot-legal">Your video stays on your device; only the audio is sent for transcription. Details in our <a href="privacy.html">privacy policy</a>.</p>
@@ -11443,7 +11457,15 @@ function coverDefaultTime(duration, blocks) {
   return Math.round(t * 10) / 10;
 }
 
-function coverIsEm(s, kw, i) { return kw.indexOf(i) >= 0 && (emphColor(s) !== null || !!s.emFont); }
+// Cover-Akzent wirkt bei JEDEM Look sichtbar: Looks ohne Betonung (em:'none', z. B. Tight/Statement) bekommen als Fallback
+// die Highlight-Farbe, wenn sie sich vom Text abhebt, sonst Gelb (die Looks mit Akzent bleiben unverändert).
+function coverIsEm(s, kw, i) { return kw.indexOf(i) >= 0; }
+function coverEmColor(s) {
+  var c = emphColor(s);
+  if (c || s.emFont) return c;
+  var h = cssColorToHexA(s.hl || ''), t = cssColorToHexA(s.tc || '#fff');
+  return s.hl && h && t && h.hex !== t.hex ? s.hl : '#FFD60A';
+}
 // Buchstabenabstand in Cover-px: em folgt der Cover-Schrift, px (Vorschau-Einheiten) skaliert mit der Schriftgrösse
 function coverLs(s, base) { var v = String(s.ls || ''), n = parseFloat(v) || 0; return /em\s*$/.test(v) ? n * base : n * base / 28; }
 var coverState = { t: null, dark: 35, grad: true, title: '', kw: null, style: 'tight', size: 1, pos: 'bottom', guides: true, align: 'center', ox: 0, oy: 0, wo: {} };
@@ -11538,7 +11560,7 @@ function coverDrawTitle(ctx, W, H, st, s) {
           if ('letterSpacing' in ctx) ctx.letterSpacing = coverLs(s, base) + 'px';
           ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
           var col = capOffColor(s, isE);
-          if (isE && emphColor(s)) col = emphColor(s);
+          if (isE && coverEmColor(s)) col = coverEmColor(s);
           ctx.fillStyle = col || s.tc || '#fff';
           var tws = ctx.measureText(t).width;
           drawTextWithPlan(ctx, t, wx, wy, isE && emphShadowIsHl(s) ? capShadowPlan(s.hls) : plan, shScale, 1, sz, tws);

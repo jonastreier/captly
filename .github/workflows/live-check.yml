@@ -1,0 +1,28 @@
+# Prüft die LIVE-Seite (Erreichbarkeit, Zertifikat, Seiten, API-Konfiguration, gesperrte Dateien, SPF/DMARC/MX)
+# und sagt bei Fehlern, was zu tun ist. Läuft automatisch nach jedem erfolgreichen Deploy
+# oder von Hand: Actions → Live-Check → Run workflow.
+name: Live-Check
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Adresse der Seite
+        default: https://captionrush.com
+  workflow_run:
+    workflows: [Deploy]
+    types: [completed]
+jobs:
+  check:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Kurz warten (Server übernimmt die Dateien)
+        if: ${{ github.event_name == 'workflow_run' }}
+        run: sleep 20
+      - name: Live-Check
+        run: node scripts/live-check.js "${{ github.event.inputs.url || 'https://captionrush.com' }}"
