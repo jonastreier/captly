@@ -3120,6 +3120,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const zm0 = T.zoomPlan()[0];
       vidZ.currentTime = zm0.s + 1 - T.getTimeOff(); T.applyPreviewZoom(vidZ.currentTime);
       ok(/scale\(1\.1[0-9]+\)/.test(vidZ.style.transform || ''), 'Vorschau: Video-Transform scale(>1) mitten im Zoom-Moment (' + vidZ.style.transform + ')');
+      ok(document.getElementById('prevBlurBg').style.transform === vidZ.style.transform, 'Vorschau: Blur-Hintergrund zoomt mit dem Video (gleicher Transform)');
       vidZ.currentTime = zm0.e + 0.5; T.applyPreviewZoom(vidZ.currentTime);
       ok(!vidZ.style.transform, 'Vorschau: nach dem Moment wieder ohne Transform');
       vidZ.currentTime = zm0.s + 1; T.setReduceMotion(true); T.applyPreviewZoom(vidZ.currentTime);

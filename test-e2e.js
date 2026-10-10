@@ -477,6 +477,95 @@ if (require.main !== module) return;
     await page.waitForTimeout(500);
     await shot('06-export-done');
 
+    // 3b) Auto zoom (Style → Animation → Emphasis): lokaler Ersatz liefert Momente, Umschalten gibt Rückmeldung (Toast + Vorführung bei Pause),
+    //     Vorschau zoomt NUR das Video (zu Zeit s+1 scale > 1.05, davor/danach 1), Timeline zeigt Marker, MP4-Export zoomt identisch.
+    {
+      const scaleOf = () => page.evaluate(() => { const m = /matrix\(([^,]+),/.exec(getComputedStyle(document.getElementById('mainVid')).transform); return m ? +m[1] : 1; });
+      const seekTo = t => page.evaluate(t => new Promise(r => { const v = document.getElementById('mainVid'); v.pause(); const f = () => { v.removeEventListener('seeked', f); r(); }; v.addEventListener('seeked', f); v.currentTime = t; setTimeout(r, 1500); }), t);
+      await page.evaluate(() => { try { closeExportSheet(); } catch (e) {} switchTab('style'); setEmphZoom('off'); });
+      await seekTo(0.4);
+      await page.waitForTimeout(3000); // Toast von «Off» (keiner) bzw. früheren Meldungen ausklingen lassen
+      await shot('07-zoom-off');
+      // Sampler: grösste Skalierung des Videos, Captions-Overlay und Videozeit während der Vorführung
+      await page.evaluate(() => {
+        window.__z = { max: 1, capSc: 1, t0: document.getElementById('mainVid').currentTime, t1: 0, n: 0 };
+        const t0 = performance.now();
+        (function tick() {
+          const m = /matrix\(([^,]+),/.exec(getComputedStyle(document.getElementById('mainVid')).transform); if (m) window.__z.max = Math.max(window.__z.max, +m[1]);
+          const om = /matrix\(([^,]+),/.exec(getComputedStyle(document.getElementById('capOverlay')).transform); if (om) window.__z.capSc = Math.max(window.__z.capSc, +om[1]);
+          window.__z.t1 = document.getElementById('mainVid').currentTime; window.__z.n++;
+          if (performance.now() - t0 < 1700) requestAnimationFrame(tick);
+        })();
+        document.querySelector('#emZoomRow [data-z=punchy]').click();
+      });
+      await page.waitForTimeout(450);
+      const toastTxt = await page.evaluate(() => (document.getElementById('capToast') || {}).textContent || '');
+      await shot('08-zoom-demo');
+      await page.waitForTimeout(1500);
+      const zr = await page.evaluate(() => Object.assign({ plan: zoomPlan(), words: captionBlocks.reduce((a, b) => a + b.words.filter(w => w.zm).length, 0), paused: document.getElementById('mainVid').paused, to: timeOff || 0 }, window.__z));
+      ok(zr.plan.length >= 1 && zr.words >= 1, 'Auto zoom: mindestens ein Zoom-Moment ohne KI (' + zr.plan.length + ' Momente, Plan ' + JSON.stringify(zr.plan.map(z => [+z.s.toFixed(2), +z.e.toFixed(2)])) + ')');
+      ok(new RegExp('^Auto zoom: ' + zr.plan.length + ' moments?$').test(toastTxt), 'Auto zoom: Toast nennt die Anzahl («' + toastTxt + '»)');
+      ok(zr.paused && zr.max > 1.1 && zr.max <= 1.19 + 1e-6, 'Auto zoom: Vorführung bei Pause — Video skaliert kurz auf ' + zr.max.toFixed(3) + ' (' + zr.n + ' Bilder)');
+      ok(Math.abs(zr.t1 - zr.t0) < 0.01 && zr.capSc <= 1.0001, 'Auto zoom: Vorführung verschiebt das Video nicht und zoomt die Captions nicht (Zeit ' + zr.t0.toFixed(2) + ' → ' + zr.t1.toFixed(2) + ', Captions ×' + zr.capSc.toFixed(3) + ')');
+      ok(await scaleOf() === 1, 'Auto zoom: nach der Vorführung wieder scale 1');
+      // Seek in den Moment / davor / danach (ohne manuelles updateOverlay): Vorschau-Transform
+      const mid = zr.plan[0].s + 1.0 - zr.to, before = Math.max(0.05, zr.plan[0].s - 0.3 - zr.to), after = zr.plan[0].e + 0.25 - zr.to;
+      ok(zr.plan[0].s > 0.12, 'Auto zoom: erster Moment beginnt nicht ganz am Anfang (' + zr.plan[0].s.toFixed(2) + ' s)');
+      await seekTo(before); await page.waitForTimeout(300); const sB = await scaleOf();
+      await seekTo(mid); await page.waitForTimeout(300); const sM = await scaleOf();
+      await shot('09-zoom-moment');
+      await seekTo(after); await page.waitForTimeout(300); const sA = await scaleOf();
+      ok(sM > 1.05 && sB === 1 && sA === 1, 'Auto zoom: Vorschau nach Seek — davor ' + sB.toFixed(3) + ', im Moment ' + sM.toFixed(3) + ' (' + mid.toFixed(2) + ' s), danach ' + sA.toFixed(3));
+      // Timeline: Marker (Lupe + Strich in Bernstein) nur bei Auto zoom ≠ Off
+      if (prof.mobile) await page.evaluate(() => switchTab('timeline')); else await page.evaluate(() => tlSetOpen(true, false));
+      await page.evaluate(() => { _tl.cv.scrollIntoView({ block: 'center' }); if (typeof tlFit === 'function') tlFit(); tlRequestDraw(); });
+      await page.waitForTimeout(500);
+      const amber = () => page.evaluate(() => {
+        tlDraw(); const cv = _tl.cv, ctx = cv.getContext('2d'), g = tlGeom(), dpr = cv.width / cv.clientWidth, d = ctx.getImageData(0, 0, cv.width, Math.round(g.ruler * dpr)).data;
+        let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 190 && d[i + 1] > 90 && d[i + 1] < 160 && d[i + 2] < 70) n++;
+        return n;
+      });
+      const aOn = await amber();
+      await shot('10-zoom-timeline');
+      await page.evaluate(() => setEmphZoom('off')); await page.waitForTimeout(200);
+      const aOff = await amber();
+      ok(aOn > 10 && aOff === 0, 'Auto zoom: Timeline-Marker nur bei Subtle/Punchy (Bernstein-Pixel am Lineal an/aus: ' + aOn + '/' + aOff + ')');
+      if (prof.mobile) await page.evaluate(() => switchTab('style'));
+      // MP4-Export: Frame im Moment ist gezoomt (Mitte vergrössert), Frame davor nicht
+      await page.evaluate(() => { setEmphZoom('punchy'); openExportSheet(); });
+      await page.waitForTimeout(400);
+      const dlZ = page.waitForEvent('download', { timeout: 180000 }).catch(() => null);
+      await page.click('#btnVideo');
+      const dz = await dlZ;
+      ok(!!dz, 'Auto zoom: Export mit Zoom gestartet');
+      if (dz) {
+        const fpz = path.join(os.tmpdir(), 'cr-e2e-zoom-' + prof.name + path.extname(dz.suggestedFilename()));
+        await dz.saveAs(fpz);
+        const frame = (src, t, out) => { try { fs.unlinkSync(out); } catch (e) {} const k = Math.round(t * 30); spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ((k - 0.5) / 30).toFixed(4), '-i', src, '-frames:v', '1', out]); return fs.existsSync(out) ? fs.readFileSync(out).toString('base64') : null; };
+        const f = n => path.join(os.tmpdir(), 'cr-e2e-z-' + n + '.png');
+        const tMid = Math.round(mid * 30) / 30, tBef = Math.round(before * 30) / 30;
+        const m1 = frame(fpz, tMid, f('mp4mid')), s1 = frame(VIDEO, tMid, f('srcmid')), m0 = frame(fpz, tBef, f('mp4bef')), s0 = frame(VIDEO, tBef, f('srcbef'));
+        ok(m1 && s1 && m0 && s0, 'Auto zoom: MP4-/Quell-Frames extrahiert (' + tBef.toFixed(2) + ' s, ' + tMid.toFixed(2) + ' s)');
+        if (m1 && s1 && m0 && s0) {
+          fs.copyFileSync(f('mp4mid'), path.join(SHOTS, prof.name + '-zoom-mp4-moment.png')); fs.copyFileSync(f('srcmid'), path.join(SHOTS, prof.name + '-zoom-src-moment.png'));
+          const zNow = await page.evaluate(t => zoomAt(t), tMid);
+          const r = await page.evaluate(async a => {
+            const load = b64 => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = 'data:image/png;base64,' + b64; });
+            const [mm, sm, mb, sb] = await Promise.all([load(a.m1), load(a.s1), load(a.m0), load(a.s0)]);
+            const W = mm.width, H = mm.height, rows = Math.round(H * 0.5); // obere Hälfte: dort liegen keine Captions
+            const px = (im, z) => { const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+              x.drawImage(im, W / 2 - W / (2 * z), H / 2 - H / (2 * z), W / z, H / z, 0, 0, W, H); return x.getImageData(0, 0, W, rows).data; };
+            const err = (p, q) => { let s = 0; for (let i = 0; i < p.length; i += 4) s += Math.abs(p[i] - q[i]) + Math.abs(p[i + 1] - q[i + 1]) + Math.abs(p[i + 2] - q[i + 2]); return s / (p.length / 4) / 3; };
+            return { eZoomed: err(px(mm, 1), px(sm, a.z)), eFlat: err(px(mm, 1), px(sm, 1)), bZoomed: err(px(mb, 1), px(sb, a.z)), bFlat: err(px(mb, 1), px(sb, 1)), W, H };
+          }, { m1, s1, m0, s0, z: zNow });
+          ok(zNow > 1.1, 'Auto zoom: Export-Faktor im Moment ' + zNow.toFixed(3));
+          ok(r.eZoomed < r.eFlat * 0.6, 'Auto zoom: MP4-Frame im Moment entspricht dem gezoomten Quellbild (Fehler gezoomt ' + r.eZoomed.toFixed(1) + ' < ungezoomt ' + r.eFlat.toFixed(1) + ', ' + r.W + '×' + r.H + ')');
+          ok(r.bFlat < r.bZoomed * 0.6, 'Auto zoom: MP4-Frame vor dem Moment ist ungezoomt (Fehler ungezoomt ' + r.bFlat.toFixed(1) + ' < gezoomt ' + r.bZoomed.toFixed(1) + ')');
+        }
+      }
+      await page.evaluate(() => { try { closeExportSheet(); } catch (e) {} setEmphZoom('off'); });
+    }
+
     // 4) Cover
     if (!(await page.isVisible('#expSheet'))) await page.evaluate(() => openExportSheet());
     await page.click('#expSheet button:has-text("Create cover"):visible');
