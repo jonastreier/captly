@@ -12,7 +12,7 @@ Preise und Währungen legst du bei Paddle fest: ein Preis (z. B. 7.99 USD) kann 
 6. Domain-Freigabe: Paddle verlangt für den Checkout eine freigegebene Domain (**Checkout → Website approval**); in der Sandbox genügt das Eintragen von `captionrush.com`.
 
 ## 2. GitHub-Secrets setzen (Repo → Settings → Secrets and variables → Actions)
-`BILLING_ENABLED` = `1`, `PADDLE_ENV` = `sandbox`, `PADDLE_CLIENT_TOKEN`, `PADDLE_PRICE_CREATOR`, `PADDLE_PRICE_PRO`, `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`. (Optional `ANON_SEC_PER_DAY`, Standard 600.) `SUPABASE_SERVICE_KEY` ist schon da. Danach Actions → Deploy → «Run workflow».
+`BILLING_ENABLED` = `1`, `PADDLE_ENV` = `sandbox`, `PADDLE_CLIENT_TOKEN`, `PADDLE_PRICE_CREATOR`, `PADDLE_PRICE_PRO`, `PADDLE_API_KEY`, `PADDLE_WEBHOOK_SECRET`. (Optional `ANON_SEC_PER_DAY`, Standard 600; `FREE_CLEAN_VIDEOS_PER_DAY`, Standard 2 = Videos pro Tag ohne Wasserzeichen für Free/Gäste.) `SUPABASE_SERVICE_KEY` ist schon da. Danach Actions → Deploy → «Run workflow».
 Wichtig: `schema.sql` muss vorher im Supabase-SQL-Editor erneut ausgeführt worden sein (legt `profiles`, `usage`, `paddle_events` an).
 
 ## 3. Prüfen

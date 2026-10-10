@@ -20,13 +20,17 @@ $paddle = ['env' => (($cfg['PADDLE_ENV'] ?? 'sandbox') === 'production') ? 'prod
            'clientToken' => (string)($cfg['PADDLE_CLIENT_TOKEN'] ?? ''),
            'prices' => ['creator' => (string)($cfg['PADDLE_PRICE_CREATOR'] ?? ''), 'pro' => (string)($cfg['PADDLE_PRICE_PRO'] ?? '')]];
 $u = cr_user_from_token($cfg, $_SERVER['HTTP_X_CAPIVO_TOKEN'] ?? '');
-if (!$u) out(200, ['enabled' => true, 'loggedIn' => false, 'plan' => 'anon', 'limits' => $limits, 'paddle' => $paddle]);
+$vkey = cr_video_key($_SERVER['HTTP_X_VIDEO_KEY'] ?? ''); $clean = cr_clean_videos($cfg);
+if (!$u) out(200, array_merge(['enabled' => true, 'loggedIn' => false, 'plan' => 'anon', 'limits' => $limits, 'paddle' => $paddle],
+  cr_video_state(cr_videos_anon($_SERVER['REMOTE_ADDR'] ?? 'x'), $vkey, $clean, false)));
 
 $row = cr_profile($cfg, $u['id']);
 $plan = cr_effective_plan($row);
 $used = cr_month_used($cfg, $u['id']);
 if ($used === null) out(502, ['enabled' => true, 'error' => 'db']);
 $limit = $limits[$plan];
-out(200, ['enabled' => true, 'loggedIn' => true, 'plan' => $plan, 'status' => $row['status'] ?? 'active', 'period_end' => $row['period_end'] ?? null,
+$vids = cr_videos_user($cfg, $u['id']); // null (z. B. Spalte fehlt) → keine Marke statt falscher Marke
+$vs = cr_video_state($vids ?? [], $vkey, $clean, $plan !== 'free' || $vids === null);
+out(200, $vs + ['enabled' => true, 'loggedIn' => true, 'plan' => $plan, 'status' => $row['status'] ?? 'active', 'period_end' => $row['period_end'] ?? null,
           'limit_sec' => $limit, 'used_sec' => $used, 'left_sec' => max(0, $limit - $used), 'limits' => $limits,
           'canPortal' => !empty($row['paddle_customer_id']), 'userId' => $u['id'], 'email' => $u['email'], 'paddle' => $paddle]);

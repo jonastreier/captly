@@ -1,0 +1,666 @@
+[
+ {
+  "video": "v6_540x960.webm",
+  "runs": [
+   {
+    "rep": 0,
+    "uploadSec": 0.52,
+    "exportSec": 11.48,
+    "ratio": 1.91,
+    "src": {
+     "w": 540,
+     "h": 960,
+     "dur": 6.003,
+     "res": "1080",
+     "geo": {
+      "W": 540,
+      "H": 960,
+      "mode": "original",
+      "bitrate": 2000000
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 540,
+     "h": 960,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 6.033333,
+     "size": 3189659,
+     "br": 4229382
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 2
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 8.1
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 8.5
+     }
+    ],
+    "errs": [],
+    "load": 2.58
+   },
+   {
+    "rep": 1,
+    "uploadSec": 0.18,
+    "exportSec": 11.83,
+    "ratio": 1.97,
+    "src": {
+     "w": 540,
+     "h": 960,
+     "dur": 6.003,
+     "res": "1080",
+     "geo": {
+      "W": 540,
+      "H": 960,
+      "mode": "original",
+      "bitrate": 2000000
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 540,
+     "h": 960,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 6.033333,
+     "size": 3163356,
+     "br": 4194505
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 2
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 8.5
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 8.9
+     }
+    ],
+    "errs": [],
+    "load": 2.53
+   },
+   {
+    "rep": 2,
+    "uploadSec": 0.22,
+    "exportSec": 11.94,
+    "ratio": 1.99,
+    "src": {
+     "w": 540,
+     "h": 960,
+     "dur": 6.003,
+     "res": "1080",
+     "geo": {
+      "W": 540,
+      "H": 960,
+      "mode": "original",
+      "bitrate": 2000000
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 540,
+     "h": 960,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 6.033333,
+     "size": 3190031,
+     "br": 4229875
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 2
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 8.5
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 8.9
+     }
+    ],
+    "errs": [],
+    "load": 2.27
+   }
+  ]
+ },
+ {
+  "video": "v6_1080x1920.webm",
+  "runs": [
+   {
+    "rep": 0,
+    "uploadSec": 0.52,
+    "exportSec": 17.79,
+    "ratio": 2.96,
+    "src": {
+     "w": 1080,
+     "h": 1920,
+     "dur": 6.003,
+     "res": "1080",
+     "geo": {
+      "W": 1080,
+      "H": 1920,
+      "mode": "original",
+      "bitrate": 4354560
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 1080,
+     "h": 1920,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 6.033333,
+     "size": 6377429,
+     "br": 8456259
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 2
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 8
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 8.9
+     }
+    ],
+    "errs": [],
+    "load": 2.71
+   },
+   {
+    "rep": 1,
+    "uploadSec": 0.22,
+    "exportSec": 17.84,
+    "ratio": 2.97,
+    "src": {
+     "w": 1080,
+     "h": 1920,
+     "dur": 6.003,
+     "res": "1080",
+     "geo": {
+      "W": 1080,
+      "H": 1920,
+      "mode": "original",
+      "bitrate": 4354560
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 1080,
+     "h": 1920,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 6.003,
+     "size": 6148666,
+     "br": 8194124
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 2
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 8.5
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 9.3
+     }
+    ],
+    "errs": [],
+    "load": 2.81
+   },
+   {
+    "rep": 2,
+    "uploadSec": 0.2,
+    "exportSec": 18.21,
+    "ratio": 3.03,
+    "src": {
+     "w": 1080,
+     "h": 1920,
+     "dur": 6.003,
+     "res": "1080",
+     "geo": {
+      "W": 1080,
+      "H": 1920,
+      "mode": "original",
+      "bitrate": 4354560
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 1080,
+     "h": 1920,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 6.033333,
+     "size": 6775460,
+     "br": 8984035
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering video…",
+      "at": 2
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 2.5
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 8.3
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 9.1
+     }
+    ],
+    "errs": [],
+    "load": 2.77
+   }
+  ]
+ },
+ {
+  "video": "v30_540x960.webm",
+  "runs": [
+   {
+    "rep": 0,
+    "uploadSec": 0.73,
+    "exportSec": 51.56,
+    "ratio": 1.72,
+    "src": {
+     "w": 540,
+     "h": 960,
+     "dur": 30.003,
+     "res": "1080",
+     "geo": {
+      "W": 540,
+      "H": 960,
+      "mode": "original",
+      "bitrate": 2000000
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 540,
+     "h": 960,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 30.033333,
+     "size": 15320364,
+     "br": 4080896
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 7.6
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 37.6
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 38.5
+     }
+    ],
+    "errs": [],
+    "load": 2.84
+   },
+   {
+    "rep": 1,
+    "uploadSec": 0.26,
+    "exportSec": 52.76,
+    "ratio": 1.76,
+    "src": {
+     "w": 540,
+     "h": 960,
+     "dur": 30.003,
+     "res": "1080",
+     "geo": {
+      "W": 540,
+      "H": 960,
+      "mode": "original",
+      "bitrate": 2000000
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 540,
+     "h": 960,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 30.033333,
+     "size": 15703947,
+     "br": 4183071
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 8.1
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 38.4
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 39.2
+     }
+    ],
+    "errs": [],
+    "load": 2.63
+   },
+   {
+    "rep": 2,
+    "uploadSec": 0.23,
+    "exportSec": 52.45,
+    "ratio": 1.75,
+    "src": {
+     "w": 540,
+     "h": 960,
+     "dur": 30.003,
+     "res": "1080",
+     "geo": {
+      "W": 540,
+      "H": 960,
+      "mode": "original",
+      "bitrate": 2000000
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 540,
+     "h": 960,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 30.033333,
+     "size": 15937268,
+     "br": 4245221
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering video…",
+      "at": 8.1
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 8.5
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 38.4
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 39.3
+     }
+    ],
+    "errs": [],
+    "load": 2.73
+   }
+  ]
+ },
+ {
+  "video": "v30_1080x1920.webm",
+  "runs": [
+   {
+    "rep": 0,
+    "uploadSec": 0.96,
+    "exportSec": 84.59,
+    "ratio": 2.82,
+    "src": {
+     "w": 1080,
+     "h": 1920,
+     "dur": 30.003,
+     "res": "1080",
+     "geo": {
+      "W": 1080,
+      "H": 1920,
+      "mode": "original",
+      "bitrate": 4354560
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 1080,
+     "h": 1920,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 30.003,
+     "size": 31562355,
+     "br": 8415786
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 8.3
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 38.6
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 39.4
+     }
+    ],
+    "errs": [],
+    "load": 3.42
+   },
+   {
+    "rep": 1,
+    "uploadSec": 0.25,
+    "exportSec": 85.93,
+    "ratio": 2.86,
+    "src": {
+     "w": 1080,
+     "h": 1920,
+     "dur": 30.003,
+     "res": "1080",
+     "geo": {
+      "W": 1080,
+      "H": 1920,
+      "mode": "original",
+      "bitrate": 4354560
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 1080,
+     "h": 1920,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 30.003,
+     "size": 32432663,
+     "br": 8647845
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 8.1
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 38.3
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 39.5
+     }
+    ],
+    "errs": [],
+    "load": 4.59
+   },
+   {
+    "rep": 2,
+    "uploadSec": 0.22,
+    "exportSec": 86.28,
+    "ratio": 2.88,
+    "src": {
+     "w": 1080,
+     "h": 1920,
+     "dur": 30.003,
+     "res": "1080",
+     "geo": {
+      "W": 1080,
+      "H": 1920,
+      "mode": "original",
+      "bitrate": 4354560
+     }
+    },
+    "out": {
+     "container": "mov,mp4,m4a,3gp,3g2,mj2",
+     "vcodec": "h264/Constrained Baseline",
+     "w": 1080,
+     "h": 1920,
+     "fps": "30/1",
+     "acodec": "aac",
+     "dur": 30.003,
+     "size": 31695176,
+     "br": 8451201
+    },
+    "phases": [
+     {
+      "m": "Rendering video…",
+      "at": 0
+     },
+     {
+      "m": "Preparing… N%",
+      "at": 0.4
+     },
+     {
+      "m": "Rendering N%…",
+      "at": 8.2
+     },
+     {
+      "m": "Creating MP4 (one-time ~15 MB converter download)…",
+      "at": 38.5
+     },
+     {
+      "m": "Creating MP4… N%",
+      "at": 39.4
+     }
+    ],
+    "errs": [],
+    "load": 4.56
+   }
+  ]
+ }
+]
