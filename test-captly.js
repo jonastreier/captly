@@ -130,7 +130,9 @@ capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidRead
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
-styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
+styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
+videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateSkip:function(){_gateSkipped=false;try{sessionStorage.removeItem(GATE_SKIP_KEY);}catch(e){}},skipEmailGate:skipEmailGate,wmNoticeText:wmNoticeText,trHeaders:trHeaders,
+setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -376,11 +378,25 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
 }
 
 // 9f) Beta: Wasserzeichen nur für anonyme Nutzer (Pläne sind noch nicht kaufbar)
-T.setMe('anon', ''); ok(T.needsWatermark() === true, 'anonym → Wasserzeichen');
-T.setMe('free', 'a@b.c'); ok(T.needsWatermark() === false, 'angemeldet (free, Beta) → kein Wasserzeichen');
-T.setMe('pro', 'a@b.c'); ok(T.needsWatermark() === false, 'Pro → kein Wasserzeichen');
-T.setMe('anon', 'x@y.z'); ok(T.needsWatermark() === false, 'E-Mail gesetzt → nie Wasserzeichen (auch ohne Plan-Update)');
-T.setMe('free', ''); ok(T.needsWatermark() === true, 'ohne E-Mail → Wasserzeichen');
+// needsWatermark-Matrix: Beta/Abos aus → NIE; Abos an → bezahlt nie, Free/Gast nur mit Server-Flag `watermark` (pro Video)
+{
+  const plans = ['anon', 'free', 'creator', 'pro'], mails = ['', 'a@b.c'];
+  for (const pl of plans) for (const em of mails) {
+    T.setMe(pl, em); T.setBillingState(null);
+    ok(T.needsWatermark() === false, 'Beta (Abos aus) nie Wasserzeichen: ' + pl + (em ? ' mit E-Mail' : ' ohne E-Mail'));
+    T.setBillingState({ enabled: false, watermark: true });
+    ok(T.needsWatermark() === false, 'Abos aus + Flag true → trotzdem nie: ' + pl);
+    for (const flag of [false, true, undefined]) {
+      T.setMe(pl, em); T.setBillingState({ enabled: true, loggedIn: pl !== 'anon', plan: pl, watermark: flag });
+      const want = (pl === 'anon' || pl === 'free') && flag === true;
+      ok(T.needsWatermark() === want, 'Abos an: ' + pl + ', watermark=' + flag + (em ? ', E-Mail' : ', ohne E-Mail') + ' → ' + want);
+    }
+  }
+  // Plan aus billing schlägt veraltetes Flag (z. B. gerade upgegradet)
+  T.setMe('free', 'a@b.c'); T.setBillingState({ enabled: true, loggedIn: true, plan: 'creator', watermark: true });
+  ok(T.needsWatermark() === false, 'billing.plan creator mit altem Flag → keine Marke');
+  T.setBillingState(null); T.setMe('anon', '');
+}
 T.setMe('anon', '');
 
 // 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
@@ -1460,7 +1476,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     global.fetch = (url, o) => { calls.push({ url, o }); return fail ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve({ ok: true, status: 201 }); };
     ok(T.isEmail('a@b.ch') && T.isEmail(' Jonas.T+x@mail.example.com ') && !T.isEmail('a@b') && !T.isEmail('ab.ch') && !T.isEmail(''), 'isEmail');
     T.setMe('anon', '');
-    ok(T.needsWatermark() === true, 'ohne E-Mail → Wasserzeichen-Pfad');
+    ok(T.needsWatermark() === false, 'ohne E-Mail (Beta) → trotzdem kein Wasserzeichen');
     const g = document.getElementById('expGate'), sh = document.getElementById('expSheet'), inp = document.getElementById('gateEmail');
     const nw = document.getElementById('gateNews'), err = document.getElementById('gateErr');
     document.getElementById('gateNewsTxt').textContent = 'Send me tips';
@@ -1471,7 +1487,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.openExportSheet();
     ok(g.style.display === '' && sh.style.display === 'block', 'Export-Blatt zeigt das E-Mail-Feld sofort');
     inp.value = 'kein-mail';
-    ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent), 'ungültige Adresse → Fehlermeldung');
+    ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent) && /Skip/.test(err.textContent), 'ungültige Adresse → Fehlermeldung (mit Skip-Hinweis)');
     fail = true; inp.value = 'Treier@Example.CH'; nw.checked = true;
     ok(T.passEmailGate() === true && g.style.display === 'none', 'gültige Adresse → Export läuft (auch wenn Speichern fehlschlägt)');
     await new Promise(r => setTimeout(r, 0));
@@ -1497,6 +1513,16 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(g.style.display === 'none', 'bekannte Adresse → Feld beim Öffnen versteckt');
     T.closeExportSheet();
     delete store[T.LEAD_KEY];
+    // Freiwillig: leeres Feld = übersprungen (kein Lead, kein Request), Export läuft, Feld bleibt danach weg
+    T.openExportSheet(); inp.value = ''; const nCalls = calls.length;
+    ok(g.style.display === '' && T.passEmailGate() === true && g.style.display === 'none' && calls.length === nCalls && !(T.LEAD_KEY in store), 'leeres Feld + Download → Gate übersprungen, nichts gespeichert/gesendet');
+    ok(T.needsWatermark() === false, 'übersprungen → kein Wasserzeichen');
+    T.passEmailGate(); T.closeExportSheet(); T.openExportSheet();
+    ok(g.style.display === 'none', 'nach Skip: Feld beim erneuten Öffnen weg (Sitzung)');
+    T.closeExportSheet(); T.resetGateSkip();
+    T.openExportSheet();
+    ok(g.style.display === '', 'Skip zurückgesetzt → Feld wieder da');
+    T.closeExportSheet();
     T.setMe('free', 'x@y.z'); g.style.display = 'none';
     ok(T.passEmailGate() === true && g.style.display === 'none', 'angemeldet → kein Gate');
     T.openExportSheet();
@@ -3871,6 +3897,18 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const exact = Lb.fitPx * Lb.scale * ((st.fs && parseFloat(st.fs)) || 1);
     ok(Math.abs(Lb.fsS - exact) < 0.006, 'capLayout: Export-Schrift = Vorschau-Schrift × Skala, nicht auf ganze px gerundet (' + Lb.fsS + ' vs. ' + exact.toFixed(3) + ')');
     T.setLines({ dataset: { lines: '2' } }); T.setState([], [], 'karaoke');
+  }
+
+  // Video-Schlüssel (Wasserzeichen-Zählung): stabil, anonym, nur Hash — nie der Dateiname
+  {
+    T.setAutosaveKey(null); ok(T.videoKeyHash() === '' && !('X-Video-Key' in T.trHeaders('audio/wav', 't')), 'ohne Video: kein Schlüssel, kein Header');
+    T.setAutosaveKey('mein geheimes reel.mp4|123456|85'); const k1 = T.videoKeyHash(); T.setAutosaveKey('mein geheimes reel.mp4|123456|85');
+    ok(/^[a-f0-9]{16}$/.test(k1) && k1 === T.videoKeyHash() && !/reel|geheim/.test(k1), 'Schlüssel: 16 Hex, stabil, ohne Dateiname');
+    T.setAutosaveKey('mein geheimes reel.mp4|123457|85'); ok(T.videoKeyHash() !== k1, 'anderes Video → anderer Schlüssel');
+    const h = T.trHeaders('audio/wav', 'tok'); ok(h['X-Video-Key'] === T.videoKeyHash() && h['X-Capivo-Token'] === 'tok' && h['Content-Type'] === 'audio/wav', 'Transkriptions-Header mit Token + Video-Schlüssel');
+    T.setAutosaveKey(null);
+    T.setBillingState({ enabled: true, clean_videos: 2 }); ok(/used your 2 free videos without watermark today/.test(T.wmNoticeText()) && /Upgrade to remove it, or come back tomorrow/.test(T.wmNoticeText()), 'Hinweistext Übernutzung');
+    T.setBillingState(null);
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

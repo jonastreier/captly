@@ -76,6 +76,53 @@ function cr_month_used($cfg, $uid) {
   $sum = 0; foreach ($rows as $r) $sum += (int)($r['seconds'] ?? 0);
   return $sum;
 }
+/**
+ * Wasserzeichen-Regel (nur Free + Gäste, nur mit BILLING_ENABLED): die ersten FREE_CLEAN_VIDEOS_PER_DAY Videos eines Tages
+ * sind sauber, ab dem nächsten trägt der Export eine kleine Marke. Ein «Video» = ein anonymisierter Schlüssel (Hash aus
+ * Name|Grösse|Dauer, vom Browser als X-Video-Key gesendet) pro Tag und Nutzer bzw. IP — nicht pro Anfrage: gesplittetes Audio
+ * und erneutes Transkribieren desselben Videos zählen einmal. Tag = UTC-Kalendertag (wie usage.day / current_date in
+ * schema.sql), damit Server-Datei und Datenbank denselben Tageswechsel haben. Bezahlte Pläne: nie Marke.
+ */
+function cr_clean_videos($cfg) { $n = $cfg['FREE_CLEAN_VIDEOS_PER_DAY'] ?? 2; return max(0, min(50, (int)$n)); }
+define('CR_VKEYS_MAX', 60); // höchstens so viele Schlüssel pro Tag und Nutzer speichern (Missbrauchsgrenze)
+function cr_video_key($raw) { $k = strtolower(trim((string)$raw)); return preg_match('/^[a-f0-9]{8,64}$/', $k) ? $k : ''; }
+/** Schlüssel von heute (Reihenfolge = Position); null = Datenbank nicht lesbar. */
+function cr_videos_user($cfg, $uid) {
+  [$st, $rows] = cr_sb($cfg, 'GET', 'usage?select=vkeys&user_id=eq.' . rawurlencode($uid) . '&day=eq.' . gmdate('Y-m-d') . '&limit=1');
+  if ($st < 200 || $st >= 300 || !is_array($rows)) return null;
+  $k = (count($rows) && is_array($rows[0]['vkeys'] ?? null)) ? $rows[0]['vkeys'] : [];
+  return array_values(array_filter($k, 'is_string'));
+}
+function cr_add_video_user($cfg, $uid, $key) {
+  [$st] = cr_sb($cfg, 'POST', 'rpc/add_video', ['p_user' => $uid, 'p_key' => $key, 'p_max' => CR_VKEYS_MAX], 'return=minimal');
+  return $st >= 200 && $st < 300;
+}
+function cr_videos_anon_file($ip) { return sys_get_temp_dir() . '/capivo_vid_' . md5((string)$ip) . '.json'; }
+function cr_videos_anon($ip) {
+  $d = is_file($f = cr_videos_anon_file($ip)) ? json_decode((string)@file_get_contents($f), true) : null;
+  return (is_array($d) && ($d['day'] ?? '') === gmdate('Y-m-d') && is_array($d['keys'] ?? null)) ? array_values(array_filter($d['keys'], 'is_string')) : [];
+}
+function cr_add_video_anon($ip, $key) {
+  // unter Sperre lesen+schreiben: parallele Stücke desselben Videos dürfen nicht doppelt zählen
+  $fh = @fopen(cr_videos_anon_file($ip), 'c+'); if (!$fh) return;
+  if (flock($fh, LOCK_EX)) {
+    $d = json_decode((string)stream_get_contents($fh), true); $today = gmdate('Y-m-d');
+    $keys = (is_array($d) && ($d['day'] ?? '') === $today && is_array($d['keys'] ?? null)) ? array_values(array_filter($d['keys'], 'is_string')) : [];
+    if (!in_array($key, $keys, true) && count($keys) < CR_VKEYS_MAX) {
+      $keys[] = $key; ftruncate($fh, 0); rewind($fh); fwrite($fh, json_encode(['day' => $today, 'keys' => $keys]));
+    }
+    flock($fh, LOCK_UN);
+  }
+  fclose($fh);
+}
+/** Zustand fürs aktuelle Video: Position (bekannter Schlüssel = feste Stelle, sonst die nächste freie), Marke ja/nein. */
+function cr_video_state($keys, $key, $clean, $paid) {
+  $n = count($keys); $i = $key !== '' ? array_search($key, $keys, true) : false;
+  $pos = $i !== false ? $i + 1 : $n + 1;
+  return ['videos_today' => $n, 'clean_videos' => $clean, 'clean_videos_left' => max(0, $clean - $n),
+          'video_pos' => $pos, 'watermark' => !$paid && $pos > $clean, 'video_key' => $key];
+}
+
 function cr_add_usage($cfg, $uid, $sec) {
   $sec = (int)ceil($sec);
   if ($sec < 1) return true;

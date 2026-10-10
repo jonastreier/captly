@@ -151,6 +151,19 @@ $$;
 revoke all on function public.add_usage(uuid, integer) from public, anon, authenticated;
 grant execute on function public.add_usage(uuid, integer) to service_role;
 
+-- Wasserzeichen-Regel (Free: die ersten FREE_CLEAN_VIDEOS_PER_DAY Videos am Tag sauber): anonymisierte Video-Schlüssel
+-- (Hash aus Name|Grösse|Dauer, nie der Dateiname) pro Nutzer und Tag in der Reihenfolge ihres ersten Auftretens.
+-- Ein Schlüssel zählt einmal; höchstens p_max Einträge pro Tag. Idempotent.
+alter table public.usage add column if not exists vkeys text[] not null default '{}';
+create or replace function public.add_video(p_user uuid, p_key text, p_max integer default 60) returns void
+language sql security definer set search_path = public as $$
+  insert into public.usage (user_id, day, seconds, vkeys) values (p_user, current_date, 0, array[left(p_key, 64)])
+  on conflict (user_id, day) do update set vkeys = public.usage.vkeys || array[left(p_key, 64)]
+  where not (left(p_key, 64) = any(public.usage.vkeys)) and coalesce(array_length(public.usage.vkeys, 1), 0) < p_max
+$$;
+revoke all on function public.add_video(uuid, text, integer) from public, anon, authenticated;
+grant execute on function public.add_video(uuid, text, integer) to service_role;
+
 -- Jeder neue Nutzer bekommt eine Free-Zeile; bestehende werden einmalig nachgetragen.
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
