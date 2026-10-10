@@ -1,0 +1,2667 @@
+{
+ "profile": "desktop",
+ "video": "v6_540x960.webm",
+ "steps": [
+  {
+   "step": "01 Landing laden",
+   "clicks": 0,
+   "sec": 0.92,
+   "note": "title=Free AI Auto Captions for Reels & TikTok | CaptionRush"
+  },
+  {
+   "step": "02 Video wählen + Untertitel",
+   "clicks": 1,
+   "sec": 1.4,
+   "note": "8 Blöcke; Mock-Transkription (Request→Response) 19 ms; Gesamt 1404 ms"
+  },
+  {
+   "step": "03 Look wählen (Style-Tab + Kachel)",
+   "clicks": 2,
+   "sec": 0.91,
+   "note": "aktiv: hormozi"
+  },
+  {
+   "step": "04 Wort korrigieren (Captions-Tab, Textfeld)",
+   "clicks": 2,
+   "sec": 0.71,
+   "note": "Test für die Untertitel. -> Prüfung für die Untertitel."
+  },
+  {
+   "step": "05 Timeline: verschieben, teilen, Mehrfachauswahl",
+   "clicks": 7,
+   "sec": 4.52,
+   "note": "Move-Block 5 von 6; verschieben (letzter Block) 0.300 s (soll ~0.3); nach Verschieben: [\"Das ist ein kurzer\",\"Prüfung für die Untertitel.\",\"Heute zeigen wir dir,\",\"wie schnell das geht\",\"und warum es so\",\"gut funktioniert.\"]; Split-Block 0 mit 4 Wörtern; teilen 6 -> 7 Blöcke (Split vorher disabled=n/a (Desktop: kein Split-Knopf in der Timeline)); Mehrfachauswahl {\"a\":4,\"b\":6}; Gruppe verschoben 0.400 s; Blöcke jetzt: [\"Das\",\"ist ein kurzer\",\"Prüfung für die Untertitel.\",\"Heute zeigen wir dir,\",\"wie schnell das geht\",\"und warum es so\",\"gut funktioniert.\"]"
+  },
+  {
+   "step": "06 Export-Sheet öffnen + E-Mail-Gate",
+   "clicks": 3,
+   "sec": 0.89,
+   "note": "Gate sichtbar=true; Sub: MP4 · 1080p · no watermark"
+  },
+  {
+   "step": "07 MP4-Download",
+   "clicks": 1,
+   "sec": 10.07,
+   "note": "out-desktop-v6_540x960-v6-540x960-captionrush.mp4 3266152 B in 9.99 s"
+  },
+  {
+   "step": "08 SRT / VTT / TXT",
+   "clicks": 5,
+   "sec": 0.47,
+   "note": "nach Export: SRT/VTT/TXT-Links weg («Export again» würde NEU rendern) → Sheet schliessen + Export neu öffnen; btnSRT:sichtbar 27x22,btnVTT:sichtbar 28x22,btnTXT:sichtbar 28x22,btnCover:sichtbar 78x22; srt ok 355 B; vtt ok 365 B; txt ok 126 B"
+  },
+  {
+   "step": "09 Cover-PNG",
+   "clicks": 3,
+   "sec": 1.14,
+   "note": "out-desktop-v6_540x960-mein-titel-cover.png 723758 B"
+  }
+ ],
+ "errors": [
+  {
+   "step": "01 Landing laden",
+   "type": "console",
+   "msg": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  },
+  {
+   "step": "01 Landing laden",
+   "type": "console",
+   "msg": "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  },
+  {
+   "step": "02 Video wählen + Untertitel",
+   "type": "console",
+   "msg": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  },
+  {
+   "step": "02 Video wählen + Untertitel",
+   "type": "console",
+   "msg": "Failed to load resource: the server responded with a status of 503 (Service Unavailable)"
+  }
+ ],
+ "smallTargets": {
+  "01 Landing laden": [
+   {
+    "t": "a",
+    "txt": "How it works",
+    "w": 84,
+    "h": 16
+   },
+   {
+    "t": "a",
+    "txt": "Features",
+    "w": 56,
+    "h": 16
+   },
+   {
+    "t": "a",
+    "txt": "Pricing",
+    "w": 45,
+    "h": 16
+   },
+   {
+    "t": "a",
+    "txt": "FAQ",
+    "w": 26,
+    "h": 16
+   },
+   {
+    "t": "a.nav-lang",
+    "txt": "DE",
+    "w": 34,
+    "h": 23
+   },
+   {
+    "t": "button.nav-cta",
+    "txt": "Sign in",
+    "w": 81,
+    "h": 36
+   },
+   {
+    "t": "select#landLang",
+    "txt": "Spoken language of y",
+    "w": 106,
+    "h": 27
+   },
+   {
+    "t": "button#sampleBtn.land-try-btn",
+    "txt": "Try a sample videoTr",
+    "w": 155,
+    "h": 32
+   }
+  ],
+  "02 Video wählen + Untertitel": [
+   {
+    "t": "button.btn-back",
+    "txt": "Back",
+    "w": 68,
+    "h": 28
+   },
+   {
+    "t": "input#projTitle.tb-title",
+    "txt": "Video title",
+    "w": 102,
+    "h": 29
+   },
+   {
+    "t": "button#undoBtn.tb-icon",
+    "txt": "Undo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#redoBtn.tb-icon",
+    "txt": "Redo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#moreBtn.tb-icon",
+    "txt": "More",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#tbExport.tb-export",
+    "txt": "Export",
+    "w": 76,
+    "h": 31
+   },
+   {
+    "t": "button#ppBtn.pp-btn",
+    "txt": "Play",
+    "w": 32,
+    "h": 32
+   },
+   {
+    "t": "button#muteBtn.mute-btn",
+    "txt": "Mute",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#safeZoneBtn.sz-btn",
+    "txt": "Safe zone",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#tlTog.tl-tog",
+    "txt": "Hide timeline",
+    "w": 117,
+    "h": 28
+   },
+   {
+    "t": "button#tlSnapBtn.tl-btn",
+    "txt": "Snap",
+    "w": 70,
+    "h": 26
+   },
+   {
+    "t": "button#tlGapBtn.tl-btn",
+    "txt": "Close gaps",
+    "w": 104,
+    "h": 26
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline out",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline in",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Fit",
+    "w": 34,
+    "h": 25
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Captions",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Style",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "summary",
+    "txt": "Video & language· Ge",
+    "w": 347,
+    "h": 32
+   },
+   {
+    "t": "select#langSel.lang-sel",
+    "txt": "Detect automatically",
+    "w": 343,
+    "h": 35
+   },
+   {
+    "t": "input#vocabInput.lang-sel",
+    "txt": "",
+    "w": 343,
+    "h": 33
+   },
+   {
+    "t": "label.chk-row",
+    "txt": "Translate captions t",
+    "w": 343,
+    "h": 17
+   },
+   {
+    "t": "input#trEn",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button.coach-x",
+    "txt": "Dismiss tip",
+    "w": 26,
+    "h": 26
+   },
+   {
+    "t": "summary",
+    "txt": "Find & replace",
+    "w": 108,
+    "h": 22
+   },
+   {
+    "t": "input#frFind.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "input#frRepl.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "label.fr-opt",
+    "txt": "Whole word",
+    "w": 85,
+    "h": 15
+   },
+   {
+    "t": "input#frWhole",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button#frBtn.pos-btn",
+    "txt": "Replace all (0)",
+    "w": 104,
+    "h": 27
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Das ist ein kurzer",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Test für",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "die Untertitel.",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Heute zeigen wir",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "dir, wie schnell",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "das geht",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "und warum es so",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "gut funktioniert.",
+    "w": 281,
+    "h": 20
+   }
+  ],
+  "03 Look wählen (Style-Tab + Kachel)": [
+   {
+    "t": "button.btn-back",
+    "txt": "Back",
+    "w": 68,
+    "h": 28
+   },
+   {
+    "t": "input#projTitle.tb-title",
+    "txt": "Video title",
+    "w": 102,
+    "h": 29
+   },
+   {
+    "t": "button#undoBtn.tb-icon",
+    "txt": "Undo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#redoBtn.tb-icon",
+    "txt": "Redo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#moreBtn.tb-icon",
+    "txt": "More",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#tbExport.tb-export",
+    "txt": "Export",
+    "w": 76,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "DAS",
+    "w": 55,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "IST",
+    "w": 40,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "EIN",
+    "w": 44,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "KURZER",
+    "w": 118,
+    "h": 29
+   },
+   {
+    "t": "button#ppBtn.pp-btn",
+    "txt": "Play",
+    "w": 32,
+    "h": 32
+   },
+   {
+    "t": "button#muteBtn.mute-btn",
+    "txt": "Mute",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#safeZoneBtn.sz-btn",
+    "txt": "Safe zone",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#tlTog.tl-tog",
+    "txt": "Hide timeline",
+    "w": 117,
+    "h": 28
+   },
+   {
+    "t": "button#tlSnapBtn.tl-btn",
+    "txt": "Snap",
+    "w": 70,
+    "h": 26
+   },
+   {
+    "t": "button#tlGapBtn.tl-btn",
+    "txt": "Close gaps",
+    "w": 104,
+    "h": 26
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline out",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline in",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Fit",
+    "w": 34,
+    "h": 25
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Captions",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Style",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "select#csFont.lang-sel",
+    "txt": "Font",
+    "w": 243,
+    "h": 29
+   },
+   {
+    "t": "select#csWeight.lang-sel",
+    "txt": "Font weight",
+    "w": 96,
+    "h": 29
+   },
+   {
+    "t": "input#szSlider",
+    "txt": "Caption size",
+    "w": 209,
+    "h": 4
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Style",
+    "w": 82,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "AA",
+    "w": 82,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "aa",
+    "w": 82,
+    "h": 32
+   },
+   {
+    "t": "label.cs-chipcol",
+    "txt": "Text",
+    "w": 110,
+    "h": 36
+   },
+   {
+    "t": "input#csText.cs-col",
+    "txt": "#ffffff",
+    "w": 24,
+    "h": 24
+   },
+   {
+    "t": "label#csHlSw.cs-chipcol",
+    "txt": "Highlight",
+    "w": 110,
+    "h": 36
+   },
+   {
+    "t": "input#csHl.cs-col",
+    "txt": "#ffd60a",
+    "w": 24,
+    "h": 24
+   },
+   {
+    "t": "label.cs-chipcol",
+    "txt": "Keywords",
+    "w": 110,
+    "h": 36
+   },
+   {
+    "t": "input#csEm.cs-col",
+    "txt": "#ffd60a",
+    "w": 24,
+    "h": 24
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Highlight",
+    "w": 85,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Reveal",
+    "w": 85,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Fill",
+    "w": 85,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "None",
+    "w": 85,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Text color",
+    "w": 124,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Pill",
+    "w": 124,
+    "h": 32
+   },
+   {
+    "t": "select#csAnim.lang-sel",
+    "txt": "NonePopPunch\n       ",
+    "w": 253,
+    "h": 29
+   },
+   {
+    "t": "button#emKwBtn.em-chip",
+    "txt": "Highlight keywords",
+    "w": 153,
+    "h": 27
+   },
+   {
+    "t": "button#emEmoBtn.em-chip",
+    "txt": "Emojis",
+    "w": 79,
+    "h": 27
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Off",
+    "w": 84,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Subtle",
+    "w": 84,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Punchy",
+    "w": 84,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Top",
+    "w": 82,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Middle",
+    "w": 82,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Bottom",
+    "w": 82,
+    "h": 32
+   },
+   {
+    "t": "input#wpbSlider",
+    "txt": "Words per caption",
+    "w": 209,
+    "h": 4
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "1",
+    "w": 57,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "2",
+    "w": 57,
+    "h": 32
+   },
+   {
+    "t": "input#csOutlineW",
+    "txt": "Outline width",
+    "w": 181,
+    "h": 4
+   },
+   {
+    "t": "label.cs-dot",
+    "txt": "",
+    "w": 24,
+    "h": 24
+   },
+   {
+    "t": "input#csOutlineC.cs-col",
+    "txt": "Outline color",
+    "w": 24,
+    "h": 24
+   },
+   {
+    "t": "label.q-row",
+    "txt": "Shadow",
+    "w": 347,
+    "h": 32
+   },
+   {
+    "t": "input#csShadow.cs-switch",
+    "txt": "Drop shadow on/off",
+    "w": 36,
+    "h": 22
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "None",
+    "w": 79,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Box",
+    "w": 79,
+    "h": 32
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Pill",
+    "w": 79,
+    "h": 32
+   },
+   {
+    "t": "input#csLs",
+    "txt": "Letter spacing",
+    "w": 215,
+    "h": 4
+   },
+   {
+    "t": "input#csLh",
+    "txt": "Line height",
+    "w": 215,
+    "h": 4
+   },
+   {
+    "t": "select#csEmFont.lang-sel",
+    "txt": "Keyword font",
+    "w": 253,
+    "h": 29
+   },
+   {
+    "t": "input#tplName.lang-sel",
+    "txt": "",
+    "w": 285,
+    "h": 33
+   },
+   {
+    "t": "button#tplSaveBtn.pos-btn",
+    "txt": "Save",
+    "w": 56,
+    "h": 29
+   },
+   {
+    "t": "a",
+    "txt": "Export templates",
+    "w": 98,
+    "h": 15
+   },
+   {
+    "t": "a",
+    "txt": "Import",
+    "w": 38,
+    "h": 15
+   }
+  ],
+  "04 Wort korrigieren (Captions-Tab, Textfeld)": [
+   {
+    "t": "button.btn-back",
+    "txt": "Back",
+    "w": 68,
+    "h": 28
+   },
+   {
+    "t": "input#projTitle.tb-title",
+    "txt": "Video title",
+    "w": 102,
+    "h": 29
+   },
+   {
+    "t": "button#undoBtn.tb-icon",
+    "txt": "Undo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#redoBtn.tb-icon",
+    "txt": "Redo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#moreBtn.tb-icon",
+    "txt": "More",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#tbExport.tb-export",
+    "txt": "Export",
+    "w": 76,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "DAS",
+    "w": 55,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "IST",
+    "w": 40,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "EIN",
+    "w": 44,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "KURZER",
+    "w": 118,
+    "h": 29
+   },
+   {
+    "t": "button#ppBtn.pp-btn",
+    "txt": "Play",
+    "w": 32,
+    "h": 32
+   },
+   {
+    "t": "button#muteBtn.mute-btn",
+    "txt": "Mute",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#safeZoneBtn.sz-btn",
+    "txt": "Safe zone",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#tlTog.tl-tog",
+    "txt": "Hide timeline",
+    "w": 117,
+    "h": 28
+   },
+   {
+    "t": "button#tlSnapBtn.tl-btn",
+    "txt": "Snap",
+    "w": 70,
+    "h": 26
+   },
+   {
+    "t": "button#tlGapBtn.tl-btn",
+    "txt": "Close gaps",
+    "w": 104,
+    "h": 26
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline out",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline in",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Fit",
+    "w": 34,
+    "h": 25
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Captions",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Style",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "summary",
+    "txt": "Video & language· Ge",
+    "w": 347,
+    "h": 32
+   },
+   {
+    "t": "select#langSel.lang-sel",
+    "txt": "Detect automatically",
+    "w": 343,
+    "h": 35
+   },
+   {
+    "t": "input#vocabInput.lang-sel",
+    "txt": "",
+    "w": 343,
+    "h": 33
+   },
+   {
+    "t": "label.chk-row",
+    "txt": "Translate captions t",
+    "w": 343,
+    "h": 17
+   },
+   {
+    "t": "input#trEn",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button.coach-x",
+    "txt": "Dismiss tip",
+    "w": 26,
+    "h": 26
+   },
+   {
+    "t": "summary",
+    "txt": "Find & replace",
+    "w": 108,
+    "h": 22
+   },
+   {
+    "t": "input#frFind.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "input#frRepl.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "label.fr-opt",
+    "txt": "Whole word",
+    "w": 85,
+    "h": 15
+   },
+   {
+    "t": "input#frWhole",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button#frBtn.pos-btn",
+    "txt": "Replace all (0)",
+    "w": 104,
+    "h": 27
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Das ist ein kurzer",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Prüfung für die Unte",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "txt": "−",
+    "w": 22,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "txt": "+",
+    "w": 22,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "txt": "−",
+    "w": 22,
+    "h": 20
+   },
+   {
+    "t": "button",
+    "txt": "+",
+    "w": 22,
+    "h": 20
+   },
+   {
+    "t": "button.st-del",
+    "txt": "Delete caption",
+    "w": 26,
+    "h": 20
+   },
+   {
+    "t": "button.se-emo",
+    "txt": "Caption emoji",
+    "w": 28,
+    "h": 24
+   },
+   {
+    "t": "button.se-w",
+    "txt": "Prüfung",
+    "w": 65,
+    "h": 24
+   },
+   {
+    "t": "button.se-w",
+    "txt": "für",
+    "w": 33,
+    "h": 24
+   },
+   {
+    "t": "button.se-w",
+    "txt": "die",
+    "w": 34,
+    "h": 24
+   },
+   {
+    "t": "button.se-w",
+    "txt": "Untertitel.",
+    "w": 78,
+    "h": 24
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Heute zeigen wir dir",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "wie schnell das geht",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "und warum es so",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "gut funktioniert.",
+    "w": 281,
+    "h": 20
+   }
+  ],
+  "05 Timeline: verschieben, teilen, Mehrfachauswahl": [
+   {
+    "t": "button.btn-back",
+    "txt": "Back",
+    "w": 68,
+    "h": 28
+   },
+   {
+    "t": "input#projTitle.tb-title",
+    "txt": "Video title",
+    "w": 102,
+    "h": 29
+   },
+   {
+    "t": "button#undoBtn.tb-icon",
+    "txt": "Undo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#redoBtn.tb-icon",
+    "txt": "Redo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#moreBtn.tb-icon",
+    "txt": "More",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#tbExport.tb-export",
+    "txt": "Export",
+    "w": 76,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "WIE",
+    "w": 53,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "SCHNELL",
+    "w": 131,
+    "h": 29
+   },
+   {
+    "t": "span",
+    "txt": "DAS",
+    "w": 54,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "GEHT",
+    "w": 69,
+    "h": 31
+   },
+   {
+    "t": "button#ppBtn.pp-btn",
+    "txt": "Play",
+    "w": 32,
+    "h": 32
+   },
+   {
+    "t": "button#muteBtn.mute-btn",
+    "txt": "Mute",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#safeZoneBtn.sz-btn",
+    "txt": "Safe zone",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#tlTog.tl-tog",
+    "txt": "Hide timeline",
+    "w": 117,
+    "h": 28
+   },
+   {
+    "t": "button#tlSnapBtn.tl-btn",
+    "txt": "Snap",
+    "w": 70,
+    "h": 26
+   },
+   {
+    "t": "button#tlGapBtn.tl-btn",
+    "txt": "Close gaps",
+    "w": 104,
+    "h": 26
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline out",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline in",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Fit",
+    "w": 34,
+    "h": 25
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Captions",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Style",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "summary",
+    "txt": "Video & language· Ge",
+    "w": 347,
+    "h": 32
+   },
+   {
+    "t": "select#langSel.lang-sel",
+    "txt": "Detect automatically",
+    "w": 343,
+    "h": 35
+   },
+   {
+    "t": "input#vocabInput.lang-sel",
+    "txt": "",
+    "w": 343,
+    "h": 33
+   },
+   {
+    "t": "label.chk-row",
+    "txt": "Translate captions t",
+    "w": 343,
+    "h": 17
+   },
+   {
+    "t": "input#trEn",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button.coach-x",
+    "txt": "Dismiss tip",
+    "w": 26,
+    "h": 26
+   },
+   {
+    "t": "summary",
+    "txt": "Find & replace",
+    "w": 108,
+    "h": 22
+   },
+   {
+    "t": "input#frFind.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "input#frRepl.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "label.fr-opt",
+    "txt": "Whole word",
+    "w": 85,
+    "h": 15
+   },
+   {
+    "t": "input#frWhole",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button#frBtn.pos-btn",
+    "txt": "Replace all (0)",
+    "w": 104,
+    "h": 27
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Das",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "ist ein kurzer",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Prüfung für die Unte",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Heute zeigen wir dir",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "wie schnell das geht",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "und warum es so",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "gut funktioniert.",
+    "w": 281,
+    "h": 20
+   }
+  ],
+  "06 Export-Sheet öffnen + E-Mail-Gate": [
+   {
+    "t": "button.btn-back",
+    "txt": "Back",
+    "w": 68,
+    "h": 28
+   },
+   {
+    "t": "input#projTitle.tb-title",
+    "txt": "Video title",
+    "w": 102,
+    "h": 29
+   },
+   {
+    "t": "button#undoBtn.tb-icon",
+    "txt": "Undo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#redoBtn.tb-icon",
+    "txt": "Redo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#moreBtn.tb-icon",
+    "txt": "More",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#tbExport.tb-export",
+    "txt": "Export",
+    "w": 76,
+    "h": 31
+   },
+   {
+    "t": "button.es-x",
+    "txt": "Close",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "input#gateEmail.es-gate-in",
+    "txt": "reise@example.com",
+    "w": 318,
+    "h": 39
+   },
+   {
+    "t": "label.exp-chk",
+    "txt": "Send me occasional t",
+    "w": 318,
+    "h": 34
+   },
+   {
+    "t": "input#gateNews",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "a",
+    "txt": "Privacy",
+    "w": 42,
+    "h": 15
+   },
+   {
+    "t": "button#btnSRT.es-link",
+    "txt": "SRT",
+    "w": 29,
+    "h": 23
+   },
+   {
+    "t": "button#btnVTT.es-link",
+    "txt": "VTT",
+    "w": 30,
+    "h": 23
+   },
+   {
+    "t": "button#btnTXT.es-link",
+    "txt": "TXT",
+    "w": 29,
+    "h": 23
+   },
+   {
+    "t": "button#btnCopy.es-link",
+    "txt": "Copy text",
+    "w": 62,
+    "h": 23
+   },
+   {
+    "t": "button#btnCover.es-link",
+    "txt": "Create cover",
+    "w": 82,
+    "h": 23
+   },
+   {
+    "t": "summary",
+    "txt": "Options",
+    "w": 318,
+    "h": 23
+   },
+   {
+    "t": "select#expRes.lang-sel",
+    "txt": "1080p (recommended)O",
+    "w": 236,
+    "h": 31
+   },
+   {
+    "t": "label.exp-chk",
+    "txt": "Cut silences & fille",
+    "w": 318,
+    "h": 17
+   },
+   {
+    "t": "input#autoCutChk",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "label.exp-chk",
+    "txt": "Skip this next time ",
+    "w": 318,
+    "h": 16
+   },
+   {
+    "t": "input#expSkipChk",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button#expPostBtn.es-post-head",
+    "txt": "Caption & hashtags f",
+    "w": 318,
+    "h": 36
+   },
+   {
+    "t": "span",
+    "txt": "WIE",
+    "w": 53,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "SCHNELL",
+    "w": 131,
+    "h": 29
+   },
+   {
+    "t": "span",
+    "txt": "DAS",
+    "w": 54,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "GEHT",
+    "w": 69,
+    "h": 31
+   },
+   {
+    "t": "button#ppBtn.pp-btn",
+    "txt": "Play",
+    "w": 32,
+    "h": 32
+   },
+   {
+    "t": "button#muteBtn.mute-btn",
+    "txt": "Mute",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#safeZoneBtn.sz-btn",
+    "txt": "Safe zone",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#tlTog.tl-tog",
+    "txt": "Hide timeline",
+    "w": 117,
+    "h": 28
+   },
+   {
+    "t": "button#tlSnapBtn.tl-btn",
+    "txt": "Snap",
+    "w": 70,
+    "h": 26
+   },
+   {
+    "t": "button#tlGapBtn.tl-btn",
+    "txt": "Close gaps",
+    "w": 104,
+    "h": 26
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline out",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline in",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Fit",
+    "w": 34,
+    "h": 25
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Captions",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Style",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "summary",
+    "txt": "Video & language· Ge",
+    "w": 347,
+    "h": 32
+   },
+   {
+    "t": "select#langSel.lang-sel",
+    "txt": "Detect automatically",
+    "w": 343,
+    "h": 35
+   },
+   {
+    "t": "input#vocabInput.lang-sel",
+    "txt": "",
+    "w": 343,
+    "h": 33
+   },
+   {
+    "t": "label.chk-row",
+    "txt": "Translate captions t",
+    "w": 343,
+    "h": 17
+   },
+   {
+    "t": "input#trEn",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button.coach-x",
+    "txt": "Dismiss tip",
+    "w": 26,
+    "h": 26
+   },
+   {
+    "t": "summary",
+    "txt": "Find & replace",
+    "w": 108,
+    "h": 22
+   },
+   {
+    "t": "input#frFind.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "input#frRepl.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "label.fr-opt",
+    "txt": "Whole word",
+    "w": 85,
+    "h": 15
+   },
+   {
+    "t": "input#frWhole",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button#frBtn.pos-btn",
+    "txt": "Replace all (0)",
+    "w": 104,
+    "h": 27
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Das",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "ist ein kurzer",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Prüfung für die Unte",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Heute zeigen wir dir",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "wie schnell das geht",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "und warum es so",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "gut funktioniert.",
+    "w": 281,
+    "h": 20
+   }
+  ],
+  "07 MP4-Download": [
+   {
+    "t": "button.btn-back",
+    "txt": "Back",
+    "w": 68,
+    "h": 28
+   },
+   {
+    "t": "input#projTitle.tb-title",
+    "txt": "Video title",
+    "w": 102,
+    "h": 29
+   },
+   {
+    "t": "button#undoBtn.tb-icon",
+    "txt": "Undo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#redoBtn.tb-icon",
+    "txt": "Redo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#moreBtn.tb-icon",
+    "txt": "More",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#tbExport.tb-export",
+    "txt": "Export",
+    "w": 76,
+    "h": 31
+   },
+   {
+    "t": "button.es-x",
+    "txt": "Close",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Export again",
+    "w": 154,
+    "h": 33
+   },
+   {
+    "t": "button.pos-btn",
+    "txt": "Create cover",
+    "w": 156,
+    "h": 33
+   },
+   {
+    "t": "button#expCopyPost.es-link",
+    "txt": "Copy full transcript",
+    "w": 120,
+    "h": 23
+   },
+   {
+    "t": "button#expPostBtn.es-post-head",
+    "txt": "Caption & hashtags f",
+    "w": 318,
+    "h": 36
+   },
+   {
+    "t": "span",
+    "txt": "GUT",
+    "w": 52,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "FUNKTIONIERT.",
+    "w": 221,
+    "h": 29
+   },
+   {
+    "t": "button#ppBtn.pp-btn",
+    "txt": "Play",
+    "w": 32,
+    "h": 32
+   },
+   {
+    "t": "button#muteBtn.mute-btn",
+    "txt": "Mute",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#safeZoneBtn.sz-btn",
+    "txt": "Safe zone",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#tlTog.tl-tog",
+    "txt": "Hide timeline",
+    "w": 117,
+    "h": 28
+   },
+   {
+    "t": "button#tlSnapBtn.tl-btn",
+    "txt": "Snap",
+    "w": 70,
+    "h": 26
+   },
+   {
+    "t": "button#tlGapBtn.tl-btn",
+    "txt": "Close gaps",
+    "w": 104,
+    "h": 26
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline out",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline in",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Fit",
+    "w": 34,
+    "h": 25
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Captions",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Style",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "summary",
+    "txt": "Video & language· Ge",
+    "w": 347,
+    "h": 32
+   },
+   {
+    "t": "select#langSel.lang-sel",
+    "txt": "Detect automatically",
+    "w": 343,
+    "h": 35
+   },
+   {
+    "t": "input#vocabInput.lang-sel",
+    "txt": "",
+    "w": 343,
+    "h": 33
+   },
+   {
+    "t": "label.chk-row",
+    "txt": "Translate captions t",
+    "w": 343,
+    "h": 17
+   },
+   {
+    "t": "input#trEn",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button.coach-x",
+    "txt": "Dismiss tip",
+    "w": 26,
+    "h": 26
+   },
+   {
+    "t": "summary",
+    "txt": "Find & replace",
+    "w": 108,
+    "h": 22
+   },
+   {
+    "t": "input#frFind.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "input#frRepl.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "label.fr-opt",
+    "txt": "Whole word",
+    "w": 85,
+    "h": 15
+   },
+   {
+    "t": "input#frWhole",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button#frBtn.pos-btn",
+    "txt": "Replace all (0)",
+    "w": 104,
+    "h": 27
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Das",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "ist ein kurzer",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Prüfung für die Unte",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Heute zeigen wir dir",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "wie schnell das geht",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "und warum es so",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "gut funktioniert.",
+    "w": 281,
+    "h": 20
+   }
+  ],
+  "08 SRT / VTT / TXT": [
+   {
+    "t": "button.btn-back",
+    "txt": "Back",
+    "w": 68,
+    "h": 28
+   },
+   {
+    "t": "input#projTitle.tb-title",
+    "txt": "Video title",
+    "w": 102,
+    "h": 29
+   },
+   {
+    "t": "button#undoBtn.tb-icon",
+    "txt": "Undo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#redoBtn.tb-icon",
+    "txt": "Redo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#moreBtn.tb-icon",
+    "txt": "More",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#tbExport.tb-export",
+    "txt": "Export",
+    "w": 76,
+    "h": 31
+   },
+   {
+    "t": "button.es-x",
+    "txt": "Close",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#btnSRT.es-link",
+    "txt": "SRT",
+    "w": 29,
+    "h": 23
+   },
+   {
+    "t": "button#btnVTT.es-link",
+    "txt": "VTT",
+    "w": 30,
+    "h": 23
+   },
+   {
+    "t": "button#btnTXT.es-link",
+    "txt": "TXT",
+    "w": 29,
+    "h": 23
+   },
+   {
+    "t": "button#btnCopy.es-link",
+    "txt": "Copy text",
+    "w": 62,
+    "h": 23
+   },
+   {
+    "t": "button#btnCover.es-link",
+    "txt": "Create cover",
+    "w": 82,
+    "h": 23
+   },
+   {
+    "t": "summary",
+    "txt": "Options",
+    "w": 318,
+    "h": 23
+   },
+   {
+    "t": "select#expRes.lang-sel",
+    "txt": "1080p (recommended)O",
+    "w": 236,
+    "h": 31
+   },
+   {
+    "t": "label.exp-chk",
+    "txt": "Cut silences & fille",
+    "w": 318,
+    "h": 17
+   },
+   {
+    "t": "input#autoCutChk",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "label.exp-chk",
+    "txt": "Skip this next time ",
+    "w": 318,
+    "h": 16
+   },
+   {
+    "t": "input#expSkipChk",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button#expPostBtn.es-post-head",
+    "txt": "Caption & hashtags f",
+    "w": 318,
+    "h": 36
+   },
+   {
+    "t": "span",
+    "txt": "GUT",
+    "w": 52,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "FUNKTIONIERT.",
+    "w": 221,
+    "h": 29
+   },
+   {
+    "t": "button#ppBtn.pp-btn",
+    "txt": "Play",
+    "w": 32,
+    "h": 32
+   },
+   {
+    "t": "button#muteBtn.mute-btn",
+    "txt": "Mute",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#safeZoneBtn.sz-btn",
+    "txt": "Safe zone",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#tlTog.tl-tog",
+    "txt": "Hide timeline",
+    "w": 117,
+    "h": 28
+   },
+   {
+    "t": "button#tlSnapBtn.tl-btn",
+    "txt": "Snap",
+    "w": 70,
+    "h": 26
+   },
+   {
+    "t": "button#tlGapBtn.tl-btn",
+    "txt": "Close gaps",
+    "w": 104,
+    "h": 26
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline out",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline in",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Fit",
+    "w": 34,
+    "h": 25
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Captions",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Style",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "summary",
+    "txt": "Video & language· Ge",
+    "w": 347,
+    "h": 32
+   },
+   {
+    "t": "select#langSel.lang-sel",
+    "txt": "Detect automatically",
+    "w": 343,
+    "h": 35
+   },
+   {
+    "t": "input#vocabInput.lang-sel",
+    "txt": "",
+    "w": 343,
+    "h": 33
+   },
+   {
+    "t": "label.chk-row",
+    "txt": "Translate captions t",
+    "w": 343,
+    "h": 17
+   },
+   {
+    "t": "input#trEn",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button.coach-x",
+    "txt": "Dismiss tip",
+    "w": 26,
+    "h": 26
+   },
+   {
+    "t": "summary",
+    "txt": "Find & replace",
+    "w": 108,
+    "h": 22
+   },
+   {
+    "t": "input#frFind.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "input#frRepl.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "label.fr-opt",
+    "txt": "Whole word",
+    "w": 85,
+    "h": 15
+   },
+   {
+    "t": "input#frWhole",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button#frBtn.pos-btn",
+    "txt": "Replace all (0)",
+    "w": 104,
+    "h": 27
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Das",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "ist ein kurzer",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Prüfung für die Unte",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Heute zeigen wir dir",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "wie schnell das geht",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "und warum es so",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "gut funktioniert.",
+    "w": 281,
+    "h": 20
+   }
+  ],
+  "09 Cover-PNG": [
+   {
+    "t": "button.btn-back",
+    "txt": "Back",
+    "w": 68,
+    "h": 28
+   },
+   {
+    "t": "input#projTitle.tb-title",
+    "txt": "Video title",
+    "w": 102,
+    "h": 29
+   },
+   {
+    "t": "button#undoBtn.tb-icon",
+    "txt": "Undo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#redoBtn.tb-icon",
+    "txt": "Redo",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#moreBtn.tb-icon",
+    "txt": "More",
+    "w": 36,
+    "h": 36
+   },
+   {
+    "t": "button#tbExport.tb-export",
+    "txt": "Export",
+    "w": 76,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "GUT",
+    "w": 52,
+    "h": 31
+   },
+   {
+    "t": "span",
+    "txt": "FUNKTIONIERT.",
+    "w": 221,
+    "h": 29
+   },
+   {
+    "t": "button#ppBtn.pp-btn",
+    "txt": "Play",
+    "w": 32,
+    "h": 32
+   },
+   {
+    "t": "button#muteBtn.mute-btn",
+    "txt": "Mute",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#safeZoneBtn.sz-btn",
+    "txt": "Safe zone",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "button#tlTog.tl-tog",
+    "txt": "Hide timeline",
+    "w": 117,
+    "h": 28
+   },
+   {
+    "t": "button#tlSnapBtn.tl-btn",
+    "txt": "Snap",
+    "w": 70,
+    "h": 26
+   },
+   {
+    "t": "button#tlGapBtn.tl-btn",
+    "txt": "Close gaps",
+    "w": 104,
+    "h": 26
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline out",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Zoom timeline in",
+    "w": 28,
+    "h": 25
+   },
+   {
+    "t": "button.tl-btn",
+    "txt": "Fit",
+    "w": 34,
+    "h": 25
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Captions",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "button.ed-tab",
+    "txt": "Style",
+    "w": 168,
+    "h": 32
+   },
+   {
+    "t": "summary",
+    "txt": "Video & language· Ge",
+    "w": 347,
+    "h": 32
+   },
+   {
+    "t": "select#langSel.lang-sel",
+    "txt": "Detect automatically",
+    "w": 343,
+    "h": 35
+   },
+   {
+    "t": "input#vocabInput.lang-sel",
+    "txt": "",
+    "w": 343,
+    "h": 33
+   },
+   {
+    "t": "label.chk-row",
+    "txt": "Translate captions t",
+    "w": 343,
+    "h": 17
+   },
+   {
+    "t": "input#trEn",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button.coach-x",
+    "txt": "Dismiss tip",
+    "w": 26,
+    "h": 26
+   },
+   {
+    "t": "summary",
+    "txt": "Find & replace",
+    "w": 108,
+    "h": 22
+   },
+   {
+    "t": "input#frFind.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "input#frRepl.lang-sel",
+    "txt": "",
+    "w": 171,
+    "h": 27
+   },
+   {
+    "t": "label.fr-opt",
+    "txt": "Whole word",
+    "w": 85,
+    "h": 15
+   },
+   {
+    "t": "input#frWhole",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button#frBtn.pos-btn",
+    "txt": "Replace all (0)",
+    "w": 104,
+    "h": 27
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Das",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "ist ein kurzer",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Prüfung für die Unte",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "Heute zeigen wir dir",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "wie schnell das geht",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "und warum es so",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "textarea.cap-seg-ta",
+    "txt": "gut funktioniert.",
+    "w": 281,
+    "h": 20
+   },
+   {
+    "t": "button.es-x",
+    "txt": "Close",
+    "w": 30,
+    "h": 30
+   },
+   {
+    "t": "input#cvTime",
+    "txt": "Frame of your video",
+    "w": 461,
+    "h": 16
+   },
+   {
+    "t": "label.pos-btn",
+    "txt": "Upload image",
+    "w": 608,
+    "h": 29
+   },
+   {
+    "t": "input#cvDark",
+    "txt": "35",
+    "w": 448,
+    "h": 16
+   },
+   {
+    "t": "label.cv-chk",
+    "txt": "Gradient",
+    "w": 72,
+    "h": 16
+   },
+   {
+    "t": "input#cvGrad",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   },
+   {
+    "t": "button.cv-chip",
+    "txt": "Mein",
+    "w": 57,
+    "h": 36
+   },
+   {
+    "t": "button.cv-chip",
+    "txt": "Titel",
+    "w": 54,
+    "h": 36
+   },
+   {
+    "t": "button.cv-chip",
+    "txt": "Tight",
+    "w": 59,
+    "h": 36
+   },
+   {
+    "t": "button.cv-chip",
+    "txt": "Mix",
+    "w": 49,
+    "h": 36
+   },
+   {
+    "t": "button.cv-chip",
+    "txt": "Statement",
+    "w": 91,
+    "h": 36
+   },
+   {
+    "t": "button.cv-chip",
+    "txt": "Accent",
+    "w": 71,
+    "h": 36
+   },
+   {
+    "t": "button.cv-chip",
+    "txt": "Serif Bold",
+    "w": 87,
+    "h": 36
+   },
+   {
+    "t": "button.cv-chip",
+    "txt": "Bold Pop",
+    "w": 82,
+    "h": 36
+   },
+   {
+    "t": "button.cv-chip",
+    "txt": "Elegant",
+    "w": 73,
+    "h": 36
+   },
+   {
+    "t": "input#cvSize",
+    "txt": "1",
+    "w": 345,
+    "h": 16
+   },
+   {
+    "t": "button",
+    "txt": "Top",
+    "w": 45,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "txt": "Middle",
+    "w": 63,
+    "h": 36
+   },
+   {
+    "t": "button.on",
+    "txt": "Bottom",
+    "w": 65,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "txt": "Left",
+    "w": 45,
+    "h": 36
+   },
+   {
+    "t": "button.on",
+    "txt": "Center",
+    "w": 63,
+    "h": 36
+   },
+   {
+    "t": "button",
+    "txt": "Right",
+    "w": 53,
+    "h": 36
+   },
+   {
+    "t": "button#cvReset.pos-btn",
+    "txt": "Reset position",
+    "w": 112,
+    "h": 36
+   },
+   {
+    "t": "label.cv-chk",
+    "txt": "Show guides (profile",
+    "w": 608,
+    "h": 16
+   },
+   {
+    "t": "input#cvGuides",
+    "txt": "on",
+    "w": 13,
+    "h": 13
+   }
+  ]
+ },
+ "files": {
+  "mp4": "/tmp/claude-0/vergleich-reise/out-desktop-v6_540x960-v6-540x960-captionrush.mp4",
+  "srt": "/tmp/claude-0/vergleich-reise/out-desktop-v6_540x960-v6-540x960-captionrush.srt",
+  "vtt": "/tmp/claude-0/vergleich-reise/out-desktop-v6_540x960-v6-540x960-captionrush.vtt",
+  "txt": "/tmp/claude-0/vergleich-reise/out-desktop-v6_540x960-v6-540x960-captionrush.txt",
+  "png": "/tmp/claude-0/vergleich-reise/out-desktop-v6_540x960-mein-titel-cover.png"
+ },
+ "http": [
+  "404 /api/plan",
+  "404 /api/stat",
+  "503 /api/polish",
+  "503 /api/enhance"
+ ],
+ "mockMs": 19,
+ "editedText": "Prüfung für die Untertitel.",
+ "editorBlocks": [
+  {
+   "s": 0.3,
+   "e": 0.5,
+   "t": "Das",
+   "st": "Das",
+   "so": 0.3,
+   "eo": 0.5
+  },
+  {
+   "s": 0.52,
+   "e": 1.16,
+   "t": "ist ein kurzer",
+   "st": "ist ein kurzer",
+   "so": 0.52,
+   "eo": 1.16
+  },
+  {
+   "s": 1.18,
+   "e": 2.06,
+   "t": "Prüfung für die Untertitel.",
+   "st": "Prüfung für die Untertitel.",
+   "so": 1.18,
+   "eo": 2.06
+  },
+  {
+   "s": 2.06,
+   "e": 2.94,
+   "t": "Heute zeigen wir dir,",
+   "st": "Heute zeigen wir dir,",
+   "so": 2.06,
+   "eo": 2.94
+  },
+  {
+   "s": 3.34,
+   "e": 4.22,
+   "t": "wie schnell das geht",
+   "st": "wie schnell das geht",
+   "so": 3.34,
+   "eo": 4.22
+  },
+  {
+   "s": 4.22,
+   "e": 5.1,
+   "t": "und warum es so",
+   "st": "und warum es so",
+   "so": 4.22,
+   "eo": 5.1
+  },
+  {
+   "s": 5.4,
+   "e": 5.82,
+   "t": "gut funktioniert.",
+   "st": "gut funktioniert.",
+   "so": 5.4,
+   "eo": 5.82
+  }
+ ],
+ "exportSec": 9.99,
+ "totalClicks": 24,
+ "nproc": 4,
+ "load": [
+  5.64,
+  8.92,
+  10.2
+ ]
+}
