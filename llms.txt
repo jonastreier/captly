@@ -27,7 +27,7 @@ CaptionRush (formerly Capivo) is made in Switzerland by Jonas Treier (sole propr
 ## FAQ highlights
 
 - How do I add captions to Instagram Reels, TikTok or YouTube Shorts? Upload the video on the page, check the captions, pick a style and download the MP4. The captions are burned into the video, so the file can be posted as it is.
-- Is it free? Is there a watermark? Free during the beta, no account needed; MP4 export has no watermark. Only an email is asked before the first video download.
+- Is it free? Is there a watermark? Free during the beta, no account needed; MP4 export has no watermark. An email is asked (optionally, you can skip it) before the first video download. Once paid plans exist: Free has no watermark for the first 2 videos each day, from the 3rd video per day a small watermark appears; paid plans never have one.
 - Do I need to install anything? No, it runs in the browser.
 - Is my video uploaded? No, only the audio track is sent for transcription.
 

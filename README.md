@@ -87,7 +87,7 @@ Code für Free/Creator/Pro ist fertig, aber **abgeschaltet** (`BILLING_ENABLED=f
 `schema.sql` (`profiles`, `usage`, `paddle_events`, `add_usage()`, Trigger für neue Nutzer, RLS: Nutzer lesen nur ihre Zeilen), `billing.php` (Hilfsfunktionen),
 `plan.php` (`/api/plan`: Plan + Restminuten + öffentliche Paddle-Werte), `transcribe.php` (402 `{error:"quota"}` vor dem Groq-Aufruf; eingeloggt: Plan-Minuten pro Monat,
 Gast: `ANON_SEC_PER_DAY` pro IP; gezählt wird nach Erfolg), `paddle-webhook.php` (`/api/paddle-webhook`: HMAC-Signatur, Zeitstempel-Toleranz, Idempotenz, Reihenfolge, Events
-`subscription.*`), `paddle-portal.php` (`/api/portal`: Link zum Kundenportal). Frontend: Abzeichen «x min left», `needsWatermark()` hängt am Plan, Paddle-Checkout-Overlay
+`subscription.*`), `paddle-portal.php` (`/api/portal`: Link zum Kundenportal). Frontend: Abzeichen «x min left», `needsWatermark()` hängt am Plan und am Server-Flag `watermark` (Free/Gäste: erste `FREE_CLEAN_VIDEOS_PER_DAY` = 2 Videos pro UTC-Tag sauber, ab dem 3. kleine Marke; Video = anonymer Schlüssel `X-Video-Key`, zählt einmal; Beta/Abos aus: nie), Paddle-Checkout-Overlay
 (`paddle.js` wird erst beim Klick auf «Upgrade» geladen), «Manage subscription». Sandbox-Anleitung: [`docs/paddle-sandbox.md`](docs/paddle-sandbox.md); was vor dem Live-Schalten
 fehlt: [`docs/abo-aktivierung.md`](docs/abo-aktivierung.md).
 
@@ -242,7 +242,7 @@ funktioniert der Login also nicht** — auch nicht zum Testen.
 
 Solange der Mailversand (SMTP) nicht eingerichtet ist, braucht der Download **keinen Login**: Beim
 ersten Export fragt das Export-Blatt nach der E-Mail-Adresse (plus optionales, nicht vorausgewähltes
-Newsletter-Häkchen) und exportiert dann **ohne Wasserzeichen**. Die Adresse wird pro Gerät gemerkt
+Newsletter-Häkchen; überspringbar mit «Skip — download now») und exportiert dann **ohne Wasserzeichen** — auch ohne Angabe (Beta: nie ein Wasserzeichen). Die Adresse wird pro Gerät gemerkt
 und per REST in die Tabelle `public.leads` geschrieben (Tabelle + Policy: `schema.sql`, Abschnitt
 „Leads“ — einmal im SQL Editor ausführen). Die Tabelle ist per API nur beschreibbar, nicht lesbar;
 die Liste exportiert man im Dashboard (*Table Editor → leads → Export → CSV*), z. B. für Brevo.
@@ -349,10 +349,12 @@ hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ 
 node test-captly.js     # Editor-Logik (DOM-Stub)
 node test-polish.js     # /api/polish + polish.php
 node test-enhance.js    # /api/enhance + enhance.php
-node test-lead.js       # lead.php, confirm.php, unsubscribe.php (Mock-Supabase + Mock-SMTP, braucht php)
+node test-lead.js       # lead.php, confirm.php, unsubscribe.php, contact.php (Mock-Supabase + Mock-SMTP, braucht php)
 node test-telemetry.js  # log.php + stat.php (Mock-Supabase, braucht php)
 node test-billing.js    # Abo-Vorbereitung: Webhook, Plan, Kontingent, Portal (Mock-Supabase/Groq/Paddle, braucht php)
+node test-ops.js        # scripts/check-secrets.js (Deploy-Vorprüfung) + scripts/live-check.js (Live-Prüfung, gegen php -S mit Apache-Nachbau)
 node test-e2e.js        # Browser-E2E (Playwright, Mock-Server): Upload → Untertitel → Export → E-Mail-Gate → Cover → Login → Projekt; Desktop + 390 px; Screenshots in e2e-shots/
+node test-ui-sweep.js   # UI-Sweep (Playwright, nicht Teil der CI): jede Kontrolle (Style/Customize/Captions/Timeline/Export/Cover/Einstellungen) wird bedient und gegen Soll-Änderungen + Invarianten geprüft; Vorschau = Export (Geometrie, Pixel), Wort-Animation, Rand-Check, Hygiene (Overflow/Konsole/Tippflächen); Desktop + 390 px. Option --quick (ca. halbe Laufzeit), --only=ctl,geom,pixel,anim,edge,hyg, --viewport=phone, --dump, --strict
 ```
 
 Führt das komplette `captly.html`-Script mit DOM-Stub in Node aus (Zeitformate, Karaoke-Logik,

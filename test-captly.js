@@ -25,11 +25,11 @@ function mkEl(id) {
     getContext(type) {
       if (type !== '2d') return null;
       return {
-        font: '',
+        font: '', letterSpacing: '0px', // wie ein echter Canvas: letterSpacing zählt je Zeichen mit (sonst misst capLayout ohne, die Vorschau mit Buchstabenabstand)
         measureText(str) {
           var m = /([\d.]+)px/.exec(this.font);
           var px = m ? parseFloat(m[1]) : 16;
-          return { width: (str || '').length * px * 0.55 };
+          return { width: (str || '').length * (px * 0.55 + (parseFloat(this.letterSpacing) || 0)) };
         },
         roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {},
         translate() {}, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},
@@ -112,6 +112,7 @@ tlTimeToX:tlTimeToX,tlXToTime:tlXToTime,tlClampView:tlClampView,tlZoomAt:tlZoomA
 tlBounds:tlBounds,tlDragSpan:tlDragSpan,tlRetimeWords:tlRetimeWords,computeWavePeaks:computeWavePeaks,applyTimelineEdit:applyTimelineEdit,
 resolveStyleId:resolveStyleId,STYLE_ALIASES:STYLE_ALIASES,relayoutCaptions:relayoutCaptions,setMaxChars:setMaxChars,toggleMaxCharsAuto:toggleMaxCharsAuto,capAutoChars:capAutoChars,capBlockLimit:capBlockLimit,capCharsFit:capCharsFit,capCharLen:capCharLen,closeCaptionGaps:closeCaptionGaps,splitOverflowingBlocks:splitOverflowingBlocks,setMaxCharsState:function(v){CAP_MAX_CHARS=v;_relayoutKey=null;},setLinesState:function(v){CAPTION_LINES=v;},setFontSizeState:function(v){fontSize=v;},GAP_CLOSE_SEC:GAP_CLOSE_SEC,
 tlNudge:tlNudge,tlNudgeEdge:tlNudgeEdge,tlNudgeWhy:tlNudgeWhy,tlCenterView:tlCenterView,tlClampPps:tlClampPps,tlClassify:tlClassify,tlFlingVelocity:tlFlingVelocity,tlFlingDecay:tlFlingDecay,tlSplitIndex:tlSplitIndex,tlSplitAt:tlSplitAt,tlHit:tlHit,setTlMob:function(m){_tl.mob=m;},setTlView:function(v){tlView=v;},setTlSel:function(i){tlSel=i;},getTlSel:function(){return tlSel;},TL_MOB_PPS:TL_MOB_PPS,switchTabT:switchTab,captionSnapshot:captionSnapshot,tlCleanSpeech:tlCleanSpeech,projectPayload:projectPayload,
+tlSweepRange:tlSweepRange,tlSweepApply:tlSweepApply,
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
 capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
 wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBaseName:exportBaseName,openExportSheet:openExportSheet,closeExportSheet:closeExportSheet,
@@ -122,7 +123,21 @@ setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKe
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
-capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;}};`;
+setLines:setLines,splitBlockAtCursor:splitBlockAtCursor,getLines:function(){return CAPTION_LINES;},getMaxChars:function(){return CAP_MAX_CHARS;},getPresetPrevLayout:function(){return _presetPrevLayout;},setFontSizeState:function(v){fontSize=v;},
+setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
+capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
+capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},setProgDrag:function(v){_progDrag=v;},
+csSegPick:csSegPick,syncCsSegs:syncCsSegs,
+coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
+coverEmColor:coverEmColor,
+exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,
+zoomFill:zoomFill,zoomPlan:zoomPlan,zoomFeedback:zoomFeedback,zoomDemoStart:zoomDemoStart,getZoomDemo:function(){return _zoomDemo;},clearZoomDemo:function(){_zoomDemo=null;},
+applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
+styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
+videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateSkip:function(){_gateSkipped=false;try{sessionStorage.removeItem(GATE_SKIP_KEY);}catch(e){}},skipEmailGate:skipEmailGate,wmNoticeText:wmNoticeText,trHeaders:trHeaders,
+CAP_PILL_PAD_X:CAP_PILL_PAD_X,
+capNoItalic:capNoItalic,capPopFactor:capPopFactor,setCsBase:function(b){_csBase=b;},drawTextGrouped:drawTextGrouped,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
+setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -190,7 +205,8 @@ ok((html.match(/animation:captly-/g) || []).length === 1, 'Animation nur am akti
 T.exportSRT();
 ok(global.LASTBLOB.content.startsWith('1\n00:00:00,000 --> 00:00:01,100\nHallo und willkommen.'), 'SRT-Format (Lücke 0,1 s geschlossen): ' + JSON.stringify(global.LASTBLOB.content.slice(0, 50)));
 T.exportVTT();
-ok(global.LASTBLOB.content.startsWith('WEBVTT'), 'VTT-Header');
+ok(global.LASTBLOB.content.startsWith('WEBVTT\n\n1\n'), 'VTT-Header: nach WEBVTT genau eine Leerzeile: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 16)));
+ok(T.vttFile(['1\na', '2\nb']) === 'WEBVTT\n\n1\na\n\n2\nb' && T.vttFile([]) === 'WEBVTT\n\n', 'vttFile: Kopf + eine Leerzeile, Cues durch Leerzeilen');
 ok(global.CLICKS.length === 2, '2 Downloads ausgeloest');
 
 // 8) UI-Funktionen crashen nicht + Overlay rendert korrekt
@@ -368,11 +384,25 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
 }
 
 // 9f) Beta: Wasserzeichen nur für anonyme Nutzer (Pläne sind noch nicht kaufbar)
-T.setMe('anon', ''); ok(T.needsWatermark() === true, 'anonym → Wasserzeichen');
-T.setMe('free', 'a@b.c'); ok(T.needsWatermark() === false, 'angemeldet (free, Beta) → kein Wasserzeichen');
-T.setMe('pro', 'a@b.c'); ok(T.needsWatermark() === false, 'Pro → kein Wasserzeichen');
-T.setMe('anon', 'x@y.z'); ok(T.needsWatermark() === false, 'E-Mail gesetzt → nie Wasserzeichen (auch ohne Plan-Update)');
-T.setMe('free', ''); ok(T.needsWatermark() === true, 'ohne E-Mail → Wasserzeichen');
+// needsWatermark-Matrix: Beta/Abos aus → NIE; Abos an → bezahlt nie, Free/Gast nur mit Server-Flag `watermark` (pro Video)
+{
+  const plans = ['anon', 'free', 'creator', 'pro'], mails = ['', 'a@b.c'];
+  for (const pl of plans) for (const em of mails) {
+    T.setMe(pl, em); T.setBillingState(null);
+    ok(T.needsWatermark() === false, 'Beta (Abos aus) nie Wasserzeichen: ' + pl + (em ? ' mit E-Mail' : ' ohne E-Mail'));
+    T.setBillingState({ enabled: false, watermark: true });
+    ok(T.needsWatermark() === false, 'Abos aus + Flag true → trotzdem nie: ' + pl);
+    for (const flag of [false, true, undefined]) {
+      T.setMe(pl, em); T.setBillingState({ enabled: true, loggedIn: pl !== 'anon', plan: pl, watermark: flag });
+      const want = (pl === 'anon' || pl === 'free') && flag === true;
+      ok(T.needsWatermark() === want, 'Abos an: ' + pl + ', watermark=' + flag + (em ? ', E-Mail' : ', ohne E-Mail') + ' → ' + want);
+    }
+  }
+  // Plan aus billing schlägt veraltetes Flag (z. B. gerade upgegradet)
+  T.setMe('free', 'a@b.c'); T.setBillingState({ enabled: true, loggedIn: true, plan: 'creator', watermark: true });
+  ok(T.needsWatermark() === false, 'billing.plan creator mit altem Flag → keine Marke');
+  T.setBillingState(null); T.setMe('anon', '');
+}
 T.setMe('anon', '');
 
 // 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
@@ -518,22 +548,22 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   let cs = T.buildCustomStyle();
   ok(cs.tc === '#ff0000' && cs.boxBg === base.boxBg && cs.hlPillBg === base.hlPillBg && cs.anim === 'scale' && cs.fw === base.fw,
      'Custom behaelt Box/Pill/Animation/Gewicht des Ausgangs-Styles');
-  // Kontur, Großbuchstaben, Abstand, Gewicht, Hintergrund, Highlight-Typ, Animation
+  // Kontur, Abstand, Gewicht, Hintergrund, Highlight-Typ, Animation
   E('csOutlineW').value = '4'; E('csOutlineC').value = '#112233';
-  E('csUpper').classList.add('on'); E('csLs').value = '2'; E('csWeight').value = '900';
+  E('csLs').value = '2'; E('csWeight').value = '900';
   E('csBox').value = 'pill'; E('csBoxR').value = '22'; E('csBoxC').value = '#ffffff'; E('csBoxO').value = '40';
   E('csHlType').value = 'color'; E('csHl').value = '#00ffaa'; E('csAnim').value = 'wobble';
-  T.setCsDirty({ text: true, stroke: true, upper: true, ls: true, weight: true, box: true, hl: true, anim: true });
+  T.setCsDirty({ text: true, stroke: true, ls: true, weight: true, box: true, hl: true, anim: true });
   cs = T.buildCustomStyle();
   ok(T.parseOutline(cs.ts).w === 4 && cs.ts.includes('#112233'), 'Kontur 4px in ts: ' + cs.ts.slice(0, 40));
-  ok(cs.tt === 'uppercase' && cs.ls === '2px' && cs.fw === '900' && cs.anim === 'wobble', 'Caps/Abstand/Gewicht/Animation');
+  ok(cs.ls === '2px' && cs.fw === '900' && cs.anim === 'wobble', 'Abstand/Gewicht/Animation');
   ok(cs.boxBg === 'rgba(255,255,255,0.4)' && cs.boxBr === '22px', 'Hintergrund-Pill mit Deckkraft: ' + cs.boxBg);
   E('csBoxR').value = '13'; ok(T.buildCustomStyle().boxBr === '13px', 'Eckenradius frei einstellbar (Corners)');
   E('csBoxR').value = '99'; ok(T.buildCustomStyle().boxBr === '30px', 'Eckenradius auf 30px gedeckelt');
   E('csBoxR').value = '22';
   ok(!cs.hlPillBg && cs.hl === '#00ffaa' && T.parseOutline(cs.hls).w === 4, 'Highlight als Textfarbe mit Kontur');
   const html = T.buildCap(['eins', 'zwei'], cs, 1, 22, null);
-  ok(html.includes('letter-spacing:2px') && html.includes('text-transform:uppercase') && html.includes('rgba(255,255,255,0.4)') && html.includes('captly-wobble'),
+  ok(html.includes('letter-spacing:2px') && html.includes('rgba(255,255,255,0.4)') && html.includes('captly-wobble'),
      'Vorschau rendert alle Custom-Eigenschaften');
   // Pill-Modus: dasselbe Farbfeld („Pill“) ist die Pill-Farbe
   E('csHlType').value = 'pill'; E('csHl').value = '#fde047';
@@ -606,7 +636,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   E('csHl').value = '#facc15'; E('csGlow').checked = true; // Reste eines vorigen Styles
   T.selectStyle('tpulse');
   ok(E('csHl').value === '#00ff85' && E('csHlType').value === 'pill' && E('csHlLbl').textContent === 'Pill', 'Pill-Style: Farbfeld = Pill-Farbe, Label „Pill“: ' + E('csHl').value);
-  ok(E('csText').value === '#ffffff' && E('csFont').value === 'Montserrat' && E('csWeight').value === '900' && E('csUpper').classList.contains('on'), 'Pill-Style: Text/Font/Gewicht/Caps');
+  ok(E('csText').value === '#ffffff' && E('csFont').value === 'Montserrat' && E('csWeight').value === '900', 'Pill-Style: Text/Font/Gewicht');
   ok(E('csGlow').checked === false && E('csGlowInt').disabled === true, 'Glow aus → Regler deaktiviert');
   ok(E('csBox').value === 'off' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '70', 'kein Hintergrund → neutrale Box-Werte statt Resten');
   // Box-Style (Box Karaoke): Hintergrund aus rgba
@@ -614,7 +644,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   ok(E('csBox').value === 'box' && E('csBoxC').value === '#000000' && String(E('csBoxO').value) === '60' && E('csHl').value === '#22c55e', 'Box Karaoke: Box schwarz 60 %, Pill gruen');
   // Kontur-Style (Bold Pop): Kontur 3 px, Schatten an, Textfarbe-Highlight
   T.selectStyle('hormozi');
-  ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Active' && E('csAnim').value === 'scale',
+  ok(String(E('csOutlineW').value) === '3' && E('csOutlineC').value === '#000000' && E('csShadow').classList.contains('on') && E('csHl').value === '#ffd60a' && E('csHlLbl').textContent === 'Highlight' && E('csAnim').value === 'scale',
      'Bold Pop: Kontur/Schatten/Active-Farbe/Animation');
   // Glow-Style (Jolt/amplify): Glow an mit Stärke 20, Regler aktiv
   T.selectStyle('tamp');
@@ -1228,6 +1258,72 @@ ok(T.webmToMp4Trim(33.96).join(' ') === '-t 33.960 -shortest' && T.webmToMp4Trim
   T.onWpbChange('4');
 }
 
+// 23c) Pausierte Vorschau = Ruhezustand (kein halb animiertes Wort); Wiedergabe/Scrubben/Demo animieren
+{
+  const st = T.STYLES.find(x => x.id === 'hormozi'), anim0 = st.anim, mot0 = st.motion, act0 = T.getActiveId();
+  st.anim = 'punch'; st.motion = undefined;
+  const ws = [{ word: 'eins', start: 1, end: 1.4 }, { word: 'zwei', start: 1.5, end: 2 }];
+  T.setState([{ words: ws, start: 1, end: 2, text: 'eins zwei' }], ws, 'karaoke');
+  T.selectStyle('hormozi');
+  // Fake-DOM: Wort-Spans mit data-oi, damit capDomMotion (Vorschau) echte Werte schreibt
+  const ov = document.getElementById('capOverlay'), vid = document.getElementById('mainVid');
+  const spans = [0, 1].map(i => ({ style: {}, getAttribute: () => String(i) }));
+  const root = { style: {}, getAttribute: () => '20', querySelectorAll: sel => sel === '[data-oi]' ? spans : [] };
+  const qs0 = ov.querySelector; ov.querySelector = () => root;
+  const sc = () => { const m = /scale\(([\d.]+)\)/.exec(spans[1].style.transform || ''); return m ? +m[1] : 1; };
+  const draw = () => { T.updateOverlay(1.5); return sc(); };
+  T.setVidReady(true); vid.paused = true; vid.ended = false; vid.currentTime = 1.5;
+  ok(draw() === 1 && !spans[1].style.opacity, 'Pause am Wortbeginn: Ruhezustand (kein Punch, volle Deckkraft)');
+  vid.paused = false;
+  ok(draw() > 1.2, 'Wiedergabe am Wortbeginn: Punch animiert (scale ' + sc() + ')');
+  vid.paused = true; T.setProgDrag({});
+  ok(draw() > 1.2, 'Scrubben (Fortschrittsbalken): animiert auch bei Pause');
+  T.setProgDrag(null);
+  ok(draw() === 1, 'Scrubben beendet: wieder Ruhezustand');
+  ok(T.capAnimDemoStart() === true && sc() > 1.1, 'Demo bei Pause: animiert (scale ' + sc() + ')');
+  T.clearAnimDemo(); ok(draw() === 1, 'Nach der Demo: Ruhezustand');
+  // Export bleibt zeitgenau: capWordFx liefert den Keyframe unabhängig vom Vorschau-Ruhezustand
+  const sx = T.capWordFx(st, T.getBlocks()[0], 1, 1, 1.5, false, false);
+  ok(sx.a && sx.a.sx > 1.2, 'Export/capWordFx: Punch am Wortbeginn bleibt zeitgenau');
+  // Reveal im Ruhezustand: Wort am Beginn voll sichtbar (nicht unsichtbar)
+  st.motion = 'reveal'; T.selectStyle('hormozi'); vid.currentTime = 1.5;
+  T.updateOverlay(1.5);
+  ok(!spans[1].style.opacity, 'Reveal bei Pause am Wortbeginn: Wort voll sichtbar');
+  ov.querySelector = qs0; if (!qs0) delete ov.querySelector;
+  st.anim = anim0; st.motion = mot0; vid.paused = true; vid.currentTime = 0; T.setVidReady(false);
+  T.selectStyle(act0);
+}
+
+// 23d) Layout-Wechsel verwirft keine manuellen Block-Edits (erneuter Klick auf aktives Preset/Template), Undo hilft
+{
+  const ws = Array.from({ length: 8 }, (_, i) => ({ word: 'w' + i, start: i * 0.5, end: i * 0.5 + 0.4 }));
+  const fresh = () => { T.setState(T.buildCaptionBlocks(ws), ws.map(w => Object.assign({}, w)), 'karaoke'); T.setCaptionsEdited(false); T.resetUndo(); };
+  T.selectStyle('classic'); T.onWpbChange('4'); fresh();
+  T.selectStyle('mix'); // Layout 3 Wörter/Block → baut neu (Undo-Schritt)
+  fresh(); ok(T.tlSplitAt(0, 0.5), 'Testaufbau: manueller Split'); // manueller Split
+  const edited = T.captionSnapshot(), n = T.getBlocks().length, d0 = T.undoDepth()[0];
+  T.selectStyle('mix'); T.selectStyle('mix');
+  ok(T.captionSnapshot() === edited && T.getBlocks().length === n && T.undoDepth()[0] === d0, 'Erneuter Klick auf aktives Layout-Preset: Blöcke + Undo unverändert');
+  // Template mit gleichem Layout (auch «Edit» = erneutes Anwenden)
+  const tpl = { wpb: T.getWpb(), lines: T.getLines() };
+  T.applyTemplateSettings(tpl); T.applyTemplateSettings(tpl);
+  ok(T.captionSnapshot() === edited && T.undoDepth()[0] === d0, 'Template mit gleichem Layout erneut anwenden: Blöcke unverändert');
+  // Preset A → B mit gleichem Layout baut nicht neu
+  // Preset A → B mit gleichem Layout (classic → hormozi, beide ohne eigenes Layout) fasst die Blöcke nicht an
+  T.selectStyle('classic'); T.onWpbChange('4'); fresh(); T.tlSplitAt(0, 0.5);
+  const e2 = T.captionSnapshot();
+  T.selectStyle('hormozi'); T.selectStyle('minimal'); T.selectStyle('classic');
+  ok(T.captionSnapshot() === e2, 'Preset A → B ohne Layout-Wechsel: Blöcke unverändert');
+  // Layoutwechsel: baut neu, Undo stellt Blöcke + Wörter/Block-Regler zurück
+  fresh(); T.selectStyle('classic'); T.onWpbChange('4'); fresh(); T.tlSplitAt(0, 0.5); T.resetUndo();
+  const before = T.captionSnapshot(), wpb0 = T.getWpb();
+  T.applyTemplateSettings({ wpb: wpb0 === 2 ? 3 : 2 });
+  ok(T.getWpb() !== wpb0 && T.captionSnapshot() !== before && T.undoDepth()[0] === 1, 'Layoutwechsel (Wörter/Caption): baut neu mit genau einem Undo-Schritt');
+  T.undoCaptions();
+  ok(T.captionSnapshot() === before && T.getWpb() === wpb0, 'Undo stellt Blöcke und Wörter/Caption-Regler wieder her');
+  T.selectStyle('classic'); fresh();
+}
+
 // 21b) MediaRecorder-Format: MP4 nur mit AAC (bzw. ohne Ton), sonst WebM → Umkodierung
 {
   const sup = list => m => list.includes(m);
@@ -1386,7 +1482,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     global.fetch = (url, o) => { calls.push({ url, o }); return fail ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve({ ok: true, status: 201 }); };
     ok(T.isEmail('a@b.ch') && T.isEmail(' Jonas.T+x@mail.example.com ') && !T.isEmail('a@b') && !T.isEmail('ab.ch') && !T.isEmail(''), 'isEmail');
     T.setMe('anon', '');
-    ok(T.needsWatermark() === true, 'ohne E-Mail → Wasserzeichen-Pfad');
+    ok(T.needsWatermark() === false, 'ohne E-Mail (Beta) → trotzdem kein Wasserzeichen');
     const g = document.getElementById('expGate'), sh = document.getElementById('expSheet'), inp = document.getElementById('gateEmail');
     const nw = document.getElementById('gateNews'), err = document.getElementById('gateErr');
     document.getElementById('gateNewsTxt').textContent = 'Send me tips';
@@ -1397,7 +1493,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.openExportSheet();
     ok(g.style.display === '' && sh.style.display === 'block', 'Export-Blatt zeigt das E-Mail-Feld sofort');
     inp.value = 'kein-mail';
-    ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent), 'ungültige Adresse → Fehlermeldung');
+    ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent) && /Skip/.test(err.textContent), 'ungültige Adresse → Fehlermeldung (mit Skip-Hinweis)');
     fail = true; inp.value = 'Treier@Example.CH'; nw.checked = true;
     ok(T.passEmailGate() === true && g.style.display === 'none', 'gültige Adresse → Export läuft (auch wenn Speichern fehlschlägt)');
     await new Promise(r => setTimeout(r, 0));
@@ -1423,6 +1519,16 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(g.style.display === 'none', 'bekannte Adresse → Feld beim Öffnen versteckt');
     T.closeExportSheet();
     delete store[T.LEAD_KEY];
+    // Freiwillig: leeres Feld = übersprungen (kein Lead, kein Request), Export läuft, Feld bleibt danach weg
+    T.openExportSheet(); inp.value = ''; const nCalls = calls.length;
+    ok(g.style.display === '' && T.passEmailGate() === true && g.style.display === 'none' && calls.length === nCalls && !(T.LEAD_KEY in store), 'leeres Feld + Download → Gate übersprungen, nichts gespeichert/gesendet');
+    ok(T.needsWatermark() === false, 'übersprungen → kein Wasserzeichen');
+    T.passEmailGate(); T.closeExportSheet(); T.openExportSheet();
+    ok(g.style.display === 'none', 'nach Skip: Feld beim erneuten Öffnen weg (Sitzung)');
+    T.closeExportSheet(); T.resetGateSkip();
+    T.openExportSheet();
+    ok(g.style.display === '', 'Skip zurückgesetzt → Feld wieder da');
+    T.closeExportSheet();
     T.setMe('free', 'x@y.z'); g.style.display = 'none';
     ok(T.passEmailGate() === true && g.style.display === 'none', 'angemeldet → kein Gate');
     T.openExportSheet();
@@ -2325,8 +2431,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(E('ctrlCol').dataset.tab === 'style', 'Tab wechselt');
     T.switchTab('nope'); ok(E('ctrlCol').dataset.tab === 'style', 'unbekannter Tab ignoriert');
     T.switchTab('captions');
-    T.syncTopExport('Rendering 42%…', true); ok(E('tbExport').disabled && /42%/.test(E('tbExport').textContent), 'Top-Export zeigt Fortschritt');
-    T.syncTopExport(null, true); ok(!E('tbExport').disabled && /Export/.test(E('tbExport').textContent), 'Top-Export wieder frei');
+    T.syncTopExport('Rendering 42%…', true); ok(!E('tbExport').disabled && E('tbExport').classList.contains('busy') && /42%/.test(E('tbExport').textContent), 'Top-Export zeigt Fortschritt und bleibt klickbar (öffnet das Blatt mit Cancel)');
+    T.syncTopExport(null, true); ok(!E('tbExport').disabled && !E('tbExport').classList.contains('busy') && /Export/.test(E('tbExport').textContent), 'Top-Export wieder frei');
     T.updateTrSetSum(); ok(!/Fast|Perfect/.test(E('trSetSum').textContent) && /language/i.test(E('trSetSum').textContent), 'Transkriptions-Zusammenfassung ohne Modell: ' + E('trSetSum').textContent);
     if (T.getLang() === 'auto') {
       T.setLastTrMeta({ model: 'fast', lang: 'german', langSetting: 'auto' }); T.updateTrSetSum();
@@ -2570,11 +2676,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     an.classList.add('hi');
     global.matchMedia = q => ({ matches: /fine/.test(q) });           // Desktop
     global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-captionrush.mp4'); T.exportDone(false);
-    ok(sb.style.display === 'none' && an.classList.contains('hi') && dlf.style.display === 'none', 'Desktop: kein Teilen, „Caption another video“ primär');
+    ok(sb.style.display === 'none' && an.classList.contains('hi') && dlf.style.display !== 'none', 'Desktop: kein Teilen, „Caption another video“ primär, „Download again“ da');
     ok(document.getElementById('expDoneName').textContent === 'mein-reel-captionrush.mp4', 'Fertig-Zeile zeigt den Dateinamen');
     global.matchMedia = q => ({ matches: /coarse/.test(q) });         // Handy
     T.exportDone(false);
-    ok(sb.style.display === '' && !an.classList.contains('hi') && dlf.style.display === '' && !shared, 'Handy: Teilen primär, nichts automatisch geteilt');
+    ok(sb.style.display === '' && !an.classList.contains('hi') && dlf.style.display !== 'none' && !shared, 'Handy: Teilen primär, „Download again“ da, nichts automatisch geteilt');
     T.shareLastExport(); await new Promise(r => setTimeout(r, 0));
     ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-captionrush.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
     const nClicks = global.CLICKS.length; rejectWith = { name: 'AbortError' };
@@ -2585,6 +2691,62 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     nav.canShare = () => false; T.exportDone(false);
     ok(sb.style.display === 'none' && an.classList.contains('hi'), 'canShare false → kein Teilen-Knopf');
     delete nav.canShare; delete nav.share; global.matchMedia = prevMM; global.File = prevFile;
+  }
+
+  // Export-Ablauf: Leere Aufnahme erkennen, Ausgabegrösse beschriften, „Download again“-Lebenszyklus, Abbruch
+  {
+    ok(!T.exportBlobOk(null) && !T.exportBlobOk({ size: 0 }) && !T.exportBlobOk({ size: 1023 }) && T.exportBlobOk({ size: 1024 }) && T.exportBlobOk({ size: 5e6 }), 'exportBlobOk: leer/< 1 KB abgelehnt, ab 1 KB ok');
+    ok(T.exportPlaybackTooShort(1, 10) && !T.exportPlaybackTooShort(9.5, 10) && !T.exportPlaybackTooShort(6, 10) && !T.exportPlaybackTooShort(0.2, 1.5), 'exportPlaybackTooShort: Quelle endete vorzeitig (< 50 % der Dauer), sehr kurze Videos nie');
+    ok(/damaged/.test(T.MSG_EXPORT_DAMAGED) && T.MSG_EXPORT_DAMAGED.indexOf('Export failed') === 0, 'Meldung bei beschädigter Datei');
+    ok(T.videoErrIsDamage({ error: { code: 3 } }) && T.videoErrIsDamage({ error: { code: 2 } }) && !T.videoErrIsDamage({ error: { code: 4 } }) && !T.videoErrIsDamage({}) && !T.videoErrIsDamage(null), 'Player-Fehler 2/3 = beschädigt, 4 (Format) und kein Fehler nicht');
+    // Beschriftung: tatsächliche Ausgabegrösse (exportGeometry skaliert nie hoch)
+    ok(T.exportSizeLabel(540, 960, '1080') === '540×960 (source size)', 'Label: 540×960-Quelle → „540×960 (source size)“: ' + T.exportSizeLabel(540, 960, '1080'));
+    ok(T.exportSizeLabel(1080, 1920, '1080') === '1080p' && T.exportSizeLabel(3840, 2160, '1080') === '1080p' && T.exportSizeLabel(1920, 1080, '1080') === '1080p', 'Label: 1080×1920, 4K und 1920×1080 → „1080p“');
+    ok(T.exportSizeLabel(3840, 2160, 'orig') === 'original size (3840×2160)' && T.exportSizeLabel(0, 0, '1080') === '1080p', 'Label: Original zeigt die Maße; ohne Video „1080p“');
+    ok(T.exportSizeLabel(1920, 1080, '1080', 'blur') === '1080p' && T.exportSizeLabel(720, 720, '1080', 'crop') === '1080p', 'Label: Reframe (9:16-Leinwand) → „1080p“');
+    {
+      const vid = document.getElementById('mainVid'), o0 = [vid.videoWidth, vid.videoHeight];
+      const sel = document.getElementById('expRes'); sel.options = [{ textContent: '' }, { textContent: '' }]; sel.value = '1080';
+      vid.videoWidth = 540; vid.videoHeight = 960; T.syncExpSub();
+      ok(document.getElementById('btnVideoSub').textContent === 'MP4 · 540×960 (source size) · no watermark', 'Unterzeile Knopf: ' + document.getElementById('btnVideoSub').textContent);
+      ok(/^Source size · 540×960 \(recommended\)$/.test(sel.options[0].textContent) && /^Original/.test(sel.options[1].textContent), 'Auswahl „Resolution“: nicht „1080p“ bei kleiner Quelle: ' + sel.options[0].textContent);
+      vid.videoWidth = 1080; vid.videoHeight = 1920; T.syncExpSub();
+      ok(/^MP4 · 1080p/.test(document.getElementById('btnVideoSub').textContent) && sel.options[0].textContent === '1080p (recommended)', 'Unterzeile bei 1080×1920: „1080p“');
+      vid.videoWidth = o0[0]; vid.videoHeight = o0[1];
+    }
+    // Download again: gleiche Datei, kein Neu-Rendern; Blob bleibt bis ein neuer Export startet / das Video wechselt
+    const prevClicks = global.CLICKS; global.CLICKS = [];
+    const blobA = new Blob(['x'], { type: 'video/mp4' });
+    T.dlBlob(blobA, 'a-captionrush.mp4'); T.exportDone(false);
+    ok(T.getLastExportBlob() === blobA, 'nach dem Export bleibt die Datei für „Download again“ erhalten');
+    ok(document.getElementById('expDone').style.display === '' && document.getElementById('expMain').style.display === 'none', 'Fertig-Ansicht sichtbar, Export-Knopf-Ansicht weg');
+    {
+      const main = htmlContent.slice(htmlContent.indexOf('id="expMain"'), htmlContent.indexOf('id="expNote"')), done = htmlContent.slice(htmlContent.indexOf('id="expDone"'), htmlContent.indexOf('id="expPost"'));
+      ok(!/btnSRT|btnVTT|btnTXT|btnCover|btnCopy|expOpts/.test(main) && /btnSRT/.test(done) && /btnVTT/.test(done) && /btnTXT/.test(done) && /btnCover/.test(done) && /expCopyPost/.test(done), 'SRT/VTT/TXT/Cover/Copy liegen NICHT in der ausgeblendeten Export-Ansicht (expMain) und bleiben nach dem Export sichtbar');
+    }
+    global.CLICKS = []; ok(T.downloadLastExport() === true, 'Download again ok');
+    ok(global.CLICKS.length === 1 && global.CLICKS[0].download === 'a-captionrush.mp4' && T.getLastExportBlob() === blobA, 'Download again: ein Klick, gleiche Datei, gleicher Blob (kein Neu-Rendern)');
+    T.showExportMain();
+    ok(document.getElementById('expLast').style.display === '' && document.getElementById('expLastName').textContent === 'a-captionrush.mp4', 'Export-Ansicht zeigt „Last export … Download again“');
+    T.releaseLastExport();
+    ok(T.getLastExportBlob() === null && document.getElementById('expLast').style.display === 'none', 'releaseLastExport gibt den Blob frei');
+    global.CLICKS = []; ok(T.downloadLastExport() === false && global.CLICKS.length === 0, 'ohne Datei: kein Download, kein Absturz');
+    // Abbruch + Fehler setzen den Zustand zurück
+    const tok = T.newExportToken(); T.setExporting(true);
+    ok(T.getExpTok() === tok && !tok.cancelled, 'Export-Token aktiv');
+    let aborted = 0; tok.abort = () => { aborted++; };
+    ok(T.cancelExport() === true && tok.cancelled && aborted === 1 && T.cancelExport() === false, 'cancelExport: einmal, ruft die Stopp-Funktion');
+    T.exportAborted(tok);
+    ok(T.getExpTok() === null && document.getElementById('expDone').style.display === 'none', 'Abbruch: Zustand zurück (Token weg), kein „Saved“');
+    const tok2 = T.newExportToken(); T.setExporting(true); document.getElementById('expNote').style.display = 'none';
+    T.exportFailed(tok2, T.MSG_EXPORT_DAMAGED);
+    ok(T.getExpTok() === null && document.getElementById('expNote').textContent === T.MSG_EXPORT_DAMAGED && document.getElementById('expNote').style.display === '' && document.getElementById('expDone').style.display === 'none', 'Fehler: Meldung im Blatt, Zustand zurück, erneuter Export möglich');
+    ok(global.CLICKS.length === 0, 'Abbruch/Fehler lösen keinen Download aus');
+    T.setExporting(false);
+    // Beenden-Warnung: nur beim Export bzw. mit ungespeicherten Änderungen
+    ok(T.leaveWarningNeeded() === false, 'ohne Export/Änderungen: keine Warnung');
+    T.setExporting(true); ok(T.leaveWarningNeeded() === true && T.confirmLeaveExport() === false, 'Export läuft: Warnung + ohne Bestätigung bleiben'); T.setExporting(false);
+    global.CLICKS = prevClicks;
   }
 
   // Lücken schließen: kurze Lücken (< GAP_CLOSE_SEC) zu, nie über Szenenschnitt, lange Pausen bleiben
@@ -2987,6 +3149,71 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setEmphState(true, false, 'off');
     ok(T.zoomAt(1.5) === 1, 'Auto zoom aus → nie Zoom');
 
+    // Lokaler Ersatz (ohne KI) für JEDE Sprache: stärkstes Schlüsselwort je ~6-s-Fenster, ≥ 1 Moment je ~8 s, Abstand ≥ 4 s
+    {
+      const txt = 'We started the small bakery downtown after years of dreaming about fresh sourdough bread. Every morning customers line up outside waiting patiently for warm croissants. Our neighbors tell everybody about the wonderful pastries. Eventually journalists discovered our little shop and wrote glowing reviews everywhere.';
+      const wsz = seqE(txt); // 0,35 s je Wort → ~ 21 s ohne Zahlen
+      T.setState(T.buildCaptionBlocks(wsz), wsz.slice(), 'karaoke');
+      const Be = T.getBlocks(), allW = Be.flatMap(b => b.words), dur = allW[allW.length - 1].end;
+      T.localEmphasis(Be, 'en', dur + 0.3);
+      const zs = allW.filter(w => w.zm).map(w => w.start);
+      ok(!allW.some(w => /\d/.test(w.word)) && zs.length >= Math.floor(dur / 8) && zs.length >= 2, 'Heuristik EN ohne Zahlen: ≥ 1 Zoom-Moment je ~8 s (' + zs.length + ' bei ' + dur.toFixed(1) + ' s)');
+      ok(zs.every((t, i) => !i || t - zs[i - 1] >= 4 - 1e-9), 'Zoom-Momente (lokal) ≥ ZOOM_GAP auseinander: ' + zs.join(', '));
+      const gaps = [zs[0] - allW[0].start].concat(zs.map((t, i) => (i + 1 < zs.length ? zs[i + 1] : dur) - t));
+      ok(Math.max(...gaps) <= 8.5, 'Zoom-Momente (lokal): keine Lücke > ~8 s (max ' + Math.max(...gaps).toFixed(1) + ' s)');
+      ok(allW.filter(w => w.zm).every(w => w.start <= dur - 0.7) && T.zoomFill(Be, 'en', dur + 0.3, 8) === 0, 'Zoom-Momente (lokal): nicht am Videoende, zweiter Lauf setzt nichts mehr');
+      ok(allW.filter(w => w.zm).every(w => w.word.replace(/\W/g, '').length >= 5), 'Zoom-Momente (lokal): nur Inhaltswörter (≥ 5 Zeichen)');
+      // Name mitten im Satz schlägt das längere gewöhnliche Wort (EN), Zahl schlägt beides
+      const nm = seqE('we met Alexander yesterday while shopping'), nb = [{ words: nm, start: 0, end: 3, text: 'x' }];
+      T.localEmphasis(nb, 'en');
+      ok(nm[2].zm === 1 && !nm[4].zm, 'Zoom: Name mitten im Satz hat Vorrang');
+      // Deutsch: Nomen/Zahlen bleiben priorisiert
+      const wd = seqE('Wir bauen seit 1995 unser eigenes Brot und verkaufen jeden Samstag frische Brötchen auf dem Markt');
+      const bd = [{ words: wd, start: 0, end: 5, text: 'x' }]; T.localEmphasis(bd, 'de', 4.6);
+      ok(wd.filter(w => w.zm).length === 1 && wd.find(w => w.zm).word === '1995', 'Zoom (DE): Zahl hat Vorrang vor Nomen');
+      // keine Inhaltswörter → kein Moment, kein Absturz
+      const wn = seqE('and so on and so on and so'); const bn = [{ words: wn, start: 0, end: 3, text: 'x' }];
+      ok(T.zoomFill(bn, 'en', 0, 8) === 0 && !wn.some(w => w.zm), 'Zoom: ohne Inhaltswörter kein Moment');
+      // Nutzer-Aus (kw -1) wird nie zum Zoom-Moment; vorhandene (KI-)Momente bleiben bestehen
+      const wk = seqE('Wunderbar wundervolle fantastische Aussicht heute'), bk = [{ words: wk, start: 0, end: 3, text: 'x' }];
+      wk.forEach(w => { w.kw = -1; }); ok(T.zoomFill(bk, 'de', 0, 8) === 0, 'Zoom: kw = -1 (Nutzer-Aus) wird übersprungen');
+    }
+
+    // Rückmeldung beim Umschalten (Toast mit Anzahl/Hinweis, Vorführung nur bei Pause, nie bei reduzierter Bewegung)
+    {
+      const wz = seqE('Our summer sale starts tomorrow with 50 percent discount on everything inside'), bz = [{ words: wz, start: 0, end: 5, text: 'x' }];
+      T.setState(T.buildCaptionBlocks(wz), wz.slice(), 'karaoke'); T.localEmphasis(T.getBlocks(), 'en', 6);
+      const vidZ = document.getElementById('mainVid');
+      vidZ.duration = 6; T.setVidReady(true); vidZ.paused = true; vidZ.ended = false; vidZ.currentTime = 0;
+      T.setEmphState(true, false, 'off'); T.setReduceMotion(false);
+      T.setEmphZoom('punchy');
+      const n1 = T.zoomPlan().length, fb0 = T.zoomFeedback();
+      ok(n1 >= 1 && fb0.n === n1 && fb0.msg === 'Auto zoom: ' + n1 + (n1 === 1 ? ' moment' : ' moments'), 'Auto zoom: Toast «Auto zoom: N moments» (' + fb0.msg + ')');
+      ok(T.getZoomDemo() && T.getZoomDemo().until > T.getZoomDemo().t0 && Math.abs((T.getZoomDemo().until - T.getZoomDemo().t0) - 1200) < 5, 'Pausiert: Zoom-Vorführung (~1,2 s) gestartet');
+      T.clearZoomDemo();
+      vidZ.paused = false;
+      const fb1 = T.zoomFeedback();
+      ok(T.getZoomDemo() === null && fb1.demo === false && /^Auto zoom: \d/.test(fb1.msg), 'Spielend: Toast, aber keine Vorführung');
+      vidZ.paused = true; T.setReduceMotion(true);
+      const fb = T.zoomFeedback();
+      ok(fb.demo === false && T.getZoomDemo() === null && /Preview animation off \(reduce motion\) — the export includes the zoom/.test(fb.msg) && /^Auto zoom: \d/.test(fb.msg), 'Reduce motion: nur Toast mit Hinweis, keine Vorführung');
+      T.setReduceMotion(false);
+      T.getBlocks().forEach(b => b.words.forEach(w => { delete w.zm; })); T.setEmphState(true, false, 'punchy');
+      const fb2 = T.zoomFeedback();
+      ok(fb2.n === 0 && fb2.msg === 'No zoom moments found — zooms start on key words and numbers' && T.getZoomDemo() === null, 'Null Momente: Hinweis «No zoom moments found…», keine Vorführung');
+      // Vorschau-Transform: Demo skaliert nur das Video; reduzierte Bewegung hält die Vorschau still
+      T.setState(T.buildCaptionBlocks(wz), wz.slice(), 'karaoke'); T.localEmphasis(T.getBlocks(), 'en', 6); T.setEmphState(true, false, 'punchy');
+      const zm0 = T.zoomPlan()[0];
+      vidZ.currentTime = zm0.s + 1 - T.getTimeOff(); T.applyPreviewZoom(vidZ.currentTime);
+      ok(/scale\(1\.1[0-9]+\)/.test(vidZ.style.transform || ''), 'Vorschau: Video-Transform scale(>1) mitten im Zoom-Moment (' + vidZ.style.transform + ')');
+      ok(document.getElementById('prevBlurBg').style.transform === vidZ.style.transform, 'Vorschau: Blur-Hintergrund zoomt mit dem Video (gleicher Transform)');
+      vidZ.currentTime = zm0.e + 0.5; T.applyPreviewZoom(vidZ.currentTime);
+      ok(!vidZ.style.transform, 'Vorschau: nach dem Moment wieder ohne Transform');
+      vidZ.currentTime = zm0.s + 1; T.setReduceMotion(true); T.applyPreviewZoom(vidZ.currentTime);
+      ok(!vidZ.style.transform, 'Vorschau bei reduzierter Bewegung: kein Transform (Export zoomt trotzdem)');
+      T.setReduceMotion(false); T.setEmphState(true, false, 'off'); T.applyPreviewZoom(vidZ.currentTime); T.setVidReady(false);
+    }
+
     // KI-Anfrage im Hintergrund: Erfolg (Endpoint-Fallback 404 → enhance.php) bzw. Fehler → lokale Heuristik
     T.setState(T.buildCaptionBlocks(ws), ws.slice(), 'karaoke'); B = T.getBlocks();
     let sent = [];
@@ -3030,7 +3257,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
         save() { this._st.push([this.globalAlpha, this.ty, this.fillStyle, this._font]); },
         restore() { const v = this._st.pop(); if (v) { this.globalAlpha = v[0]; this.ty = v[1]; this.fillStyle = v[2]; this._font = v[3]; } },
         translate(x, y) { this.ty += y; }, scale() {}, rotate() {},
-        fillText(t, x, y) { this.calls.push({ t, x, y: y + this.ty, a: this.globalAlpha, fs: this.fillStyle, font: this._font }); }, strokeText() {},
+        fillText(t, x, y) { this.calls.push({ t, x, y: y + this.ty, a: this.globalAlpha, fs: this.fillStyle, font: this._font, sb: this.shadowBlur, sc: this.shadowColor }); }, strokeText() {},
         roundRect(x, y, w, h) { this.rects.push({ x, y: y + this.ty, w, h, a: this.globalAlpha, fs: this.fillStyle }); }, rect(x, y, w, h) { this.rects.push({ x, y, w, h, a: this.globalAlpha }); },
         beginPath() {}, fill() {}, stroke() {}, ellipse() {}, fillRect() {}, drawImage() { this.imgs++; }, createLinearGradient() { return { addColorStop() {} }; } };
       return c;
@@ -3067,7 +3294,57 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(h1.hk > 0 && h1.hk < 1 && h0.hk > 0 && h0.hk < 1, 'Highlight: Farbwechsel weich (aktiv ' + h1.hk.toFixed(2) + ', vorher ' + h0.hk.toFixed(2) + ')');
     ok(fx(hz, 1, 1.5 + M.hl).hk === 1 && fx(hz, 0, 1.5 + M.hl).hk === 0 && fx(hz, 2, 1.53).hk === 0, 'Highlight: danach eindeutig');
     let peak = 1; for (let k = 0; k <= 40; k++) { const a = fx(hz, 1, 1.5 + k * 0.01).a; if (a) peak = Math.max(peak, a.sx); }
-    ok(peak > 1 && peak <= 1.04 + 1e-9, 'Bold Pop: Pop hoechstens 1.04: ' + peak.toFixed(3));
+    ok(peak >= 1.1 && peak <= 1.14 + 1e-9, 'Bold Pop: Pop deutlich sichtbar, hoechstens 1.14: ' + peak.toFixed(3));
+    // Word pop (csAnim): jede Option sofort deutlich erkennbar — auch ein einzelnes Bild kurz nach Wortbeginn (80 ms)
+    {
+      const csHtml = htmlContent.match(/<select id="csAnim"[\s\S]*?<\/select>/)[0];
+      const opts = [...csHtml.matchAll(/<option value="(\w+)">/g)].map(m => m[1]);
+      ok(opts.join() === 'none,scale,punch,bounce,flash,glow', 'csAnim: Optionen None/Pop/Punch/Lift/Fade/Glow: ' + opts.join());
+      const strong = a => a && (Math.abs(a.sx - 1) >= 0.1 || Math.abs(a.ty) >= 0.15 || a.op <= 0.3 || a.glow >= 0.5);
+      ok(T.animState('none', 0.08) === null && T.animState('scale', T.ANIM_DUR) === null && T.animState('scale', -0.1) === null, 'animState: none/abgelaufen/vorher → null');
+      opts.filter(o => o !== 'none').forEach(o => {
+        const a = T.animState(o, 0.08);
+        ok(a !== null && strong(a), 'Word pop «' + o + '» bei 80 ms deutlich erkennbar: ' + JSON.stringify(a));
+        let mx = { sx: 1, ty: 0, op: 1, glow: 0 };
+        for (let k = 0; k <= 339; k++) { const q = T.animState(o, k * 0.001); mx = { sx: Math.max(mx.sx, q.sx), ty: Math.max(mx.ty, q.ty), op: Math.min(mx.op, q.op), glow: Math.max(mx.glow, q.glow) }; }
+        ok(mx.sx >= 1.14 - 1e-9 || mx.ty >= 0.22 - 1e-9 || mx.op <= 1e-9 || mx.glow >= 1 - 1e-9, 'Word pop «' + o + '»: Spitzenausschlag: ' + JSON.stringify(mx));
+        const e = T.animState(o, T.ANIM_DUR - 1e-6);
+        ok(Math.abs(e.sx - 1) < 0.02 && Math.abs(e.ty) < 0.01 && e.op > 0.98 && e.glow < 0.02, 'Word pop «' + o + '» endet im Ruhezustand');
+      });
+      ok(near(T.animState('punch', 0).sx, 1.28) && near(T.animState('punch', 0.17).sx, 1.0 + 0.28 * Math.pow(0.5, 3)) && T.animState('punch', 0.08).sx < T.animState('punch', 0.0).sx, 'Punch: 1.28 → 1 mit ease-out');
+      ok(near(T.animState('bounce', 0).ty, 0.22) && near(T.animState('bounce', 0).op, 0.5) && near(T.animState('flash', 0).op, 0) && near(T.animState('wobble', 0.1).ty, T.animState('bounce', 0.1).ty), 'Lift: 0,22 em + Deckkraft .5; Fade: 0; wobble = Lift');
+      // Vorschau = Export: die CSS-Keyframes (Kacheln/Hover) tragen dieselben Werte wie ANIM_KEYFRAMES
+      const css = n => (htmlContent.match(new RegExp('@keyframes captly-' + n + '(\\{.*)')) || [, ''])[1];
+      const nums = (str, re) => [...str.matchAll(re)].map(m => parseFloat(m[1]));
+      const kfMax = (n, k) => Math.max(...T.ANIM_KEYFRAMES[n].map(e => e[1][k] === undefined ? -Infinity : e[1][k]));
+      ok(Math.max(...nums(css('scale'), /scale\(([\d.]+)\)/g)) === kfMax('scale', 'sx'), 'CSS = JS: Pop-Spitze ' + kfMax('scale', 'sx'));
+      ok(nums(css('punch'), /scale\(([\d.]+)\)/g)[0] === kfMax('punch', 'sx') && /cubic-bezier\(\.33,1,\.68,1\)/.test(css('punch')), 'CSS = JS: Punch-Start ' + kfMax('punch', 'sx') + ' + ease-out');
+      ok(nums(css('bounce'), /translateY\(([\d.]+)em\)/g)[0] === kfMax('bounce', 'ty') && nums(css('bounce'), /opacity:([\d.]+)/g)[0] === T.ANIM_KEYFRAMES.bounce[0][1].op, 'CSS = JS: Lift ty (em) + Deckkraft');
+      ok(nums(css('flash'), /opacity:([\d.]+)/g)[0] === T.ANIM_KEYFRAMES.flash[0][1].op && css('wobble') === css('bounce'), 'CSS = JS: Fade-Start; wobble = Lift');
+      ok(/drop-shadow\(0 0 \.35em currentColor\)/.test(css('glow')) && !/brightness/.test(css('glow')) && !/bright|brightness/.test(htmlContent.match(/var ANIM_KEYFRAMES[\s\S]*?\n\};/)[0]), 'Glow: Leuchten statt brightness (CSS + JS)');
+      // Glow im Export: Schatten in der Highlight-Farbe nur während der Animation, Pop ohne Schatten-Zusatz
+      const gs = Object.assign({}, ST('hormozi'), { anim: 'glow', hls: 'none', hl: '#ff3366', motion: undefined });
+      const glowCalls = (t, st) => { const c = mkCtx(null); T.drawCaptionsOnCtx(c, t, st, 1080, 1920, false); return c.calls.filter(k => k.t.toLowerCase() === 'zwei'); };
+      const g1 = glowCalls(1.5 + 0.1, gs), g2 = glowCalls(1.5 + 0.45, gs), g3 = glowCalls(1.5 + 0.1, Object.assign({}, gs, { anim: 'scale' }));
+      ok(g1.some(k => k.sb > 4 && k.sc === '#ff3366'), 'Export Glow: Leuchten in der Highlight-Farbe am aktiven Wort: ' + JSON.stringify(g1.map(k => [k.sb, k.sc])));
+      ok(g2.every(k => !(k.sb > 0)) && g3.every(k => !(k.sb > 0)), 'Export Glow: nach 0,34 s und bei Pop kein Leuchten');
+      ok(T.capGlowLayers(gs, 1, 0, 40).length === 0 && T.capGlowLayers(gs, 1, 1, 40).length === 3 && T.capGlowLayers({ hlPillBg: '#0f0', hl: '#fff' }, 1, 1, 40)[0].color === '#0f0', 'capGlowLayers: Farbe = Highlight (Pill: Pill-Farbe), 0 = aus');
+      // Panel: Word pop nur beim Highlight — sonst Zeile weg + Hinweis; reduzierte Bewegung → Hinweis, keine Demo
+      const E = id => document.getElementById(id);
+      E('csMotion').value = 'reveal'; E('csAnim').value = 'scale'; T.syncCsUi();
+      ok(E('csAnimRow').style.display === 'none' && E('csAnim').disabled === true && /Animation: Highlight/.test(E('csAnimHint').textContent) && E('csAnimHint').style.display === '', 'Reveal: Word-pop-Zeile ausgeblendet + Hinweis «Word pop works with Animation: Highlight»');
+      E('csMotion').value = 'fill'; T.syncCsUi();
+      ok(E('csAnimRow').style.display === 'none', 'Fill: Zeile ausgeblendet');
+      E('csMotion').value = 'highlight'; T.syncCsUi();
+      ok(E('csAnimRow').style.display === '' && E('csAnim').disabled === false && E('csAnimHint').textContent === '' && E('csAnimHint').style.display === 'none', 'Highlight: Zeile sichtbar, kein Hinweis');
+      T.setReduceMotion(true); T.syncCsUi();
+      ok(/reduce motion/.test(E('csAnimHint').textContent) && /export includes the animation/.test(E('csAnimHint').textContent) && T.capAnimDemoStart() === false && T.getAnimDemo() === null, 'Bewegung reduzieren: Hinweis, keine Demo');
+      E('csAnim').value = 'none'; T.syncCsUi();
+      ok(E('csAnimHint').textContent === '', 'Bewegung reduzieren + «None»: kein Hinweis');
+      T.setReduceMotion(false); E('csAnim').value = 'scale'; T.syncCsUi();
+      ok(E('csAnimHint').textContent === '' && T.capAnimDemoStart() === true && T.getAnimDemo() && T.getAnimDemo().until > T.getAnimDemo().t0, 'Pausiert: Demo startet (~0,6 s virtuelle Zeit)');
+      T.clearAnimDemo();
+    }
     ok(T.STYLES.slice(0, 19).every(x => !['punch'].includes(x.anim)), 'Presets ohne Punch-Bounce');
     ok(T.capMixColor('#ffffff', '#000000', 0.5) === 'rgba(128,128,128,1)' && T.capMixColor('#fff', '#FFD60A', 0) === '#fff' && T.capMixColor('#fff', '#FFD60A', 1) === '#FFD60A', 'capMixColor');
     // Block ein-/ausblenden (Lücke nach dem Block → Ausblenden; direkt anschliessender Block → kein Flackern)
@@ -3131,12 +3408,13 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); const cv = { width: 0, height: 0 }; const cx = mkCtx(cv); cv.getContext = () => cx; layers.push(cx); return cv; };
       const main = mkCtx({ width: 1080, height: 1921 }); // eigene Größe → frische Ebene
       T.drawCaptionsOnCtx(main, 2.73, rv, 1080, 1921, false);
-      const n1 = layers.reduce((a, l) => a + l.calls.length, 0);
+      const cntFill = () => layers.reduce((a, l) => a + l.calls.filter(k => k.sc === 'transparent').length, 0); // nur die scharfe Füllung (Schatten-Schichten zählen nicht: Lesbarkeits-Halo hat mehrere)
+      const n1 = cntFill();
       T.drawCaptionsOnCtx(main, 2.76, rv, 1080, 1921, false);
       T.drawCaptionsOnCtx(main, 2.79, rv, 1080, 1921, false);
-      ok(n1 === 4 && layers.reduce((a, l) => a + l.calls.length, 0) === n1 && main.calls.length === 0 && main.imgs === 3, 'Reveal-Export: Endzustand aus der Ebene (kein Neuzeichnen pro Frame)');
+      ok(n1 === 4 && cntFill() === n1 && main.calls.length === 0 && main.imgs === 3, 'Reveal-Export: Endzustand aus der Ebene (kein Neuzeichnen pro Frame)');
       const mid2 = mkCtx({ width: 1080, height: 1921 }); T.drawCaptionsOnCtx(mid2, 2.55, rv, 1080, 1921, false);
-      ok(mid2.calls.length === 1 && mid2.calls[0].t === 'vier', 'Reveal-Export: nur das einblendende Wort wird live gezeichnet');
+      const mid2f = mid2.calls.filter(k => k.sc === 'transparent'); ok(mid2f.length === 1 && mid2f[0].t === 'vier' && mid2.calls.every(k => k.t === 'vier'), 'Reveal-Export: nur das einblendende Wort wird live gezeichnet');
       document.createElement = origCreate;
     }
     // Vorschau-HTML: keine CSS-Animation (Zeit-basiert per capDomMotion), Wort-Index, Box als eigene Fläche
@@ -3247,6 +3525,67 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(cs.t === 3 && cs.dark === 70 && cs.title === 'Hallo Welt' && cs.kw.join() === '1,7' && cs.style === 'tight' && cs.size === 1.4 && cs.pos === 'bottom' && cs.guides === false, 'Cover: gespeicherte Einstellungen werden geprüft/begrenzt');
     T.coverRestore(null);
     ok(T.getCover().title === '' && T.getCover().style === 'tight', 'Cover: ohne Eintrag Standard');
+    ok(cs.align === 'center' && cs.ox === 0 && cs.oy === 0 && JSON.stringify(cs.wo) === '{}', 'Cover: Projekt ohne Ausrichtung/Verschiebung sieht aus wie bisher (mittig, Offsets 0)');
+    // Ausrichtung/Verschiebung: kaputte Werte werden verworfen bzw. auf ±0.5 begrenzt
+    T.coverRestore({ title: 'A B C', align: 'diagonal', ox: 9, oy: 'x', wo: { 0: [0.9, -9], 1: [1], 2: ['a', 0], x: [0.1, 0.1], 99: [0.1, 0.1], 3: [0, 0], 4: [0.25, -0.125] } });
+    let cs2 = T.getCover();
+    ok(cs2.align === 'center' && cs2.ox === 0.5 && cs2.oy === 0, 'Cover: unbekannte Ausrichtung → mittig, Offset ±0.5 begrenzt, Text-Offset → 0');
+    ok(JSON.stringify(cs2.wo) === '{"0":[0.5,-0.5],"4":[0.25,-0.125]}', 'Cover: Wort-Offsets: nur gültige Indizes/Paare, begrenzt, Nullen entfallen: ' + JSON.stringify(cs2.wo));
+    const manyWo = {}; for (let i = 0; i < 40; i++) manyWo[i] = [0.1, 0.1]; manyWo[55] = [0.1, 0.1]; manyWo['__proto__'] = [0.1, 0.1];
+    T.coverRestore({ wo: manyWo });
+    ok(Object.keys(T.getCover().wo).length === 40 && T.getCover().wo[55] === undefined && ({}).polluted === undefined, 'Cover: höchstens 40 Wort-Offsets, nur Indizes 0–39');
+    T.coverRestore({ wo: [[0.1, 0.1]] }); ok(JSON.stringify(T.getCover().wo) === '{}', 'Cover: wo als Liste → leer');
+    T.coverRestore({ wo: 'x', align: 'left', ox: -0.3, oy: 0.2 }); cs2 = T.getCover();
+    ok(cs2.align === 'left' && cs2.ox === -0.3 && cs2.oy === 0.2 && JSON.stringify(cs2.wo) === '{}', 'Cover: gültige Ausrichtung/Verschiebung bleiben');
+    // Cover-Akzent wirkt bei jedem Look: Looks ohne Betonung (Tight/Statement) bekommen Fallback-Farbe, die anderen behalten ihre
+    { const ce = id => T.coverEmColor(T.STYLES.find(x => x.id === id));
+      ok(ce('tight') === '#FFD60A' && ce('statement') === '#fff' && ce('mix') === '#4ade80' && ce('hormozi') && T.STYLES.filter(x => ['tight','mix','statement','accent','serifbold','hormozi','editorial'].includes(x.id)).every(x => !!T.coverEmColor(x) || !!x.emFont), 'Cover: Akzent-Farbe für jeden Look (Tight → Gelb, Statement → Weiss, Mix unverändert)'); }
+    // Titel zeichnen: Ausrichtung links/rechts liegt an den Kanten von maxW, Offsets verschieben (und sind begrenzt), Wörter haben Trefferflächen
+    {
+      const sty = T.STYLES.find(x => x.id === 'tight'), ctx = document.createElement('canvas').getContext('2d');
+      const draw = o => T.coverDrawTitle(ctx, 1080, 1920, Object.assign({ title: 'Hallo schöne Welt heute', kw: [], style: 'tight', size: 1, pos: 'mid', align: 'center', ox: 0, oy: 0, wo: {} }, o), sty);
+      const maxW = T.coverMaxW(1080, 1920), base = draw({});
+      ok(base && base.words.length === 4 && Math.abs(base.x + base.w / 2 - 540) < 1, 'Cover: mittig → Box in der Bildmitte (vier Wort-Trefferflächen)');
+      const L = draw({ align: 'left' }), R = draw({ align: 'right' });
+      ok(Math.abs(L.x - (1080 - maxW) / 2) < 0.01 && Math.abs(R.x + R.w - (1080 + maxW) / 2) < 0.01, 'Cover: links/rechts → Box an der linken/rechten Kante von maxW (' + L.x + ' / ' + (R.x + R.w) + ')');
+      ok(T.coverAlignX('left', 1080, 800, 300) === 140 && T.coverAlignX('right', 1080, 800, 300) === 640 && T.coverAlignX('center', 1080, 800, 300) === 390 && T.coverAlignX('???', 1080, 800, 300) === 390, 'Cover: coverAlignX');
+      const mv = draw({ ox: 0.1, oy: -0.1 });
+      ok(Math.abs(mv.x - base.x - 108) < 0.01 && Math.abs(mv.y - base.y + 192) < 0.01 && mv.w === base.w && mv.h === base.h, 'Cover: Offsets ox/oy verschieben die Box in Anteilen von W/H');
+      const cl = draw({ ox: 7, oy: -7 });
+      ok(Math.abs(cl.x - base.x - 540) < 0.01 && Math.abs(cl.y - base.y + 960) < 0.01, 'Cover: Offsets sind auf ±0.5 begrenzt (auch direkt im Zustand)');
+      const bad = draw({ ox: NaN, oy: 'x', align: 'x', wo: 'x' });
+      ok(Math.abs(bad.x - base.x) < 0.01 && Math.abs(bad.y - base.y) < 0.01, 'Cover: kaputte Zustandswerte zeichnen wie Standard');
+      const w1 = draw({ wo: { 1: [0.1, 0.05] } });
+      ok(Math.abs(w1.words[1].x - base.words[1].x - 108) < 0.01 && Math.abs(w1.words[1].y - base.words[1].y - 96) < 0.01 && w1.words[0].x === base.words[0].x && w1.words[2].y === base.words[2].y, 'Cover: Wort-Offset verschiebt nur dieses Wort');
+      ok(w1.y + w1.h >= w1.words[1].y + w1.words[1].h - 0.01 && w1.x <= base.x + 0.01, 'Cover: Box umschliesst auch verschobene Wörter (Safe-Zone-Prüfung)');
+      const hw = base.words[2];
+      ok(T.coverHitWord(base.words, { x: hw.x + hw.w / 2, y: hw.y + hw.h / 2 }) === hw.i && T.coverHitWord(base.words, { x: 5, y: 5 }) === -1 && T.coverHitWord(base.words, { x: hw.x - 4, y: hw.y + 2 }, 8) >= 0, 'Cover: Treffer auf Wort (mit Toleranz), daneben -1');
+    }
+    // Einrasten: Mittellinie und Safe-Zone-Ränder, nur innerhalb der Schwelle
+    {
+      const reg = T.coverSafeRegion(1080, 1920);
+      const sn = T.coverSnap({ x: 440, y: 900, w: 200, h: 100 }, reg, 1080, 1920, 10); // Mitte x = 540 → rastet; y-Mitte 950 ≠ 960 (Δ10) → rastet auch
+      ok(sn.dx === 0 && sn.vx === 540 && sn.dy === 10 && sn.vy === 960, 'Cover: Einrasten an Bild-Mitte (x/y)');
+      const sn2 = T.coverSnap({ x: 100, y: 400, w: 200, h: 100 }, reg, 1080, 1920, 10);
+      ok(sn2.dx === 0 && sn2.vx === null && sn2.dy === 0 && sn2.vy === null, 'Cover: weit weg → kein Einrasten');
+      const sn3 = T.coverSnap({ x: reg.x + 6, y: reg.y + 3, w: 200, h: 100 }, reg, 1080, 1920, 10);
+      ok(sn3.dx === -6 && sn3.vx === reg.x && sn3.dy === -3 && sn3.vy === reg.y, 'Cover: Einrasten am Safe-Zone-Rand oben/links');
+      const sn4 = T.coverSnap({ x: reg.x + reg.w - 200 - 4, y: reg.y + reg.h - 100 + 5, w: 200, h: 100 }, reg, 1080, 1920, 10);
+      ok(sn4.dx === 4 && sn4.vx === reg.x + reg.w && sn4.dy === -5 && sn4.vy === reg.y + reg.h, 'Cover: Einrasten am Safe-Zone-Rand unten/rechts');
+    }
+    // Zustand: Position-/Ausrichtungs-Knopf setzt die jeweilige Verschiebung zurück, Reset leert alles, Wortanzahl ändern leert wo, Payload trägt alles
+    {
+      T.coverRestore({ title: 'Eins zwei drei', kw: [0], align: 'right', ox: 0.2, oy: -0.2, wo: { 1: [0.1, 0.1] }, pos: 'top' });
+      ok(T.coverMoved(T.getCover()), 'Cover: verschoben → Reset-Knopf aktiv');
+      const pc = T.projectPayload().cover;
+      ok(pc && pc.align === 'right' && pc.ox === 0.2 && pc.oy === -0.2 && JSON.stringify(pc.wo) === '{"1":[0.1,0.1]}', 'Cover: Projekt-Payload enthält align/ox/oy/wo');
+      T.coverOnTitle('Eins zwei drei'); ok(JSON.stringify(T.getCover().wo) === '{"1":[0.1,0.1]}', 'Cover: gleiche Wortanzahl → Wort-Offsets bleiben');
+      T.coverOnTitle('Eins zwei'); ok(JSON.stringify(T.getCover().wo) === '{}' && T.getCover().ox === 0.2, 'Cover: andere Wortanzahl → Wort-Offsets zurück (Titel-Offset bleibt)');
+      T.coverSet('pos', 'mid'); ok(T.getCover().oy === 0 && T.getCover().ox === 0.2, 'Cover: Position wählen setzt nur die senkrechte Verschiebung zurück');
+      T.coverSet('align', 'left'); ok(T.getCover().ox === 0 && T.getCover().align === 'left', 'Cover: Ausrichtung wählen setzt nur die waagrechte Verschiebung zurück');
+      T.coverRestore({ title: 'A', ox: 0.1, oy: 0.1, wo: { 0: [0.1, 0.1] } }); T.coverResetPos();
+      ok(!T.coverMoved(T.getCover()) && T.getCover().align === 'center', 'Cover: Reset position → keine Verschiebung');
+    }
   }
 
   // Style Drops (styles.json): bereinigt, nur lokale Schriften, nie eingebaute IDs überschreiben, „New“ 30 Tage
@@ -3282,6 +3621,54 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.tlGet().multi === false && T.tlGet().end === -1, 'Ausschalten hebt den Bereich auf');
   }
 
+  // Timeline Auswahlrahmen / Wisch: tlSweepRange (reine Funktion) + tlSweepApply (live Auswahl)
+  {
+    const R = (bl, a, b) => JSON.stringify(T.tlSweepRange(bl, a, b));
+    const bl = [0, 2, 4, 6, 8].map(s => ({ start: s, end: s + 1, text: 't' + s }));   // Lücken [1,2] [3,4] …
+    ok(R(bl, 0.2, 4.5) === '{"a":0,"b":2}', 'Sweep: Fenster über drei Blöcke → 0…2: ' + R(bl, 0.2, 4.5));
+    ok(R(bl, 4.5, 0.2) === '{"a":0,"b":2}', 'Sweep: umgekehrte Richtung gleich');
+    ok(R(bl, 2.5, 2.9) === '{"a":1,"b":1}', 'Sweep: Fenster in einem Block → genau dieser: ' + R(bl, 2.5, 2.9));
+    ok(R(bl, 1.2, 1.8) === 'null' && R(bl, 1.2, 1.8) === R(bl, 1.8, 1.2), 'Sweep: Fenster in der Lücke → null');
+    ok(R(bl, 1, 2) === '{"a":0,"b":1}' && R(bl, 1.001, 1.999) === 'null', 'Sweep: Berühren der Kante zählt (inklusive)');
+    ok(R(bl, -5, 0) === '{"a":0,"b":0}' && R(bl, 9, 50) === '{"a":4,"b":4}', 'Sweep: Ränder der Liste (Fenster ragt hinaus)');
+    ok(R(bl, -5, -1) === 'null' && R(bl, 9, 50) === '{"a":4,"b":4}' && R(bl, 9.001, 50) === 'null', 'Sweep: ausserhalb → null');
+    ok(R(bl, -100, 100) === '{"a":0,"b":4}', 'Sweep: Fenster über alles → ganze Liste');
+    ok(R([], 0, 5) === 'null' && R(null, 0, 5) === 'null' && R(bl, NaN, 3) === 'null', 'Sweep: leere Liste / ungültige Zeit → null');
+    // Viele Blöcke: Binärsuche gleicht einer linearen Referenz
+    const big = Array.from({ length: 500 }, (_, i) => ({ start: i * 0.7, end: i * 0.7 + 0.5 }));
+    let bad = 0;
+    for (let k = 0; k < 300; k++) {
+      const a = (k * 37 % 350) + 0.013 * k, b = a + (k % 9) * 0.31;
+      let ra = -1, rb = -1;
+      big.forEach((x, i) => { if (x.end >= a && x.start <= b) { if (ra < 0) ra = i; rb = i; } });
+      const r = T.tlSweepRange(big, a, b);
+      if (ra < 0 ? r !== null : !r || r.a !== ra || r.b !== rb) bad++;
+    }
+    ok(bad === 0, 'Sweep: 500 Blöcke stimmen mit linearer Referenz überein (' + bad + ' Abweichungen)');
+    // Blöcke mit timeOff: Achse = Videozeit, Block-Zeit = Videozeit + off (tlSweepApply rechnet um)
+    T.setState([0, 2, 4, 6].map(s => ({ words: [{ word: 'w', start: s + 1, end: s + 2 }], start: s + 1, end: s + 2, text: 'w' + s })), [], null);
+    T.setTimeOffState(1);
+    const dn = { tDown: 1.2, sweepKey: null };   // Videozeit 1,2 = Block-Zeit 2,2 → Block 0 beginnt bei Block-Zeit 1…2 (Video 0…1)
+    T.tlSweepApply(dn, 3.6);                        // Video 1,2…3,6 = Block 2,2…4,6 → Block 1 (3…4) und Block 2 (5…6 nein, 4,6 < 5)
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[1,-1]', 'Sweep mit timeOff: Videozeit→Blockzeit umgerechnet: ' + [T.tlGet().sel, T.tlGet().end]);
+    T.tlSweepApply({ tDown: 0.5, sweepKey: null }, 4.5);
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[0,2]', 'Sweep mit timeOff: Bereich 0…2: ' + [T.tlGet().sel, T.tlGet().end]);
+    // Shift: bestehende Auswahl bleibt enthalten; Fenster in Lücke ohne Shift hebt auf
+    T.tlSweepApply({ tDown: 4.5, sweepKey: null, sweepBase: { a: 0, b: 0 } }, 5.2);   // Video 4,5…5,2 = Block-Zeit 5,5…6,2 → Block 2
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[0,2]', 'Sweep+Shift: erweitert die bestehende Auswahl: ' + [T.tlGet().sel, T.tlGet().end]);
+    T.tlSweepApply({ tDown: 3.1, sweepKey: null, sweepBase: { a: 1, b: 1 } }, 3.3);   // Lücke, aber Shift → Basis bleibt
+    ok(JSON.stringify([T.tlGet().sel, T.tlGet().end]) === '[1,-1]', 'Sweep+Shift in der Lücke: bestehende Auswahl bleibt: ' + [T.tlGet().sel, T.tlGet().end]);
+    T.tlSweepApply({ tDown: 3.1, sweepKey: null }, 3.3);   // Video 3,1…3,3 = Block-Zeit 4,1…4,3 → Lücke zwischen Block 1 (3…4) und 2 (5…6)
+    ok(T.tlGet().sel === -1 && T.tlGet().end === -1, 'Sweep ohne Shift in der Lücke: Auswahl aufgehoben');
+    T.setTimeOffState(0); T.tlSelState(-1, -1);
+    // tlHit auf der Wellenform (Desktop) = leere Fläche → Auswahlrahmen statt Block-Treffer
+    const mkH = () => [0, 2, 4].map(s => ({ words: [{ word: 'w', start: s, end: s + 1 }], start: s, end: s + 1, text: 'w' }));
+    T.setState(mkH(), [], null); T.setTlMob(false); T.setTlView({ start: 0, pps: 100 }); T.setTlSel(-1);
+    ok(T.tlHit(250, 30, false).type === 'empty' && T.tlHit(250, 18 + 10, false).type === 'empty', 'tlHit: Wellenform über einem Block = leer (Rahmen startet dort)');
+    ok(T.tlHit(250, 40, false).type === 'empty' || T.tlHit(250, 40, false).type === 'block', 'tlHit: Wellenform/Spur liefern keinen Fehler');
+    ok(T.tlHit(250, 10, false).type === 'ruler', 'tlHit: Lineal bleibt Seek');
+  }
+
   // «Trending»: nur ab genug Daten, nur eingebaute Styles ohne eigenes Abzeichen, höchstens 3
   {
     const top = [{ style: 'tight', n: 40 }, { style: 'hormozi', n: 20 }, { style: 'mix', n: 10 }, { style: 'statement', n: 5 }];
@@ -3315,6 +3702,88 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(!/aggregateRating|"review"/.test(enSrc.slice(0, enSrc.indexOf('<style>'))) && (enSrc.match(/<h1[\s>]/g) || []).length === 1, 'Landing: genau ein <h1>, keine Fake-Bewertungen im JSON-LD');
   }
 
+  // ── Customize-Regler ändern NIE Zeilen, Wörter/Caption, Zeichenlimit oder Blöcke (Bug: „Line height“ bei
+  //    Tight/Mix/Statement/One Word sprang auf das Preset-Layout zurück und verwarf manuelle Splits) ──
+  {
+    const qs0 = document.querySelector; document.querySelector = () => null; // splitBlockAtCursor fokussiert danach
+    const E = id => document.getElementById(id);
+    const lw = 'eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf'.split(' ').map((w, i) => ({ word: w, start: i * 0.4, end: i * 0.4 + 0.35 }));
+    const GROUPS = {
+      lh: () => { E('csLh').value = '1.6'; }, ls: () => { E('csLs').value = '3'; }, text: () => { E('csText').value = '#ff0000'; },
+      hlc: () => { E('csHl').value = '#00ff00'; }, font: () => { E('csFont').value = 'Inter'; }, weight: () => { E('csWeight').value = '400'; },
+      stroke: () => { E('csOutlineW').value = '3'; E('csOutlineC').value = '#112233'; }, glow: () => { E('csGlow').checked = true; E('csGlowInt').value = '20'; },
+      box: () => { E('csBox').value = 'box'; }, boxc: () => { E('csBoxC').value = '#2040ff'; }, hltype: () => { E('csHlType').value = 'pill'; },
+      motion: () => { E('csMotion').value = 'reveal'; }, anim: () => { E('csAnim').value = 'pop'; }, em: () => { E('csEm').value = '#ff00ff'; },
+      emfont: () => { E('csEmFont').value = 'Inter'; }
+    };
+    const presets = T.STYLES.filter(s => s.layout && s.id !== 'custom').map(s => s.id);
+    ok(['tight', 'mix', 'statement', 'popone'].every(id => presets.includes(id)), 'Layout-Presets vorhanden: ' + presets.join());
+    const mc0 = T.getMaxChars(), bad = [];
+    const prep = async pid => {
+      T.setState(T.buildCaptionBlocks(lw), lw.slice(), 'karaoke'); T.setCaptionsEdited(false);
+      T.selectStyle(pid); // Preset setzt sein Layout (z. B. 1 Wort, 1 Zeile)
+      T.setLines({ dataset: { lines: '2' } }); T.onWpbChange(4);
+      const b0 = T.getBlocks()[0];
+      await T.splitBlockAtCursor(0, { selectionStart: b0.text.indexOf(' '), value: b0.text }); // manueller Split
+      return T.captionSnapshot();
+    };
+    for (const pid of presets) for (const g of Object.keys(GROUPS)) {
+      const snap = await prep(pid);
+      GROUPS[g](); T.applyCustomStyle(g); T.flushCustomStyle();
+      const why = [T.getActiveId() !== 'custom' && 'aktiv ' + T.getActiveId(), T.getLines() !== 2 && 'Zeilen ' + T.getLines(),
+        T.getWpb() !== 4 && 'Wörter ' + T.getWpb(), T.getMaxChars() !== mc0 && 'Zeichen ' + T.getMaxChars(),
+        T.captionSnapshot() !== snap && 'Blöcke'].filter(Boolean);
+      if (why.length) bad.push(pid + '/' + g + ': ' + why.join(', '));
+    }
+    ok(!bad.length, 'Customize-Regler behalten Zeilen/Wörter/Zeichenlimit/Blöcke (' + presets.length + ' Presets × ' + Object.keys(GROUPS).length + ' Gruppen)' + (bad.length ? ': ' + bad.slice(0, 6).join(' | ') : ''));
+    ok(!('layout' in T.buildCustomStyle()), 'Custom-Style trägt kein Preset-Layout');
+    // Erneuter Klick auf die Custom-Kachel (ohne fromEditor) fasst das Layout nicht an
+    let snap = await prep('tight');
+    E('csLh').value = '1.5'; T.applyCustomStyle('lh'); T.flushCustomStyle();
+    T.selectStyle('custom');
+    ok(T.getActiveId() === 'custom' && T.getLines() === 2 && T.getWpb() === 4 && T.captionSnapshot() === snap, 'Klick auf Custom-Kachel: Layout + Blöcke bleiben');
+    // Preset gewählt (ohne manuelle Änderung) → Regler → Custom behält das Preset-Layout; danach normales Preset = vorheriges Layout zurück
+    T.setState(T.buildCaptionBlocks(lw), lw.slice(), 'karaoke'); T.setCaptionsEdited(false);
+    T.selectStyle('classic'); T.setLines({ dataset: { lines: '2' } }); T.onWpbChange(4);
+    T.selectStyle('tight');
+    const tl = T.getLines(), tw = T.getWpb(); snap = T.captionSnapshot();
+    E('csLh').value = '1.7'; T.applyCustomStyle('lh'); T.flushCustomStyle();
+    ok(T.getLines() === tl && T.getWpb() === tw && T.captionSnapshot() === snap && T.getPresetPrevLayout(), 'Tight → Zeilenhöhe: Layout/Blöcke unverändert, vorheriges Layout gemerkt');
+    T.selectStyle('custom');
+    ok(T.getLines() === tl && T.getWpb() === tw && T.captionSnapshot() === snap && T.getPresetPrevLayout(), 'Tight → Zeilenhöhe → Klick auf aktive Custom-Kachel: Layout unverändert');
+    T.selectStyle('classic');
+    ok(T.getLines() === 2 && T.getWpb() === 4 && !T.getPresetPrevLayout(), 'Danach normales Preset: vorheriges Layout zurück (2 Zeilen, 4 Wörter)');
+    document.querySelector = qs0; if (!qs0) delete document.querySelector;
+
+    // Zeilenhöhe 0.9–1.8 ändert weder Zeilenzahl (auch nicht über die Höhenbremse) noch die Zeilenverteilung
+    const texts = [['Heute', 'zeigen', 'wir', 'dir', 'alles'], ['Das', 'Rindfleischverarbeitungsbetriebe'], ['Bundesverfassungsgericht'],
+      ['eins', 'zwei', 'drei', 'vier', 'fünf', 'sechs', 'sieben', 'acht']];
+    const fs0 = T.getFontSize(), lines0 = T.getLines(), lhBad = [];
+    // Mess-Kontext wie der Stub, aber mit canvas.letterSpacing (Export setzt es; fitCaptionWords rechnet es selbst dazu)
+    const ctx = Object.assign(document.createElement('canvas').getContext('2d'), { letterSpacing: '0px',
+      measureText(str) { const m = /([\d.]+)px/.exec(this.font), n = (str || '').length; return { width: n * (m ? parseFloat(m[1]) : 16) * 0.55 + n * (parseFloat(this.letterSpacing) || 0) }; } });
+    for (const sid of ['classic', 'statement', 'tiktok', 'tight']) for (const px of [16, 30, 54]) for (const nl of [1, 2, 3]) for (const ws of texts) {
+      const base = T.STYLES.find(x => x.id === sid);
+      const sig = lh => {
+        const s = Object.assign({}, base, { id: 'lhtest', lh });
+        const f = T.fitCaptionWords(ws, s, px, T.capFitMaxW(s), nl);
+        const wr = T.wrapCaptionLines(ws, s, -1, f.px, nl);
+        T.setLinesState(nl); T.setFontSizeState(px);
+        const bw = ws.map((w, i) => ({ word: w, start: i, end: i + 0.5 }));
+        T.setState([{ words: bw, start: 0, end: ws.length, text: ws.join(' ') }], bw, 'karaoke');
+        const L = T.capLayout(ctx, T.getBlocks()[0], 0, -1, s, 1080, 1920);
+        if (Math.abs(L.lh - L.fsS * lh) > 1e-9) lhBad.push(sid + ': Export-Zeilenabstand ' + L.lh + ' ≠ fs·L ' + L.fsS * lh);
+        return [f.lines, f.words.join(' '), JSON.stringify(wr), L.lines.map(l => l.length).join('/')].join(' | ');
+      };
+      const ref = sig(1.3);
+      for (let lh = 0.9; lh <= 1.8001; lh += 0.05) { const v = sig(Math.round(lh * 100) / 100); if (v !== ref) { lhBad.push(sid + ' ' + px + 'px ' + nl + 'Z „' + ws.join(' ') + '“ lh ' + lh.toFixed(2) + ': ' + v + ' ≠ ' + ref); break; } }
+    }
+    T.setLinesState(lines0); T.setFontSizeState(fs0);
+    ok(!lhBad.length, 'Zeilenhöhe 0.9–1.8 ändert Zeilenzahl/Umbruch nie (fitCaptionWords, wrapCaptionLines, capLayout)' + (lhBad.length ? ': ' + lhBad.slice(0, 4).join(' | ') : ''));
+    ok(T.getFontSize() === fs0, 'Schriftgrösse unverändert');
+    ok(/#capOverlay\{[^}]*line-height:0[;}]/.test(htmlContent), 'Vorschau: #capOverlay ohne Strut (line-height:0) — Box-Geometrie wie im Export');
+  }
+
   // ── Konto selbst löschen: RPC delete_my_account, danach lokal abgemeldet; Abbruch/Fehler lassen alles stehen ──
   {
     const calls = []; let rpcErr = null, asked = 0;
@@ -3339,6 +3808,375 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(/grant execute on function public\.delete_my_account\(\) to authenticated/.test(sql), 'Konto löschen: schema.sql gibt delete_my_account an angemeldete Nutzer frei');
   }
 
+  // ── Style-Panel (P4): Struktur, IDs, Reihenfolge, abhängige Zeilen ──
+  {
+    const E = id => document.getElementById(id);
+    // Alle Kontroll-IDs des alten Customize-Panels (Stand 91a81c1; ohne die reinen Container qQuick/csMore) gibt es weiterhin genau einmal
+    const OLD_IDS = ('szSlider szDisp posRow wpbSlider wpbDisp mcAuto mcSel mcDisp linesRow caseSel emGrp emKwBtn emEmoBtn emZoomRow emNote advSet csLs csLsDisp csLh csLhDisp ' +
+      'csText csHlSw csHl csHlLbl csFont fontUpload csWeight csEm csEmFont csOutlineW csOutlineDisp csOutlineC csShadow csGlow csGlowInt csBox csBoxC csBoxO csBoxR csBoxRDisp ' +
+      'csHlType csMotion csAnimRow csAnim csAnimHint pauseChk cutChk punctBtn toSlider toDisp tplCount tplName tplSaveBtn tplStatus tplEditing tplImport').split(' ');
+    const dup = OLD_IDS.filter(id => (htmlContent.match(new RegExp('\\bid="' + id + '"', 'g')) || []).length !== 1);
+    ok(dup.length === 0, 'Style-Panel: alle ' + OLD_IDS.length + ' Kontroll-IDs des alten Panels existieren genau einmal' + (dup.length ? ' (Abweichung: ' + dup.join(', ') + ')' : ''));
+    ok(!/csUpper/.test(htmlContent), 'Style-Panel: toter Code csUpper entfernt');
+    // Gruppenreihenfolge: Looks → Text → Animation → Layout → Effekte → Erweitert → Template speichern
+    const order = ['id="stylePicker"', 'id="csgText"', 'id="csgAnim"', 'id="csgLayout"', 'id="csgFx"', 'id="advSet"', 'id="csgTpl"'].map(k => htmlContent.indexOf(k));
+    ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), 'Style-Panel: Gruppenreihenfolge Looks · Text · Animation · Layout · Effekte · Erweitert · Template: ' + order.join(','));
+    // Handy-Customizer: Chip-Leiste «Customize» zeigt auf existierende Gruppen (IDs, Reihenfolge wie im Panel), Advanced-Ziel ist ein <details>
+    {
+      const chipT = [...htmlContent.matchAll(/class="cs-chip[^"]*" data-target="(\w+)"/g)].map(m => m[1]);
+      const goto = [...htmlContent.matchAll(/class="cs-chip[^"]*" data-target="(\w+)"[^>]*onclick="csGoto\('(\w+)'\)"/g)].every(m => m[1] === m[2]);
+      const pos = chipT.map(id => htmlContent.indexOf('id="' + id + '"'));
+      ok(chipT.join() === 'csgText,csgAnim,csgLayout,csgFx,advSet' && goto && pos.every((x, i) => x > 0 && (i === 0 || x > pos[i - 1])), 'Handy-Customizer: Chips zeigen auf Text · Animation · Layout · Effects · Advanced (IDs vorhanden, Reihenfolge wie im Panel)');
+      ok(/<details class="cs-adv" id="advSet"/.test(htmlContent) && /function csGoto\(/.test(htmlContent) && /id\s*===\s*'advSet'[^;]*\.open\s*=\s*true/.test(htmlContent), 'Handy-Customizer: «Advanced»-Chip klappt das <details> auf');
+      ok(/\.style-grid\{display:flex;flex-wrap:nowrap;[^}]*overflow-x:auto/.test(htmlContent) && /\.cs-nav-h,\.cs-chips,\.style-hint\{display:none\}/.test(htmlContent), 'Handy-Customizer: Looks-Streifen nur im @media, Desktop blendet Chips/Hinweis aus');
+      ok(/capivo\.styleHintSeen/.test(htmlContent) && /localStorage\.getItem\(STYLE_HINT_KEY\)/.test(htmlContent), 'Handy-Customizer: Wisch-Hinweis pro Gerät einmal (localStorage mit try/catch)');
+    }
+    // Wichtigste Kontrollen an der richtigen Stelle (Segment Animation vor Layout; Zeilenlängen-Hinweis unter „Erweitert“, nicht unter „Spacing“)
+    const at = id => htmlContent.indexOf('id="' + id + '"');
+    ok(at('csgText') < at('csFont') && at('csFont') < at('szSlider') && at('szSlider') < at('csText') && at('csText') < at('csgAnim') && at('csgAnim') < at('csMotion')
+       && at('csMotion') < at('csAnimRow') && at('csAnimRow') < at('emKwBtn') && at('emKwBtn') < at('csgLayout') && at('csgLayout') < at('posRow') && at('posRow') < at('wpbSlider')
+       && at('wpbSlider') < at('linesRow') && at('linesRow') < at('csgFx') && at('csgFx') < at('csOutlineW') && at('csOutlineW') < at('csShadow') && at('csShadow') < at('csBox')
+       && at('csBox') < at('advSet'), 'Style-Panel: Kontrollen in der vorgesehenen Reihenfolge');
+    const adv = htmlContent.slice(at('advSet'), at('csgTpl'));
+    ok(['csLs', 'csLh', 'csEmFont', 'caseOrig', 'csGlow', 'csGlowInt', 'csBoxO', 'csBoxR', 'mcAuto', 'mcSel', 'toSlider', 'pauseChk', 'cutChk', 'punctBtn'].every(id => adv.includes('id="' + id + '"'))
+       && /Long captions break into more/.test(adv) && !/id="csOutlineW"|id="csMotion"/.test(adv), 'Style-Panel: Feinheiten unter „Erweitert“ (Zeilenlängen-Hinweis dort)');
+    ok(!/<details[^>]*id="csgTpl"/.test(htmlContent) && htmlContent.slice(at('csgTpl') - 200, at('csgTpl')).indexOf('<details') < 0, 'Style-Panel: „Save as template“ liegt nicht im Aufklapper');
+    // Abhängige Zeilen: ausgeblendet statt ausgegraut
+    const disp = id => E(id).style.display;
+    E('csMotion').value = 'highlight'; E('csBox').value = 'off'; E('csGlow').checked = false; T.syncCsUi();
+    ok(disp('csAnimRow') === '' && disp('csHlTypeRow') === '', 'Style-Panel: Highlight → Word pop + Highlight-Art sichtbar');
+    ok(disp('csBoxC') === 'none' && disp('csBoxOpRow') === 'none' && disp('csBoxRRow') === 'none', 'Style-Panel: kein Hintergrund → Farbe/Deckkraft/Ecken weg');
+    ok(disp('csGlowStrRow') === 'none' && E('csGlowInt').disabled === true, 'Style-Panel: kein Glow → Glow-Stärke weg');
+    E('csMotion').value = 'reveal'; E('csBox').value = 'pill'; E('csGlow').checked = true; T.syncCsUi();
+    ok(disp('csAnimRow') === 'none' && disp('csHlTypeRow') === 'none', 'Style-Panel: Reveal → Word pop + Highlight-Art weg');
+    ok(disp('csBoxC') === '' && disp('csBoxOpRow') === '' && disp('csBoxRRow') === '', 'Style-Panel: Hintergrund aktiv → Farbe/Deckkraft/Ecken sichtbar');
+    ok(disp('csGlowStrRow') === '' && E('csGlowInt').disabled === false, 'Style-Panel: Glow an → Glow-Stärke sichtbar');
+    E('csMotion').value = 'fill'; T.syncCsUi(); ok(disp('csAnimRow') === 'none' && disp('csHlTypeRow') === 'none', 'Style-Panel: Fill → Word pop + Highlight-Art weg');
+    E('csMotion').value = 'highlight'; E('csBox').value = 'off'; T.syncCsUi();
+    // Segment-Klick setzt das versteckte Select und ruft dessen Handler; Case-Segment ↔ caseSel ↔ „As typed“
+    let fired = 0;
+    const seg = { getAttribute: k => k === 'data-sel' ? 'csMotion' : null };
+    E('csMotion').onchange = function () { fired++; };
+    T.csSegPick({ parentNode: seg, getAttribute: k => k === 'data-v' ? 'fill' : null });
+    ok(E('csMotion').value === 'fill' && fired === 1, 'Style-Panel: Segment-Klick setzt Select und feuert onchange');
+    E('csMotion').onchange = null; E('csMotion').value = 'highlight';
+    T.setCaptionCase('upper'); ok(E('caseSel').value === 'upper' && E('caseOrig').checked === false, 'Style-Panel: Case „AA“ → caseSel upper');
+    T.setCaptionCase('orig'); ok(E('caseSel').value === 'orig' && E('caseOrig').checked === true, 'Style-Panel: „As typed“ (Erweitert) ↔ caseSel orig');
+    T.setCaptionCase('asis'); ok(E('caseOrig').checked === false, 'Style-Panel: zurück auf Style-Standard');
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════════════════
+  // INVARIANTEN-BLOCK (QA-Gerüst, s. test-ui-sweep.js): Regler ↔ Style-Feld ↔ Speicherpfade ↔ Vorschau/Export-Umbruch
+  // Erwartete Fehlschläge: okx(bedingung, meldung, grund) — scheitert die Bedingung, wird sie nur als «xfail» gemeldet;
+  // besteht sie, kommt eine «XPASS»-Warnung (Markierung dann entfernen). Nie auskommentieren.
+  // ═══════════════════════════════════════════════════════════════════════════════════════
+  {
+    const okx = (c, m, why) => { if (c) console.log('XPASS-Warnung (erwarteter Fehler besteht jetzt, okx-Markierung entfernen):', m, '—', why); else console.log('xfail (erwartet):', m, '—', why); };
+    const E = id => document.getElementById(id);
+    const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+    // ── 1) CONTROL_MAP: Regler-ID → Gruppe (_csDirty) → Style-Feld ──
+    // set(): Regler auf einen Wert stellen, der vom Ausgangs-Style «hormozi» abweicht. group = Schlüssel in _csDirty (strokec → stroke, boxc → box wie in applyCustomStyle).
+    const CONTROL_MAP = {
+      csLs:       { group: 'ls',      field: 'ls',        set: () => { E('csLs').value = '3'; } },
+      csLh:       { group: 'lh',      field: 'lh',        set: () => { E('csLh').value = '1.6'; } },
+      csText:     { group: 'text',    field: 'tc',        set: () => { E('csText').value = '#ff0000'; } },
+      csHl:       { group: 'hlc',     field: 'hl',        set: () => { E('csHl').value = '#00ffaa'; E('csHlType').value = 'color'; } },
+      csFont:     { group: 'font',    field: 'fl',        set: () => { E('csFont').value = 'Anton'; } },
+      csWeight:   { group: 'weight',  field: 'fw',        set: () => { E('csWeight').value = '400'; } },
+      csEm:       { group: 'em',      field: 'em',        set: () => { E('csEm').value = '#ff00ff'; } },
+      csEmFont:   { group: 'emfont',  field: 'emFont',    set: () => { E('csEmFont').value = 'Anton'; } },
+      csOutlineW: { group: 'stroke',  field: 'ts',        set: () => { E('csOutlineW').value = '5'; E('csOutlineC').value = '#112233'; } },
+      csOutlineC: { group: 'stroke',  field: 'cstroke',   set: () => { E('csOutlineW').value = '2'; E('csOutlineC').value = '#ff0000'; } },
+      csShadow:   { group: 'stroke',  field: 'ts',        set: () => { E('csShadow').checked = false; E('csShadow').classList.remove('on'); E('csOutlineW').value = '4'; } },
+      csGlow:     { group: 'glow',    field: 'hls',       set: () => { E('csGlow').checked = true; E('csGlowInt').value = '9'; } },
+      csGlowInt:  { group: 'glow',    field: 'hls',       set: () => { E('csGlow').checked = true; E('csGlowInt').value = '25'; } },
+      csBox:      { group: 'box',     field: 'boxBg',     set: () => { E('csBox').value = 'box'; E('csBoxC').value = '#223344'; E('csBoxO').value = '60'; } },
+      csBoxC:     { group: 'box',     field: 'boxBg',     set: () => { E('csBox').value = 'box'; E('csBoxC').value = '#ff0000'; } },
+      csBoxO:     { group: 'box',     field: 'boxBg',     set: () => { E('csBox').value = 'box'; E('csBoxO').value = '30'; } },
+      csBoxR:     { group: 'box',     field: 'boxBr',     set: () => { E('csBox').value = 'box'; E('csBoxR').value = '21'; } },
+      csHlType:   { group: 'hltype',  field: 'hlPillBg',  set: () => { E('csHlType').value = 'pill'; E('csHl').value = '#ff3366'; } },
+      csMotion:   { group: 'motion',  field: 'motion',    set: () => { E('csMotion').value = 'reveal'; } },
+      csAnim:     { group: 'anim',    field: 'anim',      set: () => { E('csAnim').value = 'flash'; } },
+    };
+    // Abdeckung: jedes <input>/<select> mit id="cs…" im Panel-Markup braucht einen Eintrag (neuer Regler ohne Eintrag → Test scheitert)
+    const NON_STYLE_CS = ['csUpper']; // bewusst ohne Style-Feld (falls im Markup vorhanden)
+    const panelIds = [...htmlContent.matchAll(/<(?:input|select)\b[^>]*\bid="(cs[A-Za-z0-9]+)"/g)].map(m => m[1]);
+    const missing = panelIds.filter(id => !CONTROL_MAP[id] && !NON_STYLE_CS.includes(id));
+    ok(missing.length === 0 && panelIds.length >= 18, 'CONTROL_MAP deckt alle Customize-Regler ab (fehlt: ' + missing.join(', ') + '; im Markup ' + panelIds.length + ')');
+    const stale = Object.keys(CONTROL_MAP).filter(id => !panelIds.includes(id));
+    ok(stale.length === 0, 'CONTROL_MAP enthält nur existierende Regler (veraltet: ' + stale.join(', ') + ')');
+    // Jede Gruppe muss in buildCustomStyle() gelesen werden (sonst bewirkt der Regler nichts)
+    const bcs = script.slice(script.indexOf('function buildCustomStyle()'), script.indexOf('function applyCustomStyle('));
+    Object.values(CONTROL_MAP).forEach(c => ok(new RegExp('d\\.' + c.group + '\\b').test(bcs), 'buildCustomStyle liest Gruppe «' + c.group + '»'));
+    // Pro Regler: Feld wird gesetzt und übersteht alle Speicherpfade
+    Object.keys(CONTROL_MAP).forEach(id => {
+      const c = CONTROL_MAP[id];
+      T.selectStyle('hormozi');                       // seedet alle Regler + Basis (Ausgangs-Style ohne Layout-Preset)
+      const base = JSON.parse(JSON.stringify(T.STYLES.find(x => x.id === 'hormozi')));
+      c.set(); T.setCsDirty({ [c.group]: true });
+      const cs = T.buildCustomStyle();
+      ok(cs[c.field] !== undefined && !eq(cs[c.field], base[c.field]), id + ': buildCustomStyle setzt «' + c.field + '» (' + JSON.stringify(cs[c.field]) + ' vs. Basis ' + JSON.stringify(base[c.field]) + ')');
+      const sane = T.sanitizeStyle(cs);
+      ok(eq(sane[c.field], cs[c.field]), id + ': «' + c.field + '» übersteht sanitizeStyle');
+      const tpl = T.normalizeTemplate({ id: 'inv_' + id, name: 'x', style: cs, layout: {}, createdAt: 1, updatedAt: 1 });
+      ok(tpl && eq(tpl.style[c.field], cs[c.field]), id + ': «' + c.field + '» übersteht normalizeTemplate');
+      const st = tpl && T.styleFromTemplate(tpl);
+      ok(st && eq(st[c.field], cs[c.field]), id + ': «' + c.field + '» übersteht styleFromTemplate');
+      // projectPayload → restoreSavedStyle (neue Sitzung): Custom-Style aus dem Payload
+      const i = T.STYLES.findIndex(x => x.id === 'custom'); if (i >= 0) T.STYLES[i] = cs; else T.STYLES.push(cs);
+      T.setActiveId('custom');
+      const pl = JSON.parse(JSON.stringify(T.projectPayload()));
+      ok(pl.styleDef && eq(pl.styleDef[c.field], cs[c.field]), id + ': «' + c.field + '» steht im Projekt-Payload (styleDef)');
+      T.STYLES.splice(T.STYLES.findIndex(x => x.id === 'custom'), 1);
+      T.restoreSavedStyle(pl);
+      const back = T.STYLES.find(x => x.id === 'custom');
+      ok(back && eq(back[c.field], cs[c.field]), id + ': «' + c.field + '» übersteht restoreSavedStyle');
+    });
+    T.setCsDirty({}); T.selectStyle('hormozi');
+
+    // ── 2) TPL_STYLE_KEYS: jedes Feld übersteht den Rundlauf; jedes Style-Feld der Presets hat einen Eintrag ──
+    {
+      const bool = ['hlItalic', 'hlUpper', 'circle', 'emItalic'], num = ['lh', 'emS'];
+      const sample = k => bool.includes(k) ? true : num.includes(k) ? 1.25 : k === 'hlCycle' ? ['#ff0000', '#00ff00'] :
+        k === 'pill' ? { bg: '#fff', br: '5px', p: '1px 2px', border: '1px solid #000', borderLeft: '2px solid #f00' } : 'v-' + k;
+      T.TPL_STYLE_KEYS.forEach(k => {
+        const o = { [k]: sample(k) }, s1 = T.sanitizeStyle(o);
+        ok(eq(s1[k], o[k]), 'TPL_STYLE_KEYS «' + k + '» übersteht sanitizeStyle (' + JSON.stringify(s1[k]) + ')');
+        const t = T.normalizeTemplate({ id: 'k_' + k, name: 'k', style: Object.assign({ fl: 'Poppins', font: "'Poppins'", fw: '800', tc: '#fff', hl: '#fff', anim: 'none' }, o), layout: {} });
+        ok(t && eq(t.style[k], o[k]) && eq(T.styleFromTemplate(t)[k], o[k]), 'TPL_STYLE_KEYS «' + k + '» übersteht normalizeTemplate → styleFromTemplate');
+      });
+      // Neues Style-Feld in STYLES ohne Eintrag in TPL_STYLE_KEYS → Nutzer-Templates/Projekte verlieren es still
+      const NOT_PERSISTED = ['id', 'name', 'badge', 'layout']; // Identität bzw. Preset-Layout (Templates führen es separat in .layout)
+      const used = new Set(); T.STYLES.forEach(s => Object.keys(s).forEach(k => { if (!NOT_PERSISTED.includes(k) && !k.startsWith('_')) used.add(k); }));
+      const unknown = [...used].filter(k => !T.TPL_STYLE_KEYS.includes(k));
+      ok(unknown.length === 0, 'Jedes Style-Feld der Presets steht in TPL_STYLE_KEYS (fehlt: ' + unknown.join(', ') + ')');
+      // … und buildCustomStyle() erzeugt nur bekannte Felder
+      T.selectStyle('hormozi'); T.setCsDirty({ text: 1, stroke: 1, hlc: 1, glow: 1, hltype: 1, box: 1, anim: 1, motion: 1, ls: 1, lh: 1, weight: 1, font: 1, em: 1, emfont: 1 });
+      E('csLh').value = '1.5'; E('csEmFont').value = 'Anton'; E('csBox').value = 'pill'; E('csHlType').value = 'pill'; E('csMotion').value = 'fill';
+      const ck = Object.keys(T.buildCustomStyle()).filter(k => !NOT_PERSISTED.includes(k) && !k.startsWith('_') && !T.TPL_STYLE_KEYS.includes(k));
+      ok(ck.length === 0, 'buildCustomStyle erzeugt nur Felder aus TPL_STYLE_KEYS (unbekannt: ' + ck.join(', ') + ')');
+      T.setCsDirty({}); T.selectStyle('hormozi');
+    }
+
+    // ── 3) Keine toten Optionen: jede Option jedes Style-<select> ändert Style oder buildCap-Ausgabe ──
+    {
+      const selects = [...htmlContent.matchAll(/<select\b[^>]*\bid="(cs[A-Za-z0-9]+)"[^>]*>([\s\S]*?)<\/select>/g)].map(m => ({ id: m[1], opts: [...m[2].matchAll(/<option\b([^>]*)>([^<]*)/g)].map(o => { const v = /value="([^"]*)"/.exec(o[1]); return v ? v[1] : o[2]; }) }));
+      ok(selects.length >= 6, 'Panel-<select>s gefunden: ' + selects.map(s => s.id).join(', '));
+      const words = ['Das', 'ist', 'ein', 'Test'];
+      selects.forEach(sel => {
+        const opts = sel.opts.filter(o => o && o !== '__other');
+        if (opts.length < 2) return; // csEmFont: Optionen werden erst zur Laufzeit gefüllt (eigene Prüfung oben)
+        const outs = opts.map(v => {
+          T.selectStyle('hormozi'); T.setCaseState('asis');
+          const grp = CONTROL_MAP[sel.id] && CONTROL_MAP[sel.id].group;
+          if (sel.id === 'csBox') { E('csBox').value = v; E('csBoxR').value = v === 'pill' ? '22' : '8'; }
+          else E(sel.id).value = v;
+          T.setCsDirty(grp ? { [grp]: true } : {});
+          const cs = T.buildCustomStyle();
+          return JSON.stringify(cs) + '||' + T.buildCap(words, cs, 1, 24, null);
+        });
+        const seen = {}; outs.forEach((o, i) => { (seen[o] = seen[o] || []).push(opts[i]); });
+        const dead = Object.values(seen).filter(a => a.length > 1);
+        ok(dead.length === 0, '«' + sel.id + '»: jede Option erzeugt anderen Style/buildCap-Output (gleich: ' + dead.map(a => a.join('=')).join(' | ') + ')');
+      });
+      T.setCsDirty({}); T.selectStyle('hormozi');
+    }
+
+    // ── 4) Vorschau-Umbruch = Export-Umbruch (buildCap vs. capLayout, deterministische Stub-Messung, zufällige Wortfolgen × Styles) ──
+    {
+      let seed = 20260101; const rnd = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+      const POOL = ['Ja', 'und', 'das', 'Test', 'kurzer', 'Untertitel', 'Heute', 'zeigen', 'wir', 'dir,', 'schnell', 'Rindfleischverarbeitungsbetriebe', 'warum', 'es', 'so', 'gut', 'funktioniert.', 'Wald', 'Birkenhof', 'Gipf-Oberfrick', 'Hochlandrinder', 'ok'];
+      T.setEmphState(false, false, 'off'); T.setCaseState('asis'); T.setFontSizeState(22);
+      const ctx = document.createElement('canvas').getContext('2d');
+      let cases = 0; const bad = [];
+      const lineWords = html => { // Zeilen aus der Vorschau-HTML (jede Zeile = display:block-Span mit Wort-Spans)
+        const parts = html.split('<span style="display:block;white-space:nowrap">').slice(1);
+        const grab = h => [...h.matchAll(/<span data-oi="\d+"[^>]*>([^<]*)<\/span>/g)].map(m => m[1].toLowerCase());
+        return parts.length ? parts.map(grab) : [grab(html)];
+      };
+      T.STYLES.filter(s => s.id !== 'custom' && !s._isTpl).forEach(s => {
+        [1, 2].forEach(lines => {
+          T.setLines({ dataset: { lines: String(lines) } });
+          for (let n = 0; n < 6; n++) {
+            const cnt = 2 + Math.floor(rnd() * 3), ws = Array.from({ length: cnt }, () => POOL[Math.floor(rnd() * POOL.length)]);
+            const blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+            T.setState([blk], blk.words, 'karaoke');
+            const html = T.buildCap(ws, s, -1, 22, null, lines, { em: null });
+            const L = T.capLayout(ctx, blk, 0, 0, s, 1080, 1920);
+            const dom = lineWords(html), exp = L.lines.map(line => line.map(wo => String(wo.t).toLowerCase()));
+            cases++;
+            if (!eq(dom, exp)) bad.push(s.id + '/' + lines + 'Z «' + ws.join(' ') + '»: Vorschau ' + dom.map(x => x.join(' ')).join(' / ') + ' ≠ Export ' + exp.map(x => x.join(' ')).join(' / '));
+          }
+        });
+      });
+      T.setLines({ dataset: { lines: '2' } }); T.setState([], [], 'karaoke');
+      const where = [...new Set(bad.map(x => x.split(':')[0].replace(/ «.*/, '')))].join(', ');
+      // Früher 13 Abweichungen: 12 davon Stub-Artefakt (Stub-Canvas ignorierte letterSpacing, s. mkEl.getContext), 1 echt — capLayout
+      // rundete die Export-Schrift auf ganze px (bis ~1 % breiter) → knapp passende Zeile brach im Export um (Mindest-Schriftgrösse).
+      ok(bad.length === 0, 'Vorschau-Umbruch (buildCap) = Export-Umbruch (capLayout) in ' + cases + ' Zufallsfällen — ' + bad.length + ' Abweichung(en) bei ' + where + ': ' + bad.slice(0, 2).join(' ;; '));
+    }
+  }
+
+  // ── capLayout ohne DOM (Fallback-Modell, z. B. Node): Mitte aus der Schriftmetrik statt fester Konstante fs·0.35 ──
+  // (im Browser misst capLayout die Vorschau-Zeilen per capDomVMetrics nach, s. test-ui-sweep geom/base und pixel/shift)
+  {
+    const ctxM = { font: '', letterSpacing: '0px', measureText(str) { const m = /([\d.]+)px/.exec(this.font), px = m ? +m[1] : 16; return { width: (str || '').length * px * 0.55, fontBoundingBoxAscent: px * 1.2, fontBoundingBoxDescent: px * 0.3 }; } };
+    const ws = ['Das', 'ist', 'ein', 'Test'], blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+    T.setState([blk], blk.words, 'karaoke'); T.setLines({ dataset: { lines: '1' } }); T.setVOffState(0);
+    const st = T.STYLES.find(x => x.id === 'hormozi');
+    T.setPosState('center');
+    const Lc = T.capLayout(ctxM, blk, 0, 0, st, 1080, 1920);
+    ok(!Lc.dom && Math.abs(Lc.y0 - (960 + (1.2 - 0.3) / 2 * Lc.fsS)) < 0.01, 'capLayout Mitte (ohne DOM): Grundlinie = Mitte + (Ober − Unterlänge)/2 · fs (' + Lc.y0.toFixed(2) + ', fs ' + Lc.fsS + ')');
+    ok(Math.abs((Lc.boxT + Lc.boxB) / 2 - 960) < 0.01 && Math.abs(Lc.boxB - Lc.boxT - Lc.lh) < 0.01, 'capLayout Mitte: Caption-Box (1 Zeile = L·fs hoch) mittig (' + Lc.boxT.toFixed(1) + '–' + Lc.boxB.toFixed(1) + ')');
+    ok(Math.abs(Lc.y0 - Lc.capA - Lc.boxT) < 0.01 && Math.abs(Lc.y0 + Lc.capD - Lc.boxB) < 0.01, 'capLayout: Wortbox = Box-Kanten (ohne Box-Padding)');
+    T.setPosState('bottom');
+    const Lb = T.capLayout(ctxM, blk, 0, 0, st, 1080, 1920);
+    ok(Math.abs(Lb.boxB - Lb.y0 - Lb.capD) < 0.01 && Lb.boxB < 1920 && Lb.boxB > 1920 * 0.6, 'capLayout unten: Box-Unterkante = Grundlinie + Unterteil der Zeile (' + Lb.boxB.toFixed(1) + ')');
+    const exact = Lb.fitPx * Lb.scale * ((st.fs && parseFloat(st.fs)) || 1);
+    ok(Math.abs(Lb.fsS - exact) < 0.006, 'capLayout: Export-Schrift = Vorschau-Schrift × Skala, nicht auf ganze px gerundet (' + Lb.fsS + ' vs. ' + exact.toFixed(3) + ')');
+    T.setLines({ dataset: { lines: '2' } }); T.setState([], [], 'karaoke');
+  }
+
+  // ── Lesbarkeits-Halo (S2): weisse Looks ohne Kontur tragen auf hellem/buntem Material ──
+  {
+    const HALO = ['tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'script', 'soft', 'minimal', 'lift', 'neon', 'editorial', 'marker', 'focus'];
+    const bad = [];
+    HALO.forEach(id => {
+      const st = T.STYLES.find(x => x.id === id); if (!st) { bad.push(id + ' fehlt'); return; }
+      [st.ts].concat(st.hlPillBg ? [] : [st.hls]).forEach((str, k) => {
+        const sp = T.splitShadows(str);
+        const halo = sp.soft.filter(l => !l.x && l.blur < 3).concat(sp.glow.filter(l => l.blur < 3));
+        const dark = (str.match(/0 0 [\d.]+px rgba\(0,0,0,\.9\)/g) || []).length;
+        if (dark < 2) bad.push(id + (k ? '.hls' : '.ts') + ': < 2 Halo-Schichten');
+        if (sp.ring) bad.push(id + ': Halo darf keine Ring-Kontur sein (Wortabstand/Umbruch bliebe sonst nicht gleich)');
+        if (sp.glow.some(l => l.blur < 3)) bad.push(id + ': Halo zaehlt faelschlich als Glow');
+      });
+    });
+    ok(bad.length === 0, 'Looks ohne Kontur haben dezenten dunklen Halo (kein Ring, kein Glow-Fehlalarm)' + (bad.length ? ': ' + bad.join('; ') : ''));
+    ok(T.capWordGap(T.STYLES.find(x => x.id === 'tight')) === 0, 'Halo aendert den Wortabstand nicht (kein Ring)');
+    // Customize: Glow-Schalter bleibt bei Looks ohne echten Glow aus
+    ok(['tight', 'accent', 'minimal'].every(id => !T.splitShadows(T.STYLES.find(x => x.id === id).hls).glow.length), 'Halo wird im Customize-Panel nicht als Glow erkannt');
+  }
+  // ── Box-/Pill-Looks bleiben mit SICHTBARER Fläche in der Safe-Zone (S2: Dark Box ragte bis 92 %, Note bis 93,5 %) ──
+  {
+    const stub = () => ({ _font: '', letterSpacing: '0px', calls: [], rects: [], lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
+      get font() { return this._font; }, set font(v) { this._font = v; },
+      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: str === ' ' ? (m ? +m[1] : 16) * 0.2 : (str || '').length * (m ? +m[1] : 16) * 0.58 }; },
+      fillText() {}, strokeText() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {} });
+    const sets = { Standardsatz: 'Heute zeigen wir dir wie schnell das wirklich geht'.split(' '),
+                   Kompositum: 'Die Donaudampfschifffahrtsgesellschaft ist Geschwindigkeitsbegrenzung Rindfleischverarbeitungsbetriebe'.split(' ') };
+    const boxLooks = T.STYLES.filter(st => ['stack', 'note', 'tiktok', 'hush', 'focus', 'marker', 'boxkara'].includes(st.id) && (st.boxBg || (st.hlPillBg && T.capMotion(st) === 'highlight')));
+    ok(boxLooks.length >= 6 && ['stack', 'note', 'tiktok', 'hush', 'focus', 'marker', 'boxkara'].every(id => boxLooks.some(x => x.id === id)), 'Box-/Pill-Looks gefunden (' + boxLooks.map(x => x.id).join(',') + ')');
+    const bad = [];
+    for (const [nm, ws] of Object.entries(sets)) {
+      const wl = ws.map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.45 }));
+      T.setState(T.buildCaptionBlocks(wl, []), wl, 'karaoke');
+      boxLooks.filter(st => st.boxBg || nm === 'Standardsatz').forEach(st => { // Pill-Looks mit Kompositum: Messung im Browser (Stub kennt die Liang-Trennmuster nicht)
+        const W = 1080;
+        for (let bi = 0; bi < 12; bi++) {
+          const bl = T.getBlocks ? T.getBlocks() : null; if (!bl || !bl[bi]) break;
+          const L = T.capLayout(stub(), bl[bi], bi, 0, st, W, 1920);
+          const wMax = Math.max.apply(null, L.lineWs);
+          const vis = wMax + (st.boxBg ? 36 * L.scale : 0) + ((st.hlPillBg && T.capMotion(st) === 'highlight') ? 2 * T.CAP_PILL_PAD_X * L.scale : 0);
+          const l = (W - vis) / 2 / W * 100, r = 100 - l;
+          if (r > 87.5 + 0.1 || l < 12.5 - 0.1) bad.push(nm + '/' + st.id + '#' + bi + ' ' + l.toFixed(1) + '–' + r.toFixed(1) + '%');
+        }
+      });
+    }
+    ok(bad.length === 0, 'Box-/Pill-Looks: sichtbare Flaeche innerhalb 12,5–87,5 % (Standardsatz + Kompositum)' + (bad.length ? ': ' + bad.slice(0, 6).join('; ') : ''));
+  }
+  // ── Schriften ohne Wortzwischenraeume/ohne Trennmuster: kein Bindestrich mitten im Wort (S2) ──
+  {
+    const hy = (w, max, l) => T.capHyphenate(w, p => Array.from(p).length <= max, l);
+    const cjk = hy('国際連合安全保障理事会', 4);
+    ok(cjk.length >= 3 && cjk.join('') === '国際連合安全保障理事会' && cjk.every(p => !/-/.test(p) && Array.from(p).length <= 4), 'CJK-Langwort: Umbruch an Zeichengrenzen ohne Bindestrich (' + cjk.join(' / ') + ')');
+    ok(hy('国際連合', 8).length === 1, 'CJK: passt es in die Zeile, bleibt das Wort ganz');
+    const kin = hy('今日は、天気がいいです。', 5);
+    ok(kin.join('') === '今日は、天気がいいです。' && kin.every(p => !/^[、。]/.test(p)), 'CJK: kein Satzzeichen am Teilanfang (' + kin.join(' / ') + ')');
+    const th = hy('สวัสดีครับยินดีต้อนรับ', 6);
+    ok(th.join('') === 'สวัสดีครับยินดีต้อนรับ' && th.every(p => !/^\p{M}/u.test(p) && !/-/.test(p)), 'Thai: nie vor einer Kombinationsmarke trennen, kein Bindestrich (' + th.join(' / ') + ')');
+    ['المنظمةالدوليةللتعاونالاقتصادي', 'הארגוןהבינלאומילשיתוףפעולה', 'Διεθνέςοργανισμόςσυνεργασίας', 'अंतर्राष्ट्रीयसहयोगसंगठन'].forEach(w => {
+      ok(hy(w, 5).length === 1, 'Schrift ohne Trennmuster wird nie getrennt: ' + w.slice(0, 8));
+    });
+    ok(hy('Donaudampfschifffahrtsgesellschaft', 12, 'de').length > 1 && hy('Привет-пока-долгожданный', 8, 'en').length >= 1, 'Latein/Kyrillisch trennen weiter wie bisher');
+    ok(T.capHyphEligible('Geschwindigkeit') && !T.capHyphEligible('国際連合安全保障理事会') && !T.capHyphEligible('المنظمةالدولية'), 'capHyphEligible: Skript-Pruefung');
+  }
+  // ── Kein kuenstliches Kursiv bei Schriften ohne Kursivschnitt (S2) ──
+  {
+    const ST2 = id => T.STYLES.find(x => x.id === id);
+    const ar = 'مرحبا', he = 'שלום', ja = '日本語', hi = 'नमस्ते', th = 'สวัสดี', la = 'Hello';
+    const cases = [['note', true], ['reveal', true], ['accent', true], ['soft', true], ['serifbold', false], ['serifbold', true], ['editorial', false]];
+    const bad = [];
+    cases.forEach(([id, em]) => {
+      const st = ST2(id), hl = id === 'editorial';
+      [ar, he, ja, hi, th].forEach(w => { if (T.capWordFace(st, hl, em, w).it) bad.push(id + ':' + w); });
+      if (!(T.capWordFace(st, hl, em, la).it === T.capWordFace(st, hl, em).it)) bad.push(id + ':latin');
+    });
+    ok(bad.length === 0, 'capWordFace: Arabisch/Hebraeisch/CJK/Devanagari/Thai nie kursiv, Latein unveraendert' + (bad.length ? ' — ' + bad.join(',') : ''));
+    ok(T.capWordFace(ST2('note'), false, true, la).it === true && T.capWordFace(ST2('serifbold'), false, false, la).it === true, 'Latein bleibt kursiv (note-Keyword, serifbold-Text)');
+    const html = T.buildCap([ar, la], ST2('reveal'), -1, 24, null, 0, { em: [true, true] });
+    const spans = html.split('<span').slice(1);
+    ok(/font-style:italic;[^"]*font-style:normal;/.test(spans[1]) && /font-style:italic;/.test(spans[2]) && !/font-style:normal/.test(spans[2].replace(/^[^"]*"/, '')), 'Vorschau-DOM: Betonung bei Arabisch aufrecht, bei Latein kursiv (reveal)');
+  }
+  // ── Pop-Animation frisst den Wortabstand nicht mehr (S2): Wachstum pro Seite <= 0,1 em ──
+  {
+    const fpx = 30, short = 1.2 * fpx, long = 3.2 * fpx;
+    ok(T.capPopFactor('scale', short, fpx) === 1, 'Pop: kurzes Wort behaelt den vollen Pop');
+    const f = T.capPopFactor('scale', long, fpx), peak = 0.14;
+    ok(f < 1 && f > 0.3 && Math.abs(peak * f * long / 2 - 0.1 * fpx) < 1e-6, 'Pop: langes Wort waechst pro Seite hoechstens 0,1 em (' + f.toFixed(2) + ')');
+    ok(T.capPopFactor('none', long, fpx) === 1 && T.capPopFactor('scale', 0, fpx) === 1 && T.capPopFactor('flash', long, fpx) === 1, 'Pop: Faktor 1 ohne Skalierung/Breite');
+    // Export: Skalierung des aktiven Worts im Zeichenplan wird begrenzt, Layout (x) bleibt
+    const wl = [{ word: 'wie', start: 0, end: .5 }, { word: 'schnell', start: .5, end: 1 }];
+    T.setState(T.buildCaptionBlocks(wl, []), wl, 'karaoke');
+    const ctxs = []; const mk = () => { const sc = []; const c = { _font: '', letterSpacing: '0px', calls: [], sc, lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
+      get font() { return this._font; }, set font(v) { this._font = v; },
+      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: str === ' ' ? (m ? +m[1] : 16) * 0.28 : (str || '').length * (m ? +m[1] : 16) * 0.58 }; },
+      fillText(t, x, y) { this.calls.push({ t, x, y }); }, strokeText() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale(a, b) { sc.push(a); }, beginPath() {}, fill() {}, stroke() {}, rect() {}, roundRect() {}, ellipse() {}, fillRect() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } }; return c; };
+    const lift = T.STYLES.find(x => x.id === 'lift'); const c1 = mk(); T.drawCaptionsOnCtx(c1, 0.5 + 0.34 * 0.3, lift, 1080, 1920, false);
+    const mx = Math.max.apply(null, c1.sc.concat([1]));
+    ok(mx > 1 && mx < 1.1, 'Export: Pop des langen Worts «schnell» gedeckelt (max. Skalierung ' + mx.toFixed(3) + ' statt 1.14)');
+  }
+  // Video-Schlüssel (Wasserzeichen-Zählung): stabil, anonym, nur Hash — nie der Dateiname
+  {
+    T.setAutosaveKey(null); ok(T.videoKeyHash() === '' && !('X-Video-Key' in T.trHeaders('audio/wav', 't')), 'ohne Video: kein Schlüssel, kein Header');
+    T.setAutosaveKey('mein geheimes reel.mp4|123456|85'); const k1 = T.videoKeyHash(); T.setAutosaveKey('mein geheimes reel.mp4|123456|85');
+    ok(/^[a-f0-9]{16}$/.test(k1) && k1 === T.videoKeyHash() && !/reel|geheim/.test(k1), 'Schlüssel: 16 Hex, stabil, ohne Dateiname');
+    T.setAutosaveKey('mein geheimes reel.mp4|123457|85'); ok(T.videoKeyHash() !== k1, 'anderes Video → anderer Schlüssel');
+    const h = T.trHeaders('audio/wav', 'tok'); ok(h['X-Video-Key'] === T.videoKeyHash() && h['X-Capivo-Token'] === 'tok' && h['Content-Type'] === 'audio/wav', 'Transkriptions-Header mit Token + Video-Schlüssel');
+    T.setAutosaveKey(null);
+    T.setBillingState({ enabled: true, clean_videos: 2 }); ok(/used your 2 free videos without watermark today/.test(T.wmNoticeText()) && /Upgrade to remove it, or come back tomorrow/.test(T.wmNoticeText()), 'Hinweistext Übernutzung');
+    T.setBillingState(null);
+  }
+
+  // ── Customize: neue Konturfarbe (Kontur 0 → 2 px; im Test 8 px, damit das Limit ohne Freeze sichtbar fällt) zerlegt die Bloecke nicht neu (Sweep ctl/csOutlineC@layoutPreset) ──
+  {
+    const tight = T.cloneStyle(T.STYLES.find(x => x.id === 'tight'));
+    const custom = Object.assign(T.cloneStyle(tight), { id: 'custom', ts: T.outlineShadow(8, '#ff0000') + ',' + tight.ts, cstroke: '#ff0000' });
+    const perBase = T.capAutoChars(tight);
+    T.setCsBase(null); const perRing = T.capAutoChars(custom);
+    T.setCsBase(tight); const perFrozen = T.capAutoChars(custom);
+    T.setCsBase(null);
+    ok(T.capWordGap(custom) > 0 && T.capWordGap(tight) === 0, 'Testaufbau: Kontur erzeugt Wortabstand, der Halo von Tight nicht');
+    ok(perRing < perBase && perFrozen === perBase, 'Auto-Zeichenlimit von «Mein Style» folgt dem Ausgangs-Style (' + perFrozen + ' = ' + perBase + '; ohne Freeze ' + perRing + ') — Konturfarbe zerlegt keine Bloecke');
+  }
+  // ── Deckkraft < 1 gilt als Gruppe ueber Text + Halo-Schichten (Vorschau: opacity am Span; Export vorher: je fillText → Halo/Glyphe stapelten sich) ──
+  {
+    const mkG = (canvas) => { const c = { canvas, _font: '', letterSpacing: '0px', fillStyle: '#fff', strokeStyle: '#000', lineWidth: 1, globalAlpha: 1, shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, textAlign: 'left', textBaseline: 'alphabetic', calls: [], imgs: [], tr: [],
+      get font() { return this._font; }, set font(v) { this._font = v; },
+      measureText(str) { return { width: (str || '').length * 10 }; },
+      fillText(t) { this.calls.push({ t, a: this.globalAlpha }); }, strokeText() {}, drawImage() { this.imgs.push(this.globalAlpha); },
+      save() { this._st = (this._st || []); this._st.push(this.globalAlpha); }, restore() { this.globalAlpha = this._st.pop(); },
+      translate(x, y) { this.tr.push([x, y]); }, setTransform() {}, clearRect() {}, scale() {}, rotate() {}, beginPath() {}, fill() {}, stroke() {} }; return c; };
+    const plan = T.capShadowPlan(T.STYLES.find(x => x.id === 'tight').ts);
+    const bufs = []; const origCreate = document.createElement;
+    document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); const cv = { width: 0, height: 0 }; const cx = mkG(cv); cv.getContext = () => cx; bufs.push(cx); return cv; };
+    const main = mkG({ width: 1080, height: 1920 });
+    T.drawTextGrouped(main, 'so', 100, 200, plan, 3, 1, 60, 120, 1, 0.5);
+    ok(main.calls.length === 0 && main.imgs.length === 1 && Math.abs(main.imgs[0] - 0.5) < 1e-9 && bufs.length >= 1 && bufs[0].calls.length >= 3 && bufs[0].calls.every(k => k.a === 1), 'Gruppen-Deckkraft: Wort + Halo-Schichten im Puffer mit voller Deckkraft, EIN drawImage mit 0,5 (' + bufs[0].calls.length + ' Schichten)');
+    const main2 = mkG({ width: 1080, height: 1920 }); T.drawTextGrouped(main2, 'so', 100, 200, plan, 3, 1, 60, 120, 1, 1);
+    ok(main2.calls.length >= 2 && main2.calls.every(k => k.a === 1), 'Deckkraft 1: direkt auf den Hauptkontext gezeichnet');
+    document.createElement = origCreate;
+  }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();

@@ -1,4 +1,4 @@
-// Tests für lead.php / confirm.php / unsubscribe.php gegen Mock-Supabase und Mock-SMTP (php -S, kein Netz).
+// Tests für lead.php / confirm.php / unsubscribe.php / contact.php gegen Mock-Supabase und Mock-SMTP (php -S, kein Netz).
 // Aufruf: node test-lead.js  (überspringt sich ohne php)
 const { spawn, spawnSync } = require('child_process');
 const http = require('http');
@@ -33,6 +33,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
   }).listen(sbPort);
   const mails = [];
   const smtp = net.createServer(sock => {
+    sock.on('error', () => {}); // PHP schliesst die Verbindung gelegentlich hart (ECONNRESET) — kein Testfehler
     let data = false, buf = ''; sock.write('220 mock\r\n');
     sock.on('data', d => {
       buf += d;
@@ -45,7 +46,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
   }).listen(smtpPort);
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crlead-'));
-  for (const f of ['lead.php', 'confirm.php', 'unsubscribe.php', 'mail.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
+  for (const f of ['lead.php', 'confirm.php', 'unsubscribe.php', 'contact.php', 'mail.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
   fs.writeFileSync(path.join(dir, 'config.php'), `<?php return ['SUPABASE_URL'=>'http://127.0.0.1:${sbPort}','SUPABASE_SERVICE_KEY'=>'svc','LEAD_SECRET'=>'geheim','SITE_URL'=>'http://127.0.0.1:${phpPort}','MAIL_FROM'=>'noreply@example.com','SMTP_HOST'=>'127.0.0.1','SMTP_PORT'=>${smtpPort},'SMTP_SECURE'=>'none'];`);
   const php = spawn('php', ['-S', '127.0.0.1:' + phpPort, '-t', dir], { env: Object.assign({}, process.env, { TMPDIR: dir }), stdio: 'ignore' });
   await new Promise(r => setTimeout(r, 800));
@@ -88,6 +89,35 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
 
     // 6) Ohne Secret/Service-Key kein Link, keine Abmeldung
     const nl = await fetch(base + 'unsubscribe.php', { method: 'POST' }); ok(/nicht gültig|not valid/i.test(await nl.text()), 'ohne Parameter: ungültig');
+
+    // 7) Kontaktformular: Mail an contact@ mit Reply-To, Spam-Schutz (Honeypot, Zeitstempel, Rate-Limit), nichts in der DB
+    {
+      const dbBefore = sbLog.length, mBefore = mails.length;
+      const form = (extra) => new URLSearchParams(Object.assign({ name: 'Anna', email: 'Anna@Example.com', message: 'Hallo, ich habe eine Frage zum Export.', website: '', t: tokC }, extra));
+      const sendC = (f, q) => fetch(base + 'contact.php' + (q || '?lang=de'), { method: 'POST', body: f });
+      const gc = await fetch(base + 'contact.php', { headers: { 'Accept-Language': 'de-CH' } }); const gct = await gc.text();
+      ok(gc.status === 200 && /<form method="post"/.test(gct) && /Kontakt/.test(gct) && /name="website"/.test(gct) && /noindex/.test(gct), 'contact: GET zeigt deutsches Formular mit Honeypot, noindex');
+      var tokC = (gct.match(/name="t" value="([^"]+)"/) || [])[1] || '';
+      ok(/^\d+\.[0-9a-f]{24}$/.test(tokC), 'contact: Formular enthält signierten Zeitstempel');
+      const en = await (await fetch(base + 'contact.php?lang=en', { headers: { 'Accept-Language': 'de' } })).text(); ok(/Your email address/.test(en), 'contact: ?lang=en überstimmt den Browser');
+      // zu schnell (Zeitstempel < 4 s): Danke-Seite, aber keine Mail
+      const fast = await sendC(form()); ok(fast.status === 200 && /Danke/.test(await fast.text()) && mails.length === mBefore, 'contact: zu schnell abgeschickt → keine Mail');
+      await new Promise(r => setTimeout(r, 4300));
+      const bot = await sendC(form({ website: 'http://spam.example' })); ok(bot.status === 200 && mails.length === mBefore, 'contact: Honeypot gefüllt → keine Mail');
+      const forged = await sendC(form({ t: '1.' + '0'.repeat(24) })); ok(forged.status === 200 && mails.length === mBefore, 'contact: gefälschter Zeitstempel → keine Mail');
+      const badMail = await sendC(form({ email: 'keine-adresse' })); const bmt = await badMail.text(); ok(/gültige E-Mail/.test(bmt) && /value="Anna"/.test(bmt) && mails.length === mBefore, 'contact: ungültige Adresse → Fehler, Eingabe bleibt erhalten');
+      const empty = await sendC(form({ message: ' ' })); ok(/Nachricht/.test(await empty.text()) && mails.length === mBefore, 'contact: leere Nachricht → Fehler');
+      const good = await sendC(form()); ok(good.status === 200 && /Danke/.test(await good.text()) && mails.length === mBefore + 1, 'contact: gültige Anfrage → Danke + genau 1 Mail');
+      const craw = mails[mails.length - 1] || '';
+      const cbody = Buffer.from((craw.split('\r\n\r\n')[1] || '').replace(/\r\n|\r?\n\.\r?\n?$/g, ''), 'base64').toString('utf8');
+      ok(/To: <contact@captionrush\.com>/.test(craw) && /Reply-To: <anna@example\.com>/.test(craw), 'contact: Mail geht an contact@ mit Reply-To der Absenderin');
+      ok(/Name: Anna/.test(cbody) && /E-Mail: anna@example\.com/.test(cbody) && /Frage zum Export/.test(cbody), 'contact: Mailtext enthält Name, Adresse, Nachricht');
+      const inj = await sendC(form({ email: 'x@example.com\r\nBcc: opfer@example.com', message: 'Header-Einschleusung' })); await inj.text();
+      ok(!mails.slice(mBefore).some(m => /Bcc:/i.test(m.split('\r\n\r\n')[0])), 'contact: keine Header-Einschleusung über die Adresse');
+      for (let i = 0; i < 4; i++) await (await sendC(form())).text();
+      const lim = await sendC(form()); ok(lim.status === 429 && /Stunde|hour/.test(await lim.text()), 'contact: 6. Nachricht pro Stunde → 429');
+      ok(sbLog.length === dbBefore, 'contact: nichts in der Datenbank gespeichert');
+    }
   } finally { php.kill(); sb.close(); smtp.close(); fs.rmSync(dir, { recursive: true, force: true }); }
   console.log(fails ? `${fails}/${n} FEHLER` : `test-lead: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);

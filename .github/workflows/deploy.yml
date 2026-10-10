@@ -19,10 +19,26 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
+      - name: Secrets prüfen (nennt alle fehlenden auf einmal)
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_DIR: ${{ secrets.FTP_DIR }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          ALERT_URL: ${{ secrets.ALERT_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          LEAD_SECRET: ${{ secrets.LEAD_SECRET }}
+          MAIL_FROM: ${{ secrets.MAIL_FROM }}
+        run: node scripts/check-secrets.js
       - name: Tests (dieselben wie lokal)
         run: |
           node scripts/build-i18n.js --check
@@ -33,6 +49,7 @@ jobs:
           node test-lead.js
           node test-telemetry.js
           node test-billing.js
+          node test-ops.js
       - name: Paket bauen
         run: node scripts/build-dist.js
       - name: config.php aus Secrets schreiben
@@ -48,6 +65,17 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           LEAD_SECRET: ${{ secrets.LEAD_SECRET }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          # Abos (Standard aus; leer = Standard). Erst für Teil D der Anleitung setzen.
+          BILLING_ENABLED: ${{ secrets.BILLING_ENABLED }}
+          ANON_SEC_PER_DAY: ${{ secrets.ANON_SEC_PER_DAY }}
+          FREE_CLEAN_VIDEOS_PER_DAY: ${{ secrets.FREE_CLEAN_VIDEOS_PER_DAY }}
+          PADDLE_ENV: ${{ secrets.PADDLE_ENV }}
+          PADDLE_CLIENT_TOKEN: ${{ secrets.PADDLE_CLIENT_TOKEN }}
+          PADDLE_PRICE_CREATOR: ${{ secrets.PADDLE_PRICE_CREATOR }}
+          PADDLE_PRICE_PRO: ${{ secrets.PADDLE_PRICE_PRO }}
+          PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
+          PADDLE_WEBHOOK_SECRET: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
+          PADDLE_TOLERANCE_SEC: ${{ secrets.PADDLE_TOLERANCE_SEC }}
         run: node scripts/write-config.js
       - name: Hochladen (FTPS)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
