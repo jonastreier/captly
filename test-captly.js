@@ -131,7 +131,7 @@ csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
-capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
+capNoItalic:capNoItalic,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3939,6 +3939,23 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     });
     ok(hy('Donaudampfschifffahrtsgesellschaft', 12, 'de').length > 1 && hy('Привет-пока-долгожданный', 8, 'en').length >= 1, 'Latein/Kyrillisch trennen weiter wie bisher');
     ok(T.capHyphEligible('Geschwindigkeit') && !T.capHyphEligible('国際連合安全保障理事会') && !T.capHyphEligible('المنظمةالدولية'), 'capHyphEligible: Skript-Pruefung');
+  }
+  // ── Kein kuenstliches Kursiv bei Schriften ohne Kursivschnitt (S2) ──
+  {
+    const ST2 = id => T.STYLES.find(x => x.id === id);
+    const ar = 'مرحبا', he = 'שלום', ja = '日本語', hi = 'नमस्ते', th = 'สวัสดี', la = 'Hello';
+    const cases = [['note', true], ['reveal', true], ['accent', true], ['soft', true], ['serifbold', false], ['serifbold', true], ['editorial', false]];
+    const bad = [];
+    cases.forEach(([id, em]) => {
+      const st = ST2(id), hl = id === 'editorial';
+      [ar, he, ja, hi, th].forEach(w => { if (T.capWordFace(st, hl, em, w).it) bad.push(id + ':' + w); });
+      if (!(T.capWordFace(st, hl, em, la).it === T.capWordFace(st, hl, em).it)) bad.push(id + ':latin');
+    });
+    ok(bad.length === 0, 'capWordFace: Arabisch/Hebraeisch/CJK/Devanagari/Thai nie kursiv, Latein unveraendert' + (bad.length ? ' — ' + bad.join(',') : ''));
+    ok(T.capWordFace(ST2('note'), false, true, la).it === true && T.capWordFace(ST2('serifbold'), false, false, la).it === true, 'Latein bleibt kursiv (note-Keyword, serifbold-Text)');
+    const html = T.buildCap([ar, la], ST2('reveal'), -1, 24, null, 0, { em: [true, true] });
+    const spans = html.split('<span').slice(1);
+    ok(/font-style:italic;[^"]*font-style:normal;/.test(spans[1]) && /font-style:italic;/.test(spans[2]) && !/font-style:normal/.test(spans[2].replace(/^[^"]*"/, '')), 'Vorschau-DOM: Betonung bei Arabisch aufrecht, bei Latein kursiv (reveal)');
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

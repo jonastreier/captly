@@ -3158,11 +3158,11 @@ function fitCaptionWords(words, s, px, maxW, lines, em) {
   // Die Highlight-Box (hlPillBg) belegt keine Breite mehr (s. capWordGap).
   function measure(w, p, i) {
     var isE = !!(em && i !== undefined && em[i]);
-    var sz = p * fsMul * (isE ? esc : 1), f = capWordFace(s, false, isE);
+    var sz = p * fsMul * (isE ? esc : 1), f = capWordFace(s, false, isE, w);
     ctx.font = capFaceFont(f, sz);
     var normal = ctx.measureText(f.up ? w.toUpperCase() : w).width, hl = 0;
     if (hv) {
-      var fh = capWordFace(s, true, isE);
+      var fh = capWordFace(s, true, isE, w);
       ctx.font = capFaceFont(fh, sz);
       hl = ctx.measureText(fh.up ? w.toUpperCase() : w).width;
       if (s.circle) hl += 0.6 * sz + 5;       // padding .3em + 2.5px Rahmen je Seite
@@ -3575,11 +3575,11 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf, em) {
   // bricht nie anders um; hlIdx bleibt nur als Parameter für alte Aufrufer.
   var info  = words.map(function(w, i) {
     var oi   = hlOf ? hlOf[i] : i, isE = !!(em && em[oi]), sz = px * (isE ? esc : 1);
-    var f    = capWordFace(s, false, isE);
+    var f    = capWordFace(s, false, isE, w);
     ctx.font = capFaceFont(f, sz);
     var ww   = ctx.measureText(f.up ? w.toUpperCase() : w).width;
     if (hv) {
-      var fh = capWordFace(s, true, isE);
+      var fh = capWordFace(s, true, isE, w);
       ctx.font = capFaceFont(fh, sz);
       ww = Math.max(ww, ctx.measureText(fh.up ? w.toUpperCase() : w).width + (s.circle ? 0.6 * sz + 5 : 0));
     }
@@ -3866,11 +3866,17 @@ function capFxSteady(f, mode) {
   return f.op === 0 || f.op === 1 || (mode === 'fill' && f.op === CAP_MOT.dim);
 }
 // Schrift eines Worts: Betonung (emFont/emItalic/emFw) und aktives Wort (hlFont/hlItalic/hlUpper, nur 'highlight')
-function capWordFace(s, isHL, isEm) {
+// Schriften ohne kursive Schnitte (Arabisch, Hebräisch, CJK/Hangul, indische Schriften, Thai …): dort würde der Browser/Canvas die
+// Schrift künstlich schrägstellen (Faux-Italic) — typografisch falsch und bei Arabisch sogar entstellend. Kein Kursiv für solche Wörter.
+var CAP_NO_ITALIC_RE = /[\p{Script=Arabic}\p{Script=Hebrew}\p{Script=Syriac}\p{Script=Thaana}\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Devanagari}\p{Script=Bengali}\p{Script=Gurmukhi}\p{Script=Gujarati}\p{Script=Tamil}\p{Script=Telugu}\p{Script=Kannada}\p{Script=Malayalam}\p{Script=Sinhala}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+function capNoItalic(text) { return !!text && CAP_NO_ITALIC_RE.test(String(text)); }
+// text (optional): das Wort selbst — bei Schriften ohne Kursiv (capNoItalic) bleibt es aufrecht
+function capWordFace(s, isHL, isEm, text) {
   var hv = !!isHL && capMotion(s) === 'highlight';
   var fam = (hv && s.hlFont) || (isEm && s.emFont) || s.font || "'Inter'";
   var it = !!((hv && s.hlItalic) || (isEm && s.emItalic) || s.fi === 'italic');
   if (isEm && s.emItalic === false && !(hv && s.hlItalic)) it = false; // z. B. Serif Bold: Keyword aufrecht in kursivem Text
+  if (it && capNoItalic(text)) it = false;
   return { fam: String(fam).replace(/'/g, ''), it: it,
            fw: String((isEm && s.emFw) || s.fw || '700'), up: s.tt === 'uppercase' || !!(hv && s.hlUpper) };
 }
@@ -3951,7 +3957,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   // Platz je Wort für normale + aktive Variante (s. capHlVariant) — gleiche Messung wie wrapCaptionLines
   function slotW(i, isE) {
     var c = capMeasureCtx(), sz0 = px * fsMul * (isE ? esc : 1), w = words[i];
-    var f0 = capWordFace(s, false, isE), f1 = capWordFace(s, true, isE);
+    var f0 = capWordFace(s, false, isE, w), f1 = capWordFace(s, true, isE, w);
     c.font = capFaceFont(f0, sz0); var a = c.measureText(f0.up ? w.toUpperCase() : w).width;
     c.font = capFaceFont(f1, sz0); var b2 = c.measureText(f1.up ? w.toUpperCase() : w).width + (s.circle ? 0.6 * sz0 + 5 : 0);
     return Math.max(a, b2) + capLsPx(s, px) * w.length;
@@ -4003,6 +4009,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
       if (s.emFw) ws += 'font-weight:' + s.emFw + ';';
       ws += 'font-size:' + esc + 'em;line-height:' + emphLineH(s, esc).toFixed(4) + ';';
     }
+    if (capNoItalic(words[i])) ws += 'font-style:normal;'; // Schrift ohne Kursiv: nie Faux-Italic (Style, Betonung, aktives Wort)
     if (hv) ws += 'min-width:' + slotW(i, isEm).toFixed(2) + 'px;text-align:center;';
     // Kacheln/Showcase: Reveal = bis hlIdx sichtbar (neues Wort blendet ein), Fill = danach gedimmt
     if (!live && hlIdx >= 0 && mode === 'reveal') {
@@ -10813,8 +10820,8 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
 
   // Font pro Wort — Betonung (emFont/emItalic/emFw) und aktives Wort (hlFont/hlItalic/hlUpper), s. capWordFace
   var lsPxS = capLsPx(s, fit.px) * scale; // letter-spacing wie im DOM (CSS px bei Vorschaubreite)
-  function wordFont(isHL, isEm) {
-    ctx.font = capFaceFont(capWordFace(s, isHL, isEm), isEm ? fsS * esc : fsS);
+  function wordFont(isHL, isEm, wt) {
+    ctx.font = capFaceFont(capWordFace(s, isHL, isEm, wt), isEm ? fsS * esc : fsS);
     if ('letterSpacing' in ctx) ctx.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px';
   }
   ctx.font = fi + fw + ' ' + fsS + 'px "' + fn + '", sans-serif';
@@ -10827,11 +10834,11 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   var wordInfo = fit.words.map(function(w0, i) {
     var e = !!(emk && emk[fit.orig[i]]);
     var txt = capWordFace(s, false, e).up ? w0.toUpperCase() : w0;
-    wordFont(false, e);
+    wordFont(false, e, w0);
     var tw = ctx.measureText(txt).width, txtH = txt, twH = tw, cx = 0;
     if (hv) {
       txtH = capWordFace(s, true, e).up ? w0.toUpperCase() : w0;
-      wordFont(true, e); twH = ctx.measureText(txtH).width;
+      wordFont(true, e, w0); twH = ctx.measureText(txtH).width;
       if (s.circle) cx = 0.6 * (e ? fsS * esc : fsS) + 5 * scale; // Kringel-Innenabstand wie im DOM
     }
     return { txt: txt, txtH: txtH, w: Math.max(tw, twH + cx), tw: tw, twH: twH, idx: fit.orig[i], t: fit.words[i], e: e,
@@ -10955,8 +10962,8 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   function paint(ctx, mode2) {
     // Font/letterSpacing nur setzen, wenn sie sich ändern (Zuweisung parst den Font-String jedes Mal neu)
     var curFont = null, curLs = null, emHl = emphShadowIsHl(s);
-    function wordFont(isHL, isEm) {
-      var fs = capFaceFont(capWordFace(s, isHL, isEm), isEm ? fsS * L0.esc : fsS);
+    function wordFont(isHL, isEm, wt) {
+      var fs = capFaceFont(capWordFace(s, isHL, isEm, wt), isEm ? fsS * L0.esc : fsS);
       if (fs !== curFont) { ctx.font = fs; curFont = fs; }
       if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
     }
@@ -11063,7 +11070,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
         var txt = isHL ? wo.txtH : wo.txt, tw = isHL ? wo.twH : wo.tw;
         var tx = x + (wo.w - tw) / 2; // im festen Wortplatz zentriert (DOM: min-width + text-align:center)
         var isKw = !isHL && !!wo.e; // hervorgehoben (KI/Nutzer/alte Keyword-Liste), s. blockEmph
-        wordFont(isHL, wo.e);
+        wordFont(isHL, wo.e, wo.t);
 
         // Kringel ums aktive Wort (Sketch, wie Referenz)
         if (isHL && s.circle) {
@@ -11579,7 +11586,7 @@ function coverDrawTitle(ctx, W, H, st, s) {
   for (var tries = 0; tries < 40 && base > W * 0.02; tries++) {
     var wid = words.map(function(w, i) {
       var isE = coverIsEm(s, kw, i);
-      var f = capWordFace(s, false, isE), sz = base * (isE ? esc : 1);
+      var f = capWordFace(s, false, isE, w), sz = base * (isE ? esc : 1);
       ctx.font = capFaceFont(f, sz);
       if ('letterSpacing' in ctx) ctx.letterSpacing = coverLs(s, base) + 'px';
       return ctx.measureText(up ? w.toUpperCase() : w).width;
@@ -11598,7 +11605,7 @@ function coverDrawTitle(ctx, W, H, st, s) {
         L.forEach(function(i) {
           var ow = wo[i] || [0, 0], wx = x + gx + ow[0] * W, wy = y + gy + ow[1] * H; // Wortposition samt Verschiebung
           var isE = coverIsEm(s, kw, i);
-          var f = capWordFace(s, false, isE), sz = base * (isE ? esc : 1), t = up ? words[i].toUpperCase() : words[i];
+          var f = capWordFace(s, false, isE, words[i]), sz = base * (isE ? esc : 1), t = up ? words[i].toUpperCase() : words[i];
           ctx.font = capFaceFont(f, sz);
           if ('letterSpacing' in ctx) ctx.letterSpacing = coverLs(s, base) + 'px';
           ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
