@@ -810,6 +810,10 @@ body.editor-open .lang-hint{display:none}
 .es-ok .ic{width:18px;height:18px}
 .es-done-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .es-done-row .pos-btn{flex:1 1 auto;padding:8px 10px;white-space:nowrap}
+.es-done-hint,.es-last{font-size:12px;color:var(--muted,#6b6577);margin:8px 0 0;line-height:1.45}
+.es-last b{font-weight:600;word-break:break-all}
+.es-cancel{color:#b42318;padding:2px 4px}
+.tb-export.busy{background:var(--brand-ink)}
 /* Vorschau: Verarbeitungs-Overlay */
 .proc-ov{position:absolute;inset:0;z-index:12;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:rgba(14,10,24,.55);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);color:#fff;text-align:center;padding:16px}
 .proc-ov b{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -1340,19 +1344,48 @@ body.editor-open .lang-hint{display:none}
         <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-dl"/></svg></span>
         <span class="exp-btn-txt"><span class="exp-btn-label">Download video</span><span class="exp-btn-sub" id="btnVideoSub">MP4 · 1080p · no watermark</span></span>
       </button>
-      <p class="es-render" id="expRender" style="display:none">Rendering on your device — keep this tab open.</p>
+      <p class="es-last" id="expLast" style="display:none">Last export: <b id="expLastName"></b> · <button type="button" class="es-link" onclick="downloadLastExport()" title="Save the same file again — no new rendering">Download again</button></p>
+      <p class="es-render" id="expRender" style="display:none">Rendering on your device — keep this tab open. <button type="button" class="es-link es-cancel" id="expCancel" onclick="cancelExport()" title="Stop the export — nothing is downloaded">Cancel</button></p>
       <div id="recProg">
         <p id="recMsg">Rendering video…</p>
         <div class="rec-bar-wrap"><div class="rec-bar" id="recBar"></div></div>
       </div>
       <p class="es-wm" id="wmOpt" style="display:none">Free export adds a small CaptionRush mark · <a href="#" onclick="exportWithoutWatermark();return false" title="Free account · Magic-Code login, no password">Sign in free to remove</a></p>
-      <div class="es-links">
-        <button type="button" class="es-link" id="btnSRT" onclick="exportSRT()" disabled title="Subtitle file for Premiere, DaVinci, CapCut… (Premiere: File → Import → choose the .srt → drag onto the timeline)">SRT</button><span aria-hidden="true">·</span>
-        <button type="button" class="es-link" id="btnVTT" onclick="exportVTT()" disabled title="Subtitle file for web players &amp; YouTube">VTT</button><span aria-hidden="true">·</span>
-        <button type="button" class="es-link" id="btnTXT" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">TXT</button><span aria-hidden="true">·</span>
-        <button type="button" class="es-link" id="btnCopy" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">Copy text</button><span aria-hidden="true">·</span>
-        <button type="button" class="es-link" id="btnCover" onclick="openCover()" disabled title="Make a cover image (thumbnail) for your Reel">Create cover</button>
+    </div>
+    <p class="es-note" id="expNote" role="status" aria-live="polite" style="display:none"></p>
+    <div class="es-done" id="expDone" style="display:none" role="status" aria-live="polite">
+      <div class="es-ok"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span><span id="expDoneLbl">Saved</span> — <b id="expDoneName">captionrush-video.mp4</b></span></div>
+      <!-- Handy mit Teilen-Blatt: „Save to Photos / Share“ primär (Fototeilen braucht einen echten Tipp), sonst
+           „Caption another video“. Reihenfolge per JS (exportDone). -->
+      <div class="es-done-acts" id="expDoneActs">
+        <button type="button" class="exp-btn hi es-share" id="expShare" style="display:none" onclick="shareLastExport()">
+          <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
+          <span class="exp-btn-txt"><span class="exp-btn-label">Save to Photos / Share</span></span>
+        </button>
+        <button type="button" class="exp-btn hi" id="expAnother" onclick="captionAnother()">
+          <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
+          <span class="exp-btn-txt"><span class="exp-btn-label">Caption another video</span><span class="exp-btn-sub">Keeps your style</span></span>
+        </button>
       </div>
+      <div class="es-done-row">
+        <button type="button" class="pos-btn" id="expRmWm" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">Remove watermark (free)</button>
+        <button type="button" class="pos-btn" id="expDlFile" onclick="downloadLastExport()" title="Save the same file again — no new rendering">Download again</button>
+        <button type="button" class="pos-btn" id="expAgain" onclick="exportAgain()" title="Render a new video with your current captions and style (takes as long as the first export)">Export again (re-render)</button>
+      </div>
+      <p class="es-done-hint">Changed your captions or style? Use “Export again”.</p>
+      <div class="es-done-links">
+        <button type="button" class="es-link" id="expCopyPost" onclick="copyTranscript(this)">Copy full transcript</button>
+      </div>
+    </div>
+    <!-- Immer sichtbar (auch nach dem Export): SRT/VTT/TXT, Text kopieren, Cover -->
+    <div class="es-links">
+      <button type="button" class="es-link" id="btnSRT" onclick="exportSRT()" disabled title="Subtitle file for Premiere, DaVinci, CapCut… (Premiere: File → Import → choose the .srt → drag onto the timeline)">SRT</button><span aria-hidden="true">·</span>
+      <button type="button" class="es-link" id="btnVTT" onclick="exportVTT()" disabled title="Subtitle file for web players &amp; YouTube">VTT</button><span aria-hidden="true">·</span>
+      <button type="button" class="es-link" id="btnTXT" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">TXT</button><span aria-hidden="true">·</span>
+      <button type="button" class="es-link" id="btnCopy" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">Copy text</button><span aria-hidden="true">·</span>
+      <button type="button" class="es-link" id="btnCover" onclick="openCover()" disabled title="Make a cover image (thumbnail) for your Reel">Create cover</button>
+    </div>
+    <div id="expOptsWrap">
       <details class="es-opts" id="expOpts"><summary>Options</summary>
         <div class="exp-opts">
           <label class="exp-opt"><span>Resolution</span>
@@ -1372,31 +1405,6 @@ body.editor-open .lang-hint{display:none}
       <label class="exp-chk es-skip" title="Export then downloads right away with these settings — untick here to see this sheet again">
         <input type="checkbox" id="expSkipChk" onchange="setExpSkip(this.checked)"><span>Skip this next time — Export downloads right away</span>
       </label>
-    </div>
-    <p class="es-note" id="expNote" role="status" aria-live="polite" style="display:none"></p>
-    <div class="es-done" id="expDone" style="display:none" role="status" aria-live="polite">
-      <div class="es-ok"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span><span id="expDoneLbl">Saved</span> — <b id="expDoneName">captionrush-video.mp4</b></span></div>
-      <!-- Handy mit Teilen-Blatt: „Save to Photos / Share“ primär (Fototeilen braucht einen echten Tipp), sonst
-           „Caption another video“. Reihenfolge per JS (exportDone). -->
-      <div class="es-done-acts" id="expDoneActs">
-        <button type="button" class="exp-btn hi es-share" id="expShare" style="display:none" onclick="shareLastExport()">
-          <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
-          <span class="exp-btn-txt"><span class="exp-btn-label">Save to Photos / Share</span></span>
-        </button>
-        <button type="button" class="exp-btn hi" id="expAnother" onclick="captionAnother()">
-          <span class="exp-btn-icon"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
-          <span class="exp-btn-txt"><span class="exp-btn-label">Caption another video</span><span class="exp-btn-sub">Keeps your style</span></span>
-        </button>
-      </div>
-      <div class="es-done-row">
-        <button type="button" class="pos-btn" id="expRmWm" onclick="exportWithoutWatermark()" title="Free account · Magic-Code login, no password">Remove watermark (free)</button>
-        <button type="button" class="pos-btn" onclick="exportAgain()">Export again</button>
-        <button type="button" class="pos-btn" onclick="openCover()" title="Make a cover image (thumbnail) for your Reel">Create cover</button>
-      </div>
-      <div class="es-done-links">
-        <button type="button" class="es-link" id="expDlFile" style="display:none" onclick="downloadLastExport()">Download file</button><span id="expDlSep" aria-hidden="true" style="display:none">·</span>
-        <button type="button" class="es-link" id="expCopyPost" onclick="copyTranscript(this)">Copy full transcript</button>
-      </div>
     </div>
     <div class="es-post" id="expPost" style="display:none">
       <button type="button" class="es-post-head" id="expPostBtn" onclick="genPostCaption()"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg><span>Caption &amp; hashtags for your post</span><span class="es-post-go" id="expPostGo">Write</span></button>
@@ -8584,6 +8592,18 @@ function isIOSDevice() {
   } catch (e) { return false; }
 }
 function noAudioTrackErr() { return new Error('This video has no audio track — nothing to transcribe.'); }
+// Ton nicht lesbar: beschädigte/abgeschnittene Datei oder falsches Format? Das <video> meldet kaputte Dateien selbst
+// (MEDIA_ERR_NETWORK 2 / DECODE 3, oft erst nach 1–3 s) — falsches Format dagegen als SRC_NOT_SUPPORTED (4) bzw. gar nicht.
+var MSG_AUDIO_FORMAT = 'Could not read the audio. Please use MP4, MOV or WebM.';
+var MSG_AUDIO_DAMAGED = 'This file looks damaged or incomplete — the audio can\'t be read. Try re-saving it from your Photos app or another file.';
+function videoErrIsDamage(v) { return !!(v && v.error && (v.error.code === 2 || v.error.code === 3)); }
+async function audioUnreadableMsg() {
+  var v = document.getElementById('mainVid');
+  // Auf das Urteil des Players warten: bis ~3 s, wenn er Metadaten hat (typisch für abgeschnittene Dateien), sonst ~1 s
+  var maxTicks = v && v.readyState >= 1 ? 30 : 10;
+  for (var i = 0; i < maxTicks && v && !v.error; i++) await new Promise(function(r) { setTimeout(r, 100); });
+  return videoErrIsDamage(v) ? MSG_AUDIO_DAMAGED : MSG_AUDIO_FORMAT;
+}
 async function decodeToMono16k(file, isStale) {
   function bail() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
   var preferFfmpeg = (file && file.size > BIG_MEDIA_BYTES) || isIOSDevice();
@@ -8595,7 +8615,7 @@ async function decodeToMono16k(file, isStale) {
       console.warn('ffmpeg/WORKERFS-Extraktion fehlgeschlagen, Web-Audio-Fallback:', e);
       bail();
       try { return await webAudioDecode(file); }
-      catch (e2) { console.error(e2); throw new Error('Could not read the audio. Please use MP4, MOV or WebM.'); }
+      catch (e2) { console.error(e2); throw new Error(await audioUnreadableMsg()); }
     }
   }
   try { return await webAudioDecode(file); }
@@ -8607,7 +8627,7 @@ async function decodeToMono16k(file, isStale) {
       if (e2 && e2.stale) throw e2;
       console.error(e2);
       if (e2 && e2.noAudio) throw noAudioTrackErr();
-      throw new Error('Could not read the audio. Please use MP4, MOV or WebM.');
+      throw new Error(await audioUnreadableMsg());
     }
   }
 }
@@ -9190,6 +9210,8 @@ function loadVideo(file) {
   }
   if (_autosaveTimer) autosaveNow(); // ausstehenden Autosave des vorigen Videos noch unter SEINEM Key sichern
   _autosaveKey = null; _lastTrMeta = null;
+  if (_expTok) cancelExport(); // läuft noch ein Export des alten Videos: abbrechen
+  releaseLastExport(); showExportMain(); // neues Video → alte Export-Datei freigeben
   currentFile   = file;
   wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1; captionsEdited = false;
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
@@ -9256,8 +9278,11 @@ function loadVideo(file) {
     vidReady = false; vid.style.display = 'none'; document.getElementById('frameDropZone').style.display = 'flex';
     videoPlayable = false; enableExports(false);
     if (setProcessing(false)) switchTab('captions'); // Fehlertext steht im Captions-Tab
-    setTStatus('❌', 'Couldn\'t load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone\'s Photos app, then upload it again.', false, false);
-    showVideoWarn('This video couldn\'t be opened in this browser. Tap “Upload video” to try another file.');
+    var damaged = videoErrIsDamage(vid);
+    setTStatus('❌', damaged ? 'This file looks damaged or incomplete. Try re-saving it from your Photos app, or choose another file.'
+      : 'Couldn\'t load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone\'s Photos app, then upload it again.', false, false);
+    showVideoWarn(damaged ? 'This video file looks damaged or incomplete, so it can\'t be played. Tap “Upload video” to choose another file.'
+      : 'This video couldn\'t be opened in this browser. Tap “Upload video” to try another file.');
     // Manche Browser (z. B. Firefox bei HEVC) melden einen Fehler statt Breite 0 — der Ton ist trotzdem
     // lesbar: dann HEVC-Hinweis zeigen und die Captions dennoch erzeugen (SRT/TXT bleiben nutzbar).
     var errFile = file;
@@ -9557,12 +9582,13 @@ function exportSRT() {
   }).join('\n\n');
   dlText(out, exportBaseName() + '.srt');
 }
+// Kopfzeile + genau EINE Leerzeile, dann die Cues durch Leerzeilen getrennt (ohne Cues: nur der Kopf)
+function vttFile(cues) { return 'WEBVTT\n\n' + cues.join('\n\n'); }
 function exportVTT() {
-  var lines = ['WEBVTT', ''];
-  captionBlocks.forEach(function(b, i) {
-    lines.push((i+1) + '\n' + vttT(offT(b.start)) + ' --> ' + vttT(offT(b.end)) + '\n' + subtitleText(b.text));
+  var cues = captionBlocks.map(function(b, i) {
+    return (i+1) + '\n' + vttT(offT(b.start)) + ' --> ' + vttT(offT(b.end)) + '\n' + subtitleText(b.text);
   });
-  dlText(lines.join('\n\n'), exportBaseName() + '.vtt');
+  dlText(vttFile(cues), exportBaseName() + '.vtt');
 }
 function dlText(content, name) {
   var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -9629,9 +9655,14 @@ function webmToMp4Trim(durSec) {
   return (durSec > 0 && isFinite(durSec)) ? ['-t', durSec.toFixed(3), '-shortest'] : ['-shortest'];
 }
 // durSec (optional): Zieldauer — Bild UND Ton werden darauf gekürzt (A/V enden gemeinsam, ≈ Quelldauer)
-async function webmToMp4(blob, onProgress, durSec) {
+async function webmToMp4(blob, onProgress, durSec, tok) {
   var g = await getFFmpeg();
   var ff = g.ff;
+  if (tok) {
+    // Abbrechen während der Umkodierung: Worker beenden (exec() schlägt dann fehl) und die Instanz verwerfen
+    if (tok.cancelled) throw new Error('cancelled');
+    tok.abort = function() { try { ff.terminate(); } catch (e) {} if (_ffmpeg === g) _ffmpeg = null; };
+  }
   if (onProgress) ff.on('progress', function(e){ onProgress(Math.max(0, Math.min(1, e.progress || 0))); });
   await ff.writeFile('in.webm', await g.fetchFile(blob));
   // 'ultrafast' statt 'veryfast': x264-Presets steuern nur die Kodier-GESCHWINDIGKEIT bzw.
@@ -10050,7 +10081,9 @@ async function exportFastWebCodecs(file, o) {
     var pct = Math.floor(p * 100);
     if (pct !== lastPct && o.onProgress) { lastPct = pct; o.onProgress(p); }
   }
+  function checkCancel() { if (o.isCancelled && o.isCancelled()) throw new Error('cancelled'); }
   async function drain() {
+    checkCancel();
     for (var i = 0; i < aQ.length; i++) {
       var s = aQ[i], dur = s.duration / s.timescale;
       var aStart = s.cts / s.timescale + aOff;
@@ -10067,6 +10100,7 @@ async function exportFastWebCodecs(file, o) {
       // Backpressure: nie mehr als ein paar Chunks/Frames in den Codec-Queues → Speicher bleibt beschränkt
       while (decoder.decodeQueueSize > 4 || encoder.encodeQueueSize > 4) {
         await wcQueueTick(decoder, encoder);
+        checkCancel();
         if (fail) throw fail;
         progress();
       }
@@ -10099,6 +10133,7 @@ async function exportFastWebCodecs(file, o) {
     await drain();
     if (vRead !== vTotal) throw new Error('nur ' + vRead + '/' + vTotal + ' Video-Samples gelesen');
     if (aT && aRead !== aT.nb_samples) throw new Error('nur ' + aRead + '/' + aT.nb_samples + ' Audio-Samples gelesen');
+    checkCancel();
     await decoder.flush();
     if (fail) throw fail;
     await encoder.flush();
@@ -10148,7 +10183,7 @@ function validateExportBlob(blob, expectedDur, timeoutMs) {
     } catch (e) { finish(false, 'Ausnahme: ' + (e && e.message)); }
   });
 }
-async function tryFastExport(vid) {
+async function tryFastExport(vid, tok) {
   var geoF = exportGeometry(vid.videoWidth, vid.videoHeight, 30);
   if (_blurBgCanvas) _blurBgCanvas.width = 0; // Blur-Hintergrund des vorigen Exports nicht wiederverwenden
   if (!fastExportSupported() || !isFastExportSource(currentFile)) return false;
@@ -10169,6 +10204,7 @@ async function tryFastExport(vid) {
       style: STYLES.find(function(x){ return x.id === activeId; }),
       wmOn: wmF, // Anmeldestatus JETZT — gilt für das ganze Video (wie im Echtzeit-Pfad)
       cutRegions: cutRegions,
+      isCancelled: function() { return !!(tok && tok.cancelled); },
       onProgress: function(p) {
         recBar.style.width = Math.round(p * 100) + '%';
         recMsg.textContent = 'Rendering ' + Math.round(p * 100) + '%…';
@@ -10178,17 +10214,21 @@ async function tryFastExport(vid) {
     console.info('[export] WebCodecs-Schnellexport fertig in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s (Video: '
                  + vid.duration.toFixed(1) + ' s)');
     // Sicherheitsnetz: kaputte/abgeschnittene Datei lieber verwerfen und in Echtzeit neu rendern
+    if (tok && tok.cancelled) throw new Error('cancelled');
     recMsg.textContent = 'Checking video…';
     var check = await validateExportBlob(blob, vid.duration - cutTotalSec);
     if (!check.ok) throw new Error('Validierung fehlgeschlagen: ' + check.reason);
+    if (!exportBlobOk(blob)) throw new Error('Validierung fehlgeschlagen: Datei leer');
+    if (tok && tok.cancelled) throw new Error('cancelled'); // Abbruch gewinnt gegen den Download, solange nichts gespeichert ist
     dlBlob(blob, exportBaseName() + '.mp4');
     recProg.style.display = 'none';
     exportBtnState(null);
-    isExporting = false;
+    isExporting = false; if (tok && _expTok === tok) _expTok = null;
     if (ctrls) ctrls.classList.remove('exporting'); tlRequestDraw(); // Timeline pausierte während des Exports
     exportDone(wmF);
     return true;
   } catch (e) {
+    if (tok && tok.cancelled) { exportAborted(tok); return true; } // Nutzer hat abgebrochen → kein Echtzeit-Rückfall, kein Download
     console.warn('[export] WebCodecs-Schnellexport nicht möglich → Echtzeit-Export (MediaRecorder). Grund:', e && e.message || e, e);
     recBar.style.width = '0%';
     isExporting = false;
@@ -10282,6 +10322,7 @@ function setExportFormat(v) {
   if (frame && frame.classList) frame.classList.toggle('reframe-blur', blur);
   if (_blurBgTimer) { clearInterval(_blurBgTimer); _blurBgTimer = null; }
   if (blur) { updatePreviewBlurBg(); _blurBgTimer = setInterval(updatePreviewBlurBg, 300); }
+  syncExpSub();
   if (vidReady) { layoutPreviewFrame(false); _lastKey = null; updateOverlay(); applyPos(); }
 }
 function updatePreviewBlurBg() {
@@ -10314,6 +10355,67 @@ function recorderMimeIsSafeMp4(actual, requested, hasAudio) {
   if (/mp4a/i.test(a) || /mp4a/i.test(r)) return true;
   return r === 'video/mp4' && !/codecs/i.test(a); // Safari: generisches MP4 = H.264/AAC
 }
+// ── Export-Lebenszyklus: Abbruch, Fehler, Datei zum erneuten Speichern ──
+// _expTok ≠ null = ein Export läuft (auch in der „Preparing“-Phase). tok.cancelled: Nutzer hat abgebrochen;
+// tok.abort: pfadabhängige Stopp-Funktion (Recorder anhalten bzw. ffmpeg.wasm beenden). Der WebCodecs-Pfad
+// prüft tok.cancelled in seiner Schleife.
+var _expTok = null;
+function newExportToken() { return (_expTok = { cancelled: false, abort: null }); }
+// Kleiner als das ist keine echte Videodatei (allein der Container-Kopf ist > 1 KB) → leere/kaputte Aufnahme
+var EXPORT_MIN_BYTES = 1024;
+var MSG_EXPORT_DAMAGED = 'Export failed — the video file seems damaged. Try re-saving it from your Photos app or another file.';
+function exportBlobOk(blob) { return !!blob && blob.size >= EXPORT_MIN_BYTES; }
+// Echtzeit-Export: war die Wiedergabe viel kürzer als die Videodauer, endete die Quelldatei vorzeitig (abgeschnitten)
+function exportPlaybackTooShort(elapsedSec, expectedSec) { return expectedSec > 2 && elapsedSec < expectedSec * 0.5; }
+// Gemeinsames Aufräumen für Abbruch/Fehler (Erfolg macht exportDone): Zustand zurück, erneuter Export möglich
+function resetExportUI(tok) {
+  if (!tok || _expTok === tok) _expTok = null;
+  isExporting = false;
+  var rp = document.getElementById('recProg'); if (rp) rp.style.display = 'none';
+  var rb = document.getElementById('recBar'); if (rb) rb.style.width = '0%';
+  var cb = document.getElementById('expCancel'); if (cb) cb.disabled = false;
+  var ctrls = document.getElementById('vidCtrls'); if (ctrls && ctrls.classList) ctrls.classList.remove('exporting');
+  exportBtnState(null);
+  tlRequestDraw();
+}
+function exportAborted(tok) {
+  resetExportUI(tok); showExportMain();
+  capToast('Export cancelled — nothing was downloaded.');
+}
+// Fehlermeldung dort zeigen, wo der Nutzer hinschaut: im (ggf. dafür geöffneten) Export-Blatt, nicht als alert()
+function exportFailed(tok, msg) {
+  resetExportUI(tok);
+  if (!exportSheetOpen()) openExportSheet();
+  showExportMain();
+  var n = document.getElementById('expNote'); if (n) { n.textContent = msg; n.style.display = ''; }
+}
+function cancelExport() {
+  var t = _expTok;
+  if (!t || t.cancelled) return false;
+  t.cancelled = true;
+  var cb = document.getElementById('expCancel'); if (cb) cb.disabled = true;
+  var rm = document.getElementById('recMsg'); if (rm) rm.textContent = 'Cancelling…';
+  try { if (t.abort) t.abort(); } catch (e) {}
+  return true;
+}
+// Seite verlassen (Zurück-Knopf/Browser-Zurück) während eines Exports: nachfragen; bei „OK“ wird der Export abgebrochen
+function confirmLeaveExport() {
+  if (!(isExporting || _expTok)) return true;
+  var ok = typeof confirm === 'function' && confirm('An export is still running. Leave and cancel it?');
+  if (ok) cancelExport();
+  return ok;
+}
+// Die zuletzt gespeicherte Datei bleibt für „Download again“/Teilen im Speicher, bis ein neuer Export startet,
+// das Video wechselt oder man zur Startseite zurückgeht (Object-URLs werden schon in dlBlob entzogen).
+function releaseLastExport() {
+  _lastExportBlob = null;
+  syncLastExportUI();
+}
+function syncLastExportUI() {
+  var el = document.getElementById('expLast'), nm = document.getElementById('expLastName');
+  if (nm) nm.textContent = _lastDlName;
+  if (el) el.style.display = (_lastExportBlob && !isExporting && !_expTok) ? '' : 'none';
+}
 // Fortschritt direkt AM Export-Button (Handy: die Fortschrittsleiste darunter liegt oft außerhalb des
 // sichtbaren Bereichs) — Button währenddessen gesperrt. text = null → zurücksetzen.
 function exportBtnState(text) {
@@ -10343,7 +10445,10 @@ function exportBtnState(text) {
   }
 }
 async function exportVideoWithCaptions() {
-  if (!isExporting && !passEmailGate()) return; // Beta: erst E-Mail, dann Download (ohne Wasserzeichen)
+  if (isExporting || _expTok) return; // Doppelklick/Enter während eines laufenden Exports
+  if (!passEmailGate()) return; // Beta: erst E-Mail, dann Download (ohne Wasserzeichen)
+  var tok = newExportToken(); // ab hier abbrechbar (auch während „Preparing“)
+  releaseLastExport(); // neuer Export beginnt → die vorige Datei freigeben (Speicher)
   // Schnitterkennung läuft noch → kurz warten (sonst überspannen Blöcke Schnitte); die Phase direkt am
   // Button zeigen — die Fortschrittsleiste darunter liegt auf dem Handy oft außerhalb des Bildschirms.
   var cutTimer = null;
@@ -10354,21 +10459,25 @@ async function exportVideoWithCaptions() {
   try { await waitForSceneCuts(20000); }
   finally { if (cutTimer) { clearInterval(cutTimer); exportBtnState(null); } }
   var vid = document.getElementById('mainVid');
-  if (!vid.src || !vid.duration) { alert('Please upload a video first.'); return; }
-  if (isExporting) return; // Doppelklick während eines laufenden Exports
+  if (tok.cancelled) { exportAborted(tok); return; }
+  if (!vid.src || !vid.duration) { resetExportUI(tok); alert('Please upload a video first.'); return; }
   showExportMain(); // „Export again“/neuer Export: Erfolgszeile weg, Fortschritt sichtbar
   exportBtnState('Preparing…');
   await waitAuth(); // Session-Wiederherstellung abwarten, bevor needsWatermark() entscheidet
+  if (tok.cancelled) { exportAborted(tok); return; }
 
   await ensureCapFont(styleFontName(STYLES.find(function(x){ return x.id === activeId; }))); // nachgeladene Schrift
   await ensureStyleFaces(caseStyle(STYLES.find(function(x){ return x.id === activeId; }))); // Betonungs-/Highlight-Schnitte
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
   await capHyphReady(capHyphLang(), 4000); // Trennmuster wie in der Vorschau (sonst Fallback-Trennung im Video)
+  if (tok.cancelled) { exportAborted(tok); return; }
 
   // Schneller Weg (WebCodecs, Sekunden statt Echtzeit). Bei jedem Problem → false → Echtzeit-Pfad unten.
-  if (await tryFastExport(vid)) return;
+  // true auch bei Abbruch durch den Nutzer (tryFastExport hat dann schon aufgeräumt).
+  if (await tryFastExport(vid, tok)) return;
+  if (tok.cancelled) { exportAborted(tok); return; }
 
-  if (!window.MediaRecorder) { exportBtnState(null); alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
+  if (!window.MediaRecorder) { resetExportUI(tok); alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
 
   var geo = exportGeometry(vid.videoWidth, vid.videoHeight, 30);
   if (_blurBgCanvas) _blurBgCanvas.width = 0; // Blur-Hintergrund des vorigen Exports nicht wiederverwenden
@@ -10403,12 +10512,27 @@ async function exportVideoWithCaptions() {
   var stopped = false;
 
   recorder.ondataavailable = function(e) { if (e.data.size > 0) chunks.push(e.data); };
+  // Video-Element nach Aufnahme/Abbruch/Fehler wieder normal herrichten
+  function restoreVideo() {
+    vid.muted = prevMuted; try { vid.pause(); } catch (e) {}
+    vid.onended = prevOnEnded; // normales onended (Play/Pause-Overlay) wiederherstellen
+  }
+  var recStartedAt = 0;
   recorder.onstop = async function() {
     var blob = new Blob(chunks, { type: mimeType.split(';')[0] });
     var recBar = document.getElementById('recBar'), recMsg = document.getElementById('recMsg');
+    if (tok.cancelled) { restoreVideo(); exportAborted(tok); return; }
+    // Leere/winzige Aufnahme (beschädigte Quelle: der Player „spielt“, liefert aber keine Bilder) oder die Quelle
+    // war in Echtzeit viel kürzer als ihre Dauer (abgeschnittene Datei) → NICHTS speichern, kein falscher Erfolg.
+    var elapsed = (Date.now() - recStartedAt) / 1000, expected = vid.duration - cutTotalSec;
+    if (!exportBlobOk(blob) || exportPlaybackTooShort(elapsed, expected)) {
+      console.warn('[export] Aufnahme unbrauchbar: ' + blob.size + ' B, ' + elapsed.toFixed(1) + ' s statt ' + expected.toFixed(1) + ' s');
+      restoreVideo(); exportFailed(tok, MSG_EXPORT_DAMAGED); return;
+    }
+    var outBlob, outName;
     if (isMp4) {
-      // Chrome/Edge liefern MP4 (H.264/AAC) direkt — sofort speichern
-      dlBlob(blob, exportBaseName() + '.mp4');
+      // Chrome/Edge liefern MP4 (H.264/AAC) direkt
+      outBlob = blob; outName = exportBaseName() + '.mp4';
     } else {
       // Firefox/Chromium ohne H.264: WebM → H.264-MP4 umkodieren, damit der Upload zu Instagram/TikTok klappt
       try {
@@ -10418,20 +10542,24 @@ async function exportVideoWithCaptions() {
           recBar.style.width = Math.round(p * 100) + '%';
           recMsg.textContent = 'Creating MP4… ' + Math.round(p * 100) + '%';
           exportBtnState('Creating MP4 ' + Math.round(p * 100) + '%…');
-        }, vid.duration - cutTotalSec); // Bild und Ton exakt auf die Ausgabedauer kürzen
-        dlBlob(mp4, exportBaseName() + '.mp4');
+        }, vid.duration - cutTotalSec, tok); // Bild und Ton exakt auf die Ausgabedauer kürzen
+        if (!exportBlobOk(mp4)) throw new Error('leeres MP4 (' + (mp4 && mp4.size) + ' B)');
+        outBlob = mp4; outName = exportBaseName() + '.mp4';
       } catch (e) {
+        if (tok.cancelled) { restoreVideo(); exportAborted(tok); return; }
         console.error('MP4-Konvertierung fehlgeschlagen:', e);
         alert('MP4 conversion failed (maybe offline) — saving as WebM instead. '
             + 'Tip: exporting in Chrome or Safari gives you an Instagram-ready MP4 directly.');
-        dlBlob(blob, exportBaseName() + '.webm');
+        outBlob = blob; outName = exportBaseName() + '.webm';
       }
     }
+    tok.abort = null;
+    if (tok.cancelled) { restoreVideo(); exportAborted(tok); return; }
+    dlBlob(outBlob, outName);
     document.getElementById('recProg').style.display = 'none';
     exportBtnState(null);
-    vid.muted = prevMuted; vid.pause();
-    vid.onended = prevOnEnded; // normales onended (Play/Pause-Overlay) wiederherstellen
-    isExporting = false;
+    restoreVideo();
+    isExporting = false; if (_expTok === tok) _expTok = null;
     var ctrls = document.getElementById('vidCtrls');
     if (ctrls) ctrls.classList.remove('exporting'); tlRequestDraw(); // Timeline pausierte während des Exports
     exportDone(wmOn); // Erfolg inline im Export-Blatt (statt Upsell-Modal)
@@ -10463,7 +10591,9 @@ async function exportVideoWithCaptions() {
   // Erst aufnehmen, wenn die Wiedergabe WIRKLICH läuft — sonst landet die Anlaufzeit (Ton/Bild-Vorlauf)
   // mit in der Datei und Bild/Ton werden länger als die Quelle.
   await vid.play().catch(function(){});
+  if (tok.cancelled) { restoreVideo(); exportAborted(tok); return; }
   recorder.start(200);
+  recStartedAt = Date.now();
 
   var totalDur = vid.duration;
   // Beendet die Aufnahme genau einmal — von MEHREREN, unabhängigen Auslösern aus aufrufbar
@@ -10483,6 +10613,12 @@ async function exportVideoWithCaptions() {
   // wurde — das war der Kern des "Export hängt bei ~X%"-Bugs. `ended` (Media-Element-Event) und
   // ein Interval-Fallback feuern unabhängig vom rAF-Loop weiter, auch im Hintergrund-Tab.
   vid.onended = finishExport;
+  // Abbrechen: Wiedergabe + Aufnahme stoppen; recorder.onstop erkennt tok.cancelled und räumt auf (kein Download)
+  tok.abort = function() {
+    stopped = true;
+    try { vid.pause(); } catch (e) {}
+    try { if (recorder.state !== 'inactive') recorder.stop(); } catch (e2) {}
+  };
   var watchdog = setInterval(function() {
     if (stopped) { clearInterval(watchdog); return; }
     if (vid.ended || vid.currentTime >= totalDur - 0.04) finishExport();
@@ -11295,11 +11431,12 @@ function syncTopExport(text, enabled) {
   var tb = document.getElementById('tbExport');
   if (!tb) return;
   if (text) {
-    tb.disabled = true;
+    // Bleibt klickbar: auch bei geschlossenem Blatt kommt man so zum Fortschritt und zu „Cancel export“
+    tb.disabled = false; if (tb.classList) tb.classList.add('busy');
     var pm = /(\d+)%/.exec(text);
     var prep = /scene cuts|Preparing|Checking/i.test(text);
     tb.textContent = (prep ? 'Preparing' : 'Exporting') + (pm ? ' ' + pm[1] + '%' : '…');
-  } else { tb.disabled = !enabled; tb.textContent = 'Export'; }
+  } else { tb.disabled = !enabled; tb.textContent = 'Export'; if (tb.classList) tb.classList.remove('busy'); }
 }
 // ── Export-Blatt ──
 // Klick 1 = Blatt öffnen, Klick 2 = „Download video“ (Datei → MP4 bleibt bei 2 Klicks: Upload + Download,
@@ -11316,7 +11453,7 @@ function openExportSheet() {
   var sh = document.getElementById('expSheet');
   if (!sh) return;
   closeMoreMenu();
-  if (!isExporting) showExportMain();
+  if (!isExporting && !_expTok) showExportMain();
   var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
   syncExpSub(); updateAcctUI(); flushLead(); syncPostUI();
   // E-Mail-Feld sofort zeigen (statt erst nach dem ersten Download-Klick) → Download ist danach EIN Klick.
@@ -11340,17 +11477,36 @@ function closeExportSheet() {
   var tb = document.getElementById('tbExport'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'false');
 }
 function showExportMain() {
-  var m = document.getElementById('expMain'), d = document.getElementById('expDone');
-  if (m) m.style.display = ''; if (d) d.style.display = 'none';
+  var m = document.getElementById('expMain'), d = document.getElementById('expDone'), w = document.getElementById('expOptsWrap');
+  if (m) m.style.display = ''; if (w) w.style.display = ''; if (d) d.style.display = 'none';
+  syncLastExportUI();
 }
 // Unterzeile des Download-Knopfs: Format + Auflösung, damit man ohne „Options“ sieht, was man bekommt
+// Beschriftung der tatsächlichen Ausgabegrösse (exportGeometry skaliert nie hoch): „1080p“ nur, wenn wirklich
+// 1080×1920 (bzw. 1920×1080) herauskommt, sonst die echten Maße. Ohne geladenes Video: „1080p“ wie bisher.
+function exportSizeLabel(srcW, srcH, res, fmt) {
+  res = res || exportRes;
+  if (!(srcW > 0 && srcH > 0)) return res === 'orig' ? 'original size' : '1080p';
+  var g = exportGeometry(srcW, srcH, 30, res, fmt), dims = g.W + '×' + g.H;
+  if (res === 'orig') return 'original size (' + dims + ')';
+  return Math.max(g.W, g.H) >= 1918 ? '1080p' : dims + ' (source size)';
+}
+// Platzhalter für den Wasserzeichen-Teil der Unterzeile (die Regel dazu — needsWatermark — ändert sich separat)
+function exportWmNote() { return ' · no watermark'; }
 function syncExpSub() {
+  var vid = document.getElementById('mainVid'), sw = vid && vid.videoWidth, sh = vid && vid.videoHeight;
   var el = document.getElementById('btnVideoSub');
-  if (el) el.textContent = 'MP4 · ' + (exportRes === 'orig' ? 'original size' : '1080p') + ' · no watermark';
+  if (el) el.textContent = 'MP4 · ' + exportSizeLabel(sw, sh) + exportWmNote();
   var r = document.getElementById('expRes'); if (r && r.value !== exportRes) r.value = exportRes; // gemerkte Wahl anzeigen
+  // Auswahlliste mit denselben Maßen (bei kleiner Quelle ist „1080p“ gelogen: es wird nicht hochskaliert)
+  if (r && r.options && r.options.length >= 2) {
+    var l1080 = exportSizeLabel(sw, sh, '1080'), lOrig = exportSizeLabel(sw, sh, 'orig');
+    r.options[0].textContent = (l1080 === '1080p' ? '1080p' : 'Source size · ' + l1080.replace(' (source size)', '')) + ' (recommended)';
+    r.options[1].textContent = 'Original' + (lOrig.indexOf('(') > 0 ? ' · ' + lOrig.slice(lOrig.indexOf('(') + 1, -1) : '');
+  }
 }
 function topExport() {
-  if (isExporting) { openExportSheet(); return; }
+  if (isExporting || _expTok) { openExportSheet(); return; } // läuft ein Export: Knopf zeigt Fortschritt → Blatt mit „Cancel“
   var b = document.getElementById('btnVideo');
   // „Skip“ lädt sofort herunter — außer die E-Mail fehlt noch (dann nur das Blatt mit dem Feld öffnen)
   var gateNeeded = !!document.getElementById('expGate') && !meEmail && !leadEmail();
@@ -11390,8 +11546,10 @@ function exportDone(wmOn) {
   var sb = document.getElementById('expShare'), an = document.getElementById('expAnother');
   if (sb) sb.style.display = share ? '' : 'none';
   if (an && an.classList) an.classList.toggle('hi', !share); // mit Teilen: „Caption another video“ sekundär
-  ['expDlFile', 'expDlSep'].forEach(function(id) { var e2 = document.getElementById(id); if (e2) e2.style.display = share ? '' : 'none'; });
-  if (m) m.style.display = 'none'; if (d) d.style.display = '';
+  var ow = document.getElementById('expOptsWrap'), nt = document.getElementById('expNote');
+  if (nt) nt.style.display = 'none';
+  // SRT/VTT/TXT, „Copy text“ und Cover liegen außerhalb von expMain/expDone und bleiben sichtbar
+  if (m) m.style.display = 'none'; if (ow) ow.style.display = 'none'; if (d) d.style.display = '';
   if (!exportSheetOpen()) capToast('✓ Saved — ' + _lastDlName);
   statExport();
 }
@@ -11854,7 +12012,7 @@ async function downloadCover() {
 // Muss direkt aus einem Tipp kommen (navigator.share verlangt eine Nutzergeste) — nie automatisch nach dem Rendern.
 function shareLastExport() {
   var b = _lastExportBlob;
-  if (!b) return Promise.resolve(false);
+  if (!b) { capToast('That file is no longer available — use “Export again”.'); return Promise.resolve(false); }
   var f = new File([b], _lastDlName, { type: b.type || 'video/mp4' });
   return navigator.share({ files: [f] }).then(function(){ return true; }, function(e) {
     if (e && e.name === 'AbortError') return false; // Nutzer hat das Teilen-Blatt geschlossen
@@ -11863,7 +12021,13 @@ function shareLastExport() {
     return false;
   });
 }
-function downloadLastExport() { if (_lastExportBlob) dlBlob(_lastExportBlob, _lastDlName); }
+// „Download again“: dieselbe Datei erneut speichern — kein Neu-Rendern
+function downloadLastExport() {
+  if (!_lastExportBlob) { capToast('That file is no longer available — use “Export again”.'); return false; }
+  dlBlob(_lastExportBlob, _lastDlName);
+  capToast('✓ Saved again — ' + _lastDlName);
+  return true;
+}
 // „Caption another video“: zurück zum Upload; Style/Layout bleiben (gemerkt), das nächste Video startet damit
 function captionAnother() {
   closeExportSheet();
@@ -11885,6 +12049,33 @@ function toggleMoreMenu(e) {
 function closeMoreMenu() {
   var m = document.getElementById('moreMenu'); if (m) m.style.display = 'none';
   var b = document.getElementById('moreBtn'); if (b && b.setAttribute) b.setAttribute('aria-expanded', 'false');
+}
+// Reload/Tab schließen/Browser-Zurück: warnen, wenn ein Export läuft oder der letzte Stand noch nicht im lokalen
+// Autosave liegt (der 800-ms-Timer steht noch). Vor dem Warnen wird der Autosave sofort versucht — gelingt er,
+// ist nichts verloren und es gibt keine Warnung.
+function hasUnsavedWork() { return !!(_autosaveKey && _autosaveTimer && captionBlocks.length); }
+function leaveWarningNeeded() {
+  if (isExporting || _expTok) return true;
+  if (!hasUnsavedWork()) return false;
+  return !autosaveNow(); // false = gespeichert → kein Grund zur Warnung
+}
+if (typeof window !== 'undefined' && window.addEventListener) {
+  window.addEventListener('beforeunload', function(e) {
+    if (!leaveWarningNeeded()) return;
+    e.preventDefault(); e.returnValue = '';
+    return '';
+  });
+  window.addEventListener('popstate', function() {
+    if (_edHistSkip > 0) { _edHistSkip--; return; } // unser eigenes history.back() (App-Knopf)
+    if (!_edHist) return;
+    _edHist = false;
+    var ed = document.getElementById('editor');
+    if (!ed || ed.style.display === 'none') return;
+    if (!confirmLeaveExport()) { edHistPush(); return; } // Export läuft und der Nutzer bleibt → Eintrag wiederherstellen
+    leaveEditor();
+  });
+  // Beim Neuladen steht der Editor-Eintrag noch im Verlauf, die Seite zeigt aber die Startseite → Eintrag entwerten
+  try { if (history.state && history.state.cr === 'editor') history.replaceState(null, ''); } catch (e) {}
 }
 // Klick/Tipp daneben schließt Menü und Export-Blatt (das Blatt nicht während eines Exports — Fortschritt)
 if (typeof document !== 'undefined' && document.addEventListener) {
@@ -12160,6 +12351,7 @@ function applyBrandOnOpen() {
 }
 
 function openEditor() {
+  edHistPush();
   document.getElementById('landing').style.display = 'none';
   document.getElementById('editor').style.display  = 'flex';
   document.body.classList.add('editor-open');
@@ -12182,7 +12374,7 @@ function openEditor() {
 }
 function openEditorClean() {
   if (_autosaveTimer) autosaveNow();
-  _autosaveKey = null;
+  _autosaveKey = null; releaseLastExport();
   vidReady = false; currentFile = null; wordTimestamps = []; captionBlocks = []; captionsEdited = false; _trRun++; _vocabUsed = null; syncVocabApply();
   var vid = document.getElementById('mainVid');
   if (vid.src && vid.src.startsWith('blob:')) URL.revokeObjectURL(vid.src);
@@ -12203,9 +12395,34 @@ function openEditorClean() {
   tlReset(); tlShow(false);
   openEditor();
 }
+// ── Browser-Zurück im Editor ──
+// Beim Öffnen des Editors ein History-Eintrag: „Zurück“ führt dann zur Startseite des Tools statt aus der App.
+// Verlässt man den Editor über den App-Knopf, wird der Eintrag per history.back() wieder entfernt; das dabei
+// ausgelöste popstate zählt _edHistSkip herunter und tut nichts (keine Schleife).
+var _edHist = false, _edHistSkip = 0;
+function edHistPush() {
+  if (_edHist || typeof history === 'undefined' || !history.pushState) return;
+  try { history.pushState({ cr: 'editor' }, ''); _edHist = true; } catch (e) {}
+}
+function edHistPop() {
+  if (!_edHist) return;
+  _edHist = false;
+  try {
+    if (history.state && history.state.cr === 'editor') {
+      _edHistSkip++; history.back();
+      setTimeout(function() { _edHistSkip = 0; }, 1500); // falls popstate ausbleibt: nicht hängen bleiben
+    }
+  } catch (e) { _edHistSkip = 0; }
+}
 function goBack() {
+  if (!confirmLeaveExport()) return;
+  edHistPop();
+  leaveEditor();
+}
+function leaveEditor() {
   var v = document.getElementById('mainVid');
   if (!v.paused) v.pause();
+  releaseLastExport(); showExportMain();
   closeExportSheet(); closeMoreMenu();
   document.getElementById('editor').style.display  = 'none';
   document.getElementById('landing').style.display = 'flex';

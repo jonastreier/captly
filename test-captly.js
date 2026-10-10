@@ -130,6 +130,7 @@ capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidRead
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
+exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,setAutosaveKey:function(k){_autosaveKey=k;},
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -198,7 +199,8 @@ ok((html.match(/animation:captly-/g) || []).length === 1, 'Animation nur am akti
 T.exportSRT();
 ok(global.LASTBLOB.content.startsWith('1\n00:00:00,000 --> 00:00:01,100\nHallo und willkommen.'), 'SRT-Format (Lücke 0,1 s geschlossen): ' + JSON.stringify(global.LASTBLOB.content.slice(0, 50)));
 T.exportVTT();
-ok(global.LASTBLOB.content.startsWith('WEBVTT'), 'VTT-Header');
+ok(global.LASTBLOB.content.startsWith('WEBVTT\n\n1\n'), 'VTT-Header: nach WEBVTT genau eine Leerzeile: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 16)));
+ok(T.vttFile(['1\na', '2\nb']) === 'WEBVTT\n\n1\na\n\n2\nb' && T.vttFile([]) === 'WEBVTT\n\n', 'vttFile: Kopf + eine Leerzeile, Cues durch Leerzeilen');
 ok(global.CLICKS.length === 2, '2 Downloads ausgeloest');
 
 // 8) UI-Funktionen crashen nicht + Overlay rendert korrekt
@@ -2399,8 +2401,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(E('ctrlCol').dataset.tab === 'style', 'Tab wechselt');
     T.switchTab('nope'); ok(E('ctrlCol').dataset.tab === 'style', 'unbekannter Tab ignoriert');
     T.switchTab('captions');
-    T.syncTopExport('Rendering 42%…', true); ok(E('tbExport').disabled && /42%/.test(E('tbExport').textContent), 'Top-Export zeigt Fortschritt');
-    T.syncTopExport(null, true); ok(!E('tbExport').disabled && /Export/.test(E('tbExport').textContent), 'Top-Export wieder frei');
+    T.syncTopExport('Rendering 42%…', true); ok(!E('tbExport').disabled && E('tbExport').classList.contains('busy') && /42%/.test(E('tbExport').textContent), 'Top-Export zeigt Fortschritt und bleibt klickbar (öffnet das Blatt mit Cancel)');
+    T.syncTopExport(null, true); ok(!E('tbExport').disabled && !E('tbExport').classList.contains('busy') && /Export/.test(E('tbExport').textContent), 'Top-Export wieder frei');
     T.updateTrSetSum(); ok(!/Fast|Perfect/.test(E('trSetSum').textContent) && /language/i.test(E('trSetSum').textContent), 'Transkriptions-Zusammenfassung ohne Modell: ' + E('trSetSum').textContent);
     if (T.getLang() === 'auto') {
       T.setLastTrMeta({ model: 'fast', lang: 'german', langSetting: 'auto' }); T.updateTrSetSum();
@@ -2644,11 +2646,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     an.classList.add('hi');
     global.matchMedia = q => ({ matches: /fine/.test(q) });           // Desktop
     global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-captionrush.mp4'); T.exportDone(false);
-    ok(sb.style.display === 'none' && an.classList.contains('hi') && dlf.style.display === 'none', 'Desktop: kein Teilen, „Caption another video“ primär');
+    ok(sb.style.display === 'none' && an.classList.contains('hi') && dlf.style.display !== 'none', 'Desktop: kein Teilen, „Caption another video“ primär, „Download again“ da');
     ok(document.getElementById('expDoneName').textContent === 'mein-reel-captionrush.mp4', 'Fertig-Zeile zeigt den Dateinamen');
     global.matchMedia = q => ({ matches: /coarse/.test(q) });         // Handy
     T.exportDone(false);
-    ok(sb.style.display === '' && !an.classList.contains('hi') && dlf.style.display === '' && !shared, 'Handy: Teilen primär, nichts automatisch geteilt');
+    ok(sb.style.display === '' && !an.classList.contains('hi') && dlf.style.display !== 'none' && !shared, 'Handy: Teilen primär, „Download again“ da, nichts automatisch geteilt');
     T.shareLastExport(); await new Promise(r => setTimeout(r, 0));
     ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-captionrush.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
     const nClicks = global.CLICKS.length; rejectWith = { name: 'AbortError' };
@@ -2659,6 +2661,62 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     nav.canShare = () => false; T.exportDone(false);
     ok(sb.style.display === 'none' && an.classList.contains('hi'), 'canShare false → kein Teilen-Knopf');
     delete nav.canShare; delete nav.share; global.matchMedia = prevMM; global.File = prevFile;
+  }
+
+  // Export-Ablauf: Leere Aufnahme erkennen, Ausgabegrösse beschriften, „Download again“-Lebenszyklus, Abbruch
+  {
+    ok(!T.exportBlobOk(null) && !T.exportBlobOk({ size: 0 }) && !T.exportBlobOk({ size: 1023 }) && T.exportBlobOk({ size: 1024 }) && T.exportBlobOk({ size: 5e6 }), 'exportBlobOk: leer/< 1 KB abgelehnt, ab 1 KB ok');
+    ok(T.exportPlaybackTooShort(1, 10) && !T.exportPlaybackTooShort(9.5, 10) && !T.exportPlaybackTooShort(6, 10) && !T.exportPlaybackTooShort(0.2, 1.5), 'exportPlaybackTooShort: Quelle endete vorzeitig (< 50 % der Dauer), sehr kurze Videos nie');
+    ok(/damaged/.test(T.MSG_EXPORT_DAMAGED) && T.MSG_EXPORT_DAMAGED.indexOf('Export failed') === 0, 'Meldung bei beschädigter Datei');
+    ok(T.videoErrIsDamage({ error: { code: 3 } }) && T.videoErrIsDamage({ error: { code: 2 } }) && !T.videoErrIsDamage({ error: { code: 4 } }) && !T.videoErrIsDamage({}) && !T.videoErrIsDamage(null), 'Player-Fehler 2/3 = beschädigt, 4 (Format) und kein Fehler nicht');
+    // Beschriftung: tatsächliche Ausgabegrösse (exportGeometry skaliert nie hoch)
+    ok(T.exportSizeLabel(540, 960, '1080') === '540×960 (source size)', 'Label: 540×960-Quelle → „540×960 (source size)“: ' + T.exportSizeLabel(540, 960, '1080'));
+    ok(T.exportSizeLabel(1080, 1920, '1080') === '1080p' && T.exportSizeLabel(3840, 2160, '1080') === '1080p' && T.exportSizeLabel(1920, 1080, '1080') === '1080p', 'Label: 1080×1920, 4K und 1920×1080 → „1080p“');
+    ok(T.exportSizeLabel(3840, 2160, 'orig') === 'original size (3840×2160)' && T.exportSizeLabel(0, 0, '1080') === '1080p', 'Label: Original zeigt die Maße; ohne Video „1080p“');
+    ok(T.exportSizeLabel(1920, 1080, '1080', 'blur') === '1080p' && T.exportSizeLabel(720, 720, '1080', 'crop') === '1080p', 'Label: Reframe (9:16-Leinwand) → „1080p“');
+    {
+      const vid = document.getElementById('mainVid'), o0 = [vid.videoWidth, vid.videoHeight];
+      const sel = document.getElementById('expRes'); sel.options = [{ textContent: '' }, { textContent: '' }]; sel.value = '1080';
+      vid.videoWidth = 540; vid.videoHeight = 960; T.syncExpSub();
+      ok(document.getElementById('btnVideoSub').textContent === 'MP4 · 540×960 (source size) · no watermark', 'Unterzeile Knopf: ' + document.getElementById('btnVideoSub').textContent);
+      ok(/^Source size · 540×960 \(recommended\)$/.test(sel.options[0].textContent) && /^Original/.test(sel.options[1].textContent), 'Auswahl „Resolution“: nicht „1080p“ bei kleiner Quelle: ' + sel.options[0].textContent);
+      vid.videoWidth = 1080; vid.videoHeight = 1920; T.syncExpSub();
+      ok(/^MP4 · 1080p/.test(document.getElementById('btnVideoSub').textContent) && sel.options[0].textContent === '1080p (recommended)', 'Unterzeile bei 1080×1920: „1080p“');
+      vid.videoWidth = o0[0]; vid.videoHeight = o0[1];
+    }
+    // Download again: gleiche Datei, kein Neu-Rendern; Blob bleibt bis ein neuer Export startet / das Video wechselt
+    const prevClicks = global.CLICKS; global.CLICKS = [];
+    const blobA = new Blob(['x'], { type: 'video/mp4' });
+    T.dlBlob(blobA, 'a-captionrush.mp4'); T.exportDone(false);
+    ok(T.getLastExportBlob() === blobA, 'nach dem Export bleibt die Datei für „Download again“ erhalten');
+    ok(document.getElementById('expDone').style.display === '' && document.getElementById('expMain').style.display === 'none', 'Fertig-Ansicht sichtbar, Export-Knopf-Ansicht weg');
+    {
+      const main = htmlContent.slice(htmlContent.indexOf('id="expMain"'), htmlContent.indexOf('id="expNote"')), done = htmlContent.slice(htmlContent.indexOf('id="expDone"'), htmlContent.indexOf('id="expPost"'));
+      ok(!/btnSRT|btnVTT|btnTXT|btnCover|btnCopy|expOpts/.test(main) && /btnSRT/.test(done) && /btnVTT/.test(done) && /btnTXT/.test(done) && /btnCover/.test(done) && /expCopyPost/.test(done), 'SRT/VTT/TXT/Cover/Copy liegen NICHT in der ausgeblendeten Export-Ansicht (expMain) und bleiben nach dem Export sichtbar');
+    }
+    global.CLICKS = []; ok(T.downloadLastExport() === true, 'Download again ok');
+    ok(global.CLICKS.length === 1 && global.CLICKS[0].download === 'a-captionrush.mp4' && T.getLastExportBlob() === blobA, 'Download again: ein Klick, gleiche Datei, gleicher Blob (kein Neu-Rendern)');
+    T.showExportMain();
+    ok(document.getElementById('expLast').style.display === '' && document.getElementById('expLastName').textContent === 'a-captionrush.mp4', 'Export-Ansicht zeigt „Last export … Download again“');
+    T.releaseLastExport();
+    ok(T.getLastExportBlob() === null && document.getElementById('expLast').style.display === 'none', 'releaseLastExport gibt den Blob frei');
+    global.CLICKS = []; ok(T.downloadLastExport() === false && global.CLICKS.length === 0, 'ohne Datei: kein Download, kein Absturz');
+    // Abbruch + Fehler setzen den Zustand zurück
+    const tok = T.newExportToken(); T.setExporting(true);
+    ok(T.getExpTok() === tok && !tok.cancelled, 'Export-Token aktiv');
+    let aborted = 0; tok.abort = () => { aborted++; };
+    ok(T.cancelExport() === true && tok.cancelled && aborted === 1 && T.cancelExport() === false, 'cancelExport: einmal, ruft die Stopp-Funktion');
+    T.exportAborted(tok);
+    ok(T.getExpTok() === null && document.getElementById('expDone').style.display === 'none', 'Abbruch: Zustand zurück (Token weg), kein „Saved“');
+    const tok2 = T.newExportToken(); T.setExporting(true); document.getElementById('expNote').style.display = 'none';
+    T.exportFailed(tok2, T.MSG_EXPORT_DAMAGED);
+    ok(T.getExpTok() === null && document.getElementById('expNote').textContent === T.MSG_EXPORT_DAMAGED && document.getElementById('expNote').style.display === '' && document.getElementById('expDone').style.display === 'none', 'Fehler: Meldung im Blatt, Zustand zurück, erneuter Export möglich');
+    ok(global.CLICKS.length === 0, 'Abbruch/Fehler lösen keinen Download aus');
+    T.setExporting(false);
+    // Beenden-Warnung: nur beim Export bzw. mit ungespeicherten Änderungen
+    ok(T.leaveWarningNeeded() === false, 'ohne Export/Änderungen: keine Warnung');
+    T.setExporting(true); ok(T.leaveWarningNeeded() === true && T.confirmLeaveExport() === false, 'Export läuft: Warnung + ohne Bestätigung bleiben'); T.setExporting(false);
+    global.CLICKS = prevClicks;
   }
 
   // Lücken schließen: kurze Lücken (< GAP_CLOSE_SEC) zu, nie über Szenenschnitt, lange Pausen bleiben
