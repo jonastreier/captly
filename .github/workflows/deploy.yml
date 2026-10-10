@@ -65,6 +65,17 @@ jobs:
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
           LEAD_SECRET: ${{ secrets.LEAD_SECRET }}
           MAIL_FROM: ${{ secrets.MAIL_FROM }}
+          # Abos (Standard aus; leer = Standard). Erst für Teil D der Anleitung setzen.
+          BILLING_ENABLED: ${{ secrets.BILLING_ENABLED }}
+          ANON_SEC_PER_DAY: ${{ secrets.ANON_SEC_PER_DAY }}
+          FREE_CLEAN_VIDEOS_PER_DAY: ${{ secrets.FREE_CLEAN_VIDEOS_PER_DAY }}
+          PADDLE_ENV: ${{ secrets.PADDLE_ENV }}
+          PADDLE_CLIENT_TOKEN: ${{ secrets.PADDLE_CLIENT_TOKEN }}
+          PADDLE_PRICE_CREATOR: ${{ secrets.PADDLE_PRICE_CREATOR }}
+          PADDLE_PRICE_PRO: ${{ secrets.PADDLE_PRICE_PRO }}
+          PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
+          PADDLE_WEBHOOK_SECRET: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
+          PADDLE_TOLERANCE_SEC: ${{ secrets.PADDLE_TOLERANCE_SEC }}
         run: node scripts/write-config.js
       - name: Hochladen (FTPS)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5

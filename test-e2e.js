@@ -36,6 +36,18 @@ if (!fs.existsSync(LIGHT)) {
 }
 // Unterer Rand eines Elements: mittlere 60 % der Spalten, Helligkeit der untersten 3 Pixelreihen (je Reihe der Mittelwert) und
 // zum Vergleich der Reihen 8–11 darüber. Ein dunkler Streifen innerhalb der Rundung wäre ein Sprung gegenüber `ref`.
+// Wasserzeichen im MP4: blau-violette Pixel (Markenfläche #7c3aed, mit Transparenz über dem Bild) unten rechts, die im Quellframe nicht so aussehen
+async function wmPixels(page, mpPath, srcPath) {
+  return page.evaluate(async a => {
+    const load = b64 => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = 'data:image/png;base64,' + b64; });
+    const [mp, sr] = await Promise.all([load(a.mp), load(a.sr)]);
+    const W = mp.width, H = mp.height, px = im => { const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.drawImage(im, 0, 0, W, H); return x.getImageData(0, 0, W, H).data; };
+    const dM = px(mp), dS = px(sr), vio = (d, i) => d[i + 2] > 200 && d[i + 2] - d[i + 1] > 100 && d[i] < 200, chg = (i) => vio(dM, i) && !vio(dS, i);
+    let n = 0;
+    for (let y = Math.floor(H * 0.945); y < H; y++) for (let x = Math.floor(W * 0.5); x < W; x++) { const i = (y * W + x) * 4; if (chg(i)) n++; }
+    return n;
+  }, { mp: fs.readFileSync(mpPath).toString('base64'), sr: fs.readFileSync(srcPath).toString('base64') });
+}
 async function edgeStats(page, loc) {
   const buf = await loc.screenshot();
   return page.evaluate(async b64 => {
@@ -54,7 +66,7 @@ const edgeOk = (st, abs) => abs ? st.bottom >= abs : st.bottom >= st.ref * 0.75 
 // ── Mock-Server: statische Dateien + /api/* + minimales Supabase (Auth + projects)
 const WORDS = 'Das ist ein kurzer Test für die Untertitel. Heute zeigen wir dir, wie schnell das geht und warum es so gut funktioniert.'.split(' ')
   .map((w, i) => ({ word: w, start: 0.3 + i * 0.22, end: 0.3 + i * 0.22 + 0.2 }));
-const state = { leads: [], projects: [], seq: 0, transcribeCalls: 0, otpCalls: 0 };
+const state = { leads: [], projects: [], seq: 0, transcribeCalls: 0, otpCalls: 0, plan: null, videoKeys: [] }; // plan: Mock für /api/plan (null = Abos aus, Beta)
 const mine = () => state.projects.filter(p => p.title !== '__capivo_templates__');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.wasm': 'application/wasm', '.txt': 'text/plain', '.svg': 'image/svg+xml' };
 function body(req) { return new Promise(r => { const c = []; req.on('data', d => c.push(d)); req.on('end', () => r(Buffer.concat(c))); }); }
@@ -64,9 +76,10 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' }); return res.end(); }
   if (p === '/api/transcribe') {
     if (req.method !== 'POST') return json({ configured: true });
-    await body(req); state.transcribeCalls++;
+    await body(req); state.transcribeCalls++; state.videoKeys.push(req.headers['x-video-key'] || '');
     return json({ language: 'german', text: WORDS.map(w => w.word).join(' '), words: WORDS });
   }
+  if (p === '/api/plan') return json(state.plan ? Object.assign({}, state.plan, { video_key: req.headers['x-video-key'] || '' }) : { enabled: false });
   if (p === '/api/polish' || p === '/api/enhance') return json({ error: 'off' }, 503);
   if (p === '/api/lead') {
     if (req.method !== 'POST') return json({ ok: true, configured: true });
@@ -192,6 +205,41 @@ if (require.main !== module) return;
       ok(r.inOrder && r.advClosed && r.tplVisible, 'Style-Panel: Reihenfolge Looks · Text · Animation · Layout · Effekte · Erweitert · Template, «Erweitert» zu, Template sichtbar');
       ok(r.reveal.sel === 'reveal' && r.reveal.pressed === 'true' && r.reveal.rowHidden && r.hl.sel === 'highlight' && r.hl.rowShown, 'Style-Panel: Animation-Segment setzt csMotion, Word pop nur bei Highlight');
       ok(!r.overflowX, 'Style-Panel: «Erweitert» offen ohne seitliches Scrollen');
+    }
+
+    // 2a-m) Handy: Looks = horizontaler Streifen, darunter «Customize»-Chips; Tipp springt zur Gruppe (Advanced klappt auf)
+    if (prof.mobile) {
+      await page.evaluate(() => switchTab('style')); await page.waitForTimeout(500);
+      const m = await page.evaluate(() => {
+        const c = document.getElementById('stylePicker'), cs = getComputedStyle(c), col = document.getElementById('ctrlCol');
+        const tiles = [...c.querySelectorAll('.stile')];
+        const clipped = tiles.filter(t => { const i = t.querySelector('.stile-info').getBoundingClientRect(), tr = t.getBoundingClientRect(); return i.bottom > tr.bottom + 0.5 || i.height < 16; }).length;
+        const chips = [...document.querySelectorAll('#csChips .cs-chip')];
+        const ts = chips.map(b => b.dataset.target);
+        const nextHalf = tiles.slice(0, 6).some(t => { const r = t.getBoundingClientRect(), cr = c.getBoundingClientRect(); return r.left < cr.right - 8 && r.right > cr.right + 8; });
+        c.scrollLeft = 300; const moved = c.scrollLeft > 100; c.scrollLeft = 0;
+        const tab = document.getElementById('edTabs').getBoundingClientRect();
+        return { ov: cs.overflowX, disp: cs.display, wrap: cs.flexWrap, scrollable: c.scrollWidth > c.clientWidth + 100, h: Math.round(c.getBoundingClientRect().height), n: tiles.length, nStyles: STYLES.length, clipped, ts, chipH: Math.min(...chips.map(b => b.getBoundingClientRect().height)), nextHalf, moved, sticky: getComputedStyle(document.getElementById('csChips')).position, tabsTop: tab.top };
+      });
+      ok(m.ov === 'auto' && m.disp === 'flex' && m.wrap === 'nowrap' && m.scrollable && m.moved && m.h < 190, 'Handy: Looks sind ein horizontaler Streifen (' + m.h + ' px hoch, scrollt in sich)');
+      ok(m.n === m.nStyles && m.n >= 20 && m.clipped === 0, 'Handy: alle ' + m.n + ' Looks erreichbar, Beschriftungen nicht abgeschnitten');
+      ok(m.nextHalf, 'Handy: die nächste Kachel ragt als Wischhinweis in den Streifen');
+      ok(m.ts.join() === 'csgText,csgAnim,csgLayout,csgFx,advSet' && m.chipH >= 36 && m.sticky === 'sticky', 'Handy: Customize-Chips Text · Animation · Layout · Effects · Advanced (≥ 36 px, sticky)');
+      for (const tg of ['csgAnim', 'csgFx', 'advSet', 'csgLayout', 'csgText']) {
+        await page.locator('#csChips [data-target=' + tg + ']').tap(); await page.waitForTimeout(900);
+        const g = await page.evaluate(t => {
+          const col = document.getElementById('ctrlCol').getBoundingClientRect(), r = document.getElementById(t).getBoundingClientRect(), bar = document.getElementById('csChips').getBoundingClientRect();
+          return { top: r.top - col.top, vis: r.top >= bar.bottom - 2 && r.top < document.getElementById('edTabs').getBoundingClientRect().top - 20, open: t !== 'advSet' || document.getElementById('advSet').open, on: document.querySelector('#csChips .cs-chip.on').dataset.target, hs: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 || window.scrollX !== 0 };
+        }, tg);
+        ok(g.vis && g.open && g.on === tg && !g.hs, 'Handy: Chip «' + tg + '» scrollt die Gruppe in den sichtbaren Bereich (' + Math.round(g.top) + ' px unter Sheet-Oberkante), Chip aktiv, Details offen, kein Seiten-Scroll');
+      }
+      await page.evaluate(() => { document.getElementById('advSet').open = false; });
+      // Weiterscrollen von Hand: aktiver Chip folgt der Scroll-Position
+      await page.evaluate(() => { const c = document.getElementById('ctrlCol'), g = document.getElementById('csgFx'); c.scrollTop += g.getBoundingClientRect().top - c.getBoundingClientRect().top - 70; });
+      await page.waitForTimeout(400);
+      ok(await page.evaluate(() => document.querySelector('#csChips .cs-chip.on').dataset.target) === 'csgFx', 'Handy: aktiver Chip folgt dem Scrollen (Effects)');
+      ok(await page.evaluate(() => { try { return !!localStorage.getItem('capivo.styleHintSeen'); } catch (e) { return true; } }), 'Handy: Wisch-Hinweis einmal gezeigt und pro Gerät gemerkt');
+      await page.evaluate(() => { document.getElementById('ctrlCol').scrollTop = 0; });
     }
 
     // 2b) Word pop (Customize → Highlight & animation): bei PAUSIERTEM Video muss jede Option sofort sichtbar etwas tun (Demo ~0,6 s)
@@ -393,25 +441,23 @@ if (require.main !== module) return;
       await page.evaluate(() => { tlSnapOn = true; });
     }
 
-    // 3) Export: Gate verlangt E-Mail (Beta) → ungültig/leer wird abgelehnt, gültig + Newsletter geht durch
+    // 3) Export: Das E-Mail-Gate ist FREIWILLIG (Beta: nie Wasserzeichen) → ungültige Adresse wird gemeldet, «Skip» lädt trotzdem ohne Marke
     await page.click('#tbExport');
     await page.waitForSelector('#expSheet', { state: 'visible' });
     await shot('04-export-sheet');
     const gateVisible = await page.isVisible('#expGate');
     ok(gateVisible, 'E-Mail-Gate sichtbar vor dem ersten Export');
+    ok(!(await page.isVisible('#wmOpt')) && !(await page.evaluate(() => needsWatermark())), 'Beta: kein Wasserzeichen-Hinweis, needsWatermark() = false (auch ohne E-Mail)');
+    ok(await page.isVisible('#gateSkip') && /Skip/.test(await page.textContent('#gateSkip')), 'Gate hat «Skip — download now»');
     if (gateVisible) {
-      await page.click('#btnVideo');
-      await page.waitForTimeout(300);
-      ok(await page.isVisible('#gateErr'), 'leere E-Mail: Fehlermeldung');
       await page.fill('#gateEmail', 'kaputt@');
       await page.click('#btnVideo');
       await page.waitForTimeout(300);
-      ok(await page.isVisible('#gateErr') && state.leads.length === 0, 'ungültige E-Mail: abgelehnt, nichts gesendet');
-      await page.fill('#gateEmail', 'e2e@example.com');
-      await page.check('#gateNews');
+      ok(await page.isVisible('#gateErr') && /Skip/.test(await page.textContent('#gateErr')) && state.leads.length === 0, 'ungültige E-Mail: gemeldet (mit Skip-Hinweis), nichts gesendet');
+      await page.fill('#gateEmail', '');
     }
     const dlP = page.waitForEvent('download', { timeout: 180000 }).catch(() => null);
-    await page.click('#btnVideo');
+    await page.click('#gateSkip'); // Export 1: ohne E-Mail überspringen → muss OHNE Wasserzeichen laufen
     await page.waitForTimeout(1500);
     await shot('05-exporting');
     const dl = await dlP;
@@ -440,6 +486,10 @@ if (require.main !== module) return;
       spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ssK, '-i', fp, '-frames:v', '1', mpFr]);
       spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ssK, '-i', VIDEO, '-frames:v', '1', srcFr]);
       ok(fs.existsSync(mpFr) && fs.existsSync(srcFr), 'MP4-/Quell-Frame bei ' + tK.toFixed(3) + ' s extrahiert');
+      const wm1 = fs.existsSync(mpFr) && fs.existsSync(srcFr) ? await wmPixels(page, mpFr, srcFr) : -1;
+      ok(wm1 >= 0 && wm1 < 20, 'Export 1 (Beta, E-Mail übersprungen): Frame OHNE Wasserzeichen (' + wm1 + ' abweichende Pixel unten rechts)');
+      ok(state.leads.length === 0, 'Export 1: ohne E-Mail kein Lead gesendet');
+      ok(state.videoKeys.length > 0 && state.videoKeys.every(k => /^[0-9a-f]{16}$/.test(k)), 'Transkription sendet nur einen Hash als X-Video-Key (' + state.videoKeys[0] + ')');
       if (fs.existsSync(mpFr) && fs.existsSync(srcFr)) {
         await page.evaluate(() => { try { closeExportSheet(); } catch (e) {} });
         await page.evaluate(t => new Promise(r => { const v = document.getElementById('mainVid'); v.pause(); let done = false; const f = () => { if (done) return; done = true; v.removeEventListener('seeked', f); _lastKey = null; updateOverlay(); requestAnimationFrame(() => requestAnimationFrame(r)); }; v.addEventListener('seeked', f); v.currentTime = t; setTimeout(f, 2500); }), tK);
@@ -472,10 +522,127 @@ if (require.main !== module) return;
         ok(m.ink > 500 && Math.abs(sC) <= tolC, 'MP4-Frame: kein Versatz zum Export-Renderer (' + sC + ' px tiefer, ≤ ' + tolC.toFixed(1) + ')');
         ok(m.nP > 500 && m.nM > 500 && Math.abs(sP) <= tolP, 'MP4-Frame = Vorschau: Untertitel-Zeilen auf gleicher Höhe (' + sP + ' px tiefer, ≤ ' + tolP.toFixed(1) + ' von ' + m.W + ')');
       }
+      // Export 2: Abos «an», Server meldet watermark:true (Übernutzung) + E-Mail/Newsletter diesmal über das Gate → Frame MIT Wasserzeichen
+      await page.waitForFunction(() => !isExporting, null, { timeout: 60000 });
+      state.plan = { enabled: true, loggedIn: false, plan: 'anon', limits: { free: 1800, creator: 18000, pro: 72000 }, paddle: {}, watermark: true, clean_videos: 2, videos_today: 3, video_pos: 3 };
+      await page.evaluate(() => { _gateSkipped = false; try { sessionStorage.removeItem(GATE_SKIP_KEY); } catch (e) {} return loadBilling(); });
+      ok(await page.evaluate(() => needsWatermark() === true), 'Abos an + watermark:true → needsWatermark()');
+      await page.evaluate(() => { showExportMain(); openExportSheet(); });
+      ok(await page.isVisible('#wmOpt') && /free videos? without watermark today/.test(await page.textContent('#wmOpt')) && /Upgrade/.test(await page.textContent('#wmOpt')), 'Export-Blatt: freundlicher Hinweis + Upgrade-Link');
+      await page.evaluate(() => showAcct());
+      ok(await page.isVisible('#acctWm') && /small watermark/.test(await page.textContent('#acctWm')), 'Konto-Fenster: Hinweis zur Marke');
+      await page.evaluate(() => { document.getElementById('acctModal').style.display = 'none'; });
+      await page.fill('#gateEmail', 'e2e@example.com');
+      await page.check('#gateNews');
+      const dl2P = page.waitForEvent('download', { timeout: 180000 }).catch(() => null);
+      await page.click('#btnVideo');
+      const dl2 = await dl2P;
+      ok(!!dl2, 'Export 2 gestartet');
+      if (dl2) {
+        const fp2 = path.join(os.tmpdir(), 'cr-e2e-out2-' + prof.name + path.extname(dl2.suggestedFilename()));
+        await dl2.saveAs(fp2);
+        const mp2 = path.join(os.tmpdir(), 'cr-e2e-mp4-frame2.png'); try { fs.unlinkSync(mp2); } catch (e) {}
+        spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ssK, '-i', fp2, '-frames:v', '1', mp2]);
+        const wm2 = fs.existsSync(mp2) && fs.existsSync(srcFr) ? await wmPixels(page, mp2, srcFr) : -1;
+        ok(wm2 > 150, 'Export 2 (watermark:true): Frame MIT Wasserzeichen (' + wm2 + ' abweichende Pixel unten rechts)');
+      }
+      await page.waitForFunction(() => !isExporting, null, { timeout: 60000 });
+      state.plan = null; // zurück in die Beta
+      await page.evaluate(() => { billing = null; renderBilling(); updateAcctUI(); });
+      ok(await page.evaluate(() => needsWatermark() === false), 'zurück in der Beta: wieder kein Wasserzeichen');
     }
     ok(state.leads.length === 1 && state.leads[0].email === 'e2e@example.com' && state.leads[0].newsletter === true, 'Lead an /api/lead gesendet (E-Mail + Newsletter-Häkchen)');
     await page.waitForTimeout(500);
     await shot('06-export-done');
+
+    // 3b) Auto zoom (Style → Animation → Emphasis): lokaler Ersatz liefert Momente, Umschalten gibt Rückmeldung (Toast + Vorführung bei Pause),
+    //     Vorschau zoomt NUR das Video (zu Zeit s+1 scale > 1.05, davor/danach 1), Timeline zeigt Marker, MP4-Export zoomt identisch.
+    {
+      const scaleOf = () => page.evaluate(() => { const m = /matrix\(([^,]+),/.exec(getComputedStyle(document.getElementById('mainVid')).transform); return m ? +m[1] : 1; });
+      const seekTo = t => page.evaluate(t => new Promise(r => { const v = document.getElementById('mainVid'); v.pause(); const f = () => { v.removeEventListener('seeked', f); r(); }; v.addEventListener('seeked', f); v.currentTime = t; setTimeout(r, 1500); }), t);
+      await page.evaluate(() => { try { closeExportSheet(); } catch (e) {} switchTab('style'); setEmphZoom('off'); });
+      await seekTo(0.4);
+      await page.waitForTimeout(3000); // Toast von «Off» (keiner) bzw. früheren Meldungen ausklingen lassen
+      await shot('07-zoom-off');
+      // Sampler: grösste Skalierung des Videos, Captions-Overlay und Videozeit während der Vorführung
+      await page.evaluate(() => {
+        window.__z = { max: 1, capSc: 1, t0: document.getElementById('mainVid').currentTime, t1: 0, n: 0 };
+        const t0 = performance.now();
+        (function tick() {
+          const m = /matrix\(([^,]+),/.exec(getComputedStyle(document.getElementById('mainVid')).transform); if (m) window.__z.max = Math.max(window.__z.max, +m[1]);
+          const om = /matrix\(([^,]+),/.exec(getComputedStyle(document.getElementById('capOverlay')).transform); if (om) window.__z.capSc = Math.max(window.__z.capSc, +om[1]);
+          window.__z.t1 = document.getElementById('mainVid').currentTime; window.__z.n++;
+          if (performance.now() - t0 < 1700) requestAnimationFrame(tick);
+        })();
+        document.querySelector('#emZoomRow [data-z=punchy]').click();
+      });
+      await page.waitForTimeout(450);
+      const toastTxt = await page.evaluate(() => (document.getElementById('capToast') || {}).textContent || '');
+      await shot('08-zoom-demo');
+      await page.waitForTimeout(1500);
+      const zr = await page.evaluate(() => Object.assign({ plan: zoomPlan(), words: captionBlocks.reduce((a, b) => a + b.words.filter(w => w.zm).length, 0), paused: document.getElementById('mainVid').paused, to: timeOff || 0 }, window.__z));
+      ok(zr.plan.length >= 1 && zr.words >= 1, 'Auto zoom: mindestens ein Zoom-Moment ohne KI (' + zr.plan.length + ' Momente, Plan ' + JSON.stringify(zr.plan.map(z => [+z.s.toFixed(2), +z.e.toFixed(2)])) + ')');
+      ok(new RegExp('^Auto zoom: ' + zr.plan.length + ' moments?$').test(toastTxt), 'Auto zoom: Toast nennt die Anzahl («' + toastTxt + '»)');
+      ok(zr.paused && zr.max > 1.1 && zr.max <= 1.19 + 1e-6, 'Auto zoom: Vorführung bei Pause — Video skaliert kurz auf ' + zr.max.toFixed(3) + ' (' + zr.n + ' Bilder)');
+      ok(Math.abs(zr.t1 - zr.t0) < 0.01 && zr.capSc <= 1.0001, 'Auto zoom: Vorführung verschiebt das Video nicht und zoomt die Captions nicht (Zeit ' + zr.t0.toFixed(2) + ' → ' + zr.t1.toFixed(2) + ', Captions ×' + zr.capSc.toFixed(3) + ')');
+      ok(await scaleOf() === 1, 'Auto zoom: nach der Vorführung wieder scale 1');
+      // Seek in den Moment / davor / danach (ohne manuelles updateOverlay): Vorschau-Transform
+      const mid = zr.plan[0].s + 1.0 - zr.to, before = Math.max(0.05, zr.plan[0].s - 0.3 - zr.to), after = zr.plan[0].e + 0.25 - zr.to;
+      ok(zr.plan[0].s > 0.12, 'Auto zoom: erster Moment beginnt nicht ganz am Anfang (' + zr.plan[0].s.toFixed(2) + ' s)');
+      await seekTo(before); await page.waitForTimeout(300); const sB = await scaleOf();
+      await seekTo(mid); await page.waitForTimeout(300); const sM = await scaleOf();
+      await shot('09-zoom-moment');
+      await seekTo(after); await page.waitForTimeout(300); const sA = await scaleOf();
+      ok(sM > 1.05 && sB === 1 && sA === 1, 'Auto zoom: Vorschau nach Seek — davor ' + sB.toFixed(3) + ', im Moment ' + sM.toFixed(3) + ' (' + mid.toFixed(2) + ' s), danach ' + sA.toFixed(3));
+      // Timeline: Marker (Lupe + Strich in Bernstein) nur bei Auto zoom ≠ Off
+      if (prof.mobile) await page.evaluate(() => switchTab('timeline')); else await page.evaluate(() => tlSetOpen(true, false));
+      await page.evaluate(() => { _tl.cv.scrollIntoView({ block: 'center' }); if (typeof tlFit === 'function') tlFit(); tlRequestDraw(); });
+      await page.waitForTimeout(500);
+      const amber = () => page.evaluate(() => {
+        tlDraw(); const cv = _tl.cv, ctx = cv.getContext('2d'), g = tlGeom(), dpr = cv.width / cv.clientWidth, d = ctx.getImageData(0, 0, cv.width, Math.round(g.ruler * dpr)).data;
+        let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 190 && d[i + 1] > 90 && d[i + 1] < 160 && d[i + 2] < 70) n++;
+        return n;
+      });
+      const aOn = await amber();
+      await shot('10-zoom-timeline');
+      await page.evaluate(() => setEmphZoom('off')); await page.waitForTimeout(200);
+      const aOff = await amber();
+      ok(aOn > 10 && aOff === 0, 'Auto zoom: Timeline-Marker nur bei Subtle/Punchy (Bernstein-Pixel am Lineal an/aus: ' + aOn + '/' + aOff + ')');
+      if (prof.mobile) await page.evaluate(() => switchTab('style'));
+      // MP4-Export: Frame im Moment ist gezoomt (Mitte vergrössert), Frame davor nicht
+      await page.evaluate(() => { setEmphZoom('punchy'); openExportSheet(); });
+      await page.waitForTimeout(400);
+      const dlZ = page.waitForEvent('download', { timeout: 180000 }).catch(() => null);
+      await page.click('#btnVideo');
+      const dz = await dlZ;
+      ok(!!dz, 'Auto zoom: Export mit Zoom gestartet');
+      if (dz) {
+        const fpz = path.join(os.tmpdir(), 'cr-e2e-zoom-' + prof.name + path.extname(dz.suggestedFilename()));
+        await dz.saveAs(fpz);
+        const frame = (src, t, out) => { try { fs.unlinkSync(out); } catch (e) {} const k = Math.round(t * 30); spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ((k - 0.5) / 30).toFixed(4), '-i', src, '-frames:v', '1', out]); return fs.existsSync(out) ? fs.readFileSync(out).toString('base64') : null; };
+        const f = n => path.join(os.tmpdir(), 'cr-e2e-z-' + n + '.png');
+        const tMid = Math.round(mid * 30) / 30, tBef = Math.round(before * 30) / 30;
+        const m1 = frame(fpz, tMid, f('mp4mid')), s1 = frame(VIDEO, tMid, f('srcmid')), m0 = frame(fpz, tBef, f('mp4bef')), s0 = frame(VIDEO, tBef, f('srcbef'));
+        ok(m1 && s1 && m0 && s0, 'Auto zoom: MP4-/Quell-Frames extrahiert (' + tBef.toFixed(2) + ' s, ' + tMid.toFixed(2) + ' s)');
+        if (m1 && s1 && m0 && s0) {
+          fs.copyFileSync(f('mp4mid'), path.join(SHOTS, prof.name + '-zoom-mp4-moment.png')); fs.copyFileSync(f('srcmid'), path.join(SHOTS, prof.name + '-zoom-src-moment.png'));
+          const zNow = await page.evaluate(t => zoomAt(t), tMid);
+          const r = await page.evaluate(async a => {
+            const load = b64 => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = 'data:image/png;base64,' + b64; });
+            const [mm, sm, mb, sb] = await Promise.all([load(a.m1), load(a.s1), load(a.m0), load(a.s0)]);
+            const W = mm.width, H = mm.height, rows = Math.round(H * 0.5); // obere Hälfte: dort liegen keine Captions
+            const px = (im, z) => { const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.imageSmoothingQuality = 'high';
+              x.drawImage(im, W / 2 - W / (2 * z), H / 2 - H / (2 * z), W / z, H / z, 0, 0, W, H); return x.getImageData(0, 0, W, rows).data; };
+            const err = (p, q) => { let s = 0; for (let i = 0; i < p.length; i += 4) s += Math.abs(p[i] - q[i]) + Math.abs(p[i + 1] - q[i + 1]) + Math.abs(p[i + 2] - q[i + 2]); return s / (p.length / 4) / 3; };
+            return { eZoomed: err(px(mm, 1), px(sm, a.z)), eFlat: err(px(mm, 1), px(sm, 1)), bZoomed: err(px(mb, 1), px(sb, a.z)), bFlat: err(px(mb, 1), px(sb, 1)), W, H };
+          }, { m1, s1, m0, s0, z: zNow });
+          ok(zNow > 1.1, 'Auto zoom: Export-Faktor im Moment ' + zNow.toFixed(3));
+          ok(r.eZoomed < r.eFlat * 0.6, 'Auto zoom: MP4-Frame im Moment entspricht dem gezoomten Quellbild (Fehler gezoomt ' + r.eZoomed.toFixed(1) + ' < ungezoomt ' + r.eFlat.toFixed(1) + ', ' + r.W + '×' + r.H + ')');
+          ok(r.bFlat < r.bZoomed * 0.6, 'Auto zoom: MP4-Frame vor dem Moment ist ungezoomt (Fehler ungezoomt ' + r.bFlat.toFixed(1) + ' < gezoomt ' + r.bZoomed.toFixed(1) + ')');
+        }
+      }
+      await page.evaluate(() => { try { closeExportSheet(); } catch (e) {} setEmphZoom('off'); });
+    }
 
     // 4) Cover
     if (!(await page.isVisible('#expSheet'))) await page.evaluate(() => openExportSheet());

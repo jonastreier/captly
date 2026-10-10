@@ -130,9 +130,13 @@ capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidRead
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
+zoomFill:zoomFill,zoomPlan:zoomPlan,zoomFeedback:zoomFeedback,zoomDemoStart:zoomDemoStart,getZoomDemo:function(){return _zoomDemo;},clearZoomDemo:function(){_zoomDemo=null;},
+applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
+styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
+videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateSkip:function(){_gateSkipped=false;try{sessionStorage.removeItem(GATE_SKIP_KEY);}catch(e){}},skipEmailGate:skipEmailGate,wmNoticeText:wmNoticeText,trHeaders:trHeaders,
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
 capNoItalic:capNoItalic,capPopFactor:capPopFactor,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
-styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
+setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -378,11 +382,25 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
 }
 
 // 9f) Beta: Wasserzeichen nur für anonyme Nutzer (Pläne sind noch nicht kaufbar)
-T.setMe('anon', ''); ok(T.needsWatermark() === true, 'anonym → Wasserzeichen');
-T.setMe('free', 'a@b.c'); ok(T.needsWatermark() === false, 'angemeldet (free, Beta) → kein Wasserzeichen');
-T.setMe('pro', 'a@b.c'); ok(T.needsWatermark() === false, 'Pro → kein Wasserzeichen');
-T.setMe('anon', 'x@y.z'); ok(T.needsWatermark() === false, 'E-Mail gesetzt → nie Wasserzeichen (auch ohne Plan-Update)');
-T.setMe('free', ''); ok(T.needsWatermark() === true, 'ohne E-Mail → Wasserzeichen');
+// needsWatermark-Matrix: Beta/Abos aus → NIE; Abos an → bezahlt nie, Free/Gast nur mit Server-Flag `watermark` (pro Video)
+{
+  const plans = ['anon', 'free', 'creator', 'pro'], mails = ['', 'a@b.c'];
+  for (const pl of plans) for (const em of mails) {
+    T.setMe(pl, em); T.setBillingState(null);
+    ok(T.needsWatermark() === false, 'Beta (Abos aus) nie Wasserzeichen: ' + pl + (em ? ' mit E-Mail' : ' ohne E-Mail'));
+    T.setBillingState({ enabled: false, watermark: true });
+    ok(T.needsWatermark() === false, 'Abos aus + Flag true → trotzdem nie: ' + pl);
+    for (const flag of [false, true, undefined]) {
+      T.setMe(pl, em); T.setBillingState({ enabled: true, loggedIn: pl !== 'anon', plan: pl, watermark: flag });
+      const want = (pl === 'anon' || pl === 'free') && flag === true;
+      ok(T.needsWatermark() === want, 'Abos an: ' + pl + ', watermark=' + flag + (em ? ', E-Mail' : ', ohne E-Mail') + ' → ' + want);
+    }
+  }
+  // Plan aus billing schlägt veraltetes Flag (z. B. gerade upgegradet)
+  T.setMe('free', 'a@b.c'); T.setBillingState({ enabled: true, loggedIn: true, plan: 'creator', watermark: true });
+  ok(T.needsWatermark() === false, 'billing.plan creator mit altem Flag → keine Marke');
+  T.setBillingState(null); T.setMe('anon', '');
+}
 T.setMe('anon', '');
 
 // 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
@@ -1462,7 +1480,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     global.fetch = (url, o) => { calls.push({ url, o }); return fail ? Promise.reject(new TypeError('Failed to fetch')) : Promise.resolve({ ok: true, status: 201 }); };
     ok(T.isEmail('a@b.ch') && T.isEmail(' Jonas.T+x@mail.example.com ') && !T.isEmail('a@b') && !T.isEmail('ab.ch') && !T.isEmail(''), 'isEmail');
     T.setMe('anon', '');
-    ok(T.needsWatermark() === true, 'ohne E-Mail → Wasserzeichen-Pfad');
+    ok(T.needsWatermark() === false, 'ohne E-Mail (Beta) → trotzdem kein Wasserzeichen');
     const g = document.getElementById('expGate'), sh = document.getElementById('expSheet'), inp = document.getElementById('gateEmail');
     const nw = document.getElementById('gateNews'), err = document.getElementById('gateErr');
     document.getElementById('gateNewsTxt').textContent = 'Send me tips';
@@ -1473,7 +1491,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.openExportSheet();
     ok(g.style.display === '' && sh.style.display === 'block', 'Export-Blatt zeigt das E-Mail-Feld sofort');
     inp.value = 'kein-mail';
-    ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent), 'ungültige Adresse → Fehlermeldung');
+    ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent) && /Skip/.test(err.textContent), 'ungültige Adresse → Fehlermeldung (mit Skip-Hinweis)');
     fail = true; inp.value = 'Treier@Example.CH'; nw.checked = true;
     ok(T.passEmailGate() === true && g.style.display === 'none', 'gültige Adresse → Export läuft (auch wenn Speichern fehlschlägt)');
     await new Promise(r => setTimeout(r, 0));
@@ -1499,6 +1517,16 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(g.style.display === 'none', 'bekannte Adresse → Feld beim Öffnen versteckt');
     T.closeExportSheet();
     delete store[T.LEAD_KEY];
+    // Freiwillig: leeres Feld = übersprungen (kein Lead, kein Request), Export läuft, Feld bleibt danach weg
+    T.openExportSheet(); inp.value = ''; const nCalls = calls.length;
+    ok(g.style.display === '' && T.passEmailGate() === true && g.style.display === 'none' && calls.length === nCalls && !(T.LEAD_KEY in store), 'leeres Feld + Download → Gate übersprungen, nichts gespeichert/gesendet');
+    ok(T.needsWatermark() === false, 'übersprungen → kein Wasserzeichen');
+    T.passEmailGate(); T.closeExportSheet(); T.openExportSheet();
+    ok(g.style.display === 'none', 'nach Skip: Feld beim erneuten Öffnen weg (Sitzung)');
+    T.closeExportSheet(); T.resetGateSkip();
+    T.openExportSheet();
+    ok(g.style.display === '', 'Skip zurückgesetzt → Feld wieder da');
+    T.closeExportSheet();
     T.setMe('free', 'x@y.z'); g.style.display = 'none';
     ok(T.passEmailGate() === true && g.style.display === 'none', 'angemeldet → kein Gate');
     T.openExportSheet();
@@ -3063,6 +3091,71 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setEmphState(true, false, 'off');
     ok(T.zoomAt(1.5) === 1, 'Auto zoom aus → nie Zoom');
 
+    // Lokaler Ersatz (ohne KI) für JEDE Sprache: stärkstes Schlüsselwort je ~6-s-Fenster, ≥ 1 Moment je ~8 s, Abstand ≥ 4 s
+    {
+      const txt = 'We started the small bakery downtown after years of dreaming about fresh sourdough bread. Every morning customers line up outside waiting patiently for warm croissants. Our neighbors tell everybody about the wonderful pastries. Eventually journalists discovered our little shop and wrote glowing reviews everywhere.';
+      const wsz = seqE(txt); // 0,35 s je Wort → ~ 21 s ohne Zahlen
+      T.setState(T.buildCaptionBlocks(wsz), wsz.slice(), 'karaoke');
+      const Be = T.getBlocks(), allW = Be.flatMap(b => b.words), dur = allW[allW.length - 1].end;
+      T.localEmphasis(Be, 'en', dur + 0.3);
+      const zs = allW.filter(w => w.zm).map(w => w.start);
+      ok(!allW.some(w => /\d/.test(w.word)) && zs.length >= Math.floor(dur / 8) && zs.length >= 2, 'Heuristik EN ohne Zahlen: ≥ 1 Zoom-Moment je ~8 s (' + zs.length + ' bei ' + dur.toFixed(1) + ' s)');
+      ok(zs.every((t, i) => !i || t - zs[i - 1] >= 4 - 1e-9), 'Zoom-Momente (lokal) ≥ ZOOM_GAP auseinander: ' + zs.join(', '));
+      const gaps = [zs[0] - allW[0].start].concat(zs.map((t, i) => (i + 1 < zs.length ? zs[i + 1] : dur) - t));
+      ok(Math.max(...gaps) <= 8.5, 'Zoom-Momente (lokal): keine Lücke > ~8 s (max ' + Math.max(...gaps).toFixed(1) + ' s)');
+      ok(allW.filter(w => w.zm).every(w => w.start <= dur - 0.7) && T.zoomFill(Be, 'en', dur + 0.3, 8) === 0, 'Zoom-Momente (lokal): nicht am Videoende, zweiter Lauf setzt nichts mehr');
+      ok(allW.filter(w => w.zm).every(w => w.word.replace(/\W/g, '').length >= 5), 'Zoom-Momente (lokal): nur Inhaltswörter (≥ 5 Zeichen)');
+      // Name mitten im Satz schlägt das längere gewöhnliche Wort (EN), Zahl schlägt beides
+      const nm = seqE('we met Alexander yesterday while shopping'), nb = [{ words: nm, start: 0, end: 3, text: 'x' }];
+      T.localEmphasis(nb, 'en');
+      ok(nm[2].zm === 1 && !nm[4].zm, 'Zoom: Name mitten im Satz hat Vorrang');
+      // Deutsch: Nomen/Zahlen bleiben priorisiert
+      const wd = seqE('Wir bauen seit 1995 unser eigenes Brot und verkaufen jeden Samstag frische Brötchen auf dem Markt');
+      const bd = [{ words: wd, start: 0, end: 5, text: 'x' }]; T.localEmphasis(bd, 'de', 4.6);
+      ok(wd.filter(w => w.zm).length === 1 && wd.find(w => w.zm).word === '1995', 'Zoom (DE): Zahl hat Vorrang vor Nomen');
+      // keine Inhaltswörter → kein Moment, kein Absturz
+      const wn = seqE('and so on and so on and so'); const bn = [{ words: wn, start: 0, end: 3, text: 'x' }];
+      ok(T.zoomFill(bn, 'en', 0, 8) === 0 && !wn.some(w => w.zm), 'Zoom: ohne Inhaltswörter kein Moment');
+      // Nutzer-Aus (kw -1) wird nie zum Zoom-Moment; vorhandene (KI-)Momente bleiben bestehen
+      const wk = seqE('Wunderbar wundervolle fantastische Aussicht heute'), bk = [{ words: wk, start: 0, end: 3, text: 'x' }];
+      wk.forEach(w => { w.kw = -1; }); ok(T.zoomFill(bk, 'de', 0, 8) === 0, 'Zoom: kw = -1 (Nutzer-Aus) wird übersprungen');
+    }
+
+    // Rückmeldung beim Umschalten (Toast mit Anzahl/Hinweis, Vorführung nur bei Pause, nie bei reduzierter Bewegung)
+    {
+      const wz = seqE('Our summer sale starts tomorrow with 50 percent discount on everything inside'), bz = [{ words: wz, start: 0, end: 5, text: 'x' }];
+      T.setState(T.buildCaptionBlocks(wz), wz.slice(), 'karaoke'); T.localEmphasis(T.getBlocks(), 'en', 6);
+      const vidZ = document.getElementById('mainVid');
+      vidZ.duration = 6; T.setVidReady(true); vidZ.paused = true; vidZ.ended = false; vidZ.currentTime = 0;
+      T.setEmphState(true, false, 'off'); T.setReduceMotion(false);
+      T.setEmphZoom('punchy');
+      const n1 = T.zoomPlan().length, fb0 = T.zoomFeedback();
+      ok(n1 >= 1 && fb0.n === n1 && fb0.msg === 'Auto zoom: ' + n1 + (n1 === 1 ? ' moment' : ' moments'), 'Auto zoom: Toast «Auto zoom: N moments» (' + fb0.msg + ')');
+      ok(T.getZoomDemo() && T.getZoomDemo().until > T.getZoomDemo().t0 && Math.abs((T.getZoomDemo().until - T.getZoomDemo().t0) - 1200) < 5, 'Pausiert: Zoom-Vorführung (~1,2 s) gestartet');
+      T.clearZoomDemo();
+      vidZ.paused = false;
+      const fb1 = T.zoomFeedback();
+      ok(T.getZoomDemo() === null && fb1.demo === false && /^Auto zoom: \d/.test(fb1.msg), 'Spielend: Toast, aber keine Vorführung');
+      vidZ.paused = true; T.setReduceMotion(true);
+      const fb = T.zoomFeedback();
+      ok(fb.demo === false && T.getZoomDemo() === null && /Preview animation off \(reduce motion\) — the export includes the zoom/.test(fb.msg) && /^Auto zoom: \d/.test(fb.msg), 'Reduce motion: nur Toast mit Hinweis, keine Vorführung');
+      T.setReduceMotion(false);
+      T.getBlocks().forEach(b => b.words.forEach(w => { delete w.zm; })); T.setEmphState(true, false, 'punchy');
+      const fb2 = T.zoomFeedback();
+      ok(fb2.n === 0 && fb2.msg === 'No zoom moments found — zooms start on key words and numbers' && T.getZoomDemo() === null, 'Null Momente: Hinweis «No zoom moments found…», keine Vorführung');
+      // Vorschau-Transform: Demo skaliert nur das Video; reduzierte Bewegung hält die Vorschau still
+      T.setState(T.buildCaptionBlocks(wz), wz.slice(), 'karaoke'); T.localEmphasis(T.getBlocks(), 'en', 6); T.setEmphState(true, false, 'punchy');
+      const zm0 = T.zoomPlan()[0];
+      vidZ.currentTime = zm0.s + 1 - T.getTimeOff(); T.applyPreviewZoom(vidZ.currentTime);
+      ok(/scale\(1\.1[0-9]+\)/.test(vidZ.style.transform || ''), 'Vorschau: Video-Transform scale(>1) mitten im Zoom-Moment (' + vidZ.style.transform + ')');
+      ok(document.getElementById('prevBlurBg').style.transform === vidZ.style.transform, 'Vorschau: Blur-Hintergrund zoomt mit dem Video (gleicher Transform)');
+      vidZ.currentTime = zm0.e + 0.5; T.applyPreviewZoom(vidZ.currentTime);
+      ok(!vidZ.style.transform, 'Vorschau: nach dem Moment wieder ohne Transform');
+      vidZ.currentTime = zm0.s + 1; T.setReduceMotion(true); T.applyPreviewZoom(vidZ.currentTime);
+      ok(!vidZ.style.transform, 'Vorschau bei reduzierter Bewegung: kein Transform (Export zoomt trotzdem)');
+      T.setReduceMotion(false); T.setEmphState(true, false, 'off'); T.applyPreviewZoom(vidZ.currentTime); T.setVidReady(false);
+    }
+
     // KI-Anfrage im Hintergrund: Erfolg (Endpoint-Fallback 404 → enhance.php) bzw. Fehler → lokale Heuristik
     T.setState(T.buildCaptionBlocks(ws), ws.slice(), 'karaoke'); B = T.getBlocks();
     let sent = [];
@@ -3670,6 +3763,16 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // Gruppenreihenfolge: Looks → Text → Animation → Layout → Effekte → Erweitert → Template speichern
     const order = ['id="stylePicker"', 'id="csgText"', 'id="csgAnim"', 'id="csgLayout"', 'id="csgFx"', 'id="advSet"', 'id="csgTpl"'].map(k => htmlContent.indexOf(k));
     ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), 'Style-Panel: Gruppenreihenfolge Looks · Text · Animation · Layout · Effekte · Erweitert · Template: ' + order.join(','));
+    // Handy-Customizer: Chip-Leiste «Customize» zeigt auf existierende Gruppen (IDs, Reihenfolge wie im Panel), Advanced-Ziel ist ein <details>
+    {
+      const chipT = [...htmlContent.matchAll(/class="cs-chip[^"]*" data-target="(\w+)"/g)].map(m => m[1]);
+      const goto = [...htmlContent.matchAll(/class="cs-chip[^"]*" data-target="(\w+)"[^>]*onclick="csGoto\('(\w+)'\)"/g)].every(m => m[1] === m[2]);
+      const pos = chipT.map(id => htmlContent.indexOf('id="' + id + '"'));
+      ok(chipT.join() === 'csgText,csgAnim,csgLayout,csgFx,advSet' && goto && pos.every((x, i) => x > 0 && (i === 0 || x > pos[i - 1])), 'Handy-Customizer: Chips zeigen auf Text · Animation · Layout · Effects · Advanced (IDs vorhanden, Reihenfolge wie im Panel)');
+      ok(/<details class="cs-adv" id="advSet"/.test(htmlContent) && /function csGoto\(/.test(htmlContent) && /id\s*===\s*'advSet'[^;]*\.open\s*=\s*true/.test(htmlContent), 'Handy-Customizer: «Advanced»-Chip klappt das <details> auf');
+      ok(/\.style-grid\{display:flex;flex-wrap:nowrap;[^}]*overflow-x:auto/.test(htmlContent) && /\.cs-nav-h,\.cs-chips,\.style-hint\{display:none\}/.test(htmlContent), 'Handy-Customizer: Looks-Streifen nur im @media, Desktop blendet Chips/Hinweis aus');
+      ok(/capivo\.styleHintSeen/.test(htmlContent) && /localStorage\.getItem\(STYLE_HINT_KEY\)/.test(htmlContent), 'Handy-Customizer: Wisch-Hinweis pro Gerät einmal (localStorage mit try/catch)');
+    }
     // Wichtigste Kontrollen an der richtigen Stelle (Segment Animation vor Layout; Zeilenlängen-Hinweis unter „Erweitert“, nicht unter „Spacing“)
     const at = id => htmlContent.indexOf('id="' + id + '"');
     ok(at('csgText') < at('csFont') && at('csFont') < at('szSlider') && at('szSlider') < at('csText') && at('csText') < at('csgAnim') && at('csgAnim') < at('csMotion')
@@ -3975,6 +4078,18 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const mx = Math.max.apply(null, c1.sc.concat([1]));
     ok(mx > 1 && mx < 1.1, 'Export: Pop des langen Worts «schnell» gedeckelt (max. Skalierung ' + mx.toFixed(3) + ' statt 1.14)');
   }
+  // Video-Schlüssel (Wasserzeichen-Zählung): stabil, anonym, nur Hash — nie der Dateiname
+  {
+    T.setAutosaveKey(null); ok(T.videoKeyHash() === '' && !('X-Video-Key' in T.trHeaders('audio/wav', 't')), 'ohne Video: kein Schlüssel, kein Header');
+    T.setAutosaveKey('mein geheimes reel.mp4|123456|85'); const k1 = T.videoKeyHash(); T.setAutosaveKey('mein geheimes reel.mp4|123456|85');
+    ok(/^[a-f0-9]{16}$/.test(k1) && k1 === T.videoKeyHash() && !/reel|geheim/.test(k1), 'Schlüssel: 16 Hex, stabil, ohne Dateiname');
+    T.setAutosaveKey('mein geheimes reel.mp4|123457|85'); ok(T.videoKeyHash() !== k1, 'anderes Video → anderer Schlüssel');
+    const h = T.trHeaders('audio/wav', 'tok'); ok(h['X-Video-Key'] === T.videoKeyHash() && h['X-Capivo-Token'] === 'tok' && h['Content-Type'] === 'audio/wav', 'Transkriptions-Header mit Token + Video-Schlüssel');
+    T.setAutosaveKey(null);
+    T.setBillingState({ enabled: true, clean_videos: 2 }); ok(/used your 2 free videos without watermark today/.test(T.wmNoticeText()) && /Upgrade to remove it, or come back tomorrow/.test(T.wmNoticeText()), 'Hinweistext Übernutzung');
+    T.setBillingState(null);
+  }
+
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();

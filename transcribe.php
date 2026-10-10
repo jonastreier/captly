@@ -28,7 +28,7 @@ if ($CORS !== '' && $origin !== '') {
   if (in_array($origin, $allow, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Vary: Origin');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Capivo-Token');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Capivo-Token, X-Video-Key');
     header('Access-Control-Allow-Methods: POST, OPTIONS');
   }
 }
@@ -165,10 +165,11 @@ if ($secs === null) { if ($cleanup) @unlink($tmp); fail(400, 'Audioformat nicht 
 if ($secs > 130) { if ($cleanup) @unlink($tmp); fail(413, 'Audio-Stück zu lang (max. 130 s pro Request).'); }
 // ── Abo-Kontingent (nur mit BILLING_ENABLED, Standard aus): eingeloggt = Plan-Minuten pro Monat, anonym = ANON_SEC_PER_DAY pro IP.
 // Antwort 402 {error:'quota', ...} VOR dem Groq-Aufruf; gezählt wird eingeloggt erst nach erfolgreicher Transkription.
-$quotaUid = null;
+$quotaUid = null; $quotaGuest = false; $vkey = '';
 if (!empty($cfg['BILLING_ENABLED'])) {
   define('CR_INCLUDE', 1);
   require_once __DIR__ . '/billing.php';
+  $vkey = cr_video_key($_SERVER['HTTP_X_VIDEO_KEY'] ?? ''); // anonymer Video-Schlüssel für die Wasserzeichen-Regel (billing.php)
   $qu = cr_user_from_token($cfg, $_SERVER['HTTP_X_CAPIVO_TOKEN'] ?? '');
   $quotaFail = function($code, $payload) use (&$cleanup, &$tmp) { if ($cleanup && $tmp) @unlink($tmp); http_response_code($code); echo json_encode($payload); exit; };
   if ($qu) {
@@ -178,6 +179,7 @@ if (!empty($cfg['BILLING_ENABLED'])) {
     if ($usedM + $secs > $limit) $quotaFail(402, ['error' => 'quota', 'plan' => $plan, 'limit_sec' => $limit, 'used_sec' => $usedM]);
     $quotaUid = $qu['id'];
   } else {
+    $quotaGuest = true;
     $anonCap = (int)($cfg['ANON_SEC_PER_DAY'] ?? 600);
     if ($anonCap > 0) {
       $nf = sys_get_temp_dir() . '/capivo_anon_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json';
@@ -249,6 +251,11 @@ if ($cleanup && $tmp) @unlink($tmp);
 
 if ($body === false) fail(502, 'Transkriptions-Dienst nicht erreichbar: ' . $cerr);
 if ($quotaUid && $status >= 200 && $status < 300) cr_add_usage($cfg, $quotaUid, $secs); // Abo-Nutzung erst nach Erfolg zählen
+// Video-Zählung (Wasserzeichen ab dem (FREE_CLEAN_VIDEOS_PER_DAY+1). Video am Tag): ein Schlüssel zählt einmal, egal wie viele Stücke
+if ($vkey !== '' && $status >= 200 && $status < 300) {
+  if ($quotaUid) cr_add_video_user($cfg, $quotaUid, $vkey);
+  elseif ($quotaGuest) cr_add_video_anon($_SERVER['REMOTE_ADDR'] ?? 'x', $vkey);
+}
 if ($status == 429) alert_ops('groq-429-whisper', 'Groq-Limit erreicht (Transkription, HTTP 429). Nutzer bekommen gerade Fehler bzw. den langsamen lokalen Fallback.');
 
 // Groq-Status & -Body 1:1 durchreichen (Frontend kennt 401/402/413/429/503 und wiederholt 429/5xx selbst).

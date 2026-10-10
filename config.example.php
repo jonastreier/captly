@@ -35,6 +35,7 @@ return [
   'BILLING_ENABLED'        => false,
   'PLAN_MINUTES'           => ['free' => 30, 'creator' => 300, 'pro' => 1200], // Minuten pro Monat und Plan
   'ANON_SEC_PER_DAY'       => 600,         // ohne Login: Sekunden Ton pro Tag und IP (nur bei BILLING_ENABLED)
+  'FREE_CLEAN_VIDEOS_PER_DAY' => 2,        // Free + Gäste (nur bei BILLING_ENABLED): so viele Videos pro Tag ohne Wasserzeichen, ab dem nächsten kleine Marke
   'PADDLE_ENV'             => 'sandbox',   // sandbox | production
   'PADDLE_CLIENT_TOKEN'    => '',          // öffentlich (test_… bzw. live_…), für das Checkout-Overlay im Browser
   'PADDLE_PRICE_CREATOR'   => '',          // Preis-ID (pri_…) von «Creator», 7.99 pro Monat
