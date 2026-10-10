@@ -33,6 +33,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
   }).listen(sbPort);
   const mails = [];
   const smtp = net.createServer(sock => {
+    sock.on('error', () => {}); // PHP schliesst die Verbindung gelegentlich hart (ECONNRESET) — kein Testfehler
     let data = false, buf = ''; sock.write('220 mock\r\n');
     sock.on('data', d => {
       buf += d;
