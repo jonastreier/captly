@@ -5549,7 +5549,11 @@ function capActiveStyle() {
 function capAutoChars(s) {
   s = s || capActiveStyle();
   var frameW = previewFrameW(), maxW = capFitMaxW(s);
-  var key = [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, s.hlPillBg ? 1 : 0, s.circle ? 1 : 0,
+  // „Mein Style“: Wortabstands-Zugabe (Kontur-Ring/Pill) kommt vom AUSGANGS-Style. Eine neu gewählte Konturfarbe schaltet die Kontur ein
+  // (Breite 0 → 2) — das darf die Blöcke nicht neu zerlegen (8 → 10 Blöcke, 2 → 1 Zeile). Der Umbruch (wrapCaptionLines/Auto-Fit) rechnet
+  // weiter mit dem echten Abstand und verkleinert die Schrift, falls die breitere Kontur nicht mehr passt.
+  var gapS = (s.id === 'custom' && typeof _csBase !== 'undefined' && _csBase) ? _csBase : s, gapW = capWordGap(gapS);
+  var key = [gapW, s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, s.hlPillBg ? 1 : 0, s.circle ? 1 : 0,
              s.boxBg ? 1 : 0, s.pill ? 1 : 0, s.ts, fontSize, Math.round(frameW), capCase, _capFontGen, capMotion(s)].join('|');
   if (_capAutoCharsCache[key]) return _capAutoCharsCache[key];
   var ctx = capMeasureCtx();
@@ -5564,7 +5568,7 @@ function capAutoChars(s) {
     w = Math.max(w, ctx.measureText((up || s.hlUpper) ? sample.toUpperCase() : sample).width);
   }
   var nSp = (sample.match(/ /g) || []).length;
-  w += nSp * capWordGap(s) + (parseFloat(s.ls) || 0) * sample.length;
+  w += nSp * gapW + (parseFloat(s.ls) || 0) * sample.length;
   var avail = maxW * 0.95;
   if (s.circle) avail -= 0.6 * sz + 5;
   var per = Math.floor(avail / Math.max(1, w / sample.length));

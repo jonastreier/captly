@@ -136,7 +136,7 @@ applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
 videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateSkip:function(){_gateSkipped=false;try{sessionStorage.removeItem(GATE_SKIP_KEY);}catch(e){}},skipEmailGate:skipEmailGate,wmNoticeText:wmNoticeText,trHeaders:trHeaders,
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
-capNoItalic:capNoItalic,capPopFactor:capPopFactor,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
+capNoItalic:capNoItalic,capPopFactor:capPopFactor,setCsBase:function(b){_csBase=b;},capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
 setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -4148,6 +4148,17 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setBillingState(null);
   }
 
+  // ── Customize: neue Konturfarbe (Kontur 0 → 2 px; im Test 8 px, damit das Limit ohne Freeze sichtbar fällt) zerlegt die Bloecke nicht neu (Sweep ctl/csOutlineC@layoutPreset) ──
+  {
+    const tight = T.cloneStyle(T.STYLES.find(x => x.id === 'tight'));
+    const custom = Object.assign(T.cloneStyle(tight), { id: 'custom', ts: T.outlineShadow(8, '#ff0000') + ',' + tight.ts, cstroke: '#ff0000' });
+    const perBase = T.capAutoChars(tight);
+    T.setCsBase(null); const perRing = T.capAutoChars(custom);
+    T.setCsBase(tight); const perFrozen = T.capAutoChars(custom);
+    T.setCsBase(null);
+    ok(T.capWordGap(custom) > 0 && T.capWordGap(tight) === 0, 'Testaufbau: Kontur erzeugt Wortabstand, der Halo von Tight nicht');
+    ok(perRing < perBase && perFrozen === perBase, 'Auto-Zeichenlimit von «Mein Style» folgt dem Ausgangs-Style (' + perFrozen + ' = ' + perBase + '; ohne Freeze ' + perRing + ') — Konturfarbe zerlegt keine Bloecke');
+  }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();
