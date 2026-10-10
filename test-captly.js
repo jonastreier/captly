@@ -135,6 +135,8 @@ zoomFill:zoomFill,zoomPlan:zoomPlan,zoomFeedback:zoomFeedback,zoomDemoStart:zoom
 applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
 videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateSkip:function(){_gateSkipped=false;try{sessionStorage.removeItem(GATE_SKIP_KEY);}catch(e){}},skipEmailGate:skipEmailGate,wmNoticeText:wmNoticeText,trHeaders:trHeaders,
+CAP_PILL_PAD_X:CAP_PILL_PAD_X,
+capNoItalic:capNoItalic,capPopFactor:capPopFactor,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
 setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3406,12 +3408,13 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); const cv = { width: 0, height: 0 }; const cx = mkCtx(cv); cv.getContext = () => cx; layers.push(cx); return cv; };
       const main = mkCtx({ width: 1080, height: 1921 }); // eigene Größe → frische Ebene
       T.drawCaptionsOnCtx(main, 2.73, rv, 1080, 1921, false);
-      const n1 = layers.reduce((a, l) => a + l.calls.length, 0);
+      const cntFill = () => layers.reduce((a, l) => a + l.calls.filter(k => k.sc === 'transparent').length, 0); // nur die scharfe Füllung (Schatten-Schichten zählen nicht: Lesbarkeits-Halo hat mehrere)
+      const n1 = cntFill();
       T.drawCaptionsOnCtx(main, 2.76, rv, 1080, 1921, false);
       T.drawCaptionsOnCtx(main, 2.79, rv, 1080, 1921, false);
-      ok(n1 === 4 && layers.reduce((a, l) => a + l.calls.length, 0) === n1 && main.calls.length === 0 && main.imgs === 3, 'Reveal-Export: Endzustand aus der Ebene (kein Neuzeichnen pro Frame)');
+      ok(n1 === 4 && cntFill() === n1 && main.calls.length === 0 && main.imgs === 3, 'Reveal-Export: Endzustand aus der Ebene (kein Neuzeichnen pro Frame)');
       const mid2 = mkCtx({ width: 1080, height: 1921 }); T.drawCaptionsOnCtx(mid2, 2.55, rv, 1080, 1921, false);
-      ok(mid2.calls.length === 1 && mid2.calls[0].t === 'vier', 'Reveal-Export: nur das einblendende Wort wird live gezeichnet');
+      const mid2f = mid2.calls.filter(k => k.sc === 'transparent'); ok(mid2f.length === 1 && mid2f[0].t === 'vier' && mid2.calls.every(k => k.t === 'vier'), 'Reveal-Export: nur das einblendende Wort wird live gezeichnet');
       document.createElement = origCreate;
     }
     // Vorschau-HTML: keine CSS-Animation (Zeit-basiert per capDomMotion), Wort-Index, Box als eigene Fläche
@@ -4034,6 +4037,105 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setLines({ dataset: { lines: '2' } }); T.setState([], [], 'karaoke');
   }
 
+  // ── Lesbarkeits-Halo (S2): weisse Looks ohne Kontur tragen auf hellem/buntem Material ──
+  {
+    const HALO = ['tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'script', 'soft', 'minimal', 'lift', 'neon', 'editorial', 'marker', 'focus'];
+    const bad = [];
+    HALO.forEach(id => {
+      const st = T.STYLES.find(x => x.id === id); if (!st) { bad.push(id + ' fehlt'); return; }
+      [st.ts].concat(st.hlPillBg ? [] : [st.hls]).forEach((str, k) => {
+        const sp = T.splitShadows(str);
+        const halo = sp.soft.filter(l => !l.x && l.blur < 3).concat(sp.glow.filter(l => l.blur < 3));
+        const dark = (str.match(/0 0 [\d.]+px rgba\(0,0,0,\.9\)/g) || []).length;
+        if (dark < 2) bad.push(id + (k ? '.hls' : '.ts') + ': < 2 Halo-Schichten');
+        if (sp.ring) bad.push(id + ': Halo darf keine Ring-Kontur sein (Wortabstand/Umbruch bliebe sonst nicht gleich)');
+        if (sp.glow.some(l => l.blur < 3)) bad.push(id + ': Halo zaehlt faelschlich als Glow');
+      });
+    });
+    ok(bad.length === 0, 'Looks ohne Kontur haben dezenten dunklen Halo (kein Ring, kein Glow-Fehlalarm)' + (bad.length ? ': ' + bad.join('; ') : ''));
+    ok(T.capWordGap(T.STYLES.find(x => x.id === 'tight')) === 0, 'Halo aendert den Wortabstand nicht (kein Ring)');
+    // Customize: Glow-Schalter bleibt bei Looks ohne echten Glow aus
+    ok(['tight', 'accent', 'minimal'].every(id => !T.splitShadows(T.STYLES.find(x => x.id === id).hls).glow.length), 'Halo wird im Customize-Panel nicht als Glow erkannt');
+  }
+  // ── Box-/Pill-Looks bleiben mit SICHTBARER Fläche in der Safe-Zone (S2: Dark Box ragte bis 92 %, Note bis 93,5 %) ──
+  {
+    const stub = () => ({ _font: '', letterSpacing: '0px', calls: [], rects: [], lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
+      get font() { return this._font; }, set font(v) { this._font = v; },
+      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: str === ' ' ? (m ? +m[1] : 16) * 0.2 : (str || '').length * (m ? +m[1] : 16) * 0.58 }; },
+      fillText() {}, strokeText() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {} });
+    const sets = { Standardsatz: 'Heute zeigen wir dir wie schnell das wirklich geht'.split(' '),
+                   Kompositum: 'Die Donaudampfschifffahrtsgesellschaft ist Geschwindigkeitsbegrenzung Rindfleischverarbeitungsbetriebe'.split(' ') };
+    const boxLooks = T.STYLES.filter(st => ['stack', 'note', 'tiktok', 'hush', 'focus', 'marker', 'boxkara'].includes(st.id) && (st.boxBg || (st.hlPillBg && T.capMotion(st) === 'highlight')));
+    ok(boxLooks.length >= 6 && ['stack', 'note', 'tiktok', 'hush', 'focus', 'marker', 'boxkara'].every(id => boxLooks.some(x => x.id === id)), 'Box-/Pill-Looks gefunden (' + boxLooks.map(x => x.id).join(',') + ')');
+    const bad = [];
+    for (const [nm, ws] of Object.entries(sets)) {
+      const wl = ws.map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.45 }));
+      T.setState(T.buildCaptionBlocks(wl, []), wl, 'karaoke');
+      boxLooks.filter(st => st.boxBg || nm === 'Standardsatz').forEach(st => { // Pill-Looks mit Kompositum: Messung im Browser (Stub kennt die Liang-Trennmuster nicht)
+        const W = 1080;
+        for (let bi = 0; bi < 12; bi++) {
+          const bl = T.getBlocks ? T.getBlocks() : null; if (!bl || !bl[bi]) break;
+          const L = T.capLayout(stub(), bl[bi], bi, 0, st, W, 1920);
+          const wMax = Math.max.apply(null, L.lineWs);
+          const vis = wMax + (st.boxBg ? 36 * L.scale : 0) + ((st.hlPillBg && T.capMotion(st) === 'highlight') ? 2 * T.CAP_PILL_PAD_X * L.scale : 0);
+          const l = (W - vis) / 2 / W * 100, r = 100 - l;
+          if (r > 87.5 + 0.1 || l < 12.5 - 0.1) bad.push(nm + '/' + st.id + '#' + bi + ' ' + l.toFixed(1) + '–' + r.toFixed(1) + '%');
+        }
+      });
+    }
+    ok(bad.length === 0, 'Box-/Pill-Looks: sichtbare Flaeche innerhalb 12,5–87,5 % (Standardsatz + Kompositum)' + (bad.length ? ': ' + bad.slice(0, 6).join('; ') : ''));
+  }
+  // ── Schriften ohne Wortzwischenraeume/ohne Trennmuster: kein Bindestrich mitten im Wort (S2) ──
+  {
+    const hy = (w, max, l) => T.capHyphenate(w, p => Array.from(p).length <= max, l);
+    const cjk = hy('国際連合安全保障理事会', 4);
+    ok(cjk.length >= 3 && cjk.join('') === '国際連合安全保障理事会' && cjk.every(p => !/-/.test(p) && Array.from(p).length <= 4), 'CJK-Langwort: Umbruch an Zeichengrenzen ohne Bindestrich (' + cjk.join(' / ') + ')');
+    ok(hy('国際連合', 8).length === 1, 'CJK: passt es in die Zeile, bleibt das Wort ganz');
+    const kin = hy('今日は、天気がいいです。', 5);
+    ok(kin.join('') === '今日は、天気がいいです。' && kin.every(p => !/^[、。]/.test(p)), 'CJK: kein Satzzeichen am Teilanfang (' + kin.join(' / ') + ')');
+    const th = hy('สวัสดีครับยินดีต้อนรับ', 6);
+    ok(th.join('') === 'สวัสดีครับยินดีต้อนรับ' && th.every(p => !/^\p{M}/u.test(p) && !/-/.test(p)), 'Thai: nie vor einer Kombinationsmarke trennen, kein Bindestrich (' + th.join(' / ') + ')');
+    ['المنظمةالدوليةللتعاونالاقتصادي', 'הארגוןהבינלאומילשיתוףפעולה', 'Διεθνέςοργανισμόςσυνεργασίας', 'अंतर्राष्ट्रीयसहयोगसंगठन'].forEach(w => {
+      ok(hy(w, 5).length === 1, 'Schrift ohne Trennmuster wird nie getrennt: ' + w.slice(0, 8));
+    });
+    ok(hy('Donaudampfschifffahrtsgesellschaft', 12, 'de').length > 1 && hy('Привет-пока-долгожданный', 8, 'en').length >= 1, 'Latein/Kyrillisch trennen weiter wie bisher');
+    ok(T.capHyphEligible('Geschwindigkeit') && !T.capHyphEligible('国際連合安全保障理事会') && !T.capHyphEligible('المنظمةالدولية'), 'capHyphEligible: Skript-Pruefung');
+  }
+  // ── Kein kuenstliches Kursiv bei Schriften ohne Kursivschnitt (S2) ──
+  {
+    const ST2 = id => T.STYLES.find(x => x.id === id);
+    const ar = 'مرحبا', he = 'שלום', ja = '日本語', hi = 'नमस्ते', th = 'สวัสดี', la = 'Hello';
+    const cases = [['note', true], ['reveal', true], ['accent', true], ['soft', true], ['serifbold', false], ['serifbold', true], ['editorial', false]];
+    const bad = [];
+    cases.forEach(([id, em]) => {
+      const st = ST2(id), hl = id === 'editorial';
+      [ar, he, ja, hi, th].forEach(w => { if (T.capWordFace(st, hl, em, w).it) bad.push(id + ':' + w); });
+      if (!(T.capWordFace(st, hl, em, la).it === T.capWordFace(st, hl, em).it)) bad.push(id + ':latin');
+    });
+    ok(bad.length === 0, 'capWordFace: Arabisch/Hebraeisch/CJK/Devanagari/Thai nie kursiv, Latein unveraendert' + (bad.length ? ' — ' + bad.join(',') : ''));
+    ok(T.capWordFace(ST2('note'), false, true, la).it === true && T.capWordFace(ST2('serifbold'), false, false, la).it === true, 'Latein bleibt kursiv (note-Keyword, serifbold-Text)');
+    const html = T.buildCap([ar, la], ST2('reveal'), -1, 24, null, 0, { em: [true, true] });
+    const spans = html.split('<span').slice(1);
+    ok(/font-style:italic;[^"]*font-style:normal;/.test(spans[1]) && /font-style:italic;/.test(spans[2]) && !/font-style:normal/.test(spans[2].replace(/^[^"]*"/, '')), 'Vorschau-DOM: Betonung bei Arabisch aufrecht, bei Latein kursiv (reveal)');
+  }
+  // ── Pop-Animation frisst den Wortabstand nicht mehr (S2): Wachstum pro Seite <= 0,1 em ──
+  {
+    const fpx = 30, short = 1.2 * fpx, long = 3.2 * fpx;
+    ok(T.capPopFactor('scale', short, fpx) === 1, 'Pop: kurzes Wort behaelt den vollen Pop');
+    const f = T.capPopFactor('scale', long, fpx), peak = 0.14;
+    ok(f < 1 && f > 0.3 && Math.abs(peak * f * long / 2 - 0.1 * fpx) < 1e-6, 'Pop: langes Wort waechst pro Seite hoechstens 0,1 em (' + f.toFixed(2) + ')');
+    ok(T.capPopFactor('none', long, fpx) === 1 && T.capPopFactor('scale', 0, fpx) === 1 && T.capPopFactor('flash', long, fpx) === 1, 'Pop: Faktor 1 ohne Skalierung/Breite');
+    // Export: Skalierung des aktiven Worts im Zeichenplan wird begrenzt, Layout (x) bleibt
+    const wl = [{ word: 'wie', start: 0, end: .5 }, { word: 'schnell', start: .5, end: 1 }];
+    T.setState(T.buildCaptionBlocks(wl, []), wl, 'karaoke');
+    const ctxs = []; const mk = () => { const sc = []; const c = { _font: '', letterSpacing: '0px', calls: [], sc, lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
+      get font() { return this._font; }, set font(v) { this._font = v; },
+      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: str === ' ' ? (m ? +m[1] : 16) * 0.28 : (str || '').length * (m ? +m[1] : 16) * 0.58 }; },
+      fillText(t, x, y) { this.calls.push({ t, x, y }); }, strokeText() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale(a, b) { sc.push(a); }, beginPath() {}, fill() {}, stroke() {}, rect() {}, roundRect() {}, ellipse() {}, fillRect() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } }; return c; };
+    const lift = T.STYLES.find(x => x.id === 'lift'); const c1 = mk(); T.drawCaptionsOnCtx(c1, 0.5 + 0.34 * 0.3, lift, 1080, 1920, false);
+    const mx = Math.max.apply(null, c1.sc.concat([1]));
+    ok(mx > 1 && mx < 1.1, 'Export: Pop des langen Worts «schnell» gedeckelt (max. Skalierung ' + mx.toFixed(3) + ' statt 1.14)');
+  }
   // Video-Schlüssel (Wasserzeichen-Zählung): stabil, anonym, nur Hash — nie der Dateiname
   {
     T.setAutosaveKey(null); ok(T.videoKeyHash() === '' && !('X-Video-Key' in T.trHeaders('audio/wav', 't')), 'ohne Video: kein Schlüssel, kein Header');

@@ -773,7 +773,7 @@ function profShift(a, b, r, max) {
   for (let s = -max; s <= max; s++) { let d = 0; for (let i = r; i < a.length - r; i++) { const j = i + s; d += Math.abs(a[i] - (j >= 0 && j < b.length ? b[j] : 0)); } if (d < bv - 1e-9 || (Math.abs(d - bv) < 1e-9 && Math.abs(s) < Math.abs(best))) { bv = d; best = s; } }
   return best;
 }
-const SHIFT_MAX = 4; // px bei 1080 Breite (vorher 8–16 px tiefer; Rest: Kantenglättung der 1×-Vorschau)
+const SHIFT_MAX = 5; // px bei 1080 Breite (vorher 8–16 px tiefer; Rest: Kantenglättung der 1×-Vorschau; Mix auf dem Handy liegt wegen der Betonungsschrift (Instrument Serif) schon ohne Lesbarkeits-Halo bei 4 px, mit dem dunklen Saum messen die Masken ±1 px mehr)
 function iouAligned(a, b, w, h, cut) { let best = { v: 0, sx: 0, sy: 0 }; for (let sy = -4; sy <= 4; sy++) for (let sx = -3; sx <= 3; sx++) { const v = iou(a, b, w, h, cut, sx, sy); if (v > best.v) best = { v, sx, sy }; } return best; }
 SECTIONS.pixel = async (browser, prof) => {
   const sc = await newScenario(browser, prof);
