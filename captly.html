@@ -3124,8 +3124,11 @@ function capFontPending(spec) {
 // lange Wörter/Zeilen ragten dann rechts in die Icons (Safe-Zone-Warnung trotz Auto).
 var CAP_SAFE_W = 0.75;
 function capFitMaxW(s) {
-  // Nutzbare Breite wie clampLinesToWidth (CAP_SAFE_W) minus feste Deko-Innenabstände der Styles.
-  return previewFrameW() * CAP_SAFE_W - (s.boxBg ? 36 : 0) - (s.pill ? 18 : 0);
+  // Nutzbare Breite wie clampLinesToWidth (CAP_SAFE_W) minus feste Deko-Innenabstände der Styles: Box-Padding (2 × 18) bzw.
+  // die Highlight-Box (hlPillBg), die an Zeilenrändern CAP_PILL_PAD_X über den Text hinausragt — die SICHTBARE Fläche
+  // bleibt so innerhalb der Safe-Zone (vorher: nur der Text, die Box ragte bis 92 % in die Icon-Spalte).
+  // Auch Umbruch (wrapCaptionLines) und Export (drawCaptionsOnCtx) nehmen dieses Mass, damit alle drei gleich umbrechen.
+  return previewFrameW() * CAP_SAFE_W - (s.boxBg ? 36 : 0) - (s.pill ? 18 : 0) - ((s.hlPillBg && capMotion(s) === 'highlight') ? 2 * CAP_PILL_PAD_X : 0);
 }
 function previewFrameH() {
   var f = document.getElementById('prevFrame');
@@ -3551,7 +3554,7 @@ function wrapCaptionLines(words, s, hlIdx, px, targetLines, hlOf, em) {
     return { i: i, w: ww + lsPx * w.length,
              t: w, hy: !!hlOf && i + 1 < words.length && hlOf[i + 1] === hlOf[i] }; // hy: getrennter Wortteil → Zeilenende
   });
-  var lines = capDistributeLines(info, targetLines, sp, previewFrameW() * CAP_SAFE_W);
+  var lines = capDistributeLines(info, targetLines, sp, capFitMaxW(s));
   return lines.map(function(L){ return L.map(function(it){ return it.i; }); });
 }
 // ── Umbruch-Regeln wie Netflix/BBC-Untertitel ──
@@ -10785,7 +10788,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   ctx.font = fi + fw + ' ' + fsS + 'px "' + fn + '", sans-serif';
   if ('letterSpacing' in ctx) ctx.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px'; // CSS wendet es auch auf Leerzeichen an
   var sp    = ctx.measureText(' ').width + capWordGap(s) * scale; // gleiches Extra wie word-spacing in der Vorschau
-  var maxW  = W * CAP_SAFE_W;
+  var maxW  = capFitMaxW(s) * scale; // = W × 75 % minus Box-Padding/Pill-Überstand (Vorschau-Mass × Export-Skala), wie Auto-Fit und Umbruch
   // idx = Index des ORIGINALWORTS (Teilwörter nach Bindestrich-Trennung teilen sich Highlight/Keyword).
   // txt/tw = normale Variante, txtH/twH = aktive Variante; w = fester Platz (Text darin zentriert wie im DOM: min-width).
   var hv = capHlVariant(s);

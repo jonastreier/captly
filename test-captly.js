@@ -130,6 +130,7 @@ capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidRead
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
+CAP_PILL_PAD_X:CAP_PILL_PAD_X,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3893,6 +3894,34 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.capWordGap(T.STYLES.find(x => x.id === 'tight')) === 0, 'Halo aendert den Wortabstand nicht (kein Ring)');
     // Customize: Glow-Schalter bleibt bei Looks ohne echten Glow aus
     ok(['tight', 'accent', 'minimal'].every(id => !T.splitShadows(T.STYLES.find(x => x.id === id).hls).glow.length), 'Halo wird im Customize-Panel nicht als Glow erkannt');
+  }
+  // ── Box-/Pill-Looks bleiben mit SICHTBARER Fläche in der Safe-Zone (S2: Dark Box ragte bis 92 %, Note bis 93,5 %) ──
+  {
+    const stub = () => ({ _font: '', letterSpacing: '0px', calls: [], rects: [], lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
+      get font() { return this._font; }, set font(v) { this._font = v; },
+      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: str === ' ' ? (m ? +m[1] : 16) * 0.2 : (str || '').length * (m ? +m[1] : 16) * 0.58 }; },
+      fillText() {}, strokeText() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {} });
+    const sets = { Standardsatz: 'Heute zeigen wir dir wie schnell das wirklich geht'.split(' '),
+                   Kompositum: 'Die Donaudampfschifffahrtsgesellschaft ist Geschwindigkeitsbegrenzung Rindfleischverarbeitungsbetriebe'.split(' ') };
+    const boxLooks = T.STYLES.filter(st => ['stack', 'note', 'tiktok', 'hush', 'focus', 'marker', 'boxkara'].includes(st.id) && (st.boxBg || (st.hlPillBg && T.capMotion(st) === 'highlight')));
+    ok(boxLooks.length >= 6 && ['stack', 'note', 'tiktok', 'hush', 'focus', 'marker', 'boxkara'].every(id => boxLooks.some(x => x.id === id)), 'Box-/Pill-Looks gefunden (' + boxLooks.map(x => x.id).join(',') + ')');
+    const bad = [];
+    for (const [nm, ws] of Object.entries(sets)) {
+      const wl = ws.map((w, i) => ({ word: w, start: i * 0.5, end: i * 0.5 + 0.45 }));
+      T.setState(T.buildCaptionBlocks(wl, []), wl, 'karaoke');
+      boxLooks.filter(st => st.boxBg || nm === 'Standardsatz').forEach(st => { // Pill-Looks mit Kompositum: Messung im Browser (Stub kennt die Liang-Trennmuster nicht)
+        const W = 1080;
+        for (let bi = 0; bi < 12; bi++) {
+          const bl = T.getBlocks ? T.getBlocks() : null; if (!bl || !bl[bi]) break;
+          const L = T.capLayout(stub(), bl[bi], bi, 0, st, W, 1920);
+          const wMax = Math.max.apply(null, L.lineWs);
+          const vis = wMax + (st.boxBg ? 36 * L.scale : 0) + ((st.hlPillBg && T.capMotion(st) === 'highlight') ? 2 * T.CAP_PILL_PAD_X * L.scale : 0);
+          const l = (W - vis) / 2 / W * 100, r = 100 - l;
+          if (r > 87.5 + 0.1 || l < 12.5 - 0.1) bad.push(nm + '/' + st.id + '#' + bi + ' ' + l.toFixed(1) + '–' + r.toFixed(1) + '%');
+        }
+      });
+    }
+    ok(bad.length === 0, 'Box-/Pill-Looks: sichtbare Flaeche innerhalb 12,5–87,5 % (Standardsatz + Kompositum)' + (bad.length ? ': ' + bad.slice(0, 6).join('; ') : ''));
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
