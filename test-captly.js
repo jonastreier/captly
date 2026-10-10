@@ -131,7 +131,7 @@ csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
-capNoItalic:capNoItalic,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
+capNoItalic:capNoItalic,capPopFactor:capPopFactor,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3956,6 +3956,24 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const html = T.buildCap([ar, la], ST2('reveal'), -1, 24, null, 0, { em: [true, true] });
     const spans = html.split('<span').slice(1);
     ok(/font-style:italic;[^"]*font-style:normal;/.test(spans[1]) && /font-style:italic;/.test(spans[2]) && !/font-style:normal/.test(spans[2].replace(/^[^"]*"/, '')), 'Vorschau-DOM: Betonung bei Arabisch aufrecht, bei Latein kursiv (reveal)');
+  }
+  // ── Pop-Animation frisst den Wortabstand nicht mehr (S2): Wachstum pro Seite <= 0,1 em ──
+  {
+    const fpx = 30, short = 1.2 * fpx, long = 3.2 * fpx;
+    ok(T.capPopFactor('scale', short, fpx) === 1, 'Pop: kurzes Wort behaelt den vollen Pop');
+    const f = T.capPopFactor('scale', long, fpx), peak = 0.14;
+    ok(f < 1 && f > 0.3 && Math.abs(peak * f * long / 2 - 0.1 * fpx) < 1e-6, 'Pop: langes Wort waechst pro Seite hoechstens 0,1 em (' + f.toFixed(2) + ')');
+    ok(T.capPopFactor('none', long, fpx) === 1 && T.capPopFactor('scale', 0, fpx) === 1 && T.capPopFactor('flash', long, fpx) === 1, 'Pop: Faktor 1 ohne Skalierung/Breite');
+    // Export: Skalierung des aktiven Worts im Zeichenplan wird begrenzt, Layout (x) bleibt
+    const wl = [{ word: 'wie', start: 0, end: .5 }, { word: 'schnell', start: .5, end: 1 }];
+    T.setState(T.buildCaptionBlocks(wl, []), wl, 'karaoke');
+    const ctxs = []; const mk = () => { const sc = []; const c = { _font: '', letterSpacing: '0px', calls: [], sc, lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
+      get font() { return this._font; }, set font(v) { this._font = v; },
+      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: str === ' ' ? (m ? +m[1] : 16) * 0.28 : (str || '').length * (m ? +m[1] : 16) * 0.58 }; },
+      fillText(t, x, y) { this.calls.push({ t, x, y }); }, strokeText() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale(a, b) { sc.push(a); }, beginPath() {}, fill() {}, stroke() {}, rect() {}, roundRect() {}, ellipse() {}, fillRect() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } }; return c; };
+    const lift = T.STYLES.find(x => x.id === 'lift'); const c1 = mk(); T.drawCaptionsOnCtx(c1, 0.5 + 0.34 * 0.3, lift, 1080, 1920, false);
+    const mx = Math.max.apply(null, c1.sc.concat([1]));
+    ok(mx > 1 && mx < 1.1, 'Export: Pop des langen Worts «schnell» gedeckelt (max. Skalierung ' + mx.toFixed(3) + ' statt 1.14)');
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

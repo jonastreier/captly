@@ -4748,7 +4748,7 @@ function capDomMotion(ov, s, b, bi, wi, t, forced, rest) {
   M.spans.forEach(function(sp) {
     var oi = +sp.getAttribute('data-oi');
     var f = fxs[oi] || (fxs[oi] = capWordFx(s, b, oi, wi, t, forced, rm));
-    var a = f.a, op = f.op * (a ? a.op : 1), dy = (f.dy + (a ? a.ty : 0)) * M.fpx, sc = a ? a.sx : 1; // ty/dy in em
+    var a = f.a, op = f.op * (a ? a.op : 1), dy = (f.dy + (a ? a.ty : 0)) * M.fpx, sc = a ? 1 + (a.sx - 1) * (sp._popA === s.anim ? sp._pop : (sp._popA = s.anim, sp._pop = capPopFactor(s.anim, sp.offsetWidth, M.fpx))) : 1; // ty/dy in em
     capSetSt(sp, 'opacity', op < 1 ? op.toFixed(3) : '');
     capSetSt(sp, 'transform', (Math.abs(dy) > 1e-3 ? 'translateY(' + dy.toFixed(2) + 'px)' : '') + (Math.abs(sc - 1) > 1e-4 ? ' scale(' + sc.toFixed(4) + ')' : ''));
     // Glow = zusätzliche text-shadow-Schichten (unter denen des Styles) in der Highlight-Farbe; Export: dieselben Schichten im Zeichenplan
@@ -10708,6 +10708,17 @@ var ANIM_KEYFRAMES = {
   wobble: [[0,{ty:.22,op:.5}],[100,{ty:0,op:1}]]                       // Alt-Name = Lift
 };
 var ANIM_DUR = 0.34;
+// Pop/Punch skaliert das aktive Wort um seine Mitte. Bei langen Wörtern wuchs es dabei über die Hälfte des Wortabstands in die Nachbarn
+// («wieschnell», ~0,3 s lang) — das Layout steht fest und darf sich nicht verschieben. Darum wächst das Wort pro Seite höchstens
+// CAP_POP_SIDE em der Schrift (≈ 36 % des Wortabstands): Faktor 0..1 auf die Animationsstärke (kurze Wörter behalten den vollen Pop).
+// Vorschau (capDomMotion: Slot-Breite des Spans, Schrift der Caption) und Export (Slot-Breite wo.w, fsS) rechnen dasselbe Verhältnis.
+var CAP_POP_SIDE = 0.10;
+function capPopFactor(anim, wordW, fpx) {
+  var kf = ANIM_KEYFRAMES[anim]; if (!kf || !(wordW > 0) || !(fpx > 0)) return 1;
+  var peak = 0; kf.forEach(function(k){ peak = Math.max(peak, (k[1].sx || 1) - 1, (k[1].sy || 1) - 1); });
+  if (!(peak > 0)) return 1;
+  return Math.min(1, (2 * CAP_POP_SIDE * fpx / wordW) / peak);
+}
 function animState(anim, elapsed) {
   var kf = ANIM_KEYFRAMES[anim];
   if (!kf || !(elapsed >= 0) || elapsed >= ANIM_DUR) return null;
@@ -11064,6 +11075,10 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
         var f = fx[wo.idx] || { op: 1, dy: 0, hk: 0, a: null }, live = isLive(wo.idx);
         if ((mode2 === 'static' && live) || (mode2 === 'live' && !live)) return;
         var animSt = f.a, op = f.op * (animSt ? animSt.op : 1);
+        if (animSt && (animSt.sx !== 1 || animSt.sy !== 1)) { // Pop: Wortabstand bleibt erhalten (s. capPopFactor)
+          var popF = capPopFactor(s.anim, wo.w, fsS);
+          if (popF < 1) animSt = { sx: 1 + (animSt.sx - 1) * popF, sy: 1 + (animSt.sy - 1) * popF, ty: animSt.ty, rot: animSt.rot, op: animSt.op, glow: animSt.glow };
+        }
         if (!(op > 0)) return; // Reveal: noch nicht gesprochen (Platz bleibt reserviert)
         var x = wo.x, y = wo.y;
         var isHL = hlOn && wo.idx === wi;
