@@ -3255,12 +3255,13 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); const cv = { width: 0, height: 0 }; const cx = mkCtx(cv); cv.getContext = () => cx; layers.push(cx); return cv; };
       const main = mkCtx({ width: 1080, height: 1921 }); // eigene Größe → frische Ebene
       T.drawCaptionsOnCtx(main, 2.73, rv, 1080, 1921, false);
-      const n1 = layers.reduce((a, l) => a + l.calls.length, 0);
+      const cntFill = () => layers.reduce((a, l) => a + l.calls.filter(k => k.sc === 'transparent').length, 0); // nur die scharfe Füllung (Schatten-Schichten zählen nicht: Lesbarkeits-Halo hat mehrere)
+      const n1 = cntFill();
       T.drawCaptionsOnCtx(main, 2.76, rv, 1080, 1921, false);
       T.drawCaptionsOnCtx(main, 2.79, rv, 1080, 1921, false);
-      ok(n1 === 4 && layers.reduce((a, l) => a + l.calls.length, 0) === n1 && main.calls.length === 0 && main.imgs === 3, 'Reveal-Export: Endzustand aus der Ebene (kein Neuzeichnen pro Frame)');
+      ok(n1 === 4 && cntFill() === n1 && main.calls.length === 0 && main.imgs === 3, 'Reveal-Export: Endzustand aus der Ebene (kein Neuzeichnen pro Frame)');
       const mid2 = mkCtx({ width: 1080, height: 1921 }); T.drawCaptionsOnCtx(mid2, 2.55, rv, 1080, 1921, false);
-      ok(mid2.calls.length === 1 && mid2.calls[0].t === 'vier', 'Reveal-Export: nur das einblendende Wort wird live gezeichnet');
+      const mid2f = mid2.calls.filter(k => k.sc === 'transparent'); ok(mid2f.length === 1 && mid2f[0].t === 'vier' && mid2.calls.every(k => k.t === 'vier'), 'Reveal-Export: nur das einblendende Wort wird live gezeichnet');
       document.createElement = origCreate;
     }
     // Vorschau-HTML: keine CSS-Animation (Zeit-basiert per capDomMotion), Wort-Index, Box als eigene Fläche
@@ -3873,6 +3874,26 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setLines({ dataset: { lines: '2' } }); T.setState([], [], 'karaoke');
   }
 
+  // ── Lesbarkeits-Halo (S2): weisse Looks ohne Kontur tragen auf hellem/buntem Material ──
+  {
+    const HALO = ['tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'script', 'soft', 'minimal', 'lift', 'neon', 'editorial', 'marker', 'focus'];
+    const bad = [];
+    HALO.forEach(id => {
+      const st = T.STYLES.find(x => x.id === id); if (!st) { bad.push(id + ' fehlt'); return; }
+      [st.ts].concat(st.hlPillBg ? [] : [st.hls]).forEach((str, k) => {
+        const sp = T.splitShadows(str);
+        const halo = sp.soft.filter(l => !l.x && l.blur < 3).concat(sp.glow.filter(l => l.blur < 3));
+        const dark = (str.match(/0 0 [\d.]+px rgba\(0,0,0,\.9\)/g) || []).length;
+        if (dark < 2) bad.push(id + (k ? '.hls' : '.ts') + ': < 2 Halo-Schichten');
+        if (sp.ring) bad.push(id + ': Halo darf keine Ring-Kontur sein (Wortabstand/Umbruch bliebe sonst nicht gleich)');
+        if (sp.glow.some(l => l.blur < 3)) bad.push(id + ': Halo zaehlt faelschlich als Glow');
+      });
+    });
+    ok(bad.length === 0, 'Looks ohne Kontur haben dezenten dunklen Halo (kein Ring, kein Glow-Fehlalarm)' + (bad.length ? ': ' + bad.join('; ') : ''));
+    ok(T.capWordGap(T.STYLES.find(x => x.id === 'tight')) === 0, 'Halo aendert den Wortabstand nicht (kein Ring)');
+    // Customize: Glow-Schalter bleibt bei Looks ohne echten Glow aus
+    ok(['tight', 'accent', 'minimal'].every(id => !T.splitShadows(T.STYLES.find(x => x.id === id).hls).glow.length), 'Halo wird im Customize-Panel nicht als Glow erkannt');
+  }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();

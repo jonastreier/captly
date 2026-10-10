@@ -1875,39 +1875,39 @@ var STYLES = [
   {id:'tight',    name:'Tight',      fl:'Inter Tight', // Standard: EIN grosses Wort pro Caption, eng gesetzt, Gross-/Kleinschreibung wie gesprochen, weicher Schatten, ruhiges Einblenden
    font:"'Inter Tight'", fw:'800', ls:'-.04em', fs:'1.75em', anim:'flash',
    thumbBg:'linear-gradient(160deg,#17191f,#08090b)',
-   tc:'#fff', ts:'0 2px 14px rgba(0,0,0,.5)',
-   hl:'#fff', hls:'0 2px 14px rgba(0,0,0,.5)',
+   tc:'#fff', ts:readHalo() + ',0 2px 14px rgba(0,0,0,.5)',
+   hl:'#fff', hls:readHalo() + ',0 2px 14px rgba(0,0,0,.5)',
    layout:{ wpb: 1, lines: 1 }, em:'none', emS:1},
   {id:'mix',      name:'Mix',        fl:'Inter Tight', // Fette weisse Sans, Keyword in kursiver Serif, grün mit leichtem Glow (2–3 Wörter pro Caption)
    font:"'Inter Tight'", fw:'700', ls:'-.02em', fs:'1.1em', motion:'reveal',
    thumbBg:'linear-gradient(160deg,#0d1a12,#060b08)',
-   tc:'#fff', ts:'0 2px 12px rgba(0,0,0,.5)',
-   hl:'#fff', hls:'0 0 14px rgba(74,222,128,.55),0 2px 8px rgba(0,0,0,.45)', anim:'none',
+   tc:'#fff', ts:readHalo(1) + ',0 2px 12px rgba(0,0,0,.5)',
+   hl:'#fff', hls:readHalo(1) + ',0 0 14px rgba(74,222,128,.55),0 2px 8px rgba(0,0,0,.45)', anim:'none',
    layout:{ wpb: 3, lines: 1 },
    em:'#4ade80', emFont:"'Instrument Serif'", emItalic:true, emFw:'400', emS:1.2},
   {id:'statement',name:'Statement',  fl:'Archivo Black', // Gelbe Grossbuchstaben, eng gestapelt (bis 3 kurze Zeilen), aktives Wort weiss
    font:"'Archivo Black'", fw:'400', tt:'uppercase', fs:'1.15em', lh:.95,
    thumbBg:'linear-gradient(160deg,#1a1606,#0a0803)',
-   tc:'#FACC15', ts:'0 3px 12px rgba(0,0,0,.55)',
-   hl:'#fff', hls:'0 3px 12px rgba(0,0,0,.55)', anim:'none',
+   tc:'#FACC15', ts:readHalo() + ',0 3px 12px rgba(0,0,0,.55)',
+   hl:'#fff', hls:readHalo() + ',0 3px 12px rgba(0,0,0,.55)', anim:'none',
    layout:{ wpb: 5, lines: 3 }, em:'none', emS:1},
   {id:'accent',   name:'Accent',     fl:'Inter', // Ruhige Sans (500) + Keywords in kursiver Serif, gleiche Farbe, etwas grösser
    font:"'Inter'", fw:'500', fs:'1.05em', motion:'reveal',
    thumbBg:'linear-gradient(160deg,#14161a,#08090b)',
-   tc:'#fff', ts:'0 2px 12px rgba(0,0,0,.5)',
-   hl:'#fff', hls:'0 2px 12px rgba(0,0,0,.5)', anim:'none',
+   tc:'#fff', ts:readHalo(1) + ',0 2px 12px rgba(0,0,0,.5)',
+   hl:'#fff', hls:readHalo(1) + ',0 2px 12px rgba(0,0,0,.5)', anim:'none',
    em:'#fff', emFont:"'Instrument Serif'", emItalic:true, emFw:'400', emS:1.22},
   {id:'serifbold',name:'Serif Bold', fl:'Playfair Display', // Fette kursive Serif, Keyword aufrecht in schwerer Sans, weiss mit weichem Schatten
    font:"'Playfair Display'", fw:'800', fi:'italic', fs:'1.05em', motion:'reveal',
    thumbBg:'linear-gradient(160deg,#1a1210,#0a0707)',
-   tc:'#fff', ts:'0 2px 14px rgba(0,0,0,.5)',
-   hl:'#fff', hls:'0 2px 14px rgba(0,0,0,.5)', anim:'none',
+   tc:'#fff', ts:readHalo() + ',0 2px 14px rgba(0,0,0,.5)',
+   hl:'#fff', hls:readHalo() + ',0 2px 14px rgba(0,0,0,.5)', anim:'none',
    em:'#fff', emFont:"'Inter Tight'", emItalic:false, emFw:'900', emS:1},
   {id:'reveal',   name:'Reveal',     fl:'Inter', // Standard: Wörter erscheinen beim Sprechen und bleiben (Layout steht fest), Keyword kursiv in Türkis, größer
    font:"'Inter'", fw:'700', fs:'.92em', motion:'reveal',
    thumbBg:'linear-gradient(160deg,#0e1a1c,#070c0d)',
-   tc:'#fff', ts:'0 2px 10px rgba(0,0,0,.45)',
-   hl:'#fff', hls:'0 2px 10px rgba(0,0,0,.45)', anim:'none',
+   tc:'#fff', ts:readHalo() + ',0 2px 10px rgba(0,0,0,.45)',
+   hl:'#fff', hls:readHalo() + ',0 2px 10px rgba(0,0,0,.45)', anim:'none',
    em:'#8fe3d6', emItalic:true, emFw:'800', emS:1.28},
   {id:'note',     name:'Note',       fl:'Inter', // Kleine weiße Notiz-Box, dunkle Schrift: ganze Phrase sichtbar, kommende Wörter hellgrau, gesprochene satt
    font:"'Inter'", fw:'700', fs:'.8em', motion:'fill',
@@ -1917,14 +1917,14 @@ var STYLES = [
   {id:'script',   name:'Script',     fl:'Poppins', // Fette weiße Sans + Keyword als Handschrift (Caveat) in Türkis, Wörter erscheinen nacheinander
    font:"'Poppins'", fw:'700', fs:'.95em', motion:'reveal',
    thumbBg:'linear-gradient(160deg,#101a22,#070b10)',
-   tc:'#fff', ts:'0 2px 12px rgba(0,0,0,.5)',
-   hl:'#fff', hls:'0 2px 12px rgba(0,0,0,.5)', anim:'none',
+   tc:'#fff', ts:readHalo(1) + ',0 2px 12px rgba(0,0,0,.5)',
+   hl:'#fff', hls:readHalo(1) + ',0 2px 12px rgba(0,0,0,.5)', anim:'none',
    em:'#7ff0e0', emFont:"'Caveat'", emFw:'700', emS:1.4},
   {id:'soft',     name:'Soft',       fl:'Poppins', // Weiche Satzschreibung: Phrase leicht transparent, gesprochene Wörter füllen sich weiß, Keyword kursiv in Pfirsich
    font:"'Poppins'", fw:'600', motion:'fill',
    thumbBg:'linear-gradient(160deg,#1a1420,#0c0910)',
-   tc:'#fff', ts:'0 2px 10px rgba(0,0,0,.45)',
-   hl:'#fff', hls:'0 2px 10px rgba(0,0,0,.45)', anim:'none', em:'#ffc9a8', emItalic:true, emFw:'700', emS:1.15},
+   tc:'#fff', ts:readHalo(1) + ',0 2px 10px rgba(0,0,0,.45)',
+   hl:'#fff', hls:readHalo(1) + ',0 2px 10px rgba(0,0,0,.45)', anim:'none', em:'#ffc9a8', emItalic:true, emFw:'700', emS:1.15},
   {id:'classic',  name:'Classic',    fl:'Montserrat', // Der Look, den die meisten einfach nehmen: fette weiße Großbuchstaben, harter schwarzer Rand, KEINE Wort-Hervorhebung/Animation
    font:"'Montserrat'", fw:'900', tt:'uppercase', ls:'.3px',
    thumbBg:'linear-gradient(160deg,#151515,#0a0a0a)',
@@ -1951,13 +1951,13 @@ var STYLES = [
   {id:'minimal',  name:'Clean',      fl:'Inter', // Satzschreibung, weicher Schatten; das aktive Wort hebt sich nur über die Deckkraft ab
    font:"'Inter'", fw:'600',
    thumbBg:'linear-gradient(160deg,#101114,#08090b)',
-   tc:'rgba(255,255,255,.6)', ts:'0 1px 8px rgba(0,0,0,.5)',
-   hl:'#fff', hls:'0 1px 8px rgba(0,0,0,.5)', anim:'none'},
+   tc:'rgba(255,255,255,.6)', ts:readHalo(1) + ',0 1px 8px rgba(0,0,0,.5)',
+   hl:'#fff', hls:readHalo(1) + ',0 1px 8px rgba(0,0,0,.5)', anim:'none'},
   {id:'lift',     name:'Clean Highlight', fl:'Inter', // Satzschreibung, fett, weicher Schatten — aktives Wort gelb (ohne Glow)
    font:"'Inter'", fw:'800',
    thumbBg:'linear-gradient(160deg,#07090d,#0b0e14)',
-   tc:'#fff', ts:'0 2px 8px rgba(0,0,0,.6)',
-   hl:'#FFD60A', hls:'0 2px 8px rgba(0,0,0,.6)', anim:'scale'},
+   tc:'#fff', ts:readHalo() + ',0 2px 8px rgba(0,0,0,.6)',
+   hl:'#FFD60A', hls:readHalo() + ',0 2px 8px rgba(0,0,0,.6)', anim:'scale'},
   {id:'popone',   name:'One Word',   fl:'Anton', // Ein großes Wort nach dem anderen (1 Wort pro Block), poppt sanft rein
    font:"'Anton'", fw:'400', tt:'uppercase', ls:'.5px', fs:'1.3em',
    thumbBg:'linear-gradient(160deg,#1d0b24,#0b0410)',
@@ -1979,7 +1979,7 @@ var STYLES = [
   {id:'focus',    name:'Karaoke',    fl:'Poppins', // Satzschreibung, aktives Wort in runder violetter Pill (Captions-App-Karaoke)
    font:"'Poppins'", fw:'800',
    thumbBg:'linear-gradient(160deg,#0e0818,#100a20)',
-   tc:'#fff', ts:'0 2px 8px rgba(0,0,0,.6)',
+   tc:'#fff', ts:readHalo() + ',0 2px 8px rgba(0,0,0,.6)',
    hlPillBg:'#7c3aed', hlc:'#fff', hls:'none', anim:'none', em:'#c4b5fd'}, // Bewegung = gleitende Pill
   {id:'headline', name:'Headline',   fl:'Anton', // Schmale fette Caps mit Kontur — ruhiger News-/Doku-Look ohne Wort-Hervorhebung
    font:"'Anton'", fw:'400', tt:'uppercase', ls:'1px', fs:'1.05em',
@@ -1996,17 +1996,17 @@ var STYLES = [
   {id:'neon',     name:'Neon',       fl:'Space Grotesk', // Dezentes Neon: weißer Text mit kühlem Schein, aktives Wort hellblau (statisch, kein Pulsieren)
    font:"'Space Grotesk'", fw:'700',
    thumbBg:'linear-gradient(160deg,#03080d,#060d14)',
-   tc:'#f0f9ff', ts:'0 0 6px rgba(56,189,248,.55),0 0 16px rgba(56,189,248,.3)',
-   hl:'#7dd3fc', hls:'0 0 8px rgba(125,211,252,.85),0 0 18px rgba(56,189,248,.5)', anim:'none'},
+   tc:'#f0f9ff', ts:readHalo() + ',0 0 6px rgba(56,189,248,.55),0 0 16px rgba(56,189,248,.3)',
+   hl:'#7dd3fc', hls:readHalo() + ',0 0 8px rgba(125,211,252,.85),0 0 18px rgba(56,189,248,.5)', anim:'none'},
   {id:'editorial',name:'Elegant',    fl:'Playfair Display', // Edle Serif (Luxus/Lifestyle), aktives Wort kursiv in Gold
    font:"'Playfair Display'", fw:'700',
    thumbBg:'linear-gradient(160deg,#111114,#0a0a0c)',
-   tc:'#f6f5f3', ts:'0 2px 10px rgba(0,0,0,.5)',
-   hl:'#d4b26f', hlItalic:true, hls:'0 2px 10px rgba(0,0,0,.5)', anim:'none'},
+   tc:'#f6f5f3', ts:readHalo(1) + ',0 2px 10px rgba(0,0,0,.5)',
+   hl:'#d4b26f', hlItalic:true, hls:readHalo(1) + ',0 2px 10px rgba(0,0,0,.5)', anim:'none'},
   {id:'marker',   name:'Marker',     fl:'Kalam', // Handschrift, locker — gelber Textmarker hinter dem aktiven Wort
    font:"'Kalam'", fw:'700',
    thumbBg:'linear-gradient(160deg,#0f0f12,#17171b)',
-   tc:'#ffffff', ts:'0 1px 6px rgba(0,0,0,.5)',
+   tc:'#ffffff', ts:readHalo() + ',0 1px 6px rgba(0,0,0,.5)',
    hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'none', em:'#fde047'},
 ];
 // Entfernte bzw. zusammengelegte Presets (Kuratierung 2026) → nächstliegender behaltener Look.
@@ -6084,6 +6084,14 @@ function outlineShadow(w, color) {
   }
   return out.join(',');
 }
+// Unauffällige Lesbarkeitshilfe für Looks ohne Kontur (Standard-Look Tight u. a.): ein dichter dunkler Saum direkt am Zeichen
+// (zwei bzw. drei kleine Schatten ohne Versatz) plus kurzer weicher Schatten — trägt auf hellem/buntem Material, ohne Kontur-Ring
+// (der Wortabstand/Umbruch ändert sich nicht) und ohne Charakter des Looks (Schrift, Farbe, Animation) anzutasten.
+// thin = dünne Schriften (Gewicht ≤ 600, Serifen-Haarlinien, Handschrift): Saum dichter. Vorschau und Export rechnen dieselben Schatten-Schichten.
+function readHalo(thin) {
+  var h = thin ? '0 0 2px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9)' : '0 0 1.5px rgba(0,0,0,.9),0 0 1.5px rgba(0,0,0,.9)';
+  return h + ',0 1px 4px rgba(0,0,0,.55)';
+}
 function joinShadows() {
   var parts = Array.prototype.filter.call(arguments, function(x){ return x && x !== 'none'; });
   return parts.length ? parts.join(',') : 'none';
@@ -6108,7 +6116,7 @@ function splitShadows(str) {
   });
   L.forEach(function(l) {
     if (ringColor !== null && !l.blur && (l.x || l.y) && l.color === ringColor) res.ringLayers.push(l);
-    else if (l.blur > 0 && !l.x && !l.y) res.glow.push(l);
+    else if (l.blur >= 3 && !l.x && !l.y) res.glow.push(l); // < 3 px = Lesbarkeits-Halo (readHalo) → weicher Schatten
     else if (l.blur > 0) res.soft.push(l);
     else res.hard.push(l);
   });
@@ -6387,7 +6395,7 @@ function seedCustomFields(st) {
   csSetVal('csHlType', st.hlPillBg ? 'pill' : 'color');
   csSetVal('csAnim', st.anim === 'wobble' ? 'bounce' : (st.anim || 'none')); // „Wobble“ gibt es nicht mehr → Lift (gleiche ruhige Bewegung)
   csSetVal('csMotion', capMotion(st));
-  var gl = parseTextShadows(st.hls).filter(function(l){ return l.blur > 0 && !l.x && !l.y; })[0];
+  var gl = parseTextShadows(st.hls).filter(function(l){ return l.blur >= 3 && !l.x && !l.y; })[0];
   csSetVal('csGlowInt', gl ? Math.min(30, Math.round(gl.blur)) : 14);
   var gOn = csEl('csGlow'); if (gOn && typeof gOn.checked === 'boolean') gOn.checked = !!gl;
   syncCsUi();
