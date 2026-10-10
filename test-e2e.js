@@ -194,6 +194,41 @@ if (require.main !== module) return;
       ok(!r.overflowX, 'Style-Panel: «Erweitert» offen ohne seitliches Scrollen');
     }
 
+    // 2a-m) Handy: Looks = horizontaler Streifen, darunter «Customize»-Chips; Tipp springt zur Gruppe (Advanced klappt auf)
+    if (prof.mobile) {
+      await page.evaluate(() => switchTab('style')); await page.waitForTimeout(500);
+      const m = await page.evaluate(() => {
+        const c = document.getElementById('stylePicker'), cs = getComputedStyle(c), col = document.getElementById('ctrlCol');
+        const tiles = [...c.querySelectorAll('.stile')];
+        const clipped = tiles.filter(t => { const i = t.querySelector('.stile-info').getBoundingClientRect(), tr = t.getBoundingClientRect(); return i.bottom > tr.bottom + 0.5 || i.height < 16; }).length;
+        const chips = [...document.querySelectorAll('#csChips .cs-chip')];
+        const ts = chips.map(b => b.dataset.target);
+        const nextHalf = tiles.slice(0, 6).some(t => { const r = t.getBoundingClientRect(), cr = c.getBoundingClientRect(); return r.left < cr.right - 8 && r.right > cr.right + 8; });
+        c.scrollLeft = 300; const moved = c.scrollLeft > 100; c.scrollLeft = 0;
+        const tab = document.getElementById('edTabs').getBoundingClientRect();
+        return { ov: cs.overflowX, disp: cs.display, wrap: cs.flexWrap, scrollable: c.scrollWidth > c.clientWidth + 100, h: Math.round(c.getBoundingClientRect().height), n: tiles.length, nStyles: STYLES.length, clipped, ts, chipH: Math.min(...chips.map(b => b.getBoundingClientRect().height)), nextHalf, moved, sticky: getComputedStyle(document.getElementById('csChips')).position, tabsTop: tab.top };
+      });
+      ok(m.ov === 'auto' && m.disp === 'flex' && m.wrap === 'nowrap' && m.scrollable && m.moved && m.h < 190, 'Handy: Looks sind ein horizontaler Streifen (' + m.h + ' px hoch, scrollt in sich)');
+      ok(m.n === m.nStyles && m.n >= 20 && m.clipped === 0, 'Handy: alle ' + m.n + ' Looks erreichbar, Beschriftungen nicht abgeschnitten');
+      ok(m.nextHalf, 'Handy: die nächste Kachel ragt als Wischhinweis in den Streifen');
+      ok(m.ts.join() === 'csgText,csgAnim,csgLayout,csgFx,advSet' && m.chipH >= 36 && m.sticky === 'sticky', 'Handy: Customize-Chips Text · Animation · Layout · Effects · Advanced (≥ 36 px, sticky)');
+      for (const tg of ['csgAnim', 'csgFx', 'advSet', 'csgLayout', 'csgText']) {
+        await page.locator('#csChips [data-target=' + tg + ']').tap(); await page.waitForTimeout(900);
+        const g = await page.evaluate(t => {
+          const col = document.getElementById('ctrlCol').getBoundingClientRect(), r = document.getElementById(t).getBoundingClientRect(), bar = document.getElementById('csChips').getBoundingClientRect();
+          return { top: r.top - col.top, vis: r.top >= bar.bottom - 2 && r.top < document.getElementById('edTabs').getBoundingClientRect().top - 20, open: t !== 'advSet' || document.getElementById('advSet').open, on: document.querySelector('#csChips .cs-chip.on').dataset.target, hs: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 || window.scrollX !== 0 };
+        }, tg);
+        ok(g.vis && g.open && g.on === tg && !g.hs, 'Handy: Chip «' + tg + '» scrollt die Gruppe in den sichtbaren Bereich (' + Math.round(g.top) + ' px unter Sheet-Oberkante), Chip aktiv, Details offen, kein Seiten-Scroll');
+      }
+      await page.evaluate(() => { document.getElementById('advSet').open = false; });
+      // Weiterscrollen von Hand: aktiver Chip folgt der Scroll-Position
+      await page.evaluate(() => { const c = document.getElementById('ctrlCol'), g = document.getElementById('csgFx'); c.scrollTop += g.getBoundingClientRect().top - c.getBoundingClientRect().top - 70; });
+      await page.waitForTimeout(400);
+      ok(await page.evaluate(() => document.querySelector('#csChips .cs-chip.on').dataset.target) === 'csgFx', 'Handy: aktiver Chip folgt dem Scrollen (Effects)');
+      ok(await page.evaluate(() => { try { return !!localStorage.getItem('capivo.styleHintSeen'); } catch (e) { return true; } }), 'Handy: Wisch-Hinweis einmal gezeigt und pro Gerät gemerkt');
+      await page.evaluate(() => { document.getElementById('ctrlCol').scrollTop = 0; });
+    }
+
     // 2b) Word pop (Customize → Highlight & animation): bei PAUSIERTEM Video muss jede Option sofort sichtbar etwas tun (Demo ~0,6 s)
     if (!prof.mobile) {
       // Pausenzeit 0,5 s nach Beginn des zweiten Worts (Folgewörter um 0,6 s verschoben): die 0,34-s-Animation ist dort längst vorbei,

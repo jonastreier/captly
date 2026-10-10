@@ -3667,6 +3667,16 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // Gruppenreihenfolge: Looks → Text → Animation → Layout → Effekte → Erweitert → Template speichern
     const order = ['id="stylePicker"', 'id="csgText"', 'id="csgAnim"', 'id="csgLayout"', 'id="csgFx"', 'id="advSet"', 'id="csgTpl"'].map(k => htmlContent.indexOf(k));
     ok(order.every((x, i) => x > 0 && (i === 0 || x > order[i - 1])), 'Style-Panel: Gruppenreihenfolge Looks · Text · Animation · Layout · Effekte · Erweitert · Template: ' + order.join(','));
+    // Handy-Customizer: Chip-Leiste «Customize» zeigt auf existierende Gruppen (IDs, Reihenfolge wie im Panel), Advanced-Ziel ist ein <details>
+    {
+      const chipT = [...htmlContent.matchAll(/class="cs-chip[^"]*" data-target="(\w+)"/g)].map(m => m[1]);
+      const goto = [...htmlContent.matchAll(/class="cs-chip[^"]*" data-target="(\w+)"[^>]*onclick="csGoto\('(\w+)'\)"/g)].every(m => m[1] === m[2]);
+      const pos = chipT.map(id => htmlContent.indexOf('id="' + id + '"'));
+      ok(chipT.join() === 'csgText,csgAnim,csgLayout,csgFx,advSet' && goto && pos.every((x, i) => x > 0 && (i === 0 || x > pos[i - 1])), 'Handy-Customizer: Chips zeigen auf Text · Animation · Layout · Effects · Advanced (IDs vorhanden, Reihenfolge wie im Panel)');
+      ok(/<details class="cs-adv" id="advSet"/.test(htmlContent) && /function csGoto\(/.test(htmlContent) && /id\s*===\s*'advSet'[^;]*\.open\s*=\s*true/.test(htmlContent), 'Handy-Customizer: «Advanced»-Chip klappt das <details> auf');
+      ok(/\.style-grid\{display:flex;flex-wrap:nowrap;[^}]*overflow-x:auto/.test(htmlContent) && /\.cs-nav-h,\.cs-chips,\.style-hint\{display:none\}/.test(htmlContent), 'Handy-Customizer: Looks-Streifen nur im @media, Desktop blendet Chips/Hinweis aus');
+      ok(/capivo\.styleHintSeen/.test(htmlContent) && /localStorage\.getItem\(STYLE_HINT_KEY\)/.test(htmlContent), 'Handy-Customizer: Wisch-Hinweis pro Gerät einmal (localStorage mit try/catch)');
+    }
     // Wichtigste Kontrollen an der richtigen Stelle (Segment Animation vor Layout; Zeilenlängen-Hinweis unter „Erweitert“, nicht unter „Spacing“)
     const at = id => htmlContent.indexOf('id="' + id + '"');
     ok(at('csgText') < at('csFont') && at('csFont') < at('szSlider') && at('szSlider') < at('csText') && at('csText') < at('csgAnim') && at('csgAnim') < at('csMotion')

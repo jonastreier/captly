@@ -856,7 +856,9 @@ body.editor-open .lang-hint{display:none}
 .pos-row.seg .pos-btn{min-height:32px}
 .pos-row.seg .pos-btn:focus-visible{outline:2px solid var(--brand);outline-offset:1px}
 .cs-grp{padding:14px 0;border-top:1px solid var(--fill2)}
-.cs-grp:first-child{padding-top:2px;border-top:none}
+.cs-grp:first-of-type{padding-top:2px;border-top:none}
+/* Handy-Customizer-Navigation (Kopfzeile «Customize» + Chips) und Wisch-Hinweis — nur im @media (max-width:640px) sichtbar */
+.cs-nav-h,.cs-chips,.style-hint{display:none}
 .cs-gh{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:10px}
 .cs-sub{font-weight:400;color:var(--muted);font-size:12px;margin-left:4px}
 .cs-note{font-size:12px;color:var(--muted);line-height:1.45;margin-top:6px}
@@ -964,7 +966,7 @@ body.editor-open .lang-hint{display:none}
   .tb-menu{position:fixed;top:56px;right:8px;left:auto}
   .ed-body{flex-direction:column}
   /* Vorschau wächst mit dem Video (max. ~56 % der Höhe, s. layoutPreviewFrame) → kein toter Grau-Rand bei Querformat */
-  .prev-col{flex:0 0 auto;height:auto;max-height:54dvh;padding:12px 12px 10px;gap:10px}
+  .prev-col{flex:0 0 auto;height:auto;max-height:50dvh;padding:12px 12px 10px;gap:10px}
   .col-resize-handle{display:none}
   .prev-frame{max-width:100%;border-radius:14px}
   .ctrl-col{width:100%!important;height:auto;flex:1 1 0;min-height:0;border-left:none;border-top:1px solid var(--line);border-radius:20px 20px 0 0;padding-bottom:calc(68px + env(safe-area-inset-bottom))}
@@ -980,6 +982,29 @@ body.editor-open .lang-hint{display:none}
   .tl-wrap:not(.open){display:none!important}
   .t-status.is-ok{display:none}
   .ctrl-col .csect{padding:12px 16px}
+  /* Looks als EIN horizontaler Wisch-Streifen (statt 8 Zeilen Raster, die das ganze Sheet füllten): die Einstellungen
+     beginnen sofort darunter. Kachelbreite so, dass die vierte Kachel halb sichtbar ist (Wischhinweis); der Streifen
+     scrollt nur in sich (overscroll-behavior), nie die Seite. */
+  [data-tab="style"].csect{position:relative}
+  .style-grid{display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;overflow-y:hidden;margin:0 -16px;padding:4px 16px 6px;scroll-padding:0 16px;scroll-snap-type:x proximity;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .style-grid::-webkit-scrollbar{display:none}
+  .style-grid .stile{flex:0 0 clamp(92px,calc((100vw - 56px) / 3.5),104px);scroll-snap-align:start}
+  .style-grid .stile-thumb{aspect-ratio:5/4;padding-bottom:7px}
+  .style-grid .stile-info{padding:4px 5px 5px}
+  .style-grid .stile-group{flex:0 0 76px;grid-column:auto;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;margin:0;white-space:normal;line-height:1.25}
+  .style-grid .stile-empty{flex:0 0 150px;grid-column:auto;align-self:center}
+  /* «Customize»: Kopfzeile + Chip-Leiste (klebt oben im Sheet-Scroller, wenn der Streifen weggescrollt ist) */
+  .ctrl-col .csect.cs-panel{padding-top:0}
+  .ctrl-col .csect[data-tab="style"]:not(.cs-panel){padding-bottom:2px}
+  .cs-panel .cs-grp:first-of-type{padding-top:10px}
+  .cs-nav-h{display:block;margin:2px 0 0;font-size:13px;font-weight:700;color:var(--ink)}
+  .cs-chips{display:flex;gap:6px;position:sticky;top:0;z-index:6;margin:0 -16px;padding:4px 16px 6px;background:#fff;box-shadow:0 5px 6px -6px rgba(16,24,28,.22);overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;scroll-padding:0 16px}
+  .cs-chips::-webkit-scrollbar{display:none}
+  .cs-chip{flex:0 0 auto;min-height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:999px;background:#fff;color:var(--ink2);font:600 13px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+  .cs-chip.on{background:var(--brand-soft);border-color:var(--brand-line);color:var(--brand-ink)}
+  /* Einmaliger Wisch-Hinweis über dem Streifen (nicht modal, keine Layout-Verschiebung, ohne Klicks) */
+  .style-hint{display:block;position:absolute;left:50%;top:18px;transform:translate(-50%,-4px);max-width:calc(100% - 32px);padding:6px 12px;border-radius:999px;background:rgba(16,24,28,.82);color:#fff;font:600 12px 'Inter',sans-serif;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s,transform .3s;z-index:8}
+  .style-hint.show{opacity:1;transform:translate(-50%,0)}
   /* Timeline-Modus: Vorschau + Spur + Aktionsleiste füllen den Platz bis zur Tab-Leiste; das Panel ruht */
   #editor.tl-mode .prev-col{flex:1 1 auto;max-height:none;min-height:0;padding-bottom:calc(72px + env(safe-area-inset-bottom));justify-content:flex-start}
   #editor.tl-mode .ctrl-col{flex:0 0 0;min-height:0;overflow:hidden;border:none;padding:0}
@@ -1582,12 +1607,22 @@ body.editor-open .lang-hint{display:none}
           <div class="sh-bar"><div class="sh-fill" id="shFill"></div></div>
         </div>
         <div class="style-grid" id="stylePicker"></div>
+        <div class="style-hint" id="styleHint" aria-hidden="true">Swipe for more looks · tap Customize below</div>
       </div>
 
       <!-- Style-Panel in fester Reihenfolge (wie bei CapCut/Submagic: wenige, klar gruppierte Kontrollen, Feinheiten dahinter):
            Looks (Raster oben) → Text → Animation → Layout → Effekte → Erweitert (zu) → Template speichern.
            Alle IDs/Handler sind unverändert; die Segment-Knöpfe (.cs-seg) steuern ein verstecktes <select> (Quelle der Wahrheit). -->
       <div class="csect cs-panel" data-tab="style" id="csPanel">
+        <!-- Nur Handy: Kopfzeile + Chip-Leiste springen zu den Gruppen (csGoto); Desktop blendet beides aus -->
+        <div class="cs-nav-h" id="csNavH">Customize</div>
+        <nav class="cs-chips" id="csChips" aria-label="Customize sections">
+          <button type="button" class="cs-chip on" data-target="csgText" aria-current="true" onclick="csGoto('csgText')">Text</button>
+          <button type="button" class="cs-chip" data-target="csgAnim" onclick="csGoto('csgAnim')">Animation</button>
+          <button type="button" class="cs-chip" data-target="csgLayout" onclick="csGoto('csgLayout')">Layout</button>
+          <button type="button" class="cs-chip" data-target="csgFx" onclick="csGoto('csgFx')">Effects</button>
+          <button type="button" class="cs-chip" data-target="advSet" onclick="csGoto('advSet')">Advanced</button>
+        </nav>
 
         <section class="cs-grp" id="csgText" aria-labelledby="csgTextH">
           <h3 class="cs-gh" id="csgTextH">Text <span class="cs-sub">edits the selected look</span></h3>
@@ -5991,6 +6026,7 @@ function selectStyle(id, fromEditor) {
   if (id !== 'custom') { try { localStorage.setItem(STYLE_KEY, id); } catch (e) {} } // Custom lebt nur in der Sitzung
   scheduleAutosave();
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
+  pickerRevealActive(true, false); // Handy-Streifen: angeschnittene/versteckte Kachel scrollt ins Bild
   var s = STYLES.find(function(x){ return x.id === id; });
   if (s && !fromEditor) seedCustomFields(s);         // „Eigener Style" startet vom gewählten Style/Template (auch von Custom selbst)
   if (s) { ensureCapFont(styleFontName(s)); ensureStyleFaces(s); } // nicht vorgeladene Schrift/Schnitte (Template, Betonung) nachladen
@@ -6919,7 +6955,7 @@ function buildPicker() {
   var c = document.getElementById('stylePicker');
   if (!c) return;
   if (_stileHoverTimer) { clearInterval(_stileHoverTimer); _stileHoverTimer = null; }
-  var keepScroll = c.scrollTop || 0;
+  var keepScroll = c.scrollTop || 0, keepLeft = c.scrollLeft || 0;
   c.innerHTML = '';
   // Gruppen: „My templates“ (Custom-Entwurf + eigene Templates, neueste zuerst) OBEN, dann die Presets —
   // vorher hingen Templates hinter 36 Presets und man sah nicht, ob/was gespeichert wurde.
@@ -6953,6 +6989,7 @@ function buildPicker() {
   }
   presets.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
   c.scrollTop = keepScroll;
+  if (keepLeft) c.scrollLeft = keepLeft;
   var cnt = document.getElementById('tplCount');
   if (cnt) cnt.textContent = nTpl ? ('· ' + nTpl + ' saved') : '';
 }
@@ -6966,12 +7003,36 @@ function replacePickerTile(s) {
   old.parentNode.replaceChild(makeStyleTile(s), old);
   return true;
 }
+// Handy: Looks sind ein horizontaler Streifen (CSS @media 640px) — erkennbar an seitlichem Überlauf.
+function pickerIsStrip(c) {
+  try { return !!(c && c.clientWidth > 0 && c.scrollWidth > c.clientWidth + 4 && getComputedStyle(c).display === 'flex'); } catch (e) { return false; }
+}
+// Streifen horizontal so scrollen, dass die Kachel ganz im Bild ist (center = mittig); nur wenn nötig.
+function pickerReveal(tile, smooth, center) {
+  var c = document.getElementById('stylePicker');
+  if (!c || !tile || !tile.getBoundingClientRect || !c.getBoundingClientRect || !pickerIsStrip(c)) return;
+  var cr = c.getBoundingClientRect(), tr = tile.getBoundingClientRect(), pad = 16;
+  var to = null;
+  if (center) to = c.scrollLeft + (tr.left - cr.left) - (cr.width - tr.width) / 2;
+  else if (tr.left < cr.left + pad) to = c.scrollLeft - (cr.left + pad - tr.left);
+  else if (tr.right > cr.right - pad) to = c.scrollLeft + (tr.right - cr.right + pad);
+  if (to === null) return;
+  to = Math.max(0, Math.round(to));
+  var reduce = false; try { reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+  if (c.scrollTo) c.scrollTo({ left: to, behavior: smooth && !reduce ? 'smooth' : 'auto' }); else c.scrollLeft = to;
+}
+function pickerRevealActive(smooth, center) {
+  var c = document.getElementById('stylePicker');
+  if (!c || !c.querySelector) return;
+  pickerReveal(c.querySelector('.stile.on'), smooth, center);
+}
 // Kachel im Picker sichtbar machen; withPage = auch die Seite dorthin scrollen (nach dem Speichern).
 function scrollPickerTo(id, withPage, flash) {
   var c = document.getElementById('stylePicker');
   if (!c || !c.querySelector) return;
   var tile = c.querySelector('.stile[data-id="' + id + '"]');
   if (!tile) return;
+  if (pickerIsStrip(c)) { pickerReveal(tile, true, true); if (flash && tile.classList) { tile.classList.remove('just-saved'); void tile.offsetWidth; tile.classList.add('just-saved'); } return; }
   if (withPage && tile.scrollIntoView) tile.scrollIntoView({ block: 'center', behavior: 'smooth' });
   else if (c.getBoundingClientRect && tile.getBoundingClientRect) {
     var cr = c.getBoundingClientRect(), tr = tile.getBoundingClientRect();
@@ -9152,7 +9213,7 @@ function layoutPreviewFrame(setFont) {
   var pcH = pcRect.height || 540;
   // Handy (außer Timeline-Modus): die Spalte wächst mit dem Video → feste Obergrenze statt gemessener Höhe
   // Beim Tippen in einer Zeile (Tastatur offen) kompakter, damit Zeile + Video gleichzeitig sichtbar bleiben.
-  if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * (_edCompact ? 0.34 : 0.52));
+  if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * (_edCompact ? 0.34 : 0.48)); // 0.48 statt 0.52: Sheet ~35 px höher → Looks-Streifen + Customize-Chips + Beginn «Text» sichtbar
   var maxH = Math.max(100, pcH - padY - ctrlH - 12 - tlReservedHeight()); // 12 = Abstand Rahmen↔Leiste
   var maxW = Math.min(720, Math.max(100, (pcRect.width || 360) - padX));
   var h = maxH, w = Math.round(h * ar);
@@ -11279,6 +11340,83 @@ function switchTab(name) {
     if (b.setAttribute) b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
   if (name === 'captions') fitSegHeights();
+  if (name === 'style') { pickerRevealActive(false, true); csNavSync(); styleHintMaybe(); } // Streifen war im verborgenen Tab nicht scrollbar → jetzt gewählte Kachel mittig
+}
+
+// ── Handy-Customizer: Chip-Leiste «Customize» springt zu den Gruppen, aktiver Chip folgt der Scroll-Position ──
+var CS_NAV = ['csgText', 'csgAnim', 'csgLayout', 'csgFx', 'advSet'];
+var _csNavLock = 0, _csNavRaf = 0;
+function csSetActive(id) {
+  var bar = document.getElementById('csChips');
+  if (!bar || !bar.querySelectorAll) return;
+  bar.querySelectorAll('.cs-chip').forEach(function(b) {
+    var on = b.dataset.target === id;
+    b.classList.toggle('on', on);
+    if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+    if (on && bar.scrollWidth > bar.clientWidth + 2 && bar.scrollTo) { // aktiven Chip in der Leiste sichtbar halten
+      var left = b.offsetLeft - (bar.clientWidth - b.offsetWidth) / 2;
+      bar.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+    }
+  });
+}
+function csGoto(id) {
+  var col = document.getElementById('ctrlCol'), g = document.getElementById(id);
+  if (!col || !g || !g.getBoundingClientRect) return;
+  if (id === 'advSet' && g.tagName === 'DETAILS') g.open = true; // «Advanced» springt nicht ins Leere: Gruppe aufklappen
+  var bar = document.getElementById('csChips');
+  var off = (bar ? bar.offsetHeight : 0) + 6;
+  var top = Math.max(0, Math.round(col.scrollTop + g.getBoundingClientRect().top - col.getBoundingClientRect().top - off));
+  _csNavLock = Date.now() + 800; // während des sanften Scrollens bleibt der angetippte Chip aktiv
+  csSetActive(id);
+  styleHintHide();
+  var reduce = false; try { reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+  if (col.scrollTo) col.scrollTo({ top: top, behavior: reduce ? 'auto' : 'smooth' }); else col.scrollTop = top;
+}
+// Aktive Gruppe = letzte, deren Oberkante die Chip-Leiste erreicht hat (Scroll-Event, per rAF gedrosselt)
+function csNavSync() {
+  if (Date.now() < _csNavLock) return;
+  var col = document.getElementById('ctrlCol'), bar = document.getElementById('csChips');
+  if (!col || !bar || !bar.offsetHeight || !col.getBoundingClientRect) return;
+  var line = col.getBoundingClientRect().top + bar.offsetHeight + 24, cur = CS_NAV[0];
+  CS_NAV.forEach(function(id) {
+    var g = document.getElementById(id);
+    if (g && g.getBoundingClientRect && g.getBoundingClientRect().top <= line) cur = id;
+  });
+  csSetActive(cur);
+}
+(function() {
+  var col = document.getElementById('ctrlCol');
+  if (!col || !col.addEventListener) return;
+  col.addEventListener('scroll', function() {
+    if (_csNavRaf || !window.requestAnimationFrame) return;
+    _csNavRaf = window.requestAnimationFrame(function() { _csNavRaf = 0; csNavSync(); });
+  }, { passive: true });
+})();
+
+// ── Einmaliger Wisch-Hinweis über dem Looks-Streifen (Handy, pro Gerät einmal, nicht modal) ──
+var STYLE_HINT_KEY = 'capivo.styleHintSeen', _shTimer = 0, _shNudge = 0;
+function styleHintHide() {
+  clearTimeout(_shTimer); clearTimeout(_shNudge);
+  var h = document.getElementById('styleHint');
+  if (h && h.classList) h.classList.remove('show');
+}
+function styleHintMaybe() {
+  try { if (typeof localStorage === 'undefined' || localStorage.getItem(STYLE_HINT_KEY)) return; } catch (e) { return; }
+  var c = document.getElementById('stylePicker'), h = document.getElementById('styleHint');
+  if (!c || !h || !h.classList || !pickerIsStrip(c)) return; // nur Handy-Streifen (Desktop-Raster braucht keinen Hinweis)
+  try { localStorage.setItem(STYLE_HINT_KEY, '1'); } catch (e) {}
+  h.classList.add('show');
+  var stop = function() { styleHintHide(); c.removeEventListener('touchstart', stop); c.removeEventListener('wheel', stop); };
+  c.addEventListener('touchstart', stop, { passive: true }); c.addEventListener('wheel', stop, { passive: true });
+  _shTimer = setTimeout(styleHintHide, 5200);
+  // Kleine Wisch-Andeutung: Streifen schiebt sich kurz vor und zurück (nicht bei reduzierter Bewegung)
+  var reduce = false; try { reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+  if (!reduce && c.scrollTo && c.scrollLeft < 8) {
+    _shNudge = setTimeout(function() {
+      c.scrollTo({ left: 56, behavior: 'smooth' });
+      _shNudge = setTimeout(function() { c.scrollTo({ left: 0, behavior: 'smooth' }); }, 650);
+    }, 1100);
+  }
 }
 // Zeilen, die im verborgenen Tab gerendert wurden (scrollHeight 0 → Notfallhöhe), beim Sichtbarwerden
 // nachmessen — alle Reads zuerst, dann alle Writes (ein Reflow).
