@@ -28,6 +28,7 @@ const cfg = [
   // Abos (Standard aus). Werte kommen aus GitHub-Secrets/-Variablen; ohne BILLING_ENABLED=1 ändert sich nichts.
   ['BILLING_ENABLED', e.BILLING_ENABLED === '1' || e.BILLING_ENABLED === 'true' ? 'true' : 'false'],
   ['ANON_SEC_PER_DAY', num(e.ANON_SEC_PER_DAY, 600)],
+  ['FREE_CLEAN_VIDEOS_PER_DAY', num(e.FREE_CLEAN_VIDEOS_PER_DAY, 2)],
   ['PADDLE_ENV', q(e.PADDLE_ENV === 'production' ? 'production' : 'sandbox')],
   ['PADDLE_CLIENT_TOKEN', q(e.PADDLE_CLIENT_TOKEN || '')],
   ['PADDLE_PRICE_CREATOR', q(e.PADDLE_PRICE_CREATOR || '')],

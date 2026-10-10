@@ -87,7 +87,7 @@ Code für Free/Creator/Pro ist fertig, aber **abgeschaltet** (`BILLING_ENABLED=f
 `schema.sql` (`profiles`, `usage`, `paddle_events`, `add_usage()`, Trigger für neue Nutzer, RLS: Nutzer lesen nur ihre Zeilen), `billing.php` (Hilfsfunktionen),
 `plan.php` (`/api/plan`: Plan + Restminuten + öffentliche Paddle-Werte), `transcribe.php` (402 `{error:"quota"}` vor dem Groq-Aufruf; eingeloggt: Plan-Minuten pro Monat,
 Gast: `ANON_SEC_PER_DAY` pro IP; gezählt wird nach Erfolg), `paddle-webhook.php` (`/api/paddle-webhook`: HMAC-Signatur, Zeitstempel-Toleranz, Idempotenz, Reihenfolge, Events
-`subscription.*`), `paddle-portal.php` (`/api/portal`: Link zum Kundenportal). Frontend: Abzeichen «x min left», `needsWatermark()` hängt am Plan, Paddle-Checkout-Overlay
+`subscription.*`), `paddle-portal.php` (`/api/portal`: Link zum Kundenportal). Frontend: Abzeichen «x min left», `needsWatermark()` hängt am Plan und am Server-Flag `watermark` (Free/Gäste: erste `FREE_CLEAN_VIDEOS_PER_DAY` = 2 Videos pro UTC-Tag sauber, ab dem 3. kleine Marke; Video = anonymer Schlüssel `X-Video-Key`, zählt einmal; Beta/Abos aus: nie), Paddle-Checkout-Overlay
 (`paddle.js` wird erst beim Klick auf «Upgrade» geladen), «Manage subscription». Sandbox-Anleitung: [`docs/paddle-sandbox.md`](docs/paddle-sandbox.md); was vor dem Live-Schalten
 fehlt: [`docs/abo-aktivierung.md`](docs/abo-aktivierung.md).
 
@@ -242,7 +242,7 @@ funktioniert der Login also nicht** — auch nicht zum Testen.
 
 Solange der Mailversand (SMTP) nicht eingerichtet ist, braucht der Download **keinen Login**: Beim
 ersten Export fragt das Export-Blatt nach der E-Mail-Adresse (plus optionales, nicht vorausgewähltes
-Newsletter-Häkchen) und exportiert dann **ohne Wasserzeichen**. Die Adresse wird pro Gerät gemerkt
+Newsletter-Häkchen; überspringbar mit «Skip — download now») und exportiert dann **ohne Wasserzeichen** — auch ohne Angabe (Beta: nie ein Wasserzeichen). Die Adresse wird pro Gerät gemerkt
 und per REST in die Tabelle `public.leads` geschrieben (Tabelle + Policy: `schema.sql`, Abschnitt
 „Leads“ — einmal im SQL Editor ausführen). Die Tabelle ist per API nur beschreibbar, nicht lesbar;
 die Liste exportiert man im Dashboard (*Table Editor → leads → Export → CSV*), z. B. für Brevo.

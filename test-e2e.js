@@ -36,6 +36,18 @@ if (!fs.existsSync(LIGHT)) {
 }
 // Unterer Rand eines Elements: mittlere 60 % der Spalten, Helligkeit der untersten 3 Pixelreihen (je Reihe der Mittelwert) und
 // zum Vergleich der Reihen 8–11 darüber. Ein dunkler Streifen innerhalb der Rundung wäre ein Sprung gegenüber `ref`.
+// Wasserzeichen im MP4: blau-violette Pixel (Markenfläche #7c3aed, mit Transparenz über dem Bild) unten rechts, die im Quellframe nicht so aussehen
+async function wmPixels(page, mpPath, srcPath) {
+  return page.evaluate(async a => {
+    const load = b64 => new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = 'data:image/png;base64,' + b64; });
+    const [mp, sr] = await Promise.all([load(a.mp), load(a.sr)]);
+    const W = mp.width, H = mp.height, px = im => { const c = document.createElement('canvas'); c.width = W; c.height = H; const x = c.getContext('2d'); x.drawImage(im, 0, 0, W, H); return x.getImageData(0, 0, W, H).data; };
+    const dM = px(mp), dS = px(sr), vio = (d, i) => d[i + 2] > 200 && d[i + 2] - d[i + 1] > 100 && d[i] < 200, chg = (i) => vio(dM, i) && !vio(dS, i);
+    let n = 0;
+    for (let y = Math.floor(H * 0.945); y < H; y++) for (let x = Math.floor(W * 0.5); x < W; x++) { const i = (y * W + x) * 4; if (chg(i)) n++; }
+    return n;
+  }, { mp: fs.readFileSync(mpPath).toString('base64'), sr: fs.readFileSync(srcPath).toString('base64') });
+}
 async function edgeStats(page, loc) {
   const buf = await loc.screenshot();
   return page.evaluate(async b64 => {
@@ -54,7 +66,7 @@ const edgeOk = (st, abs) => abs ? st.bottom >= abs : st.bottom >= st.ref * 0.75 
 // ── Mock-Server: statische Dateien + /api/* + minimales Supabase (Auth + projects)
 const WORDS = 'Das ist ein kurzer Test für die Untertitel. Heute zeigen wir dir, wie schnell das geht und warum es so gut funktioniert.'.split(' ')
   .map((w, i) => ({ word: w, start: 0.3 + i * 0.22, end: 0.3 + i * 0.22 + 0.2 }));
-const state = { leads: [], projects: [], seq: 0, transcribeCalls: 0, otpCalls: 0 };
+const state = { leads: [], projects: [], seq: 0, transcribeCalls: 0, otpCalls: 0, plan: null, videoKeys: [] }; // plan: Mock für /api/plan (null = Abos aus, Beta)
 const mine = () => state.projects.filter(p => p.title !== '__capivo_templates__');
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.mjs': 'text/javascript', '.json': 'application/json', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.wasm': 'application/wasm', '.txt': 'text/plain', '.svg': 'image/svg+xml' };
 function body(req) { return new Promise(r => { const c = []; req.on('data', d => c.push(d)); req.on('end', () => r(Buffer.concat(c))); }); }
@@ -64,9 +76,10 @@ const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': '*', 'Access-Control-Allow-Methods': '*' }); return res.end(); }
   if (p === '/api/transcribe') {
     if (req.method !== 'POST') return json({ configured: true });
-    await body(req); state.transcribeCalls++;
+    await body(req); state.transcribeCalls++; state.videoKeys.push(req.headers['x-video-key'] || '');
     return json({ language: 'german', text: WORDS.map(w => w.word).join(' '), words: WORDS });
   }
+  if (p === '/api/plan') return json(state.plan ? Object.assign({}, state.plan, { video_key: req.headers['x-video-key'] || '' }) : { enabled: false });
   if (p === '/api/polish' || p === '/api/enhance') return json({ error: 'off' }, 503);
   if (p === '/api/lead') {
     if (req.method !== 'POST') return json({ ok: true, configured: true });
@@ -428,25 +441,23 @@ if (require.main !== module) return;
       await page.evaluate(() => { tlSnapOn = true; });
     }
 
-    // 3) Export: Gate verlangt E-Mail (Beta) → ungültig/leer wird abgelehnt, gültig + Newsletter geht durch
+    // 3) Export: Das E-Mail-Gate ist FREIWILLIG (Beta: nie Wasserzeichen) → ungültige Adresse wird gemeldet, «Skip» lädt trotzdem ohne Marke
     await page.click('#tbExport');
     await page.waitForSelector('#expSheet', { state: 'visible' });
     await shot('04-export-sheet');
     const gateVisible = await page.isVisible('#expGate');
     ok(gateVisible, 'E-Mail-Gate sichtbar vor dem ersten Export');
+    ok(!(await page.isVisible('#wmOpt')) && !(await page.evaluate(() => needsWatermark())), 'Beta: kein Wasserzeichen-Hinweis, needsWatermark() = false (auch ohne E-Mail)');
+    ok(await page.isVisible('#gateSkip') && /Skip/.test(await page.textContent('#gateSkip')), 'Gate hat «Skip — download now»');
     if (gateVisible) {
-      await page.click('#btnVideo');
-      await page.waitForTimeout(300);
-      ok(await page.isVisible('#gateErr'), 'leere E-Mail: Fehlermeldung');
       await page.fill('#gateEmail', 'kaputt@');
       await page.click('#btnVideo');
       await page.waitForTimeout(300);
-      ok(await page.isVisible('#gateErr') && state.leads.length === 0, 'ungültige E-Mail: abgelehnt, nichts gesendet');
-      await page.fill('#gateEmail', 'e2e@example.com');
-      await page.check('#gateNews');
+      ok(await page.isVisible('#gateErr') && /Skip/.test(await page.textContent('#gateErr')) && state.leads.length === 0, 'ungültige E-Mail: gemeldet (mit Skip-Hinweis), nichts gesendet');
+      await page.fill('#gateEmail', '');
     }
     const dlP = page.waitForEvent('download', { timeout: 180000 }).catch(() => null);
-    await page.click('#btnVideo');
+    await page.click('#gateSkip'); // Export 1: ohne E-Mail überspringen → muss OHNE Wasserzeichen laufen
     await page.waitForTimeout(1500);
     await shot('05-exporting');
     const dl = await dlP;
@@ -475,6 +486,10 @@ if (require.main !== module) return;
       spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ssK, '-i', fp, '-frames:v', '1', mpFr]);
       spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ssK, '-i', VIDEO, '-frames:v', '1', srcFr]);
       ok(fs.existsSync(mpFr) && fs.existsSync(srcFr), 'MP4-/Quell-Frame bei ' + tK.toFixed(3) + ' s extrahiert');
+      const wm1 = fs.existsSync(mpFr) && fs.existsSync(srcFr) ? await wmPixels(page, mpFr, srcFr) : -1;
+      ok(wm1 >= 0 && wm1 < 20, 'Export 1 (Beta, E-Mail übersprungen): Frame OHNE Wasserzeichen (' + wm1 + ' abweichende Pixel unten rechts)');
+      ok(state.leads.length === 0, 'Export 1: ohne E-Mail kein Lead gesendet');
+      ok(state.videoKeys.length > 0 && state.videoKeys.every(k => /^[0-9a-f]{16}$/.test(k)), 'Transkription sendet nur einen Hash als X-Video-Key (' + state.videoKeys[0] + ')');
       if (fs.existsSync(mpFr) && fs.existsSync(srcFr)) {
         await page.evaluate(() => { try { closeExportSheet(); } catch (e) {} });
         await page.evaluate(t => new Promise(r => { const v = document.getElementById('mainVid'); v.pause(); let done = false; const f = () => { if (done) return; done = true; v.removeEventListener('seeked', f); _lastKey = null; updateOverlay(); requestAnimationFrame(() => requestAnimationFrame(r)); }; v.addEventListener('seeked', f); v.currentTime = t; setTimeout(f, 2500); }), tK);
@@ -507,6 +522,34 @@ if (require.main !== module) return;
         ok(m.ink > 500 && Math.abs(sC) <= tolC, 'MP4-Frame: kein Versatz zum Export-Renderer (' + sC + ' px tiefer, ≤ ' + tolC.toFixed(1) + ')');
         ok(m.nP > 500 && m.nM > 500 && Math.abs(sP) <= tolP, 'MP4-Frame = Vorschau: Untertitel-Zeilen auf gleicher Höhe (' + sP + ' px tiefer, ≤ ' + tolP.toFixed(1) + ' von ' + m.W + ')');
       }
+      // Export 2: Abos «an», Server meldet watermark:true (Übernutzung) + E-Mail/Newsletter diesmal über das Gate → Frame MIT Wasserzeichen
+      await page.waitForFunction(() => !isExporting, null, { timeout: 60000 });
+      state.plan = { enabled: true, loggedIn: false, plan: 'anon', limits: { free: 1800, creator: 18000, pro: 72000 }, paddle: {}, watermark: true, clean_videos: 2, videos_today: 3, video_pos: 3 };
+      await page.evaluate(() => { _gateSkipped = false; try { sessionStorage.removeItem(GATE_SKIP_KEY); } catch (e) {} return loadBilling(); });
+      ok(await page.evaluate(() => needsWatermark() === true), 'Abos an + watermark:true → needsWatermark()');
+      await page.evaluate(() => { showExportMain(); openExportSheet(); });
+      ok(await page.isVisible('#wmOpt') && /free videos? without watermark today/.test(await page.textContent('#wmOpt')) && /Upgrade/.test(await page.textContent('#wmOpt')), 'Export-Blatt: freundlicher Hinweis + Upgrade-Link');
+      await page.evaluate(() => showAcct());
+      ok(await page.isVisible('#acctWm') && /small watermark/.test(await page.textContent('#acctWm')), 'Konto-Fenster: Hinweis zur Marke');
+      await page.evaluate(() => { document.getElementById('acctModal').style.display = 'none'; });
+      await page.fill('#gateEmail', 'e2e@example.com');
+      await page.check('#gateNews');
+      const dl2P = page.waitForEvent('download', { timeout: 180000 }).catch(() => null);
+      await page.click('#btnVideo');
+      const dl2 = await dl2P;
+      ok(!!dl2, 'Export 2 gestartet');
+      if (dl2) {
+        const fp2 = path.join(os.tmpdir(), 'cr-e2e-out2-' + prof.name + path.extname(dl2.suggestedFilename()));
+        await dl2.saveAs(fp2);
+        const mp2 = path.join(os.tmpdir(), 'cr-e2e-mp4-frame2.png'); try { fs.unlinkSync(mp2); } catch (e) {}
+        spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ssK, '-i', fp2, '-frames:v', '1', mp2]);
+        const wm2 = fs.existsSync(mp2) && fs.existsSync(srcFr) ? await wmPixels(page, mp2, srcFr) : -1;
+        ok(wm2 > 150, 'Export 2 (watermark:true): Frame MIT Wasserzeichen (' + wm2 + ' abweichende Pixel unten rechts)');
+      }
+      await page.waitForFunction(() => !isExporting, null, { timeout: 60000 });
+      state.plan = null; // zurück in die Beta
+      await page.evaluate(() => { billing = null; renderBilling(); updateAcctUI(); });
+      ok(await page.evaluate(() => needsWatermark() === false), 'zurück in der Beta: wieder kein Wasserzeichen');
     }
     ok(state.leads.length === 1 && state.leads[0].email === 'e2e@example.com' && state.leads[0].newsletter === true, 'Lead an /api/lead gesendet (E-Mail + Newsletter-Häkchen)');
     await page.waitForTimeout(500);

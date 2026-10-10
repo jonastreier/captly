@@ -17,9 +17,9 @@ const UID = '11111111-2222-4333-8444-555555555555', UID2 = '99999999-2222-4333-8
 const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_pro';
 
 (async () => {
-  const [sbPort, groqPort, paddlePort, phpPort, phpOffPort] = [await freePort(), await freePort(), await freePort(), await freePort(), await freePort()];
+  const [sbPort, groqPort, paddlePort, phpPort, phpOffPort, phpVPort, phpC1Port] = [await freePort(), await freePort(), await freePort(), await freePort(), await freePort(), await freePort(), await freePort()];
   // ── Mock-Supabase
-  const db = { profiles: {}, usage: [], events: new Set(), failProfileWrite: false, rpc: [] };
+  const db = { profiles: {}, usage: [], events: new Set(), failProfileWrite: false, rpc: [], vk: {} }; // vk: 'uid' → Schlüssel von «heute» (Tageswechsel = db.vk = {})
   const tokens = { 'tok-user': { id: UID, email: 'a@example.com' }, 'tok-user2': { id: UID2, email: 'b@example.com' } };
   const sb = http.createServer((req, res) => {
     let b = ''; req.on('data', d => b += d); req.on('end', () => {
@@ -39,6 +39,8 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
         }
         if (req.method === 'POST') { if (db.failProfileWrite) return json({ message: 'boom' }, 500); const j = JSON.parse(b); db.profiles[j.user_id] = Object.assign(db.profiles[j.user_id] || {}, j); res.statusCode = 201; return res.end(); }
       }
+      if (u.pathname === '/rest/v1/usage' && req.method === 'GET' && (q.get('select') || '') === 'vkeys') return json(db.vk[eq('user_id')] ? [{ vkeys: db.vk[eq('user_id')] }] : []);
+      if (u.pathname === '/rest/v1/rpc/add_video') { const j = JSON.parse(b); const a = db.vk[j.p_user] = db.vk[j.p_user] || []; if (!a.includes(j.p_key) && a.length < j.p_max) a.push(j.p_key); res.statusCode = 204; return res.end(); }
       if (u.pathname === '/rest/v1/usage' && req.method === 'GET') return json(db.usage.filter(r => r.user_id === eq('user_id') && r.day >= eq('day')));
       if (u.pathname === '/rest/v1/rpc/add_usage') { const j = JSON.parse(b); db.rpc.push(j); db.usage.push({ user_id: j.p_user, day: new Date().toISOString().slice(0, 10), seconds: j.p_seconds }); res.statusCode = 204; return res.end(); }
       res.statusCode = 404; res.end();
@@ -61,10 +63,11 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     return dir;
   };
   const dirOn = mkdir(Object.assign({ BILLING_ENABLED: true }, base)), dirOff = mkdir(Object.assign({ BILLING_ENABLED: false }, base));
+  const dirV = mkdir(Object.assign({}, base, { BILLING_ENABLED: true, ANON_SEC_PER_DAY: 600 })), dirC1 = mkdir(Object.assign({}, base, { BILLING_ENABLED: true, FREE_CLEAN_VIDEOS_PER_DAY: 1 }));
   const spawnPhp = (dir, port) => spawn('php', ['-S', '127.0.0.1:' + port, '-t', dir], { env: Object.assign({}, process.env, { TMPDIR: dir }), stdio: 'ignore' });
-  const php = spawnPhp(dirOn, phpPort), phpOff = spawnPhp(dirOff, phpOffPort);
+  const php = spawnPhp(dirOn, phpPort), phpOff = spawnPhp(dirOff, phpOffPort), phpV = spawnPhp(dirV, phpVPort), phpC1 = spawnPhp(dirC1, phpC1Port);
   await new Promise(r => setTimeout(r, 900));
-  const U = 'http://127.0.0.1:' + phpPort + '/', UOFF = 'http://127.0.0.1:' + phpOffPort + '/';
+  const U = 'http://127.0.0.1:' + phpPort + '/', UOFF = 'http://127.0.0.1:' + phpOffPort + '/', UV = 'http://127.0.0.1:' + phpVPort + '/', UC1 = 'http://127.0.0.1:' + phpC1Port + '/';
 
   // ── Helfer
   const sign = (body, ts, secret = SECRET) => 'ts=' + ts + ';h1=' + crypto.createHmac('sha256', secret).update(ts + ':' + body).digest('hex');
@@ -75,12 +78,12 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
   const hook = async (obj, opts = {}) => { const body = typeof obj === 'string' ? obj : JSON.stringify(obj); const ts = opts.ts || now();
     const r = await fetch(U + 'paddle-webhook.php', { method: 'POST', body, headers: { 'Paddle-Signature': opts.sig !== undefined ? opts.sig : sign(body, ts), 'Content-Type': 'application/json' } });
     return { s: r.status, j: await r.json().catch(() => ({})) }; };
-  const plan = async (tok, url = U) => (await fetch(url + 'plan.php', { headers: tok ? { 'X-Capivo-Token': tok } : {} })).json();
+  const plan = async (tok, url = U, vk = '') => (await fetch(url + 'plan.php', { headers: Object.assign(tok ? { 'X-Capivo-Token': tok } : {}, vk ? { 'X-Video-Key': vk } : {}) })).json();
 
   // WAV (n Sekunden, 16 kHz mono, Rauschen) für transcribe.php
   const wav = sec => { const nS = Math.round(16000 * sec), d = Buffer.alloc(44 + nS * 2); d.write('RIFF', 0); d.writeUInt32LE(36 + nS * 2, 4); d.write('WAVEfmt ', 8); d.writeUInt32LE(16, 16); d.writeUInt16LE(1, 20); d.writeUInt16LE(1, 22);
     d.writeUInt32LE(16000, 24); d.writeUInt32LE(32000, 28); d.writeUInt16LE(2, 32); d.writeUInt16LE(16, 34); d.write('data', 36); d.writeUInt32LE(nS * 2, 40); for (let i = 0; i < nS; i++) d.writeInt16LE(Math.round((Math.random() - 0.5) * 8000), 44 + i * 2); return d; };
-  const tr = async (tok, sec, url = U) => { const r = await fetch(url + 'transcribe.php?model=whisper-large-v3-turbo', { method: 'POST', body: wav(sec), headers: Object.assign({ 'Content-Type': 'audio/wav' }, tok ? { 'X-Capivo-Token': tok } : {}) }); return { s: r.status, j: await r.json().catch(() => ({})) }; };
+  const tr = async (tok, sec, url = U, vk = '') => { const r = await fetch(url + 'transcribe.php?model=whisper-large-v3-turbo', { method: 'POST', body: wav(sec), headers: Object.assign({ 'Content-Type': 'audio/wav' }, tok ? { 'X-Capivo-Token': tok } : {}, vk ? { 'X-Video-Key': vk } : {}) }); return { s: r.status, j: await r.json().catch(() => ({})) }; };
 
   try {
     // ════ Schalter aus: nichts ändert sich
@@ -169,7 +172,51 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     const por = await fetch(U + 'paddle-portal.php', { method: 'POST', headers: { 'X-Capivo-Token': 'tok-user' } }); const pj = await por.json();
     ok(por.status === 200 && /^https:\/\/customer-portal\.paddle\.com\//.test(pj.url), 'Portal: liefert den Portal-Link');
     ok(paddleReqs.length === 1 && paddleReqs[0].url === '/customers/ctm_1/portal-sessions' && paddleReqs[0].auth === 'Bearer pdl_key' && paddleReqs[0].method === 'POST', 'Portal: Paddle-Aufruf mit Kunden-ID und API-Key (nur serverseitig)');
-  } finally { php.kill(); phpOff.kill(); sb.close(); groq.close(); paddle.close(); for (const d of [dirOn, dirOff]) fs.rmSync(d, { recursive: true, force: true }); }
+
+    // ════ Wasserzeichen-Regel: die ersten FREE_CLEAN_VIDEOS_PER_DAY (2) Videos pro Tag sauber, ab dem 3. kleine Marke
+    const KA = 'aaaaaaaa11111111', KB = 'bbbbbbbb22222222', KC = 'cccccccc33333333', KD = 'dddddddd44444444';
+    db.profiles[UID2] = { user_id: UID2, plan: 'free', status: 'active' };
+    let w = await plan('tok-user2', U, KA);
+    ok(w.watermark === false && w.videos_today === 0 && w.clean_videos === 2 && w.clean_videos_left === 2 && w.video_pos === 1 && w.left_sec > 0, 'Marke: Free, noch kein Video → sauber, 2 frei');
+    ok((await tr('tok-user2', 3, U, KA)).s === 200, 'Marke: Video A transkribiert');
+    ok((await tr('tok-user2', 3, U, KA)).s === 200 && (await plan('tok-user2', U, KA)).videos_today === 1, 'Marke: Re-Transcribe desselben Videos zählt nicht doppelt');
+    const parts = await Promise.all([tr('tok-user2', 3, U, KB), tr('tok-user2', 3, U, KB), tr('tok-user2', 3, U, KB)]);
+    w = await plan('tok-user2', U, KB);
+    ok(parts.every(x => x.s === 200) && w.videos_today === 2 && w.watermark === false && w.video_pos === 2 && w.clean_videos_left === 0, 'Marke: gesplittetes Audio (3 Anfragen, ein Schlüssel) zählt als EIN Video; Video 2 bleibt sauber');
+    w = await plan('tok-user2', U, KC);
+    ok(w.watermark === true && w.video_pos === 3 && w.videos_today === 2, 'Marke: neues drittes Video → schon VOR dem Transkribieren markiert');
+    const tc = await tr('tok-user2', 3, U, KC); w = await plan('tok-user2', U, KC);
+    ok(tc.s === 200 && w.watermark === true && w.video_pos === 3 && w.videos_today === 3, 'Marke: 3. Video bleibt transkribierbar (Minuten-Limit unverändert), trägt Marke');
+    await tr('tok-user2', 3, U, KC);
+    ok((await plan('tok-user2', U, KC)).watermark === true && (await plan('tok-user2', U, KC)).videos_today === 3, 'Marke: erneuter Export des 3. Videos → weiterhin Marke');
+    ok((await plan('tok-user2', U, KA)).watermark === false && (await plan('tok-user2', U, KB)).watermark === false, 'Marke: Video 1 und 2 bleiben auch nach dem 3. sauber (feste Position)');
+    ok((await plan('tok-user2', U)).watermark === true, 'Marke: ohne Schlüssel (noch kein Video) → nächste Position (4) markiert');
+    const bad = await tr('tok-user2', 3, U, 'kein-hex!'); ok(bad.s === 200 && (await plan('tok-user2', U, KA)).videos_today === 3, 'Marke: ungültiger Schlüssel wird ignoriert');
+    db.vk = {}; // neuer Tag
+    w = await plan('tok-user2', U, KC); ok(w.watermark === false && w.videos_today === 0 && w.video_pos === 1, 'Marke: neuer Tag setzt die Zählung zurück');
+    db.vk[UID2] = [KA, KB, KC];
+    db.profiles[UID2] = { user_id: UID2, plan: 'creator', status: 'active', period_end: new Date(Date.now() + 864e5).toISOString() };
+    ok((await plan('tok-user2', U, KC)).watermark === false && (await plan('tok-user2', U, KD)).watermark === false, 'Marke: Creator nie (auch ab Video 3/4)');
+    db.profiles[UID2].plan = 'pro'; ok((await plan('tok-user2', U, KD)).watermark === false, 'Marke: Pro nie');
+    db.profiles[UID2] = { user_id: UID2, plan: 'free', status: 'active' };
+    ok((await plan('tok-user2', U, KC)).watermark === true, 'Marke: zurück auf Free → ab Video 3 wieder Marke');
+    // Hartes Minuten-Limit bleibt: 402 zählt kein Video
+    db.profiles[UID] = { user_id: UID, plan: 'free', status: 'active' };
+    const t402 = await tr('tok-user', 12, U, KD); ok(t402.s === 402 && !(db.vk[UID] || []).includes(KD), 'Marke: 402 (Minuten-Limit) zählt kein Video');
+    // Gäste: pro IP
+    ok((await plan(null, UV, KA)).watermark === false, 'Gast: erstes Video sauber');
+    await tr(null, 2, UV, KA); await tr(null, 2, UV, KA); await tr(null, 2, UV, KB);
+    w = await plan(null, UV, KB); ok(w.videos_today === 2 && w.watermark === false && w.video_pos === 2, 'Gast: 2 Videos (A zweimal) → 2 gezählt, beide sauber');
+    w = await plan(null, UV, KC); ok(w.watermark === true && w.video_pos === 3, 'Gast: 3. Video → Marke');
+    await tr(null, 2, UV, KC); ok((await plan(null, UV, KC)).watermark === true && (await plan(null, UV, KA)).watermark === false, 'Gast: nach Transkription Position fest (3. Marke, 1. sauber)');
+    // Konfigurierbar: FREE_CLEAN_VIDEOS_PER_DAY = 1
+    db.vk = {};
+    w = await plan('tok-user2', UC1, KA); ok(w.clean_videos === 1 && w.watermark === false, 'Konfig: Faktor 1 → erstes Video sauber');
+    await tr('tok-user2', 2, UC1, KA); await tr('tok-user2', 2, UC1, KB);
+    ok((await plan('tok-user2', UC1, KB)).watermark === true && (await plan('tok-user2', UC1, KA)).watermark === false, 'Konfig: 1 sauberes Video pro Tag → 2. markiert, 1. sauber');
+    // Abos aus: nie ein Flag, keine Zählung
+    const offW = await plan('tok-user2', UOFF, KC); ok(offW.enabled === false && !('watermark' in offW), 'Abos aus: kein Wasserzeichen-Flag (Frontend: nie Marke)');
+  } finally { php.kill(); phpV.kill(); phpC1.kill(); phpOff.kill(); sb.close(); groq.close(); paddle.close(); for (const d of [dirOn, dirOff, dirV, dirC1]) fs.rmSync(d, { recursive: true, force: true }); }
   console.log(fails ? `${fails}/${n} FEHLER` : `test-billing: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);
 })();
