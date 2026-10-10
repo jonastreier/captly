@@ -130,6 +130,8 @@ capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidRead
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
+zoomFill:zoomFill,zoomPlan:zoomPlan,zoomFeedback:zoomFeedback,zoomDemoStart:zoomDemoStart,getZoomDemo:function(){return _zoomDemo;},clearZoomDemo:function(){_zoomDemo=null;},
+applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3060,6 +3062,70 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
        && T.zoomScaleAt(z0.e - 0.01, zp, 1.1) < 1.01 && T.zoomScaleAt(z0.e, zp, 1.1) === 1, 'weiches Ein-/Ausfahren (Subtle 1.10)');
     T.setEmphState(true, false, 'off');
     ok(T.zoomAt(1.5) === 1, 'Auto zoom aus → nie Zoom');
+
+    // Lokaler Ersatz (ohne KI) für JEDE Sprache: stärkstes Schlüsselwort je ~6-s-Fenster, ≥ 1 Moment je ~8 s, Abstand ≥ 4 s
+    {
+      const txt = 'We started the small bakery downtown after years of dreaming about fresh sourdough bread. Every morning customers line up outside waiting patiently for warm croissants. Our neighbors tell everybody about the wonderful pastries. Eventually journalists discovered our little shop and wrote glowing reviews everywhere.';
+      const wsz = seqE(txt); // 0,35 s je Wort → ~ 21 s ohne Zahlen
+      T.setState(T.buildCaptionBlocks(wsz), wsz.slice(), 'karaoke');
+      const Be = T.getBlocks(), allW = Be.flatMap(b => b.words), dur = allW[allW.length - 1].end;
+      T.localEmphasis(Be, 'en', dur + 0.3);
+      const zs = allW.filter(w => w.zm).map(w => w.start);
+      ok(!allW.some(w => /\d/.test(w.word)) && zs.length >= Math.floor(dur / 8) && zs.length >= 2, 'Heuristik EN ohne Zahlen: ≥ 1 Zoom-Moment je ~8 s (' + zs.length + ' bei ' + dur.toFixed(1) + ' s)');
+      ok(zs.every((t, i) => !i || t - zs[i - 1] >= 4 - 1e-9), 'Zoom-Momente (lokal) ≥ ZOOM_GAP auseinander: ' + zs.join(', '));
+      const gaps = [zs[0] - allW[0].start].concat(zs.map((t, i) => (i + 1 < zs.length ? zs[i + 1] : dur) - t));
+      ok(Math.max(...gaps) <= 8.5, 'Zoom-Momente (lokal): keine Lücke > ~8 s (max ' + Math.max(...gaps).toFixed(1) + ' s)');
+      ok(allW.filter(w => w.zm).every(w => w.start <= dur - 0.7) && T.zoomFill(Be, 'en', dur + 0.3, 8) === 0, 'Zoom-Momente (lokal): nicht am Videoende, zweiter Lauf setzt nichts mehr');
+      ok(allW.filter(w => w.zm).every(w => w.word.replace(/\W/g, '').length >= 5), 'Zoom-Momente (lokal): nur Inhaltswörter (≥ 5 Zeichen)');
+      // Name mitten im Satz schlägt das längere gewöhnliche Wort (EN), Zahl schlägt beides
+      const nm = seqE('we met Alexander yesterday while shopping'), nb = [{ words: nm, start: 0, end: 3, text: 'x' }];
+      T.localEmphasis(nb, 'en');
+      ok(nm[2].zm === 1 && !nm[4].zm, 'Zoom: Name mitten im Satz hat Vorrang');
+      // Deutsch: Nomen/Zahlen bleiben priorisiert
+      const wd = seqE('Wir bauen seit 1995 unser eigenes Brot und verkaufen jeden Samstag frische Brötchen auf dem Markt');
+      const bd = [{ words: wd, start: 0, end: 5, text: 'x' }]; T.localEmphasis(bd, 'de', 4.6);
+      ok(wd.filter(w => w.zm).length === 1 && wd.find(w => w.zm).word === '1995', 'Zoom (DE): Zahl hat Vorrang vor Nomen');
+      // keine Inhaltswörter → kein Moment, kein Absturz
+      const wn = seqE('and so on and so on and so'); const bn = [{ words: wn, start: 0, end: 3, text: 'x' }];
+      ok(T.zoomFill(bn, 'en', 0, 8) === 0 && !wn.some(w => w.zm), 'Zoom: ohne Inhaltswörter kein Moment');
+      // Nutzer-Aus (kw -1) wird nie zum Zoom-Moment; vorhandene (KI-)Momente bleiben bestehen
+      const wk = seqE('Wunderbar wundervolle fantastische Aussicht heute'), bk = [{ words: wk, start: 0, end: 3, text: 'x' }];
+      wk.forEach(w => { w.kw = -1; }); ok(T.zoomFill(bk, 'de', 0, 8) === 0, 'Zoom: kw = -1 (Nutzer-Aus) wird übersprungen');
+    }
+
+    // Rückmeldung beim Umschalten (Toast mit Anzahl/Hinweis, Vorführung nur bei Pause, nie bei reduzierter Bewegung)
+    {
+      const wz = seqE('Our summer sale starts tomorrow with 50 percent discount on everything inside'), bz = [{ words: wz, start: 0, end: 5, text: 'x' }];
+      T.setState(T.buildCaptionBlocks(wz), wz.slice(), 'karaoke'); T.localEmphasis(T.getBlocks(), 'en', 6);
+      const vidZ = document.getElementById('mainVid');
+      vidZ.duration = 6; T.setVidReady(true); vidZ.paused = true; vidZ.ended = false; vidZ.currentTime = 0;
+      T.setEmphState(true, false, 'off'); T.setReduceMotion(false);
+      T.setEmphZoom('punchy');
+      const n1 = T.zoomPlan().length, fb0 = T.zoomFeedback();
+      ok(n1 >= 1 && fb0.n === n1 && fb0.msg === 'Auto zoom: ' + n1 + (n1 === 1 ? ' moment' : ' moments'), 'Auto zoom: Toast «Auto zoom: N moments» (' + fb0.msg + ')');
+      ok(T.getZoomDemo() && T.getZoomDemo().until > T.getZoomDemo().t0 && Math.abs((T.getZoomDemo().until - T.getZoomDemo().t0) - 1200) < 5, 'Pausiert: Zoom-Vorführung (~1,2 s) gestartet');
+      T.clearZoomDemo();
+      vidZ.paused = false;
+      const fb1 = T.zoomFeedback();
+      ok(T.getZoomDemo() === null && fb1.demo === false && /^Auto zoom: \d/.test(fb1.msg), 'Spielend: Toast, aber keine Vorführung');
+      vidZ.paused = true; T.setReduceMotion(true);
+      const fb = T.zoomFeedback();
+      ok(fb.demo === false && T.getZoomDemo() === null && /Preview animation off \(reduce motion\) — the export includes the zoom/.test(fb.msg) && /^Auto zoom: \d/.test(fb.msg), 'Reduce motion: nur Toast mit Hinweis, keine Vorführung');
+      T.setReduceMotion(false);
+      T.getBlocks().forEach(b => b.words.forEach(w => { delete w.zm; })); T.setEmphState(true, false, 'punchy');
+      const fb2 = T.zoomFeedback();
+      ok(fb2.n === 0 && fb2.msg === 'No zoom moments found — zooms start on key words and numbers' && T.getZoomDemo() === null, 'Null Momente: Hinweis «No zoom moments found…», keine Vorführung');
+      // Vorschau-Transform: Demo skaliert nur das Video; reduzierte Bewegung hält die Vorschau still
+      T.setState(T.buildCaptionBlocks(wz), wz.slice(), 'karaoke'); T.localEmphasis(T.getBlocks(), 'en', 6); T.setEmphState(true, false, 'punchy');
+      const zm0 = T.zoomPlan()[0];
+      vidZ.currentTime = zm0.s + 1 - T.getTimeOff(); T.applyPreviewZoom(vidZ.currentTime);
+      ok(/scale\(1\.1[0-9]+\)/.test(vidZ.style.transform || ''), 'Vorschau: Video-Transform scale(>1) mitten im Zoom-Moment (' + vidZ.style.transform + ')');
+      vidZ.currentTime = zm0.e + 0.5; T.applyPreviewZoom(vidZ.currentTime);
+      ok(!vidZ.style.transform, 'Vorschau: nach dem Moment wieder ohne Transform');
+      vidZ.currentTime = zm0.s + 1; T.setReduceMotion(true); T.applyPreviewZoom(vidZ.currentTime);
+      ok(!vidZ.style.transform, 'Vorschau bei reduzierter Bewegung: kein Transform (Export zoomt trotzdem)');
+      T.setReduceMotion(false); T.setEmphState(true, false, 'off'); T.applyPreviewZoom(vidZ.currentTime); T.setVidReady(false);
+    }
 
     // KI-Anfrage im Hintergrund: Erfolg (Endpoint-Fallback 404 → enhance.php) bzw. Fehler → lokale Heuristik
     T.setState(T.buildCaptionBlocks(ws), ws.slice(), 'karaoke'); B = T.getBlocks();
