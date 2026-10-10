@@ -131,6 +131,7 @@ csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
+capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3922,6 +3923,22 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       });
     }
     ok(bad.length === 0, 'Box-/Pill-Looks: sichtbare Flaeche innerhalb 12,5–87,5 % (Standardsatz + Kompositum)' + (bad.length ? ': ' + bad.slice(0, 6).join('; ') : ''));
+  }
+  // ── Schriften ohne Wortzwischenraeume/ohne Trennmuster: kein Bindestrich mitten im Wort (S2) ──
+  {
+    const hy = (w, max, l) => T.capHyphenate(w, p => Array.from(p).length <= max, l);
+    const cjk = hy('国際連合安全保障理事会', 4);
+    ok(cjk.length >= 3 && cjk.join('') === '国際連合安全保障理事会' && cjk.every(p => !/-/.test(p) && Array.from(p).length <= 4), 'CJK-Langwort: Umbruch an Zeichengrenzen ohne Bindestrich (' + cjk.join(' / ') + ')');
+    ok(hy('国際連合', 8).length === 1, 'CJK: passt es in die Zeile, bleibt das Wort ganz');
+    const kin = hy('今日は、天気がいいです。', 5);
+    ok(kin.join('') === '今日は、天気がいいです。' && kin.every(p => !/^[、。]/.test(p)), 'CJK: kein Satzzeichen am Teilanfang (' + kin.join(' / ') + ')');
+    const th = hy('สวัสดีครับยินดีต้อนรับ', 6);
+    ok(th.join('') === 'สวัสดีครับยินดีต้อนรับ' && th.every(p => !/^\p{M}/u.test(p) && !/-/.test(p)), 'Thai: nie vor einer Kombinationsmarke trennen, kein Bindestrich (' + th.join(' / ') + ')');
+    ['المنظمةالدوليةللتعاونالاقتصادي', 'הארגוןהבינלאומילשיתוףפעולה', 'Διεθνέςοργανισμόςσυνεργασίας', 'अंतर्राष्ट्रीयसहयोगसंगठन'].forEach(w => {
+      ok(hy(w, 5).length === 1, 'Schrift ohne Trennmuster wird nie getrennt: ' + w.slice(0, 8));
+    });
+    ok(hy('Donaudampfschifffahrtsgesellschaft', 12, 'de').length > 1 && hy('Привет-пока-долгожданный', 8, 'en').length >= 1, 'Latein/Kyrillisch trennen weiter wie bisher');
+    ok(T.capHyphEligible('Geschwindigkeit') && !T.capHyphEligible('国際連合安全保障理事会') && !T.capHyphEligible('المنظمةالدولية'), 'capHyphEligible: Skript-Pruefung');
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

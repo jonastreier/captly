@@ -3182,7 +3182,7 @@ function fitCaptionWords(words, s, px, maxW, lines, em) {
   function layoutAt(p) {
     var outW = [], orig = [], hq = 0;
     words.forEach(function(w, i) {
-      if (w.length < 8 || measure(w, p, i) <= maxW) { outW.push(w); orig.push(i); return; } // ≤ 7 Zeichen: nie trennen
+      if ((w.length < 8 && !capSpaceless(w)) || measure(w, p, i) <= maxW) { outW.push(w); orig.push(i); return; } // ≤ 7 Zeichen: nie trennen (CJK: jede Länge, sofern zu breit)
       var pcs = capHyphenate(w, function(piece){ return measure(piece, p, i) <= maxW; });
       // Paar „kurzes Wort + langes Wort“: Trennung so wählen, dass das kurze Wort in die Zeile des
       // angrenzenden Wortteils passt („Das Bundes- / verfassungsgericht“) — nur wenn das die Zeilen hält.
@@ -3451,7 +3451,38 @@ function capJointPenalty(code, lw, b, pts) {
 // Nie trennen: Zahlen, URLs/Domains/E-Mails, @Handles, #Hashtags, Wörter mit ≤ 7 Buchstaben.
 function capHyphEligible(core) {
   if (!core || /[\d@#]/.test(core) || /[.\/:_]/.test(core)) return false;
+  if (!capHyphScriptOk(core)) return false;
   return core.replace(/[^\p{L}]/gu, '').length > 7;
+}
+// Schriften ohne Wortzwischenräume (CJK, Hangul, Thai, Lao, Khmer, Myanmar): ein «Wort» der Transkription ist oft ein ganzer Satzteil.
+// Hier gibt es keine Silbentrennung mit Bindestrich, sondern Umbruch an Zeichengrenzen (capCharSplit).
+var CAP_SPACELESS_RE = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}]/u;
+function capSpaceless(w) { return CAP_SPACELESS_RE.test(w); }
+// Silbentrennung (Liang-Muster) gibt es nur für Latein-Sprachen (de/en/fr/it/es); kyrillische Wörter bleiben wie bisher «trennbar»
+// (Heuristik), alle anderen Schriften (Arabisch, Hebräisch, Griechisch, Devanagari …) werden NIE getrennt — ein Bindestrich mitten im Wort
+// wäre dort falsch, und die Muster einer anderen Sprache passen nicht.
+function capHyphScriptOk(core) {
+  return !/[^\p{Script=Latin}\p{Script=Cyrillic}\p{Script=Common}\p{Script=Inherited}]/u.test(core) && !capSpaceless(core);
+}
+// Umbruch an Zeichengrenzen ohne Bindestrich (CJK/Thai …): so viele Zeichen pro Teil, wie fits() erlaubt. Zeilenanfangs-Verbot (Kinsoku):
+// kein Satzzeichen/Klein-Kana/Dehnstrich am Anfang eines Teils, keine öffnende Klammer am Ende — dann wandert das letzte Zeichen mit.
+// Thai: nie vor Zeichen mit Kombinationsmarken (Vokale/Töne) und nicht hinter Vorderstellern (เ แ โ ใ ไ) trennen.
+var CAP_NO_START_RE = /^[、。，．,.・：；:;？！?!）〕］｝〉》」』】〙〗〟’”»)\]}%‥…ー々〻ぁぃぅぇぉっゃゅょゎゕゖァィゥェォッャュョヮヵヶ゛゜ゝゞヽヾ]/;
+var CAP_NO_END_RE = /[（〔［｛〈《「『【〘〖〝‘“«(\[{เแโใไ]$/;
+function capCharSplit(w, fits) {
+  var cs = Array.from(String(w)), out = [], cur = '', k;
+  for (k = 0; k < cs.length; k++) {
+    var ch = cs[k];
+    if (!cur) { cur = ch; continue; }
+    if (fits(cur + ch)) { cur += ch; continue; }
+    // Umbruch vor ch: Kombinationsmarke/Satzzeichen dürfen nicht Zeilenanfang sein, öffnende Klammer nicht Zeilenende → Zeichen wandert mit
+    var cc = Array.from(cur), head = ch, guard = 0;
+    while (cc.length > 1 && guard++ < 3 && (CAP_NO_START_RE.test(head) || /^\p{M}/u.test(head) || CAP_NO_END_RE.test(cc.join('')))) head = cc.pop() + head;
+    out.push(cc.join(''));
+    cur = head;
+  }
+  if (cur) out.push(cur);
+  return out;
 }
 // fits(piece) → passt das Teilstück (inkl. angehängtem „-“) in die Zeile? lang optional (sonst Transkriptsprache).
 // Groß-/Kleinschreibung ändert die Trennstellen nicht (Muster laufen auf Kleinbuchstaben).
@@ -3459,6 +3490,7 @@ function capHyphenate(w, fits, lang) {
   w = String(w);
   var m = /^([^\p{L}\p{N}#@]*)(.*?)([^\p{L}\p{N}]*)$/u.exec(w) || ['', '', w, ''];
   var lead = m[1], core = m[2], off = lead.length, n = w.length, i;
+  if (capSpaceless(core) && Array.from(core).length > 1 && !/[#@]/.test(w)) return fits(w) ? [w] : capCharSplit(w, fits);
   if (!capHyphEligible(core) || /[#@]/.test(w)) return [w];
   // 1) Wort mit Bindestrich: nur am vorhandenen Bindestrich trennen („Highland-|Rinder“)
   var pen = [], hasHy = false;
