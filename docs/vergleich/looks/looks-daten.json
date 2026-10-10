@@ -1,0 +1,10063 @@
+{
+ "hinweis": "Messdaten Tester B (Looks). Pixel in 1080er-Referenz, Export-Quelle 540x960. Siehe Bericht.",
+ "standbild_vorschau_vs_export": {
+  "hormozi": {
+   "id": "hormozi",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 2,
+    "nom_iou": 0.948,
+    "dev": [
+     2.0,
+     0.0,
+     0,
+     4
+    ],
+    "frame": 10
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 2,
+    "nom_iou": 0.92,
+    "dev": [
+     2.0,
+     1.0,
+     4,
+     2
+    ],
+    "frame": 10
+   },
+   "s2": {
+    "iou": 1.0,
+    "capOffFrames": 4,
+    "videoOffFrames": -4,
+    "capMinusVideo": 4,
+    "frame": 12
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 3,
+     "nomIou": 0.99,
+     "area": 20085,
+     "areaExp": 20504
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 18712,
+     "areaExp": 18403
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.99,
+     "area": 18943,
+     "areaExp": 19251
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 20618,
+     "areaExp": 19978
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 21928,
+     "areaExp": 21888
+    }
+   ]
+  },
+  "note": {
+   "id": "note",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     -1.0,
+     0.0,
+     -2,
+     -4
+    ],
+    "frame": 8
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     0.0,
+     1.0,
+     0,
+     2
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 0.997,
+    "capOffFrames": -1,
+    "videoOffFrames": -1,
+    "capMinusVideo": 1,
+    "frame": 7
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 26839,
+     "areaExp": 27341
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 28639,
+     "areaExp": 29094
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 28825,
+     "areaExp": 29452
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 28931,
+     "areaExp": 29647
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 30098,
+     "areaExp": 28899
+    }
+   ]
+  },
+  "tight": {
+   "id": "tight",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": null,
+    "frame": 8
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 5,
+    "nom_iou": 0.556,
+    "dev": [
+     1.0,
+     -2.0,
+     -2,
+     0
+    ],
+    "frame": 13
+   },
+   "s2": {
+    "iou": 0.918,
+    "capOffFrames": 3,
+    "videoOffFrames": -4,
+    "capMinusVideo": 4,
+    "frame": 11
+   },
+   "anim": [
+    {
+     "iou": 0.99,
+     "off": 3,
+     "nomIou": 0.0,
+     "area": 3236,
+     "areaExp": 3118
+    },
+    {
+     "iou": 1.0,
+     "off": 3,
+     "nomIou": 0.0,
+     "area": 2881,
+     "areaExp": 2813
+    },
+    {
+     "iou": 0.98,
+     "off": 5,
+     "nomIou": 0.0,
+     "area": 3173,
+     "areaExp": 3597
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 0,
+     "areaExp": 0
+    },
+    {
+     "iou": 1.0,
+     "off": 4,
+     "nomIou": 0.0,
+     "area": 4113,
+     "areaExp": 4134
+    }
+   ]
+  },
+  "mix": {
+   "id": "mix",
+   "s0": {
+    "iou": 0.998,
+    "offFrames": 1,
+    "nom_iou": 0.922,
+    "dev": [
+     0.0,
+     -3.0,
+     -4,
+     2
+    ],
+    "frame": 9
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 1,
+    "nom_iou": 0.934,
+    "dev": [
+     1.0,
+     -5.0,
+     -2,
+     -2
+    ],
+    "frame": 9
+   },
+   "s2": {
+    "iou": 0.994,
+    "capOffFrames": 4,
+    "videoOffFrames": -2,
+    "capMinusVideo": 2,
+    "frame": 12
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 6980,
+     "areaExp": 7153
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.99,
+     "area": 1236,
+     "areaExp": 1244
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.99,
+     "area": 2887,
+     "areaExp": 2873
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.97,
+     "area": 5578,
+     "areaExp": 5553
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 1841,
+     "areaExp": 1673
+    }
+   ]
+  },
+  "statement": {
+   "id": "statement",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     -1.0,
+     -1.0,
+     -2,
+     2
+    ],
+    "frame": 8
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     1.0,
+     1.0,
+     -2,
+     2
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 0.921,
+    "capOffFrames": 3,
+    "videoOffFrames": -2,
+    "capMinusVideo": 2,
+    "frame": 11
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 21264,
+     "areaExp": 20241
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 18174,
+     "areaExp": 17468
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 18073,
+     "areaExp": 17544
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 17617,
+     "areaExp": 17483
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 22052,
+     "areaExp": 20986
+    }
+   ]
+  },
+  "accent": {
+   "id": "accent",
+   "s0": {
+    "iou": 0.996,
+    "offFrames": 2,
+    "nom_iou": 0.744,
+    "dev": [
+     -1.0,
+     0.0,
+     -2,
+     4
+    ],
+    "frame": 10
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 1,
+    "nom_iou": 0.948,
+    "dev": [
+     0.0,
+     -1.0,
+     0,
+     -2
+    ],
+    "frame": 9
+   },
+   "s2": {
+    "iou": 0.998,
+    "capOffFrames": 5,
+    "videoOffFrames": -2,
+    "capMinusVideo": 2,
+    "frame": 13
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 3773,
+     "areaExp": 3830
+    },
+    {
+     "iou": 0.99,
+     "off": 1,
+     "nomIou": 0.95,
+     "area": 835,
+     "areaExp": 779
+    },
+    {
+     "iou": 0.99,
+     "off": 1,
+     "nomIou": 0.98,
+     "area": 1781,
+     "areaExp": 1695
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.98,
+     "area": 3147,
+     "areaExp": 3088
+    },
+    {
+     "iou": 1.0,
+     "off": 2,
+     "nomIou": 0.96,
+     "area": 1160,
+     "areaExp": 1125
+    }
+   ]
+  },
+  "serifbold": {
+   "id": "serifbold",
+   "s0": {
+    "iou": 0.997,
+    "offFrames": 3,
+    "nom_iou": 0.527,
+    "dev": [
+     -1.0,
+     1.0,
+     -2,
+     2
+    ],
+    "frame": 11
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 3,
+    "nom_iou": 0.563,
+    "dev": [
+     1.0,
+     0.0,
+     -2,
+     0
+    ],
+    "frame": 11
+   },
+   "s2": {
+    "iou": 0.989,
+    "capOffFrames": 4,
+    "videoOffFrames": -4,
+    "capMinusVideo": 4,
+    "frame": 12
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 6599,
+     "areaExp": 6356
+    },
+    {
+     "iou": 1.0,
+     "off": 2,
+     "nomIou": 0.97,
+     "area": 1090,
+     "areaExp": 1002
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.99,
+     "area": 1883,
+     "areaExp": 1786
+    },
+    {
+     "iou": 1.0,
+     "off": 3,
+     "nomIou": 0.49,
+     "area": 5742,
+     "areaExp": 5450
+    },
+    {
+     "iou": 1.0,
+     "off": 3,
+     "nomIou": 0.97,
+     "area": 1268,
+     "areaExp": 1148
+    }
+   ]
+  },
+  "reveal": {
+   "id": "reveal",
+   "s0": {
+    "iou": 0.997,
+    "offFrames": 2,
+    "nom_iou": 0.49,
+    "dev": [
+     1.0,
+     -2.0,
+     2,
+     0
+    ],
+    "frame": 10
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 2,
+    "nom_iou": 0.498,
+    "dev": [
+     1.0,
+     -3.0,
+     -2,
+     -2
+    ],
+    "frame": 10
+   },
+   "s2": {
+    "iou": 0.993,
+    "capOffFrames": 3,
+    "videoOffFrames": -3,
+    "capMinusVideo": 3,
+    "frame": 11
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 7009,
+     "areaExp": 6893
+    },
+    {
+     "iou": 0.99,
+     "off": 2,
+     "nomIou": 0.89,
+     "area": 819,
+     "areaExp": 752
+    },
+    {
+     "iou": 1.0,
+     "off": 2,
+     "nomIou": 0.94,
+     "area": 1781,
+     "areaExp": 1689
+    },
+    {
+     "iou": 1.0,
+     "off": 3,
+     "nomIou": 0.45,
+     "area": 6257,
+     "areaExp": 6109
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.98,
+     "area": 1114,
+     "areaExp": 1091
+    }
+   ]
+  },
+  "script": {
+   "id": "script",
+   "s0": {
+    "iou": 0.998,
+    "offFrames": 1,
+    "nom_iou": 0.777,
+    "dev": [
+     1.0,
+     -3.0,
+     -2,
+     -2
+    ],
+    "frame": 9
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 1,
+    "nom_iou": 0.943,
+    "dev": [
+     0.0,
+     -3.0,
+     0,
+     -2
+    ],
+    "frame": 9
+   },
+   "s2": {
+    "iou": 0.989,
+    "capOffFrames": 5,
+    "videoOffFrames": -4,
+    "capMinusVideo": 4,
+    "frame": 13
+   },
+   "anim": [
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 5602,
+     "areaExp": 5883
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.99,
+     "area": 1148,
+     "areaExp": 1140
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 2515,
+     "areaExp": 2311
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.98,
+     "area": 4224,
+     "areaExp": 4093
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 1609,
+     "areaExp": 1562
+    }
+   ]
+  },
+  "soft": {
+   "id": "soft",
+   "s0": {
+    "iou": 0.99,
+    "offFrames": 3,
+    "nom_iou": 0.901,
+    "dev": [
+     9.0,
+     -1.0,
+     14,
+     -2
+    ],
+    "frame": 11
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     0.0,
+     0.0,
+     -4,
+     4
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 0.991,
+    "capOffFrames": 8,
+    "videoOffFrames": -3,
+    "capMinusVideo": 3,
+    "frame": 16
+   },
+   "anim": [
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 4770,
+     "areaExp": 4751
+    },
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 1071,
+     "areaExp": 1017
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 2327,
+     "areaExp": 2246
+    },
+    {
+     "iou": 0.99,
+     "off": 2,
+     "nomIou": 0.97,
+     "area": 3868,
+     "areaExp": 3750
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 1507,
+     "areaExp": 1492
+    }
+   ]
+  },
+  "classic": {
+   "id": "classic",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     1.0,
+     0.0,
+     -2,
+     4
+    ],
+    "frame": 8
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     1.0,
+     1.0,
+     -2,
+     2
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 0.994,
+    "capOffFrames": 1,
+    "videoOffFrames": -3,
+    "capMinusVideo": 3,
+    "frame": 9
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 17750,
+     "areaExp": 17149
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 16542,
+     "areaExp": 15859
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 16542,
+     "areaExp": 15791
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 16272,
+     "areaExp": 15647
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 19411,
+     "areaExp": 18384
+    }
+   ]
+  },
+  "boxkara": {
+   "id": "boxkara",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 2,
+    "nom_iou": 0.786,
+    "dev": [
+     1.0,
+     -1.0,
+     -2,
+     2
+    ],
+    "frame": 10
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 1,
+    "nom_iou": 0.482,
+    "dev": [
+     2.0,
+     0.0,
+     0,
+     0
+    ],
+    "frame": 9
+   },
+   "s2": {
+    "iou": 0.988,
+    "capOffFrames": 7,
+    "videoOffFrames": -4,
+    "capMinusVideo": 4,
+    "frame": 15
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 22545,
+     "areaExp": 22423
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 20613,
+     "areaExp": 20527
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.98,
+     "area": 21121,
+     "areaExp": 20881
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.98,
+     "area": 24367,
+     "areaExp": 24010
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 20233,
+     "areaExp": 20699
+    }
+   ]
+  },
+  "beast": {
+   "id": "beast",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 2,
+    "nom_iou": 0.941,
+    "dev": [
+     0.0,
+     2.0,
+     0,
+     4
+    ],
+    "frame": 10
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     -1.0,
+     1.0,
+     -2,
+     -2
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 0.995,
+    "capOffFrames": 0,
+    "videoOffFrames": -2,
+    "capMinusVideo": 2,
+    "frame": 8
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 15721,
+     "areaExp": 15905
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 14514,
+     "areaExp": 14594
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 14506,
+     "areaExp": 14645
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.96,
+     "area": 14337,
+     "areaExp": 14497
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 17460,
+     "areaExp": 17528
+    }
+   ]
+  },
+  "minimal": {
+   "id": "minimal",
+   "s0": {
+    "iou": 0.905,
+    "offFrames": 0,
+    "nom_iou": 0.9,
+    "dev": [
+     3.0,
+     2.0,
+     -10,
+     0
+    ],
+    "frame": 8
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     1.0,
+     1.0,
+     -2,
+     2
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 0.988,
+    "capOffFrames": -1,
+    "videoOffFrames": -7,
+    "capMinusVideo": 7,
+    "frame": 7
+   },
+   "anim": [
+    {
+     "iou": 0.89,
+     "off": 0,
+     "nomIou": 0.89,
+     "area": 5266,
+     "areaExp": 6139
+    },
+    {
+     "iou": 0.96,
+     "off": 8,
+     "nomIou": 0.94,
+     "area": 4928,
+     "areaExp": 5919
+    },
+    {
+     "iou": 0.96,
+     "off": -1,
+     "nomIou": 0.95,
+     "area": 5070,
+     "areaExp": 5919
+    },
+    {
+     "iou": 0.9,
+     "off": -1,
+     "nomIou": 0.89,
+     "area": 4305,
+     "areaExp": 5785
+    },
+    {
+     "iou": 0.93,
+     "off": 18,
+     "nomIou": 0.31,
+     "area": 5976,
+     "areaExp": 7153
+    }
+   ]
+  },
+  "lift": {
+   "id": "lift",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 1,
+    "nom_iou": 0.989,
+    "dev": [
+     3.0,
+     2.0,
+     6,
+     4
+    ],
+    "frame": 9
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 1,
+    "nom_iou": 0.902,
+    "dev": [
+     0.0,
+     0.0,
+     0,
+     4
+    ],
+    "frame": 9
+   },
+   "s2": {
+    "iou": 0.901,
+    "capOffFrames": 0,
+    "videoOffFrames": -2,
+    "capMinusVideo": 2,
+    "frame": 8
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 10444,
+     "areaExp": 10726
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 9208,
+     "areaExp": 9220
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 9499,
+     "areaExp": 9570
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 10175,
+     "areaExp": 10180
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 11486,
+     "areaExp": 11685
+    }
+   ]
+  },
+  "popone": {
+   "id": "popone",
+   "s0": {
+    "iou": 0.999,
+    "offFrames": 1,
+    "nom_iou": 0.975,
+    "dev": [
+     -1.0,
+     2.0,
+     -2,
+     0
+    ],
+    "frame": 9
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 3,
+    "nom_iou": 0.0,
+    "dev": [
+     -2.0,
+     2.0,
+     4,
+     0
+    ],
+    "frame": 11
+   },
+   "s2": {
+    "iou": 0.977,
+    "capOffFrames": 4,
+    "videoOffFrames": -3,
+    "capMinusVideo": 3,
+    "frame": 12
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.99,
+     "area": 5610,
+     "areaExp": 5941
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 5055,
+     "areaExp": 5440
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 5840,
+     "areaExp": 6293
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.99,
+     "area": 17257,
+     "areaExp": 17521
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 5924,
+     "areaExp": 6312
+    }
+   ]
+  },
+  "tiktok": {
+   "id": "tiktok",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     0.0,
+     -2.0,
+     8,
+     0
+    ],
+    "frame": 8
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 1,
+    "nom_iou": 0.993,
+    "dev": [
+     0.0,
+     0.0,
+     0,
+     4
+    ],
+    "frame": 9
+   },
+   "s2": {
+    "iou": 0.998,
+    "capOffFrames": 0,
+    "videoOffFrames": -3,
+    "capMinusVideo": 3,
+    "frame": 8
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 42194,
+     "areaExp": 42543
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 45229,
+     "areaExp": 45205
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 45229,
+     "areaExp": 45217
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 45241,
+     "areaExp": 45172
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 47681,
+     "areaExp": 47431
+    }
+   ]
+  },
+  "hush": {
+   "id": "hush",
+   "s0": {
+    "iou": 0.993,
+    "offFrames": 0,
+    "nom_iou": 0.993,
+    "dev": [
+     0.0,
+     3.0,
+     -4,
+     10
+    ],
+    "frame": 8
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     1.0,
+     1.0,
+     -2,
+     2
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 0.95,
+    "capOffFrames": 14,
+    "videoOffFrames": -3,
+    "capMinusVideo": 3,
+    "frame": 22
+   },
+   "anim": [
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 40544,
+     "areaExp": 38878
+    },
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 43020,
+     "areaExp": 41273
+    },
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 43020,
+     "areaExp": 41610
+    },
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 42881,
+     "areaExp": 41685
+    },
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 45808,
+     "areaExp": 43755
+    }
+   ]
+  },
+  "focus": {
+   "id": "focus",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 2,
+    "nom_iou": 0.705,
+    "dev": [
+     2.0,
+     1.0,
+     0,
+     -2
+    ],
+    "frame": 10
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 8,
+    "nom_iou": 0.608,
+    "dev": [
+     1.0,
+     1.0,
+     -2,
+     -2
+    ],
+    "frame": 16
+   },
+   "s2": {
+    "iou": 0.985,
+    "capOffFrames": 9,
+    "videoOffFrames": -9,
+    "capMinusVideo": 9,
+    "frame": 17
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 16100,
+     "areaExp": 15975
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 14030,
+     "areaExp": 13020
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 14697,
+     "areaExp": 14594
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.96,
+     "area": 17670,
+     "areaExp": 17967
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 17576,
+     "areaExp": 16851
+    }
+   ]
+  },
+  "headline": {
+   "id": "headline",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     0.0,
+     0.0,
+     0,
+     4
+    ],
+    "frame": 8
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     1.0,
+     0.0,
+     -2,
+     0
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 1.0,
+    "capOffFrames": 6,
+    "videoOffFrames": -2,
+    "capMinusVideo": 2,
+    "frame": 14
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 15342,
+     "areaExp": 15160
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 14561,
+     "areaExp": 14072
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 14561,
+     "areaExp": 14094
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 14186,
+     "areaExp": 14099
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 17463,
+     "areaExp": 16629
+    }
+   ]
+  },
+  "stack": {
+   "id": "stack",
+   "s0": {
+    "iou": 0.997,
+    "offFrames": 0,
+    "nom_iou": 0.996,
+    "dev": [
+     0.0,
+     2.0,
+     0,
+     4
+    ],
+    "frame": 8
+   },
+   "s1": {
+    "iou": 0.991,
+    "offFrames": 4,
+    "nom_iou": 0.845,
+    "dev": [
+     3.0,
+     3.0,
+     6,
+     2
+    ],
+    "frame": 12
+   },
+   "s2": {
+    "iou": 0.999,
+    "capOffFrames": 0,
+    "videoOffFrames": -3,
+    "capMinusVideo": 3,
+    "frame": 8
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 45114,
+     "areaExp": 43667
+    },
+    {
+     "iou": 1.0,
+     "off": 2,
+     "nomIou": 0.98,
+     "area": 35658,
+     "areaExp": 34474
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 35634,
+     "areaExp": 34422
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 35492,
+     "areaExp": 34464
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 54074,
+     "areaExp": 52627
+    }
+   ]
+  },
+  "neon": {
+   "id": "neon",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     1.0,
+     0.0,
+     -2,
+     0
+    ],
+    "frame": 8
+   },
+   "s1": {
+    "iou": 0.996,
+    "offFrames": 0,
+    "nom_iou": 0.995,
+    "dev": [
+     0.0,
+     1.0,
+     0,
+     2
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 0.971,
+    "capOffFrames": 18,
+    "videoOffFrames": -18,
+    "capMinusVideo": 18,
+    "frame": 26
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 5406,
+     "areaExp": 5579
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 4446,
+     "areaExp": 4781
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 4467,
+     "areaExp": 4840
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 4312,
+     "areaExp": 4858
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 5524,
+     "areaExp": 5960
+    }
+   ]
+  },
+  "editorial": {
+   "id": "editorial",
+   "s0": {
+    "iou": 0.991,
+    "offFrames": 3,
+    "nom_iou": 0.898,
+    "dev": [
+     -1.0,
+     -1.0,
+     -2,
+     2
+    ],
+    "frame": 11
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 0,
+    "nom_iou": 1.0,
+    "dev": [
+     0.0,
+     0.0,
+     -4,
+     4
+    ],
+    "frame": 8
+   },
+   "s2": {
+    "iou": 0.982,
+    "capOffFrames": 6,
+    "videoOffFrames": -2,
+    "capMinusVideo": 2,
+    "frame": 14
+   },
+   "anim": [
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.98,
+     "area": 3362,
+     "areaExp": 3493
+    },
+    {
+     "iou": 0.98,
+     "off": 1,
+     "nomIou": 0.97,
+     "area": 2932,
+     "areaExp": 2483
+    },
+    {
+     "iou": 0.98,
+     "off": 0,
+     "nomIou": 0.98,
+     "area": 2845,
+     "areaExp": 2536
+    },
+    {
+     "iou": 0.99,
+     "off": 2,
+     "nomIou": 0.99,
+     "area": 3367,
+     "areaExp": 3155
+    },
+    {
+     "iou": 0.99,
+     "off": 0,
+     "nomIou": 0.99,
+     "area": 3955,
+     "areaExp": 3501
+    }
+   ]
+  },
+  "marker": {
+   "id": "marker",
+   "s0": {
+    "iou": 1.0,
+    "offFrames": 2,
+    "nom_iou": 0.754,
+    "dev": [
+     1.0,
+     0.0,
+     -2,
+     4
+    ],
+    "frame": 10
+   },
+   "s1": {
+    "iou": 1.0,
+    "offFrames": 2,
+    "nom_iou": 0.858,
+    "dev": [
+     1.0,
+     -1.0,
+     2,
+     2
+    ],
+    "frame": 10
+   },
+   "s2": {
+    "iou": 0.999,
+    "capOffFrames": 4,
+    "videoOffFrames": -3,
+    "capMinusVideo": 3,
+    "frame": 12
+   },
+   "anim": [
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 10908,
+     "areaExp": 10840
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 9923,
+     "areaExp": 9476
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 10540,
+     "areaExp": 10340
+    },
+    {
+     "iou": 1.0,
+     "off": 1,
+     "nomIou": 0.91,
+     "area": 13804,
+     "areaExp": 13548
+    },
+    {
+     "iou": 1.0,
+     "off": 0,
+     "nomIou": 1.0,
+     "area": 11961,
+     "areaExp": 11672
+    }
+   ]
+  }
+ },
+ "kontrast_lokal_text_vs_umgebung": {
+  "hormozi": {
+   "hell": {
+    "basis": 20.6,
+    "aktiv": 14.7
+   },
+   "dunkel": {
+    "basis": 20.6,
+    "aktiv": 14.7
+   },
+   "bunt": {
+    "basis": 20.5,
+    "aktiv": 13.9
+   }
+  },
+  "note": {
+   "hell": {
+    "basis": 17.5,
+    "aktiv": 17.5
+   },
+   "dunkel": {
+    "basis": 8.4,
+    "aktiv": 8.4
+   },
+   "bunt": {
+    "basis": 17.4,
+    "aktiv": 17.4
+   }
+  },
+  "tight": {
+   "hell": {
+    "basis": 2.1,
+    "aktiv": 2.1
+   },
+   "dunkel": {
+    "basis": 14.9,
+    "aktiv": 14.9
+   },
+   "bunt": {
+    "basis": 2.4,
+    "aktiv": 2.4
+   }
+  },
+  "mix": {
+   "hell": {
+    "basis": 2.1,
+    "aktiv": 2.1
+   },
+   "dunkel": {
+    "basis": 19.0,
+    "aktiv": 19.0
+   },
+   "bunt": {
+    "basis": 1.8,
+    "aktiv": 1.8
+   }
+  },
+  "statement": {
+   "hell": {
+    "basis": 1.6,
+    "aktiv": 2.4
+   },
+   "dunkel": {
+    "basis": 12.4,
+    "aktiv": 19.1
+   },
+   "bunt": {
+    "basis": 5.0,
+    "aktiv": 3.3
+   }
+  },
+  "accent": {
+   "hell": {
+    "basis": 1.9,
+    "aktiv": 1.9
+   },
+   "dunkel": {
+    "basis": 18.8,
+    "aktiv": 18.8
+   },
+   "bunt": {
+    "basis": 5.6,
+    "aktiv": 5.6
+   }
+  },
+  "serifbold": {
+   "hell": {
+    "basis": 2.0,
+    "aktiv": 2.0
+   },
+   "dunkel": {
+    "basis": 19.0,
+    "aktiv": 19.0
+   },
+   "bunt": {
+    "basis": 2.2,
+    "aktiv": 2.2
+   }
+  },
+  "reveal": {
+   "hell": {
+    "basis": 2.0,
+    "aktiv": 2.0
+   },
+   "dunkel": {
+    "basis": 19.1,
+    "aktiv": 19.1
+   },
+   "bunt": {
+    "basis": 2.1,
+    "aktiv": 2.1
+   }
+  },
+  "script": {
+   "hell": {
+    "basis": 2.0,
+    "aktiv": 2.0
+   },
+   "dunkel": {
+    "basis": 19.0,
+    "aktiv": 19.0
+   },
+   "bunt": {
+    "basis": 1.8,
+    "aktiv": 1.8
+   }
+  },
+  "soft": {
+   "hell": {
+    "basis": 2.0,
+    "aktiv": 2.0
+   },
+   "dunkel": {
+    "basis": 19.0,
+    "aktiv": 19.0
+   },
+   "bunt": {
+    "basis": 2.3,
+    "aktiv": 2.3
+   }
+  },
+  "classic": {
+   "hell": {
+    "basis": 20.4,
+    "aktiv": 20.4
+   },
+   "dunkel": {
+    "basis": 20.6,
+    "aktiv": 20.6
+   },
+   "bunt": {
+    "basis": 19.0,
+    "aktiv": 19.0
+   }
+  },
+  "boxkara": {
+   "hell": {
+    "basis": 20.5,
+    "aktiv": 20.5
+   },
+   "dunkel": {
+    "basis": 20.7,
+    "aktiv": 20.7
+   },
+   "bunt": {
+    "basis": 19.3,
+    "aktiv": 19.3
+   }
+  },
+  "beast": {
+   "hell": {
+    "basis": 20.6,
+    "aktiv": 12.8
+   },
+   "dunkel": {
+    "basis": 20.5,
+    "aktiv": 13.0
+   },
+   "bunt": {
+    "basis": 19.7,
+    "aktiv": 4.9
+   }
+  },
+  "minimal": {
+   "hell": {
+    "basis": 1.9,
+    "aktiv": 1.9
+   },
+   "dunkel": {
+    "basis": 8.1,
+    "aktiv": 18.0
+   },
+   "bunt": {
+    "basis": 6.1,
+    "aktiv": 8.0
+   }
+  },
+  "lift": {
+   "hell": {
+    "basis": 2.2,
+    "aktiv": 1.7
+   },
+   "dunkel": {
+    "basis": 18.9,
+    "aktiv": 13.7
+   },
+   "bunt": {
+    "basis": 11.7,
+    "aktiv": 3.8
+   }
+  },
+  "popone": {
+   "hell": {
+    "basis": 20.6,
+    "aktiv": 20.6
+   },
+   "dunkel": {
+    "basis": 20.7,
+    "aktiv": 20.7
+   },
+   "bunt": {
+    "basis": 19.7,
+    "aktiv": 19.7
+   }
+  },
+  "tiktok": {
+   "hell": {
+    "basis": 18.7,
+    "aktiv": 18.7
+   },
+   "dunkel": {
+    "basis": 7.4,
+    "aktiv": 7.4
+   },
+   "bunt": {
+    "basis": 18.7,
+    "aktiv": 18.7
+   }
+  },
+  "hush": {
+   "hell": {
+    "basis": 8.3,
+    "aktiv": 8.3
+   },
+   "dunkel": {
+    "basis": 19.9,
+    "aktiv": 19.9
+   },
+   "bunt": {
+    "basis": 12.8,
+    "aktiv": 12.8
+   }
+  },
+  "focus": {
+   "hell": {
+    "basis": 5.7,
+    "aktiv": null
+   },
+   "dunkel": {
+    "basis": 16.4,
+    "aktiv": null
+   },
+   "bunt": {
+    "basis": 5.7,
+    "aktiv": null
+   }
+  },
+  "headline": {
+   "hell": {
+    "basis": 20.5,
+    "aktiv": 20.5
+   },
+   "dunkel": {
+    "basis": 20.5,
+    "aktiv": 20.5
+   },
+   "bunt": {
+    "basis": 19.7,
+    "aktiv": 19.7
+   }
+  },
+  "stack": {
+   "hell": {
+    "basis": 15.5,
+    "aktiv": 9.5
+   },
+   "dunkel": {
+    "basis": 20.2,
+    "aktiv": 12.3
+   },
+   "bunt": {
+    "basis": 15.8,
+    "aktiv": 10.1
+   }
+  },
+  "neon": {
+   "hell": {
+    "basis": 1.6,
+    "aktiv": 1.0
+   },
+   "dunkel": {
+    "basis": 10.1,
+    "aktiv": 8.1
+   },
+   "bunt": {
+    "basis": 1.5,
+    "aktiv": 2.4
+   }
+  },
+  "editorial": {
+   "hell": {
+    "basis": 1.8,
+    "aktiv": 1.2
+   },
+   "dunkel": {
+    "basis": 17.3,
+    "aktiv": 9.1
+   },
+   "bunt": {
+    "basis": 1.6,
+    "aktiv": 2.1
+   }
+  },
+  "marker": {
+   "hell": {
+    "basis": 1.9,
+    "aktiv": null
+   },
+   "dunkel": {
+    "basis": 18.9,
+    "aktiv": null
+   },
+   "bunt": {
+    "basis": 7.6,
+    "aktiv": null
+   }
+  }
+ },
+ "geometrie_safe_zeilen": {
+  "hormozi": {
+   "safe": {
+    "top": 0.57,
+    "bottom": 0.674,
+    "right": 0.756,
+    "left": 0.243,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    130,
+    546,
+    411,
+    649
+   ],
+   "bboxExp": [
+    131,
+    547,
+    408,
+    647
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -4,
+   "exportSec": 16.819
+  },
+  "note": {
+   "safe": {
+    "top": 0.567,
+    "bottom": 0.684,
+    "right": 0.744,
+    "left": 0.254,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    137,
+    544,
+    402,
+    656
+   ],
+   "bboxExp": [
+    137,
+    544,
+    402,
+    657
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -1,
+   "exportSec": 16.536
+  },
+  "tight": {
+   "safe": {
+    "top": 0.595,
+    "bottom": 0.656,
+    "right": 0.611,
+    "left": 0.391,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    153,
+    575,
+    388,
+    630
+   ],
+   "bboxExp": [
+    211,
+    571,
+    330,
+    630
+   ],
+   "lines": [
+    1,
+    1,
+    1
+   ],
+   "vidOffFrames": -4,
+   "exportSec": 18.948
+  },
+  "mix": {
+   "safe": {
+    "top": 0.623,
+    "bottom": 0.668,
+    "right": 0.761,
+    "left": 0.241,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    130,
+    598,
+    410,
+    642
+   ],
+   "bboxExp": [
+    130,
+    598,
+    411,
+    641
+   ],
+   "lines": [
+    1,
+    1,
+    1
+   ],
+   "vidOffFrames": -2,
+   "exportSec": 17.09
+  },
+  "statement": {
+   "safe": {
+    "top": 0.536,
+    "bottom": 0.681,
+    "right": 0.739,
+    "left": 0.259,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    140,
+    515,
+    399,
+    654
+   ],
+   "bboxExp": [
+    140,
+    515,
+    399,
+    654
+   ],
+   "lines": [
+    3,
+    3,
+    3
+   ],
+   "vidOffFrames": -2,
+   "exportSec": 16.991
+  },
+  "accent": {
+   "safe": {
+    "top": 0.567,
+    "bottom": 0.667,
+    "right": 0.707,
+    "left": 0.293,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    158,
+    544,
+    382,
+    641
+   ],
+   "bboxExp": [
+    158,
+    544,
+    382,
+    640
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -2,
+   "exportSec": 16.643
+  },
+  "serifbold": {
+   "safe": {
+    "top": 0.564,
+    "bottom": 0.665,
+    "right": 0.719,
+    "left": 0.276,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    150,
+    541,
+    388,
+    638
+   ],
+   "bboxExp": [
+    149,
+    541,
+    388,
+    638
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -4,
+   "exportSec": 20.185
+  },
+  "reveal": {
+   "safe": {
+    "top": 0.581,
+    "bottom": 0.67,
+    "right": 0.743,
+    "left": 0.259,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    140,
+    557,
+    401,
+    642
+   ],
+   "bboxExp": [
+    140,
+    558,
+    401,
+    643
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -3,
+   "exportSec": 17.245
+  },
+  "script": {
+   "safe": {
+    "top": 0.575,
+    "bottom": 0.67,
+    "right": 0.717,
+    "left": 0.3,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    162,
+    551,
+    387,
+    641
+   ],
+   "bboxExp": [
+    162,
+    552,
+    387,
+    643
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -3,
+   "exportSec": 16.864
+  },
+  "soft": {
+   "safe": {
+    "top": 0.572,
+    "bottom": 0.669,
+    "right": 0.752,
+    "left": 0.25,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    135,
+    548,
+    405,
+    642
+   ],
+   "bboxExp": [
+    135,
+    549,
+    406,
+    642
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -3,
+   "exportSec": 16.92
+  },
+  "classic": {
+   "safe": {
+    "top": 0.572,
+    "bottom": 0.671,
+    "right": 0.728,
+    "left": 0.269,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    146,
+    548,
+    393,
+    645
+   ],
+   "bboxExp": [
+    145,
+    549,
+    393,
+    644
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -3,
+   "exportSec": 17.493
+  },
+  "boxkara": {
+   "safe": {
+    "top": 0.572,
+    "bottom": 0.683,
+    "right": 0.75,
+    "left": 0.248,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    135,
+    548,
+    406,
+    656
+   ],
+   "bboxExp": [
+    134,
+    549,
+    405,
+    656
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -4,
+   "exportSec": 18.681
+  },
+  "beast": {
+   "safe": {
+    "top": 0.552,
+    "bottom": 0.678,
+    "right": 0.73,
+    "left": 0.27,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    146,
+    530,
+    393,
+    653
+   ],
+   "bboxExp": [
+    146,
+    530,
+    394,
+    651
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -2,
+   "exportSec": 18.065
+  },
+  "minimal": {
+   "safe": {
+    "top": 0.573,
+    "bottom": 0.667,
+    "right": 0.728,
+    "left": 0.267,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    145,
+    549,
+    393,
+    641
+   ],
+   "bboxExp": [
+    144,
+    550,
+    393,
+    640
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -4,
+   "exportSec": 16.898
+  },
+  "lift": {
+   "safe": {
+    "top": 0.572,
+    "bottom": 0.675,
+    "right": 0.763,
+    "left": 0.259,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    140,
+    549,
+    413,
+    649
+   ],
+   "bboxExp": [
+    140,
+    549,
+    412,
+    648
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -2,
+   "exportSec": 18.111
+  },
+  "popone": {
+   "safe": {
+    "top": 0.599,
+    "bottom": 0.683,
+    "right": 0.717,
+    "left": 0.28,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    147,
+    574,
+    390,
+    656
+   ],
+   "bboxExp": [
+    151,
+    575,
+    387,
+    656
+   ],
+   "lines": [
+    1,
+    1,
+    1
+   ],
+   "vidOffFrames": -3,
+   "exportSec": 18.769
+  },
+  "tiktok": {
+   "safe": {
+    "top": 0.543,
+    "bottom": 0.684,
+    "right": 0.815,
+    "left": 0.183,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    98,
+    520,
+    441,
+    656
+   ],
+   "bboxExp": [
+    99,
+    521,
+    440,
+    657
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -3,
+   "exportSec": 17.472
+  },
+  "hush": {
+   "safe": {
+    "top": 0.543,
+    "bottom": 0.679,
+    "right": 0.794,
+    "left": 0.204,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    111,
+    520,
+    428,
+    656
+   ],
+   "bboxExp": [
+    110,
+    521,
+    429,
+    652
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -4,
+   "exportSec": 17.414
+  },
+  "focus": {
+   "safe": {
+    "top": 0.617,
+    "bottom": 0.683,
+    "right": 0.872,
+    "left": 0.154,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    84,
+    593,
+    471,
+    656
+   ],
+   "bboxExp": [
+    83,
+    592,
+    471,
+    656
+   ],
+   "lines": [
+    1,
+    1,
+    1
+   ],
+   "vidOffFrames": -8,
+   "exportSec": 18.194
+  },
+  "headline": {
+   "safe": {
+    "top": 0.562,
+    "bottom": 0.672,
+    "right": 0.741,
+    "left": 0.254,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    137,
+    539,
+    400,
+    646
+   ],
+   "bboxExp": [
+    137,
+    540,
+    400,
+    645
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -3,
+   "exportSec": 17.287
+  },
+  "stack": {
+   "safe": {
+    "top": 0.602,
+    "bottom": 0.681,
+    "right": 0.92,
+    "left": 0.078,
+    "violBottom": false,
+    "violRight": true,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    42,
+    578,
+    497,
+    656
+   ],
+   "bboxExp": [
+    42,
+    578,
+    497,
+    654
+   ],
+   "lines": [
+    1,
+    1,
+    1
+   ],
+   "vidOffFrames": -3,
+   "exportSec": 16.928
+  },
+  "neon": {
+   "safe": {
+    "top": 0.574,
+    "bottom": 0.672,
+    "right": 0.733,
+    "left": 0.272,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    147,
+    551,
+    396,
+    645
+   ],
+   "bboxExp": [
+    147,
+    551,
+    396,
+    645
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -5,
+   "exportSec": 17.45
+  },
+  "editorial": {
+   "safe": {
+    "top": 0.574,
+    "bottom": 0.67,
+    "right": 0.717,
+    "left": 0.28,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    150,
+    550,
+    387,
+    643
+   ],
+   "bboxExp": [
+    151,
+    551,
+    387,
+    643
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -2,
+   "exportSec": 17.368
+  },
+  "marker": {
+   "safe": {
+    "top": 0.568,
+    "bottom": 0.683,
+    "right": 0.756,
+    "left": 0.274,
+    "violBottom": false,
+    "violRight": false,
+    "violTop": false,
+    "violLeft": false
+   },
+   "bboxPrev": [
+    149,
+    544,
+    406,
+    656
+   ],
+   "bboxExp": [
+    148,
+    545,
+    408,
+    656
+   ],
+   "lines": [
+    2,
+    2,
+    2
+   ],
+   "vidOffFrames": -3,
+   "exportSec": 16.84
+  }
+ },
+ "safezone_warnung_app_standardsatz": {
+  "tight": {
+   "warn": 0,
+   "of": 27
+  },
+  "mix": {
+   "warn": 0,
+   "of": 9
+  },
+  "statement": {
+   "warn": 0,
+   "of": 9
+  },
+  "accent": {
+   "warn": 0,
+   "of": 9
+  },
+  "serifbold": {
+   "warn": 0,
+   "of": 9
+  },
+  "reveal": {
+   "warn": 0,
+   "of": 9
+  },
+  "note": {
+   "warn": 0,
+   "of": 9
+  },
+  "script": {
+   "warn": 0,
+   "of": 9
+  },
+  "soft": {
+   "warn": 0,
+   "of": 9
+  },
+  "classic": {
+   "warn": 0,
+   "of": 9
+  },
+  "hormozi": {
+   "warn": 0,
+   "of": 9
+  },
+  "boxkara": {
+   "warn": 0,
+   "of": 9
+  },
+  "beast": {
+   "warn": 0,
+   "of": 9
+  },
+  "minimal": {
+   "warn": 0,
+   "of": 9
+  },
+  "lift": {
+   "warn": 0,
+   "of": 9
+  },
+  "popone": {
+   "warn": 0,
+   "of": 27
+  },
+  "tiktok": {
+   "warn": 0,
+   "of": 9
+  },
+  "hush": {
+   "warn": 0,
+   "of": 9
+  },
+  "focus": {
+   "warn": 0,
+   "of": 9
+  },
+  "headline": {
+   "warn": 0,
+   "of": 9
+  },
+  "stack": {
+   "warn": 3,
+   "of": 9
+  },
+  "neon": {
+   "warn": 0,
+   "of": 9
+  },
+  "editorial": {
+   "warn": 0,
+   "of": 9
+  },
+  "marker": {
+   "warn": 0,
+   "of": 9
+  }
+ },
+ "umbruch": {
+  "de3": {
+   "key": "de3",
+   "lang": "german",
+   "looks": {
+    "tight": {
+     "blocks": 36,
+     "maxR": 0.873636744966443,
+     "minL": 0.12636325503355705,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5768253780718336,
+     "maxSpan": 0.7472734899328859,
+     "minFs": 0.049328859060402686,
+     "maxFs": 0.14093959731543623,
+     "dir": "ltr",
+     "rtlOk": [],
+     "widest": {
+      "bi": 20,
+      "t": 5.7299999999999995,
+      "w": 0.7472734899328859,
+      "lines": 1,
+      "txt": "kompliziertes"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.372,
+       "r": 0.686,
+       "l": 0.314,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 1,
+       "w": 0.412,
+       "r": 0.706,
+       "l": 0.294,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 2,
+       "w": 0.192,
+       "r": 0.596,
+       "l": 0.404,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 3,
+       "w": 0.161,
+       "r": 0.58,
+       "l": 0.42,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 4,
+       "w": 0.111,
+       "r": 0.555,
+       "l": 0.445,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 5,
+       "w": 0.454,
+       "r": 0.727,
+       "l": 0.273,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 6,
+       "w": 0.429,
+       "r": 0.715,
+       "l": 0.285,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 7,
+       "w": 0.363,
+       "r": 0.681,
+       "l": 0.319,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 8,
+       "w": 0.218,
+       "r": 0.609,
+       "l": 0.391,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 9,
+       "w": 0.442,
+       "r": 0.721,
+       "l": 0.279,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 10,
+       "w": 0.24,
+       "r": 0.62,
+       "l": 0.38,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 11,
+       "w": 0.457,
+       "r": 0.729,
+       "l": 0.271,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 12,
+       "w": 0.16,
+       "r": 0.58,
+       "l": 0.42,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 13,
+       "w": 0.341,
+       "r": 0.671,
+       "l": 0.329,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 14,
+       "w": 0.575,
+       "r": 0.787,
+       "l": 0.213,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 15,
+       "w": 0.533,
+       "r": 0.767,
+       "l": 0.233,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 16,
+       "w": 0.426,
+       "r": 0.713,
+       "l": 0.287,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 17,
+       "w": 0.313,
+       "r": 0.657,
+       "l": 0.343,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 18,
+       "w": 0.33,
+       "r": 0.665,
+       "l": 0.335,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 19,
+       "w": 0.578,
+       "r": 0.789,
+       "l": 0.211,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 20,
+       "w": 0.747,
+       "r": 0.874,
+       "l": 0.126,
+       "lines": 1,
+       "fs": 136.4
+      },
+      {
+       "bi": 21,
+       "w": 0.649,
+       "r": 0.825,
+       "l": 0.175,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 22,
+       "w": 0.152,
+       "r": 0.576,
+       "l": 0.424,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 23,
+       "w": 0.591,
+       "r": 0.795,
+       "l": 0.205,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 24,
+       "w": 0.24,
+       "r": 0.62,
+       "l": 0.38,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 25,
+       "w": 0.563,
+       "r": 0.782,
+       "l": 0.218,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 26,
+       "w": 0.304,
+       "r": 0.652,
+       "l": 0.348,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 27,
+       "w": 0.281,
+       "r": 0.641,
+       "l": 0.359,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 28,
+       "w": 0.747,
+       "r": 0.874,
+       "l": 0.126,
+       "lines": 1,
+       "fs": 144
+      },
+      {
+       "bi": 29,
+       "w": 0.225,
+       "r": 0.612,
+       "l": 0.387,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 30,
+       "w": 0.218,
+       "r": 0.609,
+       "l": 0.391,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 31,
+       "w": 0.552,
+       "r": 0.776,
+       "l": 0.224,
+       "lines": 2,
+       "fs": 53.3
+      },
+      {
+       "bi": 32,
+       "w": 0.438,
+       "r": 0.719,
+       "l": 0.281,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 33,
+       "w": 0.349,
+       "r": 0.674,
+       "l": 0.326,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 34,
+       "w": 0.158,
+       "r": 0.579,
+       "l": 0.421,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 35,
+       "w": 0.736,
+       "r": 0.868,
+       "l": 0.132,
+       "lines": 2,
+       "fs": 53.3
+      }
+     ],
+     "exportSec": 23.444
+    },
+    "mix": {
+     "blocks": 20,
+     "maxR": 0.8719064597315436,
+     "minL": 0.12809354026845637,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.6151346880907372,
+     "maxSpan": 0.7438129194630873,
+     "minFs": 0.03720805369127517,
+     "maxFs": 0.10630872483221476,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 16,
+      "t": 8.790000000000001,
+      "w": 0.7438129194630871,
+      "lines": 1,
+      "txt": "Donaudampfschifffahrtsgesellschaftskapitän"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.515,
+       "r": 0.758,
+       "l": 0.242,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 1,
+       "w": 0.24,
+       "r": 0.62,
+       "l": 0.38,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 2,
+       "w": 0.662,
+       "r": 0.831,
+       "l": 0.169,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 3,
+       "w": 0.653,
+       "r": 0.826,
+       "l": 0.174,
+       "lines": 1,
+       "fs": 114.8
+      },
+      {
+       "bi": 4,
+       "w": 0.577,
+       "r": 0.788,
+       "l": 0.212,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 5,
+       "w": 0.583,
+       "r": 0.791,
+       "l": 0.209,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 6,
+       "w": 0.587,
+       "r": 0.793,
+       "l": 0.207,
+       "lines": 1,
+       "fs": 114.8
+      },
+      {
+       "bi": 7,
+       "w": 0.425,
+       "r": 0.712,
+       "l": 0.288,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 8,
+       "w": 0.359,
+       "r": 0.679,
+       "l": 0.321,
+       "lines": 1,
+       "fs": 114.8
+      },
+      {
+       "bi": 9,
+       "w": 0.496,
+       "r": 0.748,
+       "l": 0.252,
+       "lines": 1,
+       "fs": 114.8
+      },
+      {
+       "bi": 10,
+       "w": 0.405,
+       "r": 0.702,
+       "l": 0.298,
+       "lines": 1,
+       "fs": 114.8
+      },
+      {
+       "bi": 11,
+       "w": 0.488,
+       "r": 0.744,
+       "l": 0.256,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 12,
+       "w": 0.527,
+       "r": 0.763,
+       "l": 0.237,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 13,
+       "w": 0.388,
+       "r": 0.694,
+       "l": 0.306,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 14,
+       "w": 0.452,
+       "r": 0.726,
+       "l": 0.274,
+       "lines": 1,
+       "fs": 114.8
+      },
+      {
+       "bi": 15,
+       "w": 0.298,
+       "r": 0.649,
+       "l": 0.351,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 16,
+       "w": 0.744,
+       "r": 0.872,
+       "l": 0.128,
+       "lines": 1,
+       "fs": 52.1
+      },
+      {
+       "bi": 17,
+       "w": 0.277,
+       "r": 0.638,
+       "l": 0.362,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 18,
+       "w": 0.33,
+       "r": 0.665,
+       "l": 0.335,
+       "lines": 1,
+       "fs": 114.8
+      },
+      {
+       "bi": 19,
+       "w": 0.46,
+       "r": 0.73,
+       "l": 0.27,
+       "lines": 2,
+       "fs": 40.2
+      }
+     ]
+    },
+    "statement": {
+     "blocks": 14,
+     "maxR": 0.8671350671140939,
+     "minL": 0.13286493288590603,
+     "maxLines": 3,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5314272211720227,
+     "maxSpan": 0.7342701342281879,
+     "minFs": 0.04785234899328859,
+     "maxFs": 0.09261744966442953,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 10,
+      "t": 8.790000000000001,
+      "w": 0.7342701342281879,
+      "lines": 3,
+      "txt": "DONAUDAMPF- SCHIFFFAHRTS- GESELLSCHAFTSKAPITÄN"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.412,
+       "r": 0.706,
+       "l": 0.294,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 1,
+       "w": 0.54,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 2,
+       "w": 0.71,
+       "r": 0.855,
+       "l": 0.145,
+       "lines": 2,
+       "fs": 100
+      },
+      {
+       "bi": 3,
+       "w": 0.658,
+       "r": 0.829,
+       "l": 0.171,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 4,
+       "w": 0.68,
+       "r": 0.84,
+       "l": 0.16,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 5,
+       "w": 0.718,
+       "r": 0.859,
+       "l": 0.141,
+       "lines": 1,
+       "fs": 85
+      },
+      {
+       "bi": 6,
+       "w": 0.611,
+       "r": 0.805,
+       "l": 0.195,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 7,
+       "w": 0.572,
+       "r": 0.786,
+       "l": 0.214,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 8,
+       "w": 0.729,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 2,
+       "fs": 85
+      },
+      {
+       "bi": 9,
+       "w": 0.455,
+       "r": 0.727,
+       "l": 0.273,
+       "lines": 1,
+       "fs": 100
+      },
+      {
+       "bi": 10,
+       "w": 0.734,
+       "r": 0.867,
+       "l": 0.133,
+       "lines": 3,
+       "fs": 54.6
+      },
+      {
+       "bi": 11,
+       "w": 0.393,
+       "r": 0.696,
+       "l": 0.304,
+       "lines": 1,
+       "fs": 100
+      },
+      {
+       "bi": 12,
+       "w": 0.292,
+       "r": 0.646,
+       "l": 0.354,
+       "lines": 2,
+       "fs": 100
+      },
+      {
+       "bi": 13,
+       "w": 0.727,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 3,
+       "fs": 51.7
+      }
+     ]
+    },
+    "accent": {
+     "blocks": 13,
+     "maxR": 0.8672399328859061,
+     "minL": 0.13270763422818793,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5562086483931947,
+     "maxSpan": 0.7345322986577181,
+     "minFs": 0.056742281879194625,
+     "maxFs": 0.10316778523489933,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 9,
+      "t": 8.790000000000001,
+      "w": 0.7345322986577181,
+      "lines": 2,
+      "txt": "Donaudampfschifffahrts- gesellschaftskapitän"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.545,
+       "r": 0.773,
+       "l": 0.227,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 1,
+       "w": 0.504,
+       "r": 0.752,
+       "l": 0.248,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 2,
+       "w": 0.477,
+       "r": 0.738,
+       "l": 0.262,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 3,
+       "w": 0.728,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 1,
+       "fs": 91.3
+      },
+      {
+       "bi": 4,
+       "w": 0.601,
+       "r": 0.801,
+       "l": 0.199,
+       "lines": 2,
+       "fs": 111.4
+      },
+      {
+       "bi": 5,
+       "w": 0.503,
+       "r": 0.752,
+       "l": 0.248,
+       "lines": 2,
+       "fs": 111.4
+      },
+      {
+       "bi": 6,
+       "w": 0.504,
+       "r": 0.752,
+       "l": 0.248,
+       "lines": 2,
+       "fs": 111.4
+      },
+      {
+       "bi": 7,
+       "w": 0.539,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 8,
+       "w": 0.461,
+       "r": 0.73,
+       "l": 0.27,
+       "lines": 2,
+       "fs": 111.4
+      },
+      {
+       "bi": 9,
+       "w": 0.735,
+       "r": 0.867,
+       "l": 0.133,
+       "lines": 2,
+       "fs": 85
+      },
+      {
+       "bi": 10,
+       "w": 0.275,
+       "r": 0.638,
+       "l": 0.362,
+       "lines": 1,
+       "fs": 91.3
+      },
+      {
+       "bi": 11,
+       "w": 0.215,
+       "r": 0.607,
+       "l": 0.393,
+       "lines": 2,
+       "fs": 111.4
+      },
+      {
+       "bi": 12,
+       "w": 0.732,
+       "r": 0.866,
+       "l": 0.134,
+       "lines": 2,
+       "fs": 61.3
+      }
+     ]
+    },
+    "serifbold": {
+     "blocks": 13,
+     "maxR": 0.872378355704698,
+     "minL": 0.127621644295302,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5466387051039697,
+     "maxSpan": 0.7288695469798657,
+     "minFs": 0.04369127516778523,
+     "maxFs": 0.08456375838926174,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.17,
+      "w": 0.744756711409396,
+      "lines": 1,
+      "txt": "du deine Untertitel"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.529,
+       "r": 0.765,
+       "l": 0.235,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 1,
+       "w": 0.535,
+       "r": 0.767,
+       "l": 0.233,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 2,
+       "w": 0.462,
+       "r": 0.731,
+       "l": 0.269,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 3,
+       "w": 0.745,
+       "r": 0.872,
+       "l": 0.128,
+       "lines": 1,
+       "fs": 91.3
+      },
+      {
+       "bi": 4,
+       "w": 0.649,
+       "r": 0.824,
+       "l": 0.176,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 5,
+       "w": 0.56,
+       "r": 0.78,
+       "l": 0.22,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 6,
+       "w": 0.481,
+       "r": 0.741,
+       "l": 0.259,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 7,
+       "w": 0.525,
+       "r": 0.763,
+       "l": 0.237,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 8,
+       "w": 0.533,
+       "r": 0.767,
+       "l": 0.233,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 9,
+       "w": 0.705,
+       "r": 0.852,
+       "l": 0.148,
+       "lines": 2,
+       "fs": 61.3
+      },
+      {
+       "bi": 10,
+       "w": 0.271,
+       "r": 0.636,
+       "l": 0.364,
+       "lines": 1,
+       "fs": 91.3
+      },
+      {
+       "bi": 11,
+       "w": 0.227,
+       "r": 0.614,
+       "l": 0.386,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 12,
+       "w": 0.729,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 2,
+       "fs": 47.2
+      }
+     ]
+    },
+    "reveal": {
+     "blocks": 13,
+     "maxR": 0.8724307885906041,
+     "minL": 0.12751677852348994,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5715678166351607,
+     "maxSpan": 0.7449140100671141,
+     "minFs": 0.04307315436241611,
+     "maxFs": 0.09484026845637583,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 12,
+      "t": 13.090000000000002,
+      "w": 0.7449140100671141,
+      "lines": 2,
+      "txt": "lentokonesuihkuturbiinimootto- riapumekaanikkoaliupseerioppilas"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.488,
+       "r": 0.744,
+       "l": 0.256,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 1,
+       "w": 0.544,
+       "r": 0.772,
+       "l": 0.228,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 2,
+       "w": 0.428,
+       "r": 0.714,
+       "l": 0.286,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 3,
+       "w": 0.709,
+       "r": 0.855,
+       "l": 0.145,
+       "lines": 2,
+       "fs": 73.4
+      },
+      {
+       "bi": 4,
+       "w": 0.395,
+       "r": 0.697,
+       "l": 0.303,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 5,
+       "w": 0.641,
+       "r": 0.821,
+       "l": 0.179,
+       "lines": 2,
+       "fs": 102.4
+      },
+      {
+       "bi": 6,
+       "w": 0.492,
+       "r": 0.746,
+       "l": 0.254,
+       "lines": 2,
+       "fs": 102.4
+      },
+      {
+       "bi": 7,
+       "w": 0.484,
+       "r": 0.742,
+       "l": 0.258,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 8,
+       "w": 0.616,
+       "r": 0.808,
+       "l": 0.192,
+       "lines": 2,
+       "fs": 102.4
+      },
+      {
+       "bi": 9,
+       "w": 0.708,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 59.3
+      },
+      {
+       "bi": 10,
+       "w": 0.249,
+       "r": 0.625,
+       "l": 0.375,
+       "lines": 1,
+       "fs": 80
+      },
+      {
+       "bi": 11,
+       "w": 0.269,
+       "r": 0.635,
+       "l": 0.365,
+       "lines": 2,
+       "fs": 102.4
+      },
+      {
+       "bi": 12,
+       "w": 0.745,
+       "r": 0.872,
+       "l": 0.128,
+       "lines": 2,
+       "fs": 46.5
+      }
+     ]
+    },
+    "note": {
+     "blocks": 13,
+     "maxR": 0.934878355704698,
+     "minL": 0.06506921140939598,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5667828449905482,
+     "maxSpan": 0.6097420302013423,
+     "minFs": 0.035285906040268454,
+     "maxFs": 0.06829530201342282,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 1,
+      "t": 2.35,
+      "w": 0.869809144295302,
+      "lines": 1,
+      "txt": "in diesem kurzen Video"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.545,
+       "r": 0.772,
+       "l": 0.228,
+       "lines": 2,
+       "fs": 69.6
+      },
+      {
+       "bi": 1,
+       "w": 0.87,
+       "r": 0.935,
+       "l": 0.065,
+       "lines": 1,
+       "fs": 69.6
+      },
+      {
+       "bi": 2,
+       "w": 0.493,
+       "r": 0.746,
+       "l": 0.254,
+       "lines": 2,
+       "fs": 69.6
+      },
+      {
+       "bi": 3,
+       "w": 0.727,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 1,
+       "fs": 69.6
+      },
+      {
+       "bi": 4,
+       "w": 0.648,
+       "r": 0.824,
+       "l": 0.176,
+       "lines": 2,
+       "fs": 73.8
+      },
+      {
+       "bi": 5,
+       "w": 0.583,
+       "r": 0.791,
+       "l": 0.209,
+       "lines": 2,
+       "fs": 73.8
+      },
+      {
+       "bi": 6,
+       "w": 0.513,
+       "r": 0.756,
+       "l": 0.244,
+       "lines": 2,
+       "fs": 73.8
+      },
+      {
+       "bi": 7,
+       "w": 0.541,
+       "r": 0.771,
+       "l": 0.229,
+       "lines": 2,
+       "fs": 69.6
+      },
+      {
+       "bi": 8,
+       "w": 0.564,
+       "r": 0.782,
+       "l": 0.218,
+       "lines": 2,
+       "fs": 73.8
+      },
+      {
+       "bi": 9,
+       "w": 0.714,
+       "r": 0.857,
+       "l": 0.143,
+       "lines": 2,
+       "fs": 49.8
+      },
+      {
+       "bi": 10,
+       "w": 0.337,
+       "r": 0.669,
+       "l": 0.331,
+       "lines": 1,
+       "fs": 69.6
+      },
+      {
+       "bi": 11,
+       "w": 0.315,
+       "r": 0.657,
+       "l": 0.343,
+       "lines": 2,
+       "fs": 73.8
+      },
+      {
+       "bi": 12,
+       "w": 0.731,
+       "r": 0.865,
+       "l": 0.135,
+       "lines": 2,
+       "fs": 38.1
+      }
+     ],
+     "exportSec": 22.529
+    },
+    "script": {
+     "blocks": 13,
+     "maxR": 0.8596895973154363,
+     "minL": 0.14031040268456377,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.568023393194707,
+     "maxSpan": 0.7193791946308725,
+     "minFs": 0.06471476510067115,
+     "maxFs": 0.10711409395973155,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 9,
+      "t": 8.790000000000001,
+      "w": 0.7193791946308725,
+      "lines": 2,
+      "txt": "Donaudampfschifffahrts- gesellschaftskapitän"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.52,
+       "r": 0.76,
+       "l": 0.24,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 1,
+       "w": 0.476,
+       "r": 0.738,
+       "l": 0.262,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 2,
+       "w": 0.47,
+       "r": 0.735,
+       "l": 0.265,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 3,
+       "w": 0.714,
+       "r": 0.857,
+       "l": 0.143,
+       "lines": 1,
+       "fs": 82.6
+      },
+      {
+       "bi": 4,
+       "w": 0.598,
+       "r": 0.799,
+       "l": 0.201,
+       "lines": 2,
+       "fs": 115.7
+      },
+      {
+       "bi": 5,
+       "w": 0.464,
+       "r": 0.732,
+       "l": 0.268,
+       "lines": 2,
+       "fs": 115.7
+      },
+      {
+       "bi": 6,
+       "w": 0.491,
+       "r": 0.745,
+       "l": 0.255,
+       "lines": 2,
+       "fs": 115.7
+      },
+      {
+       "bi": 7,
+       "w": 0.533,
+       "r": 0.766,
+       "l": 0.233,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 8,
+       "w": 0.443,
+       "r": 0.722,
+       "l": 0.278,
+       "lines": 2,
+       "fs": 115.7
+      },
+      {
+       "bi": 9,
+       "w": 0.719,
+       "r": 0.86,
+       "l": 0.14,
+       "lines": 2,
+       "fs": 89.2
+      },
+      {
+       "bi": 10,
+       "w": 0.289,
+       "r": 0.645,
+       "l": 0.355,
+       "lines": 1,
+       "fs": 82.6
+      },
+      {
+       "bi": 11,
+       "w": 0.204,
+       "r": 0.602,
+       "l": 0.398,
+       "lines": 2,
+       "fs": 115.7
+      },
+      {
+       "bi": 12,
+       "w": 0.708,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 69.9
+      }
+     ]
+    },
+    "soft": {
+     "blocks": 13,
+     "maxR": 0.8597944630872483,
+     "minL": 0.14020553691275167,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7159186241610739,
+     "minFs": 0.03936241610738255,
+     "maxFs": 0.09261744966442953,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 4,
+      "t": 5.21,
+      "w": 0.7195889261744965,
+      "lines": 2,
+      "txt": "erstellen kannst ohne dafür"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.539,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.568,
+       "r": 0.784,
+       "l": 0.216,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.49,
+       "r": 0.745,
+       "l": 0.255,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.449,
+       "r": 0.724,
+       "l": 0.276,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.72,
+       "r": 0.86,
+       "l": 0.14,
+       "lines": 2,
+       "fs": 100
+      },
+      {
+       "bi": 5,
+       "w": 0.648,
+       "r": 0.824,
+       "l": 0.176,
+       "lines": 2,
+       "fs": 100
+      },
+      {
+       "bi": 6,
+       "w": 0.518,
+       "r": 0.759,
+       "l": 0.241,
+       "lines": 2,
+       "fs": 100
+      },
+      {
+       "bi": 7,
+       "w": 0.554,
+       "r": 0.777,
+       "l": 0.223,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.616,
+       "r": 0.808,
+       "l": 0.192,
+       "lines": 2,
+       "fs": 100
+      },
+      {
+       "bi": 9,
+       "w": 0.712,
+       "r": 0.856,
+       "l": 0.144,
+       "lines": 2,
+       "fs": 57.5
+      },
+      {
+       "bi": 10,
+       "w": 0.299,
+       "r": 0.649,
+       "l": 0.351,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 11,
+       "w": 0.279,
+       "r": 0.639,
+       "l": 0.361,
+       "lines": 2,
+       "fs": 100
+      },
+      {
+       "bi": 12,
+       "w": 0.716,
+       "r": 0.858,
+       "l": 0.142,
+       "lines": 2,
+       "fs": 42.5
+      }
+     ]
+    },
+    "classic": {
+     "blocks": 15,
+     "maxR": 0.8728502516778524,
+     "minL": 0.12709731543624161,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7457529362416108,
+     "minFs": 0.03157046979865771,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 9,
+      "t": 7.81,
+      "w": 0.7457529362416108,
+      "lines": 2,
+      "txt": "ALLES PROFESSIONELL"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.656,
+       "r": 0.828,
+       "l": 0.172,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.721,
+       "r": 0.86,
+       "l": 0.14,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.628,
+       "r": 0.814,
+       "l": 0.186,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.605,
+       "r": 0.803,
+       "l": 0.197,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.559,
+       "r": 0.78,
+       "l": 0.22,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.605,
+       "r": 0.803,
+       "l": 0.197,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 6,
+       "w": 0.712,
+       "r": 0.856,
+       "l": 0.144,
+       "lines": 1,
+       "fs": 87.3
+      },
+      {
+       "bi": 7,
+       "w": 0.659,
+       "r": 0.83,
+       "l": 0.17,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 8,
+       "w": 0.73,
+       "r": 0.865,
+       "l": 0.135,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 9,
+       "w": 0.746,
+       "r": 0.873,
+       "l": 0.127,
+       "lines": 2,
+       "fs": 79.7
+      },
+      {
+       "bi": 10,
+       "w": 0.405,
+       "r": 0.703,
+       "l": 0.297,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 11,
+       "w": 0.743,
+       "r": 0.871,
+       "l": 0.129,
+       "lines": 2,
+       "fs": 47.1
+      },
+      {
+       "bi": 12,
+       "w": 0.338,
+       "r": 0.669,
+       "l": 0.331,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 13,
+       "w": 0.291,
+       "r": 0.646,
+       "l": 0.354,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 14,
+       "w": 0.727,
+       "r": 0.863,
+       "l": 0.137,
+       "lines": 2,
+       "fs": 34.1
+      }
+     ]
+    },
+    "hormozi": {
+     "blocks": 15,
+     "maxR": 0.8687604865771812,
+     "minL": 0.13118708053691275,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7852942959574245,
+     "minFs": 0.0334496644295302,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 6,
+      "t": 5.7299999999999995,
+      "w": 0.7375734060402684,
+      "lines": 1,
+      "txt": "KOMPLIZIERTES"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.651,
+       "r": 0.825,
+       "l": 0.175,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.715,
+       "r": 0.858,
+       "l": 0.142,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.624,
+       "r": 0.812,
+       "l": 0.188,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.595,
+       "r": 0.798,
+       "l": 0.202,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.55,
+       "r": 0.775,
+       "l": 0.225,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.602,
+       "r": 0.801,
+       "l": 0.199,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 6,
+       "w": 0.738,
+       "r": 0.869,
+       "l": 0.131,
+       "lines": 1,
+       "fs": 92.1
+      },
+      {
+       "bi": 7,
+       "w": 0.655,
+       "r": 0.827,
+       "l": 0.173,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 8,
+       "w": 0.724,
+       "r": 0.862,
+       "l": 0.138,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 9,
+       "w": 0.716,
+       "r": 0.858,
+       "l": 0.142,
+       "lines": 2,
+       "fs": 77.9
+      },
+      {
+       "bi": 10,
+       "w": 0.405,
+       "r": 0.702,
+       "l": 0.298,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 11,
+       "w": 0.72,
+       "r": 0.86,
+       "l": 0.14,
+       "lines": 2,
+       "fs": 47.1
+      },
+      {
+       "bi": 12,
+       "w": 0.333,
+       "r": 0.666,
+       "l": 0.334,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 13,
+       "w": 0.287,
+       "r": 0.644,
+       "l": 0.356,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 14,
+       "w": 0.736,
+       "r": 0.868,
+       "l": 0.132,
+       "lines": 2,
+       "fs": 36.1
+      }
+     ],
+     "exportSec": 22.109
+    },
+    "boxkara": {
+     "blocks": 15,
+     "maxR": 0.8687604865771812,
+     "minL": 0.13118708053691275,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7375734060402684,
+     "minFs": 0.0334496644295302,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 6,
+      "t": 5.7299999999999995,
+      "w": 0.7375734060402684,
+      "lines": 1,
+      "txt": "KOMPLIZIERTES"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.671,
+       "r": 0.835,
+       "l": 0.165,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.735,
+       "r": 0.868,
+       "l": 0.132,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.644,
+       "r": 0.822,
+       "l": 0.178,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.595,
+       "r": 0.798,
+       "l": 0.202,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.55,
+       "r": 0.775,
+       "l": 0.225,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.622,
+       "r": 0.811,
+       "l": 0.189,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 6,
+       "w": 0.738,
+       "r": 0.869,
+       "l": 0.131,
+       "lines": 1,
+       "fs": 92.1
+      },
+      {
+       "bi": 7,
+       "w": 0.675,
+       "r": 0.838,
+       "l": 0.162,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 8,
+       "w": 0.686,
+       "r": 0.843,
+       "l": 0.157,
+       "lines": 2,
+       "fs": 79.7
+      },
+      {
+       "bi": 9,
+       "w": 0.733,
+       "r": 0.866,
+       "l": 0.134,
+       "lines": 2,
+       "fs": 79.7
+      },
+      {
+       "bi": 10,
+       "w": 0.425,
+       "r": 0.712,
+       "l": 0.287,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 11,
+       "w": 0.72,
+       "r": 0.86,
+       "l": 0.14,
+       "lines": 2,
+       "fs": 47.1
+      },
+      {
+       "bi": 12,
+       "w": 0.333,
+       "r": 0.666,
+       "l": 0.334,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 13,
+       "w": 0.287,
+       "r": 0.644,
+       "l": 0.356,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 14,
+       "w": 0.736,
+       "r": 0.868,
+       "l": 0.132,
+       "lines": 2,
+       "fs": 36.1
+      }
+     ]
+    },
+    "beast": {
+     "blocks": 13,
+     "maxR": 0.8744232382550335,
+     "minL": 0.1255243288590604,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5441576086956522,
+     "maxSpan": 0.7488989093959731,
+     "minFs": 0.05219664429530201,
+     "maxFs": 0.10102550335570469,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 12,
+      "t": 13.090000000000002,
+      "w": 0.7488989093959731,
+      "lines": 2,
+      "txt": "LENTOKONESUIHKUTURBIINIMOOTTO- RIAPUMEKAANIKKOALIUPSEERIOPPILAS"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.454,
+       "r": 0.727,
+       "l": 0.273,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 1,
+       "w": 0.495,
+       "r": 0.747,
+       "l": 0.253,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.428,
+       "r": 0.714,
+       "l": 0.286,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 3,
+       "w": 0.737,
+       "r": 0.869,
+       "l": 0.131,
+       "lines": 1,
+       "fs": 97.4
+      },
+      {
+       "bi": 4,
+       "w": 0.709,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 109.1
+      },
+      {
+       "bi": 5,
+       "w": 0.544,
+       "r": 0.772,
+       "l": 0.228,
+       "lines": 2,
+       "fs": 109.1
+      },
+      {
+       "bi": 6,
+       "w": 0.455,
+       "r": 0.728,
+       "l": 0.272,
+       "lines": 2,
+       "fs": 109.1
+      },
+      {
+       "bi": 7,
+       "w": 0.508,
+       "r": 0.754,
+       "l": 0.246,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 8,
+       "w": 0.54,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 2,
+       "fs": 109.1
+      },
+      {
+       "bi": 9,
+       "w": 0.728,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 2,
+       "fs": 75
+      },
+      {
+       "bi": 10,
+       "w": 0.242,
+       "r": 0.621,
+       "l": 0.379,
+       "lines": 1,
+       "fs": 97.4
+      },
+      {
+       "bi": 11,
+       "w": 0.2,
+       "r": 0.6,
+       "l": 0.4,
+       "lines": 2,
+       "fs": 109.1
+      },
+      {
+       "bi": 12,
+       "w": 0.749,
+       "r": 0.874,
+       "l": 0.126,
+       "lines": 2,
+       "fs": 56.4
+      }
+     ]
+    },
+    "minimal": {
+     "blocks": 13,
+     "maxR": 0.8600566275167785,
+     "minL": 0.13989093959731544,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7201656879194631,
+     "minFs": 0.04359731543624162,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 12,
+      "t": 13.090000000000002,
+      "w": 0.720165687919463,
+      "lines": 2,
+      "txt": "lentokonesuihkuturbiinimootto- riapumekaanikkoaliupseerioppilas"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.525,
+       "r": 0.762,
+       "l": 0.238,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.542,
+       "r": 0.771,
+       "l": 0.229,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.459,
+       "r": 0.73,
+       "l": 0.27,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.407,
+       "r": 0.703,
+       "l": 0.297,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.708,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.588,
+       "r": 0.794,
+       "l": 0.206,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 6,
+       "w": 0.485,
+       "r": 0.743,
+       "l": 0.257,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 7,
+       "w": 0.52,
+       "r": 0.76,
+       "l": 0.24,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.565,
+       "r": 0.782,
+       "l": 0.218,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 9,
+       "w": 0.709,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 62.5
+      },
+      {
+       "bi": 10,
+       "w": 0.267,
+       "r": 0.633,
+       "l": 0.367,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 11,
+       "w": 0.241,
+       "r": 0.62,
+       "l": 0.38,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 12,
+       "w": 0.72,
+       "r": 0.86,
+       "l": 0.14,
+       "lines": 2,
+       "fs": 47.1
+      }
+     ]
+    },
+    "lift": {
+     "blocks": 13,
+     "maxR": 0.8726405201342282,
+     "minL": 0.12730704697986578,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7760411204907718,
+     "minFs": 0.04359731543624162,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 12,
+      "t": 13.090000000000002,
+      "w": 0.7453334731543624,
+      "lines": 2,
+      "txt": "lentokonesuihkuturbiinimootto- riapumekaanikkoaliupseerioppilas"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.537,
+       "r": 0.768,
+       "l": 0.232,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.557,
+       "r": 0.779,
+       "l": 0.221,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.471,
+       "r": 0.736,
+       "l": 0.264,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.424,
+       "r": 0.712,
+       "l": 0.288,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.727,
+       "r": 0.863,
+       "l": 0.137,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.611,
+       "r": 0.805,
+       "l": 0.195,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 6,
+       "w": 0.496,
+       "r": 0.748,
+       "l": 0.252,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 7,
+       "w": 0.534,
+       "r": 0.767,
+       "l": 0.233,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.586,
+       "r": 0.793,
+       "l": 0.207,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 9,
+       "w": 0.709,
+       "r": 0.855,
+       "l": 0.145,
+       "lines": 2,
+       "fs": 60.5
+      },
+      {
+       "bi": 10,
+       "w": 0.276,
+       "r": 0.638,
+       "l": 0.362,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 11,
+       "w": 0.247,
+       "r": 0.624,
+       "l": 0.376,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 12,
+       "w": 0.745,
+       "r": 0.873,
+       "l": 0.127,
+       "lines": 2,
+       "fs": 47.1
+      }
+     ]
+    },
+    "popone": {
+     "blocks": 36,
+     "maxR": 0.847630033557047,
+     "minL": 0.15231753355704697,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.6033494801512287,
+     "maxSpan": 0.7402990968435402,
+     "minFs": 0.042140939597315435,
+     "maxFs": 0.1204026845637584,
+     "dir": "ltr",
+     "rtlOk": [],
+     "widest": {
+      "bi": 20,
+      "t": 5.7299999999999995,
+      "w": 0.6953125,
+      "lines": 1,
+      "txt": "KOMPLIZIERTES"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.238,
+       "r": 0.619,
+       "l": 0.381,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 1,
+       "w": 0.266,
+       "r": 0.633,
+       "l": 0.367,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 2,
+       "w": 0.153,
+       "r": 0.577,
+       "l": 0.423,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 3,
+       "w": 0.13,
+       "r": 0.565,
+       "l": 0.435,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 4,
+       "w": 0.079,
+       "r": 0.54,
+       "l": 0.46,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 5,
+       "w": 0.298,
+       "r": 0.649,
+       "l": 0.351,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 6,
+       "w": 0.297,
+       "r": 0.649,
+       "l": 0.351,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 7,
+       "w": 0.26,
+       "r": 0.63,
+       "l": 0.37,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 8,
+       "w": 0.146,
+       "r": 0.573,
+       "l": 0.427,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 9,
+       "w": 0.34,
+       "r": 0.67,
+       "l": 0.33,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 10,
+       "w": 0.158,
+       "r": 0.579,
+       "l": 0.421,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 11,
+       "w": 0.324,
+       "r": 0.662,
+       "l": 0.338,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 12,
+       "w": 0.105,
+       "r": 0.552,
+       "l": 0.448,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 13,
+       "w": 0.222,
+       "r": 0.611,
+       "l": 0.389,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 14,
+       "w": 0.508,
+       "r": 0.754,
+       "l": 0.246,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 15,
+       "w": 0.48,
+       "r": 0.74,
+       "l": 0.26,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 16,
+       "w": 0.304,
+       "r": 0.652,
+       "l": 0.348,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 17,
+       "w": 0.205,
+       "r": 0.603,
+       "l": 0.397,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 18,
+       "w": 0.252,
+       "r": 0.626,
+       "l": 0.374,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 19,
+       "w": 0.464,
+       "r": 0.732,
+       "l": 0.268,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 20,
+       "w": 0.695,
+       "r": 0.848,
+       "l": 0.152,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 21,
+       "w": 0.54,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 22,
+       "w": 0.096,
+       "r": 0.548,
+       "l": 0.452,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 23,
+       "w": 0.411,
+       "r": 0.705,
+       "l": 0.295,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 24,
+       "w": 0.158,
+       "r": 0.579,
+       "l": 0.421,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 25,
+       "w": 0.413,
+       "r": 0.706,
+       "l": 0.294,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 26,
+       "w": 0.217,
+       "r": 0.609,
+       "l": 0.391,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 27,
+       "w": 0.234,
+       "r": 0.617,
+       "l": 0.383,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 28,
+       "w": 0.694,
+       "r": 0.847,
+       "l": 0.153,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 29,
+       "w": 0.154,
+       "r": 0.577,
+       "l": 0.423,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 30,
+       "w": 0.15,
+       "r": 0.575,
+       "l": 0.425,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 31,
+       "w": 0.481,
+       "r": 0.741,
+       "l": 0.259,
+       "lines": 2,
+       "fs": 45.5
+      },
+      {
+       "bi": 32,
+       "w": 0.306,
+       "r": 0.653,
+       "l": 0.347,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 33,
+       "w": 0.259,
+       "r": 0.63,
+       "l": 0.37,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 34,
+       "w": 0.106,
+       "r": 0.553,
+       "l": 0.447,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 35,
+       "w": 0.64,
+       "r": 0.82,
+       "l": 0.18,
+       "lines": 2,
+       "fs": 45.5
+      }
+     ],
+     "exportSec": 23.07
+    },
+    "tiktok": {
+     "blocks": 14,
+     "maxR": 0.873636744966443,
+     "minL": 0.12631082214765102,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5432124291115312,
+     "maxSpan": 0.6265205536912751,
+     "minFs": 0.0334496644295302,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 6,
+      "t": 5.989999999999999,
+      "w": 0.747325922818792,
+      "lines": 2,
+      "txt": "kompliziertes Programm"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.697,
+       "r": 0.848,
+       "l": 0.152,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.707,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.625,
+       "r": 0.812,
+       "l": 0.188,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.577,
+       "r": 0.789,
+       "l": 0.211,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.533,
+       "r": 0.766,
+       "l": 0.234,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.586,
+       "r": 0.793,
+       "l": 0.207,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 6,
+       "w": 0.747,
+       "r": 0.874,
+       "l": 0.126,
+       "lines": 2,
+       "fs": 95
+      },
+      {
+       "bi": 7,
+       "w": 0.645,
+       "r": 0.822,
+       "l": 0.178,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.702,
+       "r": 0.851,
+       "l": 0.149,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 9,
+       "w": 0.727,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 10,
+       "w": 0.74,
+       "r": 0.87,
+       "l": 0.13,
+       "lines": 2,
+       "fs": 50.3
+      },
+      {
+       "bi": 11,
+       "w": 0.428,
+       "r": 0.714,
+       "l": 0.286,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 12,
+       "w": 0.38,
+       "r": 0.69,
+       "l": 0.31,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 13,
+       "w": 0.726,
+       "r": 0.863,
+       "l": 0.137,
+       "lines": 2,
+       "fs": 36.1
+      }
+     ]
+    },
+    "hush": {
+     "blocks": 14,
+     "maxR": 0.8639890939597316,
+     "minL": 0.1359584731543624,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5432124291115312,
+     "maxSpan": 0.6072252516778524,
+     "minFs": 0.03570469798657718,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 10,
+      "t": 8.790000000000001,
+      "w": 0.7280306208053692,
+      "lines": 2,
+      "txt": "Donaudampfschifffahrts- gesellschaftskapitän"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.646,
+       "r": 0.823,
+       "l": 0.177,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.663,
+       "r": 0.832,
+       "l": 0.168,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.58,
+       "r": 0.79,
+       "l": 0.21,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.527,
+       "r": 0.764,
+       "l": 0.236,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.499,
+       "r": 0.75,
+       "l": 0.25,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.545,
+       "r": 0.773,
+       "l": 0.227,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 6,
+       "w": 0.709,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 7,
+       "w": 0.606,
+       "r": 0.803,
+       "l": 0.197,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.641,
+       "r": 0.82,
+       "l": 0.18,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 9,
+       "w": 0.685,
+       "r": 0.843,
+       "l": 0.157,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 10,
+       "w": 0.728,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 2,
+       "fs": 53.6
+      },
+      {
+       "bi": 11,
+       "w": 0.387,
+       "r": 0.694,
+       "l": 0.306,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 12,
+       "w": 0.362,
+       "r": 0.681,
+       "l": 0.319,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 13,
+       "w": 0.71,
+       "r": 0.855,
+       "l": 0.145,
+       "lines": 2,
+       "fs": 38.6
+      }
+     ]
+    },
+    "focus": {
+     "blocks": 14,
+     "maxR": 0.8540268456375839,
+     "minL": 0.14597315436241612,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7080536912751678,
+     "minFs": 0.03833557046979866,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 10,
+      "t": 8.790000000000001,
+      "w": 0.7080536912751678,
+      "lines": 2,
+      "txt": "Donaudampfschifffahrts- gesellschaftskapitän"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.607,
+       "r": 0.804,
+       "l": 0.196,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.601,
+       "r": 0.8,
+       "l": 0.2,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.526,
+       "r": 0.763,
+       "l": 0.237,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.447,
+       "r": 0.723,
+       "l": 0.276,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.414,
+       "r": 0.707,
+       "l": 0.293,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.484,
+       "r": 0.742,
+       "l": 0.258,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 6,
+       "w": 0.643,
+       "r": 0.821,
+       "l": 0.179,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 7,
+       "w": 0.548,
+       "r": 0.774,
+       "l": 0.226,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.594,
+       "r": 0.797,
+       "l": 0.203,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 9,
+       "w": 0.609,
+       "r": 0.804,
+       "l": 0.196,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 10,
+       "w": 0.708,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 56.4
+      },
+      {
+       "bi": 11,
+       "w": 0.309,
+       "r": 0.655,
+       "l": 0.345,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 12,
+       "w": 0.273,
+       "r": 0.637,
+       "l": 0.363,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 13,
+       "w": 0.708,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 41.4
+      }
+     ]
+    },
+    "headline": {
+     "blocks": 13,
+     "maxR": 0.8722210570469798,
+     "minL": 0.1277265100671141,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5562086483931947,
+     "maxSpan": 0.7444945469798657,
+     "minFs": 0.04577718120805369,
+     "maxFs": 0.09471140939597315,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 12,
+      "t": 13.090000000000002,
+      "w": 0.7444945469798657,
+      "lines": 2,
+      "txt": "LENTOKONESUIHKUTURBIINIMOOTTO- RIAPUMEKAANIKKOALIUPSEERIOPPILAS"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.465,
+       "r": 0.733,
+       "l": 0.267,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 1,
+       "w": 0.503,
+       "r": 0.751,
+       "l": 0.249,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 2,
+       "w": 0.45,
+       "r": 0.725,
+       "l": 0.275,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 3,
+       "w": 0.42,
+       "r": 0.71,
+       "l": 0.29,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 4,
+       "w": 0.718,
+       "r": 0.859,
+       "l": 0.141,
+       "lines": 2,
+       "fs": 102.3
+      },
+      {
+       "bi": 5,
+       "w": 0.573,
+       "r": 0.787,
+       "l": 0.213,
+       "lines": 2,
+       "fs": 102.3
+      },
+      {
+       "bi": 6,
+       "w": 0.466,
+       "r": 0.733,
+       "l": 0.267,
+       "lines": 2,
+       "fs": 102.3
+      },
+      {
+       "bi": 7,
+       "w": 0.52,
+       "r": 0.76,
+       "l": 0.24,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 8,
+       "w": 0.573,
+       "r": 0.786,
+       "l": 0.214,
+       "lines": 2,
+       "fs": 102.3
+      },
+      {
+       "bi": 9,
+       "w": 0.728,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 2,
+       "fs": 66.9
+      },
+      {
+       "bi": 10,
+       "w": 0.257,
+       "r": 0.629,
+       "l": 0.371,
+       "lines": 1,
+       "fs": 91.3
+      },
+      {
+       "bi": 11,
+       "w": 0.212,
+       "r": 0.606,
+       "l": 0.394,
+       "lines": 2,
+       "fs": 102.3
+      },
+      {
+       "bi": 12,
+       "w": 0.744,
+       "r": 0.872,
+       "l": 0.128,
+       "lines": 2,
+       "fs": 49.4
+      }
+     ]
+    },
+    "stack": {
+     "blocks": 14,
+     "maxR": 0.8748427013422819,
+     "minL": 0.12510486577181207,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5432124291115312,
+     "maxSpan": 0.642549041133599,
+     "minFs": 0.03157046979865771,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 9,
+      "t": 8.530000000000001,
+      "w": 0.7497378355704698,
+      "lines": 2,
+      "txt": "PROFESSIONELL AUS DER"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.727,
+       "r": 0.863,
+       "l": 0.137,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.726,
+       "r": 0.863,
+       "l": 0.137,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.652,
+       "r": 0.826,
+       "l": 0.174,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.647,
+       "r": 0.823,
+       "l": 0.177,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.61,
+       "r": 0.805,
+       "l": 0.195,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.627,
+       "r": 0.814,
+       "l": 0.186,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 6,
+       "w": 0.749,
+       "r": 0.874,
+       "l": 0.126,
+       "lines": 2,
+       "fs": 89.7
+      },
+      {
+       "bi": 7,
+       "w": 0.676,
+       "r": 0.838,
+       "l": 0.162,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.741,
+       "r": 0.87,
+       "l": 0.13,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 9,
+       "w": 0.75,
+       "r": 0.875,
+       "l": 0.125,
+       "lines": 2,
+       "fs": 86.5
+      },
+      {
+       "bi": 10,
+       "w": 0.724,
+       "r": 0.862,
+       "l": 0.138,
+       "lines": 2,
+       "fs": 44.2
+      },
+      {
+       "bi": 11,
+       "w": 0.423,
+       "r": 0.712,
+       "l": 0.288,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 12,
+       "w": 0.376,
+       "r": 0.688,
+       "l": 0.312,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 13,
+       "w": 0.723,
+       "r": 0.862,
+       "l": 0.138,
+       "lines": 2,
+       "fs": 34.1
+      }
+     ],
+     "exportSec": 23.254
+    },
+    "neon": {
+     "blocks": 13,
+     "maxR": 0.8583263422818792,
+     "minL": 0.14162122483221476,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7167051174496645,
+     "minFs": 0.04359731543624162,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 12,
+      "t": 13.090000000000002,
+      "w": 0.7167051174496645,
+      "lines": 2,
+      "txt": "lentokonesuihkuturbiinimootto- riapumekaanikkoaliupseerioppilas"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.519,
+       "r": 0.759,
+       "l": 0.241,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.529,
+       "r": 0.765,
+       "l": 0.235,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.465,
+       "r": 0.732,
+       "l": 0.268,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.423,
+       "r": 0.711,
+       "l": 0.289,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.716,
+       "r": 0.858,
+       "l": 0.142,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.583,
+       "r": 0.792,
+       "l": 0.208,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 6,
+       "w": 0.482,
+       "r": 0.741,
+       "l": 0.259,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 7,
+       "w": 0.531,
+       "r": 0.765,
+       "l": 0.235,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.565,
+       "r": 0.782,
+       "l": 0.218,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 9,
+       "w": 0.701,
+       "r": 0.85,
+       "l": 0.15,
+       "lines": 2,
+       "fs": 61.7
+      },
+      {
+       "bi": 10,
+       "w": 0.265,
+       "r": 0.633,
+       "l": 0.367,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 11,
+       "w": 0.227,
+       "r": 0.613,
+       "l": 0.387,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 12,
+       "w": 0.717,
+       "r": 0.858,
+       "l": 0.142,
+       "lines": 2,
+       "fs": 47.1
+      }
+     ]
+    },
+    "editorial": {
+     "blocks": 13,
+     "maxR": 0.8690750838926175,
+     "minL": 0.13092491610738255,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7167051174496645,
+     "minFs": 0.04359731543624162,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.17,
+      "w": 0.7381501677852349,
+      "lines": 1,
+      "txt": "du deine Untertitel"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.512,
+       "r": 0.756,
+       "l": 0.244,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.516,
+       "r": 0.758,
+       "l": 0.242,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.44,
+       "r": 0.72,
+       "l": 0.28,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.738,
+       "r": 0.869,
+       "l": 0.131,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.679,
+       "r": 0.84,
+       "l": 0.16,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.571,
+       "r": 0.785,
+       "l": 0.215,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 6,
+       "w": 0.46,
+       "r": 0.73,
+       "l": 0.27,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 7,
+       "w": 0.503,
+       "r": 0.752,
+       "l": 0.248,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.542,
+       "r": 0.771,
+       "l": 0.229,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 9,
+       "w": 0.717,
+       "r": 0.858,
+       "l": 0.142,
+       "lines": 2,
+       "fs": 65.4
+      },
+      {
+       "bi": 10,
+       "w": 0.265,
+       "r": 0.632,
+       "l": 0.368,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 11,
+       "w": 0.233,
+       "r": 0.616,
+       "l": 0.383,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 12,
+       "w": 0.702,
+       "r": 0.851,
+       "l": 0.149,
+       "lines": 2,
+       "fs": 47.1
+      }
+     ],
+     "exportSec": 21.815
+    },
+    "marker": {
+     "blocks": 13,
+     "maxR": 0.8600041946308725,
+     "minL": 0.1399958053691275,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7200083892617449,
+     "minFs": 0.04961073825503356,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 9,
+      "t": 8.790000000000001,
+      "w": 0.720008389261745,
+      "lines": 2,
+      "txt": "Donaudampfschifffahrts- gesellschaftskapitän"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.538,
+       "r": 0.769,
+       "l": 0.231,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.494,
+       "r": 0.747,
+       "l": 0.253,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.451,
+       "r": 0.725,
+       "l": 0.275,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.394,
+       "r": 0.697,
+       "l": 0.303,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.647,
+       "r": 0.824,
+       "l": 0.176,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.526,
+       "r": 0.763,
+       "l": 0.237,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 6,
+       "w": 0.459,
+       "r": 0.73,
+       "l": 0.27,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 7,
+       "w": 0.511,
+       "r": 0.755,
+       "l": 0.244,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 8,
+       "w": 0.496,
+       "r": 0.748,
+       "l": 0.252,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 9,
+       "w": 0.72,
+       "r": 0.86,
+       "l": 0.14,
+       "lines": 2,
+       "fs": 67.8
+      },
+      {
+       "bi": 10,
+       "w": 0.245,
+       "r": 0.622,
+       "l": 0.378,
+       "lines": 1,
+       "fs": 87
+      },
+      {
+       "bi": 11,
+       "w": 0.216,
+       "r": 0.608,
+       "l": 0.392,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 12,
+       "w": 0.713,
+       "r": 0.857,
+       "l": 0.143,
+       "lines": 2,
+       "fs": 53.6
+      }
+     ]
+    }
+   },
+   "tofu": {
+    "chars": 29,
+    "tofu": "",
+    "fam": "\"Inter Tight\", sans-serif"
+   },
+   "expTimes": {
+    "tight": 5.7299999999999995,
+    "note": 2.35,
+    "hormozi": 5.7299999999999995,
+    "popone": 5.7299999999999995,
+    "stack": 8.530000000000001,
+    "editorial": 4.17
+   }
+  },
+  "ar": {
+   "key": "ar",
+   "lang": "arabic",
+   "looks": {
+    "tight": {
+     "blocks": 20,
+     "maxR": 0.7733326342281879,
+     "minL": 0.22666736577181207,
+     "maxLines": 1,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5768253780718336,
+     "maxSpan": 0.5466652684563759,
+     "minFs": 0.14093959731543623,
+     "maxFs": 0.14093959731543623,
+     "dir": "ltr",
+     "rtlOk": [],
+     "widest": {
+      "bi": 13,
+      "t": 3.91,
+      "w": 0.5466652684563758,
+      "lines": 1,
+      "txt": "الترجمات"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.326,
+       "r": 0.663,
+       "l": 0.337,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 1,
+       "w": 0.211,
+       "r": 0.605,
+       "l": 0.395,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 2,
+       "w": 0.185,
+       "r": 0.592,
+       "l": 0.408,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 3,
+       "w": 0.188,
+       "r": 0.594,
+       "l": 0.406,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 4,
+       "w": 0.382,
+       "r": 0.691,
+       "l": 0.309,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 5,
+       "w": 0.396,
+       "r": 0.698,
+       "l": 0.302,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 6,
+       "w": 0.449,
+       "r": 0.725,
+       "l": 0.275,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 7,
+       "w": 0.285,
+       "r": 0.642,
+       "l": 0.358,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 8,
+       "w": 0.161,
+       "r": 0.58,
+       "l": 0.42,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 9,
+       "w": 0.147,
+       "r": 0.574,
+       "l": 0.426,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 10,
+       "w": 0.31,
+       "r": 0.655,
+       "l": 0.345,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 11,
+       "w": 0.358,
+       "r": 0.679,
+       "l": 0.321,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 12,
+       "w": 0.313,
+       "r": 0.657,
+       "l": 0.343,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 13,
+       "w": 0.547,
+       "r": 0.773,
+       "l": 0.227,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 14,
+       "w": 0.426,
+       "r": 0.713,
+       "l": 0.287,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 15,
+       "w": 0.324,
+       "r": 0.662,
+       "l": 0.338,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 16,
+       "w": 0.188,
+       "r": 0.594,
+       "l": 0.406,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 17,
+       "w": 0.322,
+       "r": 0.661,
+       "l": 0.339,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 18,
+       "w": 0.31,
+       "r": 0.655,
+       "l": 0.345,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 19,
+       "w": 0.454,
+       "r": 0.727,
+       "l": 0.273,
+       "lines": 1,
+       "fs": 152.2
+      }
+     ],
+     "exportSec": 14.8
+    },
+    "mix": {
+     "blocks": 9,
+     "maxR": 0.8125,
+     "minL": 0.1875,
+     "maxLines": 1,
+     "maxB": 0.6800271739130435,
+     "minT": 0.6151346880907372,
+     "maxSpan": 0.4122273489932886,
+     "minFs": 0.08859060402684563,
+     "maxFs": 0.10630872483221476,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 5,
+      "t": 3.91,
+      "w": 0.625,
+      "lines": 1,
+      "txt": "إنشاء الترجمات"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.485,
+       "r": 0.743,
+       "l": 0.257,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 1,
+       "w": 0.422,
+       "r": 0.711,
+       "l": 0.289,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 2,
+       "w": 0.604,
+       "r": 0.802,
+       "l": 0.198,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 3,
+       "w": 0.404,
+       "r": 0.702,
+       "l": 0.298,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 4,
+       "w": 0.436,
+       "r": 0.718,
+       "l": 0.282,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 5,
+       "w": 0.625,
+       "r": 0.813,
+       "l": 0.188,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 6,
+       "w": 0.54,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 1,
+       "fs": 114.8
+      },
+      {
+       "bi": 7,
+       "w": 0.377,
+       "r": 0.688,
+       "l": 0.312,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 8,
+       "w": 0.553,
+       "r": 0.777,
+       "l": 0.223,
+       "lines": 1,
+       "fs": 95.7
+      }
+     ]
+    },
+    "statement": {
+     "blocks": 5,
+     "maxR": 0.7024958053691275,
+     "minL": 0.29750419463087246,
+     "maxLines": 3,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5314272211720227,
+     "maxSpan": 0.35916526845637586,
+     "minFs": 0.09261744966442953,
+     "maxFs": 0.09261744966442953,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 0,
+      "t": 1.57,
+      "w": 0.404991610738255,
+      "lines": 3,
+      "txt": "مرحبا بكم في هذا الفيديو"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.405,
+       "r": 0.702,
+       "l": 0.298,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 1,
+       "w": 0.324,
+       "r": 0.662,
+       "l": 0.338,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 2,
+       "w": 0.331,
+       "r": 0.666,
+       "l": 0.334,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 3,
+       "w": 0.359,
+       "r": 0.68,
+       "l": 0.32,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 4,
+       "w": 0.366,
+       "r": 0.683,
+       "l": 0.317,
+       "lines": 3,
+       "fs": 100
+      }
+     ]
+    },
+    "accent": {
+     "blocks": 5,
+     "maxR": 0.8052118288590604,
+     "minL": 0.19473573825503357,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5562086483931947,
+     "maxSpan": 0.4000104865771812,
+     "minFs": 0.08456375838926174,
+     "maxFs": 0.10316778523489933,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.6104760906040269,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.344,
+       "r": 0.672,
+       "l": 0.328,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 1,
+       "w": 0.54,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 2,
+       "fs": 111.4
+      },
+      {
+       "bi": 2,
+       "w": 0.423,
+       "r": 0.712,
+       "l": 0.288,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 3,
+       "w": 0.61,
+       "r": 0.805,
+       "l": 0.195,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 4,
+       "w": 0.541,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 2,
+       "fs": 91.3
+      }
+     ]
+    },
+    "serifbold": {
+     "blocks": 5,
+     "maxR": 0.7687185402684564,
+     "minL": 0.23128145973154363,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5466387051039697,
+     "maxSpan": 0.3278628355704698,
+     "minFs": 0.08456375838926174,
+     "maxFs": 0.08456375838926174,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5374370805369129,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.344,
+       "r": 0.672,
+       "l": 0.328,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 1,
+       "w": 0.488,
+       "r": 0.744,
+       "l": 0.256,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 2,
+       "w": 0.422,
+       "r": 0.711,
+       "l": 0.289,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 3,
+       "w": 0.537,
+       "r": 0.769,
+       "l": 0.231,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 4,
+       "w": 0.48,
+       "r": 0.74,
+       "l": 0.26,
+       "lines": 2,
+       "fs": 91.3
+      }
+     ]
+    },
+    "reveal": {
+     "blocks": 5,
+     "maxR": 0.7750104865771812,
+     "minL": 0.22498951342281878,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5715678166351607,
+     "maxSpan": 0.3677118288590604,
+     "minFs": 0.07409395973154362,
+     "maxFs": 0.09484026845637583,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5500209731543624,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.3,
+       "r": 0.65,
+       "l": 0.35,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 1,
+       "w": 0.483,
+       "r": 0.741,
+       "l": 0.259,
+       "lines": 2,
+       "fs": 102.4
+      },
+      {
+       "bi": 2,
+       "w": 0.369,
+       "r": 0.684,
+       "l": 0.316,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 3,
+       "w": 0.55,
+       "r": 0.775,
+       "l": 0.225,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 4,
+       "w": 0.486,
+       "r": 0.743,
+       "l": 0.257,
+       "lines": 2,
+       "fs": 80
+      }
+     ]
+    },
+    "note": {
+     "blocks": 5,
+     "maxR": 0.7720218120805369,
+     "minL": 0.2279781879194631,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5667828449905482,
+     "maxSpan": 0.26478607382550334,
+     "minFs": 0.06442953020134227,
+     "maxFs": 0.06829530201342282,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5440436241610738,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.381,
+       "r": 0.691,
+       "l": 0.309,
+       "lines": 2,
+       "fs": 69.6
+      },
+      {
+       "bi": 1,
+       "w": 0.502,
+       "r": 0.751,
+       "l": 0.249,
+       "lines": 2,
+       "fs": 73.8
+      },
+      {
+       "bi": 2,
+       "w": 0.441,
+       "r": 0.721,
+       "l": 0.279,
+       "lines": 2,
+       "fs": 69.6
+      },
+      {
+       "bi": 3,
+       "w": 0.544,
+       "r": 0.772,
+       "l": 0.228,
+       "lines": 2,
+       "fs": 69.6
+      },
+      {
+       "bi": 4,
+       "w": 0.498,
+       "r": 0.749,
+       "l": 0.251,
+       "lines": 2,
+       "fs": 69.6
+      }
+     ],
+     "exportSec": 13.369
+    },
+    "script": {
+     "blocks": 5,
+     "maxR": 0.800807466442953,
+     "minL": 0.19919253355704697,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.568023393194707,
+     "maxSpan": 0.4152684563758389,
+     "minFs": 0.07651006711409396,
+     "maxFs": 0.10711409395973155,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.601614932885906,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.308,
+       "r": 0.654,
+       "l": 0.346,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 1,
+       "w": 0.521,
+       "r": 0.761,
+       "l": 0.239,
+       "lines": 2,
+       "fs": 115.7
+      },
+      {
+       "bi": 2,
+       "w": 0.379,
+       "r": 0.689,
+       "l": 0.311,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 3,
+       "w": 0.602,
+       "r": 0.801,
+       "l": 0.199,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 4,
+       "w": 0.529,
+       "r": 0.765,
+       "l": 0.235,
+       "lines": 2,
+       "fs": 82.6
+      }
+     ]
+    },
+    "soft": {
+     "blocks": 5,
+     "maxR": 0.7786807885906041,
+     "minL": 0.22126677852348994,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.35916526845637586,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09261744966442953,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5574140100671141,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.326,
+       "r": 0.663,
+       "l": 0.337,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.496,
+       "r": 0.748,
+       "l": 0.252,
+       "lines": 2,
+       "fs": 100
+      },
+      {
+       "bi": 2,
+       "w": 0.401,
+       "r": 0.7,
+       "l": 0.3,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.557,
+       "r": 0.779,
+       "l": 0.221,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.495,
+       "r": 0.747,
+       "l": 0.253,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    },
+    "classic": {
+     "blocks": 7,
+     "maxR": 0.7531459731543624,
+     "minL": 0.2468540268456376,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 6,
+      "t": 7.284,
+      "w": 0.5062919463087248,
+      "lines": 2,
+      "txt": "هذا اختبار قصير للترجمة"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.265,
+       "r": 0.632,
+       "l": 0.368,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.39,
+       "r": 0.695,
+       "l": 0.305,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.293,
+       "r": 0.647,
+       "l": 0.353,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 3,
+       "w": 0.3,
+       "r": 0.65,
+       "l": 0.35,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.35,
+       "r": 0.675,
+       "l": 0.325,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 5,
+       "w": 0.272,
+       "r": 0.636,
+       "l": 0.364,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 6,
+       "w": 0.506,
+       "r": 0.753,
+       "l": 0.247,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    },
+    "hormozi": {
+     "blocks": 7,
+     "maxR": 0.7559773489932886,
+     "minL": 0.24397021812080538,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.37241051181050755,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 6,
+      "t": 7.284,
+      "w": 0.5120071308724832,
+      "lines": 2,
+      "txt": "هذا اختبار قصير للترجمة"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.27,
+       "r": 0.635,
+       "l": 0.365,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.396,
+       "r": 0.698,
+       "l": 0.302,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.299,
+       "r": 0.649,
+       "l": 0.351,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 3,
+       "w": 0.306,
+       "r": 0.653,
+       "l": 0.347,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.35,
+       "r": 0.675,
+       "l": 0.325,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 5,
+       "w": 0.272,
+       "r": 0.636,
+       "l": 0.364,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 6,
+       "w": 0.512,
+       "r": 0.756,
+       "l": 0.244,
+       "lines": 2,
+       "fs": 87
+      }
+     ],
+     "exportSec": 13.711
+    },
+    "boxkara": {
+     "blocks": 7,
+     "maxR": 0.7660444630872483,
+     "minL": 0.23390310402684564,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 6,
+      "t": 7.284,
+      "w": 0.5321413590604026,
+      "lines": 2,
+      "txt": "هذا اختبار قصير للترجمة"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.291,
+       "r": 0.645,
+       "l": 0.355,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.416,
+       "r": 0.708,
+       "l": 0.292,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.319,
+       "r": 0.66,
+       "l": 0.34,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 3,
+       "w": 0.326,
+       "r": 0.663,
+       "l": 0.337,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.35,
+       "r": 0.675,
+       "l": 0.325,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 5,
+       "w": 0.272,
+       "r": 0.636,
+       "l": 0.364,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 6,
+       "w": 0.532,
+       "r": 0.766,
+       "l": 0.234,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    },
+    "beast": {
+     "blocks": 5,
+     "maxR": 0.8166421979865772,
+     "minL": 0.18335780201342283,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5441576086956522,
+     "maxSpan": 0.3916736577181208,
+     "minFs": 0.09020134228187919,
+     "maxFs": 0.10102550335570469,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.6332843959731544,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.385,
+       "r": 0.692,
+       "l": 0.308,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 1,
+       "w": 0.568,
+       "r": 0.784,
+       "l": 0.216,
+       "lines": 2,
+       "fs": 109.1
+      },
+      {
+       "bi": 2,
+       "w": 0.469,
+       "r": 0.734,
+       "l": 0.266,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 3,
+       "w": 0.633,
+       "r": 0.817,
+       "l": 0.183,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 4,
+       "w": 0.565,
+       "r": 0.782,
+       "l": 0.218,
+       "lines": 2,
+       "fs": 97.4
+      }
+     ]
+    },
+    "minimal": {
+     "blocks": 5,
+     "maxR": 0.7745385906040269,
+     "minL": 0.2254089765100671,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5491296140939598,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.327,
+       "r": 0.663,
+       "l": 0.336,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.491,
+       "r": 0.745,
+       "l": 0.255,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.402,
+       "r": 0.701,
+       "l": 0.299,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.549,
+       "r": 0.775,
+       "l": 0.225,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.488,
+       "r": 0.744,
+       "l": 0.256,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    },
+    "lift": {
+     "blocks": 5,
+     "maxR": 0.7732277684563759,
+     "minL": 0.22677223154362416,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5464555369127517,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.324,
+       "r": 0.662,
+       "l": 0.338,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.488,
+       "r": 0.744,
+       "l": 0.256,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.399,
+       "r": 0.7,
+       "l": 0.3,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.546,
+       "r": 0.773,
+       "l": 0.227,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.485,
+       "r": 0.743,
+       "l": 0.257,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    },
+    "popone": {
+     "blocks": 20,
+     "maxR": 0.7334312080536913,
+     "minL": 0.26651635906040266,
+     "maxLines": 1,
+     "maxB": 0.6800271739130435,
+     "minT": 0.6033494801512287,
+     "maxSpan": 0.49712428150561033,
+     "minFs": 0.10469798657718121,
+     "maxFs": 0.1204026845637584,
+     "dir": "ltr",
+     "rtlOk": [],
+     "widest": {
+      "bi": 13,
+      "t": 3.91,
+      "w": 0.46691484899328867,
+      "lines": 1,
+      "txt": "الترجمات"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.242,
+       "r": 0.621,
+       "l": 0.379,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 1,
+       "w": 0.157,
+       "r": 0.578,
+       "l": 0.422,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 2,
+       "w": 0.137,
+       "r": 0.569,
+       "l": 0.431,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 3,
+       "w": 0.139,
+       "r": 0.57,
+       "l": 0.43,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 4,
+       "w": 0.326,
+       "r": 0.663,
+       "l": 0.337,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 5,
+       "w": 0.294,
+       "r": 0.647,
+       "l": 0.353,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 6,
+       "w": 0.384,
+       "r": 0.692,
+       "l": 0.308,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 7,
+       "w": 0.211,
+       "r": 0.606,
+       "l": 0.394,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 8,
+       "w": 0.119,
+       "r": 0.56,
+       "l": 0.44,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 9,
+       "w": 0.109,
+       "r": 0.555,
+       "l": 0.445,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 10,
+       "w": 0.23,
+       "r": 0.615,
+       "l": 0.385,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 11,
+       "w": 0.266,
+       "r": 0.633,
+       "l": 0.367,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 12,
+       "w": 0.233,
+       "r": 0.616,
+       "l": 0.384,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 13,
+       "w": 0.467,
+       "r": 0.733,
+       "l": 0.267,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 14,
+       "w": 0.364,
+       "r": 0.682,
+       "l": 0.318,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 15,
+       "w": 0.24,
+       "r": 0.62,
+       "l": 0.38,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 16,
+       "w": 0.139,
+       "r": 0.57,
+       "l": 0.43,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 17,
+       "w": 0.275,
+       "r": 0.638,
+       "l": 0.362,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 18,
+       "w": 0.23,
+       "r": 0.615,
+       "l": 0.385,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 19,
+       "w": 0.388,
+       "r": 0.694,
+       "l": 0.306,
+       "lines": 1,
+       "fs": 130
+      }
+     ],
+     "exportSec": 13.814
+    },
+    "tiktok": {
+     "blocks": 6,
+     "maxR": 0.8286493288590604,
+     "minL": 0.17129823825503357,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5432124291115312,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 1,
+      "t": 2.0900000000000003,
+      "w": 0.6573510906040269,
+      "lines": 2,
+      "txt": "الفيديو القصير سنريكم"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.45,
+       "r": 0.725,
+       "l": 0.275,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.657,
+       "r": 0.829,
+       "l": 0.171,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.32,
+       "r": 0.66,
+       "l": 0.34,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.527,
+       "r": 0.764,
+       "l": 0.236,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.601,
+       "r": 0.8,
+       "l": 0.2,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.611,
+       "r": 0.806,
+       "l": 0.194,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    },
+    "hush": {
+     "blocks": 5,
+     "maxR": 0.8349412751677853,
+     "minL": 0.16500629194630873,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5432124291115312,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.6699349832214765,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.448,
+       "r": 0.724,
+       "l": 0.276,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.612,
+       "r": 0.806,
+       "l": 0.194,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.523,
+       "r": 0.761,
+       "l": 0.239,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.67,
+       "r": 0.835,
+       "l": 0.165,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.609,
+       "r": 0.804,
+       "l": 0.196,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    },
+    "focus": {
+     "blocks": 5,
+     "maxR": 0.7855494966442953,
+     "minL": 0.2144505033557047,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5710989932885906,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.349,
+       "r": 0.674,
+       "l": 0.326,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.513,
+       "r": 0.756,
+       "l": 0.243,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.424,
+       "r": 0.712,
+       "l": 0.288,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.571,
+       "r": 0.786,
+       "l": 0.214,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.51,
+       "r": 0.755,
+       "l": 0.245,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    },
+    "headline": {
+     "blocks": 5,
+     "maxR": 0.7958787751677853,
+     "minL": 0.20406879194630873,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5562086483931947,
+     "maxSpan": 0.36729236577181207,
+     "minFs": 0.08456375838926174,
+     "maxFs": 0.09471140939597315,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5918099832214765,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.358,
+       "r": 0.679,
+       "l": 0.321,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 1,
+       "w": 0.531,
+       "r": 0.765,
+       "l": 0.235,
+       "lines": 2,
+       "fs": 102.3
+      },
+      {
+       "bi": 2,
+       "w": 0.437,
+       "r": 0.719,
+       "l": 0.281,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 3,
+       "w": 0.592,
+       "r": 0.796,
+       "l": 0.204,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 4,
+       "w": 0.528,
+       "r": 0.764,
+       "l": 0.236,
+       "lines": 2,
+       "fs": 91.3
+      }
+     ]
+    },
+    "stack": {
+     "blocks": 6,
+     "maxR": 0.8267093120805369,
+     "minL": 0.17323825503355705,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5432124291115312,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 1,
+      "t": 2.0900000000000003,
+      "w": 0.6534710570469798,
+      "lines": 2,
+      "txt": "الفيديو القصير سنريكم"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.446,
+       "r": 0.723,
+       "l": 0.277,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.653,
+       "r": 0.827,
+       "l": 0.173,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.316,
+       "r": 0.658,
+       "l": 0.342,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.523,
+       "r": 0.762,
+       "l": 0.238,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.597,
+       "r": 0.799,
+       "l": 0.201,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 5,
+       "w": 0.607,
+       "r": 0.804,
+       "l": 0.196,
+       "lines": 2,
+       "fs": 87
+      }
+     ],
+     "exportSec": 13.744
+    },
+    "neon": {
+     "blocks": 5,
+     "maxR": 0.774643456375839,
+     "minL": 0.22530411073825504,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5493393456375839,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.327,
+       "r": 0.664,
+       "l": 0.336,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.491,
+       "r": 0.746,
+       "l": 0.254,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.402,
+       "r": 0.701,
+       "l": 0.299,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.549,
+       "r": 0.775,
+       "l": 0.225,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.488,
+       "r": 0.744,
+       "l": 0.256,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    },
+    "editorial": {
+     "blocks": 5,
+     "maxR": 0.7738045302013423,
+     "minL": 0.2261954697986577,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5476090604026846,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.326,
+       "r": 0.663,
+       "l": 0.337,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.489,
+       "r": 0.745,
+       "l": 0.255,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.4,
+       "r": 0.7,
+       "l": 0.3,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.548,
+       "r": 0.774,
+       "l": 0.226,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.486,
+       "r": 0.743,
+       "l": 0.257,
+       "lines": 2,
+       "fs": 87
+      }
+     ],
+     "exportSec": 13.523
+    },
+    "marker": {
+     "blocks": 5,
+     "maxR": 0.7933619966442953,
+     "minL": 0.2066380033557047,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.3497797818791946,
+     "minFs": 0.08053691275167785,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 4.404,
+      "w": 0.5867239932885906,
+      "lines": 2,
+      "txt": "إنشاء الترجمات لمقاطع الريلز"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.365,
+       "r": 0.682,
+       "l": 0.318,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.529,
+       "r": 0.764,
+       "l": 0.236,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.44,
+       "r": 0.72,
+       "l": 0.28,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.587,
+       "r": 0.793,
+       "l": 0.207,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 4,
+       "w": 0.526,
+       "r": 0.763,
+       "l": 0.237,
+       "lines": 2,
+       "fs": 87
+      }
+     ]
+    }
+   },
+   "tofu": {
+    "chars": 27,
+    "tofu": "",
+    "fam": "\"Inter Tight\", sans-serif"
+   },
+   "expTimes": {
+    "tight": 3.91,
+    "note": 4.404,
+    "hormozi": 7.284,
+    "popone": 3.91,
+    "stack": 2.0900000000000003,
+    "editorial": 4.404
+   }
+  },
+  "ja": {
+   "key": "ja",
+   "lang": "japanese",
+   "looks": {
+    "tight": {
+     "blocks": 11,
+     "maxR": 0.8744232382550335,
+     "minL": 0.12557676174496643,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5768253780718336,
+     "maxSpan": 0.7488464765100671,
+     "minFs": 0.049328859060402686,
+     "maxFs": 0.14093959731543623,
+     "dir": "ltr",
+     "rtlOk": [],
+     "widest": {
+      "bi": 9,
+      "t": 2.9099999999999997,
+      "w": 0.7488464765100671,
+      "lines": 1,
+      "txt": "お見せします"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.409,
+       "r": 0.705,
+       "l": 0.295,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 1,
+       "w": 0.277,
+       "r": 0.639,
+       "l": 0.361,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 2,
+       "w": 0.274,
+       "r": 0.637,
+       "l": 0.363,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 3,
+       "w": 0.409,
+       "r": 0.705,
+       "l": 0.295,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 4,
+       "w": 0.409,
+       "r": 0.705,
+       "l": 0.295,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 5,
+       "w": 0.554,
+       "r": 0.777,
+       "l": 0.223,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 6,
+       "w": 0.274,
+       "r": 0.637,
+       "l": 0.363,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 7,
+       "w": 0.409,
+       "r": 0.705,
+       "l": 0.295,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 8,
+       "w": 0.551,
+       "r": 0.776,
+       "l": 0.224,
+       "lines": 1,
+       "fs": 152.2
+      },
+      {
+       "bi": 9,
+       "w": 0.749,
+       "r": 0.874,
+       "l": 0.126,
+       "lines": 1,
+       "fs": 137.6
+      },
+      {
+       "bi": 10,
+       "w": 0.54,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 2,
+       "fs": 53.3
+      }
+     ],
+     "exportSec": 14.01
+    },
+    "mix": {
+     "blocks": 5,
+     "maxR": 0.8572776845637584,
+     "minL": 0.14266988255033558,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.6151346880907372,
+     "maxSpan": 0.45307256711409394,
+     "minFs": 0.03720805369127517,
+     "maxFs": 0.08859060402684563,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false,
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 2.844,
+      "w": 0.7146078020134228,
+      "lines": 1,
+      "txt": "作れるか お見せします"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.648,
+       "r": 0.824,
+       "l": 0.176,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 1,
+       "w": 0.703,
+       "r": 0.852,
+       "l": 0.148,
+       "lines": 1,
+       "fs": 73.8
+      },
+      {
+       "bi": 2,
+       "w": 0.454,
+       "r": 0.727,
+       "l": 0.273,
+       "lines": 1,
+       "fs": 95.7
+      },
+      {
+       "bi": 3,
+       "w": 0.715,
+       "r": 0.857,
+       "l": 0.143,
+       "lines": 1,
+       "fs": 67.8
+      },
+      {
+       "bi": 4,
+       "w": 0.417,
+       "r": 0.709,
+       "l": 0.291,
+       "lines": 2,
+       "fs": 40.2
+      }
+     ]
+    },
+    "statement": {
+     "blocks": 3,
+     "maxR": 0.8714869966442953,
+     "minL": 0.1285130033557047,
+     "maxLines": 3,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5314272211720227,
+     "maxSpan": 0.7429739932885906,
+     "minFs": 0.09261744966442953,
+     "maxFs": 0.09261744966442953,
+     "dir": "ltr",
+     "rtlOk": [
+      false
+     ],
+     "widest": {
+      "bi": 2,
+      "t": 6.569999999999999,
+      "w": 0.7429739932885906,
+      "lines": 3,
+      "txt": "国際連合安全保- 障理事会常任理- 事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.591,
+       "r": 0.795,
+       "l": 0.205,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 1,
+       "w": 0.688,
+       "r": 0.844,
+       "l": 0.156,
+       "lines": 3,
+       "fs": 100
+      },
+      {
+       "bi": 2,
+       "w": 0.743,
+       "r": 0.871,
+       "l": 0.129,
+       "lines": 3,
+       "fs": 100
+      }
+     ]
+    },
+    "accent": {
+     "blocks": 4,
+     "maxR": 0.8558619966442953,
+     "minL": 0.14408557046979867,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5562086483931947,
+     "maxSpan": 0.7117764261744967,
+     "minFs": 0.06233053691275168,
+     "maxFs": 0.08456375838926174,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7117764261744967,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.451,
+       "r": 0.726,
+       "l": 0.274,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 1,
+       "w": 0.54,
+       "r": 0.77,
+       "l": 0.23,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 2,
+       "w": 0.631,
+       "r": 0.815,
+       "l": 0.185,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 3,
+       "w": 0.712,
+       "r": 0.856,
+       "l": 0.144,
+       "lines": 2,
+       "fs": 67.3
+      }
+     ]
+    },
+    "serifbold": {
+     "blocks": 4,
+     "maxR": 0.8569630872483222,
+     "minL": 0.14303691275167785,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5514236767485823,
+     "maxSpan": 0.7139261744966443,
+     "minFs": 0.06236577181208054,
+     "maxFs": 0.08456375838926174,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7139261744966443,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.45,
+       "r": 0.725,
+       "l": 0.275,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 1,
+       "w": 0.539,
+       "r": 0.769,
+       "l": 0.231,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 2,
+       "w": 0.621,
+       "r": 0.811,
+       "l": 0.189,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 3,
+       "w": 0.714,
+       "r": 0.857,
+       "l": 0.143,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ]
+    },
+    "reveal": {
+     "blocks": 4,
+     "maxR": 0.8578544463087249,
+     "minL": 0.14209312080536912,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5715678166351607,
+     "maxSpan": 0.7157613255033557,
+     "minFs": 0.062436577181208056,
+     "maxFs": 0.07409395973154362,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7157613255033557,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.393,
+       "r": 0.697,
+       "l": 0.303,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 1,
+       "w": 0.471,
+       "r": 0.735,
+       "l": 0.265,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 2,
+       "w": 0.58,
+       "r": 0.79,
+       "l": 0.21,
+       "lines": 2,
+       "fs": 80
+      },
+      {
+       "bi": 3,
+       "w": 0.716,
+       "r": 0.858,
+       "l": 0.142,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ]
+    },
+    "note": {
+     "blocks": 4,
+     "maxR": 0.8605285234899329,
+     "minL": 0.13941904362416108,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5667828449905482,
+     "maxSpan": 0.6003041107382551,
+     "minFs": 0.05235973154362416,
+     "maxFs": 0.06442953020134227,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7211094798657718,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.463,
+       "r": 0.731,
+       "l": 0.269,
+       "lines": 2,
+       "fs": 69.6
+      },
+      {
+       "bi": 1,
+       "w": 0.53,
+       "r": 0.765,
+       "l": 0.235,
+       "lines": 2,
+       "fs": 69.6
+      },
+      {
+       "bi": 2,
+       "w": 0.593,
+       "r": 0.796,
+       "l": 0.204,
+       "lines": 2,
+       "fs": 69.6
+      },
+      {
+       "bi": 3,
+       "w": 0.721,
+       "r": 0.861,
+       "l": 0.139,
+       "lines": 2,
+       "fs": 56.5
+      }
+     ],
+     "exportSec": 13.449
+    },
+    "script": {
+     "blocks": 4,
+     "maxR": 0.8536598154362416,
+     "minL": 0.14634018456375839,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.568023393194707,
+     "maxSpan": 0.7073196308724832,
+     "minFs": 0.06248322147651007,
+     "maxFs": 0.07651006711409396,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7073196308724832,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.404,
+       "r": 0.702,
+       "l": 0.298,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 1,
+       "w": 0.484,
+       "r": 0.742,
+       "l": 0.258,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 2,
+       "w": 0.655,
+       "r": 0.827,
+       "l": 0.173,
+       "lines": 2,
+       "fs": 82.6
+      },
+      {
+       "bi": 3,
+       "w": 0.707,
+       "r": 0.854,
+       "l": 0.146,
+       "lines": 2,
+       "fs": 67.5
+      }
+     ]
+    },
+    "soft": {
+     "blocks": 4,
+     "maxR": 0.8615771812080537,
+     "minL": 0.13842281879194632,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7231543624161074,
+     "minFs": 0.06251677852348993,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7231543624161074,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.428,
+       "r": 0.714,
+       "l": 0.286,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.512,
+       "r": 0.756,
+       "l": 0.244,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.59,
+       "r": 0.795,
+       "l": 0.205,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.723,
+       "r": 0.862,
+       "l": 0.138,
+       "lines": 2,
+       "fs": 67.5
+      }
+     ]
+    },
+    "classic": {
+     "blocks": 4,
+     "maxR": 0.8569106543624161,
+     "minL": 0.14308934563758388,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7138213087248322,
+     "minFs": 0.06163758389261745,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7138213087248322,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.452,
+       "r": 0.726,
+       "l": 0.274,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.537,
+       "r": 0.769,
+       "l": 0.231,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.617,
+       "r": 0.808,
+       "l": 0.191,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.714,
+       "r": 0.857,
+       "l": 0.143,
+       "lines": 2,
+       "fs": 66.6
+      }
+     ]
+    },
+    "hormozi": {
+     "blocks": 4,
+     "maxR": 0.8550230704697986,
+     "minL": 0.1449244966442953,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7393545880413696,
+     "minFs": 0.06238926174496644,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7100985738255033,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.453,
+       "r": 0.726,
+       "l": 0.274,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.537,
+       "r": 0.768,
+       "l": 0.231,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.616,
+       "r": 0.808,
+       "l": 0.192,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.71,
+       "r": 0.855,
+       "l": 0.145,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ],
+     "exportSec": 13.602
+    },
+    "boxkara": {
+     "blocks": 4,
+     "maxR": 0.8550230704697986,
+     "minL": 0.1449244966442953,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7100985738255033,
+     "minFs": 0.06238926174496644,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7100985738255033,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.473,
+       "r": 0.736,
+       "l": 0.264,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.557,
+       "r": 0.779,
+       "l": 0.221,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.636,
+       "r": 0.818,
+       "l": 0.182,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.71,
+       "r": 0.855,
+       "l": 0.145,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ]
+    },
+    "beast": {
+     "blocks": 4,
+     "maxR": 0.8640939597315436,
+     "minL": 0.13585360738255034,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5460479678638941,
+     "maxSpan": 0.7282403523489933,
+     "minFs": 0.06061543624161074,
+     "maxFs": 0.09020134228187919,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7282403523489932,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.515,
+       "r": 0.758,
+       "l": 0.242,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 1,
+       "w": 0.613,
+       "r": 0.806,
+       "l": 0.193,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 2,
+       "w": 0.704,
+       "r": 0.852,
+       "l": 0.148,
+       "lines": 2,
+       "fs": 97.4
+      },
+      {
+       "bi": 3,
+       "w": 0.728,
+       "r": 0.864,
+       "l": 0.136,
+       "lines": 2,
+       "fs": 65.5
+      }
+     ]
+    },
+    "minimal": {
+     "blocks": 4,
+     "maxR": 0.8573825503355704,
+     "minL": 0.14256501677852348,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.714817533557047,
+     "minFs": 0.06238926174496644,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7148175335570469,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.429,
+       "r": 0.714,
+       "l": 0.286,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.513,
+       "r": 0.756,
+       "l": 0.243,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.592,
+       "r": 0.796,
+       "l": 0.204,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.715,
+       "r": 0.857,
+       "l": 0.143,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ]
+    },
+    "lift": {
+     "blocks": 4,
+     "maxR": 0.8575922818791947,
+     "minL": 0.14240771812080538,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7446502071098994,
+     "minFs": 0.06238926174496644,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7151845637583893,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.426,
+       "r": 0.713,
+       "l": 0.287,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.51,
+       "r": 0.755,
+       "l": 0.245,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.589,
+       "r": 0.794,
+       "l": 0.206,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.715,
+       "r": 0.858,
+       "l": 0.142,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ]
+    },
+    "popone": {
+     "blocks": 11,
+     "maxR": 0.8732697147651006,
+     "minL": 0.12673028523489932,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.6033494801512287,
+     "maxSpan": 0.7772969495530097,
+     "minFs": 0.042140939597315435,
+     "maxFs": 0.1204026845637584,
+     "dir": "ltr",
+     "rtlOk": [],
+     "widest": {
+      "bi": 9,
+      "t": 2.9099999999999997,
+      "w": 0.7465394295302012,
+      "lines": 1,
+      "txt": "お見せします"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.321,
+       "r": 0.661,
+       "l": 0.339,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 1,
+       "w": 0.218,
+       "r": 0.609,
+       "l": 0.391,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 2,
+       "w": 0.215,
+       "r": 0.608,
+       "l": 0.392,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 3,
+       "w": 0.321,
+       "r": 0.661,
+       "l": 0.339,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 4,
+       "w": 0.321,
+       "r": 0.661,
+       "l": 0.339,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 5,
+       "w": 0.435,
+       "r": 0.718,
+       "l": 0.282,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 6,
+       "w": 0.215,
+       "r": 0.608,
+       "l": 0.392,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 7,
+       "w": 0.321,
+       "r": 0.661,
+       "l": 0.339,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 8,
+       "w": 0.433,
+       "r": 0.716,
+       "l": 0.284,
+       "lines": 1,
+       "fs": 113.1
+      },
+      {
+       "bi": 9,
+       "w": 0.747,
+       "r": 0.873,
+       "l": 0.127,
+       "lines": 1,
+       "fs": 130
+      },
+      {
+       "bi": 10,
+       "w": 0.496,
+       "r": 0.748,
+       "l": 0.252,
+       "lines": 2,
+       "fs": 45.5
+      }
+     ],
+     "exportSec": 13.291
+    },
+    "tiktok": {
+     "blocks": 4,
+     "maxR": 0.8574349832214765,
+     "minL": 0.14251258389261745,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5432124291115312,
+     "maxSpan": 0.5940645973154363,
+     "minFs": 0.052241610738255034,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 2,
+      "t": 2.844,
+      "w": 0.714922399328859,
+      "lines": 2,
+      "txt": "簡単に 作れるか お見せします"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.552,
+       "r": 0.776,
+       "l": 0.224,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.636,
+       "r": 0.818,
+       "l": 0.182,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.715,
+       "r": 0.857,
+       "l": 0.143,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.715,
+       "r": 0.857,
+       "l": 0.143,
+       "lines": 2,
+       "fs": 56.4
+      }
+     ]
+    },
+    "hush": {
+     "blocks": 4,
+     "maxR": 0.8594798657718121,
+     "minL": 0.14046770134228187,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5432124291115312,
+     "maxSpan": 0.5982067953020134,
+     "minFs": 0.052241610738255034,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7190121644295302,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.549,
+       "r": 0.775,
+       "l": 0.225,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.634,
+       "r": 0.817,
+       "l": 0.183,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.712,
+       "r": 0.856,
+       "l": 0.144,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.719,
+       "r": 0.859,
+       "l": 0.14,
+       "lines": 2,
+       "fs": 56.4
+      }
+     ]
+    },
+    "focus": {
+     "blocks": 4,
+     "maxR": 0.8608955536912751,
+     "minL": 0.13905201342281878,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7218435402684564,
+     "minFs": 0.06238926174496644,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7218435402684563,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.451,
+       "r": 0.725,
+       "l": 0.275,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.535,
+       "r": 0.767,
+       "l": 0.233,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.614,
+       "r": 0.807,
+       "l": 0.193,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.722,
+       "r": 0.861,
+       "l": 0.139,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ]
+    },
+    "headline": {
+     "blocks": 4,
+     "maxR": 0.8614723154362416,
+     "minL": 0.13852768456375839,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5562086483931947,
+     "maxSpan": 0.7229446308724832,
+     "minFs": 0.06037852348993288,
+     "maxFs": 0.08456375838926174,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7229446308724832,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.482,
+       "r": 0.741,
+       "l": 0.259,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 1,
+       "w": 0.574,
+       "r": 0.787,
+       "l": 0.213,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 2,
+       "w": 0.66,
+       "r": 0.83,
+       "l": 0.17,
+       "lines": 2,
+       "fs": 91.3
+      },
+      {
+       "bi": 3,
+       "w": 0.723,
+       "r": 0.861,
+       "l": 0.139,
+       "lines": 2,
+       "fs": 65.2
+      }
+     ]
+    },
+    "stack": {
+     "blocks": 4,
+     "maxR": 0.8623636744966443,
+     "minL": 0.13758389261744966,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5432124291115312,
+     "maxSpan": 0.6288580158412856,
+     "minFs": 0.052241610738255034,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7247797818791947,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.548,
+       "r": 0.774,
+       "l": 0.226,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.632,
+       "r": 0.816,
+       "l": 0.184,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.711,
+       "r": 0.855,
+       "l": 0.144,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.725,
+       "r": 0.862,
+       "l": 0.138,
+       "lines": 2,
+       "fs": 56.4
+      }
+     ],
+     "exportSec": 13.621
+    },
+    "neon": {
+     "blocks": 4,
+     "maxR": 0.8563338926174496,
+     "minL": 0.1436136744966443,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7127202181208053,
+     "minFs": 0.06238926174496644,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7127202181208053,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.429,
+       "r": 0.714,
+       "l": 0.286,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.513,
+       "r": 0.757,
+       "l": 0.243,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.592,
+       "r": 0.796,
+       "l": 0.204,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.713,
+       "r": 0.856,
+       "l": 0.144,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ]
+    },
+    "editorial": {
+     "blocks": 4,
+     "maxR": 0.8586409395973155,
+     "minL": 0.14130662751677853,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7173343120805369,
+     "minFs": 0.06238926174496644,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7173343120805369,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.427,
+       "r": 0.714,
+       "l": 0.286,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.511,
+       "r": 0.756,
+       "l": 0.244,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.59,
+       "r": 0.795,
+       "l": 0.205,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.717,
+       "r": 0.859,
+       "l": 0.141,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ],
+     "exportSec": 13.361
+    },
+    "marker": {
+     "blocks": 4,
+     "maxR": 0.8594274328859061,
+     "minL": 0.14052013422818793,
+     "maxLines": 2,
+     "maxB": 0.6800271739130435,
+     "minT": 0.5621160207939508,
+     "maxSpan": 0.7189072986577181,
+     "minFs": 0.06238926174496644,
+     "maxFs": 0.08053691275167785,
+     "dir": "ltr",
+     "rtlOk": [
+      false,
+      false
+     ],
+     "widest": {
+      "bi": 3,
+      "t": 6.569999999999999,
+      "w": 0.7189072986577181,
+      "lines": 2,
+      "txt": "国際連合安全保障理事会- 常任理事国の代表者会議"
+     },
+     "perBlock": [
+      {
+       "bi": 0,
+       "w": 0.466,
+       "r": 0.733,
+       "l": 0.267,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 1,
+       "w": 0.551,
+       "r": 0.775,
+       "l": 0.225,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 2,
+       "w": 0.629,
+       "r": 0.815,
+       "l": 0.185,
+       "lines": 2,
+       "fs": 87
+      },
+      {
+       "bi": 3,
+       "w": 0.719,
+       "r": 0.859,
+       "l": 0.141,
+       "lines": 2,
+       "fs": 67.4
+      }
+     ]
+    }
+   },
+   "tofu": {
+    "chars": 48,
+    "tofu": "",
+    "fam": "\"Inter Tight\", sans-serif"
+   },
+   "expTimes": {
+    "tight": 2.9099999999999997,
+    "note": 6.569999999999999,
+    "hormozi": 6.569999999999999,
+    "popone": 2.9099999999999997,
+    "stack": 6.569999999999999,
+    "editorial": 6.569999999999999
+   }
+  }
+ }
+}

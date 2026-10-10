@@ -1,0 +1,18 @@
+
+== desktop 1280×800 (quick) ==
+-- geom
+   (3.1 s)
+-- pixel
+   (10.9 s)
+-- anim
+   (6.5 s)
+
+== phone 390×844 (quick) ==
+-- geom
+   (3.7 s)
+-- pixel
+   (12.3 s)
+-- anim
+   (7.1 s)
+
+test-ui-sweep: 146 ok, 0 FAIL, 0 erwartet fehlgeschlagen (xfail), 0 XPASS, 0 Warnungen — 44 s
