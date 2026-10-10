@@ -28,6 +28,16 @@ if (!fs.existsSync(VIDEO)) {
   if (r.status !== 0) { console.log('ffmpeg fehlt – test-e2e übersprungen'); process.exit(0); }
 }
 
+// ── Beschädigte Datei: die ersten 100 KB eines ~1,5-MB-WebM (Metadaten stimmen, der Rest fehlt) – Vorlage Tester C
+const TRUNC = path.join(os.tmpdir(), 'cr-e2e-trunc100k.webm');
+if (!fs.existsSync(TRUNC)) {
+  const full = path.join(os.tmpdir(), 'cr-e2e-full10s.webm');
+  spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=540x960:rate=30:duration=10', '-f', 'lavfi', '-i', 'sine=frequency=300:duration=10',
+    '-f', 'lavfi', '-i', 'anoisesrc=amplitude=0.2:duration=10', '-filter_complex', '[1][2]amix=inputs=2:duration=first[a]', '-map', '0:v', '-map', '[a]',
+    '-c:v', 'libvpx', '-b:v', '1200k', '-pix_fmt', 'yuv420p', '-c:a', 'libvorbis', '-shortest', full]);
+  if (fs.existsSync(full)) fs.writeFileSync(TRUNC, fs.readFileSync(full).subarray(0, 100000));
+}
+
 // ── Helles, einfarbiges Testvideo (Sand-Ton) für den Randtest: dunkle Pixel am Bildrand können dann nur vom Rahmen kommen
 const LIGHT = path.join(os.tmpdir(), 'cr-e2e-light.webm');
 if (!fs.existsSync(LIGHT)) {
@@ -128,7 +138,7 @@ if (require.main !== module) return;
 (async () => {
   const base = await startServer();
   const browser = await chromium.launch({ executablePath: process.env.CHROMIUM || undefined, args: ['--autoplay-policy=no-user-gesture-required'] });
-  const profiles = [{ name: 'desktop', viewport: { width: 1280, height: 800 }, mobile: false }, { name: 'phone', viewport: { width: 390, height: 844 }, mobile: true }];
+  const profiles = [{ name: 'desktop', viewport: { width: 1280, height: 800 }, mobile: false }, { name: 'phone', viewport: { width: 390, height: 844 }, mobile: true }].filter(pr => !process.env.E2E_ONLY || pr.name === process.env.E2E_ONLY); // E2E_ONLY=desktop|phone: nur ein Profil
   for (const prof of profiles) {
     console.log('\n== ' + prof.name + ' ' + prof.viewport.width + 'px ==');
     const ctx = await browser.newContext({ viewport: prof.viewport, isMobile: prof.mobile, hasTouch: prof.mobile, acceptDownloads: true, deviceScaleFactor: 1 });
@@ -426,6 +436,69 @@ if (require.main !== module) return;
       const dur = info.format && +info.format.duration;
       ok(dur > 4.5 && dur < 8, 'Export-Dauer passt zum Video (' + dur + ' s)');
       ok((info.streams || []).some(x => x.codec_type === 'video') && (info.streams || []).some(x => x.codec_type === 'audio'), 'Export hat Bild und Ton');
+      // 3b) Nach dem Export: SRT/VTT/TXT/Cover/Copy bleiben sichtbar + herunterladbar; «Download again» speichert dieselbe Datei ohne Neu-Render
+      {
+        await page.evaluate(() => { window.__renders = 0; const o = window.__origExp = window.exportVideoWithCaptions; window.exportVideoWithCaptions = function() { window.__renders++; return o.apply(this, arguments); }; });
+        await page.waitForSelector('#expDone', { state: 'visible', timeout: 5000 }).catch(() => {});
+        await shot('05b-export-done-sheet');
+        ok(await page.isVisible('#expSheet') && await page.isVisible('#expDone') && !(await page.isVisible('#btnVideo')), 'Nach dem Export: Fertig-Ansicht im Blatt');
+        const vis = {}; for (const id of ['btnSRT', 'btnVTT', 'btnTXT', 'btnCover', 'btnCopy', 'expCopyPost', 'expDlFile', 'expAgain']) vis[id] = await page.isVisible('#' + id);
+        ok(Object.values(vis).every(Boolean) && await page.isEnabled('#btnSRT') && await page.isEnabled('#btnCover'), 'Nach dem Export sichtbar + aktiv: SRT, VTT, TXT, Cover, Copy text, Copy full transcript, Download again, Export again (' + JSON.stringify(vis) + ')');
+        ok(/Export again/.test(await page.textContent('#expAgain')) && /Download again/.test(await page.textContent('#expDlFile')), 'Beschriftung: «Download again» (gleiche Datei) und «Export again» (neu rendern) getrennt');
+        for (const [id, re] of [['btnSRT', /\.srt$/], ['btnVTT', /\.vtt$/], ['btnTXT', /\.txt$/]]) {
+          const dP = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
+          await page.click('#' + id);
+          const d = await dP;
+          ok(!!d && re.test(d.suggestedFilename()), id + ': Download nach dem Export (' + (d ? d.suggestedFilename() : '–') + ')');
+          if (d && id === 'btnVTT') {
+            const t = fs.readFileSync(await d.path(), 'utf8');
+            ok(/^WEBVTT\n\n1\n/.test(t), 'VTT: nach WEBVTT genau eine Leerzeile');
+          }
+        }
+        const d2P = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
+        await page.click('#expDlFile');
+        const d2 = await d2P;
+        ok(!!d2 && d2.suggestedFilename() === dl.suggestedFilename(), '«Download again»: Datei wird erneut gespeichert (' + (d2 ? d2.suggestedFilename() : '–') + ')');
+        if (d2) ok(Buffer.compare(fs.readFileSync(await d2.path()), fs.readFileSync(fp)) === 0, '«Download again»: byte-identisch zur ersten Datei');
+        ok(await page.evaluate(() => window.__renders === 0 && !isExporting && _expTok === null), '«Download again» löst keinen Neu-Render aus (Zähler 0)');
+        // Export again → rendert neu; Abbrechen mitten im Rendern: kein Download, Zustand zurück
+        let extra = 0; const cnt = () => { extra++; }; page.on('download', cnt);
+        await page.click('#expAgain');
+        await page.waitForFunction(() => isExporting === true, null, { timeout: 15000 }).catch(() => {});
+        ok(await page.evaluate(() => window.__renders === 1 && isExporting), '«Export again» rendert neu (Zähler 1)');
+        await page.waitForTimeout(1500);
+        ok(await page.isVisible('#expCancel') && /Exporting|Preparing/.test(await page.textContent('#tbExport')) && await page.isEnabled('#tbExport'), 'Während des Exports: «Cancel» sichtbar, Top-Knopf zeigt Fortschritt und bleibt klickbar');
+        await shot('05c-cancel-visible');
+        await page.click('#expCancel');
+        await page.waitForFunction(() => _expTok === null && isExporting === false, null, { timeout: 15000 }).catch(() => {});
+        await page.waitForTimeout(2500);
+        const afterCancel = await page.evaluate(() => ({ tok: _expTok, exp: isExporting, blob: _lastExportBlob, btn: !document.getElementById('btnVideo').disabled, label: document.getElementById('btnVideo').querySelector('.exp-btn-label').textContent,
+          tb: document.getElementById('tbExport').textContent, tbBusy: document.getElementById('tbExport').classList.contains('busy'), main: document.getElementById('expMain').style.display, toast: (document.getElementById('capToast') || {}).textContent || '', ctrl: document.getElementById('vidCtrls').classList.contains('exporting') }));
+        ok(extra === 0, 'Abbrechen: kein Download (' + extra + ')');
+        ok(afterCancel.tok === null && !afterCancel.exp && afterCancel.blob === null && afterCancel.btn && afterCancel.label === 'Download video' && afterCancel.tb === 'Export' && !afterCancel.tbBusy && afterCancel.main !== 'none' && !afterCancel.ctrl, 'Abbrechen: Zustand zurück (' + JSON.stringify(afterCancel) + ')');
+        ok(/cancelled/i.test(afterCancel.toast), 'Abbrechen: Meldung «cancelled»');
+        if (!prof.mobile) {
+          // zweiter Abbruch erst während der Umkodierung (ffmpeg.wasm): Worker wird beendet, nichts wird gespeichert
+          await page.click('#btnVideo');
+          const conv = await page.waitForFunction(() => /Creating MP4/.test(document.getElementById('recMsg').textContent), null, { timeout: 90000 }).then(() => true, () => false);
+          ok(conv, 'Umkodierung (ffmpeg.wasm) erreicht');
+          if (conv) {
+            await page.waitForTimeout(800);
+            await page.click('#expCancel');
+            await page.waitForFunction(() => _expTok === null && isExporting === false, null, { timeout: 20000 }).catch(() => {});
+            await page.waitForTimeout(3000);
+            const st = await page.evaluate(() => ({ tok: _expTok, exp: isExporting, ff: typeof _ffmpeg === 'undefined' ? 'undef' : _ffmpeg, blob: _lastExportBlob }));
+            ok(extra === 0 && st.tok === null && !st.exp && st.blob === null && st.ff === null, 'Abbrechen während der Umkodierung: kein Download, ffmpeg beendet, Zustand zurück (' + extra + ' Downloads, ' + JSON.stringify({ tok: st.tok, exp: st.exp, ff: st.ff && 'inst' }) + ')');
+          }
+        }
+        page.off('download', cnt);
+        // Cover aus dem Blatt; danach (Blatt neu geöffnet) zeigt die Export-Ansicht die letzte Datei mit «Download again»
+        await page.evaluate(() => openExportSheet());
+        await page.click('#btnCover'); await page.waitForSelector('#coverModal', { state: 'visible', timeout: 5000 }).catch(() => {});
+        ok(await page.isVisible('#coverModal'), 'Cover öffnet sich aus dem Blatt nach dem Export');
+        await page.evaluate(() => closeCover());
+        await page.evaluate(() => { window.exportVideoWithCaptions = window.__origExp; });
+      }
       // Vorschau = Export: ein Frame aus der Mitte mit Untertitel-Pixeln prüfen (heller Text auf dem Testbild)
       const fr = path.join(SHOTS, prof.name + '-export-frame.png');
       spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', '1.2', '-i', fp, '-frames:v', '1', fr]);
@@ -588,6 +661,100 @@ if (require.main !== module) return;
     const nb2 = await page.evaluate(() => captionBlocks.length);
     ok(nb2 === nbSave, 'Projekt geladen: ' + nb2 + ' Blöcke');
     await shot('09-project-loaded');
+
+    // 5b) Beschädigte Datei (abgeschnittenes WebM): Export meldet den Fehler verständlich, speichert KEINE 0-Byte-Datei, erneuter Export bleibt möglich
+    if (fs.existsSync(TRUNC)) {
+      const p3 = await ctx.newPage();
+      let dls = 0, dlgs = [];
+      p3.on('download', () => { dls++; }); p3.on('dialog', d => { dlgs.push(d.type()); d.accept(); });
+      await p3.goto(base + '/', { waitUntil: 'load' });
+      await p3.setInputFiles('#landInput', TRUNC);
+      await p3.waitForFunction(() => typeof captionBlocks !== 'undefined' && captionBlocks.length > 0 && typeof vidReady !== 'undefined' && vidReady, null, { timeout: 60000 }).catch(() => {});
+      await p3.waitForTimeout(1500);
+      const loaded = await p3.evaluate(() => ({ blocks: captionBlocks.length, ready: vidReady, playable: videoPlayable }));
+      await shot('10-trunc-loaded');
+      ok(loaded.blocks > 0 && loaded.ready, 'Abgeschnittenes WebM (100 KB von ~1,5 MB) wird wie beim Tester angenommen (' + JSON.stringify(loaded) + ')');
+      if (loaded.blocks > 0) {
+        await p3.evaluate(() => { openExportSheet(); });
+        if (await p3.isVisible('#expGate')) { await p3.fill('#gateEmail', 'e2e@example.com'); }
+        await p3.click('#btnVideo');
+        await p3.waitForFunction(() => { const n = document.getElementById('expNote'); return n && n.style.display !== 'none' && /Export failed/.test(n.textContent); }, null, { timeout: 90000 }).catch(() => {});
+        await p3.waitForTimeout(1500);
+        await shot('11-trunc-export-failed');
+        const r = await p3.evaluate(() => ({ note: document.getElementById('expNote').textContent, noteVis: document.getElementById('expNote').style.display !== 'none', exp: isExporting, tok: _expTok, blob: _lastExportBlob,
+          done: document.getElementById('expDone').style.display, btn: !document.getElementById('btnVideo').disabled, label: document.getElementById('btnVideo').querySelector('.exp-btn-label').textContent, tb: document.getElementById('tbExport').textContent }));
+        ok(r.noteVis && /Export failed — the video file seems damaged\. Try re-saving it from your Photos app or another file\./.test(r.note), 'Defekte Datei: verständliche Meldung im Export-Blatt («' + r.note + '»)');
+        ok(dls === 0 && r.blob === null, 'Defekte Datei: keine Datei gespeichert (' + dls + ' Downloads)');
+        ok(r.done === 'none' && !dlgs.length, 'Defekte Datei: kein falscher Erfolg («Saved»), kein alert/confirm (' + dlgs.join(',') + ')');
+        ok(!r.exp && r.tok === null && r.btn && r.label === 'Download video' && r.tb === 'Export', 'Defekte Datei: Zustand zurückgesetzt, erneuter Export möglich');
+      }
+      await p3.close();
+    } else ok(false, 'Testdatei für abgeschnittenes WebM fehlt (ffmpeg?)');
+
+    // 5c) Browser-Zurück im Editor führt zur Startseite des Tools; Warnung beim Verlassen nur bei laufendem Export / ungespeicherten Änderungen
+    {
+      const newEditorPage = async () => {
+        const pg = await ctx.newPage(), dl2 = [];
+        pg.on('dialog', d => { dl2.push(d.type()); d.accept(); });
+        await pg.goto(base + '/', { waitUntil: 'load' });
+        await pg.setInputFiles('#landInput', VIDEO);
+        await pg.waitForFunction(() => typeof captionBlocks !== 'undefined' && captionBlocks.length > 0, null, { timeout: 60000 }).catch(() => {});
+        await pg.waitForTimeout(1500); // Autosave (800 ms) ist durch
+        await pg.mouse.click(3, 3); // Nutzeraktivierung: ohne sie zeigt Chromium keinen beforeunload-Dialog
+        return { pg, dl2 };
+      };
+      {
+        const { pg, dl2 } = await newEditorPage();
+        const h0 = await pg.evaluate(() => ({ st: history.state, len: history.length, url: location.href }));
+        ok(h0.st && h0.st.cr === 'editor', 'Editor betreten: History-Eintrag gesetzt');
+        await pg.goBack(); await pg.waitForTimeout(400);
+        const v1 = await pg.evaluate(() => ({ landing: getComputedStyle(document.getElementById('landing')).display, editor: getComputedStyle(document.getElementById('editor')).display, url: location.href }));
+        ok(v1.landing !== 'none' && v1.editor === 'none' && v1.url === h0.url, 'Browser-Zurück im Editor → Startseite des Tools (nicht aus der App)');
+        // App-Zurück-Knopf: Editor sofort weg, Eintrag entfernt, keine Schleife
+        await pg.setInputFiles('#landInput', VIDEO);
+        await pg.waitForFunction(() => captionBlocks.length > 0, null, { timeout: 60000 }).catch(() => {});
+        await pg.waitForTimeout(600);
+        const sync = await pg.evaluate(() => { goBack(); return { landing: getComputedStyle(document.getElementById('landing')).display, editor: getComputedStyle(document.getElementById('editor')).display }; });
+        await pg.waitForTimeout(500);
+        const h2 = await pg.evaluate(() => ({ st: history.state, landing: getComputedStyle(document.getElementById('landing')).display, url: location.href }));
+        ok(sync.landing !== 'none' && sync.editor === 'none' && h2.st === null && h2.landing !== 'none' && h2.url === h0.url, 'App-«Back»: sofort Startseite, History-Eintrag wieder weg, keine Schleife');
+        // Reload mit Editor-Eintrag im Verlauf: Startseite, Eintrag entwertet
+        await pg.setInputFiles('#landInput', VIDEO);
+        await pg.waitForFunction(() => captionBlocks.length > 0, null, { timeout: 60000 }).catch(() => {});
+        await pg.waitForTimeout(1500);
+        await pg.reload({ waitUntil: 'load' });
+        ok(await pg.evaluate(() => history.state === null) && dl2.length === 0, 'Reload nach gespeicherter Bearbeitung: keine Warnung, Verlaufs-Eintrag entwertet (' + dl2.join(',') + ')');
+        await pg.close();
+      }
+      {
+        const { pg, dl2 } = await newEditorPage();
+        await pg.close({ runBeforeUnload: true }); await new Promise(r => setTimeout(r, 1200)); // close(runBeforeUnload) wartet nicht auf den Dialog
+        ok(dl2.length === 0 && pg.isClosed(), 'Tab schliessen im Ruhezustand (alles gespeichert): keine Warnung');
+      }
+      {
+        const { pg, dl2 } = await newEditorPage();
+        // Speicher voll/gesperrt (Autosave schlägt fehl) + Änderung → ungespeichert → Warnung
+        await pg.evaluate(() => { Storage.prototype.setItem = function() { throw new Error('quota'); }; markCaptionsEdited(); });
+        await pg.close({ runBeforeUnload: true }); await new Promise(r => setTimeout(r, 1200)); // close(runBeforeUnload) wartet nicht auf den Dialog
+        ok(dl2.length === 1 && dl2[0] === 'beforeunload', 'Ungespeicherte Änderungen (Autosave nicht möglich): beforeunload-Warnung (' + dl2.join(',') + ')');
+      }
+      {
+        const { pg, dl2 } = await newEditorPage();
+        await pg.evaluate(() => { openExportSheet(); exportVideoWithCaptions(); });
+        await pg.waitForFunction(() => isExporting === true, null, { timeout: 20000 }).catch(() => {});
+        await pg.waitForTimeout(600);
+        // Browser-Zurück mitten im Export: Nachfrage (hier «abbrechen» = bleiben → confirm false)
+        pg.removeAllListeners('dialog'); const dl3 = [];
+        pg.on('dialog', d => { dl3.push(d.type()); d.dismiss(); });
+        await pg.goBack(); await pg.waitForTimeout(600);
+        const stay = await pg.evaluate(() => ({ editor: getComputedStyle(document.getElementById('editor')).display, exp: isExporting, st: history.state }));
+        ok(dl3.includes('confirm') && stay.editor !== 'none' && stay.exp && stay.st && stay.st.cr === 'editor', 'Browser-Zurück mitten im Export: Nachfrage, «Bleiben» lässt Export + Editor unberührt (' + dl3.join(',') + ')');
+        pg.removeAllListeners('dialog'); const dl4 = [];
+        pg.on('dialog', d => { dl4.push(d.type()); d.accept(); });
+        await pg.close({ runBeforeUnload: true }); await new Promise(r => setTimeout(r, 1200)); // close(runBeforeUnload) wartet nicht auf den Dialog
+        ok(dl4.length === 1 && dl4[0] === 'beforeunload', 'Tab schliessen während des Exports: beforeunload-Warnung (' + dl4.join(',') + ')');
+      }
+    }
 
     // 6) Rand der Vorschau: helles einfarbiges Video → in den untersten Pixelreihen innerhalb der Rundung kein dunkler Streifen
     //    (bei Zoom 1 und 1.25), das Video steht über den Rahmen hinaus und der Hintergrund dahinter ist nicht schwarz
