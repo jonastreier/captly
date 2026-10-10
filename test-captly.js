@@ -136,7 +136,7 @@ applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
 videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateSkip:function(){_gateSkipped=false;try{sessionStorage.removeItem(GATE_SKIP_KEY);}catch(e){}},skipEmailGate:skipEmailGate,wmNoticeText:wmNoticeText,trHeaders:trHeaders,
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
-capNoItalic:capNoItalic,capPopFactor:capPopFactor,setCsBase:function(b){_csBase=b;},capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
+capNoItalic:capNoItalic,capPopFactor:capPopFactor,setCsBase:function(b){_csBase=b;},drawTextGrouped:drawTextGrouped,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
 setActiveId:function(i){activeId=i;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -4158,6 +4158,24 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setCsBase(null);
     ok(T.capWordGap(custom) > 0 && T.capWordGap(tight) === 0, 'Testaufbau: Kontur erzeugt Wortabstand, der Halo von Tight nicht');
     ok(perRing < perBase && perFrozen === perBase, 'Auto-Zeichenlimit von «Mein Style» folgt dem Ausgangs-Style (' + perFrozen + ' = ' + perBase + '; ohne Freeze ' + perRing + ') — Konturfarbe zerlegt keine Bloecke');
+  }
+  // ── Deckkraft < 1 gilt als Gruppe ueber Text + Halo-Schichten (Vorschau: opacity am Span; Export vorher: je fillText → Halo/Glyphe stapelten sich) ──
+  {
+    const mkG = (canvas) => { const c = { canvas, _font: '', letterSpacing: '0px', fillStyle: '#fff', strokeStyle: '#000', lineWidth: 1, globalAlpha: 1, shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, textAlign: 'left', textBaseline: 'alphabetic', calls: [], imgs: [], tr: [],
+      get font() { return this._font; }, set font(v) { this._font = v; },
+      measureText(str) { return { width: (str || '').length * 10 }; },
+      fillText(t) { this.calls.push({ t, a: this.globalAlpha }); }, strokeText() {}, drawImage() { this.imgs.push(this.globalAlpha); },
+      save() { this._st = (this._st || []); this._st.push(this.globalAlpha); }, restore() { this.globalAlpha = this._st.pop(); },
+      translate(x, y) { this.tr.push([x, y]); }, setTransform() {}, clearRect() {}, scale() {}, rotate() {}, beginPath() {}, fill() {}, stroke() {} }; return c; };
+    const plan = T.capShadowPlan(T.STYLES.find(x => x.id === 'tight').ts);
+    const bufs = []; const origCreate = document.createElement;
+    document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); const cv = { width: 0, height: 0 }; const cx = mkG(cv); cv.getContext = () => cx; bufs.push(cx); return cv; };
+    const main = mkG({ width: 1080, height: 1920 });
+    T.drawTextGrouped(main, 'so', 100, 200, plan, 3, 1, 60, 120, 1, 0.5);
+    ok(main.calls.length === 0 && main.imgs.length === 1 && Math.abs(main.imgs[0] - 0.5) < 1e-9 && bufs.length >= 1 && bufs[0].calls.length >= 3 && bufs[0].calls.every(k => k.a === 1), 'Gruppen-Deckkraft: Wort + Halo-Schichten im Puffer mit voller Deckkraft, EIN drawImage mit 0,5 (' + bufs[0].calls.length + ' Schichten)');
+    const main2 = mkG({ width: 1080, height: 1920 }); T.drawTextGrouped(main2, 'so', 100, 200, plan, 3, 1, 60, 120, 1, 1);
+    ok(main2.calls.length >= 2 && main2.calls.every(k => k.a === 1), 'Deckkraft 1: direkt auf den Hauptkontext gezeichnet');
+    document.createElement = origCreate;
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

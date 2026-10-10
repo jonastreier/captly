@@ -10993,6 +10993,34 @@ function drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw) {
   ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   ctx.drawImage(c, 0, 0, sw, sh, x - m, y - fsS * 1.05 - m, sw / q, sh / q);
 }
+// Wort mit Deckkraft < 1 UND mehreren Schatten-/Kontur-Schichten (Lesbarkeits-Halo, Glow …): im DOM gilt opacity für das ganze Wort
+// als Gruppe (Text + alle Schatten zusammen, dann halbtransparent). Mit ctx.globalAlpha je Zeichenaufruf würden sich die Schichten
+// dagegen mehrfach überlagern (Halo dunkler als in der Vorschau — Einblenden bei Tight/Reveal, gedimmte Wörter bei Fill/Soft).
+// Darum: Wort samt Schichten in einen Puffer zeichnen und den Puffer mit Deckkraft einsetzen (Koordinaten bleiben identisch).
+var _grpBuf = null;
+function drawTextGrouped(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul, alpha) {
+  var passes = plan.rest.length + (plan.ring && plan.ring.w > 0 ? 1 : 0) + 1;
+  var ok = alpha < 1 && passes >= 3 && typeof document !== 'undefined' && ctx.canvas && typeof ctx.fillStyle === 'string' && ctx.drawImage && typeof ctx.setTransform === 'function';
+  if (!ok) { ctx.save(); ctx.globalAlpha *= alpha; drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul); ctx.restore(); return; }
+  var k = shMul > 0 ? shMul : 1, m = 4;
+  plan.rest.forEach(function(l) { m = Math.max(m, l.blur * scale * k * 1.6 + (Math.abs(l.x) + Math.abs(l.y)) * scale * k + 4); });
+  if (plan.ring) m = Math.max(m, plan.ring.w * scale * 2 + 4);
+  m = Math.ceil(m);
+  var bw = Math.ceil(tw + 2 * m), bh = Math.ceil(fsS * 1.6 + 2 * m), ox = x - m, oy = y - fsS * 1.1 - m;
+  if (!_grpBuf) _grpBuf = document.createElement('canvas');
+  var c = _grpBuf; if (c.width < bw || c.height < bh) { c.width = Math.max(c.width, bw); c.height = Math.max(c.height, bh); }
+  var g = c.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
+  g.globalAlpha = 1; g.font = ctx.font;
+  if ('letterSpacing' in g && 'letterSpacing' in ctx) g.letterSpacing = ctx.letterSpacing;
+  g.textAlign = ctx.textAlign; g.textBaseline = ctx.textBaseline; g.fillStyle = ctx.fillStyle;
+  g.translate(-ox, -oy); // gleiche Koordinaten wie auf dem Hauptkontext
+  drawTextWithPlan(g, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul);
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.save(); ctx.globalAlpha *= alpha; ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
+  ctx.drawImage(c, 0, 0, bw, bh, ox, oy, bw, bh);
+  ctx.restore();
+}
 function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul) {
   if (plan.rest.length) {
     ctx.save();
@@ -11469,7 +11497,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
           return;
         }
         ctx.save();
-        if (op < 1) ctx.globalAlpha *= op;
+        var grpOp = op < 1 ? op : 1; // Deckkraft als Gruppe über Text + Schichten (s. drawTextGrouped; Verläufe fallen dort auf je-Aufruf zurück)
         if (animSt || dyPx) {
           var pvx = x + wo.w / 2, pvy = y - fsS * 0.32;
           ctx.translate(pvx, pvy + dyPx); // translateY wie im CSS (Lift/Reveal), dann skalieren um die Wortmitte
@@ -11484,7 +11512,8 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
         // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
         // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
         var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
-        drawTextWithPlan(ctx, txt, tx, y, plan, scale, 1, wo.e ? fsS * L0.esc : fsS, tw, animK);
+        if (grpOp < 1) drawTextGrouped(ctx, txt, tx, y, plan, scale, 1, wo.e ? fsS * L0.esc : fsS, tw, animK, grpOp);
+        else drawTextWithPlan(ctx, txt, tx, y, plan, scale, 1, wo.e ? fsS * L0.esc : fsS, tw, animK);
         ctx.restore();
       });
     });
