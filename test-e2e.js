@@ -959,6 +959,24 @@ if (require.main !== module) return;
     ok(!hscroll, 'kein horizontales Scrollen');
     await ctx.close();
   }
+  // Handy quer / kleine Handys: Video und Kopfzeile oben vollständig sichtbar, nichts ragt unten über den Bildschirm (Timeline zu)
+  for (const [vw, vh] of [[844, 390], [932, 430], [390, 664], [360, 640]]) {
+    const c2 = await browser.newContext({ viewport: { width: vw, height: vh }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+    await routeSupabase(c2, base);
+    const p3 = await c2.newPage();
+    await p3.goto(base + '/', { waitUntil: 'load' });
+    await p3.setInputFiles('#landInput', VIDEO);
+    await p3.waitForFunction(() => typeof captionBlocks !== 'undefined' && captionBlocks.length > 0, null, { timeout: 60000 }).catch(() => {});
+    await p3.waitForTimeout(900);
+    const g = await p3.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom }; };
+      return { vh: innerHeight, topbar: r('.topbar'), frame: r('#prevFrame'), ctrls: r('#vidCtrls'), tlOpen: !!(window._tl && _tl.open), hs: document.documentElement.scrollWidth > innerWidth + 1 }; });
+    const tag = vw + '×' + vh;
+    ok(g.frame && g.topbar && g.frame.t >= g.topbar.b - 0.5, 'Handy ' + tag + ': Video beginnt unter der Kopfzeile, oberer Rand nicht abgeschnitten (' + Math.round(g.frame.t) + ' ≥ ' + Math.round(g.topbar.b) + ')');
+    ok(g.frame.b <= g.vh && g.ctrls.b <= g.vh + 0.5 || vw <= 640, 'Handy ' + tag + ': Video + Leiste passen auf den Bildschirm');
+    ok(vw <= 640 || !g.tlOpen, 'Handy ' + tag + ': Timeline startet zugeklappt (niedriger Bildschirm)');
+    ok(!g.hs, 'Handy ' + tag + ': kein horizontales Scrollen');
+    await c2.close();
+  }
   await browser.close(); server.close();
   console.log(fails ? `\n${fails}/${n} FEHLER` : `\ntest-e2e: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);

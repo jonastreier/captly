@@ -51,7 +51,7 @@
 /* Sichtbarer Tastatur-Fokus überall (steht vorn: Text-Eingaben mit eigenem Fokus-Look überschreiben ihn gezielt) */
 :focus-visible{outline:2px solid var(--brand);outline-offset:2px}
 body{background:var(--canvas);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-body.editor-open{height:100vh;overflow:hidden}
+body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 
 /* Wort-Animationen: sofort erkennbar, aber nur 0,34 s kurz. Pop 1 → 1.14 → 1 · Punch 1.28 → 1 (ease-out) · Lift = 0,22 em
    von unten (Deckkraft .5 → 1) · Fade in = 0 → 1 · Glow = Leuchten in der Textfarbe. flash/wobble bleiben als Namen für alte Templates.
@@ -261,7 +261,7 @@ body.editor-open{height:100vh;overflow:hidden}
 .foot-col a:hover{color:var(--ink)}
 
 /* EDITOR */
-#editor{display:none;width:100%;height:100vh;flex-direction:column}
+#editor{display:none;width:100%;height:100vh;height:100dvh;flex-direction:column}
 .topbar{position:relative;z-index:50;display:flex;align-items:center;justify-content:space-between;height:56px;padding:0 16px;background:#fff;border-bottom:1px solid var(--line);flex-shrink:0;gap:12px}
 .topbar-logo{font-size:14px;font-weight:800;color:var(--ink);display:flex;align-items:center;gap:7px;font-family:'Poppins',sans-serif}
 .btn-back{background:#fff;border:1px solid var(--line2);color:var(--ink2);padding:6px 12px;border-radius:var(--r-btn);font:600 12.5px 'Inter',sans-serif;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
@@ -269,7 +269,9 @@ body.editor-open{height:100vh;overflow:hidden}
 .ed-body{display:flex;flex:1;overflow:hidden;min-height:0}
 
 /* PREVIEW */
-.prev-col{flex:1;min-width:0;background:var(--canvas);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;position:relative}
+.prev-col{flex:1;min-width:0;background:var(--canvas);display:flex;flex-direction:column;align-items:center;justify-content:center;justify-content:safe center;gap:12px;padding:16px;position:relative}
+/* Querformat/niedriger Bildschirm: Inhalt nie oben abschneiden (zentriert nur, solange er passt), Rest per Scroll erreichbar */
+@media (max-height:520px){.prev-col{overflow-y:auto;overscroll-behavior:contain;padding:8px 12px;gap:8px}}
 .prev-frame{position:relative;isolation:isolate;border-radius:16px;overflow:hidden;border:none;box-shadow:var(--sh-3);width:220px;height:390px;flex-shrink:0;transform-origin:center center;transition:transform .12s ease-out}
 
 /* TIMELINE (unter der Vorschau) */
@@ -943,7 +945,7 @@ body.editor-open .lang-hint{display:none}
 }
 /* Timeline-Aktionsleiste (Handy/Touch, s. tlSyncAct): immer gleich hoch → nichts springt beim Wählen */
 .tl-act{display:none;border-top:1px solid var(--line);padding:8px 8px 10px}
-.tl-mob .tl-act{display:block}
+.tl-mob.open .tl-act{display:block} /* zugeklappt (Querformat/Touch ab 641 px) nimmt die Aktionsleiste sonst ~130 px weg */
 .tl-mob .tl-hint,.tl-mob #tlSnapBtn,.tl-mob #tlGapBtn,.tl-mob .tl-fit{display:none}
 .ta-hint{display:flex;align-items:center;justify-content:center;height:48px;margin:0;font-size:12.5px;color:var(--muted);text-align:center;line-height:1.35;padding:0 8px}
 .ta-tools{display:flex;gap:4px;margin-top:8px}
@@ -9426,7 +9428,8 @@ function layoutPreviewFrame(setFont) {
   var maxW = Math.min(720, Math.max(100, (pcRect.width || 360) - padX));
   var h = maxH, w = Math.round(h * ar);
   if (w > maxW) { w = maxW; h = Math.round(w / ar); }
-  if (w < 120) { w = 120; h = Math.round(w / ar); }
+  var minW = (typeof tlShortScreen === 'function' && tlShortScreen()) ? 90 : 120; // Handy quer: lieber ein kleineres Video als abgeschnittene Ränder
+  if (w < minW) { w = minW; h = Math.round(w / ar); }
   // Schrift wächst/schrumpft mit dem Rahmen (Timeline auf/zu, Handy-Tabs, Fenstergrösse): der Export rechnet mit
   // fontSize / Rahmenbreite — ohne Mitskalieren hinge die Textgrösse im Video davon ab, welcher Tab offen war.
   var w0 = parseFloat(frame.style.width);
@@ -13397,6 +13400,7 @@ function tlGeom() {
 }
 function tlMobMQ() { return !!(window.matchMedia && window.matchMedia('(max-width:760px), (pointer:coarse)').matches); }
 function tlPhone() { return !!(window.matchMedia && window.matchMedia('(max-width:640px)').matches); }
+function tlShortScreen() { return !!(window.matchMedia && window.matchMedia('(max-height:520px)').matches); }
 // Modus (Handy/Touch ↔ Desktop) übernehmen: Canvas-Höhe, Klasse, Hinweistext
 function tlApplyMode() {
   _tl.mob = tlMobMQ();
@@ -14153,9 +14157,10 @@ function tlReset() {
     var onMode = function() {
       tlApplyMode();
       if (!tlPhone() && edTab === 'timeline') switchTab('captions');
+      if (!tlPhone() && tlShortScreen() && _tl.open) { tlSetOpen(false, false); return; } // Drehung ins Querformat: Timeline einklappen
       tlRelayout();
     };
-    ['(max-width:760px), (pointer:coarse)', '(max-width:640px)'].forEach(function(q) {
+    ['(max-width:760px), (pointer:coarse)', '(max-width:640px)', '(max-height:520px)'].forEach(function(q) {
       var mq = window.matchMedia(q);
       if (mq.addEventListener) mq.addEventListener('change', onMode); else if (mq.addListener) mq.addListener(onMode);
     });
@@ -14163,7 +14168,7 @@ function tlReset() {
   var pref = null;
   try { pref = localStorage.getItem(TL_OPEN_KEY); } catch (e) {}
   // Handy: Timeline ist ein eigener Tab (immer zu beim Start); Desktop: gemerkter Zustand, Standard offen
-  tlSetOpen(tlPhone() ? false : pref !== '0', false);
+  tlSetOpen(tlPhone() || tlShortScreen() ? false : pref !== '0', false); // niedriger Bildschirm (Handy quer): zu, sonst bleibt für das Video fast nichts
   var hint = document.getElementById('tlHint'), seen = null;
   try { seen = localStorage.getItem(TL_HINT_KEY); } catch (e) {}
   if (hint && seen) hint.style.display = 'none';
