@@ -976,7 +976,7 @@ body.editor-open .lang-hint{display:none}
   /* Vorschau wächst mit dem Video (max. ~56 % der Höhe, s. layoutPreviewFrame) → kein toter Grau-Rand bei Querformat */
   .prev-col{flex:0 0 auto;height:auto;max-height:50dvh;padding:12px 12px 10px;gap:10px}
   .col-resize-handle{display:none}
-  .prev-frame{max-width:100%;border-radius:14px}
+  .prev-frame{max-width:100%;border-radius:14px;height:min(390px,38dvh);width:calc(min(390px,38dvh)*9/16)} /* leerer/fehlerhafter Zustand (vor dem Laden setzt layoutPreviewFrame die Grösse): Platz für Warnbox lassen */
   .ctrl-col{width:100%!important;height:auto;flex:1 1 0;min-height:0;border-left:none;border-top:1px solid var(--line);border-radius:20px 20px 0 0;padding-bottom:calc(68px + env(safe-area-inset-bottom))}
   /* Feste Tab-Leiste unten (Captions · Style · Timeline), Icon über Text wie die Captions-App */
   .ed-tabs{position:fixed;left:0;right:0;bottom:0;top:auto;z-index:45;margin:0;gap:0;padding:4px 8px calc(4px + env(safe-area-inset-bottom));border-radius:0;background:rgba(255,255,255,.98);border-top:1px solid var(--line);box-shadow:0 -2px 12px rgba(16,24,28,.05)}
@@ -9338,6 +9338,7 @@ function showVideoWarn(msg) {
   if (!w) return;
   w.textContent = msg || '';
   w.style.display = msg ? 'block' : 'none';
+  if (typeof vidReady !== 'undefined' && vidReady && typeof tlRelayout === 'function') tlRelayout(); // Vorschau an den freien Platz anpassen
 }
 // Videospur aus dem MP4/MOV lesen (nur Metadaten, häppchenweise) → { hasVideo, codec } oder null
 async function probeVideoTrack(file) {
@@ -9424,7 +9425,8 @@ function layoutPreviewFrame(setFont) {
   // Handy (außer Timeline-Modus): die Spalte wächst mit dem Video → feste Obergrenze statt gemessener Höhe
   // Beim Tippen in einer Zeile (Tastatur offen) kompakter, damit Zeile + Video gleichzeitig sichtbar bleiben.
   if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * (_edCompact ? 0.34 : 0.48)); // 0.48 statt 0.52: Sheet ~35 px höher → Looks-Streifen + Customize-Chips + Beginn «Text» sichtbar
-  var maxH = Math.max(100, pcH - padY - ctrlH - 12 - tlReservedHeight()); // 12 = Abstand Rahmen↔Leiste
+  var warnEl = document.getElementById('vidWarn'), warnH = (warnEl && warnEl.style.display !== 'none' && warnEl.offsetHeight) ? warnEl.offsetHeight + 10 : 0; // Warnbox unter dem Video braucht Platz
+  var maxH = Math.max(100, pcH - padY - ctrlH - 12 - tlReservedHeight() - warnH); // 12 = Abstand Rahmen↔Leiste
   var maxW = Math.min(720, Math.max(100, (pcRect.width || 360) - padX));
   var h = maxH, w = Math.round(h * ar);
   if (w > maxW) { w = maxW; h = Math.round(w / ar); }
@@ -12729,6 +12731,8 @@ function openEditor() {
   document.getElementById('landing').style.display = 'none';
   document.getElementById('editor').style.display  = 'flex';
   document.body.classList.add('editor-open');
+  // Startseite war gescrollt → die Scrollposition bliebe sonst erhalten (Chrome Android klemmt sie auf 100vh − sichtbare Höhe, ~50 px): Kopfzeile oben abgeschnitten
+  try { window.scrollTo(0, 0); } catch (e) {}
   // Showcase-Reihe ist jetzt unsichtbar (landing display:none) — Karaoke-Vorschau-Timer und
   // Video-Loops stoppen, statt sie unnötig im Hintergrund weiterlaufen zu lassen (v.a. während
   // einer Transkription soll nichts Unnötiges um Main-Thread-Zeit konkurrieren).

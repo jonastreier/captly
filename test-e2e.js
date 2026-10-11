@@ -977,6 +977,21 @@ if (require.main !== module) return;
     ok(!g.hs, 'Handy ' + tag + ': kein horizontales Scrollen');
     await c2.close();
   }
+  // Nicht abspielbares Video nach gescrollter Startseite (Chrome Android): Kopfzeile bleibt sichtbar, Warnbox überlappt nichts
+  {
+    const c3 = await browser.newContext({ viewport: { width: 412, height: 780 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+    await routeSupabase(c3, base);
+    const p4 = await c3.newPage();
+    await p4.goto(base + '/', { waitUntil: 'load' });
+    await p4.evaluate(() => window.scrollTo(0, 700));
+    await p4.setInputFiles('#landInput', { name: 'kaputt.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(120000, 7) });
+    await p4.waitForTimeout(3500);
+    const g2 = await p4.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, d: getComputedStyle(e).display }; };
+      return { sy: scrollY, topbar: r('.topbar'), frame: r('#prevFrame'), warn: r('#vidWarn'), pc: r('.prev-col') }; });
+    ok(g2.sy === 0 && g2.topbar.t >= 0, 'Fehlerfall Handy: Seite oben (scrollY ' + g2.sy + '), Kopfzeile sichtbar');
+    ok(g2.warn.d === 'none' || (g2.frame.t >= g2.pc.t && g2.warn.b <= g2.pc.b + 1), 'Fehlerfall Handy: Video und Warnbox liegen komplett in der Vorschau-Spalte (Warnbox bis ' + Math.round(g2.warn.b) + ', Spalte bis ' + Math.round(g2.pc.b) + ')');
+    await c3.close();
+  }
   await browser.close(); server.close();
   console.log(fails ? `\n${fails}/${n} FEHLER` : `\ntest-e2e: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);
