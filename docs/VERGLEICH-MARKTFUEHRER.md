@@ -231,7 +231,7 @@ Aufwand: S (< 1 Tag), M (1–3 Tage), L (> 3 Tage). Quelle: A/B/C = Tester, D = 
 | 22 | niedrig | Pop-Animation schluckt bei lift/stack ≈ 0,3 s den Wortabstand | B, `looks/pop-wortabstand-lift.png` | S | offen |
 | 23 | niedrig | Arabisch in Kursiv-Looks künstlich schräg | B | S | offen |
 | 24 | niedrig | Meldung bei stark abgeschnittener WebM passt nicht («Could not read the audio») | C | S | offen |
-| 25 | niedrig | Gleiches Video mit anderem Dateinamen wird nicht wiederhergestellt | C | S | offen |
+| 25 | niedrig | Gleiches Video mit anderem Dateinamen wird nicht wiederhergestellt | C | S | **behoben** |
 | 26 | niedrig | Look-Wechsel gruppiert Untertitel neu (8 → 6 Blöcke); Verlust manueller Edits nicht geprüft | A | S | offen |
 | — | — | Export-Position = Vorschau | F1, 0 px gemessen | — | **seit Testlauf behoben** |
 | — | — | Cover-Akzent-Chips | F2 | — | **seit Testlauf behoben** |

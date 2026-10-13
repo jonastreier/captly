@@ -434,6 +434,22 @@ T.setMe('anon', '');
   ok(T.getCaptionsEdited() === true, 'Roundtrip: Edit-Flag uebernommen');
   ok(/Restored your last session/.test(document.getElementById('tStatus').innerHTML) && !/Preparing/.test(document.getElementById('tStatus').innerHTML),
      'Restore ruft KEINE Transkription auf (Status bleibt "Restored")');
+  // Fallback: gleiches Video unter anderem Dateinamen wird wiederhergestellt
+  T.setState([], []); T.setCaptionsEdited(false); T.setAutosaveKey(null);
+  document.getElementById('tStatus').innerHTML = '';
+  const restoredFallback = T.restoreOrTranscribe({ name: 'other-name.mp4', size: 1234 }, 10.49);
+  ok(restoredFallback === true, 'Fallback-Restore: anderer Dateiname, gleiche Größe+Dauer wiederhergestellt');
+  const savedBlocksAfterFallback = JSON.stringify(T.getBlocks().map(b => b.text));
+  ok(savedBlocksAfterFallback === savedBlocks, 'Fallback-Restore: Bloecke identisch');
+  const autosavesAfterMigration = T.readAutosaves();
+  ok(autosavesAfterMigration.length === 1, 'Fallback-Restore: nur 1 Eintrag nach Migration');
+  ok(autosavesAfterMigration[0].key === 'other-name.mp4|1234|105', 'Fallback-Restore: Schlüssel migriert zu neuem Namen');
+  // Fallback NICHT, wenn Größe unterschiedlich ist: no autosave found, no fallback found
+  const savedList = T.readAutosaves();
+  T.restoreOrTranscribe({ name: 'clip.mp4', size: 5678 }, 10.49);
+  ok(JSON.stringify(T.readAutosaves().filter(e => e.key.indexOf('5678') >= 0)) === '[]', 'Fallback: unterschiedliche Größe führt zu KEINEM Autosave eintrag');
+  // Clear autosaves before LRU test
+  store[T.AUTOSAVE_KEY] = JSON.stringify([]);
   // LRU: max. 5 Videos, neuestes zuerst
   for (let i = 0; i < 7; i++) { T.setAutosaveKey('v' + i + '|1|10'); T.autosaveNow(); }
   const lru = T.readAutosaves().map(e => e.key);

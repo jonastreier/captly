@@ -8454,11 +8454,40 @@ function findAutosave(key) {
   for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i];
   return null;
 }
+function findAutosaveByDuration(key) {
+  // Fallback: gleiche Grösse|Dauer unter anderem Dateinamen = dasselbe Video (Name darf '|' enthalten → von hinten zählen)
+  var parts = key.split('|');
+  if (parts.length < 3) return null;
+  var sizeDur = parts.slice(-2).join('|');
+  var list = readAutosaves();
+  for (var i = 0; i < list.length; i++) {
+    var stored = list[i].key.split('|');
+    if (stored.length >= 2 && stored.slice(-2).join('|') === sizeDur) {
+      return { entry: list[i], index: i };
+    }
+  }
+  return null;
+}
 function markCaptionsEdited() { captionsEdited = true; scheduleAutosave(); if (typeof exportSheetOpen === 'function' && exportSheetOpen()) syncExportAgain(); }
 // Nach dem Laden der Video-Metadaten: Autosave vorhanden → wiederherstellen, sonst transkribieren.
 function restoreOrTranscribe(file, dur) {
   _autosaveKey = autosaveKeyFor(file, dur);
   var saved = findAutosave(_autosaveKey);
+  // Fallback: gleiches Video unter anderem Dateinamen
+  if (!saved) {
+    var fallback = findAutosaveByDuration(_autosaveKey);
+    if (fallback && fallback.entry) {
+      saved = fallback.entry;
+      // Migrieren: Eintrag unter dem neuen Schlüssel ablegen, alten entfernen (keine Dubletten)
+      var list = readAutosaves();
+      var newList = [];
+      for (var i = 0; i < list.length; i++) {
+        if (i !== fallback.index) newList.push(list[i]);
+      }
+      newList.unshift({ key: _autosaveKey, savedAt: saved.savedAt || Date.now(), data: saved.data });
+      writeAutosaves(newList);
+    }
+  }
   if (billingOn()) loadBilling(); // Marken-Status gilt pro Video (X-Video-Key)
   if (saved && restoreAutosave(saved)) return true;
   transcribeVideo(file);
