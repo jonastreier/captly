@@ -122,7 +122,7 @@ wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBa
 exportDone:exportDone,dlBlob:dlBlob,shareLastExport:shareLastExport,topExport:topExport,setCapLang:function(v){_capLangForce=v;},setWordsState:function(w){wordTimestamps=w;},setEnhAuto:function(v){ENH_AUTO=v;},
 localEmphasis:localEmphasis,clearAutoFlags:clearAutoFlags,isEmphWord:isEmphWord,emWordRef:emWordRef,applyEnhanceResult:applyEnhanceResult,blockEmoji:blockEmoji,
 toggleWordEmph:toggleWordEmph,setBlockEmoji:setBlockEmoji,getEmph:function(){return {kw:emKw,emoji:emEmoji,zoom:emZoom,src:emSrc};},
-setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKey=null;},applyProjectPayload:applyProjectPayload,getUndoSnapshot:function(){return captionSnapshot();},
+setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKey=null;},applyProjectPayload:applyProjectPayload,capDragPlace:capDragPlace,capPosFromBox:capPosFromBox,capHClamp:capHClamp,capApplyH:capApplyH,capTopPct:capTopPct,capBottomPct:capBottomPct,setHOffState:function(v){capHOff=v;},getHOff:function(){return capHOff;},setFreeState:function(v){capFree=v;},getFree:function(){return capFree;},getPos:function(){return capPos;},getVOff:function(){return capVOff;},capDragStart:capDragStart,capDragMove:capDragMove,capDragEnd:capDragEnd,projectPayload:projectPayload,applyTemplateSettings:applyTemplateSettings,getUndoSnapshot:function(){return captionSnapshot();},
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
@@ -1576,6 +1576,130 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   T.setPosState('top'); T.setVOffState(20); T.applyPos();
   ok(ovS.top === '12.46%', 'Oben mit Versatz bleibt unter der Reels-Leiste: ' + ovS.top);
   T.setVOffState(0); T.setPosState('bottom'); T.applyPos();
+
+  // 18b) Freies Verschieben: Ziehmathematik, Klemmen, Magnet, Persistenz, Export
+  {
+    const fw = 270, fh = 480, st0 = { bx: 100, by: 300, bw: 70, bh: 40, fw, fh };
+    // frei: Position bleibt exakt dort, wo losgelassen wurde (kein Rasten auf oben/Mitte/unten)
+    let r = T.capDragPlace(st0, 20, -73, false);
+    ok(r.x === 120 && r.y === 227, 'Drag: ohne Magnet exakt Zeigerweg (' + r.x + ',' + r.y + ')');
+    ok(Math.abs(r.hoff - ((120 + 35 - 135) / 270 * 100)) < 0.01, 'Drag: hoff = Box-Mitte − Rahmenmitte in % der Breite');
+    // Klemmen: nie aus dem Bild (auch nicht mit Magnet)
+    r = T.capDragPlace(st0, 9999, 9999, true);
+    ok(r.x + 70 <= fw && r.y + 40 <= fh && r.x >= 0 && r.y >= 0, 'Drag: unten rechts geklemmt');
+    r = T.capDragPlace(st0, -9999, -9999, true);
+    ok(r.x >= 0 && r.y >= 0, 'Drag: oben links geklemmt');
+    // Magnet: Mitte (x) – innerhalb 6 px rastet ein, ausserhalb nicht; Alt (snap=false) aus
+    r = T.capDragPlace(st0, 135 - 35 - 100 + 4, 0, true);
+    ok(r.hoff === 0 && r.gx === 135, 'Drag: Magnet horizontale Mitte + Hilfslinie');
+    r = T.capDragPlace(st0, 135 - 35 - 100 + 4, 0, false);
+    ok(Math.abs(r.hoff) > 0.5 && r.gx === null, 'Drag: Alt schaltet den Magnet ab');
+    r = T.capDragPlace(st0, 135 - 35 - 100 + 15, 0, true);
+    ok(r.gx === null && Math.abs(r.hoff - 15 / 270 * 100) < 0.01, 'Drag: ausserhalb der Reichweite kein Rasten');
+    // Magnet vertikal: Mitte
+    r = T.capDragPlace(st0, 0, 240 - 20 - 300 - 3, true);
+    ok(r.gy === 240 && Math.abs(r.y + 20 - 240) < 0.01, 'Drag: Magnet vertikale Mitte');
+    // Anker folgt der Box-Mitte; Umrechnung ist die Umkehrung von applyPos()
+    const pT = T.capPosFromBox(60, 40, fw, fh), pM = T.capPosFromBox(220, 40, fw, fh), pB = T.capPosFromBox(380, 40, fw, fh);
+    ok(pT.pos === 'top' && pM.pos === 'center' && pB.pos === 'bottom', 'Anker oben/Mitte/unten nach Box-Mitte');
+    ok(Math.abs((10 - pT.off) - 60 / fh * 100) < 0.01, 'oben: capTopPct-Umkehrung');
+    ok(Math.abs((12 + pB.off) - (fh - 380 - 40) / fh * 100) < 0.01, 'unten: capBottomPct-Umkehrung');
+    ok(Math.abs(pM.off) < 0.01, 'Mitte: Box exakt zentriert → Versatz 0');
+    // kein Sprung an der Bucket-Grenze: gleiche Box-Position vor/nach Wechsel
+    const yA = fh * 0.32 - 20 - 0.1, yB = fh * 0.32 - 20 + 0.1; // Mitte 31,98 % / 32,02 %
+    const a = T.capPosFromBox(yA, 40, fw, fh), b2 = T.capPosFromBox(yB, 40, fw, fh);
+    const topOf = (q, y) => q.pos === 'top' ? (10 - q.off) / 100 * fh : q.pos === 'bottom' ? fh - (12 + q.off) / 100 * fh - 40 : fh / 2 - q.off / 100 * fw - 20;
+    ok(a.pos !== b2.pos, 'Grenze erreichbar (Anker wechselt)');
+    ok(Math.abs(topOf(a, yA) - yA) < 0.1 && Math.abs(topOf(b2, yB) - yB) < 0.1, 'Anker-Wechsel verschiebt die Box nicht');
+    // Safe-Zone nur ohne Frei-Flag erzwungen
+    T.setFreeState(false);
+    ok(T.capTopPct(60) === 12.46 && T.capBottomPct(-40) === 24.44, 'Preset-Modus: Safe-Zone-Mindestabstand');
+    T.setFreeState(true);
+    ok(T.capTopPct(60) === 0 && T.capBottomPct(-40) === 0, 'Frei-Modus: bis an den Bildrand ziehbar (Safe-Zone nur noch Warnung)');
+    T.setFreeState(false);
+    // Horizontal-Klemme (Vorschau + Export gleiche Formel)
+    ok(T.capHClamp(50, 60) === 19, 'capHClamp: Box 60 % breit → max ±19 %');
+    ok(T.capHClamp(-50, 60) === -19 && T.capHClamp(5, 60) === 5 && T.capHClamp(10, 100) === 0, 'capHClamp: symmetrisch, breite Box → 0');
+    // Preset-Buttons setzen Versätze zurück
+    const mkBtn = pos => ({ dataset: { pos }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
+    T.setHOffState(12); T.setFreeState(true); T.setVOffState(-7);
+    T.setPos(mkBtn('center'));
+    ok(T.getHOff() === 0 && T.getFree() === false && T.getVOff() === 0 && T.getPos() === 'center', 'Preset „Middle“: hoff/free/voff zurückgesetzt');
+    T.setHOffState(12); T.setFreeState(true); T.setVOffState(-7);
+    T.setPos(mkBtn('bottom'));
+    ok(T.getHOff() === 0 && T.getFree() === false && T.getVOff() === 20 && T.getPos() === 'bottom', 'Preset „Bottom“: Standard-Versatz 20');
+    // Persistenz: Projekt + Template-Layout
+    T.setPosState('top'); T.setVOffState(33.5); T.setHOffState(-14.25); T.setFreeState(true);
+    const pl = T.projectPayload();
+    ok(pl.pos === 'top' && pl.voff === 33.5 && pl.hoff === -14.25 && pl.free === true, 'projectPayload trägt pos/voff/hoff/free');
+    const lay = T.currentLayout();
+    ok(lay.hoff === -14.25 && lay.free === true && lay.voff === 33.5, 'currentLayout (Templates) trägt hoff/free');
+    T.setHOffState(0); T.setFreeState(false); T.setVOffState(0);
+    T.applyTemplateSettings(lay);
+    ok(T.getHOff() === -14.25 && T.getFree() === true && T.getVOff() === 33.5, 'Template anwenden stellt hoff/free/voff wieder her');
+    T.applyTemplateSettings({ pos: 'bottom', voff: 20 });
+    ok(T.getHOff() === 0 && T.getFree() === false, 'Template ohne hoff (alt) → mittig, Safe-Zone aktiv');
+    T.setPosState('top'); T.setVOffState(33.5); T.setHOffState(-14.25); T.setFreeState(true);
+    const saved = JSON.parse(JSON.stringify(T.projectPayload()));
+    T.setHOffState(0); T.setFreeState(false); T.setPosState('bottom'); T.setVOffState(20);
+    T.applyProjectPayload(saved);
+    ok(T.getHOff() === -14.25 && T.getFree() === true && T.getVOff() === 33.5 && T.getPos() === 'top', 'applyProjectPayload: Position wiederhergestellt');
+    T.applyProjectPayload(Object.assign({}, saved, { hoff: undefined, free: undefined }));
+    ok(T.getHOff() === 0 && T.getFree() === false, 'applyProjectPayload: altes Projekt ohne hoff → mittig');
+    T.applyProjectPayload(Object.assign({}, saved, { hoff: 999 }));
+    ok(T.getHOff() === 50, 'applyProjectPayload: absurdes hoff wird begrenzt');
+    T.setHOffState(0); T.setFreeState(false); T.setVOffState(0); T.setPosState('bottom'); T.applyPos();
+
+    // Integration: capDragStart/Move/End über die DOM-Stubs (Maus + Touch), Position bleibt wo losgelassen
+    {
+      const frameEl = document.getElementById('prevFrame'), ovEl = document.getElementById('capOverlay');
+      const oldFr = frameEl.getBoundingClientRect, oldKid = ovEl.firstElementChild;
+      frameEl.getBoundingClientRect = () => ({ left: 10, top: 20, width: 270, height: 480, right: 280, bottom: 500 });
+      ovEl.firstElementChild = { getBoundingClientRect: () => ({ left: 110, top: 320, width: 70, height: 40, right: 180, bottom: 360 }) };
+      T.setPosState('bottom'); T.setVOffState(20); T.setHOffState(0); T.setFreeState(false);
+      T.capDragStart({ type: 'mousedown', button: 0, clientX: 140, clientY: 340, stopPropagation() {} });
+      T.capDragMove({ clientX: 140 + 30, clientY: 340 - 200, altKey: true, cancelable: true, preventDefault() {} });
+      ok(T.getFree() === true && Math.abs(T.getHOff() - 30 / 270 * 100) < 0.05, 'Drag-Integration: horizontal frei (' + T.getHOff() + ')');
+      ok(T.getPos() === 'top' || T.getPos() === 'center', 'Drag-Integration: Anker folgt der Box (' + T.getPos() + ')');
+      T.capDragEnd({});
+      ok(T.getFree() === true && T.getHOff() !== 0, 'Drag-Integration: nach Loslassen keine Rückkehr zum Preset');
+      // Touch
+      T.capDragStart({ type: 'touchstart', touches: [{ clientX: 140, clientY: 340 }], stopPropagation() {} });
+      T.capDragMove({ touches: [{ clientX: 100, clientY: 340 }], cancelable: true, preventDefault() {} });
+      T.capDragEnd({});
+      ok(T.getHOff() < 0, 'Drag-Integration: Touch zieht nach links (' + T.getHOff() + ')');
+      frameEl.getBoundingClientRect = oldFr; ovEl.firstElementChild = oldKid;
+      T.setHOffState(0); T.setFreeState(false); T.setVOffState(0); T.setPosState('bottom'); T.applyPos();
+    }
+
+    // Export: Caption wandert mit hoff (ctx.translate) und y folgt dem Frei-Modus
+    {
+      const ws = ['Das', 'ist', 'ein', 'Test'], blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+      T.setState([blk], blk.words, 'karaoke'); T.setLines({ dataset: { lines: '1' } });
+      const sty = T.STYLES.find(x => x.id === 'hormozi');
+      const mkCtx = () => { const log = { tx: 0, ty: 0 }; const c = { font: '', letterSpacing: '0px', measureText(str) { const m = /([\d.]+)px/.exec(this.font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+        roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {}, translate(x, y) { log.tx += x; log.ty += y; }, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},
+        fillRect() {}, clip() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } }; c.log = log; return c; };
+      T.setPosState('bottom'); T.setVOffState(20); T.setFreeState(false); T.setHOffState(0);
+      const c0 = mkCtx(); T.drawCaptionsOnCtx(c0, 0.1, sty, 1080, 1920, true);
+      T.setHOffState(10);
+      const c1 = mkCtx(); T.drawCaptionsOnCtx(c1, 0.1, sty, 1080, 1920, true);
+      ok(Math.abs((c1.log.tx - c0.log.tx) - 108) < 0.01, 'Export: hoff 10 % → 108 px nach rechts bei 1080 px Breite (auflösungsunabhängig, %-Wert)');
+      const c2 = mkCtx(); T.drawCaptionsOnCtx(c2, 0.1, sty, 540, 960, true);
+      T.setHOffState(0); const c3 = mkCtx(); T.drawCaptionsOnCtx(c3, 0.1, sty, 540, 960, true);
+      ok(Math.abs((c2.log.tx - c3.log.tx) - 54) < 0.01, 'Export: gleiche 10 % bei 540 px = 54 px');
+      T.setHOffState(-999); const c4 = mkCtx(); T.drawCaptionsOnCtx(c4, 0.1, sty, 1080, 1920, true);
+      ok(c4.log.tx - c0.log.tx > -540 && c4.log.tx - c0.log.tx < 0, 'Export: extremes hoff bleibt im Bild (geklemmt)');
+      T.setHOffState(0);
+      // Frei-Modus: Unterkante darf unter die Safe-Zone (Preset-Modus hält 24,44 % Abstand ein)
+      T.setPosState('bottom'); T.setVOffState(-40);
+      T.setFreeState(false); const Lp = T.capLayout(mkCtx(), blk, 0, 0, sty, 1080, 1920);
+      T.setFreeState(true); const Lf = T.capLayout(mkCtx(), blk, 0, 0, sty, 1080, 1920);
+      ok(Lf.boxB > Lp.boxB + 100, 'Export: capFree hebt den Safe-Zone-Mindestabstand auf (' + Lp.boxB.toFixed(0) + ' → ' + Lf.boxB.toFixed(0) + ')');
+      ok(Lf.boxB <= 1920 && Lf.boxT >= 0, 'Export: Box bleibt im Bild');
+      T.setFreeState(false); T.setVOffState(0); T.setPosState('bottom'); T.setState([], [], 'karaoke');
+    }
+  }
 
   // 19) Regression: driftende null-Timestamps am Fensterende duerfen das Folgefenster NICHT leeren.
   // Fenster 0 (28s): 80 Woerter, deren End-Timestamps null sind -> chunksToWords verkettet und die

@@ -318,7 +318,11 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 #frameDropZone p{font-size:12px;color:#b3babc;text-align:center;padding:0 12px;line-height:1.5}
 /* line-height:0: kein Strut der Body-Schrift unter/über der Caption-Box (sonst lag sie bei kleiner Schrift/Zeilenhöhe höher als im Export) */
 #capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;line-height:0;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
+#capOverlay{touch-action:none}
 #capOverlay:active{cursor:grabbing}
+.cap-guide{position:absolute;display:none;pointer-events:none;z-index:11;background:rgba(196,181,253,.95);box-shadow:0 0 0 .5px rgba(0,0,0,.35)}
+#capGuideV{top:0;bottom:0;width:1px;margin-left:-.5px}
+#capGuideH{left:0;right:0;height:1px;margin-top:-.5px}
 #capOverlay.dragging{cursor:grabbing}
 .vid-ctrls{display:none;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 10px 5px 6px;box-shadow:var(--sh-1);width:220px;max-width:100%}
 .vid-ctrls.exporting{opacity:.5;pointer-events:none}
@@ -1472,6 +1476,7 @@ body.editor-open .lang-hint{display:none}
           <div class="proc-bar"><div class="proc-fill" id="procFill"></div></div>
         </div>
         <div id="capOverlay" onmousedown="capDragStart(event)" ontouchstart="capDragStart(event)" ondblclick="capOverlayDbl(event)" title="Drag to move · double-click to edit the text"></div>
+        <div id="capGuideV" class="cap-guide" aria-hidden="true"></div><div id="capGuideH" class="cap-guide" aria-hidden="true"></div>
         <div id="capInlineEd" class="cap-inline" style="display:none" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
           <textarea id="capInlineTa" rows="2" spellcheck="true" onkeydown="inlineKey(event)" onblur="inlineBlur()" aria-label="Edit caption text"></textarea>
           <div class="cap-inline-row"><span>Enter = save · Esc = cancel</span>
@@ -2090,6 +2095,8 @@ function resolveStyleId(id) {
 var DEFAULT_STYLE   = 'tight', STYLE_KEY = 'capivo.style';
 var activeId        = (function(){ try { return resolveStyleId((typeof localStorage !== 'undefined' && localStorage.getItem(STYLE_KEY)) || DEFAULT_STYLE); } catch (e) { return DEFAULT_STYLE; } })();
 var capPos          = 'bottom';
+var capHOff         = 0;    // Horizontaler Versatz der Caption-Mitte in % der Rahmenbreite (+ = nach rechts) — auflösungsunabhängig, gleich im Export
+var capFree         = false; // true = per Ziehen frei platziert: Safe-Zone-Mindestabstand von oben/unten gilt nicht mehr (nur der Bildrahmen)
 var capVOff         = 20;   // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position — Default etwas höher, damit Captions nicht mit UI-Elementen der Plattformen (Beschreibung, Like-Leiste) kollidieren
 var showSafeZone     = false; // Safe-Zone-Anzeige (Reels-UI-Bereich) an/aus
 var _trRun           = 0;     // Lauf-Token für transcribeVideo(): nur der jüngste Lauf darf Ergebnisse/Status schreiben
@@ -6843,7 +6850,7 @@ function currentLayout() {
   // sizeRel = Schriftgröße relativ zur Rahmenbreite: die px-Größe allein hängt von Seitenverhältnis/Bildschirm
   // ab (9:16 am Desktop 270 px breit, quadratisch 360 px, Handy ~240 px) — ein Template sähe sonst je Video
   // anders groß aus. case/punct gehören zum Look (Brand-Kit) und reisen mit.
-  return { pos: capPos, voff: capVOff, size: fontSize, sizeRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
+  return { pos: capPos, voff: capVOff, hoff: capHOff, free: capFree, size: fontSize, sizeRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
            mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, case: capCase, punct: capNoPunct,
            kw: emKw, emoji: emEmoji, zoom: emZoom }; // Emphasis-Schalter gehören zum Look (Brand-Kit)
 }
@@ -7102,7 +7109,12 @@ function templateFontSize(t, frameW) {
 // ändert sich etwas, gibt es vorher einen Undo-Schritt (inkl. Reglerstand, Strg+Z stellt Blöcke + Regler zurück).
 function applyTemplateSettings(t) {
   var prevMc = CAP_MAX_CHARS; // vor dem Überschreiben unten merken (Undo-Eintrag trägt den alten Reglerstand)
-  if (t.pos) { capPos = t.pos; syncPosButtons(); }
+  if (t.pos) {
+    capPos = t.pos;
+    capHOff = (typeof t.hoff === 'number' && isFinite(t.hoff)) ? Math.max(-50, Math.min(50, t.hoff)) : 0; // Layout ersetzt die Position komplett
+    capFree = t.free === true;
+    syncPosButtons();
+  }
   if (typeof t.voff === 'number') {
     capVOff = t.voff;
     var vs = document.getElementById('voffSlider');
@@ -7402,8 +7414,8 @@ function clampPct(v) { return Math.max(0, Math.min(85, v)); }
 // nicht in den Profil-/Beschreibungsbereich (Vorschau UND Export). Vorher landete „Oben“ mit dem
 // Standard-Versatz (+20 %) bei 0 % — mitten in der Reels-Leiste.
 var SAFE_PAD = 1; // % Luft zur Safe-Zone-Kante
-function capTopPct(off) { return Math.round(Math.max(SAFE_ZONE.top + SAFE_PAD, clampPct(10 - off)) * 100) / 100; }
-function capBottomPct(off) { return Math.round(Math.max(SAFE_ZONE.bottom + SAFE_PAD, clampPct(12 + off)) * 100) / 100; }
+function capTopPct(off) { return Math.round(Math.max(capFree ? 0 : SAFE_ZONE.top + SAFE_PAD, clampPct(10 - off)) * 100) / 100; }
+function capBottomPct(off) { return Math.round(Math.max(capFree ? 0 : SAFE_ZONE.bottom + SAFE_PAD, clampPct(12 + off)) * 100) / 100; }
 function applyPos() {
   var ov = document.getElementById('capOverlay');
   ov.style.top = ''; ov.style.bottom = ''; ov.style.transform = '';
@@ -7427,9 +7439,32 @@ function applyPos() {
 // Letzter Ausweg nach dem Auto-Fit (fitCaptionWords): ragt der Block trotzdem aus dem Rahmen, wird er
 // so weit verschoben, dass er komplett sichtbar bleibt — gewählte Position (oben/Mitte/unten) bleibt
 // Ausgangspunkt. Gegenstück im Export: Clamp von y0 in drawCaptionsOnCtx().
+// Horizontaler Versatz (capHOff, % der Rahmenbreite): die Box darf nie aus dem Bild ragen — gleiche Formel im Export
+// (drawCaptionsOnCtx). boxWPct = Boxbreite in % der Rahmenbreite; CAP_H_PAD = Luft zum Rand in %.
+var CAP_H_PAD = 1;
+function capHClamp(h, boxWPct) {
+  var lim = Math.max(0, (100 - (boxWPct || 0)) / 2 - CAP_H_PAD);
+  return Math.max(-lim, Math.min(lim, h || 0));
+}
+// Verschiebt #capOverlay seitlich per left/right (kein transform — das gehört der capIn-Animation).
+function capApplyH() {
+  var ov = document.getElementById('capOverlay'), frame = document.getElementById('prevFrame');
+  if (!ov) return;
+  var h = capHOff || 0;
+  if (h && frame) {
+    var child = ov.firstElementChild;
+    if (child && child.getBoundingClientRect && frame.getBoundingClientRect) {
+      var fr = frame.getBoundingClientRect(), r = child.getBoundingClientRect();
+      if (fr.width && r.width) h = capHClamp(h, r.width / fr.width * 100);
+    }
+  }
+  ov.style.left = h ? (Math.round(h * 100) / 100) + '%' : '';
+  ov.style.right = h ? (-Math.round(h * 100) / 100) + '%' : '';
+}
 function clampCapVertical() {
   var ov = document.getElementById('capOverlay'), frame = document.getElementById('prevFrame');
   if (!ov || !frame) return;
+  capApplyH();
   ov._capClamped = false;
   var child = ov.firstElementChild;
   if (!child || !child.getBoundingClientRect) return;
@@ -7493,7 +7528,9 @@ function checkSafeZoneCollision() {
   warn.classList.toggle('show', collide);
 }
 function setPos(btn) {
+  // Preset = Zurücksetzen: frei gezogene Position (Versatz horizontal/vertikal, Safe-Zone-Freigabe) fällt weg.
   capPos = btn.dataset.pos;
+  capHOff = 0; capFree = false; capVOff = capPos === 'center' ? 0 : CAP_PRESET_OFF;
   // Nur die Buttons DIESER Zeile umschalten (.pos-btn wird auch für Modell/Modus genutzt)
   btn.parentElement.querySelectorAll('.pos-btn').forEach(function(b){ b.classList.remove('on'); });
   btn.classList.add('on');
@@ -7511,55 +7548,121 @@ function onVOffChange(v) {
 // ═══════════════════════════════════════
 // UNTERTITEL PER MAUS/TOUCH VERSCHIEBEN
 // ═══════════════════════════════════════
-var capDragActive = false, capDragMoved = false;
-// Wandelt die vertikale Position des Zeigers im Vorschau-Rahmen (0=oben..1=unten) in
-// capPos + capVOff um — spiegelbildlich zu den Formeln in applyPos().
-function capFracToPosOff(frac) {
-  frac = Math.max(0, Math.min(1, frac));
-  var pos, off;
-  if (frac < 0.32)       { pos = 'top';    off = 10 - frac * 100; }
-  else if (frac > 0.68)  { pos = 'bottom'; off = (1 - frac) * 100 - 12; }
-  else                   { pos = 'center'; off = (0.5 - frac) * 50; }
-  return { pos: pos, off: Math.max(-30, Math.min(30, Math.round(off))) };
+var capDragActive = false, capDragMoved = false, capDragSt = null;
+var CAP_PRESET_OFF = 20;  // Versatz der Presets oben/unten (hält die Caption frei von Plattform-UI); Mitte = 0
+var CAP_DRAG_PAD = 4.5;   // px Mindestabstand zum Bildrand beim Ziehen
+var CAP_SNAP_PX = 6;      // Magnet-Reichweite (Rahmen-px)
+// Box-Oberkante (Rahmen-px) → Anker (oben/Mitte/unten) + Versatz, exakt die Umkehrung der Formeln in applyPos().
+// Der Anker folgt der Box-Mitte (<32 % oben, >68 % unten) — die Position bleibt dabei identisch, nur die
+// Bezugskante wechselt (wichtig für Emoji über/unter der Caption und die Preset-Anzeige). Versatz-Rundung auf 0,01 %.
+function capPosFromBox(top, boxH, fw, fh) {
+  var frac = (top + boxH / 2) / fh, pos, off;
+  if (frac < 0.32)      { pos = 'top';    off = 10 - top / fh * 100; }
+  else if (frac > 0.68) { pos = 'bottom'; off = (fh - top - boxH) / fh * 100 - 12; }
+  else                  { pos = 'center'; off = (fh / 2 - (top + boxH / 2)) / fw * 100; } // Mitte: Padding relativ zur BREITE (s. applyPos)
+  return { pos: pos, off: Math.round(off * 100) / 100 };
 }
-function capApplyDragFrac(clientY) {
-  var frame = document.getElementById('prevFrame');
-  var rect = frame.getBoundingClientRect();
-  if (!rect.height) return;
-  var frac = (clientY - rect.top) / rect.height;
-  var r = capFracToPosOff(frac);
-  if (r.pos !== capPos) { capPos = r.pos; syncPosButtons(); }
-  capVOff = r.off;
-  var vs = document.getElementById('voffSlider');
-  if (vs) vs.value = capVOff;
-  var vd = document.getElementById('voffDisp');
-  if (vd) vd.textContent = (capVOff > 0 ? '+' : '') + capVOff + '%';
-  applyPos();
+// Reine Ziehmathematik. st = { bx, by, bw, bh (Box im Rahmen zu Dragbeginn), fw, fh (Rahmen) } in Rahmen-px, dx/dy = Zeigerweg.
+// Ergebnis: Box-Ecke x/y (in den Rahmen geklemmt, Magnet auf Hilfslinien ausser snap=false), hoff (% Rahmenbreite,
+// + = rechts), gx/gy = aktive Hilfslinie (px) oder null.
+function capDragPlace(st, dx, dy, snap) {
+  var fw = st.fw, fh = st.fh, bw = st.bw, bh = st.bh, pad = CAP_DRAG_PAD;
+  var x = st.bx + dx, y = st.by + dy;
+  x = bw + 2 * pad >= fw ? (fw - bw) / 2 : Math.max(pad, Math.min(fw - bw - pad, x));
+  y = bh + 2 * pad >= fh ? (fh - bh) / 2 : Math.max(pad, Math.min(fh - bh - pad, y));
+  var gx = null, gy = null;
+  if (snap !== false) {
+    var best = function(cands) { // [{d: Soll − Ist, g: Linie}] → nächste innerhalb der Reichweite
+      var r = null;
+      cands.forEach(function(c) { if (Math.abs(c.d) <= CAP_SNAP_PX && (!r || Math.abs(c.d) < Math.abs(r.d))) r = c; });
+      return r;
+    };
+    var sx = best([
+      { d: fw / 2 - (x + bw / 2), g: fw / 2 },                                    // horizontale Mitte
+      { d: fw * (1 - SAFE_ZONE.right / 100) - (x + bw), g: fw * (1 - SAFE_ZONE.right / 100) } // Safe-Zone rechts (Icon-Leiste)
+    ]);
+    var sTop = fh * (SAFE_ZONE.top + SAFE_PAD) / 100, sBot = fh * (1 - (SAFE_ZONE.bottom + SAFE_PAD) / 100);
+    var pBot = fh * (1 - Math.max(SAFE_ZONE.bottom + SAFE_PAD, 12 + CAP_PRESET_OFF) / 100); // Unterkante des Presets „Bottom“
+    var sy = best([
+      { d: fh / 2 - (y + bh / 2), g: fh / 2 },  // Mitte (= Preset „Middle“)
+      { d: sTop - y, g: sTop },                 // Oberkante an der Safe-Zone (= Preset „Top“)
+      { d: sBot - (y + bh), g: sBot },          // Unterkante an der Safe-Zone
+      { d: pBot - (y + bh), g: pBot }           // Unterkante wie Preset „Bottom“
+    ]);
+    if (sx) { x += sx.d; gx = sx.g; }
+    if (sy) { y += sy.d; gy = sy.g; }
+  }
+  return { x: x, y: y, hoff: Math.round(((x + bw / 2) - fw / 2) / fw * 10000) / 100, gx: gx, gy: gy };
+}
+function capShowGuides(gx, gy) {
+  var v = document.getElementById('capGuideV'), h = document.getElementById('capGuideH');
+  if (v) { v.style.display = gx === null || gx === undefined ? '' : 'block'; if (gx !== null && gx !== undefined) v.style.left = gx + 'px'; }
+  if (h) { h.style.display = gy === null || gy === undefined ? '' : 'block'; if (gy !== null && gy !== undefined) h.style.top = gy + 'px'; }
+}
+function capPointer(e) {
+  var t = e.touches && e.touches[0] ? e.touches[0] : (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0] : e);
+  return { x: t.clientX, y: t.clientY };
 }
 function capDragStart(e) {
   e.stopPropagation();
+  if (e.type === 'mousedown' && e.button) return; // nur die primäre Maustaste
+  var ov = document.getElementById('capOverlay'), frame = document.getElementById('prevFrame');
+  var child = ov.firstElementChild, st = null;
+  if (child && child.getBoundingClientRect && frame && frame.getBoundingClientRect) {
+    var fr = frame.getBoundingClientRect(), r = child.getBoundingClientRect(), z = zoomLevel || 1;
+    if (fr.width && fr.height && r.width && r.height) {
+      var p0 = capPointer(e);
+      st = { x0: p0.x, y0: p0.y, z: z, fw: fr.width / z, fh: fr.height / z, bx: (r.left - fr.left) / z, by: (r.top - fr.top) / z, bw: r.width / z, bh: r.height / z };
+    }
+  }
+  capDragSt = st; // ohne messbare Caption (leerer Block) gibt es nichts zu greifen
   capDragActive = true; capDragMoved = false;
-  document.getElementById('capOverlay').classList.add('dragging');
+  ov.classList.add('dragging');
   var isTouch = e.type === 'touchstart';
   document.addEventListener(isTouch ? 'touchmove' : 'mousemove', capDragMove, { passive: false });
   document.addEventListener(isTouch ? 'touchend' : 'mouseup', capDragEnd);
+  if (isTouch) document.addEventListener('touchcancel', capDragEnd);
 }
 function capDragMove(e) {
   if (!capDragActive) return;
-  var clientY = e.touches ? e.touches[0].clientY : e.clientY;
   if (e.cancelable) e.preventDefault();
+  var st = capDragSt; if (!st) return;
+  var p = capPointer(e), dx = (p.x - st.x0) / st.z, dy = (p.y - st.y0) / st.z;
+  if (!capDragMoved && Math.abs(dx) + Math.abs(dy) < 3) return; // Antippen ist kein Ziehen (Klick = Play/Pause)
   capDragMoved = true;
-  capApplyDragFrac(clientY);
+  var r = capDragPlace(st, dx, dy, !e.altKey); // Alt/Option = Magnet aus
+  var pv = capPosFromBox(r.y, st.bh, st.fw, st.fh);
+  if (pv.pos !== capPos) capPos = pv.pos;
+  capVOff = pv.off; capHOff = r.hoff; capFree = true;
+  syncPosButtons();
+  applyPos();
+  // Feinkorrektur: die DOM-Box liegt je nach Schrift/Zeilenhöhe um wenige px neben dem Soll → gemessen nachziehen
+  var ov = document.getElementById('capOverlay'), frame = document.getElementById('prevFrame'), child = ov.firstElementChild;
+  if (child && child.getBoundingClientRect) {
+    var fr = frame.getBoundingClientRect(), cr = child.getBoundingClientRect();
+    if (fr.height && cr.height) {
+      var err = r.y - (cr.top - fr.top) / st.z; // + = Box liegt zu hoch
+      if (Math.abs(err) > 0.25) {
+        capVOff = Math.round((capVOff - err / (capPos === 'center' ? st.fw : st.fh) * 100) * 100) / 100;
+        applyPos();
+      }
+    }
+  }
+  capShowGuides(r.gx, r.gy);
+  var vs = document.getElementById('voffSlider');
+  if (vs) vs.value = Math.max(-30, Math.min(30, Math.round(capVOff)));
 }
 function capDragEnd(e) {
   if (!capDragActive) return;
-  capDragActive = false;
+  capDragActive = false; capDragSt = null;
   document.getElementById('capOverlay').classList.remove('dragging');
   document.removeEventListener('mousemove', capDragMove);
   document.removeEventListener('mouseup', capDragEnd);
   document.removeEventListener('touchmove', capDragMove);
   document.removeEventListener('touchend', capDragEnd);
-  applyPos(); // final anwenden
+  document.removeEventListener('touchcancel', capDragEnd);
+  capShowGuides(null, null);
+  applyPos(); // final anwenden — Position bleibt genau dort, wo losgelassen wurde (kein Einrasten auf Presets)
   if (capDragMoved) scheduleAutosave(); // einmal am Drag-Ende statt bei jeder Mausbewegung
   // Klick-Play/Pause auf #prevFrame erst NACH dem folgenden Click-Event wieder freigeben
   if (capDragMoved) setTimeout(function(){ capDragMoved = false; }, 0);
@@ -7568,7 +7671,7 @@ function capDragEnd(e) {
 // Positions-Buttons anhand capPos synchronisieren (für Templates)
 function syncPosButtons() {
   document.querySelectorAll('.pos-btn[data-pos]').forEach(function(b){
-    b.classList.toggle('on', b.dataset.pos === capPos);
+    b.classList.toggle('on', !capFree && b.dataset.pos === capPos); // frei platziert → kein Preset aktiv
   });
 }
 function onSzChange(v) {
@@ -8387,7 +8490,7 @@ function projectPayload() {
   // fontRel: Größe relativ zur Vorschau-Breite — die Vorschau ist je nach Fenster unterschiedlich groß
   // (jetzt bildschirmfüllend), absolute px würden auf einem anderen Bildschirm kleiner/größer wirken.
   var p = { title: projTitle, fontRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
-           blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
+           blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, hoff: capHOff, free: capFree, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
            lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
            noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts,
            emph: { kw: emKw, emoji: emEmoji, zoom: emZoom, src: emSrc } };
@@ -8483,6 +8586,8 @@ function applyProjectPayload(p) {
   if (p.textCase) capCase = (['upper', 'lower', 'orig'].indexOf(p.textCase) >= 0) ? p.textCase : 'asis';
   syncTextFormatUI();
   if (p.pos) capPos = p.pos;
+  capHOff = (typeof p.hoff === 'number' && isFinite(p.hoff)) ? Math.max(-50, Math.min(50, p.hoff)) : 0; // ältere Projekte: mittig
+  capFree = p.free === true;
   if (typeof p.voff === 'number') {
     capVOff = p.voff;
     var vs = document.getElementById('voffSlider');
@@ -11253,7 +11358,7 @@ function capDomVMetrics(words, s, px, lineTarget, em) {
 // capHlVariant), die Highlight-Box belegt keine Breite → das Layout eines Blocks ändert sich nie während er läuft.
 function capLayout(ctx, b, bi, wi, s, W, H) {
   var emk = blockEmph(b), esc = emphScale(s);
-  var key = [bi, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, previewFrameW(), previewFrameH(),
+  var key = [bi, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, capFree ? 1 : 0, previewFrameW(), previewFrameH(),
              _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length, capHyphLang(), emMaskKey(emk), esc, capMotion(s)].join('|');
   var c = _capLayoutCache;
   if (c.key === key && c.s === s && c.ctx === ctx) return c.val;
@@ -11386,6 +11491,9 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   function isLive(i) { return (hlOn && i === wi) || !capFxSteady(fx[i], mode); }
   ctx.save();
   if (bf.op < 1) ctx.globalAlpha *= bf.op;
+  // Horizontaler Versatz (capHOff, % der Rahmenbreite) = Vorschau (capApplyH): eine Verschiebung für alles — Box, Wörter, Emoji, statische Ebene
+  var hxPct = capHOff ? capHClamp(capHOff, (Math.max.apply(null, lineWs) + (s.boxBg ? 36 * L0.scale : 0)) / W * 100) : 0;
+  if (hxPct) ctx.translate(hxPct / 100 * W, 0);
   if (bf.dy) ctx.translate(0, bf.dy * fsS);
   var useLayer = !!(ctx.canvas && typeof document !== 'undefined' && document.createElement && ctx.canvas.width === W);
   if (useLayer) {
