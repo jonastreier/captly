@@ -36,10 +36,11 @@ function replaceAll(text, pairs, where, errors) {
   return text;
 }
 const LD_RE = /<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/g;
-// FAQPage-JSON-LD aus den FAQ-Einträgen (.faq-q / .faq-a) eines Landing-Abschnitts
+// FAQPage-JSON-LD aus den FAQ-Einträgen (.faq-q / .faq-a) eines Landing-Abschnitts.
+// Absätze mit class="bill-only" (Aussagen, die nur bei aktivem Billing gelten) bleiben draussen: statische Daten = Beta-Aussage.
 function faqLd(landing, lang) {
   const faq = [...landing.matchAll(/<button class="faq-q"[^>]*>([\s\S]*?)<span class="faq-plus">[\s\S]*?<div class="faq-a">([\s\S]*?)<\/div>/g)]
-    .map(m => ({ '@type': 'Question', name: unesc(m[1]), acceptedAnswer: { '@type': 'Answer', text: unesc(m[2]) } }));
+    .map(m => ({ '@type': 'Question', name: unesc(m[1]), acceptedAnswer: { '@type': 'Answer', text: unesc(m[2].replace(/<p class="bill-only"[^>]*>[\s\S]*?<\/p>/g, '')) } }));
   return { '@context': 'https://schema.org', '@type': 'FAQPage', inLanguage: lang, mainEntity: faq };
 }
 // captly.html mit FAQ-JSON-LD passend zur sichtbaren EN-FAQ (unverändert, wenn schon aktuell)
