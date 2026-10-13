@@ -685,7 +685,7 @@ input[type=checkbox]{accent-color:var(--brand)}
 .show-row::-webkit-scrollbar{display:none}
 /* Desktop: rechts weich ausblenden — zeigt, dass es weitergeht, statt die Karte hart abzuschneiden */
 @media (min-width:900px){.show-row{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 calc(100% - 150px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 calc(100% - 150px),transparent 100%)}}
-.show-card{flex:0 0 auto;width:174px;height:310px;border-radius:20px;overflow:hidden;position:relative;scroll-snap-align:center;box-shadow:var(--sh-2);cursor:pointer;transition:box-shadow .25s,transform .25s;animation:showIn .5s both}
+.show-card{--fw:174;flex:0 0 auto;width:174px;height:310px;border-radius:20px;overflow:hidden;position:relative;scroll-snap-align:center;box-shadow:var(--sh-2);cursor:pointer;transition:box-shadow .25s,transform .25s;animation:showIn .5s both}
 .show-card:hover{transform:translateY(-2px);box-shadow:var(--sh-3)}
 /* Unterhalb des ersten Bildschirms: Layout/Style erst beim Hinscrollen berechnen (schnellerer erster Paint, v. a. auf dem Handy) */
 .how-sec,.feat-sec,.pricing-sec,.faq-sec,.cta-band,.land-foot{content-visibility:auto;contain-intrinsic-size:auto 640px}
@@ -701,7 +701,9 @@ input[type=checkbox]{accent-color:var(--brand)}
 @media (prefers-reduced-motion:reduce){.show-mouth{animation:none}}
 .show-vig{position:absolute;inset:0;background:radial-gradient(130% 70% at 50% 8%,rgba(255,255,255,.1),transparent 55%),linear-gradient(to bottom,rgba(0,0,0,.12) 0%,transparent 30%,transparent 50%,rgba(0,0,0,.5) 100%)}
 .show-grain{position:absolute;inset:0;opacity:.05;mix-blend-mode:overlay;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-.show-cap{position:absolute;left:0;right:0;bottom:40px;text-align:center;padding:0 14px;line-height:1.28}
+.show-cap{position:absolute;left:0;right:0;bottom:40px;text-align:center;padding:0 12.5%;line-height:1.28;overflow-wrap:normal;
+  /* Schrift relativ zur Kartenbreite (--fw = Kartenbreite in px): 8 % wie die Standardgröße im Editor (fontRel), × Style-fs (em) × --sc (JS-Fit für lange Wörter, s. showcaseFit) */
+  font-size:calc(var(--fw) * .08px * var(--sc, 1))}
 .show-name{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:12px;font-weight:700;letter-spacing:.03em;color:rgba(255,255,255,.94);text-shadow:0 1px 8px rgba(0,0,0,.55)}
 .show-arrow{position:absolute;top:50%;right:-4px;z-index:4;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.94);box-shadow:var(--sh-2);font-size:22px;line-height:1;color:var(--ink2);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .15s,background .15s,opacity .2s;opacity:1}
 .show-arrow:hover{background:#fff;box-shadow:var(--sh-3)}
@@ -1023,7 +1025,7 @@ body.editor-open .lang-hint{display:none}
   .exp-sheet{left:0;right:0;top:auto;bottom:0;width:auto;max-width:none;max-height:86vh;max-height:86dvh;border-radius:24px 24px 0 0;padding:12px 16px calc(20px + env(safe-area-inset-bottom));animation:sheetUp .22s ease}
   .exp-sheet::before{content:'';display:block;width:36px;height:4px;border-radius:2px;background:var(--line2);margin:0 auto 10px}
   .land-lang select{font-size:16px}
-  .show-card{width:150px;height:268px}
+  .show-card{--fw:150;width:150px;height:268px}
   .show-arrow{display:none}
   .land-nav-links{display:none}
   .feat-grid{grid-template-columns:1fr}
@@ -11581,7 +11583,7 @@ function renderShowcase() {
   row.innerHTML = '';
   if (_showcaseIO) { _showcaseIO.disconnect(); _showcaseIO = null; }
   if (_showcaseCapTimer) { clearInterval(_showcaseCapTimer); _showcaseCapTimer = null; }
-  _showcaseCapState = [];
+  _showcaseCapState = []; _showcaseFit = [];
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   // Reihenfolge NUR für die Landing-Page-Vorschau — bewusst getrennt von STYLES (Editor-Picker
   // bleibt nach Trend-Popularität sortiert). Hier zählt der erste Eindruck: einladende, freundliche
@@ -11622,7 +11624,8 @@ function renderShowcase() {
     var cap = document.createElement('div'); cap.className = 'show-cap';
     var words = SHOW_SAMPLES[i % SHOW_SAMPLES.length].split(' ');
     var startIdx = reduceMotion ? Math.min(2, words.length - 1) : (i % words.length);
-    cap.innerHTML = buildCap(words, s, startIdx, 17, null);
+    cap.innerHTML = buildCap(words, s, startIdx, null, null); // px=null: Größe kommt per CSS (.show-cap, relativ zur Kartenbreite) × s.fs
+    _showcaseFit.push({ cap: cap, words: words, s: s });
     if (!reduceMotion) _showcaseCapState.push({ cap: cap, words: words, s: s, idx: startIdx });
     var name = document.createElement('div'); name.className = 'show-name'; name.textContent = s.name;
     card.appendChild(bg); card.appendChild(photo);
@@ -11647,12 +11650,50 @@ function renderShowcase() {
   if (_showcaseCapState.length) _showcaseCapTimer = setInterval(function() {
     _showcaseCapState.forEach(function(st) {
       st.idx = (st.idx + 1) % st.words.length;
-      st.cap.innerHTML = buildCap(st.words, st.s, st.idx, 17, null);
+      st.cap.innerHTML = buildCap(st.words, st.s, st.idx, null, null);
     });
   }, 340);
+  showcaseFit();
   updateShowcaseArrows();
 }
-var _showcaseCapState = [], _showcaseCapTimer = null;
+var _showcaseCapState = [], _showcaseCapTimer = null, _showcaseFit = [];
+// Lange Wörter dürfen nie über die Karte ragen (wie im Editor: Safe-Zone-Breite CAP_SAFE_W, s. fitCaptionWords):
+// pro Karte einmal das breiteste Wort (normale + aktive Variante, Betonung) in Karten-Schriftgröße messen und die
+// Schrift per --sc verkleinern, bis es passt. Alles skaliert proportional zur Kartenbreite → einmal pro Breite reicht.
+var _showcaseFitW = 0;
+function showcaseFit() {
+  if (!_showcaseFit.length) return;
+  var c0 = _showcaseFit[0].cap.parentNode, W = (c0 && c0.offsetWidth) || ((window.matchMedia && window.matchMedia('(max-width:640px)').matches) ? 150 : 174);
+  _showcaseFitW = W;
+  try {
+  var base = W * 0.08, ctx = capMeasureCtx();
+  _showcaseFit.forEach(function(it) {
+    var s = it.s, fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1, esc = emphScale(s), hv = capMotion(s) === 'highlight';
+    var maxW = W * CAP_SAFE_W - (s.boxBg ? 36 : 0) - (s.pill ? 18 : 0) - ((s.hlPillBg && hv) ? 2 * CAP_PILL_PAD_X : 0);
+    var widest = 0;
+    it.words.forEach(function(w) {
+      var isE = typeof isKeywordWord === 'function' && isKeywordWord(w), sz = base * fsMul * (isE ? esc : 1);
+      [false, true].forEach(function(isHL) {
+        var f = capWordFace(s, isHL, isE, w);
+        ctx.font = capFaceFont(f, sz);
+        var x = ctx.measureText(f.up ? w.toUpperCase() : w).width + capLsPx(s, base) * w.length + (isHL && s.circle ? 0.6 * sz + 5 : 0);
+        if (x > widest) widest = x;
+      });
+    });
+    var sc = widest > maxW && maxW > 0 ? Math.max(0.3, Math.floor(maxW / widest * 1000) / 1000) : 1;
+    if (it.cap.style.setProperty) it.cap.style.setProperty('--sc', sc);
+  });
+  } catch (eFit) {} // rein kosmetisch: nie den Seitenaufbau stören
+}
+// Schriften laden asynchron (Messung mit Fallback-Schrift wäre falsch) und die Kartenbreite wechselt bei 640 px → neu messen
+try {
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener('loadingdone', function(){ showcaseFit(); });
+  var _scFitT = 0;
+  window.addEventListener('resize', function() {
+    clearTimeout(_scFitT);
+    _scFitT = setTimeout(function(){ var c = _showcaseFit[0] && _showcaseFit[0].cap.parentNode; if (c && c.offsetWidth && c.offsetWidth !== _showcaseFitW) showcaseFit(); }, 150);
+  }, { passive: true });
+} catch (eSc) {}
 var _showcaseIO = null;
 function getShowcaseIO() {
   if (_showcaseIO) return _showcaseIO;
