@@ -1398,10 +1398,10 @@ body.editor-open .lang-hint{display:none}
       </div>
       <div class="es-done-row">
         <button type="button" class="pos-btn" id="expRmWm" onclick="closeExportSheet();showUpgrade()">Upgrade to remove the watermark</button>
+        <button type="button" class="pos-btn" id="expAgain" style="display:none" onclick="exportAgain()" title="Render a new video with your current captions and style (takes as long as the first export)">Export with your changes</button>
         <button type="button" class="pos-btn" id="expDlFile" onclick="downloadLastExport()" title="Save the same file again — no new rendering">Download again</button>
-        <button type="button" class="pos-btn" id="expAgain" onclick="exportAgain()" title="Render a new video with your current captions and style (takes as long as the first export)">Export again (re-render)</button>
       </div>
-      <p class="es-done-hint">Changed your captions or style? Use “Export again”.</p>
+      <p class="es-done-hint" id="expChangedHint" style="display:none">You edited captions or style after the last export.</p>
       <div class="es-done-links">
         <button type="button" class="es-link" id="expCopyPost" onclick="copyTranscript(this)">Copy full transcript</button>
       </div>
@@ -8306,7 +8306,7 @@ function findAutosave(key) {
   for (var i = 0; i < list.length; i++) if (list[i].key === key) return list[i];
   return null;
 }
-function markCaptionsEdited() { captionsEdited = true; scheduleAutosave(); }
+function markCaptionsEdited() { captionsEdited = true; scheduleAutosave(); if (typeof exportSheetOpen === 'function' && exportSheetOpen()) syncExportAgain(); }
 // Nach dem Laden der Video-Metadaten: Autosave vorhanden → wiederherstellen, sonst transkribieren.
 function restoreOrTranscribe(file, dur) {
   _autosaveKey = autosaveKeyFor(file, dur);
@@ -9849,7 +9849,10 @@ function dlText(content, name) {
   setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
 }
 function dlBlob(blob, name) {
-  if (/\.(mp4|webm)$/i.test(name)) { _lastDlName = name; _lastExportBlob = blob; } // „✓ Saved — …“ + Teilen/erneut laden
+  if (/\.(mp4|webm)$/i.test(name)) {
+    if (blob !== _lastExportBlob) { _lastExportSig = _expSigStart != null ? _expSigStart : exportSignature(); _expSigStart = null; } // neuer Export (nicht „Download again“)
+    _lastDlName = name; _lastExportBlob = blob; // „✓ Saved — …“ + Teilen/erneut laden
+  }
   var url = URL.createObjectURL(blob);
   var a   = document.createElement('a');
   a.href = url; a.download = name; a.click();
@@ -10659,8 +10662,31 @@ function confirmLeaveExport() {
 // Die zuletzt gespeicherte Datei bleibt für „Download again“/Teilen im Speicher, bis ein neuer Export startet,
 // das Video wechselt oder man zur Startseite zurückgeht (Object-URLs werden schon in dlBlob entzogen).
 function releaseLastExport() {
-  _lastExportBlob = null;
+  _lastExportBlob = null; _lastExportSig = null;
   syncLastExportUI();
+}
+// „Hat sich seit dem Export etwas geändert?“ — Signatur der Felder aus projectPayload(), die das Video beeinflussen
+// (Untertitel, Style, Position, Schnitte, Betonung, Auflösung/Format). Titel, Cover, Post-Text, Vorschaubreite nicht.
+var _lastExportSig = null, _expSigStart = null;
+function exportSignature() {
+  try {
+    var p = projectPayload();
+    ['title', 'fontRel', 'cover', 'post', 'speech'].forEach(function(k) { delete p[k]; });
+    p.res = exportRes; p.fmt = exportFormat;
+    return JSON.stringify(p);
+  } catch (e) { return null; }
+}
+function exportChangedSinceLast() {
+  return !!(_lastExportBlob && _lastExportSig != null && exportSignature() !== _lastExportSig);
+}
+// Fertig-Ansicht: nur „Download again“; erst bei Änderungen kommt „Export with your changes“ (primär) + Hinweis
+function syncExportAgain() {
+  var ch = exportChangedSinceLast();
+  var ag = document.getElementById('expAgain'), dl = document.getElementById('expDlFile'), ht = document.getElementById('expChangedHint');
+  if (ag) { ag.style.display = ch ? '' : 'none'; if (ag.classList) ag.classList.toggle('on', ch); }
+  if (dl) dl.textContent = ch ? 'Download previous version' : 'Download again';
+  if (ht) ht.style.display = ch ? '' : 'none';
+  return ch;
 }
 function syncLastExportUI() {
   var el = document.getElementById('expLast'), nm = document.getElementById('expLastName');
@@ -10700,6 +10726,7 @@ async function exportVideoWithCaptions() {
   if (!passEmailGate()) return; // Beta: erst E-Mail, dann Download (ohne Wasserzeichen)
   var tok = newExportToken(); // ab hier abbrechbar (auch während „Preparing“)
   releaseLastExport(); // neuer Export beginnt → die vorige Datei freigeben (Speicher)
+  _expSigStart = exportSignature(); // Stand beim Start (Änderungen während des Renderns zählen als „nach dem Export“)
   // Schnitterkennung läuft noch → kurz warten (sonst überspannen Blöcke Schnitte); die Phase direkt am
   // Button zeigen — die Fortschrittsleiste darunter liegt auf dem Handy oft außerhalb des Bildschirms.
   var cutTimer = null;
@@ -11828,7 +11855,7 @@ function openExportSheet() {
   closeMoreMenu();
   if (!isExporting && !_expTok) showExportMain();
   var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
-  syncExpSub(); updateAcctUI(); flushLead(); syncPostUI();
+  syncExpSub(); updateAcctUI(); flushLead(); syncPostUI(); syncExportAgain();
   // E-Mail-Feld sofort zeigen (statt erst nach dem ersten Download-Klick) → Download ist danach EIN Klick.
   // Autofokus nur mit Maus/Trackpad — auf dem Handy würde die Tastatur das halbe Blatt verdecken.
   var g = document.getElementById('expGate'), needGate = gateNeeded();
@@ -11914,6 +11941,7 @@ function canShareExport(blob, name) {
 function exportDone(wmOn) {
   var m = document.getElementById('expMain'), d = document.getElementById('expDone');
   var nm = document.getElementById('expDoneName'); if (nm) nm.textContent = _lastDlName;
+  syncExportAgain();
   var rw = document.getElementById('expRmWm'); if (rw) rw.style.display = wmOn ? '' : 'none';
   var share = canShareExport(_lastExportBlob, _lastDlName);
   var sb = document.getElementById('expShare'), an = document.getElementById('expAnother');
@@ -12385,7 +12413,7 @@ async function downloadCover() {
 // Muss direkt aus einem Tipp kommen (navigator.share verlangt eine Nutzergeste) — nie automatisch nach dem Rendern.
 function shareLastExport() {
   var b = _lastExportBlob;
-  if (!b) { capToast('That file is no longer available — use “Export again”.'); return Promise.resolve(false); }
+  if (!b) { capToast('That file is no longer available — export again.'); return Promise.resolve(false); }
   var f = new File([b], _lastDlName, { type: b.type || 'video/mp4' });
   return navigator.share({ files: [f] }).then(function(){ return true; }, function(e) {
     if (e && e.name === 'AbortError') return false; // Nutzer hat das Teilen-Blatt geschlossen
@@ -12396,7 +12424,7 @@ function shareLastExport() {
 }
 // „Download again“: dieselbe Datei erneut speichern — kein Neu-Rendern
 function downloadLastExport() {
-  if (!_lastExportBlob) { capToast('That file is no longer available — use “Export again”.'); return false; }
+  if (!_lastExportBlob) { capToast('That file is no longer available — export again.'); return false; }
   dlBlob(_lastExportBlob, _lastDlName);
   capToast('✓ Saved again — ' + _lastDlName);
   return true;

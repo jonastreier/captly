@@ -133,7 +133,7 @@ capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidRead
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
-exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,
+exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,exportChangedSinceLast:exportChangedSinceLast,syncExportAgain:syncExportAgain,exportSignature:exportSignature,setExportRes:function(v){exportRes=v;},getCapPos:function(){return capPos;},downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,
 zoomFill:zoomFill,zoomPlan:zoomPlan,zoomFeedback:zoomFeedback,zoomDemoStart:zoomDemoStart,getZoomDemo:function(){return _zoomDemo;},clearZoomDemo:function(){_zoomDemo=null;},
 applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
@@ -2736,6 +2736,30 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.releaseLastExport();
     ok(T.getLastExportBlob() === null && document.getElementById('expLast').style.display === 'none', 'releaseLastExport gibt den Blob frei');
     global.CLICKS = []; ok(T.downloadLastExport() === false && global.CLICKS.length === 0, 'ohne Datei: kein Download, kein Absturz');
+    // Geändert seit dem Export? Erst dann „Export with your changes“ (sonst nur „Download again“)
+    {
+      const ag = document.getElementById('expAgain'), dl = document.getElementById('expDlFile'), ht = document.getElementById('expChangedHint');
+      const blobC = new Blob(['x'], { type: 'video/mp4' });
+      ok(T.exportChangedSinceLast() === false, 'ohne Export: nichts „geändert“');
+      T.dlBlob(blobC, 'c-captionrush.mp4'); T.exportDone(false);
+      ok(T.exportChangedSinceLast() === false && ag.style.display === 'none' && ht.style.display === 'none' && dl.textContent === 'Download again', 'direkt nach dem Export: nur „Download again“, kein Neu-Export-Knopf, kein Hinweis');
+      T.downloadLastExport();
+      ok(T.exportChangedSinceLast() === false, '„Download again“ ändert den Export-Stand nicht');
+      const t0 = T.projTitleOf(); T.setTitle('Anderer Titel'); T.syncExportAgain();
+      ok(T.exportChangedSinceLast() === false && ag.style.display === 'none', 'Titel ändert das Video nicht → keine Änderung');
+      T.setTitle(t0);
+      const b0 = T.getBlocks()[0], txt0 = b0.text;
+      b0.text = txt0 + ' neu'; T.syncExportAgain();
+      ok(T.exportChangedSinceLast() === true && ag.style.display === '' && /id="expAgain"[^>]*>Export with your changes</.test(htmlContent) && ag.classList.contains('on') && ht.style.display === '' && dl.textContent === 'Download previous version', 'Untertitel geändert: „Export with your changes“ primär + Hinweis, Download wird „previous version“');
+      b0.text = txt0; T.syncExportAgain();
+      ok(T.exportChangedSinceLast() === false && ag.style.display === 'none' && dl.textContent === 'Download again', 'Änderung rückgängig → wieder nur „Download again“');
+      const v0 = T.getActiveId(); T.selectStyle(v0 === 'minimal' ? 'tight' : 'minimal');
+      ok(T.exportChangedSinceLast() === true, 'Style gewechselt → geändert'); T.selectStyle(v0);
+      ok(T.exportChangedSinceLast() === false, 'Style zurück → ungeändert');
+      T.setExportRes('orig'); ok(T.exportChangedSinceLast() === true, 'Auflösung geändert → geändert'); T.setExportRes('1080');
+      T.releaseLastExport(); ok(T.exportChangedSinceLast() === false, 'ohne Datei nie „geändert“');
+      global.CLICKS = [];
+    }
     // Abbruch + Fehler setzen den Zustand zurück
     const tok = T.newExportToken(); T.setExporting(true);
     ok(T.getExpTok() === tok && !tok.cancelled, 'Export-Token aktiv');

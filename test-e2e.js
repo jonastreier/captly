@@ -488,9 +488,9 @@ if (require.main !== module) return;
         await page.waitForSelector('#expDone', { state: 'visible', timeout: 5000 }).catch(() => {});
         await shot('05b-export-done-sheet');
         ok(await page.isVisible('#expSheet') && await page.isVisible('#expDone') && !(await page.isVisible('#btnVideo')), 'Nach dem Export: Fertig-Ansicht im Blatt');
-        const vis = {}; for (const id of ['btnSRT', 'btnVTT', 'btnTXT', 'btnCover', 'btnCopy', 'expCopyPost', 'expDlFile', 'expAgain']) vis[id] = await page.isVisible('#' + id);
-        ok(Object.values(vis).every(Boolean) && await page.isEnabled('#btnSRT') && await page.isEnabled('#btnCover'), 'Nach dem Export sichtbar + aktiv: SRT, VTT, TXT, Cover, Copy text, Copy full transcript, Download again, Export again (' + JSON.stringify(vis) + ')');
-        ok(/Export again/.test(await page.textContent('#expAgain')) && /Download again/.test(await page.textContent('#expDlFile')), 'Beschriftung: «Download again» (gleiche Datei) und «Export again» (neu rendern) getrennt');
+        const vis = {}; for (const id of ['btnSRT', 'btnVTT', 'btnTXT', 'btnCover', 'btnCopy', 'expCopyPost', 'expDlFile']) vis[id] = await page.isVisible('#' + id);
+        ok(Object.values(vis).every(Boolean) && await page.isEnabled('#btnSRT') && await page.isEnabled('#btnCover'), 'Nach dem Export sichtbar + aktiv: SRT, VTT, TXT, Cover, Copy text, Copy full transcript, Download again (' + JSON.stringify(vis) + ')');
+        ok(/Download again/.test(await page.textContent('#expDlFile')) && !(await page.isVisible('#expAgain')) && !(await page.isVisible('#expChangedHint')), 'Ohne Änderungen: nur «Download again», kein Neu-Export-Knopf und kein Hinweis');
         for (const [id, re] of [['btnSRT', /\.srt$/], ['btnVTT', /\.vtt$/], ['btnTXT', /\.txt$/]]) {
           const dP = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
           await page.click('#' + id);
@@ -507,11 +507,14 @@ if (require.main !== module) return;
         ok(!!d2 && d2.suggestedFilename() === dl.suggestedFilename(), '«Download again»: Datei wird erneut gespeichert (' + (d2 ? d2.suggestedFilename() : '–') + ')');
         if (d2) ok(Buffer.compare(fs.readFileSync(await d2.path()), fs.readFileSync(fp)) === 0, '«Download again»: byte-identisch zur ersten Datei');
         ok(await page.evaluate(() => window.__renders === 0 && !isExporting && _expTok === null), '«Download again» löst keinen Neu-Render aus (Zähler 0)');
-        // Export again → rendert neu; Abbrechen mitten im Rendern: kein Download, Zustand zurück
+        // Untertitel ändern → «Export with your changes» erscheint (primär) mit Hinweis, «Download again» wird «Download previous version»
+        await page.evaluate(() => { captionBlocks[0].text += ' x'; syncExportAgain(); });
+        ok(await page.isVisible('#expAgain') && /Export with your changes/.test(await page.textContent('#expAgain')) && await page.isVisible('#expChangedHint') && /previous version/.test(await page.textContent('#expDlFile')), 'Nach einer Änderung: «Export with your changes» + Hinweis, «Download previous version»');
+        // Export with your changes → rendert neu; Abbrechen mitten im Rendern: kein Download, Zustand zurück
         let extra = 0; const cnt = () => { extra++; }; page.on('download', cnt);
         await page.click('#expAgain');
         await page.waitForFunction(() => isExporting === true, null, { timeout: 15000 }).catch(() => {});
-        ok(await page.evaluate(() => window.__renders === 1 && isExporting), '«Export again» rendert neu (Zähler 1)');
+        ok(await page.evaluate(() => window.__renders === 1 && isExporting), '«Export with your changes» rendert neu (Zähler 1)');
         await page.waitForTimeout(1500);
         ok(await page.isVisible('#expCancel') && /Exporting|Preparing/.test(await page.textContent('#tbExport')) && await page.isEnabled('#tbExport'), 'Während des Exports: «Cancel» sichtbar, Top-Knopf zeigt Fortschritt und bleibt klickbar');
         await shot('05c-cancel-visible');
