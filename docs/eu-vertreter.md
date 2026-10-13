@@ -3,7 +3,7 @@
 *Keine Rechtsberatung. Stand Oktober 2026.*
 
 ## Kurz
-CaptionRush sitzt in der Schweiz (kein EU-Sitz) und richtet sich mit deutscher und englischer Seite auch an Personen in der EU (Beta, später Abos in EUR). Dann gilt die DSGVO nach Art. 3 Abs. 2 und grundsätzlich auch **Art. 27: Vertreter in der EU**. Ausnahme (Abs. 2): Bearbeitung nur gelegentlich, ohne umfangreiche besondere Kategorien, voraussichtlich ohne Risiko. Ein Dienst mit laufendem Newsletter, Konten und Abos ist eher **nicht** «gelegentlich». Das Risiko einer Busse ist bei einem Kleinunternehmen gering, aber nicht null; Aufsichtsbehörden und Grosskunden fragen danach.
+Gluephs sitzt in der Schweiz (kein EU-Sitz) und richtet sich mit deutscher und englischer Seite auch an Personen in der EU (Beta, später Abos in EUR). Dann gilt die DSGVO nach Art. 3 Abs. 2 und grundsätzlich auch **Art. 27: Vertreter in der EU**. Ausnahme (Abs. 2): Bearbeitung nur gelegentlich, ohne umfangreiche besondere Kategorien, voraussichtlich ohne Risiko. Ein Dienst mit laufendem Newsletter, Konten und Abos ist eher **nicht** «gelegentlich». Das Risiko einer Busse ist bei einem Kleinunternehmen gering, aber nicht null; Aufsichtsbehörden und Grosskunden fragen danach.
 Umgekehrt: Für die Schweiz selbst brauchst du **keinen** Vertreter (die Pflicht nach DSG trifft ausländische Verantwortliche).
 
 **Empfehlung:** Nicht vor dem Start nötig. Bestelle einen Vertreter, **bevor** Abos mit EU-Kunden scharf geschaltet werden (spätestens mit Paddle-Live). Bis dahin: Verarbeitungsverzeichnis führen, DPAs ablegen, Datenschutzerklärung aktuell halten.
