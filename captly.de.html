@@ -302,6 +302,10 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .col-resize-handle::after{content:'';position:absolute;top:0;bottom:0;left:50%;width:1px;background:var(--line);transform:translateX(-50%);transition:background .15s,width .15s}
 .col-resize-handle:hover::after,.col-resize-handle.dragging::after{background:var(--brand);width:3px}
 #prevBg{position:absolute;inset:0;z-index:0;background:var(--ink);transition:background .3s}
+.prev-frame.pannable{cursor:grab;-webkit-user-select:none;user-select:none;touch-action:none}
+.prev-frame.pannable:active{cursor:grabbing}
+.exp-pan em{flex:1;font-style:normal;font-size:11.5px;color:var(--muted);line-height:1.35}
+.exp-note{margin:0;font-size:11.5px;color:var(--muted)}
 #prevBlurBg{position:absolute;inset:-8%;z-index:0;width:116%;height:116%;display:none;filter:blur(14px) brightness(.55);pointer-events:none}
 .prev-frame.reframe-blur #prevBlurBg{display:block}
 .prev-frame.reframe-blur #mainVid{object-fit:contain!important;inset:0;width:100%;height:100%}
@@ -1492,8 +1496,16 @@ body.editor-open .lang-hint{display:none}
             </select></label>
           <label class="exp-opt" id="fmtRow" style="display:none"><span>Format</span>
             <select id="expFmt" class="lang-sel" onchange="setExportFormat(this.value)">
-              <option value="original">Original</option><option value="blur">9:16 · blur fill</option><option value="crop">9:16 · crop</option>
+              <option value="original">Original</option><option value="9:16">9:16 · Reels, TikTok, Shorts</option><option value="1:1">1:1 · Square</option><option value="4:5">4:5 · Instagram feed</option><option value="16:9">16:9 · YouTube, LinkedIn</option>
             </select></label>
+          <label class="exp-opt" id="fillRow" style="display:none"><span>Fill</span>
+            <select id="expFill" class="lang-sel" onchange="setExportFill(this.value)">
+              <option value="crop">Crop — fill the frame</option><option value="blur">Blur — whole video, blurred edges</option>
+            </select></label>
+          <div class="exp-opt exp-pan" id="panRow" style="display:none"><span>Framing</span>
+            <em>Drag the video in the preview to move the crop</em>
+            <button type="button" class="es-link" id="panReset" onclick="resetExportPan()" disabled title="Back to the centre (or double-click the preview)">Centre</button></div>
+          <p class="exp-note" id="fmtNote" style="display:none"></p>
           <label class="exp-chk">
             <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)">
             <span>Cut silences &amp; filler words (“um”, “äh”…)</span>
@@ -1520,11 +1532,11 @@ body.editor-open .lang-hint{display:none}
   <div class="ed-body" id="edBody">
     <!-- Preview -->
     <div class="prev-col" id="prevCol">
-      <div class="prev-frame" id="prevFrame" onclick="if(vidReady && !capDragMoved)togglePlay()">
+      <div class="prev-frame" id="prevFrame" onclick="if(vidReady && !capDragMoved && !panMoved)togglePlay()">
         <div id="prevBg"></div>
         <canvas id="prevBlurBg" width="36" height="64" aria-hidden="true"></canvas>
         <video id="mainVid" playsinline preload="auto" style="display:none"></video>
-        <div id="playOverlay" onclick="event.stopPropagation();doPlay()"><div class="play-icon"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></div></div>
+        <div id="playOverlay" onclick="event.stopPropagation();if(!panMoved)doPlay()"><div class="play-icon"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></div></div>
         <div id="frameDropZone">
           <input type="file" accept="video/*" id="frameInput">
           <b class="fdz-btn"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Choose a video</b><p><span class="hint-desk">or drop it here · </span>MP4, MOV or WebM</p>
@@ -7141,6 +7153,11 @@ function normalizeTemplate(t) {
   if (typeof lay.kw === 'boolean') layOut.kw = lay.kw;
   if (typeof lay.emoji === 'boolean') layOut.emoji = lay.emoji;
   if (['off', 'subtle', 'punchy'].indexOf(lay.zoom) >= 0) layOut.zoom = lay.zoom;
+  // Zielformat (B1): nur wenn das Template eines kennt — alte Templates ohne Feld lassen das Format unangetastet (Original)
+  if (lay.aspect !== undefined || lay.fill !== undefined || lay.fmt !== undefined) {
+    var tf = normalizeExportFormat({ aspect: lay.aspect !== undefined ? lay.aspect : lay.fmt, fill: lay.fill, pan: lay.pan });
+    layOut.aspect = tf.aspect; layOut.fill = tf.fill; layOut.pan = tf.pan;
+  }
   return { id: tid, name: String(t.name || 'Template').slice(0, 60), style: st, layout: layOut,
            createdAt: +t.createdAt || ts0, updatedAt: ts0 };
 }
@@ -7222,7 +7239,8 @@ function currentLayout() {
   // anders groß aus. case/punct gehören zum Look (Brand-Kit) und reisen mit.
   return { pos: capPos, voff: capVOff, hoff: capHOff, free: capFree, size: fontSize, sizeRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
            mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, case: capCase, punct: capNoPunct,
-           kw: emKw, emoji: emEmoji, zoom: emZoom }; // Emphasis-Schalter gehören zum Look (Brand-Kit)
+           kw: emKw, emoji: emEmoji, zoom: emZoom, // Emphasis-Schalter gehören zum Look (Brand-Kit)
+           aspect: exportAspect, fill: exportFill, pan: { x: exportPan.x, y: exportPan.y } }; // Zielformat + Ausschnitt
 }
 function newTplId() { return 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6); }
 function setTplEditing(id) {
@@ -7570,6 +7588,8 @@ function templateFontSize(t, frameW) {
 // ändert sich etwas, gibt es vorher einen Undo-Schritt (inkl. Reglerstand, Strg+Z stellt Blöcke + Regler zurück).
 function applyTemplateSettings(t) {
   var prevMc = CAP_MAX_CHARS; // vor dem Überschreiben unten merken (Undo-Eintrag trägt den alten Reglerstand)
+  // Zielformat ZUERST: es ändert die Rahmenform — Schriftgrösse (sizeRel) und Position beziehen sich auf den neuen Rahmen
+  if (t.aspect !== undefined || t.fill !== undefined || t.fmt !== undefined) applyExportFormat({ aspect: t.aspect !== undefined ? t.aspect : t.fmt, fill: t.fill, pan: t.pan });
   if (t.pos) {
     capPos = t.pos;
     capHOff = (typeof t.hoff === 'number' && isFinite(t.hoff)) ? Math.max(-50, Math.min(50, t.hoff)) : 0; // Layout ersetzt die Position komplett
@@ -9031,6 +9051,7 @@ function projectPayload() {
            lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
            noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts,
            emph: { kw: emKw, emoji: emEmoji, zoom: emZoom, src: emSrc } };
+  if (exportAspect !== 'original') p.fmt = exportFormatState(); // Zielformat + Ausfüllart + Ausschnitt (Original = Standard, kein Eintrag)
   // Cover-Einstellungen (ohne Bild: eigene Fotos bleiben auf dem Gerät und werden nicht im Projekt gespeichert)
   if (coverState.title) p.cover = { t: coverState.t, dark: coverState.dark, grad: coverState.grad, title: coverState.title, kw: coverState.kw || [],
     style: coverState.style, size: coverState.size, pos: coverState.pos, guides: coverState.guides,
@@ -9089,6 +9110,7 @@ function applyProjectPayload(p) {
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
   }
   if (p.style) { restoreSavedStyle(p); seedActiveStyle(); }
+  if (p.fmt !== undefined && p.fmt !== null) applyExportFormat(p.fmt); // alte/fremde Werte ('blur'/'crop') werden migriert
   if (typeof p.title === 'string' && p.title) setTitle(p.title);
   if (p.fontSize) {
     var fsz = p.fontSize;
@@ -10114,7 +10136,7 @@ function setEdCompact(on) {
 function layoutPreviewFrame(setFont) {
   var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
   var ar = vid.videoWidth / vid.videoHeight;
-  if (reframeActive(vid.videoWidth, vid.videoHeight)) ar = 9 / 16;
+  ar = outputAspect(vid.videoWidth, vid.videoHeight); // Zielverhältnis bei aktivem Reframe, sonst das der Quelle
   if (!(ar > 0) || !isFinite(ar)) ar = 9 / 16; // Video ohne Bild (HEVC/Audio-only): nie durch 0 teilen
   // Vorschau so groß wie der Platz erlaubt (vorher fest max. 480×360 → auf 1440×900 nur 270×480 mit
   // ~800 px leerem Grau): Höhe = Spalte − Video-Leiste − Timeline − Abstände. Breite gedeckelt (720), damit
@@ -10154,6 +10176,9 @@ function layoutPreviewFrame(setFont) {
     if (szDispEl) szDispEl.textContent = fontSize + 'px';
   }
   syncMaxCharsUI(); // Auto-Zeichenlimit hängt von Rahmenbreite/Schriftgröße ab
+  applyPreviewCrop(); // «crop»: Video-Ausschnitt an die (neue) Rahmengrösse anpassen
+  if (frame.classList && frame.classList.contains('reframe-blur')) updatePreviewBlurBg();
+  syncFormatRow();
   return w;
 }
 function loadVideo(file) {
@@ -10191,7 +10216,7 @@ function loadVideo(file) {
   vid.src = url; vid.muted = vidMuted;
 
   vid.onloadedmetadata = function() {
-    exportFormat = 'original'; syncFormatRow(); setExportFormat('original');
+    applyExportFormat('original'); // neues Video: Format zurück auf Original (Template/Projekt setzen es gleich danach wieder)
     var w = layoutPreviewFrame(true);
     // Brand-/Template-Look: Auto-Startgröße (8 % der Rahmenbreite) darf die Template-Größe nicht überschreiben
     var tplSt = STYLES.find(function(x){ return x.id === activeId; });
@@ -10870,13 +10895,13 @@ function mp4BoxPayload(MP4Box, box) {
   return new Uint8Array(ds.buffer, 8);
 }
 // Zeichnet einen dekodierten Frame "cover"-skaliert auf W×H — identisch zum Echtzeit-Pfad, plus Drehung.
-function drawFastFrame(ctx, frame, W, H, rot, fit) {
+function drawFastFrame(ctx, frame, W, H, rot, fit, pan) {
   var fw = frame.displayWidth, fh = frame.displayHeight;
   var rw = rot % 180 ? fh : fw, rh = rot % 180 ? fw : fh; // Maße NACH der Drehung
-  var sc = fit === 'contain' ? Math.min(W / rw, H / rh) : Math.max(W / rw, H / rh);
-  if (!rot) { ctx.drawImage(frame, (W - fw * sc) / 2, (H - fh * sc) / 2, fw * sc, fh * sc); return; }
+  var pl = videoPlacement(rw, rh, W, H, fit, pan), sc = pl.w / rw; // gleiche Platzierung wie Vorschau/Echtzeit-Pfad (inkl. Ausschnitt)
+  if (!rot) { ctx.drawImage(frame, pl.x, pl.y, pl.w, pl.h); return; }
   ctx.save();
-  ctx.translate(W / 2, H / 2);
+  ctx.translate(pl.x + pl.w / 2, pl.y + pl.h / 2);
   ctx.rotate(rot * Math.PI / 180); // Canvas: positiver Winkel = im Uhrzeigersinn (y nach unten)
   ctx.drawImage(frame, -fw * sc / 2, -fh * sc / 2, fw * sc, fh * sc);
   ctx.restore();
@@ -11020,7 +11045,7 @@ async function exportFastWebCodecs(file, o) {
         var outUs = Math.round(outT * 1e6);
         if (outUs <= lastOutUs) return;
         drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
-          drawReframed(ctx, W, H, o.mode || 'original', function(c, w, h, fit){ drawFastFrame(c, frame, w, h, rot, fit); });
+          drawReframed(ctx, W, H, o.mode || 'original', function(c, w, h, fit, pan){ drawFastFrame(c, frame, w, h, rot, fit, pan); }, o.pan);
         });
         drawCaptionsOnCtx(ctx, t, o.style, W, H, false);
         drawWatermark(ctx, W, H, o.wmOn);
@@ -11162,7 +11187,7 @@ async function tryFastExport(vid, tok) {
   var t0 = Date.now(), wmF = needsWatermark();
   try {
     var blob = await exportFastWebCodecs(currentFile, {
-      W: geoF.W, H: geoF.H, srcW: vid.videoWidth, srcH: vid.videoHeight, mode: geoF.mode,
+      W: geoF.W, H: geoF.H, srcW: vid.videoWidth, srcH: vid.videoHeight, mode: geoF.mode, pan: geoF.pan,
       style: STYLES.find(function(x){ return x.id === activeId; }),
       wmOn: wmF, // Anmeldestatus JETZT — gilt für das ganze Video (wie im Echtzeit-Pfad)
       cutRegions: cutRegions,
@@ -11203,41 +11228,100 @@ async function tryFastExport(vid, tok) {
 // EXPORT — VIDEO WITH BURNED-IN CAPTIONS
 // ═══════════════════════════════════════
 // ═══════════════════════════════════════
-// EXPORT-GEOMETRIE — Auflösung, Bitrate, Reframe (9:16)
+// EXPORT-GEOMETRIE — Auflösung, Bitrate, Zielformat (Reframe)
 // ═══════════════════════════════════════
-// 1080p (Standard): längere Seite ≤ 1920, nie hochskalieren (Instagram-Maximum ist 1080×1920; 4K-Exporte
-// waren nur größer und langsamer). Bitrate ~0,07 Bit/Pixel/Frame, 2–12 Mbit/s. Reframe: Quer-/Quadrat-
-// Videos als 9:16 — „blur“ = unscharfer, abgedunkelter Hintergrund + ganzes Video mittig, „crop“ = Mitte.
-var exportRes = '1080', exportFormat = 'original';
+// 1080p (Standard): Zielleinwand in Instagram-Grössen (9:16 1080×1920, 1:1 1080×1080, 4:5 1080×1350, 16:9 1920×1080);
+// «Original» (kein Reframe) skaliert nie hoch, Bitrate ~0,07 Bit/Pixel/Frame, 2–12 Mbit/s.
+// Zielformat = Seitenverhältnis (exportAspect) + Ausfüllart (exportFill): «blur» = unscharfer, abgedunkelter Hintergrund +
+// ganzes Video mittig, «crop» = füllt und schneidet; exportPan (−1…1 je Achse) verschiebt den Ausschnitt entlang der
+// beschnittenen Achse. Ist die Quelle schon im Zielverhältnis → kein Reframe. Alte Werte 'blur'/'crop' (früher «9:16 + Ausfüllart»)
+// wandelt normalizeExportFormat() um.
+var exportRes = '1080', exportAspect = 'original', exportFill = 'crop', exportPan = { x: 0, y: 0 };
 try { if (typeof localStorage !== 'undefined' && localStorage.getItem('capivo.expRes') === 'orig') exportRes = 'orig'; } catch (e) {}
+var EXPORT_ASPECTS = { '9:16': [9, 16], '1:1': [1, 1], '4:5': [4, 5], '16:9': [16, 9] };
+var EXPORT_SIZES = { '9:16': [1080, 1920], '1:1': [1080, 1080], '4:5': [1080, 1350], '16:9': [1920, 1080] };
 function isNineSixteen(w, h) { return w > 0 && h > 0 && Math.abs(w / h - 9 / 16) < 0.02; }
-function reframeActive(srcW, srcH) { return exportFormat !== 'original' && srcW > 0 && srcH > 0 && !isNineSixteen(srcW, srcH); }
+// Quelle hat (fast) schon das Zielverhältnis (±3 %) → nichts zu füllen
+function aspectMatches(srcW, srcH, aspect) {
+  var a = EXPORT_ASPECTS[aspect];
+  return !!a && srcW > 0 && srcH > 0 && Math.abs((srcW / srcH) / (a[0] / a[1]) - 1) < 0.03;
+}
+function clampPan(p) {
+  p = p && typeof p === 'object' ? p : {};
+  function c(v) { v = +v; return isFinite(v) ? Math.max(-1, Math.min(1, Math.round(v * 1000) / 1000)) : 0; }
+  return { x: c(p.x), y: c(p.y) };
+}
+// Migration + Validierung: alter String ('original' | 'blur' | 'crop'), Seitenverhältnis-String ('1:1') oder Objekt
+// {aspect, fill, pan} (auch mit altem aspect 'blur'/'crop') → immer { aspect, fill, pan }. Unbekanntes → Original.
+function normalizeExportFormat(v) {
+  var out = { aspect: 'original', fill: 'crop', pan: { x: 0, y: 0 } };
+  if (typeof v === 'string') v = { aspect: v };
+  if (!v || typeof v !== 'object') return out;
+  var a = v.aspect;
+  if (a === 'blur' || a === 'crop') { out.aspect = '9:16'; out.fill = a; }
+  else if (EXPORT_ASPECTS[a]) out.aspect = a;
+  if (v.fill === 'blur' || v.fill === 'crop') out.fill = v.fill;
+  if (out.aspect !== 'original') out.pan = clampPan(v.pan);
+  return out;
+}
+function exportFormatState() { return { aspect: exportAspect, fill: exportFill, pan: { x: exportPan.x, y: exportPan.y } }; }
+// 'original' (kein Reframe) | 'blur' | 'crop' — für die konkrete Quelle
+function exportReframeMode(srcW, srcH, f) {
+  f = f || exportFormatState();
+  if (f.aspect === 'original' || !EXPORT_ASPECTS[f.aspect] || !(srcW > 0 && srcH > 0) || aspectMatches(srcW, srcH, f.aspect)) return 'original';
+  return f.fill === 'blur' ? 'blur' : 'crop';
+}
+function reframeActive(srcW, srcH) { return exportReframeMode(srcW, srcH) !== 'original'; }
+// Seitenverhältnis der Ausgabe (Breite / Höhe) — bei aktivem Reframe das Zielverhältnis, sonst das der Quelle
+function outputAspect(srcW, srcH) {
+  var m = exportReframeMode(srcW, srcH), a = EXPORT_ASPECTS[exportAspect];
+  return (m !== 'original' && a) ? a[0] / a[1] : srcW / srcH;
+}
 function exportBitrate(W, H, fps) { return Math.round(Math.max(2e6, Math.min(12e6, 0.07 * W * H * (fps || 30)))); }
 function exportGeometry(srcW, srcH, fps, res, fmt) {
-  res = res || exportRes; fmt = fmt || exportFormat;
+  res = res || exportRes;
+  var f = fmt === undefined ? exportFormatState() : normalizeExportFormat(fmt);
   srcW = srcW || 1080; srcH = srcH || 1920;
-  var mode = (fmt !== 'original' && !isNineSixteen(srcW, srcH)) ? fmt : 'original';
+  var mode = exportReframeMode(srcW, srcH, f);
   var w = srcW, h = srcH;
-  if (mode !== 'original') { var L = Math.max(srcW, srcH); h = L; w = Math.round(L * 9 / 16); }
-  if (res !== 'orig') {
-    // Original: nie hochskalieren. Reframe: der 9:16-Rahmen ist eine NEUE Leinwand → immer 1080×1920
-    // (das Video darin wird nur eingepasst, nicht über seine Größe hinaus vergrößert — außer beim Crop).
-    var k = mode === 'original' ? Math.min(1, 1920 / Math.max(w, h)) : 1920 / Math.max(w, h);
+  if (mode !== 'original') {
+    // Reframe: das Zielformat ist eine NEUE Leinwand. 1080p → feste Zielgrösse; «Original» → längere Seite = längere Quellseite.
+    var a = EXPORT_ASPECTS[f.aspect], ar = a[0] / a[1];
+    if (res === 'orig') { var L = Math.max(srcW, srcH); if (ar >= 1) { w = L; h = Math.round(L / ar); } else { h = L; w = Math.round(L * ar); } }
+    else { w = EXPORT_SIZES[f.aspect][0]; h = EXPORT_SIZES[f.aspect][1]; }
+  } else if (res !== 'orig') {
+    var k = Math.min(1, 1920 / Math.max(w, h)); // Original: nie hochskalieren
     w = Math.round(w * k); h = Math.round(h * k);
   }
   w -= w % 2; h -= h % 2; // H.264 (4:2:0) braucht gerade Maße
-  return { W: w, H: h, mode: mode, bitrate: exportBitrate(w, h, fps || 30) };
+  return { W: w, H: h, mode: mode, aspect: f.aspect, pan: mode === 'crop' ? f.pan : { x: 0, y: 0 }, bitrate: exportBitrate(w, h, fps || 30) };
+}
+// Bildausschnitt bei «crop»: der Teil der Quelle (srcW×srcH), der die Leinwand W×H füllt. pan −1…1 je Achse
+// (−1 = links/oben bündig, 0 = Mitte, 1 = rechts/unten bündig); nur die beschnittene Achse hat Spielraum.
+// Gemeinsame Quelle für Vorschau (applyPreviewCrop) und alle Export-Pfade (videoPlacement).
+function cropRect(srcW, srcH, W, H, pan) {
+  var p = clampPan(pan), sc = Math.max(W / srcW, H / srcH);
+  var sw = W / sc, sh = H / sc, slx = srcW - sw, sly = srcH - sh;
+  if (slx < 1e-6) { slx = 0; sw = srcW; }
+  if (sly < 1e-6) { sly = 0; sh = srcH; }
+  return { sx: slx / 2 * (1 + p.x), sy: sly / 2 * (1 + p.y), sw: sw, sh: sh };
+}
+// Wo das GANZE Quellbild (rw×rh) auf der Leinwand W×H landet: contain = mittig eingepasst, cover = Ausschnitt per cropRect
+function videoPlacement(rw, rh, W, H, fit, pan) {
+  if (fit === 'contain') { var s = Math.min(W / rw, H / rh); return { x: (W - rw * s) / 2, y: (H - rh * s) / 2, w: rw * s, h: rh * s }; }
+  var r = cropRect(rw, rh, W, H, pan), sc = Math.max(W / rw, H / rh);
+  return { x: -r.sx * sc, y: -r.sy * sc, w: rw * sc, h: rh * sc };
 }
 // Quelle (Video-Element oder VideoFrame über drawFn) in den Ausgaberahmen zeichnen.
-// drawFn(ctx, W, H, fit) zeichnet die Quelle zentriert mit fit = 'cover' | 'contain'.
+// drawFn(ctx, W, H, fit, pan) zeichnet die Quelle mit fit = 'cover' (Ausschnitt per pan) | 'contain' (mittig, ganz).
 var _blurBgCanvas = null, _blurMidCanvas = null, _blurBgFrame = 0, BLUR_BG_EVERY = 6;
 // Blur-Fill-Hintergrund ohne ctx.filter/shadowBlur. Teuer war das Herunterskalieren des VOLLEN Quellbilds
 // in den winzigen Canvas: winzige Canvases liegen in Chrome im CPU-Speicher → jedes Mal Rücklesen des
 // (YUV-)Videoframes von der GPU. Jetzt: Quelle → mittlerer Canvas (256 px breit, GPU-beschleunigt, bleibt
 // auf der GPU) → winziger Canvas (27 px, liest nur ~0,5 MB zurück) → abdunkeln. Nur jeden 6. Frame neu
 // (ein unscharfer Hintergrund braucht keine Frame-Genauigkeit), Hochskalieren mit „low“-Glättung (bilinear).
-function drawReframed(ctx, W, H, mode, drawFn) {
-  if (mode !== 'blur') { drawFn(ctx, W, H, 'cover'); return; }
+function drawReframed(ctx, W, H, mode, drawFn, pan) {
+  if (mode !== 'blur') { drawFn(ctx, W, H, 'cover', mode === 'crop' ? pan : null); return; }
   if (!_blurBgCanvas) _blurBgCanvas = document.createElement('canvas');
   if (!_blurMidCanvas) _blurMidCanvas = document.createElement('canvas');
   var bw = 27, bh = Math.max(8, Math.round(27 * H / W));
@@ -11263,40 +11347,141 @@ function drawReframed(ctx, W, H, mode, drawFn) {
   ctx.restore();
   drawFn(ctx, W, H, 'contain');
 }
-function drawVideoFit(ctx, vid, W, H, fit) {
+function drawVideoFit(ctx, vid, W, H, fit, pan) {
   var vW = vid.videoWidth, vH = vid.videoHeight;
   if (!(vW > 0 && vH > 0)) return;
-  var sc = fit === 'contain' ? Math.min(W / vW, H / vH) : Math.max(W / vW, H / vH);
-  ctx.drawImage(vid, (W - vW * sc) / 2, (H - vH * sc) / 2, vW * sc, vH * sc);
+  var p = videoPlacement(vW, vH, W, H, fit, pan);
+  ctx.drawImage(vid, p.x, p.y, p.w, p.h);
 }
 function setExportRes(v) {
   exportRes = v === 'orig' ? 'orig' : '1080';
   try { localStorage.setItem('capivo.expRes', exportRes); } catch (e) {}
   syncExpSub();
 }
-// Vorschau zeigt das Ausgabeformat: 9:16-Rahmen, bei „blur“ ganzes Video + unscharfer Hintergrund
+// Vorschau zeigt das Ausgabeformat: Rahmen im Zielverhältnis, bei „blur“ ganzes Video + unscharfer Hintergrund,
+// bei „crop“ der per cropRect() berechnete Ausschnitt (verschiebbar, s. applyPreviewCrop / panDragStart)
 var _blurBgTimer = null;
-function setExportFormat(v) {
-  exportFormat = (v === 'blur' || v === 'crop') ? v : 'original';
-  var sel = document.getElementById('expFmt'); if (sel && sel.value !== exportFormat) sel.value = exportFormat;
-  var frame = document.getElementById('prevFrame'), vid = document.getElementById('mainVid');
-  var blur = reframeActive(vid.videoWidth, vid.videoHeight) && exportFormat === 'blur';
+// Zielformat setzen (Quelle: Auswahl, Template, Projekt, Migration alter Werte). f: siehe normalizeExportFormat.
+function applyExportFormat(f) {
+  f = normalizeExportFormat(f);
+  exportAspect = f.aspect; exportFill = f.fill; exportPan = f.pan;
+  var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
+  var blur = exportReframeMode(vid.videoWidth, vid.videoHeight) === 'blur';
   if (frame && frame.classList) frame.classList.toggle('reframe-blur', blur);
   if (_blurBgTimer) { clearInterval(_blurBgTimer); _blurBgTimer = null; }
   if (blur) { updatePreviewBlurBg(); _blurBgTimer = setInterval(updatePreviewBlurBg, 300); }
+  syncFormatRow();
   syncExpSub();
   if (vidReady) { layoutPreviewFrame(false); _lastKey = null; updateOverlay(); applyPos(); }
 }
+// Auswahl «Format» (Seitenverhältnis). Alte Werte 'blur'/'crop' = 9:16 mit dieser Ausfüllart. Neues Verhältnis → Ausschnitt mittig.
+function setExportFormat(v) {
+  var n = normalizeExportFormat(v);
+  if (v !== 'blur' && v !== 'crop' && !(v && typeof v === 'object' && v.fill)) n.fill = exportFill; // nur Verhältnis gewählt: Ausfüllart bleibt
+  applyExportFormat(n);
+  scheduleAutosave();
+}
+function setExportFill(v) {
+  applyExportFormat({ aspect: exportAspect, fill: v === 'blur' ? 'blur' : 'crop', pan: exportPan });
+  scheduleAutosave();
+}
+function resetExportPan() {
+  if (!exportPan.x && !exportPan.y) return;
+  applyExportFormat({ aspect: exportAspect, fill: exportFill, pan: { x: 0, y: 0 } });
+  scheduleAutosave();
+}
 function updatePreviewBlurBg() {
-  var c = document.getElementById('prevBlurBg'), vid = document.getElementById('mainVid');
+  var c = document.getElementById('prevBlurBg'), vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
   if (!c || !c.getContext || !vid || !(vid.videoWidth > 0)) return;
+  // Canvas im Seitenverhältnis des Rahmens (sonst würde der Hintergrund verzerrt gedehnt)
+  var fw = parseFloat(frame && frame.style.width) || 0, fh = parseFloat(frame && frame.style.height) || 0;
+  var ch = fw > 0 && fh > 0 ? Math.max(8, Math.round(36 * fh / fw)) : 64;
+  if (c.width !== 36 || c.height !== ch) { c.width = 36; c.height = ch; }
   try { drawVideoFit(c.getContext('2d'), vid, c.width, c.height, 'cover'); } catch (e) {}
 }
+// «crop»: das Video im Rahmen so legen/skalieren, dass genau der Ausschnitt cropRect() sichtbar ist (gleiche Funktion
+// wie im Export). Sonst: Inline-Stile weg, CSS (object-fit cover bzw. contain) übernimmt.
+function previewCropGeom() {
+  var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
+  if (!vid || !frame || !vidReady || !(vid.videoWidth > 0)) return null;
+  if (exportReframeMode(vid.videoWidth, vid.videoHeight) !== 'crop') return null;
+  var fw = parseFloat(frame.style.width), fh = parseFloat(frame.style.height), a = EXPORT_ASPECTS[exportAspect];
+  if (!(fw > 0 && fh > 0) || !a) return null;
+  var vW = vid.videoWidth, vH = vid.videoHeight;
+  var r = cropRect(vW, vH, a[0], a[1], exportPan), kx = fw / r.sw, ky = fh / r.sh; // kx ≈ ky (Rahmen ganzzahlig gerundet)
+  return { fw: fw, fh: fh, left: -r.sx * kx, top: -r.sy * ky, w: vW * kx, h: vH * ky, slackX: vW * kx - fw, slackY: vH * ky - fh };
+}
+function applyPreviewCrop() {
+  var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
+  if (!vid || !vid.style) return;
+  var g = previewCropGeom();
+  if (frame && frame.classList) frame.classList.toggle('pannable', !!g && (g.slackX > 1 || g.slackY > 1));
+  if (!g) { ['left', 'top', 'width', 'height', 'objectFit', 'transformOrigin'].forEach(function(k) { vid.style[k] = ''; }); return; }
+  vid.style.left = g.left + 'px'; vid.style.top = g.top + 'px';
+  vid.style.width = g.w + 'px'; vid.style.height = g.h + 'px';
+  vid.style.objectFit = 'fill';
+  vid.style.transformOrigin = (g.fw / 2 - g.left) + 'px ' + (g.fh / 2 - g.top) + 'px'; // Auto-Zoom wirkt um die Rahmenmitte (wie im Export)
+}
+// Ausschnitt per Maus/Finger verschieben: Ziehen auf dem Bild (nicht auf dem Untertitel-Streifen — der gehört dem
+// Untertitel-Drag). Das Bild folgt dem Zeiger: nach rechts ziehen = weiter links im Quellbild. Doppelklick = zurücksetzen.
+var _panDrag = null, panMoved = false;
+function panDragStart(e) {
+  if (e.type === 'mousedown' && e.button) return;
+  var g = previewCropGeom(); if (!g || !(g.slackX > 1 || g.slackY > 1)) return;
+  if (e.target && e.target.closest && e.target.closest('#capOverlay, #capInlineEd, #procOv')) return;
+  var p = capPointer(e);
+  _panDrag = { x0: p.x, y0: p.y, p0: { x: exportPan.x, y: exportPan.y }, g: g, z: zoomLevel || 1 };
+  panMoved = false;
+  var isTouch = e.type === 'touchstart';
+  document.addEventListener(isTouch ? 'touchmove' : 'mousemove', panDragMove, { passive: false });
+  document.addEventListener(isTouch ? 'touchend' : 'mouseup', panDragEnd);
+  if (isTouch) document.addEventListener('touchcancel', panDragEnd);
+}
+function panDragMove(e) {
+  if (!_panDrag) return;
+  var p = capPointer(e), d = _panDrag, dx = (p.x - d.x0) / d.z, dy = (p.y - d.y0) / d.z;
+  if (!panMoved && Math.abs(dx) + Math.abs(dy) < 3) return; // Antippen ist kein Ziehen (Klick = Play/Pause)
+  if (e.cancelable) e.preventDefault();
+  panMoved = true;
+  exportPan = clampPan({ x: d.g.slackX > 1 ? d.p0.x - dx / (d.g.slackX / 2) : 0, y: d.g.slackY > 1 ? d.p0.y - dy / (d.g.slackY / 2) : 0 });
+  applyPreviewCrop();
+  var rb = document.getElementById('panReset'); if (rb) rb.disabled = false;
+}
+function panDragEnd() {
+  if (!_panDrag) return;
+  _panDrag = null;
+  document.removeEventListener('mousemove', panDragMove); document.removeEventListener('mouseup', panDragEnd);
+  document.removeEventListener('touchmove', panDragMove); document.removeEventListener('touchend', panDragEnd); document.removeEventListener('touchcancel', panDragEnd);
+  if (panMoved) { syncFormatRow(); scheduleAutosave(); setTimeout(function() { panMoved = false; }, 0); } // Klick-Play/Pause erst NACH dem Click-Event wieder freigeben
+}
+function panDbl(e) {
+  if (!previewCropGeom() || (e.target && e.target.closest && e.target.closest('#capOverlay, #capInlineEd, #procOv'))) return;
+  resetExportPan();
+}
+(function() {
+  var f = document.getElementById('prevFrame');
+  if (!f || !f.addEventListener) return;
+  f.addEventListener('mousedown', panDragStart);
+  f.addEventListener('touchstart', panDragStart, { passive: true });
+  f.addEventListener('dblclick', panDbl);
+})();
+// Format-Zeile (Optionen im Export-Blatt): Auswahl zeigen, Ausfüllart nur wenn nötig, Hinweis zum Schwenken
 function syncFormatRow() {
   var vid = document.getElementById('mainVid'), row = document.getElementById('fmtRow');
-  var show = vid && vid.videoWidth > 0 && !isNineSixteen(vid.videoWidth, vid.videoHeight);
-  if (row) row.style.display = show ? '' : 'none';
-  if (!show && exportFormat !== 'original') setExportFormat('original');
+  var loaded = !!(vid && vid.videoWidth > 0), mode = exportReframeMode(vid && vid.videoWidth, vid && vid.videoHeight);
+  if (row) row.style.display = loaded ? '' : 'none';
+  var sel = document.getElementById('expFmt'); if (sel && sel.value !== exportAspect) sel.value = exportAspect;
+  var fs = document.getElementById('expFill'); if (fs && fs.value !== exportFill) fs.value = exportFill;
+  var fr = document.getElementById('fillRow'); if (fr) fr.style.display = loaded && mode !== 'original' ? '' : 'none';
+  var g = previewCropGeom(), pr = document.getElementById('panRow');
+  if (pr) pr.style.display = g && (g.slackX > 1 || g.slackY > 1) ? '' : 'none';
+  var rb = document.getElementById('panReset'); if (rb) rb.disabled = !(exportPan.x || exportPan.y);
+  var nt = document.getElementById('fmtNote');
+  if (nt) {
+    var same = loaded && exportAspect !== 'original' && mode === 'original';
+    nt.style.display = same ? '' : 'none';
+    nt.textContent = same ? 'Your video already has this shape — nothing to fill.' : '';
+  }
 }
 // MediaRecorder-Format wählen. Ein MP4 nur dann, wenn es AAC-Ton ausdrücklich zusagt (mp4a): Chrome auf
 // Linux/Windows sagt zu 'video/mp4;codecs=avc1' ja und schreibt dann H.264 + OPUS in den MP4-Container —
@@ -11380,7 +11565,7 @@ function exportSignature() {
   try {
     var p = projectPayload();
     ['title', 'fontRel', 'cover', 'post', 'speech'].forEach(function(k) { delete p[k]; });
-    p.res = exportRes; p.fmt = exportFormat;
+    p.res = exportRes; p.fmt = exportFormatState();
     return JSON.stringify(p);
   } catch (e) { return null; }
 }
@@ -11634,7 +11819,7 @@ async function exportVideoWithCaptions() {
     exportBtnState('Rendering ' + Math.round(pct * 100) + '%…');
 
     drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
-      drawReframed(ctx, W, H, geo.mode, function(c, w, h, fit){ drawVideoFit(c, vid, w, h, fit); });
+      drawReframed(ctx, W, H, geo.mode, function(c, w, h, fit, pan){ drawVideoFit(c, vid, w, h, fit, pan); }, geo.pan);
     });
     drawCaptionsOnCtx(ctx, t, s, W, H, false);
     drawWatermark(ctx, W, H, wmOn); // nur anonym (beim Export-Start festgelegt)
@@ -12639,7 +12824,8 @@ function exportSizeLabel(srcW, srcH, res, fmt) {
   if (!(srcW > 0 && srcH > 0)) return res === 'orig' ? 'original size' : '1080p';
   var g = exportGeometry(srcW, srcH, 30, res, fmt), dims = g.W + '×' + g.H;
   if (res === 'orig') return 'original size (' + dims + ')';
-  return Math.max(g.W, g.H) >= 1918 ? '1080p' : dims + ' (source size)';
+  if (Math.max(g.W, g.H) >= 1918) return '1080p';
+  return g.mode !== 'original' ? dims : dims + ' (source size)'; // Reframe = neue Leinwand (z. B. 1:1 → 1080×1080)
 }
 // Platzhalter für den Wasserzeichen-Teil der Unterzeile (die Regel dazu — needsWatermark — ändert sich separat)
 function exportWmNote() { return needsWatermark() ? '' : ' · no watermark'; }
@@ -12655,7 +12841,7 @@ function syncExpSub() {
     var l1080 = exportSizeLabel(sw, sh, '1080'), lOrig = exportSizeLabel(sw, sh, 'orig');
     var g1 = exportGeometry(sw, sh, 30, '1080'), g2 = exportGeometry(sw, sh, 30, 'orig');
     var dup = sw > 0 && sh > 0 && g1.W === g2.W && g1.H === g2.H;
-    var txt1 = (l1080 === '1080p' ? '1080p' : 'Source size · ' + l1080.replace(' (source size)', '')) + ' (recommended)';
+    var txt1 = (l1080 === '1080p' ? '1080p' : (l1080.indexOf(' (source size)') > 0 ? 'Source size · ' + l1080.replace(' (source size)', '') : l1080)) + ' (recommended)';
     var txt2 = 'Original' + (lOrig.indexOf('(') > 0 ? ' · ' + lOrig.slice(lOrig.indexOf('(') + 1, -1) : '');
     var want = dup ? [['1080', txt1]] : [['1080', txt1], ['orig', txt2]];
     var same = r.options.length === want.length && want.every(function(o, i) { return r.options[i].value === o[0]; });
