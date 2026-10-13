@@ -140,7 +140,11 @@ styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:clo
 videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateSkip:function(){_gateSkipped=false;try{sessionStorage.removeItem(GATE_SKIP_KEY);}catch(e){}},skipEmailGate:skipEmailGate,wmNoticeText:wmNoticeText,trHeaders:trHeaders,
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
 capNoItalic:capNoItalic,capPopFactor:capPopFactor,setCsBase:function(b){_csBase=b;},drawTextGrouped:drawTextGrouped,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
-setActiveId:function(i){activeId=i;}};`;
+setActiveId:function(i){activeId=i;},
+parseHexInput:parseHexInput,csHexCommit:csHexCommit,csOpCommit:csOpCommit,csColorCss:csColorCss,csSyncColors:csSyncColors,getCsAlpha:function(){return _csAlpha;},
+onTemplatesStorage:onTemplatesStorage,undoDeleteTemplate:undoDeleteTemplate,importTemplateMessage:importTemplateMessage,persistTemplates:persistTemplates,
+emojiSearch:emojiSearch,EMO_CATS:EMO_CATS,EMO_PICK:EMO_PICK,emAiUnavailable:emAiUnavailable,setEmSrc:function(v){emSrc=v;},syncEmphUI:syncEmphUI,setEmphEmoji:setEmphEmoji,setCaptionBlocksForTest:function(b){captionBlocks=b;},
+openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -535,7 +539,7 @@ ok(T.CODE_BY_LANG['german'] === 'de' && T.CODE_BY_LANG['english'] === 'en' && T.
 T.onKwChange('gratis, Heute!');
 ok(T.isKeywordWord('GRATIS') && T.isKeywordWord('heute,') && !T.isKeywordWord('morgen'), 'Keyword-Matching (case/punct-insensitiv)');
 const kwHtml = T.buildCap(['heute', 'anders'], T.STYLES.find(x => x.id === 'stack'), -1, 22, null);
-ok(kwHtml.includes('f7c204'), 'Keyword ohne aktives Wort gefaerbt');
+ok(kwHtml.includes('5eead4'), 'Keyword ohne aktives Wort gefaerbt (Keyword-Farbe ≠ Aktiv-Farbe f7c204)');
 ok((kwHtml.match(/animation:captly-/g) || []).length === 0, 'Keyword ohne Animation');
 T.onKwChange('');
 T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke');
@@ -613,7 +617,7 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   T.loadTemplates();
   ok(T.STYLES.find(x => x.id === tpl.id).boxBg === tpl.style.boxBg, 'Template ueberlebt Reload (localStorage)');
   // Rename / Duplicate / Edit / Delete
-  global.prompt = () => 'Umbenannt'; T.renameTemplate(tpl.id);
+  T.renameTemplate(tpl.id, 'Umbenannt'); // ohne prompt(): Name kommt aus dem Inline-Feld im Menü
   ok(T.getUserTemplates().find(t => t.id === tpl.id).name === 'Umbenannt', 'Rename');
   T.duplicateTemplate(tpl.id);
   const dup = T.getUserTemplates().find(t => t.name === 'Umbenannt copy');
@@ -622,14 +626,14 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   ok(T.getEditingTpl() === tpl.id && document.getElementById('tplSaveBtn').textContent === 'Update', 'Edit-Modus');
   T.selectStyle('hormozi'); // anderer Style beendet den Edit-Modus
   ok(T.getEditingTpl() === null, 'Edit-Modus endet bei Style-Wechsel');
-  global.confirm = () => true; T.deleteTemplate(dup.id);
+  T.deleteTemplate(dup.id); // ohne confirm(): sofort + Undo-Toast
   ok(!T.STYLES.find(x => x.id === dup.id) && T.getUserTemplates().find(t => t.id === dup.id).deleted, 'Delete hinterlaesst Grabstein');
   // Merge: neueres updatedAt gewinnt, Grabstein schlägt ältere Version
   const m = T.mergeTemplates([{ id: 'tpl_a', name: 'alt', style: { fl: 'Inter' }, updatedAt: 1 }, { id: 'tpl_b', name: 'b', style: {}, updatedAt: 5 }],
                              [{ id: 'tpl_a', name: 'neu', style: { fl: 'Anton' }, updatedAt: 2 }, { id: 'tpl_b', deleted: true, updatedAt: 9 }]);
   ok(m.find(t => t.id === 'tpl_a').name === 'neu' && m.find(t => t.id === 'tpl_b').deleted, 'Merge: neuer gewinnt, Grabstein gewinnt');
   // Import bereinigt gefährliche Werte und kollidiert nie mit eingebauten IDs
-  const n = T.importTemplatesFromText(JSON.stringify({ templates: [{ id: 'classic', name: 'X', style: { fl: 'Inter', font: "'Inter'\"><img src=x onerror=alert(1)>", tc: 'red;background:url(http://x)' } }] }));
+  const n = T.importTemplatesFromText(JSON.stringify({ templates: [{ id: 'classic', name: 'X', style: { fl: 'Inter', font: "'Inter'\"><img src=x onerror=alert(1)>", tc: 'red;background:url(http://x)' } }] })).imported;
   const imp = T.getUserTemplates().find(t => t.name === 'X');
   ok(n === 1 && imp.id === 'tpl_classic' && !/[<>"]/.test(imp.style.font) && !/url\(|;/.test(imp.style.tc), 'Import bereinigt: ' + imp.style.font + ' / ' + imp.style.tc);
   ok(T.STYLES.filter(x => x.id === 'classic').length === 1, 'eingebauter Style unangetastet');
@@ -2534,7 +2538,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.getActiveId() === bt.id && T.getCase() === 'upper', 'neues Video: Brand-Template + dessen Layout (Case) aktiv: ' + T.getActiveId());
     T.toggleBrandTpl(bt.id);
     ok(T.brandTplId() === '', 'Standard abwählbar');
-    T.toggleBrandTpl(bt.id); global.confirm = () => true; T.deleteTemplate(bt.id);
+    T.toggleBrandTpl(bt.id); T.deleteTemplate(bt.id);
     ok(T.brandTplId() === '', 'gelöschtes Template ist kein Standard mehr');
     T.setCaptionCase('asis'); T.setUserTemplates([]); T.loadTemplates(); T.selectStyle('hormozi');
     delete global.localStorage; delete global.confirm;
@@ -3278,11 +3282,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(f1.px < f0.px || f1.words.length > f0.words.length, 'Fit: betontes langes Wort → kleiner/getrennt (' + f0.px + '/' + f0.words.length + ' vs ' + f1.px + '/' + f1.words.length + ')');
     ok(T.emphScale(hz) === 1.12 && T.emphScale(T.STYLES.find(x => x.id === 'popone')) === 1.15, 'Skalierung: 1.12, One Word 1.15');
     // Farben: Style-Akzent, Pill-Styles behalten Text-Schatten, One Word nur Grösse
-    ok(T.emphColor(hz) === '#FFD60A' && T.emphColor(T.STYLES.find(x => x.id === 'popone')) === null && T.emphColor(T.STYLES.find(x => x.id === 'minimal')) === '#fff'
-       && T.emphColor(T.STYLES.find(x => x.id === 'stack')) === '#f7c204' && !T.emphShadowIsHl(T.STYLES.find(x => x.id === 'focus')), 'Akzentfarben je Style');
+    ok(T.emphColor(hz) === '#ff5a36' && T.emphColor(T.STYLES.find(x => x.id === 'popone')) === null && T.emphColor(T.STYLES.find(x => x.id === 'minimal')) === '#ffd60a'
+       && T.emphColor(T.STYLES.find(x => x.id === 'stack')) === '#5eead4' && !T.emphShadowIsHl(T.STYLES.find(x => x.id === 'focus')), 'Akzentfarben je Style');
     ok(T.STYLES.filter(s => !s._isTpl && s.id !== 'custom').every(s => T.emphColor(s) !== null || ['popone', 'tight', 'statement'].includes(s.id)), 'alle Styles haben eine sichtbare Betonung (ausser One Word, Tight, Statement: nur Grösse/keine)');
     const h1 = T.buildCap(['auf', 'der', 'Weide.'], hz, 0, 24, [0, 0.3, 0.6], 2, { em: [false, false, true], emoji: '🌿', age: 0.1 });
-    ok(/font-size:1\.12em/.test(h1) && /FFD60A/.test(h1) && /class="cap-emo"/.test(h1) && /🌿/.test(h1) && /animation-delay:-0\.100s/.test(h1) && /position:relative/.test(h1),
+    ok(/font-size:1\.12em/.test(h1) && /ff5a36/i.test(h1) && /class="cap-emo"/.test(h1) && /🌿/.test(h1) && /animation-delay:-0\.100s/.test(h1) && /position:relative/.test(h1),
        'buildCap: Betonung (Grösse + Farbe) und Emoji mit Pop-in-Phase');
     ok(!/cap-emo/.test(T.buildCap(['a', 'b'], hz, 0, 24, null, 2, { em: null, emoji: '' })), 'ohne Emoji kein Emoji-Element');
     // Canvas: Emoji wird gezeichnet, betontes Wort größer
@@ -4014,11 +4018,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const disp = id => E(id).style.display;
     E('csMotion').value = 'highlight'; E('csBox').value = 'off'; E('csGlow').checked = false; T.syncCsUi();
     ok(disp('csAnimRow') === '' && disp('csHlTypeRow') === '', 'Style-Panel: Highlight → Word pop + Highlight-Art sichtbar');
-    ok(disp('csBoxC') === 'none' && disp('csBoxOpRow') === 'none' && disp('csBoxRRow') === 'none', 'Style-Panel: kein Hintergrund → Farbe/Deckkraft/Ecken weg');
+    ok(disp('csBoxCWrap') === 'none' && disp('csBoxOpRow') === 'none' && disp('csBoxRRow') === 'none', 'Style-Panel: kein Hintergrund → Farbe/Deckkraft/Ecken weg');
     ok(disp('csGlowStrRow') === 'none' && E('csGlowInt').disabled === true, 'Style-Panel: kein Glow → Glow-Stärke weg');
     E('csMotion').value = 'reveal'; E('csBox').value = 'pill'; E('csGlow').checked = true; T.syncCsUi();
     ok(disp('csAnimRow') === 'none' && disp('csHlTypeRow') === 'none', 'Style-Panel: Reveal → Word pop + Highlight-Art weg');
-    ok(disp('csBoxC') === '' && disp('csBoxOpRow') === '' && disp('csBoxRRow') === '', 'Style-Panel: Hintergrund aktiv → Farbe/Deckkraft/Ecken sichtbar');
+    ok(disp('csBoxCWrap') === '' && disp('csBoxOpRow') === '' && disp('csBoxRRow') === '', 'Style-Panel: Hintergrund aktiv → Farbe/Deckkraft/Ecken sichtbar');
     ok(disp('csGlowStrRow') === '' && E('csGlowInt').disabled === false, 'Style-Panel: Glow an → Glow-Stärke sichtbar');
     E('csMotion').value = 'fill'; T.syncCsUi(); ok(disp('csAnimRow') === 'none' && disp('csHlTypeRow') === 'none', 'Style-Panel: Fill → Word pop + Highlight-Art weg');
     E('csMotion').value = 'highlight'; E('csBox').value = 'off'; T.syncCsUi();
@@ -4063,6 +4067,15 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       csBoxC:     { group: 'box',     field: 'boxBg',     set: () => { E('csBox').value = 'box'; E('csBoxC').value = '#ff0000'; } },
       csBoxO:     { group: 'box',     field: 'boxBg',     set: () => { E('csBox').value = 'box'; E('csBoxO').value = '30'; } },
       csBoxR:     { group: 'box',     field: 'boxBr',     set: () => { E('csBox').value = 'box'; E('csBoxR').value = '21'; } },
+      // Hex-/Deckkraft-Felder neben den Farbfeldern: gleiche Style-Felder wie ihr Picker, über die Commit-Funktionen (wie oninput)
+      csTextHex:    { group: 'text',   field: 'tc',      set: () => { E('csTextHex').value = '#ff0000'; T.csHexCommit('csText'); } },
+      csTextOp:     { group: 'text',   field: 'tc',      set: () => { E('csTextOp').value = '40'; T.csOpCommit('csText'); } },
+      csHlHex:      { group: 'hlc',    field: 'hl',      set: () => { E('csHlType').value = 'color'; E('csHlHex').value = '00ffaa'; T.csHexCommit('csHl'); } },
+      csHlOp:       { group: 'hlc',    field: 'hl',      set: () => { E('csHlType').value = 'color'; E('csHlOp').value = '50'; T.csOpCommit('csHl'); } },
+      csEmHex:      { group: 'em',     field: 'em',      set: () => { E('csEmHex').value = '#f0f'; T.csHexCommit('csEm'); } },
+      csEmOp:       { group: 'em',     field: 'em',      set: () => { E('csEmOp').value = '70'; T.csOpCommit('csEm'); } },
+      csOutlineHex: { group: 'stroke', field: 'cstroke', set: () => { E('csOutlineW').value = '2'; E('csOutlineHex').value = '#ff0000'; T.csHexCommit('csOutlineC'); } },
+      csBoxHex:     { group: 'box',    field: 'boxBg',   set: () => { E('csBox').value = 'box'; E('csBoxHex').value = '#ff0000'; T.csHexCommit('csBoxC'); } },
       csHlType:   { group: 'hltype',  field: 'hlPillBg',  set: () => { E('csHlType').value = 'pill'; E('csHl').value = '#ff3366'; } },
       csMotion:   { group: 'motion',  field: 'motion',    set: () => { E('csMotion').value = 'reveal'; } },
       csAnim:     { group: 'anim',    field: 'anim',      set: () => { E('csAnim').value = 'flash'; } },
@@ -4380,6 +4393,157 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(E('csWeight').value === '700' && E('csWeight').disabled === true && labels() === '700:Bold', 'Oswald (nur 700): Seed waehlt 700');
     T.setCsDirty({}); ok(T.buildCustomStyle().fw === '600', 'Seed allein veraendert fw des Looks nicht');
     T.seedCustomFields(base);
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════════════════
+  // Paket A-Style: A4 Farbfelder (Hex + Deckkraft), A7 KI-Hinweis + Keyword-Farben, A8 Emoji-Auswahl, A10 Template-Menü/Import, A11 Mehrere Tabs
+  // ═════════════════════════════════════════════════════════════════════════════════════
+  {
+    const E = id => document.getElementById(id);
+    // ── A4: Hex-Parsing ──
+    const ph = T.parseHexInput;
+    ok(ph('#FFF').hex === '#ffffff' && ph('#FFF').a === null && ph('ff8800').hex === '#ff8800' && ph('  #AbCdEf ').hex === '#abcdef', 'Hex: #rgb, ohne #, Grossschreibung, Leerraum');
+    ok(ph('#11223380').hex === '#112233' && ph('#11223380').a === 0.5 && ph('#112233ff').a === 1, 'Hex: #rrggbbaa liefert Deckkraft');
+    ok(['', '#', '#12', '#12345', '#ggg', 'red', '#1234567', null, undefined].every(v => ph(v) === null), 'Hex: ungültige Eingaben → null');
+    // Preset «Clean» speichert rgba(255,255,255,.6): Picker weiss, 60 % bleiben sichtbar und beim Farbwechsel erhalten
+    T.selectStyle('minimal');
+    ok(E('csText').value === '#ffffff' && Math.abs(T.getCsAlpha().csText - 0.6) < 1e-9 && String(E('csTextOp').value) === '60' && E('csTextHex').value === '#ffffff', 'Clean: Hex #ffffff + Deckkraft 60 % sichtbar (' + E('csTextOp').value + ')');
+    ok(T.csColorCss('csText') === 'rgba(255,255,255,0.6)', 'Clean: Swatch-Farbe = rgba(255,255,255,0.6), nicht reines Weiss (' + T.csColorCss('csText') + ')');
+    E('csTextHex').value = '#ff8800'; ok(T.csHexCommit('csText') === true && E('csText').value === '#ff8800', 'Hex-Eingabe → Picker');
+    T.setCsDirty({ text: true });
+    ok(T.buildCustomStyle().tc === 'rgba(255,136,0,0.6)', 'Farbwechsel behält die 60 %: ' + T.buildCustomStyle().tc);
+    E('csTextOp').value = '100'; ok(T.csOpCommit('csText') && T.buildCustomStyle().tc === '#ff8800', '100 % → reines Hex');
+    E('csTextOp').value = '25'; T.csOpCommit('csText'); ok(T.buildCustomStyle().tc === 'rgba(255,136,0,0.25)', 'Deckkraft 25 %');
+    E('csTextOp').value = ''; ok(T.csOpCommit('csText') === false && T.getCsAlpha().csText === 0.25, 'leeres %-Feld ändert nichts');
+    E('csTextHex').value = '#zz12'; ok(T.csHexCommit('csText') === false && E('csText').value === '#ff8800' && E('csTextHex').classList.contains('bad'), 'ungültiges Hex: Picker/Style bleiben, Feld rot markiert');
+    E('csTextHex').value = '#00112280'; T.csHexCommit('csText'); ok(E('csText').value === '#001122' && T.getCsAlpha().csText === 0.5, '#rrggbbaa setzt auch die Deckkraft');
+    E('csText').value = '#123456'; T.csSyncColors(); ok(E('csTextHex').value === '#123456' && String(E('csTextOp').value) === '50' && !E('csTextHex').classList.contains('bad'), 'Picker → Hex-Feld (Rückrichtung)');
+    // Aktives Wort als Pill: Deckkraft wird mitgeführt, Kontrastfarbe kommt vom Hex
+    T.selectStyle('boxkara'); E('csHlOp').value = '50'; T.csOpCommit('csHl'); T.setCsDirty({ hlc: true });
+    const pcs = T.buildCustomStyle();
+    ok(pcs.hlPillBg === 'rgba(34,197,94,0.5)' && /^#/.test(pcs.hlc), 'Pill-Farbe mit Deckkraft: ' + pcs.hlPillBg + ' / Text ' + pcs.hlc);
+    // Hex-Feld an jedem Farbfeld, Schachbrett-Swatch im Markup
+    ['csText', 'csHl', 'csEm', 'csOutlineC', 'csBoxC'].forEach(id => ok(new RegExp('id="' + id.replace('C', '') + '(Hex|C)?"').test(htmlContent) && /class="cs-hex"/.test(htmlContent), 'Markup: ' + id));
+    ok(['csTextHex', 'csHlHex', 'csEmHex', 'csOutlineHex', 'csBoxHex'].every(id => htmlContent.includes('id="' + id + '"') && new RegExp('id="' + id + '"[^>]*oninput="csHexInput\\(').test(htmlContent)), 'Markup: Hex-Feld an allen 5 Farbfeldern, validiert über csHexInput');
+    ok(/\.cs-sw\{[^}]*repeating-conic-gradient/.test(htmlContent) && /\.cs-sw::before\{[^}]*var\(--sw/.test(htmlContent), 'Swatch: Schachbrett + Farbe mit Alpha (--sw)');
+    T.selectStyle('hormozi'); T.setCsDirty({});
+
+    // ── A7: Hinweis am Emoji-Schalter, wenn die KI nicht erreichbar ist ──
+    {
+      const blk = { text: 'Das ist ein Test', start: 0, end: 1, words: ['Das', 'ist', 'ein', 'Test'].map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+      T.setState([blk], blk.words, 'karaoke');
+      T.setEmphState(true, true, 'off'); T.setEmSrc('local'); T.syncEmphUI();
+      ok(E('emWarn').style.display === '' && /Emojis need the AI service/.test(E('emWarn').textContent) && E('emWarnRow').style.display === '' && E('emRetry').style.display === '', 'KI aus/nicht erreichbar + Emojis an → Hinweis am Schalter samt «Try again»: ' + E('emWarn').textContent);
+      ok(E('emEmoBtn').classList.contains('unavail'), 'Emoji-Schalter als «nicht verfügbar» markiert');
+      T.setEmphState(true, false, 'off'); T.syncEmphUI();
+      ok(!E('emEmoBtn').classList.contains('unavail') && /simple keyword detection/.test(E('emWarn').textContent), 'Emojis aus: nur Keyword-Hinweis, kein Emoji-Warnzeichen');
+      T.setEmphState(false, false, 'off'); T.syncEmphUI();
+      ok(E('emWarn').style.display === 'none' && E('emWarnRow').style.display === 'none', 'beide aus: kein Hinweis');
+      T.setEmphState(true, true, 'off'); T.setEmSrc('llm'); T.syncEmphUI();
+      ok(E('emWarnRow').style.display === 'none' && !E('emEmoBtn').classList.contains('unavail') && T.emAiUnavailable() === false, 'KI erreichbar (llm): kein Hinweis');
+      const toastTxt = () => (document.body.children.filter(c => c.id === 'capToast').pop() || {}).textContent;
+      T.setEmSrc('local'); T.setEmphEmoji(true);
+      ok(/AI service/.test(toastTxt()), 'Emoji-Schalter an ohne KI → Toast: ' + toastTxt());
+      T.setEmSrc(null); T.setEmphState(false, false, 'off'); T.setState([], [], 'karaoke');
+      // Keyword-Farbe ≠ Farbe des aktiven Worts in allen Presets (wo eine Farb-Betonung existiert)
+      const presetIds = [...script.slice(script.indexOf('var STYLES = ['), script.indexOf('\n];', script.indexOf('var STYLES = [')) ).matchAll(/\{id:'([a-z0-9]+)'/g)].map(m => m[1]); // eingebaute Presets (Tests legen weitere Styles an)
+      ok(presetIds.length >= 20, 'Preset-Liste aus dem Quelltext gelesen (' + presetIds.length + ')');
+      const same = T.STYLES.filter(s => presetIds.includes(s.id)).filter(s => {
+        const em = T.emphColor(s); if (!em || em === 'none') return false;
+        const act = s.hlPillBg || s.hl || ''; return T.cssColorToHex(em, null) === T.cssColorToHex(act, null);
+      }).map(s => s.id);
+      ok(same.length === 0, 'Presets: Keyword-Farbe ≠ Aktiv-Wort-Farbe (gleich bei: ' + same.join(', ') + ')');
+    }
+
+    // ── A8: kuratierte Emoji-Auswahl ──
+    {
+      const bad = ['🐄', '🌿', '🌾', '🥩', '🏡'];
+      ok(bad.every(e => !T.EMO_PICK.includes(e)), 'Emoji-Auswahl: Altlast 🐄🌿🌾🥩🏡 entfernt');
+      ok(T.EMO_CATS.length >= 6 && T.EMO_CATS.every(c => c.name && c.icon && c.items.length >= 15), 'Emoji-Auswahl: ≥ 6 Kategorien mit je ≥ 15 Emojis (' + T.EMO_CATS.map(c => c.name + ':' + c.items.length).join(' ') + ')');
+      ok(new Set(T.EMO_PICK).size === T.EMO_PICK.length, 'Emoji-Auswahl: keine Dubletten');
+      ok(T.EMO_CATS.every(c => c.items.every(it => it[0] && it[1] && it[1].length > 3)), 'Emoji-Auswahl: jeder Eintrag hat Stichwörter');
+      const find = (q, e) => T.emojiSearch(q).includes(e);
+      ok(find('fire', '🔥') && find('Feuer', '🔥') && find('geld', '💰') && find('money', '💰') && find('rakete', '🚀') && find('heart', '❤️') && find('herz', '❤️'), 'Suche: englisch + deutsch (fire/Feuer, money/Geld, Rakete, heart/Herz)');
+      ok(find('überrascht', '😮') && find('ueberrascht', '😮') && find('ÜBERRASCHT', '😮') && find('Glück', '🍀') && find('glueck', '🍀'), 'Suche: Umlaute/ue/Grossschreibung gleichwertig');
+      ok(find('daumen hoch', '👍') && !find('daumen hoch', '👎') && T.emojiSearch('zzzzqq').length === 0 && T.emojiSearch('  ').length === 0, 'Suche: mehrere Wörter = UND; kein Treffer → leer');
+    }
+
+    // ── A10 / A11: Template-Menü, Löschen mit Undo, Import-Rückmeldung, Mehrere Tabs ──
+    {
+      const store = {};
+      global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+      global.prompt = () => { throw new Error('prompt() darf nicht mehr benutzt werden'); }; global.confirm = () => { throw new Error('confirm() darf nicht mehr benutzt werden'); };
+      T.setUserTemplates([]); T.loadTemplates();
+      T.selectStyle('tbox'); E('tplName').value = 'Alpha'; T.saveTemplate();
+      T.selectStyle('classic'); E('tplName').value = 'Beta'; T.saveTemplate();
+      const al = T.getUserTemplates().find(t => t.name === 'Alpha'), be = T.getUserTemplates().find(t => t.name === 'Beta');
+      ok(al && be && T.brandTplId() === al.id, 'Setup: zwei Templates, Alpha ist Standard');
+      // Menü: Einträge, Inline-Umbenennen (Eingabefeld statt prompt), Schliessen bei Scroll/Esc
+      const btn = { getBoundingClientRect: () => ({ left: 100, top: 10, bottom: 30, right: 120 }) };
+      T.openTplMenu(be.id, btn);
+      let m = T.getTplMenu();
+      ok(m && m.children.map(b => b.textContent).join('|') === '★ Use for every new video|Edit|Rename|Duplicate|Delete', 'Menü: Einträge (' + (m && m.children.map(b => b.textContent).join('|')) + ')');
+      T.tplMenuScroll(); ok(T.getTplMenu() === null, 'Menü schliesst bei Scroll');
+      T.openTplMenu(be.id, btn); T.tplMenuKey({ key: 'Enter', stopPropagation() {} }); ok(T.getTplMenu() !== null, 'andere Taste schliesst nicht');
+      T.tplMenuKey({ key: 'Escape', stopPropagation() {} }); ok(T.getTplMenu() === null, 'Menü schliesst bei Esc');
+      T.openTplMenu(be.id, btn); m = T.getTplMenu();
+      m.children[2].onclick({ stopPropagation() {} }); // Rename
+      m = T.getTplMenu(); const inp = m.children[0], row = m.children[1];
+      ok(m && inp.value === 'Beta' && row.children.map(b => b.textContent).join('|') === 'Save|Cancel', 'Rename: Eingabefeld im Menü (vorbelegt), Save/Cancel');
+      T.tplMenuScroll(); ok(T.getTplMenu() !== null, 'Rename-Modus: Scroll/Resize (Handy-Tastatur) schliesst nicht');
+      inp.value = '   '; row.children[0].onclick({ stopPropagation() {} }); ok(T.getTplMenu() !== null && T.getUserTemplates().find(t => t.id === be.id).name === 'Beta', 'Rename: leerer Name wird nicht übernommen');
+      inp.value = 'Beta 2'; row.children[0].onclick({ stopPropagation() {} });
+      ok(T.getTplMenu() === null && T.getUserTemplates().find(t => t.id === be.id).name === 'Beta 2', 'Rename: Enter/Save übernimmt und schliesst');
+      ok(T.renameTemplate(be.id, 'Beta 2') === false && T.renameTemplate('nope', 'x') === false, 'Rename: gleicher Name/unbekannte ID → nichts');
+      // Löschen: ohne confirm, mit Undo-Toast (Standard-Look wird mit zurückgeholt)
+      T.deleteTemplate(al.id);
+      ok(T.getUserTemplates().find(t => t.id === al.id).deleted && T.brandTplId() === '', 'Delete: Grabstein, Standard-Look geleert');
+      const undoBtn = E('capToast').children.filter(c => c.className === 'cap-toast-btn').pop();
+      ok(undoBtn && undoBtn.textContent === 'Undo' && /Deleted/.test(document.body.children.filter(c => c.id === 'capToast').pop().textContent), 'Delete: Toast mit «Undo»');
+      undoBtn.onclick();
+      const back = T.getUserTemplates().find(t => t.id === al.id);
+      ok(back && !back.deleted && back.name === 'Alpha' && back.updatedAt > 0 && T.liveTemplates().some(t => t.id === al.id) && T.brandTplId() === al.id, 'Undo: Template + Standard-Look zurück');
+      ok(JSON.parse(store.capivo_templates).find(t => t.id === al.id && !t.deleted), 'Undo: auch im localStorage live');
+      ok(T.undoDeleteTemplate({ id: al.id, name: 'x', style: {}, updatedAt: 1 }, false) === false, 'Undo für ein bereits vorhandenes Template: nichts');
+      // Export: app:'gluephs'; Import akzeptiert capivo + gluephs, meldet importiert/übersprungen/Fehler, stellt gelöschte IDs wieder her
+      T.exportTemplates();
+      const exp = JSON.parse(global.LASTBLOB.content);
+      ok(exp.app === 'gluephs' && exp.templates.length === 2, 'Export-JSON: app:gluephs');
+      let r = T.importTemplatesFromText(JSON.stringify(exp));
+      ok(r.imported === 0 && r.skipped === 2 && r.errors === 0 && T.importTemplateMessage(r) === 'Imported 0 templates · 2 skipped (already up to date)', 'Import derselben Datei: 0 importiert, 2 übersprungen — ' + T.importTemplateMessage(r));
+      T.deleteTemplate(be.id);
+      ok(!T.liveTemplates().some(t => t.id === be.id), 'Setup: Beta gelöscht (Grabstein)');
+      const old = Object.assign({}, exp, { app: 'capivo' }); // alter Export (app:'capivo'), Beta darin mit dem alten Zeitstempel
+      r = T.importTemplatesFromText(JSON.stringify(old));
+      ok(r.imported === 1 && r.skipped === 1 && r.errors === 0, 'Import (app:capivo): gelöschte ID wird wiederhergestellt: ' + JSON.stringify(r));
+      ok(T.liveTemplates().some(t => t.id === be.id && t.name === 'Beta 2') && !T.getUserTemplates().find(t => t.id === be.id).deleted, 'Beta wieder live (Tombstone geschlagen)');
+      r = T.importTemplatesFromText(JSON.stringify({ app: 'gluephs', templates: [exp.templates[0], { name: 'ohne ID' }, 'kaputt', { id: 'tpl_neu1', name: 'Neu', style: { fl: 'Inter' } }] }));
+      ok(r.imported === 1 && r.skipped === 1 && r.errors === 2 && T.importTemplateMessage(r) === 'Imported 1 template · 1 skipped (already up to date) · 2 failed', 'Import gemischt (gluephs): ' + T.importTemplateMessage(r));
+      let thrown = 0; ['{"app":"fremd","templates":[]}', '{"foo":1}', 'kein json'].forEach(t => { try { T.importTemplatesFromText(t); } catch (e) { thrown++; } });
+      ok(thrown === 3, 'Import: fremde/kaputte Datei wirft (UI zeigt Fehlermeldung)');
+      // A11: storage-Event mergt statt zu überschreiben
+      const tpls = () => JSON.parse(store.capivo_templates);
+      const cur = T.getUserTemplates().find(t => t.id === al.id), before = cur.updatedAt;
+      ok(T.onTemplatesStorage({ key: 'irgendwas', newValue: '[]' }) === false, 'storage: fremder Schlüssel ignoriert');
+      ok(T.onTemplatesStorage({ key: 'capivo_templates', newValue: JSON.stringify([Object.assign({}, cur, { name: 'Alpha älter', updatedAt: before - 1000 })]) }) === false && T.liveTemplates().find(t => t.id === al.id).name === 'Alpha', 'storage: älterer Stand gewinnt nicht');
+      // anderer Tab: Alpha umbenannt (neuer), neues Template Gamma
+      const other = [Object.assign({}, cur, { name: 'Alpha (Tab B)', updatedAt: Date.now() + 5000 }), { id: 'tpl_gamma', name: 'Gamma', style: { fl: 'Anton' }, layout: {}, createdAt: 5, updatedAt: Date.now() }];
+      ok(T.onTemplatesStorage({ key: 'capivo_templates', newValue: JSON.stringify(other) }) === true, 'storage: Änderung eines anderen Tabs erkannt');
+      ok(T.liveTemplates().find(t => t.id === al.id).name === 'Alpha (Tab B)' && T.liveTemplates().some(t => t.id === 'tpl_gamma') && T.liveTemplates().some(t => t.id === be.id) && T.STYLES.some(x => x.id === 'tpl_gamma'),
+         'storage: gemergt — neuer Name + neues Template von Tab B, eigene Templates (Beta) bleiben, Picker-Styles aktualisiert');
+      // Löschung in Tab B (Grabstein) schlägt die lokale Live-Version
+      T.onTemplatesStorage({ key: 'capivo_templates', newValue: JSON.stringify([{ id: 'tpl_gamma', deleted: true, updatedAt: Date.now() + 9000 }]) });
+      ok(!T.liveTemplates().some(t => t.id === 'tpl_gamma') && !T.STYLES.some(x => x.id === 'tpl_gamma'), 'storage: Löschung aus Tab B (Grabstein) übernommen');
+      // eigenes Speichern mergt zuerst den aktuellen localStorage-Stand (Tab B hat heimlich etwas geschrieben, kein Event gesehen)
+      store.capivo_templates = JSON.stringify(tpls().concat([{ id: 'tpl_delta', name: 'Delta (nur Tab B)', style: { fl: 'Inter' }, layout: {}, createdAt: 9, updatedAt: Date.now() }]));
+      T.selectStyle('hormozi'); E('tplName').value = 'Eigenes'; T.saveTemplate();
+      ok(tpls().some(t => t.id === 'tpl_delta' && !t.deleted) && tpls().some(t => t.name === 'Eigenes') && T.liveTemplates().some(t => t.id === 'tpl_delta'), 'Speichern: aktueller localStorage-Stand wird eingemischt statt überschrieben (Delta bleibt)');
+      // Löschen in diesem Tab bleibt trotz älterem localStorage-Eintrag gelöscht
+      T.deleteTemplate('tpl_delta');
+      ok(!T.liveTemplates().some(t => t.id === 'tpl_delta') && tpls().find(t => t.id === 'tpl_delta').deleted === true, 'Speichern: eigener Grabstein gewinnt gegen älteren Stand im Speicher');
+      delete global.localStorage; delete global.prompt; delete global.confirm;
+      T.setUserTemplates([]); T.selectStyle('hormozi');
+    }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
