@@ -17,9 +17,9 @@ const cfg = [
   ['SUPABASE_ANON_KEY', q(e.SUPABASE_ANON_KEY || 'sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g')],
   // Lead-Erfassung (lead.php): service_role-Key NUR hier auf dem Server, nie im Frontend
   ['SUPABASE_SERVICE_KEY', q(e.SUPABASE_SERVICE_KEY || '')],
-  ['SITE_URL', q(e.SITE_URL || 'https://captionrush.com')],
-  ['MAIL_FROM', q(e.MAIL_FROM || 'contact@captionrush.com')],
-  ['MAIL_FROM_NAME', q(e.MAIL_FROM_NAME || 'CaptionRush')],
+  ['SITE_URL', q(e.SITE_URL || 'https://gluephs.com')],
+  ['MAIL_FROM', q(e.MAIL_FROM || 'contact@gluephs.com')],
+  ['MAIL_FROM_NAME', q(e.MAIL_FROM_NAME || 'Gluephs')],
   ['SMTP_HOST', q(e.SMTP_HOST || '')],
   ['SMTP_PORT', num(e.SMTP_PORT, 465)],
   ['SMTP_USER', q(e.SMTP_USER || '')],

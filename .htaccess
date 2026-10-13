@@ -20,6 +20,8 @@ RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
 
 # Schöne URLs: / = Startseite, /de = deutsche Startseite; die Dateinamen selbst sind nicht kanonisch
 RewriteRule ^captly\.html$ / [R=301,L]
+# alte, von Hand hochgeladene Startseite (index.html) nie ausliefern
+RewriteRule ^index\.html$ / [R=301,L]
 RewriteRule ^captly\.de\.html$ /de [R=301,L]
 RewriteRule ^de/$ /de [R=301,L]
 RewriteRule ^de$ captly.de.html [L]

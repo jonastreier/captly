@@ -3,9 +3,9 @@
 #   FTP_SERVER      z. B. ftp.deinname.hostpoint.ch (steht im Hostpoint-Kundencenter unter FTP)
 #   FTP_USERNAME    FTP-Benutzer
 #   FTP_PASSWORD    FTP-Passwort
-#   FTP_DIR         Zielordner auf dem Server (Document Root der Domain), z. B. ./www/captionrush.com/  (Default ./)
+#   FTP_DIR         Zielordner auf dem Server (Document Root der Domain), z. B. ./www/gluephs.com/  (Default ./)
 #   GROQ_API_KEY    Groq-Schlüssel (wird zu config.php auf dem Server, nie ins Repo)
-#   optional: ALERT_URL, SUPABASE_SERVICE_KEY, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, LEAD_SECRET, MAIL_FROM, RATE_LIMIT_PER_HOUR, MAX_AUDIO_SEC_PER_HOUR
+#   optional: ALERT_URL, SUPABASE_URL + SUPABASE_ANON_KEY (neues Supabase-Projekt ohne Code-Änderung), SUPABASE_SERVICE_KEY, SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, LEAD_SECRET, MAIL_FROM, RATE_LIMIT_PER_HOUR, MAX_AUDIO_SEC_PER_HOUR
 name: Deploy
 on:
   push:
@@ -32,6 +32,8 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ALERT_URL: ${{ secrets.ALERT_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}
@@ -51,7 +53,12 @@ jobs:
           node test-billing.js
           node test-ops.js
       - name: Paket bauen
-        run: node scripts/build-dist.js
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          node scripts/build-dist.js
+          node scripts/inject-supabase.js
       - name: config.php aus Secrets schreiben
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -59,6 +66,8 @@ jobs:
           RATE_LIMIT_PER_HOUR: ${{ secrets.RATE_LIMIT_PER_HOUR }}
           MAX_AUDIO_SEC_PER_HOUR: ${{ secrets.MAX_AUDIO_SEC_PER_HOUR }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
           SMTP_USER: ${{ secrets.SMTP_USER }}

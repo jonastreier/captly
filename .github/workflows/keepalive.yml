@@ -13,8 +13,9 @@ jobs:
     steps:
       - name: Datenbank + Auth anpingen
         env:
-          URL: https://tghodbtdraqkfwcmedcv.supabase.co
-          KEY: sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g
+          # Gleiche Werte wie im Deploy (Secrets SUPABASE_URL/SUPABASE_ANON_KEY); ohne Secrets die Werte aus captly.html
+          URL: ${{ secrets.SUPABASE_URL || 'https://tghodbtdraqkfwcmedcv.supabase.co' }}
+          KEY: ${{ secrets.SUPABASE_ANON_KEY || 'sb_publishable_3apqJNM-Ew2sstAQRpbpeg_p5p_Ho3g' }}
         run: |
           set -e
           curl -fsS -m 20 -X POST -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}' "$URL/rest/v1/rpc/ping" -o /dev/null -w "db %{http_code}\n"
