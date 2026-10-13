@@ -430,17 +430,36 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .cs-fontrow{display:flex;gap:8px;margin-bottom:10px}
 .cs-fontrow .cs-sel{flex:1 1 auto;min-width:0;width:auto}
 .cs-fontrow #csWeight{flex:0 0 96px}
-.cs-cols{display:flex;gap:8px;margin-top:12px}
-.cs-chipcol{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:8px;min-height:36px;padding:4px 10px 4px 6px;border:1px solid var(--line2);border-radius:var(--r-btn);background:#fff;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.cs-cols{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.cs-chipcol{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:8px;min-height:36px;padding:4px 8px 4px 6px;border:1px solid var(--line2);border-radius:var(--r-btn);background:#fff;transition:border-color .15s,box-shadow .15s}
 .cs-chipcol:hover{border-color:var(--line3)}
 .cs-chipcol:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px rgba(124,58,237,.14)}
-.cs-chipcol span{font-size:12.5px;font-weight:500;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-chipcol .cs-cl{flex:1 1 auto;min-width:0;font-size:12.5px;font-weight:500;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cs-chipcol .cs-col,.cs-dot .cs-col{width:24px;height:24px;border-radius:50%}
+.cs-panel .q-row .cs-hex{width:70px}
 .cs-chipcol .cs-col::-webkit-color-swatch-wrapper,.cs-dot .cs-col::-webkit-color-swatch-wrapper{padding:0}
 .cs-chipcol .cs-col::-webkit-color-swatch,.cs-dot .cs-col::-webkit-color-swatch{border:1px solid rgba(16,24,28,.2);border-radius:50%}
 .cs-chipcol .cs-col::-moz-color-swatch,.cs-dot .cs-col::-moz-color-swatch{border:1px solid rgba(16,24,28,.2);border-radius:50%}
 .cs-dot{display:flex;flex:0 0 auto;cursor:pointer;border-radius:50%}
 .cs-dot:focus-within{box-shadow:0 0 0 3px rgba(124,58,237,.25)}
+/* Farbfeld = Schachbrett + gespeicherte Farbe MIT Deckkraft (--sw, rgba); der native Picker liegt unsichtbar darüber.
+   So sieht «Clean» (rgba(255,255,255,.6)) nicht mehr wie reines Weiss aus. */
+.cs-sw{position:relative;flex:0 0 auto;width:24px;height:24px;border-radius:50%;overflow:hidden;cursor:pointer;
+  background:repeating-conic-gradient(#c9ccd2 0 25%,#fff 0 50%) 0 0/10px 10px;box-shadow:inset 0 0 0 1px rgba(16,24,28,.25)}
+.cs-sw::before{content:'';position:absolute;inset:0;background:var(--sw,#fff)}
+.cs-sw .cs-col{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer}
+.cs-sw.cs-dot:focus-within,.cs-chipcol:focus-within .cs-sw{box-shadow:inset 0 0 0 1px rgba(16,24,28,.25),0 0 0 3px rgba(124,58,237,.25)}
+.cs-hex{flex:0 0 auto;width:78px;box-sizing:border-box;border:1px solid var(--line2);border-radius:6px;padding:5px 6px;background:#fff;color:var(--ink);font:500 12.5px ui-monospace,'SF Mono',Menlo,Consolas,monospace;text-transform:lowercase}
+.cs-hex:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(124,58,237,.14)}
+.cs-hex.bad{border-color:#dc2626;background:#fef2f2}
+.cs-op{flex:0 0 auto;display:inline-flex;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
+.cs-op input{width:44px;box-sizing:border-box;border:1px solid var(--line2);border-radius:6px;padding:5px 4px;background:#fff;color:var(--ink);font:500 12.5px 'Inter',sans-serif;text-align:right}
+.cs-op input:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(124,58,237,.14)}
+#csOutlineW{flex:1 1 40px;min-width:40px}
+.cs-boxc{display:inline-flex;align-items:center;gap:6px;flex:0 0 auto}
+#csBoxRow{flex-wrap:wrap}
+#csBoxRow .cs-boxc{flex:0 0 calc(100% - 94px);margin:-2px 0 0 94px}
+.cs-opv{font-size:12px;color:var(--muted);min-width:30px;font-variant-numeric:tabular-nums}
 .cs-tog{cursor:pointer}
 .cs-tog .q-k{flex:1 1 auto}
 .cs-panel input[type=checkbox].cs-switch{-webkit-appearance:none;appearance:none;position:relative;flex:0 0 auto;width:36px;height:22px;margin:0;border-radius:999px;background:var(--line3);cursor:pointer;transition:background .15s}
@@ -513,6 +532,14 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .tpl-menu button{display:block;width:100%;text-align:left;border:none;background:none;padding:7px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink2);cursor:pointer}
 .tpl-menu button:hover{background:var(--fill2);color:var(--brand-ink)}
 .tpl-menu button.danger{color:#c2410c}
+.tpl-menu.renaming{min-width:208px;padding:8px}
+.tpl-menu .tpl-rename{display:block;width:100%;box-sizing:border-box;border:1px solid var(--line2);border-radius:6px;padding:7px 8px;font:500 13px 'Inter',sans-serif;color:var(--ink)}
+.tpl-menu .tpl-rename:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(124,58,237,.14)}
+.tpl-menu .tpl-rename.bad{border-color:#dc2626}
+.tpl-rename-row{display:flex;gap:6px;margin-top:6px}
+.tpl-rename-row button{flex:1;text-align:center;border:1px solid var(--line2)}
+.tpl-rename-row button.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.tpl-rename-row button.primary:hover{color:#fff;filter:brightness(1.08)}
 input.lang-sel{cursor:text}
 .vocab-hint{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;color:var(--muted);margin:4px 0 8px;line-height:1.35}
 .vocab-hint a{color:var(--brand);font-weight:600;text-decoration:none;white-space:nowrap;cursor:pointer}
@@ -580,6 +607,11 @@ input.lang-sel{cursor:text}
 .em-chip.on{background:var(--brand-soft);border-color:var(--brand-line);color:var(--brand-ink)}
 .em-chip:hover{border-color:var(--line3)}
 .em-note{font-size:12px;color:var(--muted);margin:7px 0 0;line-height:1.4}
+.em-warn{font-size:12px;color:#92400e;margin:7px 0 0;line-height:1.4}
+.em-warn #emWarn{background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:5px 9px;display:inline-block}
+.em-retry{border:none;background:none;color:var(--brand-ink);font:600 12px 'Inter',sans-serif;text-decoration:underline;cursor:pointer;padding:4px}
+.em-chip.unavail{border-color:#fcd34d;background:#fffbeb;color:#92400e}
+.em-chip.unavail::after{content:'!';display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:#f59e0b;color:#fff;font:700 10px/1 'Inter',sans-serif}
 .seg-emph{display:none;flex-basis:100%;align-items:center;flex-wrap:wrap;gap:4px;margin-top:5px;font-size:12px;color:var(--muted)}
 .cap-seg:focus-within .seg-emph,.cap-seg.sel .seg-emph{display:flex}
 .seg-emph .se-lbl{font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.05em;margin:0 2px 0 4px}
@@ -591,6 +623,13 @@ input.lang-sel{cursor:text}
 .seg-emph .se-emo-g{font-size:15px;line-height:1}
 .emo-pick{position:fixed;z-index:120;width:300px;max-width:calc(100vw - 16px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 44px rgba(30,20,60,.22);padding:8px;box-sizing:border-box}
 .ep-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:2px}
+.ep-gridwrap{max-height:208px;overflow-y:auto;overscroll-behavior:contain}
+.ep-search{display:block;width:100%;box-sizing:border-box;border:1px solid var(--line2);border-radius:8px;padding:7px 10px;font:500 13px 'Inter',sans-serif;color:var(--ink);margin-bottom:6px}
+.ep-search:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(124,58,237,.14)}
+.ep-cats{display:flex;gap:2px;margin-bottom:6px;border-bottom:1px solid var(--line);padding-bottom:4px}
+.ep-cat{flex:1;border:none;background:none;border-radius:7px;font-size:17px;line-height:1;height:32px;cursor:pointer;padding:0;opacity:.6}
+.ep-cat:hover,.ep-cat.on{background:var(--brand-soft);opacity:1}
+.ep-empty{margin:12px 4px;font-size:12.5px;color:var(--muted);text-align:center}
 .ep-e{border:none;background:none;border-radius:7px;font-size:20px;line-height:1;height:34px;cursor:pointer;padding:0}
 .ep-e:hover,.ep-e.on{background:var(--brand-soft)}
 .ep-none{display:flex;align-items:center;gap:6px;width:100%;margin-top:6px;border:1px solid var(--line);background:var(--fill);border-radius:8px;padding:7px 10px;font:600 12.5px 'Inter',sans-serif;color:var(--ink2);cursor:pointer}
@@ -947,7 +986,9 @@ body.editor-open .lang-hint{display:none}
   .seg-emph button{height:32px}
   .seg-emph .se-emo{min-width:32px}
   .tm-item{padding-top:10px;padding-bottom:10px}
+  .cs-sw{width:32px;height:32px}
   .cs-chipcol .cs-col,.cs-dot .cs-col{width:32px;height:32px}
+  .cs-hex,.cs-op input{min-height:34px}
 }
 /* Timeline-Aktionsleiste (Handy/Touch, s. tlSyncAct): immer gleich hoch → nichts springt beim Wählen */
 .tl-act{display:none;border-top:1px solid var(--line);padding:8px 8px 10px}
@@ -1676,9 +1717,24 @@ body.editor-open .lang-hint{display:none}
             </select>
           </div>
           <div class="cs-cols">
-            <label class="cs-chipcol" title="Text color"><input type="color" id="csText" class="cs-col" value="#ffffff" oninput="applyCustomStyle('text')"><span>Text</span></label>
-            <label class="cs-chipcol" id="csHlSw" title="Color of the active (spoken) word"><input type="color" id="csHl" class="cs-col" value="#facc15" oninput="applyCustomStyle('hlc')"><span id="csHlLbl">Highlight</span></label>
-            <label class="cs-chipcol" title="Color of the highlighted keywords (Emphasis)"><input type="color" id="csEm" class="cs-col" value="#facc15" oninput="applyCustomStyle('em')"><span>Keywords</span></label>
+            <div class="cs-chipcol" title="Text color">
+              <span class="cs-sw" id="csTextDot"><input type="color" id="csText" class="cs-col" value="#ffffff" aria-label="Text color" oninput="csColorPick('csText','text')"></span>
+              <span class="cs-cl">Text</span>
+              <input type="text" id="csTextHex" class="cs-hex" value="#ffffff" maxlength="9" spellcheck="false" autocomplete="off" autocapitalize="off" inputmode="text" aria-label="Text color as hex (#rrggbb)" title="Hex color, e.g. #ff8800" oninput="csHexInput('csText','text')" onblur="csHexBlur('csText')">
+              <label class="cs-op" title="Text opacity"><input type="number" id="csTextOp" min="0" max="100" step="5" value="100" inputmode="numeric" aria-label="Text opacity in percent" oninput="csOpInput('csText','text')" onblur="csHexBlur('csText')"><span>%</span></label>
+            </div>
+            <div class="cs-chipcol" id="csHlSw" title="Color of the active (spoken) word">
+              <span class="cs-sw" id="csHlDot"><input type="color" id="csHl" class="cs-col" value="#ffffff" aria-label="Highlight color" oninput="csColorPick('csHl','hlc')"></span>
+              <span class="cs-cl" id="csHlLbl">Highlight</span>
+              <input type="text" id="csHlHex" class="cs-hex" value="#ffffff" maxlength="9" spellcheck="false" autocomplete="off" autocapitalize="off" inputmode="text" aria-label="Highlight color as hex (#rrggbb)" title="Hex color, e.g. #ff8800" oninput="csHexInput('csHl','hlc')" onblur="csHexBlur('csHl')">
+              <label class="cs-op" title="Highlight opacity"><input type="number" id="csHlOp" min="0" max="100" step="5" value="100" inputmode="numeric" aria-label="Highlight opacity in percent" oninput="csOpInput('csHl','hlc')" onblur="csHexBlur('csHl')"><span>%</span></label>
+            </div>
+            <div class="cs-chipcol" title="Color of the highlighted keywords (Emphasis)">
+              <span class="cs-sw" id="csEmDot"><input type="color" id="csEm" class="cs-col" value="#ffffff" aria-label="Keywords color" oninput="csColorPick('csEm','em')"></span>
+              <span class="cs-cl">Keywords</span>
+              <input type="text" id="csEmHex" class="cs-hex" value="#ffffff" maxlength="9" spellcheck="false" autocomplete="off" autocapitalize="off" inputmode="text" aria-label="Keywords color as hex (#rrggbb)" title="Hex color, e.g. #ff8800" oninput="csHexInput('csEm','em')" onblur="csHexBlur('csEm')">
+              <label class="cs-op" title="Keywords opacity"><input type="number" id="csEmOp" min="0" max="100" step="5" value="100" inputmode="numeric" aria-label="Keywords opacity in percent" oninput="csOpInput('csEm','em')" onblur="csHexBlur('csEm')"><span>%</span></label>
+            </div>
           </div>
         </section>
 
@@ -1728,6 +1784,7 @@ body.editor-open .lang-hint{display:none}
                 <button type="button" class="pos-btn" data-z="punchy" onclick="setEmphZoom('punchy')" title="Stronger 18 % punch-in">Punchy</button>
               </div>
             </div>
+            <p class="em-warn" id="emWarnRow" role="status" aria-live="polite" style="display:none"><span id="emWarn" style="display:none"></span> <button type="button" class="em-retry" id="emRetry" onclick="retryEnhance()" style="display:none">Try again</button></p>
             <p class="em-note" id="emNote" role="status" aria-live="polite" style="display:none"></p>
           </div>
         </section>
@@ -1762,10 +1819,11 @@ body.editor-open .lang-hint{display:none}
           <div class="q-row sz-row"><span class="q-k">Outline</span>
             <input type="range" min="0" max="8" step="1" value="0" id="csOutlineW" oninput="applyCustomStyle('stroke')" aria-label="Outline width">
             <span class="cs-v" id="csOutlineDisp">0px</span>
-            <label class="cs-dot" title="Outline color"><input type="color" id="csOutlineC" class="cs-col" value="#000000" aria-label="Outline color" oninput="applyCustomStyle('strokec')"></label></div>
+            <span class="cs-dot cs-sw" id="csOutlineDot" title="Outline color"><input type="color" id="csOutlineC" class="cs-col" value="#000000" aria-label="Outline color" oninput="csColorPick('csOutlineC','strokec')"></span>
+            <input type="text" id="csOutlineHex" class="cs-hex" value="#000000" maxlength="9" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Outline color as hex (#rrggbb)" title="Hex color" oninput="csHexInput('csOutlineC','strokec')" onblur="csHexBlur('csOutlineC')"></div>
           <label class="q-row sz-row cs-tog" title="Soft drop shadow"><span class="q-k">Shadow</span>
             <input type="checkbox" id="csShadow" class="cs-switch" onchange="this.classList.toggle('on', this.checked);applyCustomStyle('stroke')" aria-label="Drop shadow on/off"></label>
-          <div class="q-row sz-row"><span class="q-k">Background</span>
+          <div class="q-row sz-row" id="csBoxRow"><span class="q-k">Background</span>
             <div class="pos-row seg cs-seg" data-sel="csBox" role="group" aria-label="Background">
               <button type="button" class="pos-btn on" data-v="off" aria-pressed="true" onclick="csSegPick(this)">None</button>
               <button type="button" class="pos-btn" data-v="box" aria-pressed="false" onclick="csSegPick(this)" title="Rounded box behind the caption">Box</button>
@@ -1774,7 +1832,9 @@ body.editor-open .lang-hint{display:none}
             <select id="csBox" class="cs-hide" tabindex="-1" aria-hidden="true" onchange="onBoxModeChange(this.value)" title="Background behind the caption">
               <option value="off">None</option><option value="box">Box</option><option value="pill">Pill</option>
             </select>
-            <label class="cs-dot" title="Background color"><input type="color" id="csBoxC" class="cs-col" value="#000000" aria-label="Background color" oninput="applyCustomStyle('boxc')"></label></div>
+            <span class="cs-boxc" id="csBoxCWrap"><span class="cs-dot cs-sw" id="csBoxDot" title="Background color (the checkerboard shows its opacity)"><input type="color" id="csBoxC" class="cs-col" value="#000000" aria-label="Background color" oninput="csColorPick('csBoxC','boxc')"></span>
+            <input type="text" id="csBoxHex" class="cs-hex" value="#000000" maxlength="9" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Background color as hex (#rrggbb)" title="Hex color" oninput="csHexInput('csBoxC','boxc')" onblur="csHexBlur('csBoxC')">
+            <span class="cs-opv" id="csBoxOv" title="Background opacity (Advanced → Box opacity)">70%</span></span></div>
         </section>
 
         <details class="cs-adv" id="advSet">
@@ -1800,7 +1860,8 @@ body.editor-open .lang-hint{display:none}
             <div class="q-row sz-row" id="csGlowStrRow"><span class="q-k">Glow strength</span>
               <input type="range" min="0" max="30" step="1" value="14" id="csGlowInt" oninput="applyCustomStyle('glow')" title="Glow strength" aria-label="Glow strength"></div>
             <div class="q-row sz-row" id="csBoxOpRow"><span class="q-k">Box opacity</span>
-              <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" oninput="applyCustomStyle('boxc')" title="Background opacity" aria-label="Background opacity"></div>
+              <input type="range" min="10" max="100" step="5" value="70" id="csBoxO" oninput="applyCustomStyle('boxc')" title="Background opacity" aria-label="Background opacity">
+              <span class="cs-v" id="csBoxODisp">70%</span></div>
             <div class="q-row sz-row" id="csBoxRRow"><span class="q-k">Corners</span>
               <input type="range" min="0" max="30" step="1" value="8" id="csBoxR" oninput="applyCustomStyle('boxc')" title="Corner radius of the background" aria-label="Background corners">
               <span class="cs-v" id="csBoxRDisp">8px</span></div>
@@ -1953,13 +2014,13 @@ var STYLES = [
    thumbBg:'linear-gradient(160deg,#14161a,#08090b)',
    tc:'#fff', ts:readHalo(1) + ',0 2px 12px rgba(0,0,0,.5)',
    hl:'#fff', hls:readHalo(1) + ',0 2px 12px rgba(0,0,0,.5)', anim:'none',
-   em:'#fff', emFont:"'Instrument Serif'", emItalic:true, emFw:'400', emS:1.22},
+   em:'#fcd9a6', emFont:"'Instrument Serif'", emItalic:true, emFw:'400', emS:1.22},
   {id:'serifbold',name:'Serif Bold', fl:'Playfair Display', // Fette kursive Serif, Keyword aufrecht in schwerer Sans, weiss mit weichem Schatten
    font:"'Playfair Display'", fw:'800', fi:'italic', fs:'1.05em', motion:'reveal',
    thumbBg:'linear-gradient(160deg,#1a1210,#0a0707)',
    tc:'#fff', ts:readHalo() + ',0 2px 14px rgba(0,0,0,.5)',
    hl:'#fff', hls:readHalo() + ',0 2px 14px rgba(0,0,0,.5)', anim:'none',
-   em:'#fff', emFont:"'Inter Tight'", emItalic:false, emFw:'900', emS:1},
+   em:'#ffcf70', emFont:"'Inter Tight'", emItalic:false, emFw:'900', emS:1},
   {id:'reveal',   name:'Reveal',     fl:'Inter', // Standard: Wörter erscheinen beim Sprechen und bleiben (Layout steht fest), Keyword kursiv in Türkis, größer
    font:"'Inter'", fw:'700', fs:'.92em', motion:'reveal',
    thumbBg:'linear-gradient(160deg,#0e1a1c,#070c0d)',
@@ -1993,7 +2054,7 @@ var STYLES = [
    thumbBg:'linear-gradient(160deg,#17140a,#070604)',
    tc:'#fff', ts:outlineShadow(3, '#000') + ',0 4px 10px rgba(0,0,0,.45)',
    hl:'#FFD60A', hls:outlineShadow(3, '#000'),
-   anim:'scale', cstroke:'#000'},
+   anim:'scale', cstroke:'#000', em:'#ff5a36'}, // Keywords orange-rot: hebt sich vom gelben aktiven Wort ab
   {id:'boxkara',  name:'Highlight Box', fl:'Montserrat', // Konturierte Caps, farbige Box hinter dem gesprochenen Wort
    font:"'Montserrat'", fw:'900', tt:'uppercase',
    thumbBg:'linear-gradient(160deg,#0c1410,#060907)',
@@ -2004,17 +2065,17 @@ var STYLES = [
    thumbBg:'linear-gradient(160deg,#0b1730,#05070f)',
    tc:'#fff', ts:outlineShadow(3, '#000') + ',0 5px 0 rgba(0,0,0,.85)',
    hl:'#22e3ff', hls:outlineShadow(3, '#000') + ',0 5px 0 rgba(0,0,0,.85)',
-   anim:'bounce', cstroke:'#000'},
+   anim:'bounce', cstroke:'#000', em:'#ffe14d'}, // Keywords gelb zum cyanfarbenen aktiven Wort
   {id:'minimal',  name:'Clean',      fl:'Inter', // Satzschreibung, weicher Schatten; das aktive Wort hebt sich nur über die Deckkraft ab
    font:"'Inter'", fw:'600',
    thumbBg:'linear-gradient(160deg,#101114,#08090b)',
    tc:'rgba(255,255,255,.6)', ts:readHalo(1) + ',0 1px 8px rgba(0,0,0,.5)',
-   hl:'#fff', hls:readHalo(1) + ',0 1px 8px rgba(0,0,0,.5)', anim:'none'},
+   hl:'#fff', hls:readHalo(1) + ',0 1px 8px rgba(0,0,0,.5)', anim:'none', em:'#ffd60a'}, // Keywords gelb: Text/aktives Wort sind weiss
   {id:'lift',     name:'Clean Highlight', fl:'Inter', // Satzschreibung, fett, weicher Schatten — aktives Wort gelb (ohne Glow)
    font:"'Inter'", fw:'800',
    thumbBg:'linear-gradient(160deg,#07090d,#0b0e14)',
    tc:'#fff', ts:readHalo() + ',0 2px 8px rgba(0,0,0,.6)',
-   hl:'#FFD60A', hls:readHalo() + ',0 2px 8px rgba(0,0,0,.6)', anim:'scale'},
+   hl:'#FFD60A', hls:readHalo() + ',0 2px 8px rgba(0,0,0,.6)', anim:'scale', em:'#ff7a59'},
   {id:'popone',   name:'One Word',   fl:'Anton', // Ein großes Wort nach dem anderen (1 Wort pro Block), poppt sanft rein
    font:"'Anton'", fw:'400', tt:'uppercase', ls:'.5px', fs:'1.3em',
    thumbBg:'linear-gradient(160deg,#1d0b24,#0b0410)',
@@ -2049,22 +2110,22 @@ var STYLES = [
    thumbBg:'linear-gradient(160deg,#050505,#111)',
    tc:'#fff', ts:'1px 1px 5px rgba(0,0,0,.9)',
    boxBg:'rgba(0,0,0,.72)', boxBr:'6px',
-   hl:'#f7c204', hls:'1px 1px 5px rgba(0,0,0,.9)', anim:'scale'},
+   hl:'#f7c204', hls:'1px 1px 5px rgba(0,0,0,.9)', anim:'scale', em:'#5eead4'},
   {id:'neon',     name:'Neon',       fl:'Space Grotesk', // Dezentes Neon: weißer Text mit kühlem Schein, aktives Wort hellblau (statisch, kein Pulsieren)
    font:"'Space Grotesk'", fw:'700',
    thumbBg:'linear-gradient(160deg,#03080d,#060d14)',
    tc:'#f0f9ff', ts:readHalo() + ',0 0 6px rgba(56,189,248,.55),0 0 16px rgba(56,189,248,.3)',
-   hl:'#7dd3fc', hls:readHalo() + ',0 0 8px rgba(125,211,252,.85),0 0 18px rgba(56,189,248,.5)', anim:'none'},
+   hl:'#7dd3fc', hls:readHalo() + ',0 0 8px rgba(125,211,252,.85),0 0 18px rgba(56,189,248,.5)', anim:'none', em:'#f0abfc'},
   {id:'editorial',name:'Elegant',    fl:'Playfair Display', // Edle Serif (Luxus/Lifestyle), aktives Wort kursiv in Gold
    font:"'Playfair Display'", fw:'700',
    thumbBg:'linear-gradient(160deg,#111114,#0a0a0c)',
    tc:'#f6f5f3', ts:readHalo(1) + ',0 2px 10px rgba(0,0,0,.5)',
-   hl:'#d4b26f', hlItalic:true, hls:readHalo(1) + ',0 2px 10px rgba(0,0,0,.5)', anim:'none'},
+   hl:'#d4b26f', hlItalic:true, hls:readHalo(1) + ',0 2px 10px rgba(0,0,0,.5)', anim:'none', em:'#e9a8a0'},
   {id:'marker',   name:'Marker',     fl:'Kalam', // Handschrift, locker — gelber Textmarker hinter dem aktiven Wort
    font:"'Kalam'", fw:'700',
    thumbBg:'linear-gradient(160deg,#0f0f12,#17171b)',
    tc:'#ffffff', ts:readHalo() + ',0 1px 6px rgba(0,0,0,.5)',
-   hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'none', em:'#fde047'},
+   hlPillBg:'#fde047', hlc:'#111', hls:'none', anim:'none', em:'#fda4af'},
 ];
 // Entfernte bzw. zusammengelegte Presets (Kuratierung 2026) → nächstliegender behaltener Look.
 var STYLE_ALIASES = {
@@ -4458,7 +4519,15 @@ function afterEmphChange(save) {
 // ── Schalter (Style-Tab) ──
 function persistEmph() { try { localStorage.setItem(EM_KEY, JSON.stringify({ kw: emKw, emoji: emEmoji, zoom: emZoom })); } catch (e) {} }
 function setEmphKw(on) { emKw = !!on; persistEmph(); afterEmphChange(); }
-function setEmphEmoji(on) { emEmoji = !!on; persistEmph(); afterEmphChange(); }
+function setEmphEmoji(on) {
+  emEmoji = !!on; persistEmph(); afterEmphChange();
+  // KI nicht erreichbar: der Schalter wirkt sonst «an», liefert aber nichts → direkt Rückmeldung am Schalter (Hinweis unter den Chips + Toast)
+  if (emEmoji && emAiUnavailable() && captionBlocks.length) capToast('Emojis need the AI service — it isn’t reachable right now.');
+}
+// KI-Anreicherung nicht verfügbar: Server/enhance antwortet nicht (emSrc 'local') bzw. KI in den Einstellungen aus.
+function emAiUnavailable() { return emSrc === 'local' || aiOff(); }
+// Erneut versuchen (Knopf im Hinweis): lädt die KI-Auswahl neu, Ergebnis siehe emSrc
+function retryEnhance() { emSrc = null; syncEmphUI(); return runEnhance(true); }
 function setEmphZoom(z) {
   emZoom = ['subtle', 'punchy'].indexOf(z) >= 0 ? z : 'off'; persistEmph(); afterEmphChange();
   if (emZoom !== 'off') zoomFeedback(); // Rückmeldung: Toast mit Anzahl Momente + kurze Vorführung (pausiert)
@@ -4472,9 +4541,24 @@ function syncEmphUI() {
   });
   document.querySelectorAll('#emZoomRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.z === emZoom); });
   var n = document.getElementById('emNote');
+  // Hinweis direkt am Schalter: ohne KI gibt es keine Emojis (Keywords fallen auf die einfache Erkennung zurück)
+  var down = !!captionBlocks.length && !_enhancing && emAiUnavailable(), warnEmo = down && emEmoji, warnKw = down && emKw;
+  if (e) {
+    if (e.classList) e.classList.toggle('unavail', warnEmo);
+    if (warnEmo && e.setAttribute) e.setAttribute('aria-describedby', 'emWarn'); else if (e.removeAttribute) e.removeAttribute('aria-describedby');
+  }
+  var wn = document.getElementById('emWarn');
+  if (wn) {
+    var wtxt = warnEmo ? (aiOff() ? 'Emojis need AI, which is switched off (Settings).' : 'Emojis need the AI service, which isn’t reachable right now — none will appear.')
+      : warnKw ? (aiOff() ? 'AI is switched off — using simple keyword detection.' : 'AI picks unavailable — using simple keyword detection.') : '';
+    wn.textContent = wtxt;
+    wn.style.display = wtxt ? '' : 'none';
+    var wr = document.getElementById('emWarnRow'); if (wr) wr.style.display = wtxt ? '' : 'none';
+    var rb = document.getElementById('emRetry');
+    if (rb) rb.style.display = wtxt && !aiOff() ? '' : 'none';
+  }
   if (n) {
-    var txt = !captionBlocks.length ? '' : _enhancing ? 'AI is picking keywords…'
-      : emSrc === 'local' ? 'AI picks unavailable right now — using simple keyword detection' + (emEmoji ? ' (no emojis)' : '') + '.' : '';
+    var txt = !captionBlocks.length ? '' : _enhancing ? 'AI is picking keywords…' : '';
     n.textContent = txt; n.style.display = txt ? '' : 'none';
   }
 }
@@ -4504,8 +4588,107 @@ function setBlockEmoji(bi, emo) {
   markCaptionsEdited();
   afterEmphChange();
 }
-var EMO_PICK = ['🔥', '💯', '😂', '😍', '😎', '🤔', '😮', '🤯', '🙌', '👏', '👍', '👀', '💪', '🎉', '✨', '❤️',
-  '💡', '📈', '💰', '🚀', '⚡', '🎯', '✅', '❌', '🙏', '👋', '💬', '❓', '🐄', '🌿', '🌾', '🥩', '🏡', '☀️', '🌍', '📸', '🎬', '🏆', '😋', '😴'];
+// Emoji-Auswahl: kuratiert nach Kategorien, durchsuchbar (englische + deutsche Stichwörter, lokal — keine Bibliothek).
+// Eintrag = [Emoji, 'Stichwörter …']. Suche: Kleinschreibung, ohne Akzente/Umlaut-Punkte (ü → u), Teilwort-Treffer.
+var EMO_CATS = [
+  { id: 'react', name: 'Reactions', icon: '😀', items: [
+    ['🔥', 'fire hot flame lit feuer heiss flamme'], ['💯', 'hundred perfect score 100 hundert perfekt'], ['😂', 'laugh lol funny joy lachen lustig'],
+    ['🤣', 'rofl laughing floor lachen lustig'], ['😍', 'love heart eyes liebe verliebt herzaugen'], ['🥰', 'adore love hearts verliebt liebe'],
+    ['😎', 'cool sunglasses cool sonnenbrille'], ['🤔', 'think thinking hmm denken nachdenken'], ['😮', 'wow surprised open mouth ueberrascht staunen'],
+    ['😱', 'scream shock fear schock angst schreien'], ['🤯', 'mind blown explode kopf explodiert unglaublich'], ['😅', 'sweat nervous phew puh nervoes'],
+    ['😊', 'smile happy blush gluecklich laecheln freude'], ['🙂', 'slight smile lacheln freundlich'], ['😉', 'wink zwinkern'],
+    ['😭', 'cry sob sad weinen traurig'], ['🥲', 'tear smile touched geruehrt traene'], ['😋', 'yum tasty delicious lecker schmecken'],
+    ['😴', 'sleep tired zzz schlafen muede'], ['🥳', 'party celebrate birthday feiern party geburtstag'], ['🤤', 'drool want sabbern lecker haben wollen'],
+    ['😬', 'grimace awkward cringe peinlich'], ['🙈', 'see no evil monkey shy affe schuechtern peinlich'], ['🤩', 'star struck amazed begeistert wow'],
+    ['😢', 'sad tear traurig traene'], ['😡', 'angry mad rage wuetend sauer aerger'], ['🤗', 'hug hugging umarmung'],
+    ['😇', 'angel innocent engel unschuldig'], ['🤪', 'crazy silly wild verrueckt albern'], ['😏', 'smirk sly schmunzeln frech'],
+    ['😐', 'neutral meh poker face neutral egal'], ['🥱', 'yawn boring gaehnen langweilig'], ['🤫', 'shh secret quiet psst geheim leise']
+  ] },
+  { id: 'gest', name: 'Gestures', icon: '👍', items: [
+    ['👍', 'thumbs up like yes ok daumen hoch gefaellt ja'], ['👎', 'thumbs down dislike no daumen runter nein'], ['👏', 'clap applause bravo applaus klatschen'],
+    ['🙌', 'praise hands celebrate hooray haende hoch jubeln'], ['🙏', 'pray thanks please bitte danke beten'], ['💪', 'strong muscle flex power stark muskel kraft'],
+    ['👋', 'wave hello hi bye winken hallo tschuess'], ['🤝', 'handshake deal agreement haendedruck abmachung einigung'], ['👉', 'point right zeigen rechts dorthin'],
+    ['👆', 'point up zeigen oben'], ['👇', 'point down zeigen unten'], ['👌', 'ok perfect fine in ordnung perfekt'],
+    ['✌️', 'peace victory two frieden sieg'], ['🤞', 'fingers crossed luck daumen druecken glueck'], ['🤘', 'rock horns metal rock'],
+    ['🤙', 'call me shaka ruf mich an'], ['✊', 'fist power faust'], ['👊', 'punch fist bump faust schlag'],
+    ['🤷', 'shrug dont know schulterzucken keine ahnung'], ['🤦', 'facepalm oh no kopf an die stirn'], ['🙋', 'raise hand question hand heben frage melden'],
+    ['🫶', 'heart hands love herzhaende liebe'], ['☝️', 'one index up number one eins zeigefinger'], ['👀', 'eyes look see watch augen schauen sehen'],
+    ['🧠', 'brain smart think gehirn schlau denken'], ['🗣️', 'speak talking say sprechen reden sagen'], ['👂', 'ear listen hear ohr hoeren zuhoeren']
+  ] },
+  { id: 'obj', name: 'Objects', icon: '💡', items: [
+    ['💡', 'idea light bulb tip idee gluehbirne tipp'], ['💰', 'money bag cash geld sack'], ['💸', 'money flying spend geld ausgeben'],
+    ['📱', 'phone mobile smartphone handy telefon'], ['💻', 'laptop computer notebook rechner arbeit'], ['⏰', 'alarm clock time wecker uhr zeit'],
+    ['⏳', 'hourglass wait time sanduhr warten zeit'], ['📅', 'calendar date kalender datum termin'], ['🎁', 'gift present geschenk'],
+    ['🛒', 'cart shopping einkaufen warenkorb kaufen'], ['🎬', 'clapper movie film action film kino'], ['📸', 'camera flash photo foto kamera'],
+    ['📷', 'camera photo kamera foto'], ['🎵', 'music note musik note'], ['🎶', 'music notes song musik lied'],
+    ['🎤', 'microphone mic sing mikrofon singen'], ['🎧', 'headphones listen kopfhoerer hoeren'], ['🏆', 'trophy win champion pokal sieg gewinner'],
+    ['🥇', 'gold medal first winner goldmedaille erster'], ['🎓', 'graduation education abschluss ausbildung'], ['📚', 'books study buecher lernen'],
+    ['✏️', 'pencil write edit stift schreiben'], ['📈', 'chart up growth increase wachstum steigen diagramm'], ['📉', 'chart down decrease fall fallen sinken diagramm'],
+    ['🎯', 'target goal bullseye ziel treffer'], ['🚀', 'rocket launch start rakete startup'], ['🔑', 'key schluessel'],
+    ['🔒', 'lock secure private schloss sicher privat'], ['📣', 'megaphone announce ankuendigung lautsprecher'], ['🛠️', 'tools build fix werkzeug bauen reparieren'],
+    ['🚗', 'car drive auto fahren'], ['✈️', 'plane travel flight flugzeug reisen flug'], ['🚜', 'tractor farm traktor landwirtschaft'],
+    ['🏠', 'house home haus zuhause'], ['🏋️', 'weights gym workout fitness training sport'], ['🎮', 'game controller gaming spiel']
+  ] },
+  { id: 'nat', name: 'Nature', icon: '🌳', items: [
+    ['☀️', 'sun sunny summer sonne sonnig sommer'], ['🌧️', 'rain rainy regen regnerisch'], ['❄️', 'snow winter cold schnee kalt'],
+    ['☁️', 'cloud wolke bewoelkt'], ['🌈', 'rainbow regenbogen'], ['🌙', 'moon night mond nacht'],
+    ['🌍', 'earth world globe erde welt'], ['🌊', 'wave water sea welle wasser meer'], ['⛰️', 'mountain berg'],
+    ['🏔️', 'snow mountain alps berg schnee alpen'], ['🏖️', 'beach holiday strand ferien'], ['🌳', 'tree baum'],
+    ['🌲', 'evergreen pine forest tanne wald nadelbaum'], ['🌴', 'palm tree palme'], ['🌱', 'seedling plant grow spross pflanze wachsen'],
+    ['🍀', 'clover luck klee glueck'], ['🌸', 'blossom flower spring bluete blume fruehling'], ['🌻', 'sunflower sonnenblume'],
+    ['🍂', 'leaves autumn fall herbst laub'], ['🌵', 'cactus desert kaktus wueste'], ['🐶', 'dog hund'],
+    ['🐱', 'cat katze'], ['🐴', 'horse pferd'], ['🐝', 'bee honey biene honig'],
+    ['🦋', 'butterfly schmetterling'], ['🐟', 'fish fisch'], ['🐦', 'bird vogel'],
+    ['🦌', 'deer reh hirsch wild'], ['🐻', 'bear baer'], ['🦊', 'fox fuchs'],
+    ['🐑', 'sheep schaf'], ['🐢', 'turtle slow schildkroete langsam']
+  ] },
+  { id: 'food', name: 'Food', icon: '🍕', items: [
+    ['🍕', 'pizza'], ['🍔', 'burger hamburger'], ['🍟', 'fries chips pommes frites'],
+    ['🌮', 'taco mexican mexikanisch'], ['🍣', 'sushi fish japan fisch'], ['🍝', 'pasta spaghetti nudeln'],
+    ['🥗', 'salad healthy salat gesund'], ['🍎', 'apple fruit apfel frucht'], ['🍓', 'strawberry erdbeere beere'],
+    ['🍌', 'banana banane'], ['🍉', 'watermelon wassermelone'], ['🍇', 'grapes trauben'],
+    ['🥑', 'avocado'], ['🥕', 'carrot karotte rueebli gemuese vegetable'], ['🧀', 'cheese kaese'],
+    ['🍞', 'bread brot'], ['🥐', 'croissant breakfast fruehstueck gipfeli'], ['🥚', 'egg ei'],
+    ['🥛', 'milk glass milch'], ['☕', 'coffee tea hot kaffee tee heiss'], ['🍷', 'wine glass wein'],
+    ['🍺', 'beer bier'], ['🥤', 'drink cup getraenk becher'], ['🍰', 'cake dessert kuchen torte'],
+    ['🍩', 'donut doughnut krapfen'], ['🍪', 'cookie biscuit keks guetzli'], ['🍫', 'chocolate schokolade'],
+    ['🍦', 'ice cream eis glace'], ['🍿', 'popcorn movie film kino'], ['🧁', 'cupcake muffin'],
+    ['🍽️', 'plate dinner eat teller essen'], ['🥂', 'cheers toast champagne prost anstossen']
+  ] },
+  { id: 'sym', name: 'Symbols', icon: '❤️', items: [
+    ['❤️', 'heart red love herz rot liebe'], ['🧡', 'orange heart herz orange'], ['💛', 'yellow heart herz gelb'],
+    ['💚', 'green heart herz gruen'], ['💙', 'blue heart herz blau'], ['💜', 'purple heart herz lila'],
+    ['🖤', 'black heart herz schwarz'], ['🤍', 'white heart herz weiss'], ['💔', 'broken heart herzschmerz gebrochen'],
+    ['✨', 'sparkles magic glitter funkeln magie'], ['⭐', 'star stern'], ['🌟', 'glowing star shine leuchtender stern'],
+    ['💫', 'dizzy shooting star schwindel'], ['💥', 'boom bang collision explosion knall'], ['⚡', 'lightning bolt power energy blitz energie strom'],
+    ['✅', 'check done yes erledigt haken ja'], ['❌', 'cross no wrong kreuz nein falsch'], ['⚠️', 'warning caution achtung warnung'],
+    ['❓', 'question frage fragezeichen'], ['❗', 'exclamation attention ausrufezeichen achtung'], ['➡️', 'arrow right pfeil rechts'],
+    ['⬆️', 'arrow up pfeil hoch'], ['⬇️', 'arrow down pfeil runter'], ['➕', 'plus add hinzufuegen'],
+    ['💬', 'speech bubble chat comment sprechblase kommentar'], ['💭', 'thought bubble gedanke gedankenblase'], ['🔔', 'bell notification glocke benachrichtigung'],
+    ['🔴', 'red circle rot kreis'], ['🟢', 'green circle gruen kreis'], ['🔵', 'blue circle blau kreis'],
+    ['🆕', 'new neu'], ['🔝', 'top oben'], ['♻️', 'recycle recycling'], ['🚫', 'forbidden no prohibited verboten']
+  ] }
+];
+var EMO_PICK = []; // flache Liste aller Emojis (Tests, „aktueller Emoji ist in der Liste?“)
+EMO_CATS.forEach(function(c){ c.items.forEach(function(it){ EMO_PICK.push(it[0]); }); });
+function emoNorm(x) {
+  var v = String(x || '').toLowerCase();
+  try { v = v.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
+  return v.replace(/ß/g, 'ss').replace(/ae|oe|ue/g, function(m){ return m[0]; }).trim();
+}
+// Suche: jedes Suchwort muss als Wortanfang/Teilwort in den Stichwörtern vorkommen (ä/ö/ü ≙ a/o/u ≙ ae/oe/ue)
+function emojiSearch(q) {
+  var terms = emoNorm(q).split(/\s+/).filter(Boolean);
+  if (!terms.length) return [];
+  var out = [];
+  EMO_CATS.forEach(function(c) {
+    c.items.forEach(function(it) {
+      var hay = emoNorm(it[1]);
+      if (terms.every(function(t){ return hay.indexOf(t) >= 0; }) && out.indexOf(it[0]) < 0) out.push(it[0]);
+    });
+  });
+  return out;
+}
 function segEmphHtml(idx) {
   var b = captionBlocks[idx];
   if (!b) return '';
@@ -4545,22 +4728,57 @@ function refreshAllSegEmph() {
     if (m) el.innerHTML = segEmphHtml(+m[1]);
   });
 }
-var _emoPickIdx = -1;
+var _emoPickIdx = -1, _emoPickCat = 'react';
+function emoGridHtml(list, cur) {
+  if (!list.length) return '<p class="ep-empty">No emoji found — try another word.</p>';
+  return '<div class="ep-grid">' + list.map(function(e) {
+    return '<button type="button" class="ep-e' + (e === cur ? ' on' : '') + '" data-e="' + e + '">' + e + '</button>';
+  }).join('') + '</div>';
+}
+// Raster neu zeichnen: Suchtext hat Vorrang vor der Kategorie
+function renderEmojiGrid() {
+  var p = document.getElementById('emoPick'), g = document.getElementById('emoGrid');
+  if (!p || !g) return;
+  var q = ((document.getElementById('emoSearch') || {}).value || '').trim();
+  var cur = _emoPickIdx >= 0 ? blockEmoji(captionBlocks[_emoPickIdx]) : '';
+  var list;
+  if (q) list = emojiSearch(q);
+  else { var c = EMO_CATS.find(function(x){ return x.id === _emoPickCat; }) || EMO_CATS[0]; list = c.items.map(function(it){ return it[0]; }); }
+  g.innerHTML = emoGridHtml(list, cur);
+  Array.prototype.forEach.call(p.querySelectorAll('.ep-cat'), function(b) {
+    var on = !q && b.getAttribute('data-cat') === _emoPickCat;
+    b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+function emoPickCat(id) { _emoPickCat = id; var s = document.getElementById('emoSearch'); if (s) s.value = ''; renderEmojiGrid(); }
 function openEmojiPicker(idx, anchorEl) {
   var p = document.getElementById('emoPick');
   if (!p) return;
   _emoPickIdx = idx;
   var cur = blockEmoji(captionBlocks[idx]);
-  p.innerHTML = '<div class="ep-grid">' + EMO_PICK.map(function(e) {
-    return '<button type="button" class="ep-e' + (e === cur ? ' on' : '') + '" data-e="' + e + '">' + e + '</button>';
-  }).join('') + '</div><button type="button" class="ep-none" data-e="">' + icon('x') + ' No emoji</button>';
+  var hit = EMO_CATS.find(function(c){ return c.items.some(function(it){ return it[0] === cur; }); });
+  _emoPickCat = hit ? hit.id : 'react';
+  p.innerHTML = '<input type="search" class="ep-search" id="emoSearch" placeholder="Search emoji (e.g. fire, Feuer, money)" aria-label="Search emoji" autocomplete="off" oninput="renderEmojiGrid()" onkeydown="emoSearchKey(event)">'
+    + '<div class="ep-cats" role="group" aria-label="Emoji categories">' + EMO_CATS.map(function(c) {
+      return '<button type="button" class="ep-cat" data-cat="' + c.id + '" title="' + c.name + '" aria-label="' + c.name + '" aria-pressed="false" onclick="event.stopPropagation();emoPickCat(\'' + c.id + '\')">' + c.icon + '</button>';
+    }).join('') + '</div><div id="emoGrid" class="ep-gridwrap"></div>'
+    + '<button type="button" class="ep-none" data-e="">' + icon('x') + ' No emoji</button>';
+  renderEmojiGrid();
   p.style.display = 'block';
   try {
     var r = anchorEl.getBoundingClientRect(), pw = p.offsetWidth || 300, ph = p.offsetHeight || 220;
     var x = Math.max(8, Math.min(innerWidth - pw - 8, r.left)), y = r.bottom + 6;
     if (y + ph > innerHeight - 8) y = Math.max(8, r.top - ph - 6);
     p.style.left = x + 'px'; p.style.top = y + 'px';
+    var si = document.getElementById('emoSearch'); if (si && si.focus && !(window.matchMedia && matchMedia('(pointer:coarse)').matches)) si.focus({ preventScroll: true });
   } catch (e) {}
+}
+// Enter im Suchfeld wählt den ersten Treffer
+function emoSearchKey(e) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  var first = document.querySelector('#emoGrid .ep-e');
+  if (first) first.click();
 }
 function closeEmojiPicker() { var p = document.getElementById('emoPick'); if (p) p.style.display = 'none'; _emoPickIdx = -1; }
 function onEmojiPick(e) {
@@ -6535,11 +6753,85 @@ function toggleCsBtn(btn, group) { btn.classList.toggle('on'); applyCustomStyle(
 // Regler aus einem Style befüllen (ohne applyCustomStyle zu feuern) und ihn als Ausgangsbasis merken.
 // Farbe des aktiven Worts so, wie sie tatsächlich zu sehen ist: bei Pill-Styles die Pill-Farbe, sonst
 // die Textfarbe (bzw. erste Stufe von Gradient/Farbwechsel).
-function csActiveColor(st) {
-  if (st.hlPillBg) return cssColorToHex(st.hlPillBg, '#7c3aed');
-  if (st.hlCycle && st.hlCycle.length) return cssColorToHex(st.hlCycle[0], '#facc15');
-  return cssColorToHex(st.hl, null) || cssColorToHex(st.hlg, null) || '#ffffff';
+function csActiveColorA(st) {
+  if (st.hlPillBg) return cssColorToHexA(st.hlPillBg) || { hex: '#7c3aed', a: 1 };
+  if (st.hlCycle && st.hlCycle.length) return cssColorToHexA(st.hlCycle[0]) || { hex: '#facc15', a: 1 };
+  return cssColorToHexA(st.hl) || cssColorToHexA(st.hlg) || { hex: '#ffffff', a: 1 };
 }
+function csActiveColor(st) { return csActiveColorA(st).hex; }
+// ── Farbfelder: Picker (#rrggbb) + Hex-Eingabe + Deckkraft ──
+// Der native <input type=color> kennt keine Deckkraft. Text/Highlight/Keywords tragen sie deshalb separat (_csAlpha, % neben dem Feld):
+// beim Befüllen aus dem Style (rgba → Hex + Alpha) und beim Bauen (Hex + Alpha → rgba) bleibt sie erhalten — vorher ging z. B. die
+// 60 % von «Clean» beim ersten Farbwechsel verloren. Die Hintergrund-Deckkraft hat ihren eigenen Regler (csBoxO).
+var CS_COLS = {
+  csText:     { hex: 'csTextHex',    op: 'csTextOp', dot: 'csTextDot' },
+  csHl:       { hex: 'csHlHex',      op: 'csHlOp',   dot: 'csHlDot' },
+  csEm:       { hex: 'csEmHex',      op: 'csEmOp',   dot: 'csEmDot' },
+  csOutlineC: { hex: 'csOutlineHex', dot: 'csOutlineDot' },
+  csBoxC:     { hex: 'csBoxHex',     dot: 'csBoxDot' }
+};
+var _csAlpha = { csText: 1, csHl: 1, csEm: 1 };
+// Eingabe → { hex:'#rrggbb', a: Deckkraft 0…1 oder null (nicht angegeben) } | null (ungültig). Erlaubt #rgb, #rrggbb, #rrggbbaa, mit/ohne '#'.
+function parseHexInput(v) {
+  var m = /^#?([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(String(v === undefined || v === null ? '' : v).trim());
+  if (!m) return null;
+  var h = m[1].toLowerCase(), a = null;
+  if (h.length === 8) { a = Math.round(parseInt(h.slice(6), 16) / 2.55) / 100; h = h.slice(0, 6); }
+  return { hex: toHex6('#' + h), a: a };
+}
+function csAlpha(id) {
+  var a = id === 'csBoxC' ? (parseFloat((csEl('csBoxO') || {}).value) / 100) : _csAlpha[id];
+  return (typeof a === 'number' && isFinite(a)) ? Math.max(0, Math.min(1, a)) : 1;
+}
+// Aktuelle Farbe eines Felds als CSS: Hex, bei Deckkraft < 100 % rgba(…)
+function csColorCss(id) {
+  var hex = toHex6((csEl(id) || {}).value) || '#000000', a = csAlpha(id);
+  return a < 1 ? hexToRgba(hex, a) : hex;
+}
+// Feld aus einer beliebigen CSS-Farbe (Style-Wert) befüllen: Picker = Hex, Deckkraft getrennt
+function csSeedColor(id, css, fallback) {
+  var c = typeof css === 'object' && css ? css : cssColorToHexA(css);
+  csSetVal(id, c ? c.hex : fallback);
+  if (id in _csAlpha) _csAlpha[id] = c ? c.a : 1;
+}
+// Hex-Text, %-Feld und Schachbrett-Swatch aus Picker + Deckkraft nachziehen (das gerade getippte Feld bleibt unberührt)
+function csSyncColors() {
+  Object.keys(CS_COLS).forEach(function(id) {
+    var c = CS_COLS[id], pk = csEl(id);
+    if (!pk) return;
+    var hex = toHex6(pk.value) || '#000000', a = csAlpha(id), act = document.activeElement;
+    var he = csEl(c.hex); if (he && act !== he) { he.value = hex; if (he.classList) he.classList.remove('bad'); }
+    var oe = c.op && csEl(c.op); if (oe && act !== oe) oe.value = Math.round(a * 100);
+    var dot = csEl(c.dot); if (dot && dot.style && dot.style.setProperty) dot.style.setProperty('--sw', a < 1 ? hexToRgba(hex, a) : hex);
+  });
+  var ov = csEl('csBoxOv'); if (ov) ov.textContent = Math.round(csAlpha('csBoxC') * 100) + '%';
+  var od = csEl('csBoxODisp'); if (od) od.textContent = Math.round(csAlpha('csBoxC') * 100) + '%';
+}
+// Hex-Feld → Picker (+ Deckkraft bei #rrggbbaa). false = ungültig (Feld bekommt die rote Markierung, Style bleibt unverändert)
+function csHexCommit(id) {
+  var c = CS_COLS[id], he = c && csEl(c.hex);
+  if (!he) return false;
+  var r = parseHexInput(he.value);
+  if (he.classList) he.classList.toggle('bad', !r);
+  if (!r) return false;
+  csSetVal(id, r.hex);
+  if (r.a !== null && id in _csAlpha) _csAlpha[id] = r.a;
+  return true;
+}
+// Deckkraft-Feld → _csAlpha (0…100 %, gerundet). false = leer/ungültig (z. B. mitten im Tippen)
+function csOpCommit(id) {
+  var c = CS_COLS[id], oe = c && c.op && csEl(c.op);
+  if (!oe) return false;
+  var v = parseFloat(oe.value);
+  if (!isFinite(v)) return false;
+  _csAlpha[id] = Math.max(0, Math.min(100, Math.round(v))) / 100;
+  return true;
+}
+function csColorPick(id, group) { csSyncColors(); applyCustomStyle(group); }
+function csHexInput(id, group) { if (csHexCommit(id)) { csSyncColors(); applyCustomStyle(group); } }
+function csOpInput(id, group) { if (csOpCommit(id)) { csSyncColors(); applyCustomStyle(group); } }
+// Feld verlassen: Anzeige auf den tatsächlichen Wert zurücksetzen (ungültige/halbe Eingabe, «fff» → #ffffff, leeres %-Feld)
+function csHexBlur(id) { var he = csEl(CS_COLS[id].hex); if (he && he.classList) he.classList.remove('bad'); csSyncColors(); }
 // Zeile/Feld ein-/ausblenden (statt auszugrauen): abhängige Regler verschwinden, solange sie nichts bewirken.
 function csShow(id, on) { var e = csEl(id); if (e && e.style) e.style.display = on ? '' : 'none'; }
 // Segment-Controls (.cs-seg): zeigen den Wert ihres versteckten <select> (data-sel) — das Select bleibt die Quelle der
@@ -6572,7 +6864,7 @@ function syncCsUi() {
   var gi = csEl('csGlowInt'); if (gi) gi.disabled = !glowOn;
   csShow('csGlowStrRow', glowOn);
   var boxV = (csEl('csBox') || {}).value, boxOn = !!boxV && boxV !== 'off';
-  csShow('csBoxC', boxOn); csShow('csBoxOpRow', boxOn); csShow('csBoxRRow', boxOn);
+  csShow('csBoxCWrap', boxOn); csShow('csBoxOpRow', boxOn); csShow('csBoxRRow', boxOn);
   // Word pop gibt es nur beim Highlight: sonst Zeile ausblenden (nicht nur ausgrauen) + Hinweis; bei „Bewegung reduzieren“
   // (Systemeinstellung) bleibt die Vorschau still, der Export animiert trotzdem → ebenfalls Hinweis.
   var mo = (csEl('csMotion') || {}).value, an = csEl('csAnim'), hlMode = !mo || mo === 'highlight';
@@ -6589,6 +6881,7 @@ function syncCsUi() {
   var rd = csEl('csBoxRDisp'), rEl = csEl('csBoxR'); if (rd && rEl) rd.textContent = (rEl.value || 0) + 'px';
   var hd = csEl('csLhDisp'), hEl = csEl('csLh'); if (hd && hEl) hd.textContent = (parseFloat(hEl.value) || 1.3).toFixed(2);
   syncCsSegs();
+  csSyncColors();
 }
 // Box ↔ Pill: Eckenradius auf den typischen Wert setzen (danach frei per „Corners“ einstellbar)
 function onBoxModeChange(v) {
@@ -6599,7 +6892,7 @@ function onBoxModeChange(v) {
 // Betonte Wörter (Keywords): Farbe = sichtbare Akzentfarbe (emphColor), Schrift = eigene emFont oder „wie Text“.
 // Die Schriftliste spiegelt #csFont (ohne „Upload your own font…“), plus die Akzentschrift des Styles.
 function csSeedEmFields(st) {
-  csSetVal('csEm', cssColorToHex(emphColor(st), null) || cssColorToHex(st.hl, null) || '#facc15');
+  csSeedColor('csEm', cssColorToHexA(emphColor(st)) || cssColorToHexA(st.hl), '#facc15');
   var ef = csEl('csEmFont'), fEl = csEl('csFont');
   if (!ef || !ef.appendChild) return;
   var cur = st.emFont ? cleanFontName(st.emFont) : '';
@@ -6618,8 +6911,8 @@ function seedCustomFields(st) {
   // Custom selbst (Kachel erneut angeklickt) beendet den Template-Edit-Modus nicht — das ist ja die Bearbeitung.
   if (_csEditingTpl && st.id !== _csEditingTpl && st.id !== 'custom') setTplEditing(null);
   // Immer einen gültigen Wert setzen: ein übersprungenes Feld behielt den Wert des VORIGEN Styles.
-  csSetVal('csText', cssColorToHex(st.tc, null) || cssColorToHex(st.tg, null) || '#ffffff');
-  csSetVal('csHl', csActiveColor(st));
+  csSeedColor('csText', cssColorToHexA(st.tc) || cssColorToHexA(st.tg), '#ffffff');
+  csSeedColor('csHl', csActiveColorA(st), '#ffffff');
   var fEl = csEl('csFont');
   if (fEl && st.fl) {
     var has = false, opts = fEl.options ? Array.prototype.slice.call(fEl.options) : [];
@@ -6662,7 +6955,7 @@ function buildCustomStyle() {
   if (!cs.thumbBg) cs.thumbBg = CS_THUMB_BG;
   // Neue Schrift gilt auch fürs aktive Wort (eigene hlFont des Styles fällt weg) — vorher wechselte nur der Rest.
   if (d.font)   { var f = (csEl('csFont') || {}).value || cs.fl || 'Poppins'; cs.fl = f; cs.font = "'" + f + "'"; delete cs.hlFont; }
-  if (d.em)     { var emv = (csEl('csEm') || {}).value; if (emv) cs.em = emv; }
+  if (d.em)     { if (toHex6((csEl('csEm') || {}).value)) cs.em = csColorCss('csEm'); }
   if (d.emfont) {
     var efv = cleanFontName((csEl('csEmFont') || {}).value || '');
     if (efv) { cs.emFont = "'" + efv + "'"; ensureCapFont(efv); } else delete cs.emFont;
@@ -6671,9 +6964,8 @@ function buildCustomStyle() {
   if (d.ls)     { var lv = parseFloat((csEl('csLs') || {}).value) || 0; cs.ls = lv ? lv + 'px' : 'normal'; }
   if (d.lh)     { var lhv = parseFloat((csEl('csLh') || {}).value); if (lhv >= 0.8 && lhv <= 2 && Math.abs(lhv - 1.3) > 1e-6) cs.lh = Math.round(lhv * 100) / 100; else delete cs.lh; }
   if (d.text)   {
-    // Halbtransparente Ausgangs-Textfarbe (z. B. Clean Minimal: rgba(255,255,255,.55)) behält ihre Deckkraft
-    var tv = (csEl('csText') || {}).value || cs.tc, ta = cssColorToHexA(base.tc);
-    cs.tc = (ta && ta.a < 1 && toHex6(tv)) ? hexToRgba(tv, ta.a) : tv; delete cs.tg;
+    // Deckkraft kommt aus dem %-Feld (beim Befüllen aus der Ausgangs-Textfarbe übernommen, z. B. Clean: rgba(255,255,255,.6))
+    cs.tc = toHex6((csEl('csText') || {}).value) ? csColorCss('csText') : cs.tc; delete cs.tg;
   }
   var ow = parseFloat((csEl('csOutlineW') || {}).value) || 0, oc = (csEl('csOutlineC') || {}).value || '#000000';
   var outline = outlineShadow(ow, oc);
@@ -6689,11 +6981,11 @@ function buildCustomStyle() {
   // änderte „Active“ bei Pill-Styles nur die (unsichtbare) Wortfarbe und die Pill blieb grün.
   var dCol = d.hl || d.hlc, dGlow = d.hl || d.glow, dType = d.hl || d.hltype;
   if (dCol || dGlow || dType || d.stroke) {
-    var swatch = (csEl('csHl') || {}).value || '#facc15';
+    var swatchHex = toHex6((csEl('csHl') || {}).value) || '#facc15', swatch = toHex6((csEl('csHl') || {}).value) ? csColorCss('csHl') : swatchHex;
     var glowOn = _cbChecked('csGlow', false);
     var gi = parseInt((csEl('csGlowInt') || {}).value, 10); if (isNaN(gi)) gi = 14;
     if ((csEl('csHlType') || {}).value === 'pill') {
-      if (dCol || dType || !cs.hlPillBg) { cs.hlPillBg = swatch; cs.hlc = contrastText(swatch); }
+      if (dCol || dType || !cs.hlPillBg) { cs.hlPillBg = swatch; cs.hlc = contrastText(swatchHex); }
       // Glow nur neu bauen, wenn er (oder der Typ) geändert wurde — sonst bleiben die Schatten des Ausgangs-Styles
       if (dGlow || dType || !base.hlPillBg) cs.hls = glowOn && gi > 0 ? ('0 0 ' + gi + 'px ' + cs.hlPillBg) : 'none';
     } else {
@@ -6839,10 +7131,39 @@ function loadTemplates() {
   rebuildTemplateStyles();
 }
 function persistTemplates(skipCloud) {
+  // Mehrere Tabs: vor dem Schreiben den aktuellen localStorage-Stand (evtl. von einem anderen Tab) einmischen —
+  // neuerer updatedAt gewinnt, Grabsteine inklusive. Sonst überschreibt dieser Tab die Templates der anderen (last write wins).
+  try {
+    var cur = JSON.parse(localStorage.getItem(TPL_KEY) || '[]');
+    if (Array.isArray(cur) && cur.length) userTemplates = mergeTemplates(userTemplates, cur);
+  } catch (e) {}
   pruneTemplates();
   try { localStorage.setItem(TPL_KEY, JSON.stringify(userTemplates)); } catch (e) {}
   if (!skipCloud) scheduleTemplateCloudPush();
 }
+// storage-Event (anderer Tab hat die Templates geändert): Stand mergen statt überschreiben, Picker neu aufbauen.
+// Gibt true zurück, wenn sich etwas geändert hat (testbar ohne echtes Event).
+function onTemplatesStorage(e) {
+  if (e && e.key !== undefined && e.key !== null && e.key !== TPL_KEY) return false;
+  var raw = [];
+  try { raw = JSON.parse((e && e.newValue !== undefined ? e.newValue : localStorage.getItem(TPL_KEY)) || '[]'); } catch (err) { return false; }
+  if (!Array.isArray(raw) || !raw.length) return false;
+  var before = JSON.stringify(mergeTemplates(userTemplates, []));
+  var merged = mergeTemplates(userTemplates, raw);
+  if (JSON.stringify(merged) === before) return false;
+  var activeTpl = userTemplates.find(function(x){ return x.id === activeId && !x.deleted; });
+  userTemplates = merged;
+  closeTplMenu();
+  rebuildTemplateStyles();
+  var gone = activeTpl && !userTemplates.some(function(x){ return x.id === activeTpl.id && !x.deleted; });
+  if (_csEditingTpl && !userTemplates.some(function(x){ return x.id === _csEditingTpl && !x.deleted; })) setTplEditing(null);
+  buildPicker();
+  if (gone) { activeId = 'classic'; selectStyle('classic'); }
+  else { _lastKey = null; try { updateOverlay(); } catch (err) {} }
+  capToast('Templates updated from another tab');
+  return true;
+}
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('storage', onTemplatesStorage);
 // Live-Templates und Grabsteine getrennt deckeln: max. TPL_MAX live (neueste behalten) und max.
 // TPL_TOMB_MAX Grabsteine (älteste fliegen zuerst, außerdem nach 60 Tagen) — Grabsteine verdrängen nie Live-Templates.
 function pruneTemplates() {
@@ -6934,17 +7255,17 @@ function saveTemplate() {
   capToast('✓ ' + verb + ' “' + t.name + '”');
   scrollPickerTo(t.id, true, true);
 }
-function renameTemplate(id) {
+// Inline im Menü (kein prompt()): neuer Name kommt als Argument. Gibt true zurück, wenn umbenannt wurde.
+function renameTemplate(id, newName) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
-  if (!t) return;
-  var nn = prompt('Rename template', t.name);
-  if (nn === null) return;
-  nn = String(nn).trim().slice(0, 60);
-  if (!nn) return;
+  if (!t) return false;
+  var nn = String(newName === undefined || newName === null ? '' : newName).trim().slice(0, 60);
+  if (!nn || nn === t.name) return false;
   t.name = nn; t.updatedAt = Date.now();
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
   if (_csEditingTpl === id) setTplEditing(id);
   capToast('✓ Renamed to “' + nn + '”');
+  return true;
 }
 function duplicateTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
@@ -6957,17 +7278,33 @@ function duplicateTemplate(id) {
   capToast('✓ Duplicated as “' + c.name + '”');
   scrollPickerTo(c.id, false, true);
 }
+// Löschen ohne confirm(): sofort, dafür mit „Undo“-Toast (8 s). Undo stellt das Template mit neuem Zeitstempel her
+// (schlägt damit den Grabstein, auch in anderen Tabs/Geräten) und setzt den Standard-Look zurück, falls es einer war.
 function deleteTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
-  if (!t || !confirm('Delete template “' + t.name + '”?')) return;
+  if (!t) return false;
+  var snapshot = JSON.parse(JSON.stringify(t)), wasBrand = brandTplId() === id, wasActive = activeId === id;
   var i = userTemplates.indexOf(t);
   userTemplates[i] = { id: t.id, deleted: true, updatedAt: Date.now() };
   if (_csEditingTpl === id) setTplEditing(null);
-  if (brandTplId() === id) setBrandTpl('');
+  if (wasBrand) setBrandTpl('');
   persistTemplates(); rebuildTemplateStyles();
-  if (activeId === id) activeId = 'classic';
+  if (wasActive) activeId = 'classic';
   buildPicker(); selectStyle(activeId);
-  capToast('Deleted “' + t.name + '”');
+  capToastAction('Deleted “' + t.name + '”', 'Undo', function(){ undoDeleteTemplate(snapshot, wasBrand); });
+  return true;
+}
+function undoDeleteTemplate(snap, wasBrand) {
+  if (!snap || !snap.id) return false;
+  var tomb = userTemplates.find(function(x){ return x.id === snap.id; });
+  if (tomb && !tomb.deleted) return false; // schon wieder da (z. B. aus einem anderen Tab)
+  snap.updatedAt = Math.max(Date.now(), (tomb && tomb.updatedAt || 0) + 1);
+  userTemplates = userTemplates.filter(function(x){ return x.id !== snap.id; });
+  userTemplates.push(snap);
+  if (wasBrand) setBrandTpl(snap.id);
+  persistTemplates(); rebuildTemplateStyles(); buildPicker();
+  capToast('✓ Restored “' + snap.name + '”');
+  return true;
 }
 function editTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
@@ -6977,65 +7314,140 @@ function editTemplate(id) {
   setTplStatus('Editing “' + t.name + '”: change the style below, then click Update.');
   var nm = csEl('tplName'); if (nm && nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
-var _tplMenuEl = null;
+var _tplMenuEl = null, _tplMenuRename = false;
 function closeTplMenu() {
   if (_tplMenuEl && _tplMenuEl.parentNode) _tplMenuEl.parentNode.removeChild(_tplMenuEl);
-  _tplMenuEl = null;
+  _tplMenuEl = null; _tplMenuRename = false;
   document.removeEventListener('mousedown', _tplMenuOutside, true);
   document.removeEventListener('touchstart', _tplMenuOutside, true);
+  document.removeEventListener('keydown', _tplMenuKey, true);
+  if (typeof window !== 'undefined' && typeof window.removeEventListener === 'function') {
+    window.removeEventListener('scroll', _tplMenuScroll, true);
+    window.removeEventListener('resize', _tplMenuScroll, true);
+  }
 }
 function _tplMenuOutside(e) { if (_tplMenuEl && !_tplMenuEl.contains(e.target)) closeTplMenu(); }
-function openTplMenu(id, btn) {
-  closeTplMenu();
-  var m = document.createElement('div');
-  m.className = 'tpl-menu';
-  var isBrand = brandTplId() === id;
-  [[isBrand ? '☆ Stop using as default' : '★ Use for every new video', toggleBrandTpl], ['Edit', editTemplate], ['Rename', renameTemplate], ['Duplicate', duplicateTemplate], ['Delete', deleteTemplate]].forEach(function(it) {
-    var b = document.createElement('button');
-    b.type = 'button'; b.textContent = it[0];
-    if (it[0] === 'Delete') b.className = 'danger';
-    b.onclick = function(e){ e.stopPropagation(); closeTplMenu(); it[1](id); };
-    m.appendChild(b);
-  });
+function _tplMenuKey(e) { if (_tplMenuEl && e.key === 'Escape') { e.stopPropagation(); closeTplMenu(); } }
+// Scroll/Resize schliesst das Menü (es hängt fix am Bildschirm, der ⋯-Knopf wandert weg). Beim Umbenennen nicht:
+// die Handy-Tastatur löst Resize/Scroll aus, das Eingabefeld darf nicht unter den Fingern verschwinden.
+function _tplMenuScroll() { if (_tplMenuEl && !_tplMenuRename) closeTplMenu(); }
+function _tplMenuPlace(m, btn) {
   var r = btn.getBoundingClientRect();
   m.style.top = Math.round(r.bottom + 4) + 'px';
-  m.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 150, r.left - 110))) + 'px';
-  document.body.appendChild(m);
+  m.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - (m.offsetWidth || 150) - 8, r.left - 110))) + 'px';
   // Unten kein Platz (Handy: Picker am Bildschirmrand) → Menü über dem ⋯-Knopf öffnen, sonst ist „Delete“ abgeschnitten
   if (m.getBoundingClientRect && typeof window.innerHeight === 'number') {
     var mh = m.getBoundingClientRect().height || 0;
     if (r.bottom + 4 + mh > window.innerHeight - 8 && r.top - 4 - mh >= 8) m.style.top = Math.round(r.top - 4 - mh) + 'px';
   }
+}
+function openTplMenu(id, btn) {
+  closeTplMenu();
+  var m = document.createElement('div');
+  m.className = 'tpl-menu';
+  if (m.setAttribute) m.setAttribute('role', 'menu');
+  var isBrand = brandTplId() === id;
+  var items = [[isBrand ? '☆ Stop using as default' : '★ Use for every new video', toggleBrandTpl], ['Edit', editTemplate],
+    ['Rename', function(tid){ showTplRename(m, tid, btn); }], ['Duplicate', duplicateTemplate], ['Delete', deleteTemplate]];
+  items.forEach(function(it) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.textContent = it[0];
+    if (b.setAttribute) b.setAttribute('role', 'menuitem');
+    if (it[0] === 'Delete') b.className = 'danger';
+    b.onclick = function(e){ e.stopPropagation(); if (it[0] === 'Rename') it[1](id); else { closeTplMenu(); it[1](id); } };
+    m.appendChild(b);
+  });
+  document.body.appendChild(m);
+  _tplMenuPlace(m, btn);
   _tplMenuEl = m;
-  // mousedown UND touchstart: auf Touch-Geräten schließt ein Tipp daneben das Menü sofort
-  setTimeout(function(){ document.addEventListener('mousedown', _tplMenuOutside, true); document.addEventListener('touchstart', _tplMenuOutside, true); }, 0);
+  // mousedown UND touchstart: auf Touch-Geräten schliesst ein Tipp daneben das Menü sofort
+  setTimeout(function(){
+    if (_tplMenuEl !== m) return;
+    document.addEventListener('mousedown', _tplMenuOutside, true); document.addEventListener('touchstart', _tplMenuOutside, true);
+    document.addEventListener('keydown', _tplMenuKey, true);
+    if (typeof window.addEventListener === 'function') { window.addEventListener('scroll', _tplMenuScroll, true); window.addEventListener('resize', _tplMenuScroll, true); }
+  }, 0);
+  var first = m.querySelector ? m.querySelector('button') : null;
+  if (first && first.focus) first.focus({ preventScroll: true });
+}
+// Umbenennen direkt im Menü: Eingabefeld statt prompt(); Enter speichert, Esc/Klick daneben bricht ab.
+function showTplRename(m, id, btn) {
+  var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
+  if (!t) { closeTplMenu(); return; }
+  _tplMenuRename = true;
+  m.innerHTML = '';
+  m.classList.add('renaming');
+  var inp = document.createElement('input');
+  inp.type = 'text'; inp.className = 'tpl-rename'; inp.value = t.name; inp.maxLength = 60;
+  if (inp.setAttribute) inp.setAttribute('aria-label', 'Template name');
+  var row = document.createElement('div'); row.className = 'tpl-rename-row';
+  var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'primary'; ok.textContent = 'Save';
+  var no = document.createElement('button'); no.type = 'button'; no.textContent = 'Cancel';
+  var commit = function() {
+    var nn = inp.value.trim();
+    if (!nn) { inp.classList.add('bad'); if (inp.focus) inp.focus(); return; }
+    closeTplMenu(); renameTemplate(id, nn);
+  };
+  ok.onclick = function(e){ e.stopPropagation(); commit(); };
+  no.onclick = function(e){ e.stopPropagation(); closeTplMenu(); };
+  inp.onkeydown = function(e){ if (e.key === 'Enter') { e.preventDefault(); commit(); } };
+  inp.oninput = function(){ inp.classList.remove('bad'); };
+  row.appendChild(ok); row.appendChild(no);
+  m.appendChild(inp); m.appendChild(row);
+  _tplMenuPlace(m, btn);
+  if (inp.focus) inp.focus();
+  if (inp.select) inp.select();
 }
 // ── Export/Import (für Nutzer ohne Konto, oder zum Teilen) ──
 function exportTemplates(e) {
   if (e && e.preventDefault) e.preventDefault();
   var list = liveTemplates();
-  if (!list.length) { alert('No templates yet — save one first.'); return; }
-  var json = JSON.stringify({ app: 'capivo', kind: 'templates', v: 2, exportedAt: new Date().toISOString(), templates: list }, null, 2);
+  if (!list.length) { capToast('No templates yet — save one first.'); return; }
+  var json = JSON.stringify({ app: 'gluephs', kind: 'templates', v: 2, exportedAt: new Date().toISOString(), templates: list }, null, 2);
   dlBlob(new Blob([json], { type: 'application/json' }), 'gluephs-templates.json');
+  capToast('✓ Exported ' + list.length + ' template' + (list.length === 1 ? '' : 's'));
 }
+// Dateien mit app:'capivo' (alte Exporte) und app:'gluephs' werden gleichermassen akzeptiert; andere Herkunft → Fehler.
+// Gibt { imported, skipped, errors } zurück: imported = neu/aktueller/wiederhergestellt, skipped = lokal schon gleich oder neuer,
+// errors = unlesbare Einträge. Gelöschte Templates (Grabstein mit gleicher ID) werden wiederhergestellt — der Import-Stand
+// bekommt dafür einen neueren Zeitstempel als der Grabstein, sonst gewänne der Grabstein im Merge (kein Feedback, nichts passiert).
 function importTemplatesFromText(text) {
   var data = JSON.parse(text);
+  if (data && !Array.isArray(data) && typeof data === 'object' && data.app !== undefined && ['capivo', 'gluephs'].indexOf(data.app) < 0) throw new Error('not a Gluephs template file');
   var arr = Array.isArray(data) ? data : (data && Array.isArray(data.templates) ? data.templates : null);
   if (!arr) throw new Error('not a template file');
-  var incoming = arr.map(normalizeTemplate).filter(function(t){ return t && !t.deleted; });
+  var res = { imported: 0, skipped: 0, errors: 0 }, incoming = [], now = Date.now();
+  arr.forEach(function(raw) {
+    var t = normalizeTemplate(raw);
+    if (!t || t.deleted) { res.errors++; return; }
+    var cur = userTemplates.find(function(x){ return x.id === t.id; });
+    if (cur && cur.deleted) t.updatedAt = Math.max(now, (cur.updatedAt || 0) + 1);
+    else if (cur && (cur.updatedAt || 0) >= (t.updatedAt || 0)) { res.skipped++; return; }
+    incoming.push(t);
+  });
   userTemplates = mergeTemplates(userTemplates, incoming);
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
-  return incoming.length;
+  // über TPL_MAX hinaus fliegen die ältesten raus (pruneTemplates) → nur zählen, was wirklich da ist
+  incoming.forEach(function(t){ if (userTemplates.some(function(x){ return x.id === t.id && !x.deleted; })) res.imported++; else res.errors++; });
+  return res;
+}
+function importTemplateMessage(r) {
+  var n = r.imported, parts = ['Imported ' + n + ' template' + (n === 1 ? '' : 's')];
+  if (r.skipped) parts.push(r.skipped + ' skipped (already up to date)');
+  if (r.errors) parts.push(r.errors + ' failed');
+  return parts.join(' · ');
 }
 function importTemplates(input) {
   var f = input && input.files && input.files[0];
   if (!f) return;
   f.text().then(function(txt) {
-    var n = importTemplatesFromText(txt);
-    alert(n + ' template' + (n === 1 ? '' : 's') + ' imported.');
+    var r = importTemplatesFromText(txt), msg = importTemplateMessage(r);
+    capToast((r.errors && !r.imported ? '' : '✓ ') + msg);
+    setTplStatus(msg, !!r.errors);
   }).catch(function(err) {
     console.error('Template-Import fehlgeschlagen:', err);
-    alert('Could not read this file — please choose a Gluephs templates JSON.');
+    var msg = 'Could not read this file — please choose a Gluephs templates JSON.';
+    capToast(msg); setTplStatus(msg, true);
   }).then(function(){ input.value = ''; });
 }
 // ── Cloud-Sync: EINE reservierte Zeile in public.projects (title = TPL_ROW_TITLE) ──
