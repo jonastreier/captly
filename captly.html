@@ -944,7 +944,7 @@ body.editor-open .lang-hint{display:none}
 /* Timeline-Aktionsleiste (Handy/Touch, s. tlSyncAct): immer gleich hoch → nichts springt beim Wählen */
 .tl-act{display:none;border-top:1px solid var(--line);padding:8px 8px 10px}
 .tl-mob .tl-act{display:block}
-.tl-mob .tl-hint,.tl-mob #tlSnapBtn,.tl-mob #tlGapBtn,.tl-mob .tl-fit{display:none}
+.tl-mob .tl-hint,.tl-mob #tlSnapBtn,.tl-mob #tlGapBtn,.tl-mob #tlSplitBtn,.tl-mob .tl-fit{display:none}
 .ta-hint{display:flex;align-items:center;justify-content:center;height:48px;margin:0;font-size:12.5px;color:var(--muted);text-align:center;line-height:1.35;padding:0 8px}
 .ta-tools{display:flex;gap:4px;margin-top:8px}
 .ta-tool{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;padding:4px 2px;border:none;border-radius:12px;background:transparent;color:var(--ink);font:500 11.5px 'Inter',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -1498,6 +1498,7 @@ body.editor-open .lang-hint{display:none}
           <span class="tl-sp"></span>
           <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" aria-label="Snap" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span class="tl-lbl"> Snap</span></button>
           <button type="button" class="tl-btn" id="tlGapBtn" onclick="tlCloseGaps()" aria-label="Close gaps" title="Close all gaps: each caption stays until the next one starts (at a scene cut both meet exactly at the cut)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span class="tl-lbl"> Close gaps</span></button>
+          <button type="button" class="tl-btn" id="tlSplitBtn" onclick="tlSplitAtPlayhead()" aria-label="Split" title="Split the caption at the playhead (S)"><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span class="tl-lbl"> Split</span></button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1/1.6)" title="Zoom out" aria-label="Zoom timeline out">−</button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1.6)" title="Zoom in (Ctrl/⌘+wheel or pinch)" aria-label="Zoom timeline in">+</button>
           <button type="button" class="tl-btn tl-fit" onclick="tlFit()" title="Show the whole video">Fit</button>
@@ -14053,6 +14054,7 @@ function tlOnKey(e) {
     if (rg) tlDeleteRange(rg);
     else { var i = tlSel; tlSel = -1; deleteSeg(i); }
   } else if (k === 'Enter') { e.preventDefault(); e.stopPropagation(); tlEditText(tlSel); }
+  else if ((k === 's' || k === 'S') && !rg && !e.altKey) { e.preventDefault(); e.stopPropagation(); tlSplitAtPlayhead(); }
   else if (k === 'Escape') { e.stopPropagation(); tlSel = -1; tlSelEnd = -1; selectSegRow(null); tlRequestDraw(); }
 }
 // ── Kopfzeile: Ein-/Ausklappen, Snap, Zoom, Einpassen ──

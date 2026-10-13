@@ -224,7 +224,7 @@ Aufwand: S (< 1 Tag), M (1–3 Tage), L (> 3 Tage). Quelle: A/B/C = Tester, D = 
 | 15 | mittel | Customizer auf dem Handy schlecht auffindbar | Auftraggeber | S–M | in Arbeit |
 | 16 | mittel | Auto-Zoom ohne KI wirkungslos | Auftraggeber | S | in Arbeit |
 | 17 | mittel | Handy-Tippflächen < 44 px (≈ 130 Stellen) | A, `reise/flow-phone.json` | M | teilweise behoben (≥ 32 px, F2) |
-| 18 | mittel | Desktop-Timeline ohne Split-Knopf | A | S | offen |
+| 18 | mittel | Desktop-Timeline ohne Split-Knopf | A | S | **behoben** (Knopf «Split» + Taste S) |
 | 19 | mittel | Arabisch/CJK nur Systemschriften (Tofu-Risiko) | B | M | offen |
 | 20 | mittel | 16 Sprachen, Übersetzen nur nach Englisch | D | M | offen |
 | 21 | mittel | Kein Trimmen/Schneiden | D | M–L | offen |
@@ -299,7 +299,7 @@ Aufwand: S (< 1 Tag), M (1–3 Tage), L (> 3 Tage). Quelle: A/B/C = Tester, D = 
 - Beschriftung «1080p» an die tatsächliche Ausgabegrösse koppeln (S).
 - Abbrechen-Knopf beim Export und `beforeunload`-Warnung bei laufendem Export oder ungesicherten Edits (S).
 - Customizer auf dem Handy auffindbar machen, Auto-Zoom ohne KI wirksam machen (in Arbeit) (S–M).
-- Split-Knopf in der Desktop-Timeline (S).
+- ~~Split-Knopf in der Desktop-Timeline (S).~~ erledigt
 - CJK nicht mit Bindestrich trennen (S).
 
 ### 9.3 Danach
