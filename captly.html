@@ -12850,6 +12850,7 @@ function deleteSeg(idx) {
 // ── Direkt in der Vorschau bearbeiten: Doppelklick (bzw. Tippen auf das schon aktive Wort) ──
 var _inlineIdx = -1;
 function capOverlayClickWord(e, wi, t) {
+  if (capDragMoved) return; // Loslassen nach dem Ziehen ist kein Klick (öffnete sonst den Text-Editor bzw. sprang)
   // Pausiert + Klick auf das bereits hervorgehobene Wort → Text bearbeiten (Touch-Weg ohne Doppelklick)
   var vid = document.getElementById('mainVid');
   var bi = _lastBi;
