@@ -2,15 +2,15 @@
 <!-- Bei Domainwechsel: Basis-URL zusammen mit canonical/hreflang/og:url in captly.html + i18n/de.js anpassen -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
-    <loc>https://captionrush.com/</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://captionrush.com/"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://captionrush.com/de"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://captionrush.com/"/>
+    <loc>https://gluephs.com/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/"/>
   </url>
   <url>
-    <loc>https://captionrush.com/de</loc>
-    <xhtml:link rel="alternate" hreflang="en" href="https://captionrush.com/"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://captionrush.com/de"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://captionrush.com/"/>
+    <loc>https://gluephs.com/de</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/de"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/"/>
   </url>
 </urlset>

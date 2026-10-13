@@ -1,4 +1,4 @@
-# CaptionRush auf Hostpoint (Apache + PHP). Entspricht vercel.json: Clean URLs, Weiterleitungen, Header, Caching.
+# Gluephs auf Hostpoint (Apache + PHP). Entspricht vercel.json: Clean URLs, Weiterleitungen, Header, Caching.
 # Wird mit hochgeladen (scripts/build-dist.js). Die Direktiven sind in <IfModule> gekapselt, damit ein
 # fehlendes Modul die Seite nicht mit einem 500er lahmlegt.
 

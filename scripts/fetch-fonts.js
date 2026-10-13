@@ -1,4 +1,4 @@
-// Lädt alle in CaptionRush verwendeten Google-Schriften (SIL OFL / Apache 2.0) einmalig herunter und legt sie als
+// Lädt alle in Gluephs verwendeten Google-Schriften (SIL OFL / Apache 2.0) einmalig herunter und legt sie als
 // woff2 unter vendor/fonts/ ab, dazu vendor/fonts/fonts.css mit den @font-face-Regeln (lokal gehostet).
 // Warum: Beim Laden von fonts.googleapis.com geht die IP jedes Besuchers an Google (LG München I, 3 O 17493/20).
 //

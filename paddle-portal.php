@@ -1,6 +1,6 @@
 <?php
 /**
- * CaptionRush – Link zum Paddle-Kundenportal (Rechnungen, Zahlungsart, Kündigen): POST /api/portal
+ * Gluephs – Link zum Paddle-Kundenportal (Rechnungen, Zahlungsart, Kündigen): POST /api/portal
  * Header X-Capivo-Token = Supabase-Session. Antwort {url}. Nur mit BILLING_ENABLED und PADDLE_API_KEY; der Key bleibt auf dem Server.
  * Das Portal-Link ist kurzlebig und wird jedes Mal neu erzeugt (nicht cachen).
  */
@@ -12,7 +12,7 @@ header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 function out($code, $arr) { http_response_code($code); echo json_encode($arr); exit; }
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'service' => 'captionrush-portal', 'configured' => cr_billing_on($cfg) && !empty($cfg['PADDLE_API_KEY'])]);
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'service' => 'gluephs-portal', 'configured' => cr_billing_on($cfg) && !empty($cfg['PADDLE_API_KEY'])]);
 if (!cr_billing_on($cfg) || empty($cfg['PADDLE_API_KEY'])) out(503, ['error' => 'billing_disabled']);
 $u = cr_user_from_token($cfg, $_SERVER['HTTP_X_CAPIVO_TOKEN'] ?? '');
 if (!$u) out(401, ['error' => 'login_required']);

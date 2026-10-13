@@ -1,6 +1,6 @@
 <?php
 /**
- * CaptionRush – anonyme Style-Zählung.
+ * Gluephs – anonyme Style-Zählung.
  *   POST /api/stat {style}  → zählt einen Export pro Tag und Style hoch (public.style_stats, keine Nutzerdaten, keine IP gespeichert)
  *   GET  /api/stat          → {total, top:[{style,n}]} der letzten 30 Tage, 1 Stunde gecached (für das «Trending»-Abzeichen)
  */

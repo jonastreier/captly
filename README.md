@@ -1,4 +1,4 @@
-# CaptionRush
+# Gluephs
 
 Web-Tool für Instagram/TikTok-Untertitel (automatische Untertitel direkt im Browser).
 Upload → Auto-Transkript → Karaoke-Preview in 24 kuratierten Styles → Export als **MP4** (mit
@@ -9,11 +9,11 @@ eingebrannten Captions), SRT oder VTT. Rendering läuft komplett im Browser.
   über einen schlanken PHP-Proxy ([`transcribe.php`](transcribe.php)). **Kein Modell-Download für den
   Nutzer**, läuft auf jedem Gerät (auch iPhone). Transkribiert wird über **Groq** (kostenloser Free-Tier,
   OpenAI-kompatible API).
-- **Fallback:** Ist der Proxy nicht erreichbar (z. B. reine Vercel-Demo ohne PHP), transkribiert CaptionRush
+- **Fallback:** Ist der Proxy nicht erreichbar (z. B. reine Vercel-Demo ohne PHP), transkribiert Gluephs
   automatisch **lokal im Browser** (transformers.js) — dann einmaliger Modell-Download.
 - **Video-Export:** MP4/MOV-Quellen laufen über einen **WebCodecs-Schnellexport** (Demux mit mp4box,
   H.264-Encode, Mux mit mp4-muxer, Original-AAC wird kopiert) — schneller als Echtzeit. Bei jedem Problem
-  (Browser ohne WebCodecs/H.264-Encoder, WebM-Quelle, exotische Datei) fällt CaptionRush automatisch auf den
+  (Browser ohne WebCodecs/H.264-Encoder, WebM-Quelle, exotische Datei) fällt Gluephs automatisch auf den
   Echtzeit-Export (MediaRecorder, ggf. ffmpeg.wasm) zurück. Libs self-hosted unter `vendor/mp4box` +
   `vendor/mp4-muxer` (Versionen: [`scripts/fetch-webcodecs-libs.sh`](scripts/fetch-webcodecs-libs.sh)).
   Notschalter: `localStorage['capivo.fastExport'] = 'off'`.
@@ -36,7 +36,7 @@ Dateien, kein Build:
   Die FAQ-Strukturdaten (JSON-LD) entstehen aus der sichtbaren FAQ: der Build schreibt sie auch in `captly.html` zurück
   (EN), der erste JSON-LD-Block ist ein `@graph` (Organization, WebSite, SoftwareApplication; DE ersetzt nur den App-Knoten).
   [`llms.txt`](llms.txt) fasst die Fakten für KI-Suchmaschinen zusammen (bei Feature-/Preisänderungen mitpflegen).
-  `sitemap.xml`/`robots.txt` listen beide Versionen. **Domainwechsel** (z. B. `captionrush.com`): Basis-URL in
+  `sitemap.xml`/`robots.txt` listen beide Versionen. **Domainwechsel** (z. B. `gluephs.com`): Basis-URL in
   `captly.html` (canonical, hreflang, og:url/og:image), `i18n/de.js` (canonical, og:url, og:image) und `sitemap.xml`/`robots.txt` ersetzen.
 - [`transcribe.php`](transcribe.php) — serverseitiger Transkriptions-Proxy für Webhosting (hält den
   API-Key, ruft Groq). **Primärer Weg.**
@@ -93,7 +93,7 @@ fehlt: [`docs/abo-aktivierung.md`](docs/abo-aktivierung.md).
 
 ## Optional: Vercel (Alternative, nicht der Live-Weg)
 
-Live läuft CaptionRush auf Hostpoint (siehe oben). `vercel.json` und `api/*.js` sind eine **optionale Alternative** für Vorschau-Deployments
+Live läuft Gluephs auf Hostpoint (siehe oben). `vercel.json` und `api/*.js` sind eine **optionale Alternative** für Vorschau-Deployments
 (Vercel führt kein PHP aus; die Funktionen haben dieselbe Schnittstelle wie die PHP-Dateien). Sie werden nicht ausgeliefert und nicht
 weiterentwickelt, solange kein Bedarf besteht (`api/_guard.js`, `api/transcribe.js`, `polish.js`, `enhance.js`, `keepalive.js`).
 Einrichtung: `GROQ_API_KEY` unter **Settings → Environment Variables** setzen und neu deployen; Check: `GET /api/transcribe` → `{"configured":true}`.
@@ -215,12 +215,12 @@ Magic-Code-Login). Kein Build, kein npm — `supabase-js` wird per ESM-CDN gelad
 4. **Authentication → Sign In / Providers**: Provider *Email* aktiviert, „Allow new users to
    sign up" an.
 
-Ohne diese Werte bleibt CaptionRush voll nutzbar (Editor, Transkription, Export) — nur der
+Ohne diese Werte bleibt Gluephs voll nutzbar (Editor, Transkription, Export) — nur der
 Sign-in-Button meldet dann, dass Konten auf dieser Instanz nicht eingerichtet sind.
 
 ### Mailversand: eigenes SMTP ist Pflicht, nicht optional
 
-CaptionRush fragt einen **6-stelligen Code** ab, nicht den Magic-Link. Der Code steht nur dann in der
+Gluephs fragt einen **6-stelligen Code** ab, nicht den Magic-Link. Der Code steht nur dann in der
 Mail, wenn das Template die Variable `{{ .Token }}` enthält — und **Templates lassen sich in
 Supabase erst bearbeiten, wenn eigenes SMTP hinterlegt ist** („Set up custom SMTP to edit
 templates"). Der eingebaute Free-Tier-Mailer verschickt ausschließlich das Standard-Template mit
@@ -340,7 +340,7 @@ captly.deinedomain.ch {
 `SUPABASE_URL`/`SUPABASE_ANON_KEY` in `captly.html` eingetragen · eigenes SMTP in Supabase
 hinterlegt · Templates „Magic Link" **und** „Confirm signup" enthalten `{{ .Token }}` ·
 `canonical`/`og:url`/`og:image` zeigen auf die Live-Domain
-(aktuell `https://captionrush.com` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Transkription + Polish
+(aktuell `https://gluephs.com` — **nicht** `capivo.app`, das ist eine fremde Seite) · HTTPS aktiv · einmal end-to-end testen (Upload → Transkription + Polish
 → Export → Login-Code kommt an → Projekt speichern & wieder laden).
 
 ## Tests

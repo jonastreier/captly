@@ -2806,10 +2806,10 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.fileSlug('IMG 1234') === 'img-1234' && T.fileSlug('') === '' && T.fileSlug('!!!') === '' && T.fileSlug('🙂🙂') === '', 'Slug: Zahlen, leer, nur Sonderzeichen');
     const longSlug = T.fileSlug('Das ist ein sehr langer Titel für ein Video über Highland Rinder');
     ok(longSlug.length <= 40 && !/-$/.test(longSlug) && longSlug.indexOf('das-ist-ein-sehr-langer') === 0, 'Slug: max. 40 Zeichen, kein Strich am Ende: ' + longSlug);
-    ok(T.exportBaseName() === 'captionrush-video', 'ohne Titel: captionrush-video');
-    T.setTitle('Mein Reel #1'); ok(T.exportBaseName() === 'mein-reel-1-captionrush', 'Basis aus Titel: ' + T.exportBaseName());
+    ok(T.exportBaseName() === 'gluephs-video', 'ohne Titel: gluephs-video');
+    T.setTitle('Mein Reel #1'); ok(T.exportBaseName() === 'mein-reel-1-gluephs', 'Basis aus Titel: ' + T.exportBaseName());
     global.CLICKS = []; T.exportSRT(); T.exportVTT(); T.exportTXT();
-    ok(global.CLICKS.map(c => c.download).join(',') === 'mein-reel-1-captionrush.srt,mein-reel-1-captionrush.vtt,mein-reel-1-captionrush.txt', 'SRT/VTT/TXT mit gleicher Basis: ' + global.CLICKS.map(c => c.download).join(','));
+    ok(global.CLICKS.map(c => c.download).join(',') === 'mein-reel-1-gluephs.srt,mein-reel-1-gluephs.vtt,mein-reel-1-gluephs.txt', 'SRT/VTT/TXT mit gleicher Basis: ' + global.CLICKS.map(c => c.download).join(','));
     T.setTitle('');
   }
   // Export fertig: Handy mit Teilen-Blatt → „Save to Photos / Share“ primär (erst auf Tipp), sonst „Caption another video“
@@ -2820,14 +2820,14 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const sb = document.getElementById('expShare'), an = document.getElementById('expAnother'), dlf = document.getElementById('expDlFile');
     an.classList.add('hi');
     global.matchMedia = q => ({ matches: /fine/.test(q) });           // Desktop
-    global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-captionrush.mp4'); T.exportDone(false);
+    global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-gluephs.mp4'); T.exportDone(false);
     ok(sb.style.display === 'none' && an.classList.contains('hi') && dlf.style.display !== 'none', 'Desktop: kein Teilen, „Caption another video“ primär, „Download again“ da');
-    ok(document.getElementById('expDoneName').textContent === 'mein-reel-captionrush.mp4', 'Fertig-Zeile zeigt den Dateinamen');
+    ok(document.getElementById('expDoneName').textContent === 'mein-reel-gluephs.mp4', 'Fertig-Zeile zeigt den Dateinamen');
     global.matchMedia = q => ({ matches: /coarse/.test(q) });         // Handy
     T.exportDone(false);
     ok(sb.style.display === '' && !an.classList.contains('hi') && dlf.style.display !== 'none' && !shared, 'Handy: Teilen primär, „Download again“ da, nichts automatisch geteilt');
     T.shareLastExport(); await new Promise(r => setTimeout(r, 0));
-    ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-captionrush.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
+    ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-gluephs.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
     const nClicks = global.CLICKS.length; rejectWith = { name: 'AbortError' };
     ok(await T.shareLastExport() === false && global.CLICKS.length === nClicks, 'Abbrechen (AbortError) → still, kein Download');
     rejectWith = { name: 'NotAllowedError' };
@@ -2862,7 +2862,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // Download again: gleiche Datei, kein Neu-Rendern; Blob bleibt bis ein neuer Export startet / das Video wechselt
     const prevClicks = global.CLICKS; global.CLICKS = [];
     const blobA = new Blob(['x'], { type: 'video/mp4' });
-    T.dlBlob(blobA, 'a-captionrush.mp4'); T.exportDone(false);
+    T.dlBlob(blobA, 'a-gluephs.mp4'); T.exportDone(false);
     ok(T.getLastExportBlob() === blobA, 'nach dem Export bleibt die Datei für „Download again“ erhalten');
     ok(document.getElementById('expDone').style.display === '' && document.getElementById('expMain').style.display === 'none', 'Fertig-Ansicht sichtbar, Export-Knopf-Ansicht weg');
     {
@@ -2870,9 +2870,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(!/btnSRT|btnVTT|btnTXT|btnCover|btnCopy|expOpts/.test(main) && /btnSRT/.test(done) && /btnVTT/.test(done) && /btnTXT/.test(done) && /btnCover/.test(done) && /expCopyPost/.test(done), 'SRT/VTT/TXT/Cover/Copy liegen NICHT in der ausgeblendeten Export-Ansicht (expMain) und bleiben nach dem Export sichtbar');
     }
     global.CLICKS = []; ok(T.downloadLastExport() === true, 'Download again ok');
-    ok(global.CLICKS.length === 1 && global.CLICKS[0].download === 'a-captionrush.mp4' && T.getLastExportBlob() === blobA, 'Download again: ein Klick, gleiche Datei, gleicher Blob (kein Neu-Rendern)');
+    ok(global.CLICKS.length === 1 && global.CLICKS[0].download === 'a-gluephs.mp4' && T.getLastExportBlob() === blobA, 'Download again: ein Klick, gleiche Datei, gleicher Blob (kein Neu-Rendern)');
     T.showExportMain();
-    ok(document.getElementById('expLast').style.display === '' && document.getElementById('expLastName').textContent === 'a-captionrush.mp4', 'Export-Ansicht zeigt „Last export … Download again“');
+    ok(document.getElementById('expLast').style.display === '' && document.getElementById('expLastName').textContent === 'a-gluephs.mp4', 'Export-Ansicht zeigt „Last export … Download again“');
     T.releaseLastExport();
     ok(T.getLastExportBlob() === null && document.getElementById('expLast').style.display === 'none', 'releaseLastExport gibt den Blob frei');
     global.CLICKS = []; ok(T.downloadLastExport() === false && global.CLICKS.length === 0, 'ohne Datei: kein Download, kein Absturz');
@@ -2881,7 +2881,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const ag = document.getElementById('expAgain'), dl = document.getElementById('expDlFile'), ht = document.getElementById('expChangedHint');
       const blobC = new Blob(['x'], { type: 'video/mp4' });
       ok(T.exportChangedSinceLast() === false, 'ohne Export: nichts „geändert“');
-      T.dlBlob(blobC, 'c-captionrush.mp4'); T.exportDone(false);
+      T.dlBlob(blobC, 'c-gluephs.mp4'); T.exportDone(false);
       ok(T.exportChangedSinceLast() === false && ag.style.display === 'none' && ht.style.display === 'none' && dl.textContent === 'Download again', 'direkt nach dem Export: nur „Download again“, kein Neu-Export-Knopf, kein Hinweis');
       T.downloadLastExport();
       ok(T.exportChangedSinceLast() === false, '„Download again“ ändert den Export-Stand nicht');
@@ -3686,7 +3686,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.coverInRect({ x: 100, y: 300, w: 500, h: 400 }, r) && !T.coverInRect({ x: 100, y: 100, w: 500, h: 400 }, r) && !T.coverInRect({ x: 600, y: 300, w: 500, h: 400 }, r), 'Cover: Prüfung Text in Sicherheitsbereich');
     ok(JSON.stringify(T.coverWrap([300, 300, 300, 300], 700, 20)) === '[[0,1],[2,3]]' && JSON.stringify(T.coverWrap([900, 100], 700, 20)) === '[[0],[1]]' && JSON.stringify(T.coverWrap([], 700, 20)) === '[]', 'Cover: Zeilenumbruch (zu breites Einzelwort allein)');
     ok(T.coverBlockY('top', r, 200) === r.y && T.coverBlockY('bottom', r, 200) === r.y + r.h - 200 && T.coverBlockY('mid', r, 200) === r.y + (r.h - 200) / 2, 'Cover: Position oben/Mitte/unten');
-    ok(T.coverFileName('Mein Reel über Käse!') === 'mein-reel-ueber-kaese-cover.png' && T.coverFileName('', 'hof-captionrush') === 'hof-captionrush-cover.png' && T.coverFileName('???') === 'captionrush-cover.png', 'Cover: Dateiname <titel>-cover.png');
+    ok(T.coverFileName('Mein Reel über Käse!') === 'mein-reel-ueber-kaese-cover.png' && T.coverFileName('', 'hof-gluephs') === 'hof-gluephs-cover.png' && T.coverFileName('???') === 'gluephs-cover.png', 'Cover: Dateiname <titel>-cover.png');
     ok(T.coverHook('Das ist der Hook. Und noch mehr Text hier. #reels #hof', 'x') === 'Das ist der Hook.' && T.coverHook('', 'Eins zwei drei vier fünf sechs sieben acht') === 'Eins zwei drei vier fünf sechs' && T.coverHook('', '') === '', 'Cover: Titelvorschlag ≤ 6 Wörter (Post-Text, sonst Transkript)');
     ok(T.coverDefaultTime(20, []) === 10 && T.coverDefaultTime(20, [{ words: [{ kw: 0, start: 1 }, { kw: 1, start: 4.26 }] }]) === 4.3 && T.coverDefaultTime(0, []) === 0, 'Cover: Standardbild = erstes hervorgehobenes Wort, sonst Videomitte');
     T.coverRestore({ t: 3, dark: 999, title: 'Hallo Welt', kw: [1, 'x', -2, 7], style: 'evil', size: 9, pos: 'left', guides: false });

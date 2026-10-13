@@ -21,5 +21,5 @@ av.getInt16*
 # Lokale Preview-Hilfe (Claude)
 .claude/
 dist/
-captionrush-dist.zip
+gluephs-dist.zip
 e2e-shots/

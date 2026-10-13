@@ -1,5 +1,5 @@
 // OPTIONAL (nicht der Live-Weg): Vercel-Alternative; live laufen die PHP-Gegenstücke auf Hostpoint.
-// CaptionRush – Transkript-Feinschliff („Polish“) als Vercel Serverless Function (Groq Chat Completions).
+// Gluephs – Transkript-Feinschliff („Polish“) als Vercel Serverless Function (Groq Chat Completions).
 // Gegenstück für klassisches PHP-Webhosting: polish.php (gleiche Schnittstelle, gleiche Regeln).
 //
 // Zweck: Nach Whisper large-v3 korrigiert ein LLM NUR offensichtliche Erkennungsfehler

@@ -1,6 +1,6 @@
-# CaptionRush — Agent-Leitfaden
+# Gluephs — Agent-Leitfaden
 
-CaptionRush (vormals Capivo; Repo/Dateinamen weiterhin `captly*`, interne Schlüssel wie `localStorage`-Keys, `X-Capivo-Token` und `capivo_templates` bleiben bewusst `capivo` — sonst gehen gespeicherte Nutzerdaten verloren) ist ein Untertitel-Tool für Instagram/TikTok-Reels. **Kein Build, keine npm-Dependencies.** Details & Deploy: siehe [README.md](README.md).
+Gluephs (vormals CaptionRush, davor Capivo; Repo/Dateinamen weiterhin `captly*`, interne Schlüssel wie `localStorage`-Keys, `X-Capivo-Token` und `capivo_templates` bleiben bewusst `capivo` — sonst gehen gespeicherte Nutzerdaten verloren) ist ein Untertitel-Tool für Instagram/TikTok-Reels. **Kein Build, keine npm-Dependencies.** Details & Deploy: siehe [README.md](README.md).
 
 Kern-Dateien:
 - `captly.html` — kompletter Editor + Landing als **Single-File** mit Inline-`<script>`.

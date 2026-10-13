@@ -1,6 +1,6 @@
 <?php
 /**
- * CaptionRush – Abo-Hilfsfunktionen (nur include, kein Endpunkt). Alles hinter dem Schalter BILLING_ENABLED in config.php
+ * Gluephs – Abo-Hilfsfunktionen (nur include, kein Endpunkt). Alles hinter dem Schalter BILLING_ENABLED in config.php
  * (Standard: aus → die Seite verhält sich wie in der Beta, nichts ändert sich).
  *
  * Pläne: free = 30 Min./Monat (mit Login), creator = 300 Min., pro = 1200 Min. (config: PLAN_MINUTES).
