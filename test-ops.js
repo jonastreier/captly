@@ -16,7 +16,12 @@ const run = (script, args, env) => spawnSync('node', [path.join(__dirname, scrip
 const FULL = { FTP_SERVER: 'ftp.example.ch', FTP_USERNAME: 'u', FTP_PASSWORD: 'p', GROQ_API_KEY: 'gsk_abc', SUPABASE_SERVICE_KEY: 'eyJservice', SMTP_HOST: 'asmtp.example.ch', SMTP_USER: 'noreply@example.com', SMTP_PASS: 'x', LEAD_SECRET: 'a'.repeat(40) };
 let r = run('scripts/check-secrets.js', [], {});
 ok(r.status === 1, 'check-secrets: ohne Secrets Exit 1');
-ok(['FTP_SERVER', 'FTP_USERNAME', 'FTP_PASSWORD', 'GROQ_API_KEY', 'SUPABASE_SERVICE_KEY', 'SMTP_HOST', 'SMTP_USER', 'SMTP_PASS', 'LEAD_SECRET'].every(k => r.stdout.includes('✗ ' + k)), 'check-secrets: nennt ALLE fehlenden Pflicht-Secrets auf einmal');
+ok(['FTP_SERVER', 'FTP_USERNAME', 'FTP_PASSWORD', 'GROQ_API_KEY'].every(k => r.stdout.includes('✗ ' + k)), 'check-secrets: nennt ALLE fehlenden Pflicht-Secrets auf einmal');
+ok(['SUPABASE_SERVICE_KEY', 'SMTP_HOST', 'LEAD_SECRET'].every(k => r.stdout.includes('· ' + k) && !r.stdout.includes('✗ ' + k)), 'check-secrets: Supabase/SMTP/LEAD_SECRET sind Hinweise, keine Pflicht');
+{ const min = run('scripts/check-secrets.js', [], { FTP_SERVER: 'sl52.web.hostpoint.ch', FTP_USERNAME: 'u', FTP_PASSWORD: 'p', GROQ_API_KEY: 'gsk_x' });
+  ok(min.status === 0 && /Pflicht-Secrets vorhanden/.test(min.stdout) && /SUPABASE_SERVICE_KEY/.test(min.stdout), 'check-secrets: Minimal (FTP + Groq) → Exit 0, Rest als Hinweis');
+  const half = run('scripts/check-secrets.js', [], { FTP_SERVER: 's', FTP_USERNAME: 'u', FTP_PASSWORD: 'p', GROQ_API_KEY: 'gsk_x', SMTP_HOST: 'h' });
+  ok(half.status === 1 && /nur zusammen setzen/.test(half.stdout), 'check-secrets: halbes SMTP → Fehler'); }
 ok(/docs\/START-HIER\.md/.test(r.stdout), 'check-secrets: verweist auf die Anleitung');
 r = run('scripts/check-secrets.js', [], FULL);
 ok(r.status === 0 && /Alle Pflicht-Secrets vorhanden/.test(r.stdout), 'check-secrets: vollständig → Exit 0');
@@ -74,7 +79,7 @@ return false;`);
   ok(res.status === 1 && /Transkription: erreichbar, aber Groq-Key fehlt/.test(res.out), 'live-check: erkennt fehlenden Groq-Key');
 
   res = await withServer(mk(GOOD.replace("'LEAD_SECRET'", "'X_LEAD'"), false), live);
-  ok(res.status === 1 && /Kontaktformular ohne Token/.test(res.out), 'live-check: erkennt fehlendes LEAD_SECRET');
+  ok(res.status === 0 && /Kontaktformular ohne Token/.test(res.out), 'live-check: meldet fehlendes LEAD_SECRET als Hinweis (Minimal-Deploy bleibt grün)');
 
   res = await withServer(mk(GOOD, true), live);
   ok(res.status === 1 && /\/schema\.sql ist ÖFFENTLICH abrufbar/.test(res.out), 'live-check: erkennt öffentlich abrufbare interne Datei (schema.sql)');

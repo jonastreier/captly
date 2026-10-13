@@ -5,23 +5,26 @@ const e = process.env;
 const has = k => typeof e[k] === 'string' && e[k].trim() !== '';
 
 // [Name, wofür, woher]
+// Pflicht = was der Deploy zwingend braucht: Upload + Transkription. Damit ist die Seite sauber und vollständig
+// online und Untertitel funktionieren. Login, E-Mail-Liste, Mails und Kontaktformular kommen dazu, sobald die
+// Secrets unter LATER nachgetragen sind (fehlende werden als Hinweis genannt, stoppen den Deploy aber nicht).
 const REQUIRED = [
   ['FTP_SERVER', 'Upload auf Hostpoint', 'Hostpoint → FTP-Einstellungen (Servername)'],
   ['FTP_USERNAME', 'Upload auf Hostpoint', 'Hostpoint → FTP-Benutzer'],
   ['FTP_PASSWORD', 'Upload auf Hostpoint', 'Hostpoint → FTP-Passwort'],
   ['GROQ_API_KEY', 'Transkription (Untertitel)', 'console.groq.com → API Keys (beginnt mit gsk_)'],
-  ['SUPABASE_SERVICE_KEY', 'E-Mail-Liste, Fehlerberichte, Abos (nur Server)', 'Supabase → Project Settings → API → service_role'],
-  ['SMTP_HOST', 'Mailversand (Bestätigungen, Kontaktformular)', 'Hostpoint-Postfach noreply@ → SMTP-Server'],
-  ['SMTP_USER', 'Mailversand', 'volle Adresse noreply@gluephs.com'],
-  ['SMTP_PASS', 'Mailversand', 'Passwort des Postfachs noreply@'],
-  ['LEAD_SECRET', 'Signiert Abmelde-Links und Kontaktformular', 'selbst erzeugen: openssl rand -hex 32 (Terminal) oder Passwortmanager'],
 ];
 const RECOMMENDED = [
   ['FTP_DIR', 'Zielordner auf dem Server (sonst ./ )', 'z. B. ./www/gluephs.com/ (mit / am Ende)'],
+  ['LEAD_SECRET', 'Signiert Abmelde-Links und Kontaktformular (ohne: Kontaktformular ohne Spam-Schutz)', 'selbst erzeugen: openssl rand -hex 32 (Terminal) oder Passwortmanager'],
+  ['SUPABASE_SERVICE_KEY', 'E-Mail-Liste, Fehlerberichte, Abos (nur Server)', 'Supabase → Project Settings → API → service_role'],
+  ['SUPABASE_URL', 'Supabase-Projekt fürs Login (sonst der Wert aus captly.html)', 'Supabase → Project Settings → API → Project URL'],
+  ['SUPABASE_ANON_KEY', 'öffentlicher Schlüssel fürs Login (zusammen mit SUPABASE_URL)', 'Supabase → Project Settings → API Keys → Publishable key'],
+  ['SMTP_HOST', 'Mailversand (Bestätigungen, Kontaktformular)', 'asmtp.mail.hostpoint.ch'],
+  ['SMTP_USER', 'Mailversand', 'volle Adresse noreply@gluephs.com'],
+  ['SMTP_PASS', 'Mailversand', 'Passwort des Postfachs noreply@'],
   ['SMTP_PORT', 'Mail-Port (sonst 465)', '465'],
   ['MAIL_FROM', 'Absenderadresse (sonst contact@gluephs.com)', 'noreply@gluephs.com'],
-  ['SUPABASE_URL', 'Supabase-Projekt (sonst der Wert aus captly.html)', 'Supabase → Project Settings → API → Project URL'],
-  ['SUPABASE_ANON_KEY', 'öffentlicher Schlüssel fürs Login (zusammen mit SUPABASE_URL)', 'Supabase → Project Settings → API Keys → Publishable key'],
   ['ALERT_URL', 'Push-Alarm bei Groq-Limit/Fehlern', 'https://ntfy.sh/<dein-geheimes-thema>'],
 ];
 
@@ -39,6 +42,8 @@ if (has('MAIL_FROM') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.MAIL_FROM.trim())) 
 if (has('SUPABASE_URL') !== has('SUPABASE_ANON_KEY')) errors.push('  ✗ SUPABASE_URL/SUPABASE_ANON_KEY  nur zusammen setzen (beide oder keines)');
 if (has('SUPABASE_URL') && !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(e.SUPABASE_URL.trim())) errors.push('  ✗ SUPABASE_URL          erwartet https://<projekt>.supabase.co');
 if (has('SUPABASE_ANON_KEY') && /^sb_secret_|service_role/.test(e.SUPABASE_ANON_KEY)) errors.push('  ✗ SUPABASE_ANON_KEY     ist der geheime Schlüssel — hier gehört der öffentliche Publishable key hin');
+const smtp = ['SMTP_HOST', 'SMTP_USER', 'SMTP_PASS'].filter(has);
+if (smtp.length && smtp.length < 3) errors.push('  ✗ SMTP_HOST/SMTP_USER/SMTP_PASS  nur zusammen setzen (alle drei oder keines)');
 if (has('ALERT_URL') && !/^https:\/\//.test(e.ALERT_URL.trim())) warns.push('  · ALERT_URL             sollte mit https:// beginnen');
 
 console.log('Secrets-Prüfung (Deploy)');
@@ -46,9 +51,9 @@ if (errors.length) {
   console.log('\nFEHLT oder falsch — bitte in GitHub eintragen (Repo → Settings → Secrets and variables → Actions → New repository secret):\n');
   console.log(errors.join('\n'));
 }
-if (warns.length) console.log('\nEmpfohlen / Hinweise:\n' + warns.join('\n'));
+if (warns.length) console.log('\nNoch nicht gesetzt (Deploy läuft trotzdem; Login/Mails/E-Mail-Liste erst danach):\n' + warns.join('\n'));
 if (errors.length) {
   console.log('\nNach dem Eintragen: Actions → Deploy → «Run workflow». Anleitung: docs/START-HIER.md');
   process.exit(1);
 }
-console.log('\n✓ Alle Pflicht-Secrets vorhanden.');
+console.log('\n✓ Alle Pflicht-Secrets vorhanden (Upload + Transkription).');

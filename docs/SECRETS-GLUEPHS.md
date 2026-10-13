@@ -4,6 +4,20 @@ Ziel: Der automatische Deploy lädt bei jedem Merge auf `main` **alles** vollst�
 
 Dauer: ca. 45 Minuten. Reihenfolge einhalten, jeder Schritt hat eine **Probe** (✅). Wo Hostpoint, Supabase oder Groq ihre Oberfläche geändert haben: dem Sinn nach suchen.
 
+## Schnellstart (ca. 10 min): Seite sauber online, Untertitel funktionieren
+
+Pflicht sind nur **5 Secrets**. Alles andere kann später folgen, der Deploy läuft trotzdem und nennt das Fehlende als Hinweis.
+
+| Secret | Wert |
+|---|---|
+| `FTP_SERVER` | z. B. `sl52.web.hostpoint.ch` (Schritt 1) |
+| `FTP_USERNAME` | FTP-Benutzer (Schritt 1) |
+| `FTP_PASSWORD` | FTP-Passwort (Schritt 1) |
+| `FTP_DIR` | Ordner von gluephs.com, z. B. `./www/gluephs.com/` (Schritt 1; streng genommen optional, aber ohne landet alles in `./`) |
+| `GROQ_API_KEY` | `gsk_…` (Schritt 3) |
+
+Dann Schritt 6 (eintragen) und 7 (Deploy starten). Login, E-Mail-Liste, Mails und Spam-Schutz des Kontaktformulars kommen dazu, sobald Schritt 2, 4 und 5 erledigt sind.
+
 **Goldene Regel:** Passwörter und Schlüssel gehören nur in GitHub → Secrets, nie in Chat, Mail oder Code. Eine Ausnahme sind die zwei öffentlichen Supabase-Werte aus Schritt 4, die sind ungefährlich.
 
 Stand bereits erledigt: gluephs.com läuft bei Hostpoint (Server `sl52.web.hostpoint.ch`), SSL ist aktiv, MX, SPF und DMARC sind gesetzt.
