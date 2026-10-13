@@ -1,6 +1,6 @@
 <?php
 /**
- * CaptionRush – serverseitiger Transkriptions-Proxy (Groq Whisper large-v3).
+ * Gluephs – serverseitiger Transkriptions-Proxy (Groq Whisper large-v3).
  *
  * Zweck: Der geheime API-Key darf NIE in den Browser. Der Browser lädt die Tonspur
  * (Ogg/Opus oder WAV, 16 kHz mono) per POST hierher; dieses Skript hängt den Key an und ruft die
@@ -212,7 +212,7 @@ function alert_ops($key, $msg) {
   @touch($f);
   $c = curl_init($url);
   curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => mb_substr($msg, 0, 500), CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_TIMEOUT => 3, CURLOPT_HTTPHEADER => ['Title: CaptionRush', 'Tags: warning']]);
+    CURLOPT_TIMEOUT => 3, CURLOPT_HTTPHEADER => ['Title: Gluephs', 'Tags: warning']]);
   @curl_exec($c); curl_close($c);
 }
 

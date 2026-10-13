@@ -1,6 +1,6 @@
 <?php
 /**
- * CaptionRush – Plan und Restminuten: GET /api/plan (Header X-Capivo-Token = Supabase-Session).
+ * Gluephs – Plan und Restminuten: GET /api/plan (Header X-Capivo-Token = Supabase-Session).
  * Mit BILLING_ENABLED=false (Standard) immer {enabled:false} → das Frontend zeigt nichts davon an.
  * Antwort enthält nur öffentliche Werte (Paddle-Client-Token, Preis-IDs), nie Secrets.
  */

@@ -224,14 +224,14 @@ Aufwand: S (< 1 Tag), M (1–3 Tage), L (> 3 Tage). Quelle: A/B/C = Tester, D = 
 | 15 | mittel | Customizer auf dem Handy schlecht auffindbar | Auftraggeber | S–M | in Arbeit |
 | 16 | mittel | Auto-Zoom ohne KI wirkungslos | Auftraggeber | S | in Arbeit |
 | 17 | mittel | Handy-Tippflächen < 44 px (≈ 130 Stellen) | A, `reise/flow-phone.json` | M | teilweise behoben (≥ 32 px, F2) |
-| 18 | mittel | Desktop-Timeline ohne Split-Knopf | A | S | offen |
+| 18 | mittel | Desktop-Timeline ohne Split-Knopf | A | S | **behoben** (Knopf «Split» + Taste S) |
 | 19 | mittel | Arabisch/CJK nur Systemschriften (Tofu-Risiko) | B | M | offen |
 | 20 | mittel | 16 Sprachen, Übersetzen nur nach Englisch | D | M | offen |
 | 21 | mittel | Kein Trimmen/Schneiden | D | M–L | offen |
 | 22 | niedrig | Pop-Animation schluckt bei lift/stack ≈ 0,3 s den Wortabstand | B, `looks/pop-wortabstand-lift.png` | S | offen |
 | 23 | niedrig | Arabisch in Kursiv-Looks künstlich schräg | B | S | offen |
 | 24 | niedrig | Meldung bei stark abgeschnittener WebM passt nicht («Could not read the audio») | C | S | offen |
-| 25 | niedrig | Gleiches Video mit anderem Dateinamen wird nicht wiederhergestellt | C | S | offen |
+| 25 | niedrig | Gleiches Video mit anderem Dateinamen wird nicht wiederhergestellt | C | S | **behoben** |
 | 26 | niedrig | Look-Wechsel gruppiert Untertitel neu (8 → 6 Blöcke); Verlust manueller Edits nicht geprüft | A | S | offen |
 | — | — | Export-Position = Vorschau | F1, 0 px gemessen | — | **seit Testlauf behoben** |
 | — | — | Cover-Akzent-Chips | F2 | — | **seit Testlauf behoben** |
@@ -299,7 +299,7 @@ Aufwand: S (< 1 Tag), M (1–3 Tage), L (> 3 Tage). Quelle: A/B/C = Tester, D = 
 - Beschriftung «1080p» an die tatsächliche Ausgabegrösse koppeln (S).
 - Abbrechen-Knopf beim Export und `beforeunload`-Warnung bei laufendem Export oder ungesicherten Edits (S).
 - Customizer auf dem Handy auffindbar machen, Auto-Zoom ohne KI wirksam machen (in Arbeit) (S–M).
-- Split-Knopf in der Desktop-Timeline (S).
+- ~~Split-Knopf in der Desktop-Timeline (S).~~ erledigt
 - CJK nicht mit Bindestrich trennen (S).
 
 ### 9.3 Danach

@@ -7,7 +7,7 @@ on:
     inputs:
       url:
         description: Adresse der Seite
-        default: https://captionrush.com
+        default: https://gluephs.com
   workflow_run:
     workflows: [Deploy]
     types: [completed]
@@ -25,4 +25,4 @@ jobs:
         if: ${{ github.event_name == 'workflow_run' }}
         run: sleep 20
       - name: Live-Check
-        run: node scripts/live-check.js "${{ github.event.inputs.url || 'https://captionrush.com' }}"
+        run: node scripts/live-check.js "${{ github.event.inputs.url || 'https://gluephs.com' }}"

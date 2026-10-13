@@ -488,9 +488,9 @@ if (require.main !== module) return;
         await page.waitForSelector('#expDone', { state: 'visible', timeout: 5000 }).catch(() => {});
         await shot('05b-export-done-sheet');
         ok(await page.isVisible('#expSheet') && await page.isVisible('#expDone') && !(await page.isVisible('#btnVideo')), 'Nach dem Export: Fertig-Ansicht im Blatt');
-        const vis = {}; for (const id of ['btnSRT', 'btnVTT', 'btnTXT', 'btnCover', 'btnCopy', 'expCopyPost', 'expDlFile', 'expAgain']) vis[id] = await page.isVisible('#' + id);
-        ok(Object.values(vis).every(Boolean) && await page.isEnabled('#btnSRT') && await page.isEnabled('#btnCover'), 'Nach dem Export sichtbar + aktiv: SRT, VTT, TXT, Cover, Copy text, Copy full transcript, Download again, Export again (' + JSON.stringify(vis) + ')');
-        ok(/Export again/.test(await page.textContent('#expAgain')) && /Download again/.test(await page.textContent('#expDlFile')), 'Beschriftung: «Download again» (gleiche Datei) und «Export again» (neu rendern) getrennt');
+        const vis = {}; for (const id of ['btnSRT', 'btnVTT', 'btnTXT', 'btnCover', 'btnCopy', 'expCopyPost', 'expDlFile']) vis[id] = await page.isVisible('#' + id);
+        ok(Object.values(vis).every(Boolean) && await page.isEnabled('#btnSRT') && await page.isEnabled('#btnCover'), 'Nach dem Export sichtbar + aktiv: SRT, VTT, TXT, Cover, Copy text, Copy full transcript, Download again (' + JSON.stringify(vis) + ')');
+        ok(/Download again/.test(await page.textContent('#expDlFile')) && !(await page.isVisible('#expAgain')) && !(await page.isVisible('#expChangedHint')), 'Ohne Änderungen: nur «Download again», kein Neu-Export-Knopf und kein Hinweis');
         for (const [id, re] of [['btnSRT', /\.srt$/], ['btnVTT', /\.vtt$/], ['btnTXT', /\.txt$/]]) {
           const dP = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
           await page.click('#' + id);
@@ -507,11 +507,14 @@ if (require.main !== module) return;
         ok(!!d2 && d2.suggestedFilename() === dl.suggestedFilename(), '«Download again»: Datei wird erneut gespeichert (' + (d2 ? d2.suggestedFilename() : '–') + ')');
         if (d2) ok(Buffer.compare(fs.readFileSync(await d2.path()), fs.readFileSync(fp)) === 0, '«Download again»: byte-identisch zur ersten Datei');
         ok(await page.evaluate(() => window.__renders === 0 && !isExporting && _expTok === null), '«Download again» löst keinen Neu-Render aus (Zähler 0)');
-        // Export again → rendert neu; Abbrechen mitten im Rendern: kein Download, Zustand zurück
+        // Untertitel ändern → «Export with your changes» erscheint (primär) mit Hinweis, «Download again» wird «Download previous version»
+        await page.evaluate(() => { captionBlocks[0].text += ' x'; syncExportAgain(); });
+        ok(await page.isVisible('#expAgain') && /Export with your changes/.test(await page.textContent('#expAgain')) && await page.isVisible('#expChangedHint') && /previous version/.test(await page.textContent('#expDlFile')), 'Nach einer Änderung: «Export with your changes» + Hinweis, «Download previous version»');
+        // Export with your changes → rendert neu; Abbrechen mitten im Rendern: kein Download, Zustand zurück
         let extra = 0; const cnt = () => { extra++; }; page.on('download', cnt);
         await page.click('#expAgain');
         await page.waitForFunction(() => isExporting === true, null, { timeout: 15000 }).catch(() => {});
-        ok(await page.evaluate(() => window.__renders === 1 && isExporting), '«Export again» rendert neu (Zähler 1)');
+        ok(await page.evaluate(() => window.__renders === 1 && isExporting), '«Export with your changes» rendert neu (Zähler 1)');
         await page.waitForTimeout(1500);
         ok(await page.isVisible('#expCancel') && /Exporting|Preparing/.test(await page.textContent('#tbExport')) && await page.isEnabled('#tbExport'), 'Während des Exports: «Cancel» sichtbar, Top-Knopf zeigt Fortschritt und bleibt klickbar');
         await shot('05c-cancel-visible');
@@ -958,6 +961,39 @@ if (require.main !== module) return;
     const hscroll = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1);
     ok(!hscroll, 'kein horizontales Scrollen');
     await ctx.close();
+  }
+  // Handy quer / kleine Handys: Video und Kopfzeile oben vollständig sichtbar, nichts ragt unten über den Bildschirm (Timeline zu)
+  for (const [vw, vh] of [[844, 390], [932, 430], [390, 664], [360, 640]]) {
+    const c2 = await browser.newContext({ viewport: { width: vw, height: vh }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+    await routeSupabase(c2, base);
+    const p3 = await c2.newPage();
+    await p3.goto(base + '/', { waitUntil: 'load' });
+    await p3.setInputFiles('#landInput', VIDEO);
+    await p3.waitForFunction(() => typeof captionBlocks !== 'undefined' && captionBlocks.length > 0, null, { timeout: 60000 }).catch(() => {});
+    await p3.waitForTimeout(900);
+    const g = await p3.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom }; };
+      return { vh: innerHeight, topbar: r('.topbar'), frame: r('#prevFrame'), ctrls: r('#vidCtrls'), tlOpen: !!(window._tl && _tl.open), hs: document.documentElement.scrollWidth > innerWidth + 1 }; });
+    const tag = vw + '×' + vh;
+    ok(g.frame && g.topbar && g.frame.t >= g.topbar.b - 0.5, 'Handy ' + tag + ': Video beginnt unter der Kopfzeile, oberer Rand nicht abgeschnitten (' + Math.round(g.frame.t) + ' ≥ ' + Math.round(g.topbar.b) + ')');
+    ok(g.frame.b <= g.vh && g.ctrls.b <= g.vh + 0.5 || vw <= 640, 'Handy ' + tag + ': Video + Leiste passen auf den Bildschirm');
+    ok(vw <= 640 || !g.tlOpen, 'Handy ' + tag + ': Timeline startet zugeklappt (niedriger Bildschirm)');
+    ok(!g.hs, 'Handy ' + tag + ': kein horizontales Scrollen');
+    await c2.close();
+  }
+  // Nicht abspielbares Video nach gescrollter Startseite (Chrome Android): Kopfzeile bleibt sichtbar, Warnbox überlappt nichts
+  {
+    const c3 = await browser.newContext({ viewport: { width: 412, height: 780 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+    await routeSupabase(c3, base);
+    const p4 = await c3.newPage();
+    await p4.goto(base + '/', { waitUntil: 'load' });
+    await p4.evaluate(() => window.scrollTo(0, 700));
+    await p4.setInputFiles('#landInput', { name: 'kaputt.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(120000, 7) });
+    await p4.waitForTimeout(3500);
+    const g2 = await p4.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, d: getComputedStyle(e).display }; };
+      return { sy: scrollY, topbar: r('.topbar'), frame: r('#prevFrame'), warn: r('#vidWarn'), pc: r('.prev-col') }; });
+    ok(g2.sy === 0 && g2.topbar.t >= 0, 'Fehlerfall Handy: Seite oben (scrollY ' + g2.sy + '), Kopfzeile sichtbar');
+    ok(g2.warn.d === 'none' || (g2.frame.t >= g2.pc.t && g2.warn.b <= g2.pc.b + 1), 'Fehlerfall Handy: Video und Warnbox liegen komplett in der Vorschau-Spalte (Warnbox bis ' + Math.round(g2.warn.b) + ', Spalte bis ' + Math.round(g2.pc.b) + ')');
+    await c3.close();
   }
   await browser.close(); server.close();
   console.log(fails ? `\n${fails}/${n} FEHLER` : `\ntest-e2e: ${n} Prüfungen grün`);

@@ -38,13 +38,13 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
   try {
     // ── log.php
     const g = await fetch(base + 'log.php'); ok((await g.json()).configured === true, 'log: GET meldet configured');
-    const r1 = await post('log.php', { m: 'TypeError: cannot read mein-urlaub-2024.mp4 for anna@example.com at https://captionrush.com/x?token=abc123#frag id 1234567890 tok_abcdefghijklmnopqrstuvwxyz0123', s: 'app.js:42', p: '/de?email=a@b.ch' },
+    const r1 = await post('log.php', { m: 'TypeError: cannot read mein-urlaub-2024.mp4 for anna@example.com at https://gluephs.com/x?token=abc123#frag id 1234567890 tok_abcdefghijklmnopqrstuvwxyz0123', s: 'app.js:42', p: '/de?email=a@b.ch' },
       { 'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1' });
     ok(r1.s === 204 && errors.length === 1, 'log: 204 und eine Zeile gespeichert');
     const e = errors[0] || {};
     ok(!/mein-urlaub|\.mp4/.test(e.msg) && /<file>/.test(e.msg), 'log: Dateiname entfernt: ' + e.msg);
     ok(!/anna|example\.com/.test(e.msg) && /<email>/.test(e.msg), 'log: E-Mail-Adresse entfernt');
-    ok(!/token=|abc123|#frag/.test(e.msg) && /captionrush\.com\/x/.test(e.msg), 'log: Query und Fragment der Adresse entfernt');
+    ok(!/token=|abc123|#frag/.test(e.msg) && /gluephs\.com\/x/.test(e.msg), 'log: Query und Fragment der Adresse entfernt');
     ok(!/1234567890|abcdefghijklmnopqrstuvwxyz/.test(e.msg), 'log: lange Zahlen und Token entfernt');
     ok(e.page === '/de' && e.browser === 'Safari mobile' && e.src === 'app.js:42', 'log: Seitenpfad ohne Query, Browser-Familie statt User-Agent');
     ok(!('ip' in e) && !JSON.stringify(e).includes('127.0.0.1') && !/iPhone|AppleWebKit/.test(JSON.stringify(e)), 'log: weder IP noch User-Agent gespeichert');

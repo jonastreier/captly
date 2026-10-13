@@ -150,7 +150,7 @@ function qaMain() {
       Object.keys(s).forEach(k => { if (['id', 'name', 'badge', '_tpl', '_isTpl', '_tplId'].indexOf(k) >= 0) return; const v = s[k]; o['style.' + k] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v; });
       // cfg.fontRel = Schrift relativ zur Rahmenbreite: ändert sich nicht, wenn der Rahmen (Handy: kompakt beim Tippen) schrumpft
       o['cfg.active'] = activeId; o['cfg.lines'] = CAPTION_LINES; o['cfg.wpb'] = WORDS_PER_BLOCK; o['cfg.maxChars'] = CAP_MAX_CHARS;
-      o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
+      o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.hoff'] = capHOff; o['cfg.free'] = capFree; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
       o['cfg.punct'] = capNoPunct ? 1 : 0; o['cfg.kw'] = emKw ? 1 : 0; o['cfg.emoji'] = emEmoji ? 1 : 0; o['cfg.zoom'] = emZoom; o['cfg.timeOff'] = timeOff;
       o['cfg.blocks'] = captionBlocks.length;
       o['cfg.text'] = hash(captionBlocks.map(b => b.text).join('|'));
@@ -464,6 +464,7 @@ CTL.push(
   { id: 'taGaps', tab: 'timeline', op: 'click', sel: '#taGaps', values: [null], vp: ['phone'], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => { captionBlocks[1].end -= 0.3; captionBlocks[1].words[captionBlocks[1].words.length - 1].end -= 0.3; }), changes: ['cfg.timing'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'tlSelect', tab: 'timeline', op: 'run', values: [null], pre: GOTO_TL, run: sc => tlClickBlock(sc, 2), changes: ['tl.sel'], inv: ['cfg.blocks', 'cfg.text', 'cfg.timing'], lines: 0 },
   { id: 'taSplit', tab: 'timeline', op: 'click', sel: '#taSplit', values: [null], vp: ['phone'], pre: GOTO_TL, setup: sc => sc.page.evaluate(async () => { tlSelect(0, false); const b = captionBlocks[0]; await __qa.seekTo((b.words[1].start + b.words[2].start) / 2 - timeOff); }), changes: ['cfg.blocks', 'cfg.text'], inv: ['cfg.wpb', 'cfg.lines'], lines: 0 },
+  { id: 'tlSplit', tab: 'timeline', op: 'click', sel: '#tlSplitBtn', values: [null], vp: ['desktop'], pre: GOTO_TL, setup: sc => sc.page.evaluate(async () => { tlSelect(0, false); const b = captionBlocks[0]; await __qa.seekTo((b.words[1].start + b.words[2].start) / 2 - timeOff); }), changes: ['cfg.blocks', 'cfg.text'], inv: ['cfg.wpb', 'cfg.lines'], lines: 0 },
   { id: 'taDel', tab: 'timeline', op: 'click', sel: '#taDel', values: [null], vp: ['phone'], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => tlSelect(2, false)), changes: ['cfg.blocks', 'cfg.text'], inv: ['cfg.wpb', 'cfg.lines'], lines: 0 },
   { id: 'tlDelKey', tab: 'timeline', op: 'run', values: [null], vp: ['desktop'], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => { tlSelect(2, false); document.getElementById('tlCanvas').focus(); }), run: sc => sc.page.keyboard.press('Delete'), changes: ['cfg.blocks', 'cfg.text'], inv: ['cfg.wpb', 'cfg.lines'], lines: 0 },
   { id: 'taMulti', tab: 'timeline', op: 'click', sel: '#taMulti', values: [null], vp: ['phone'], pre: GOTO_TL, changes: ['tl.multi'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },

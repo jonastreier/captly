@@ -12,14 +12,16 @@ const REQUIRED = [
   ['GROQ_API_KEY', 'Transkription (Untertitel)', 'console.groq.com → API Keys (beginnt mit gsk_)'],
   ['SUPABASE_SERVICE_KEY', 'E-Mail-Liste, Fehlerberichte, Abos (nur Server)', 'Supabase → Project Settings → API → service_role'],
   ['SMTP_HOST', 'Mailversand (Bestätigungen, Kontaktformular)', 'Hostpoint-Postfach noreply@ → SMTP-Server'],
-  ['SMTP_USER', 'Mailversand', 'volle Adresse noreply@captionrush.com'],
+  ['SMTP_USER', 'Mailversand', 'volle Adresse noreply@gluephs.com'],
   ['SMTP_PASS', 'Mailversand', 'Passwort des Postfachs noreply@'],
   ['LEAD_SECRET', 'Signiert Abmelde-Links und Kontaktformular', 'selbst erzeugen: openssl rand -hex 32 (Terminal) oder Passwortmanager'],
 ];
 const RECOMMENDED = [
-  ['FTP_DIR', 'Zielordner auf dem Server (sonst ./ )', 'z. B. ./www/captionrush.com/ (mit / am Ende)'],
+  ['FTP_DIR', 'Zielordner auf dem Server (sonst ./ )', 'z. B. ./www/gluephs.com/ (mit / am Ende)'],
   ['SMTP_PORT', 'Mail-Port (sonst 465)', '465'],
-  ['MAIL_FROM', 'Absenderadresse (sonst contact@captionrush.com)', 'noreply@captionrush.com'],
+  ['MAIL_FROM', 'Absenderadresse (sonst contact@gluephs.com)', 'noreply@gluephs.com'],
+  ['SUPABASE_URL', 'Supabase-Projekt (sonst der Wert aus captly.html)', 'Supabase → Project Settings → API → Project URL'],
+  ['SUPABASE_ANON_KEY', 'öffentlicher Schlüssel fürs Login (zusammen mit SUPABASE_URL)', 'Supabase → Project Settings → API Keys → Publishable key'],
   ['ALERT_URL', 'Push-Alarm bei Groq-Limit/Fehlern', 'https://ntfy.sh/<dein-geheimes-thema>'],
 ];
 
@@ -31,9 +33,12 @@ for (const [k, why, from] of RECOMMENDED) if (!has(k)) warns.push(`  · ${k.padE
 if (has('LEAD_SECRET') && e.LEAD_SECRET.trim().length < 24) errors.push('  ✗ LEAD_SECRET           zu kurz (mindestens 24 Zeichen), sonst lassen sich Abmelde-Links erraten');
 if (has('GROQ_API_KEY') && !/^gsk_/.test(e.GROQ_API_KEY.trim())) warns.push('  · GROQ_API_KEY          beginnt nicht mit gsk_ — richtiger Schlüssel?');
 if (has('SUPABASE_SERVICE_KEY') && /anon|publishable/i.test(e.SUPABASE_SERVICE_KEY)) errors.push('  ✗ SUPABASE_SERVICE_KEY  sieht nach dem öffentlichen (anon/publishable) Schlüssel aus — hier gehört der service_role-Schlüssel hin');
-if (has('FTP_DIR') && !/\/$/.test(e.FTP_DIR.trim())) warns.push('  · FTP_DIR               endet nicht mit / — Pfad mit / am Ende angeben (z. B. ./www/captionrush.com/)');
+if (has('FTP_DIR') && !/\/$/.test(e.FTP_DIR.trim())) warns.push('  · FTP_DIR               endet nicht mit / — Pfad mit / am Ende angeben (z. B. ./www/gluephs.com/)');
 if (has('SMTP_PORT') && !/^\d{2,5}$/.test(e.SMTP_PORT.trim())) errors.push('  ✗ SMTP_PORT             keine Zahl: ' + e.SMTP_PORT);
 if (has('MAIL_FROM') && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e.MAIL_FROM.trim())) errors.push('  ✗ MAIL_FROM             keine gültige E-Mail-Adresse');
+if (has('SUPABASE_URL') !== has('SUPABASE_ANON_KEY')) errors.push('  ✗ SUPABASE_URL/SUPABASE_ANON_KEY  nur zusammen setzen (beide oder keines)');
+if (has('SUPABASE_URL') && !/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(e.SUPABASE_URL.trim())) errors.push('  ✗ SUPABASE_URL          erwartet https://<projekt>.supabase.co');
+if (has('SUPABASE_ANON_KEY') && /^sb_secret_|service_role/.test(e.SUPABASE_ANON_KEY)) errors.push('  ✗ SUPABASE_ANON_KEY     ist der geheime Schlüssel — hier gehört der öffentliche Publishable key hin');
 if (has('ALERT_URL') && !/^https:\/\//.test(e.ALERT_URL.trim())) warns.push('  · ALERT_URL             sollte mit https:// beginnen');
 
 console.log('Secrets-Prüfung (Deploy)');

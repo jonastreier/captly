@@ -1,6 +1,6 @@
 <?php
 /**
- * CaptionRush – Paddle-Webhook (Paddle Billing): POST /api/paddle-webhook
+ * Gluephs – Paddle-Webhook (Paddle Billing): POST /api/paddle-webhook
  * Nur aktiv mit BILLING_ENABLED=true und PADDLE_WEBHOOK_SECRET in config.php (sonst 503).
  *
  * Sicherheit: Header `Paddle-Signature: ts=<unix>;h1=<hex>` = HMAC-SHA256("<ts>:<roher Body>", Secret). Mehrere h1-Werte
@@ -19,7 +19,7 @@ function out($code, $arr) { http_response_code($code); echo json_encode($arr); e
 
 $secret = (string)($cfg['PADDLE_WEBHOOK_SECRET'] ?? '');
 $ready = cr_billing_on($cfg) && $secret !== '' && cr_sb_base($cfg) !== '' && !empty($cfg['SUPABASE_SERVICE_KEY']);
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'service' => 'captionrush-paddle-webhook', 'configured' => $ready]);
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'service' => 'gluephs-paddle-webhook', 'configured' => $ready]);
 if (!$ready) out(503, ['error' => 'billing_disabled']);
 
 $raw = file_get_contents('php://input', false, null, 0, 262145);

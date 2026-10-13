@@ -1,8 +1,8 @@
-# CaptionRush
+# Gluephs
 
-> CaptionRush is a free browser tool that turns the speech in a video into animated, word-by-word captions for Instagram Reels, TikTok and YouTube Shorts. Upload a clip, check the captions, pick a style and download an MP4 with burned-in captions, or SRT/VTT subtitle files. Free during the beta, no account needed.
+> Gluephs is a free browser tool that turns the speech in a video into animated, word-by-word captions for Instagram Reels, TikTok and YouTube Shorts. Upload a clip, check the captions, pick a style and download an MP4 with burned-in captions, or SRT/VTT subtitle files. Free during the beta, no account needed.
 
-CaptionRush (formerly Capivo) is made in Switzerland by Jonas Treier (sole proprietorship web&meh) in Frick, Aargau. It is currently in beta.
+Gluephs (formerly Capivo) is made in Switzerland by Jonas Treier (sole proprietorship web&meh) in Frick, Aargau. It is currently in beta.
 
 ## Key facts
 
@@ -13,16 +13,16 @@ CaptionRush (formerly Capivo) is made in Switzerland by Jonas Treier (sole propr
 - Caption styles: 24, from bold karaoke-style captions to calm subtitles, with word-by-word highlighting.
 - Editor: fix words and timing, "Names & terms" field for tricky names and brand terms, templates, optional AI emphasis (keywords, emojis, zoom), suggested post caption and hashtags.
 - Export: MP4 with burned-in captions (1080p by default, no watermark), SRT, VTT and a plain TXT transcript.
-- Privacy: only the audio track is sent for transcription; the video stays on the device and the MP4 is rendered locally in the browser. Audio and transcripts are not stored on CaptionRush servers.
+- Privacy: only the audio track is sent for transcription; the video stays on the device and the MP4 is rendered locally in the browser. Audio and transcripts are not stored on Gluephs servers.
 - Devices: runs in desktop and mobile browsers (including iPhone and Android); no app or plugin to install.
 - Price: free during the beta, no account needed; an email address is asked before the first video download. Paid plans Creator (planned $7.99/month, 300 transcription minutes) and Pro (planned $14.99/month, 1,200 transcription minutes) are announced as "coming soon" and are not available yet.
 
 ## Pages
 
-- [CaptionRush (English)](https://captionrush.com/): app and landing page with features, pricing and FAQ
-- [CaptionRush (Deutsch)](https://captionrush.com/de): German landing page ("Untertitel automatisch erstellen")
-- [Impressum](https://captionrush.com/impressum.html): legal notice (German)
-- [Datenschutz](https://captionrush.com/datenschutz.html): privacy policy (German), incl. which data goes to Groq and Vercel
+- [Gluephs (English)](https://gluephs.com/): app and landing page with features, pricing and FAQ
+- [Gluephs (Deutsch)](https://gluephs.com/de): German landing page ("Untertitel automatisch erstellen")
+- [Impressum](https://gluephs.com/impressum.html): legal notice (German)
+- [Datenschutz](https://gluephs.com/datenschutz.html): privacy policy (German), incl. which data goes to Groq and Vercel
 
 ## FAQ highlights
 
@@ -33,4 +33,4 @@ CaptionRush (formerly Capivo) is made in Switzerland by Jonas Treier (sole propr
 
 ## Contact
 
-- Email: contact@captionrush.com
+- Email: contact@gluephs.com

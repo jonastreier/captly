@@ -1,7 +1,7 @@
--- CaptionRush — Datenbankschema für Login, Cloud-Projekte und Leads (Supabase / Postgres).
+-- Gluephs — Datenbankschema für Login, Cloud-Projekte und Leads (Supabase / Postgres).
 -- Einmalig im Supabase-Dashboard unter "SQL Editor" ausführen — und nach jedem Update dieser Datei erneut:
 -- alles ist idempotent (kann beliebig oft laufen) und löscht NIE Daten.
--- Nutzerkonten selbst verwaltet Supabase Auth (auth.users) — hier steht nur, was CaptionRush speichert.
+-- Nutzerkonten selbst verwaltet Supabase Auth (auth.users) — hier steht nur, was Gluephs speichert.
 
 -- ── Cloud-Projekte ──
 create table if not exists public.projects (

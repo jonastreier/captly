@@ -1,9 +1,9 @@
 // Prüft die LIVE-Seite nach dem Deploy und sagt, was noch fehlt.
-// Aufruf: node scripts/live-check.js [https://captionrush.com]      (auch als GitHub-Action «Live-Check»)
+// Aufruf: node scripts/live-check.js [https://gluephs.com]      (auch als GitHub-Action «Live-Check»)
 // Exit 1, wenn eine Pflichtprüfung (✗) fehlschlägt. Hinweise (!) sind nicht fatal.
 const dns = require('dns').promises;
 
-const BASE = (process.argv.slice(2).find(a => !a.startsWith('--')) || process.env.SITE_URL || 'https://captionrush.com').replace(/\/+$/, '');
+const BASE = (process.argv.slice(2).find(a => !a.startsWith('--')) || process.env.SITE_URL || 'https://gluephs.com').replace(/\/+$/, '');
 const HOST = new URL(BASE).hostname;
 const TIMEOUT = 20000;
 const LOCAL = process.argv.includes('--local'); // Test gegen php -S: keine HTTPS-/www-/DNS-Prüfungen
@@ -16,7 +16,7 @@ const note = (m, h) => { warn++; say('!', m, h); };
 async function get(path, opt = {}) {
   const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), TIMEOUT);
   try {
-    const r = await fetch(path.startsWith('http') ? path : BASE + path, Object.assign({ redirect: 'manual', signal: ctl.signal, headers: { 'User-Agent': 'captionrush-live-check' } }, opt));
+    const r = await fetch(path.startsWith('http') ? path : BASE + path, Object.assign({ redirect: 'manual', signal: ctl.signal, headers: { 'User-Agent': 'gluephs-live-check' } }, opt));
     const text = await r.text().catch(() => '');
     let json = null; try { json = JSON.parse(text); } catch (e) { /* kein JSON */ }
     return { status: r.status, headers: r.headers, text, json };
@@ -34,8 +34,8 @@ async function get(path, opt = {}) {
     fail('Seite nicht erreichbar: ' + home.error, /CERT|SSL|self|certificate/i.test(home.error) ? 'SSL-Zertifikat fehlt oder ist ungültig: Hostpoint → Domain → SSL (Let\'s Encrypt) einschalten.' : 'Domain noch nicht mit dem Hosting verbunden oder DNS noch nicht umgestellt (kann einige Stunden dauern).');
     console.log(`\n${bad} Fehler — weitere Prüfungen übersprungen.`); process.exit(1);
   }
-  if (home.status === 200 && /CaptionRush/i.test(home.text)) pass('Startseite lädt (HTTPS, Zertifikat gültig)');
-  else fail(`Startseite liefert Status ${home.status} oder nicht CaptionRush`, 'Wurde der Deploy (Actions → Deploy) erfolgreich beendet? Zielordner (FTP_DIR) prüfen: dort muss captly.html liegen.');
+  if (home.status === 200 && /gluephs/i.test(home.text)) pass('Startseite lädt (HTTPS, Zertifikat gültig)');
+  else fail(`Startseite liefert Status ${home.status} oder nicht Gluephs`, 'Wurde der Deploy (Actions → Deploy) erfolgreich beendet? Zielordner (FTP_DIR) prüfen: dort muss captly.html liegen.');
   if (!LOCAL) { if (home.headers && /max-age/i.test(home.headers.get('strict-transport-security') || '')) pass('HSTS-Header gesetzt'); else note('HSTS-Header fehlt', '.htaccess wurde evtl. nicht hochgeladen oder mod_headers ist aus.'); }
 
   // 2) http → https, www → ohne www

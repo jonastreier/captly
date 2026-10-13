@@ -13,7 +13,7 @@ function mkEl(id) {
       toggle(c, f) { f ? this._s.add(c) : this._s.delete(c); },
       contains(c) { return this._s.has(c); }
     },
-    innerHTML: '', textContent: '', value: '', className: '', title: '', href: '', download: '', rows: 1, scrollHeight: 12, offsetWidth: 0,
+    get innerHTML() { return this._ih || ''; }, set innerHTML(v) { this._ih = v; if (v === '') this.children = []; }, textContent: '', value: '', className: '', title: '', href: '', download: '', rows: 1, scrollHeight: 12, offsetWidth: 0,
     src: '', paused: true, ended: false, currentTime: 0, duration: NaN, muted: true, volume: 1, videoWidth: 1080, videoHeight: 1920, readyState: 0, files: [],
     appendChild(c) { this.children.push(c); }, addEventListener() {}, removeAttribute() {}, setAttribute() {},
     querySelectorAll() { return []; }, getBoundingClientRect() { return { left: 0, width: 100 }; },
@@ -51,6 +51,9 @@ global.document = {
 global.window = global;
 global.requestAnimationFrame = () => 0; global.cancelAnimationFrame = () => {};
 global.URL = { createObjectURL: b => { global.LASTBLOB = b; return 'blob:x'; }, revokeObjectURL() {} };
+// Node ≥ 24 lädt undici (FormData) erst beim ersten Zugriff und merkt sich dabei das globale Blob → vor dem Stub laden,
+// sonst lehnt FormData.append in api/transcribe.js echte Blobs ab
+const NativeBlob = global.Blob; void global.FormData;
 global.Blob = function (parts, opts) { this.content = parts.join(''); this.type = opts && opts.type; };
 global.alert = m => { global.ALERTS = (global.ALERTS || []).concat(m); };
 global.MediaRecorder = undefined;
@@ -119,18 +122,18 @@ wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBa
 exportDone:exportDone,dlBlob:dlBlob,shareLastExport:shareLastExport,topExport:topExport,setCapLang:function(v){_capLangForce=v;},setWordsState:function(w){wordTimestamps=w;},setEnhAuto:function(v){ENH_AUTO=v;},
 localEmphasis:localEmphasis,clearAutoFlags:clearAutoFlags,isEmphWord:isEmphWord,emWordRef:emWordRef,applyEnhanceResult:applyEnhanceResult,blockEmoji:blockEmoji,
 toggleWordEmph:toggleWordEmph,setBlockEmoji:setBlockEmoji,getEmph:function(){return {kw:emKw,emoji:emEmoji,zoom:emZoom,src:emSrc};},
-setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKey=null;},applyProjectPayload:applyProjectPayload,getUndoSnapshot:function(){return captionSnapshot();},
+setEmphState:function(k,e,z){emKw=k;emEmoji=e;emZoom=z;_zoomPlanKey=null;_lastKey=null;},applyProjectPayload:applyProjectPayload,capDragPlace:capDragPlace,capPosFromBox:capPosFromBox,capHClamp:capHClamp,capApplyH:capApplyH,capTopPct:capTopPct,capBottomPct:capBottomPct,setHOffState:function(v){capHOff=v;},getHOff:function(){return capHOff;},setFreeState:function(v){capFree=v;},getFree:function(){return capFree;},getPos:function(){return capPos;},getVOff:function(){return capVOff;},capDragStart:capDragStart,capDragMove:capDragMove,capDragEnd:capDragEnd,projectPayload:projectPayload,applyTemplateSettings:applyTemplateSettings,getUndoSnapshot:function(){return captionSnapshot();},
 emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopState:emojiPopState,zoomPlanFrom:zoomPlanFrom,zoomScaleAt:zoomScaleAt,zoomAt:zoomAt,
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
 setLines:setLines,splitBlockAtCursor:splitBlockAtCursor,getLines:function(){return CAPTION_LINES;},getMaxChars:function(){return CAP_MAX_CHARS;},getPresetPrevLayout:function(){return _presetPrevLayout;},setFontSizeState:function(v){fontSize=v;},
-setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
+setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capFontWeights:capFontWeights,csSyncWeights:csSyncWeights,onFontPick:onFontPick,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
 capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
 capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},setProgDrag:function(v){_progDrag=v;},
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
-exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,
+exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,exportChangedSinceLast:exportChangedSinceLast,syncExportAgain:syncExportAgain,exportSignature:exportSignature,setExportRes:function(v){exportRes=v;},getCapPos:function(){return capPos;},downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,
 zoomFill:zoomFill,zoomPlan:zoomPlan,zoomFeedback:zoomFeedback,zoomDemoStart:zoomDemoStart,getZoomDemo:function(){return _zoomDemo;},clearZoomDemo:function(){_zoomDemo=null;},
 applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
@@ -431,6 +434,22 @@ T.setMe('anon', '');
   ok(T.getCaptionsEdited() === true, 'Roundtrip: Edit-Flag uebernommen');
   ok(/Restored your last session/.test(document.getElementById('tStatus').innerHTML) && !/Preparing/.test(document.getElementById('tStatus').innerHTML),
      'Restore ruft KEINE Transkription auf (Status bleibt "Restored")');
+  // Fallback: gleiches Video unter anderem Dateinamen wird wiederhergestellt
+  T.setState([], []); T.setCaptionsEdited(false); T.setAutosaveKey(null);
+  document.getElementById('tStatus').innerHTML = '';
+  const restoredFallback = T.restoreOrTranscribe({ name: 'other-name.mp4', size: 1234 }, 10.49);
+  ok(restoredFallback === true, 'Fallback-Restore: anderer Dateiname, gleiche Größe+Dauer wiederhergestellt');
+  const savedBlocksAfterFallback = JSON.stringify(T.getBlocks().map(b => b.text));
+  ok(savedBlocksAfterFallback === savedBlocks, 'Fallback-Restore: Bloecke identisch');
+  const autosavesAfterMigration = T.readAutosaves();
+  ok(autosavesAfterMigration.length === 1, 'Fallback-Restore: nur 1 Eintrag nach Migration');
+  ok(autosavesAfterMigration[0].key === 'other-name.mp4|1234|105', 'Fallback-Restore: Schlüssel migriert zu neuem Namen');
+  // Fallback NICHT, wenn Größe unterschiedlich ist: no autosave found, no fallback found
+  const savedList = T.readAutosaves();
+  T.restoreOrTranscribe({ name: 'clip.mp4', size: 5678 }, 10.49);
+  ok(JSON.stringify(T.readAutosaves().filter(e => e.key.indexOf('5678') >= 0)) === '[]', 'Fallback: unterschiedliche Größe führt zu KEINEM Autosave eintrag');
+  // Clear autosaves before LRU test
+  store[T.AUTOSAVE_KEY] = JSON.stringify([]);
   // LRU: max. 5 Videos, neuestes zuerst
   for (let i = 0; i < 7; i++) { T.setAutosaveKey('v' + i + '|1|10'); T.autosaveNow(); }
   const lru = T.readAutosaves().map(e => e.key);
@@ -1574,6 +1593,130 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   ok(ovS.top === '12.46%', 'Oben mit Versatz bleibt unter der Reels-Leiste: ' + ovS.top);
   T.setVOffState(0); T.setPosState('bottom'); T.applyPos();
 
+  // 18b) Freies Verschieben: Ziehmathematik, Klemmen, Magnet, Persistenz, Export
+  {
+    const fw = 270, fh = 480, st0 = { bx: 100, by: 300, bw: 70, bh: 40, fw, fh };
+    // frei: Position bleibt exakt dort, wo losgelassen wurde (kein Rasten auf oben/Mitte/unten)
+    let r = T.capDragPlace(st0, 20, -73, false);
+    ok(r.x === 120 && r.y === 227, 'Drag: ohne Magnet exakt Zeigerweg (' + r.x + ',' + r.y + ')');
+    ok(Math.abs(r.hoff - ((120 + 35 - 135) / 270 * 100)) < 0.01, 'Drag: hoff = Box-Mitte − Rahmenmitte in % der Breite');
+    // Klemmen: nie aus dem Bild (auch nicht mit Magnet)
+    r = T.capDragPlace(st0, 9999, 9999, true);
+    ok(r.x + 70 <= fw && r.y + 40 <= fh && r.x >= 0 && r.y >= 0, 'Drag: unten rechts geklemmt');
+    r = T.capDragPlace(st0, -9999, -9999, true);
+    ok(r.x >= 0 && r.y >= 0, 'Drag: oben links geklemmt');
+    // Magnet: Mitte (x) – innerhalb 6 px rastet ein, ausserhalb nicht; Alt (snap=false) aus
+    r = T.capDragPlace(st0, 135 - 35 - 100 + 4, 0, true);
+    ok(r.hoff === 0 && r.gx === 135, 'Drag: Magnet horizontale Mitte + Hilfslinie');
+    r = T.capDragPlace(st0, 135 - 35 - 100 + 4, 0, false);
+    ok(Math.abs(r.hoff) > 0.5 && r.gx === null, 'Drag: Alt schaltet den Magnet ab');
+    r = T.capDragPlace(st0, 135 - 35 - 100 + 15, 0, true);
+    ok(r.gx === null && Math.abs(r.hoff - 15 / 270 * 100) < 0.01, 'Drag: ausserhalb der Reichweite kein Rasten');
+    // Magnet vertikal: Mitte
+    r = T.capDragPlace(st0, 0, 240 - 20 - 300 - 3, true);
+    ok(r.gy === 240 && Math.abs(r.y + 20 - 240) < 0.01, 'Drag: Magnet vertikale Mitte');
+    // Anker folgt der Box-Mitte; Umrechnung ist die Umkehrung von applyPos()
+    const pT = T.capPosFromBox(60, 40, fw, fh), pM = T.capPosFromBox(220, 40, fw, fh), pB = T.capPosFromBox(380, 40, fw, fh);
+    ok(pT.pos === 'top' && pM.pos === 'center' && pB.pos === 'bottom', 'Anker oben/Mitte/unten nach Box-Mitte');
+    ok(Math.abs((10 - pT.off) - 60 / fh * 100) < 0.01, 'oben: capTopPct-Umkehrung');
+    ok(Math.abs((12 + pB.off) - (fh - 380 - 40) / fh * 100) < 0.01, 'unten: capBottomPct-Umkehrung');
+    ok(Math.abs(pM.off) < 0.01, 'Mitte: Box exakt zentriert → Versatz 0');
+    // kein Sprung an der Bucket-Grenze: gleiche Box-Position vor/nach Wechsel
+    const yA = fh * 0.32 - 20 - 0.1, yB = fh * 0.32 - 20 + 0.1; // Mitte 31,98 % / 32,02 %
+    const a = T.capPosFromBox(yA, 40, fw, fh), b2 = T.capPosFromBox(yB, 40, fw, fh);
+    const topOf = (q, y) => q.pos === 'top' ? (10 - q.off) / 100 * fh : q.pos === 'bottom' ? fh - (12 + q.off) / 100 * fh - 40 : fh / 2 - q.off / 100 * fw - 20;
+    ok(a.pos !== b2.pos, 'Grenze erreichbar (Anker wechselt)');
+    ok(Math.abs(topOf(a, yA) - yA) < 0.1 && Math.abs(topOf(b2, yB) - yB) < 0.1, 'Anker-Wechsel verschiebt die Box nicht');
+    // Safe-Zone nur ohne Frei-Flag erzwungen
+    T.setFreeState(false);
+    ok(T.capTopPct(60) === 12.46 && T.capBottomPct(-40) === 24.44, 'Preset-Modus: Safe-Zone-Mindestabstand');
+    T.setFreeState(true);
+    ok(T.capTopPct(60) === 0 && T.capBottomPct(-40) === 0, 'Frei-Modus: bis an den Bildrand ziehbar (Safe-Zone nur noch Warnung)');
+    T.setFreeState(false);
+    // Horizontal-Klemme (Vorschau + Export gleiche Formel)
+    ok(T.capHClamp(50, 60) === 19, 'capHClamp: Box 60 % breit → max ±19 %');
+    ok(T.capHClamp(-50, 60) === -19 && T.capHClamp(5, 60) === 5 && T.capHClamp(10, 100) === 0, 'capHClamp: symmetrisch, breite Box → 0');
+    // Preset-Buttons setzen Versätze zurück
+    const mkBtn = pos => ({ dataset: { pos }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
+    T.setHOffState(12); T.setFreeState(true); T.setVOffState(-7);
+    T.setPos(mkBtn('center'));
+    ok(T.getHOff() === 0 && T.getFree() === false && T.getVOff() === 0 && T.getPos() === 'center', 'Preset „Middle“: hoff/free/voff zurückgesetzt');
+    T.setHOffState(12); T.setFreeState(true); T.setVOffState(-7);
+    T.setPos(mkBtn('bottom'));
+    ok(T.getHOff() === 0 && T.getFree() === false && T.getVOff() === 20 && T.getPos() === 'bottom', 'Preset „Bottom“: Standard-Versatz 20');
+    // Persistenz: Projekt + Template-Layout
+    T.setPosState('top'); T.setVOffState(33.5); T.setHOffState(-14.25); T.setFreeState(true);
+    const pl = T.projectPayload();
+    ok(pl.pos === 'top' && pl.voff === 33.5 && pl.hoff === -14.25 && pl.free === true, 'projectPayload trägt pos/voff/hoff/free');
+    const lay = T.currentLayout();
+    ok(lay.hoff === -14.25 && lay.free === true && lay.voff === 33.5, 'currentLayout (Templates) trägt hoff/free');
+    T.setHOffState(0); T.setFreeState(false); T.setVOffState(0);
+    T.applyTemplateSettings(lay);
+    ok(T.getHOff() === -14.25 && T.getFree() === true && T.getVOff() === 33.5, 'Template anwenden stellt hoff/free/voff wieder her');
+    T.applyTemplateSettings({ pos: 'bottom', voff: 20 });
+    ok(T.getHOff() === 0 && T.getFree() === false, 'Template ohne hoff (alt) → mittig, Safe-Zone aktiv');
+    T.setPosState('top'); T.setVOffState(33.5); T.setHOffState(-14.25); T.setFreeState(true);
+    const saved = JSON.parse(JSON.stringify(T.projectPayload()));
+    T.setHOffState(0); T.setFreeState(false); T.setPosState('bottom'); T.setVOffState(20);
+    T.applyProjectPayload(saved);
+    ok(T.getHOff() === -14.25 && T.getFree() === true && T.getVOff() === 33.5 && T.getPos() === 'top', 'applyProjectPayload: Position wiederhergestellt');
+    T.applyProjectPayload(Object.assign({}, saved, { hoff: undefined, free: undefined }));
+    ok(T.getHOff() === 0 && T.getFree() === false, 'applyProjectPayload: altes Projekt ohne hoff → mittig');
+    T.applyProjectPayload(Object.assign({}, saved, { hoff: 999 }));
+    ok(T.getHOff() === 50, 'applyProjectPayload: absurdes hoff wird begrenzt');
+    T.setHOffState(0); T.setFreeState(false); T.setVOffState(0); T.setPosState('bottom'); T.applyPos();
+
+    // Integration: capDragStart/Move/End über die DOM-Stubs (Maus + Touch), Position bleibt wo losgelassen
+    {
+      const frameEl = document.getElementById('prevFrame'), ovEl = document.getElementById('capOverlay');
+      const oldFr = frameEl.getBoundingClientRect, oldKid = ovEl.firstElementChild;
+      frameEl.getBoundingClientRect = () => ({ left: 10, top: 20, width: 270, height: 480, right: 280, bottom: 500 });
+      ovEl.firstElementChild = { getBoundingClientRect: () => ({ left: 110, top: 320, width: 70, height: 40, right: 180, bottom: 360 }) };
+      T.setPosState('bottom'); T.setVOffState(20); T.setHOffState(0); T.setFreeState(false);
+      T.capDragStart({ type: 'mousedown', button: 0, clientX: 140, clientY: 340, stopPropagation() {} });
+      T.capDragMove({ clientX: 140 + 30, clientY: 340 - 200, altKey: true, cancelable: true, preventDefault() {} });
+      ok(T.getFree() === true && Math.abs(T.getHOff() - 30 / 270 * 100) < 0.05, 'Drag-Integration: horizontal frei (' + T.getHOff() + ')');
+      ok(T.getPos() === 'top' || T.getPos() === 'center', 'Drag-Integration: Anker folgt der Box (' + T.getPos() + ')');
+      T.capDragEnd({});
+      ok(T.getFree() === true && T.getHOff() !== 0, 'Drag-Integration: nach Loslassen keine Rückkehr zum Preset');
+      // Touch
+      T.capDragStart({ type: 'touchstart', touches: [{ clientX: 140, clientY: 340 }], stopPropagation() {} });
+      T.capDragMove({ touches: [{ clientX: 100, clientY: 340 }], cancelable: true, preventDefault() {} });
+      T.capDragEnd({});
+      ok(T.getHOff() < 0, 'Drag-Integration: Touch zieht nach links (' + T.getHOff() + ')');
+      frameEl.getBoundingClientRect = oldFr; ovEl.firstElementChild = oldKid;
+      T.setHOffState(0); T.setFreeState(false); T.setVOffState(0); T.setPosState('bottom'); T.applyPos();
+    }
+
+    // Export: Caption wandert mit hoff (ctx.translate) und y folgt dem Frei-Modus
+    {
+      const ws = ['Das', 'ist', 'ein', 'Test'], blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+      T.setState([blk], blk.words, 'karaoke'); T.setLines({ dataset: { lines: '1' } });
+      const sty = T.STYLES.find(x => x.id === 'hormozi');
+      const mkCtx = () => { const log = { tx: 0, ty: 0 }; const c = { font: '', letterSpacing: '0px', measureText(str) { const m = /([\d.]+)px/.exec(this.font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+        roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {}, translate(x, y) { log.tx += x; log.ty += y; }, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},
+        fillRect() {}, clip() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } }; c.log = log; return c; };
+      T.setPosState('bottom'); T.setVOffState(20); T.setFreeState(false); T.setHOffState(0);
+      const c0 = mkCtx(); T.drawCaptionsOnCtx(c0, 0.1, sty, 1080, 1920, true);
+      T.setHOffState(10);
+      const c1 = mkCtx(); T.drawCaptionsOnCtx(c1, 0.1, sty, 1080, 1920, true);
+      ok(Math.abs((c1.log.tx - c0.log.tx) - 108) < 0.01, 'Export: hoff 10 % → 108 px nach rechts bei 1080 px Breite (auflösungsunabhängig, %-Wert)');
+      const c2 = mkCtx(); T.drawCaptionsOnCtx(c2, 0.1, sty, 540, 960, true);
+      T.setHOffState(0); const c3 = mkCtx(); T.drawCaptionsOnCtx(c3, 0.1, sty, 540, 960, true);
+      ok(Math.abs((c2.log.tx - c3.log.tx) - 54) < 0.01, 'Export: gleiche 10 % bei 540 px = 54 px');
+      T.setHOffState(-999); const c4 = mkCtx(); T.drawCaptionsOnCtx(c4, 0.1, sty, 1080, 1920, true);
+      ok(c4.log.tx - c0.log.tx > -540 && c4.log.tx - c0.log.tx < 0, 'Export: extremes hoff bleibt im Bild (geklemmt)');
+      T.setHOffState(0);
+      // Frei-Modus: Unterkante darf unter die Safe-Zone (Preset-Modus hält 24,44 % Abstand ein)
+      T.setPosState('bottom'); T.setVOffState(-40);
+      T.setFreeState(false); const Lp = T.capLayout(mkCtx(), blk, 0, 0, sty, 1080, 1920);
+      T.setFreeState(true); const Lf = T.capLayout(mkCtx(), blk, 0, 0, sty, 1080, 1920);
+      ok(Lf.boxB > Lp.boxB + 100, 'Export: capFree hebt den Safe-Zone-Mindestabstand auf (' + Lp.boxB.toFixed(0) + ' → ' + Lf.boxB.toFixed(0) + ')');
+      ok(Lf.boxB <= 1920 && Lf.boxT >= 0, 'Export: Box bleibt im Bild');
+      T.setFreeState(false); T.setVOffState(0); T.setPosState('bottom'); T.setState([], [], 'karaoke');
+    }
+  }
+
   // 19) Regression: driftende null-Timestamps am Fensterende duerfen das Folgefenster NICHT leeren.
   // Fenster 0 (28s): 80 Woerter, deren End-Timestamps null sind -> chunksToWords verkettet und die
   // Zeiten liefen (ohne Clamping) bis ~39.5s -> alte lastEnd-Dedup verwarf ALLE Tail-Woerter.
@@ -2073,6 +2216,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const { Readable } = require('stream');
     const handler = require(path.join(__dirname, 'api', 'transcribe.js'));
+    const stubBlob = global.Blob; global.Blob = NativeBlob; // Function baut echtes FormData
     // gültiges WAV (16 kHz mono 16 bit) mit secs Sekunden — der Server prüft die Dauer im Header
     const wav = secs => { const n = Math.round(secs * 32000), b = Buffer.alloc(44 + n); b.write('RIFF', 0); b.writeUInt32LE(36 + n, 4); b.write('WAVE', 8);
       b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(16000, 24); b.writeUInt32LE(32000, 28);
@@ -2120,6 +2264,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     process.env.MAX_AUDIO_SEC_PER_HOUR = '';
     const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
     ok(rl[2] === 429, 'Function: Rate-Limit greift: ' + rl);
+    global.Blob = stubBlob;
   }
 
   // 23) Komprimierter Upload (Ogg/Opus) + parallele Stücke
@@ -2661,10 +2806,10 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.fileSlug('IMG 1234') === 'img-1234' && T.fileSlug('') === '' && T.fileSlug('!!!') === '' && T.fileSlug('🙂🙂') === '', 'Slug: Zahlen, leer, nur Sonderzeichen');
     const longSlug = T.fileSlug('Das ist ein sehr langer Titel für ein Video über Highland Rinder');
     ok(longSlug.length <= 40 && !/-$/.test(longSlug) && longSlug.indexOf('das-ist-ein-sehr-langer') === 0, 'Slug: max. 40 Zeichen, kein Strich am Ende: ' + longSlug);
-    ok(T.exportBaseName() === 'captionrush-video', 'ohne Titel: captionrush-video');
-    T.setTitle('Mein Reel #1'); ok(T.exportBaseName() === 'mein-reel-1-captionrush', 'Basis aus Titel: ' + T.exportBaseName());
+    ok(T.exportBaseName() === 'gluephs-video', 'ohne Titel: gluephs-video');
+    T.setTitle('Mein Reel #1'); ok(T.exportBaseName() === 'mein-reel-1-gluephs', 'Basis aus Titel: ' + T.exportBaseName());
     global.CLICKS = []; T.exportSRT(); T.exportVTT(); T.exportTXT();
-    ok(global.CLICKS.map(c => c.download).join(',') === 'mein-reel-1-captionrush.srt,mein-reel-1-captionrush.vtt,mein-reel-1-captionrush.txt', 'SRT/VTT/TXT mit gleicher Basis: ' + global.CLICKS.map(c => c.download).join(','));
+    ok(global.CLICKS.map(c => c.download).join(',') === 'mein-reel-1-gluephs.srt,mein-reel-1-gluephs.vtt,mein-reel-1-gluephs.txt', 'SRT/VTT/TXT mit gleicher Basis: ' + global.CLICKS.map(c => c.download).join(','));
     T.setTitle('');
   }
   // Export fertig: Handy mit Teilen-Blatt → „Save to Photos / Share“ primär (erst auf Tipp), sonst „Caption another video“
@@ -2675,14 +2820,14 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const sb = document.getElementById('expShare'), an = document.getElementById('expAnother'), dlf = document.getElementById('expDlFile');
     an.classList.add('hi');
     global.matchMedia = q => ({ matches: /fine/.test(q) });           // Desktop
-    global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-captionrush.mp4'); T.exportDone(false);
+    global.CLICKS = []; T.dlBlob(new Blob(['x'], { type: 'video/mp4' }), 'mein-reel-gluephs.mp4'); T.exportDone(false);
     ok(sb.style.display === 'none' && an.classList.contains('hi') && dlf.style.display !== 'none', 'Desktop: kein Teilen, „Caption another video“ primär, „Download again“ da');
-    ok(document.getElementById('expDoneName').textContent === 'mein-reel-captionrush.mp4', 'Fertig-Zeile zeigt den Dateinamen');
+    ok(document.getElementById('expDoneName').textContent === 'mein-reel-gluephs.mp4', 'Fertig-Zeile zeigt den Dateinamen');
     global.matchMedia = q => ({ matches: /coarse/.test(q) });         // Handy
     T.exportDone(false);
     ok(sb.style.display === '' && !an.classList.contains('hi') && dlf.style.display !== 'none' && !shared, 'Handy: Teilen primär, „Download again“ da, nichts automatisch geteilt');
     T.shareLastExport(); await new Promise(r => setTimeout(r, 0));
-    ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-captionrush.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
+    ok(shared && shared.files.length === 1 && shared.files[0].name === 'mein-reel-gluephs.mp4' && shared.files[0].type === 'video/mp4', 'Tipp teilt die letzte Datei');
     const nClicks = global.CLICKS.length; rejectWith = { name: 'AbortError' };
     ok(await T.shareLastExport() === false && global.CLICKS.length === nClicks, 'Abbrechen (AbortError) → still, kein Download');
     rejectWith = { name: 'NotAllowedError' };
@@ -2717,7 +2862,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // Download again: gleiche Datei, kein Neu-Rendern; Blob bleibt bis ein neuer Export startet / das Video wechselt
     const prevClicks = global.CLICKS; global.CLICKS = [];
     const blobA = new Blob(['x'], { type: 'video/mp4' });
-    T.dlBlob(blobA, 'a-captionrush.mp4'); T.exportDone(false);
+    T.dlBlob(blobA, 'a-gluephs.mp4'); T.exportDone(false);
     ok(T.getLastExportBlob() === blobA, 'nach dem Export bleibt die Datei für „Download again“ erhalten');
     ok(document.getElementById('expDone').style.display === '' && document.getElementById('expMain').style.display === 'none', 'Fertig-Ansicht sichtbar, Export-Knopf-Ansicht weg');
     {
@@ -2725,12 +2870,36 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(!/btnSRT|btnVTT|btnTXT|btnCover|btnCopy|expOpts/.test(main) && /btnSRT/.test(done) && /btnVTT/.test(done) && /btnTXT/.test(done) && /btnCover/.test(done) && /expCopyPost/.test(done), 'SRT/VTT/TXT/Cover/Copy liegen NICHT in der ausgeblendeten Export-Ansicht (expMain) und bleiben nach dem Export sichtbar');
     }
     global.CLICKS = []; ok(T.downloadLastExport() === true, 'Download again ok');
-    ok(global.CLICKS.length === 1 && global.CLICKS[0].download === 'a-captionrush.mp4' && T.getLastExportBlob() === blobA, 'Download again: ein Klick, gleiche Datei, gleicher Blob (kein Neu-Rendern)');
+    ok(global.CLICKS.length === 1 && global.CLICKS[0].download === 'a-gluephs.mp4' && T.getLastExportBlob() === blobA, 'Download again: ein Klick, gleiche Datei, gleicher Blob (kein Neu-Rendern)');
     T.showExportMain();
-    ok(document.getElementById('expLast').style.display === '' && document.getElementById('expLastName').textContent === 'a-captionrush.mp4', 'Export-Ansicht zeigt „Last export … Download again“');
+    ok(document.getElementById('expLast').style.display === '' && document.getElementById('expLastName').textContent === 'a-gluephs.mp4', 'Export-Ansicht zeigt „Last export … Download again“');
     T.releaseLastExport();
     ok(T.getLastExportBlob() === null && document.getElementById('expLast').style.display === 'none', 'releaseLastExport gibt den Blob frei');
     global.CLICKS = []; ok(T.downloadLastExport() === false && global.CLICKS.length === 0, 'ohne Datei: kein Download, kein Absturz');
+    // Geändert seit dem Export? Erst dann „Export with your changes“ (sonst nur „Download again“)
+    {
+      const ag = document.getElementById('expAgain'), dl = document.getElementById('expDlFile'), ht = document.getElementById('expChangedHint');
+      const blobC = new Blob(['x'], { type: 'video/mp4' });
+      ok(T.exportChangedSinceLast() === false, 'ohne Export: nichts „geändert“');
+      T.dlBlob(blobC, 'c-gluephs.mp4'); T.exportDone(false);
+      ok(T.exportChangedSinceLast() === false && ag.style.display === 'none' && ht.style.display === 'none' && dl.textContent === 'Download again', 'direkt nach dem Export: nur „Download again“, kein Neu-Export-Knopf, kein Hinweis');
+      T.downloadLastExport();
+      ok(T.exportChangedSinceLast() === false, '„Download again“ ändert den Export-Stand nicht');
+      const t0 = T.projTitleOf(); T.setTitle('Anderer Titel'); T.syncExportAgain();
+      ok(T.exportChangedSinceLast() === false && ag.style.display === 'none', 'Titel ändert das Video nicht → keine Änderung');
+      T.setTitle(t0);
+      const b0 = T.getBlocks()[0], txt0 = b0.text;
+      b0.text = txt0 + ' neu'; T.syncExportAgain();
+      ok(T.exportChangedSinceLast() === true && ag.style.display === '' && /id="expAgain"[^>]*>Export with your changes</.test(htmlContent) && ag.classList.contains('on') && ht.style.display === '' && dl.textContent === 'Download previous version', 'Untertitel geändert: „Export with your changes“ primär + Hinweis, Download wird „previous version“');
+      b0.text = txt0; T.syncExportAgain();
+      ok(T.exportChangedSinceLast() === false && ag.style.display === 'none' && dl.textContent === 'Download again', 'Änderung rückgängig → wieder nur „Download again“');
+      const v0 = T.getActiveId(); T.selectStyle(v0 === 'minimal' ? 'tight' : 'minimal');
+      ok(T.exportChangedSinceLast() === true, 'Style gewechselt → geändert'); T.selectStyle(v0);
+      ok(T.exportChangedSinceLast() === false, 'Style zurück → ungeändert');
+      T.setExportRes('orig'); ok(T.exportChangedSinceLast() === true, 'Auflösung geändert → geändert'); T.setExportRes('1080');
+      T.releaseLastExport(); ok(T.exportChangedSinceLast() === false, 'ohne Datei nie „geändert“');
+      global.CLICKS = [];
+    }
     // Abbruch + Fehler setzen den Zustand zurück
     const tok = T.newExportToken(); T.setExporting(true);
     ok(T.getExpTok() === tok && !tok.cancelled, 'Export-Token aktiv');
@@ -3517,7 +3686,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.coverInRect({ x: 100, y: 300, w: 500, h: 400 }, r) && !T.coverInRect({ x: 100, y: 100, w: 500, h: 400 }, r) && !T.coverInRect({ x: 600, y: 300, w: 500, h: 400 }, r), 'Cover: Prüfung Text in Sicherheitsbereich');
     ok(JSON.stringify(T.coverWrap([300, 300, 300, 300], 700, 20)) === '[[0,1],[2,3]]' && JSON.stringify(T.coverWrap([900, 100], 700, 20)) === '[[0],[1]]' && JSON.stringify(T.coverWrap([], 700, 20)) === '[]', 'Cover: Zeilenumbruch (zu breites Einzelwort allein)');
     ok(T.coverBlockY('top', r, 200) === r.y && T.coverBlockY('bottom', r, 200) === r.y + r.h - 200 && T.coverBlockY('mid', r, 200) === r.y + (r.h - 200) / 2, 'Cover: Position oben/Mitte/unten');
-    ok(T.coverFileName('Mein Reel über Käse!') === 'mein-reel-ueber-kaese-cover.png' && T.coverFileName('', 'hof-captionrush') === 'hof-captionrush-cover.png' && T.coverFileName('???') === 'captionrush-cover.png', 'Cover: Dateiname <titel>-cover.png');
+    ok(T.coverFileName('Mein Reel über Käse!') === 'mein-reel-ueber-kaese-cover.png' && T.coverFileName('', 'hof-gluephs') === 'hof-gluephs-cover.png' && T.coverFileName('???') === 'gluephs-cover.png', 'Cover: Dateiname <titel>-cover.png');
     ok(T.coverHook('Das ist der Hook. Und noch mehr Text hier. #reels #hof', 'x') === 'Das ist der Hook.' && T.coverHook('', 'Eins zwei drei vier fünf sechs sieben acht') === 'Eins zwei drei vier fünf sechs' && T.coverHook('', '') === '', 'Cover: Titelvorschlag ≤ 6 Wörter (Post-Text, sonst Transkript)');
     ok(T.coverDefaultTime(20, []) === 10 && T.coverDefaultTime(20, [{ words: [{ kw: 0, start: 1 }, { kw: 1, start: 4.26 }] }]) === 4.3 && T.coverDefaultTime(0, []) === 0, 'Cover: Standardbild = erstes hervorgehobenes Wort, sonst Videomitte');
     T.coverRestore({ t: 3, dark: 999, title: 'Hallo Welt', kw: [1, 'x', -2, 7], style: 'evil', size: 9, pos: 'left', guides: false });
@@ -4176,6 +4345,41 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const main2 = mkG({ width: 1080, height: 1920 }); T.drawTextGrouped(main2, 'so', 100, 200, plan, 3, 1, 60, 120, 1, 1);
     ok(main2.calls.length >= 2 && main2.calls.every(k => k.a === 1), 'Deckkraft 1: direkt auf den Hauptkontext gezeichnet');
     document.createElement = origCreate;
+  }
+  // ── Gewichts-Auswahl folgt der Schrift: nur vorhandene Schnitte, nächstliegendes Gewicht wird gewählt UND angewendet ──
+  {
+    const E = id => document.getElementById(id);
+    const W = T.capFontWeights;
+    ok(JSON.stringify(W('Bungee')) === '[400]' && JSON.stringify(W('Anton')) === '[400]' && JSON.stringify(W('Bebas Neue')) === '[400]', 'Weights: Display-Fonts nur Regular');
+    ok(JSON.stringify(W('Roboto')) === '[400,700,900]' && JSON.stringify(W('DM Sans')) === '[700]' && JSON.stringify(W('Montserrat')) === '[600,700,800,900]', 'Weights: Roboto/DM Sans/Montserrat laut CAP_FONT_W');
+    ok(W('Meine Eigene').length === 5 && W('').length === 5, 'Weights: unbekannte/eigene Schrift behaelt alle Stufen');
+    const labels = () => E('csWeight').children.map(o => o.value + ':' + o.textContent).join(',');
+    const base = T.STYLES.find(x => x.id === 'tbox');
+    T.selectStyle('tbox');
+    T.seedCustomFields(Object.assign({}, base, { fl: 'Bungee', font: "'Bungee'", fw: '800' }));
+    ok(labels() === '400:Regular' && E('csWeight').value === '400' && E('csWeight').disabled === true && /only one weight/.test(E('csWeight').title),
+       'Bungee: nur Regular, Select deaktiviert + Hinweis: ' + labels());
+    // Schrift wechseln → Gewicht der Nutzerin (800) kommt zurueck und wird in den Style uebernommen
+    E('csFont').value = 'Montserrat'; T.onFontPick(E('csFont')); T.flushCustomStyle();
+    ok(labels() === '600:Semi,700:Bold,800:Extra,900:Black' && E('csWeight').value === '800' && E('csWeight').disabled === false && E('csWeight').title === 'Font weight',
+       'Montserrat: 4 Stufen, 800 wiederhergestellt: ' + labels() + ' / ' + E('csWeight').value);
+    ok(T.STYLES.find(x => x.id === 'custom').fw === '800', 'Style-fw = Auswahl (Vorschau = Export)');
+    // Einzel-Gewicht-Font → fw 400 im Style (Canvas-Export zeichnet dasselbe wie die Vorschau, kein Faux-Bold)
+    E('csFont').value = 'Anton'; T.onFontPick(E('csFont')); T.flushCustomStyle();
+    ok(E('csWeight').value === '400' && E('csWeight').disabled === true && T.STYLES.find(x => x.id === 'custom').fw === '400', 'Anton: Gewicht 400 angewendet: ' + T.STYLES.find(x => x.id === 'custom').fw);
+    // Roboto (400;700;900): 800 liegt genau zwischen 700 und 900 → schwerer
+    E('csFont').value = 'Roboto'; T.onFontPick(E('csFont')); T.flushCustomStyle();
+    ok(labels() === '400:Regular,700:Bold,900:Black' && E('csWeight').value === '900' && T.STYLES.find(x => x.id === 'custom').fw === '900', 'Roboto: nächstliegendes Gewicht 900: ' + E('csWeight').value);
+    // Eigene Auswahl merken: Bold gewaehlt → bleibt bei Wechsel auf Poppins
+    E('csWeight').value = '700'; T.applyCustomStyle('weight'); T.flushCustomStyle();
+    E('csFont').value = 'Poppins'; T.onFontPick(E('csFont')); T.flushCustomStyle();
+    ok(E('csWeight').value === '700' && T.STYLES.find(x => x.id === 'custom').fw === '700', 'Poppins: gewähltes Bold bleibt');
+    // Look mit Single-Weight-Schrift: Seed zeigt nächstliegendes Gewicht, ändert den Look aber nicht
+    T.selectStyle('tbox');
+    T.seedCustomFields(Object.assign({}, base, { fl: 'Oswald', font: "'Oswald'", fw: '600' }));
+    ok(E('csWeight').value === '700' && E('csWeight').disabled === true && labels() === '700:Bold', 'Oswald (nur 700): Seed waehlt 700');
+    T.setCsDirty({}); ok(T.buildCustomStyle().fw === '600', 'Seed allein veraendert fw des Looks nicht');
+    T.seedCustomFields(base);
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
