@@ -150,7 +150,7 @@ function qaMain() {
       Object.keys(s).forEach(k => { if (['id', 'name', 'badge', '_tpl', '_isTpl', '_tplId'].indexOf(k) >= 0) return; const v = s[k]; o['style.' + k] = (v !== null && typeof v === 'object') ? JSON.stringify(v) : v; });
       // cfg.fontRel = Schrift relativ zur Rahmenbreite: ändert sich nicht, wenn der Rahmen (Handy: kompakt beim Tippen) schrumpft
       o['cfg.active'] = activeId; o['cfg.lines'] = CAPTION_LINES; o['cfg.wpb'] = WORDS_PER_BLOCK; o['cfg.maxChars'] = CAP_MAX_CHARS;
-      o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
+      o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.hoff'] = capHOff; o['cfg.free'] = capFree; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
       o['cfg.punct'] = capNoPunct ? 1 : 0; o['cfg.kw'] = emKw ? 1 : 0; o['cfg.emoji'] = emEmoji ? 1 : 0; o['cfg.zoom'] = emZoom; o['cfg.timeOff'] = timeOff;
       o['cfg.blocks'] = captionBlocks.length;
       o['cfg.text'] = hash(captionBlocks.map(b => b.text).join('|'));
