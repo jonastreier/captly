@@ -82,7 +82,7 @@ revertTranscriptionSettings:revertTranscriptionSettings,getModel:function(){retu
 exportGeometry:exportGeometry,exportBitrate:exportBitrate,drawReframed:drawReframed,classifyUnplayable:classifyUnplayable,
 applyPlayability:applyPlayability,setVideoPlayable:function(v){videoPlayable=v;},transcribeVideo:transcribeVideo,DEFAULT_STYLE:DEFAULT_STYLE,
 isNetErr:isNetErr,authErrText:authErrText,caseStyle:caseStyle,setCaseState:function(c){capCase=c;},projTitleOf:function(){return projectPayload().title;},setTitle:setTitle,
-setExportFormatState:function(f){exportFormat=f;},editListEnd:editListEnd,histDistance:histDistance,
+setExportFormatState:function(f){var n=normalizeExportFormat(f);exportAspect=n.aspect;exportFill=n.fill;exportPan=n.pan;},normalizeExportFormat:normalizeExportFormat,cropRect:cropRect,videoPlacement:videoPlacement,exportFormatState:exportFormatState,applyExportFormat:applyExportFormat,applyTemplateSettings:applyTemplateSettings,currentLayout:currentLayout,clampPan:clampPan,aspectMatches:aspectMatches,exportReframeMode:exportReframeMode,outputAspect:outputAspect,drawFastFrame:drawFastFrame,drawVideoFit:drawVideoFit,projectPayload:projectPayload,applyProjectPayload:applyProjectPayload,editListEnd:editListEnd,histDistance:histDistance,
 cssColorToHexA:cssColorToHexA,cssColorToHex:cssColorToHex,liveTemplates:liveTemplates,flushCustomStyle:flushCustomStyle,
 decideSceneCuts:decideSceneCuts,cutFrame:cutFrame,lumaHistogram:lumaHistogram,meanAbsDiff:meanAbsDiff,setSceneCuts:setSceneCuts,getSceneCuts:function(){return sceneCuts;},
 onBreakAtCutsChange:onBreakAtCutsChange,currentBlockIdx2:currentBlockIdx,setDisplayMode:function(m){displayMode=m;},polishWords:polishWords,
@@ -1443,6 +1443,127 @@ ok(T.webmToMp4Trim(33.96).join(' ') === '-t 33.960 -shortest' && T.webmToMp4Trim
   document.createElement = origCreate;
   const c2 = []; T.drawReframed(fakeCtx, 1080, 1920, 'crop', (c, w, h, fit) => c2.push(fit));
   ok(c2.join() === 'cover', 'Crop = Mitte fuellend');
+}
+
+// 21c-2) B1 Zielformate: exportGeometry (Format × Quelle × Auflösung), Migration alter Werte, cropRect/Pan, Template-/Projekt-Roundtrip
+{
+  const near = (a, b, e) => Math.abs(a - b) <= (e === undefined ? 1e-6 : e);
+  const SRC = [[720, 1280], [1280, 720], [1080, 1080], [3840, 2160]];
+  const BASE = { '9:16': [1080, 1920], '1:1': [1080, 1080], '4:5': [1080, 1350], '16:9': [1920, 1080] };
+  const AR = { '9:16': 9 / 16, '1:1': 1, '4:5': 4 / 5, '16:9': 16 / 9 };
+  for (const aspect of Object.keys(BASE)) for (const fill of ['crop', 'blur']) for (const [sw, sh] of SRC) {
+    const same = Math.abs(sw / sh / AR[aspect] - 1) < 0.03, tag = aspect + ' ' + fill + ' ← ' + sw + '×' + sh;
+    // 1080p: feste Zielgrösse, ausser die Quelle hat schon das Verhältnis (dann Original-Logik: nie hochskalieren)
+    let g = T.exportGeometry(sw, sh, 30, '1080', { aspect, fill });
+    if (same) {
+      const k = Math.min(1, 1920 / Math.max(sw, sh));
+      ok(g.mode === 'original' && g.W === (Math.round(sw * k) & ~1) && g.H === (Math.round(sh * k) & ~1), 'Geometrie 1080 ' + tag + ': Quelle schon im Zielverhältnis → kein Reframe (' + g.W + '×' + g.H + ', ' + g.mode + ')');
+    } else {
+      ok(g.mode === fill && g.W === BASE[aspect][0] && g.H === BASE[aspect][1] && g.aspect === aspect, 'Geometrie 1080 ' + tag + ' → ' + BASE[aspect].join('×') + ' (' + g.W + '×' + g.H + ', ' + g.mode + ')');
+    }
+    ok(g.W % 2 === 0 && g.H % 2 === 0, 'Geometrie 1080 ' + tag + ': gerade Masse');
+    // «Original»-Auflösung: längere Leinwandseite = längere Quellseite, Verhältnis = Ziel
+    g = T.exportGeometry(sw, sh, 30, 'orig', { aspect, fill });
+    if (same) ok(g.mode === 'original' && g.W === (sw & ~1) && g.H === (sh & ~1), 'Geometrie orig ' + tag + ': Quelle unverändert');
+    else ok(Math.max(g.W, g.H) >= Math.max(sw, sh) - 1 && Math.max(g.W, g.H) <= Math.max(sw, sh) && Math.abs(g.W / g.H / AR[aspect] - 1) < 0.01 && g.W % 2 === 0 && g.H % 2 === 0, 'Geometrie orig ' + tag + ' → ' + g.W + '×' + g.H);
+  }
+  let g = T.exportGeometry(1280, 720, 30, '1080', { aspect: '1:1', fill: 'crop', pan: { x: 0.5, y: 0 } });
+  ok(g.W === 1080 && g.H === 1080 && g.mode === 'crop' && g.pan.x === 0.5, '16:9 → 1:1 crop trägt den Pan in die Geometrie');
+  g = T.exportGeometry(1280, 720, 30, '1080', { aspect: '1:1', fill: 'blur', pan: { x: 0.5, y: 0 } });
+  ok(g.mode === 'blur' && g.pan.x === 0, 'Blur ignoriert den Pan');
+  g = T.exportGeometry(1920, 1080, 30, '1080', 'original');
+  ok(g.W === 1920 && g.H === 1080 && g.mode === 'original', 'Original bleibt Original');
+
+  // Migration: alte Werte 'blur'/'crop' = 9:16 + Ausfüllart; Unbekanntes/kaputtes → Original; Pan geklemmt
+  const N = T.normalizeExportFormat;
+  ok(JSON.stringify(N('blur')) === '{"aspect":"9:16","fill":"blur","pan":{"x":0,"y":0}}', 'Migration: «blur» → 9:16 blur: ' + JSON.stringify(N('blur')));
+  ok(JSON.stringify(N('crop')) === '{"aspect":"9:16","fill":"crop","pan":{"x":0,"y":0}}', 'Migration: «crop» → 9:16 crop');
+  ok(N('original').aspect === 'original' && N(null).aspect === 'original' && N(undefined).aspect === 'original' && N(42).aspect === 'original' && N('quatsch').aspect === 'original' && N({ aspect: '3:2' }).aspect === 'original', 'Migration: original/null/Unbekanntes → Original');
+  ok(N('1:1').aspect === '1:1' && N('1:1').fill === 'crop', 'Seitenverhältnis als String');
+  ok(N({ aspect: 'blur' }).aspect === '9:16' && N({ aspect: 'blur' }).fill === 'blur', 'Objekt mit altem aspect «blur»');
+  ok(N({ aspect: '4:5', fill: 'blur', pan: { x: 5, y: -9 } }).pan.x === 1 && N({ aspect: '4:5', pan: { x: 5, y: -9 } }).pan.y === -1, 'Pan auf −1…1 geklemmt');
+  ok(N({ aspect: '4:5', pan: { x: 'a', y: NaN } }).pan.x === 0 && N({ aspect: '4:5', pan: 'x' }).pan.y === 0 && N({ aspect: 'original', pan: { x: 1, y: 1 } }).pan.x === 0, 'Pan: Müll → 0, Original hat keinen Pan');
+  g = T.exportGeometry(1920, 1080, 30, '1080', 'crop');
+  ok(g.mode === 'crop' && g.W === 1080 && g.H === 1920 && g.aspect === '9:16', 'exportGeometry mit altem Wert «crop» = 9:16 crop');
+
+  // cropRect: füllt die Leinwand, Pan nur entlang der beschnittenen Achse, Grenzen bündig
+  let r = T.cropRect(1920, 1080, 1080, 1920, { x: 0, y: 0 });
+  ok(near(r.sh, 1080) && near(r.sw, 607.5) && near(r.sx, (1920 - 607.5) / 2) && near(r.sy, 0), '16:9 → 9:16 Mitte: ' + JSON.stringify(r));
+  r = T.cropRect(1920, 1080, 1080, 1920, { x: -1, y: 0.7 });
+  ok(near(r.sx, 0) && near(r.sy, 0), 'Pan x = −1 → links bündig; y ohne Spielraum bleibt 0');
+  r = T.cropRect(1920, 1080, 1080, 1920, { x: 1, y: 0 });
+  ok(near(r.sx + r.sw, 1920), 'Pan x = 1 → rechts bündig');
+  r = T.cropRect(1920, 1080, 1080, 1920, { x: 7, y: 0 });
+  ok(near(r.sx + r.sw, 1920), 'Pan > 1 wird geklemmt');
+  r = T.cropRect(720, 1280, 1080, 1080, { x: 0, y: 1 });
+  ok(near(r.sw, 720) && near(r.sx, 0) && near(r.sh, 720) && near(r.sy, 1280 - 720), '9:16 → 1:1: Pan y = 1 → unten bündig (Spielraum nur vertikal)');
+  r = T.cropRect(720, 1280, 1080, 1080, { x: 0, y: -1 });
+  ok(near(r.sy, 0), '9:16 → 1:1: Pan y = −1 → oben bündig');
+  r = T.cropRect(1280, 720, 1080, 1350, { x: 0.25, y: 0 });
+  ok(near(r.sh, 720) && near(r.sw, 576) && near(r.sx, (1280 - 576) / 2 * 1.25), '16:9 → 4:5, Pan 0,25: ' + JSON.stringify(r));
+  // Seitenverhältnis des Ausschnitts = Leinwand, Ausschnitt liegt immer in der Quelle
+  let bad = 0;
+  for (const [sw, sh] of SRC) for (const a of Object.keys(BASE)) for (const px of [-1, -0.3, 0, 0.6, 1]) for (const py of [-1, 0, 1]) {
+    const c = T.cropRect(sw, sh, BASE[a][0], BASE[a][1], { x: px, y: py });
+    if (!near(c.sw / c.sh, BASE[a][0] / BASE[a][1], 1e-6) || c.sx < -1e-6 || c.sy < -1e-6 || c.sx + c.sw > sw + 1e-6 || c.sy + c.sh > sh + 1e-6) bad++;
+  }
+  ok(bad === 0, 'cropRect: Ausschnitt hat Leinwand-Verhältnis und liegt in der Quelle (Verstösse: ' + bad + ')');
+  // videoPlacement (Zeichnen) ist genau die Umkehrung von cropRect; contain = mittig, ganz sichtbar
+  let pl = T.videoPlacement(1920, 1080, 1080, 1920, 'cover', { x: -0.4, y: 0 }); r = T.cropRect(1920, 1080, 1080, 1920, { x: -0.4, y: 0 });
+  ok(near(pl.x, -r.sx * (1920 / 1080)) && near(pl.h, 1920) && near(pl.y, 0) && near(pl.w, 1920 * 1920 / 1080), 'Platzierung cover/Pan stimmt mit cropRect überein');
+  pl = T.videoPlacement(1920, 1080, 1080, 1080, 'contain', { x: 1, y: 1 });
+  ok(near(pl.w, 1080) && near(pl.h, 607.5) && near(pl.x, 0) && near(pl.y, (1080 - 607.5) / 2), 'Platzierung contain: mittig, Pan wirkungslos');
+  // Zeichnen: drawVideoFit legt das Video exakt nach videoPlacement; drawReframed reicht den Pan nur bei crop durch
+  { const ds = []; const cx = { drawImage() { ds.push([].slice.call(arguments).slice(1)); } };
+    T.drawVideoFit(cx, { videoWidth: 1920, videoHeight: 1080 }, 1080, 1920, 'cover', { x: 1, y: 0 });
+    const e = T.videoPlacement(1920, 1080, 1080, 1920, 'cover', { x: 1, y: 0 });
+    ok(JSON.stringify(ds[0]) === JSON.stringify([e.x, e.y, e.w, e.h]), 'drawVideoFit zeichnet nach videoPlacement');
+    const got = []; T.drawReframed({}, 1080, 1920, 'crop', (c, w, h, fit, pan) => got.push(fit + ':' + (pan && pan.x)), { x: 0.5, y: 0 });
+    T.drawReframed({}, 1080, 1920, 'original', (c, w, h, fit, pan) => got.push(fit + ':' + (pan && pan.x)), { x: 0.5, y: 0 });
+    ok(got.join() === 'cover:0.5,cover:null', 'drawReframed: Pan nur im Crop-Modus: ' + got.join());
+  }
+
+  // Zustand + Migration über die Setter; Vorschau-Rahmen folgt dem Zielverhältnis
+  T.setExportFormatState('blur');
+  ok(JSON.stringify(T.exportFormatState()) === '{"aspect":"9:16","fill":"blur","pan":{"x":0,"y":0}}', 'setExportFormatState(\'blur\') migriert');
+  T.setExportFormatState({ aspect: '16:9', fill: 'crop', pan: { x: 0.2, y: 0 } });
+  ok(T.outputAspect(720, 1280) === 16 / 9 && T.outputAspect(1920, 1080) === 1920 / 1080 && T.exportReframeMode(720, 1280) === 'crop' && T.exportReframeMode(1920, 1080) === 'original', 'outputAspect/Reframe-Modus je Quelle');
+  T.setExportFormatState('original');
+
+  // Template: Roundtrip, Migration, altes Template ohne Feld
+  const lay0 = { pos: 'bottom', voff: 0, size: 30, aspect: '1:1', fill: 'blur', pan: { x: 0.4, y: -2 } };
+  let tp = T.normalizeTemplate({ id: 'tpl_fmt1', name: 'Fmt', style: { fl: 'Poppins', fw: '800', tc: '#fff', hl: '#ff0' }, layout: lay0 });
+  ok(tp.layout.aspect === '1:1' && tp.layout.fill === 'blur' && tp.layout.pan.x === 0.4 && tp.layout.pan.y === -1, 'Template: Format/Ausfüllart/Pan werden übernommen (Pan geklemmt)');
+  tp = T.normalizeTemplate({ id: 'tpl_fmt2', name: 'Alt', style: { fl: 'Poppins', fw: '800', tc: '#fff', hl: '#ff0' }, layout: { pos: 'bottom', size: 30 } });
+  ok(!('aspect' in tp.layout) && !('fill' in tp.layout) && !('pan' in tp.layout), 'Altes Template ohne Format-Feld bleibt ohne Format');
+  tp = T.normalizeTemplate({ id: 'tpl_fmt3', name: 'Legacy', style: { fl: 'Poppins', fw: '800', tc: '#fff', hl: '#ff0' }, layout: { pos: 'bottom', fmt: 'crop' } });
+  ok(tp.layout.aspect === '9:16' && tp.layout.fill === 'crop', 'Template mit altem fmt «crop» → 9:16 crop');
+  T.setExportFormatState({ aspect: '4:5', fill: 'crop', pan: { x: -0.3, y: 0 } });
+  const lay1 = T.currentLayout();
+  ok(lay1.aspect === '4:5' && lay1.fill === 'crop' && lay1.pan.x === -0.3, 'currentLayout speichert Format/Ausfüllart/Pan');
+  const lay2 = JSON.parse(JSON.stringify(T.normalizeTemplate({ id: 'tpl_fmt4', name: 'RT', style: { fl: 'Poppins', fw: '800', tc: '#fff', hl: '#ff0' }, layout: lay1 }).layout));
+  T.setExportFormatState('original');
+  T.applyTemplateSettings(lay2);
+  ok(JSON.stringify(T.exportFormatState()) === '{"aspect":"4:5","fill":"crop","pan":{"x":-0.3,"y":0}}', 'Template-Roundtrip: speichern → normalisieren → anwenden: ' + JSON.stringify(T.exportFormatState()));
+  T.setExportFormatState({ aspect: '1:1', fill: 'blur' });
+  T.applyTemplateSettings({ pos: 'bottom', size: 30 }); // altes Template: Format bleibt unangetastet
+  ok(T.exportFormatState().aspect === '1:1', 'Template ohne Format-Feld lässt das Format unverändert');
+  T.applyTemplateSettings({ aspect: 'original' });
+  ok(T.exportFormatState().aspect === 'original', 'Template mit «original» setzt Original');
+  // Projekt/Autosave: Format wird mitgespeichert; alte Werte werden migriert; ohne Feld unverändert
+  T.setExportFormatState({ aspect: '16:9', fill: 'crop', pan: { x: 0.1, y: 0 } });
+  const pj = JSON.parse(JSON.stringify(T.projectPayload()));
+  ok(pj.fmt && pj.fmt.aspect === '16:9' && pj.fmt.fill === 'crop' && pj.fmt.pan.x === 0.1, 'Projekt-Payload enthält das Zielformat');
+  T.setExportFormatState('original');
+  ok(!('fmt' in T.projectPayload()), 'Original → kein fmt im Payload (alte Projekte bleiben gleich)');
+  T.applyProjectPayload(pj);
+  ok(T.exportFormatState().aspect === '16:9' && T.exportFormatState().pan.x === 0.1, 'Projekt-Restore stellt das Format wieder her');
+  T.applyProjectPayload({ fmt: 'blur' });
+  ok(JSON.stringify(T.exportFormatState()) === '{"aspect":"9:16","fill":"blur","pan":{"x":0,"y":0}}', 'Projekt mit altem fmt «blur» → 9:16 blur');
+  T.applyProjectPayload({});
+  ok(T.exportFormatState().aspect === '9:16', 'Projekt ohne fmt lässt das Format unverändert');
+  T.setExportFormatState('original');
+  ok(T.exportSizeLabel(1920, 1080, '1080', { aspect: '1:1', fill: 'crop' }) === '1080×1080' && T.exportSizeLabel(1920, 1080, '1080', { aspect: '4:5', fill: 'blur' }) === '1080×1350' && T.exportSizeLabel(720, 1280, '1080', { aspect: '16:9', fill: 'crop' }) === '1080p', 'Label: 1:1/4:5 zeigen die Leinwand-Masse, 16:9 «1080p»');
 }
 
 // 21d) Nicht abspielbare Videos: HEVC / keine Videospur → Hinweis, Video-Export aus, SRT bleibt

@@ -167,7 +167,7 @@ function qaMain() {
       csOf(Array.prototype.find.call(sp, x => +x.getAttribute('data-oi') === wi) || null, 'dom.act', o);
       o['dom.vidTransform'] = getComputedStyle(vid()).transform;
       o['cfg.time'] = Math.round((vid().currentTime || 0) * 100) / 100;
-      o['cfg.lang'] = whisperLang; o['cfg.translate'] = doTranslate ? 1 : 0; o['cfg.vocab'] = vocabText; o['cfg.exportRes'] = exportRes; o['cfg.exportFmt'] = exportFormat;
+      o['cfg.lang'] = whisperLang; o['cfg.translate'] = doTranslate ? 1 : 0; o['cfg.vocab'] = vocabText; o['cfg.exportRes'] = exportRes; o['cfg.exportFmt'] = JSON.stringify(exportFormatState());
       o['cfg.autoCut'] = autoCutSilence ? 1 : 0; o['cfg.breakCuts'] = typeof breakAtCuts !== 'undefined' ? (breakAtCuts ? 1 : 0) : null;
       o['cfg.templates'] = userTemplates.filter(t => !t.deleted).length; o['cfg.undo'] = _undoStack.length; o['cfg.redo'] = _redoStack.length;
       try { o['cfg.expSkip'] = localStorage.getItem(EXP_SKIP_KEY); } catch (e) { o['cfg.expSkip'] = null; }
@@ -480,7 +480,10 @@ CTL.push(
   { id: 'taEdit', tab: 'timeline', op: 'click', sel: '#taEdit', values: [null], vp: ['phone'], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => tlSelect(1, true)), changes: ['ui.inlineEd'], inv: ['cfg.blocks', 'cfg.text'], lines: 0, wait: 600 },
   // ── Export-Sheet ──
   { id: 'expRes', tab: 'style', op: 'select', sel: '#expRes', values: ['orig'], pre: OPEN_EXPOPTS, changes: ['cfg.exportRes', 'ui.btnVideoSub'], inv: ['cfg.blocks', 'cfg.text', 'cfg.wpb'], lines: 0 },
-  { id: 'expFmt', tab: 'style', op: 'select', sel: '#expFmt', values: ['crop'], pre: OPEN_EXPOPTS, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0, hiddenOk: 'Format-Wahl erscheint nur bei Videos, die nicht 9:16 sind (Testvideo ist 9:16)' },
+  { id: 'expFmt', tab: 'style', op: 'select', sel: '#expFmt', values: ['1:1', '16:9'], pre: OPEN_EXPOPTS, changes: ['cfg.exportFmt', 'ui.btnVideoSub'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
+  // Ausfüllart erscheint erst bei einem Zielformat ≠ Quelle (Testvideo 9:16 → 1:1); Pan/Zurücksetzen nur bei «crop» mit Spielraum
+  { id: 'expFill', tab: 'style', op: 'select', sel: '#expFill', values: ['blur'], pre: async sc => { await OPEN_EXPOPTS(sc); await sc.page.evaluate(() => { setExportFormat('1:1'); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
+  { id: 'panReset', tab: 'style', op: 'click', sel: '#panReset', values: [null], pre: async sc => { await OPEN_EXPOPTS(sc); await sc.page.evaluate(() => { setExportFormat('1:1'); exportPan = { x: 0, y: 0.6 }; applyExportFormat(exportFormatState()); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'autoCutChk', tab: 'style', op: 'check', sel: '#autoCutChk', values: [null], pre: OPEN_EXPOPTS, changes: ['cfg.autoCut'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'expSkipChk', tab: 'style', op: 'check', sel: '#expSkipChk', values: [null], pre: OPEN_EXPORT, changes: ['cfg.expSkip'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'gateNews', tab: 'style', op: 'check', sel: '#gateNews', values: [null], pre: OPEN_EXPORT, noopOk: 'reines Formularfeld — wirkt erst beim Download (test-e2e prüft den Lead-Eintrag)', inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
