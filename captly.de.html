@@ -1086,7 +1086,7 @@ body.editor-open .lang-hint{display:none}
   .land-lang select{font-size:16px}
   .show-card{--fw:150;width:150px;height:268px}
   .show-arrow{display:none}
-  .land-nav-links{gap:14px}
+  .land-nav-links{gap:14px;margin-left:14px}
   .land-nav-links .nl-opt{display:none}
   .land-nav-links a.nav-lang{padding:2px 7px}
   .land-nav{padding-left:14px;padding-right:10px}
@@ -1097,6 +1097,8 @@ body.editor-open .lang-hint{display:none}
   .foot-cols{gap:26px}
 }
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+/* Sehr schmale Handys: Preise + Sprache + Anmelden müssen in eine Zeile passen (FAQ bleibt im Footer/Seite erreichbar) */
+@media (max-width:360px){.land-nav-links{gap:10px;margin-left:8px}.land-nav-links a[href="#faq"]{display:none}.land-nav .nav-cta{padding-left:12px;padding-right:12px}}
 </style>
 </head>
 <body>
@@ -1996,8 +1998,8 @@ body.editor-open .lang-hint{display:none}
     </div>
     <div id="acctStep3" style="display:none">
       <p style="font-size:12.5px;margin-bottom:10px" id="acctInfo"></p>
-      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" id="btnPlanCreator" onclick="startCheckout('creator')" title="Paid plans are coming soon">Creator · 300 min/mo · $7.99 — coming soon</button>
-      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" id="btnPlanPro" onclick="startCheckout('pro')" title="Paid plans are coming soon">Pro · 1200 min/mo · $14.99 — coming soon</button>
+      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" id="btnPlanCreator" onclick="startCheckout('creator')" title="Paid plans are coming soon">Creator · 300 min/mo · $7.99 (≈ CHF 6.50 / € 7) — coming soon</button>
+      <button class="pos-btn" style="width:100%;padding:8px;margin-bottom:5px" id="btnPlanPro" onclick="startCheckout('pro')" title="Paid plans are coming soon">Pro · 1200 min/mo · $14.99 (≈ CHF 12 / € 14) — coming soon</button>
       <button class="pos-btn" id="btnPortal" style="width:100%;padding:8px;margin-bottom:5px;display:none" onclick="openPortal()">Manage subscription &amp; invoices</button>
       <button class="pos-btn" style="width:100%;padding:8px" onclick="logout()">Sign out</button>
       <button type="button" id="acctDelBtn" style="display:block;margin:10px auto 0;background:none;border:0;padding:4px;font-size:11.5px;color:#9a3b3b;text-decoration:underline;cursor:pointer" onclick="deleteAccount()">Delete account and all saved projects</button>
@@ -8820,8 +8822,8 @@ function renderBilling() {
   var c = document.getElementById('btnPlanCreator'), p = document.getElementById('btnPlanPro'), po = document.getElementById('btnPortal');
   if (c && p) {
     var lim = (billing && billing.limits) || {};
-    c.textContent = billingOn() ? 'Creator · ' + minOf(lim.creator) + ' min/month' : 'Creator · 300 min/mo · $7.99 — coming soon';
-    p.textContent = billingOn() ? 'Pro · ' + minOf(lim.pro) + ' min/month' : 'Pro · 1200 min/mo · $14.99 — coming soon';
+    c.textContent = billingOn() ? 'Creator · ' + minOf(lim.creator) + ' min/month' : 'Creator · 300 min/mo · $7.99 (≈ CHF 6.50 / € 7) — coming soon';
+    p.textContent = billingOn() ? 'Pro · ' + minOf(lim.pro) + ' min/month' : 'Pro · 1200 min/mo · $14.99 (≈ CHF 12 / € 14) — coming soon';
     c.title = p.title = billingOn() ? 'Price shown in your local currency at checkout' : 'Paid plans are coming soon';
     c.style.display = on && billing.plan === 'creator' ? 'none' : ''; p.style.display = on && billing.plan === 'pro' ? 'none' : '';
   }
