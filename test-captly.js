@@ -133,7 +133,7 @@ capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidRead
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
-exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,exportChangedSinceLast:exportChangedSinceLast,syncExportAgain:syncExportAgain,exportSignature:exportSignature,setExportRes:function(v){exportRes=v;},getCapPos:function(){return capPos;},downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,
+exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,exportChangedSinceLast:exportChangedSinceLast,syncExportAgain:syncExportAgain,exportSignature:exportSignature,setExportRes:function(v){exportRes=v;},getExportRes:function(){return exportRes;},confirmRetranscribe:confirmRetranscribe,rtAnswer:rtAnswer,rtOpen:rtOpen,hideCapToast:hideCapToast,renderBilling:renderBilling,setReTranscribing:setReTranscribing,getCapPos:function(){return capPos;},downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,
 zoomFill:zoomFill,zoomPlan:zoomPlan,zoomFeedback:zoomFeedback,zoomDemoStart:zoomDemoStart,getZoomDemo:function(){return _zoomDemo;},clearZoomDemo:function(){_zoomDemo=null;},
 applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
@@ -295,22 +295,34 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   T.onWpbChangeT(4);
 }
 
-// 9c) Neu-Transkription fragt nach manuellen Edits; Abbruch dreht die Sprachauswahl zurück
+// 9c) Neu-Transkription fragt nach manuellen Edits (In-App-Dialog, kein confirm()); Abbruch dreht die Sprachauswahl zurück
 {
   const prevLang = T.getLang();
   const realConfirm = global.confirm; let asked = 0;
-  global.confirm = () => { asked++; return false; };
+  global.confirm = () => { asked++; return false; }; // darf nie benutzt werden
+  const modal = document.getElementById('rtModal'); modal.style.display = 'none';
   T.setCurrentFile(null); T.setCaptionsEdited(true);
-  T.setLang('german'); ok(asked === 0 && T.getLang() === 'german', 'ohne Video: keine Rueckfrage');
+  T.setLang('german'); ok(asked === 0 && !T.rtOpen() && T.getLang() === 'german', 'ohne Video: keine Rueckfrage');
   T.setLang(prevLang);
   T.setCurrentFile({ name: 'x.mp4' });
   document.getElementById('langSel').value = 'french';
   T.setLang('french');
-  ok(asked === 1 && T.getLang() === prevLang && document.getElementById('langSel').value === prevLang,
-     'Abbruch: Sprache + Select bleiben, Edits bleiben');
+  ok(asked === 0 && T.rtOpen() && modal.style.display === 'flex' && T.getLang() === prevLang, 'A12: Dialog statt confirm(), Sprache noch unverändert');
+  T.rtAnswer(false);
+  ok(!T.rtOpen() && modal.style.display === 'none' && T.getLang() === prevLang && document.getElementById('langSel').value === prevLang,
+     'Abbruch: Sprache + Select bleiben, Edits bleiben, Dialog zu');
   ok(T.getCaptionsEdited() === true, 'Edit-Flag bleibt nach Abbruch gesetzt');
-  T.setCaptionsEdited(false); T.setCurrentFile(null);
-  global.confirm = realConfirm;
+  T.setCaptionsEdited(false); T.setLang('italian'); ok(!T.rtOpen() && T.getLang() === 'italian', 'ohne Handkorrektur: keine Rückfrage, Sprache gesetzt'); T.setLang(prevLang);
+  ok(/id="rtModal"[^>]*role="alertdialog"/.test(htmlContent) && !/confirm\('Re-transcribe/.test(htmlContent), 'A12: Re-transcribe-Warnung ist ein In-App-Dialog (alertdialog), kein confirm()');
+  T.setCurrentFile(null); global.confirm = realConfirm;
+}
+// A12: Fortschritt bei Neu-Transkription + alter Toast
+{
+  const ov = document.getElementById('procOv'); ov.style.display = 'none';
+  T.setReTranscribing(true);
+  ok(ov.style.display === 'flex' && /Re-transcribing/.test(document.getElementById('procMsg').textContent), 'A12: Re-Transkription zeigt Fortschritts-Überlagerung');
+  T.setReTranscribing(false); ok(ov.style.display === 'none', 'Überlagerung nach Re-Transkription weg');
+  ok(typeof T.hideCapToast === 'function' && /function openCover\(\) \{[^}]*?hideCapToast\(\)/.test(htmlContent), 'A12: Cover-Dialog blendet alte Toasts aus');
 }
 
 // 9e) Auto-Fit überlanger Wörter (Stub: Breite = Zeichen * px * 0.55)
@@ -407,6 +419,39 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   T.setBillingState(null); T.setMe('anon', '');
 }
 T.setMe('anon', '');
+
+// A5: Wasserzeichen-/Preisaussagen widerspruchsfrei. Statisch (JSON-LD, llms.txt, DE-Seite) = Beta-Aussage «nie ein Wasserzeichen»;
+// die Regel «ab dem 3. Video» steht nur in .bill-only-Absätzen, die erst bei aktivem Billing erscheinen.
+{
+  const ldHead = htmlContent.slice(0, htmlContent.indexOf('<style>'));
+  const llms = fs.readFileSync(path.join(__dirname, 'llms.txt'), 'utf8');
+  const de = fs.readFileSync(path.join(__dirname, 'captly.de.html'), 'utf8');
+  const RULE = /3rd video|3\. Video|ab dem dritten|from the third/i;
+  ok(!RULE.test(ldHead), 'A5: FAQ-JSON-LD (EN) enthält keine «ab dem 3. Video»-Regel');
+  ok(!RULE.test(llms) && /never a watermark/.test(llms), 'A5: llms.txt = Beta-Aussage');
+  ok(!RULE.test(de.slice(0, de.indexOf('<style>'))), 'A5: FAQ-JSON-LD (DE) enthält keine «ab dem 3. Video»-Regel');
+  for (const [name, h] of [['EN', htmlContent], ['DE', de]]) {
+    const land = h.slice(h.indexOf('<div id="landing">'), h.indexOf('<!-- EDITOR -->'));
+    const stripped = land.replace(/<p class="bill-only"[^>]*>[\s\S]*?<\/p>/g, '');
+    ok(!RULE.test(stripped), 'A5: Landing ' + name + ': Stückzahl-Regel nur in .bill-only');
+    ok(/<p class="bill-only" hidden>/.test(land), 'A5: Landing ' + name + ': .bill-only ist standardmässig verborgen');
+    ok(/price-approx">[^<]*CHF 6\.50 \/ € 7/.test(land) && /price-approx">[^<]*CHF 12 \/ € 14/.test(land), 'A5: Preise mit ca.-Werten in CHF/€ (' + name + ')');
+  }
+  ok(/ca\. CHF 6\.50/.test(de) && /approx\./.test(htmlContent), 'A5: ca.-Kennzeichnung (DE «ca.», EN «approx.»)');
+  // .bill-only folgt billingOn()
+  const bo = { hidden: true }, prevQ = document.querySelectorAll; document.querySelectorAll = () => [bo];
+  T.setBillingState(null); T.renderBilling(); ok(bo.hidden === true, 'A5: Billing aus → .bill-only bleibt verborgen');
+  T.setMe('anon', ''); T.setBillingState({ enabled: true, loggedIn: false, plan: 'anon', limits: {} }); T.renderBilling(); ok(bo.hidden === false, 'A5: Billing an → .bill-only sichtbar');
+  T.setBillingState(null); T.setMe('anon', ''); document.querySelectorAll = prevQ;
+}
+
+// A6: Handy-Landing hat Navigation (Preise, FAQ, Sprache) und Preis-Anker im Hero
+{
+  const nav = htmlContent.slice(htmlContent.indexOf('<nav class="land-nav-links">'), htmlContent.indexOf('</nav>', htmlContent.indexOf('<nav class="land-nav-links">')));
+  ok(/<a href="#pricing">/.test(nav) && /<a href="#faq">/.test(nav) && /class="nav-lang"/.test(nav) && !/nl-opt" href="#pricing"|nl-opt" href="#faq"/.test(nav), 'A6: Preise, FAQ und Sprache sind auch mobil in der Nav');
+  ok(/\.land-nav-links \.nl-opt\{display:none\}/.test(htmlContent) && !/\.land-nav-links\{display:none\}/.test(htmlContent), 'A6: mobil nur die Nebenlinks ausgeblendet, die Nav bleibt');
+  ok(/<a class="hero-price" href="#pricing">[^<]*\$7\.99/.test(htmlContent), 'A6: Preis-Anker im Hero');
+}
 
 // 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
 {
@@ -2851,10 +2896,20 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.exportSizeLabel(1920, 1080, '1080', 'blur') === '1080p' && T.exportSizeLabel(720, 720, '1080', 'crop') === '1080p', 'Label: Reframe (9:16-Leinwand) → „1080p“');
     {
       const vid = document.getElementById('mainVid'), o0 = [vid.videoWidth, vid.videoHeight];
-      const sel = document.getElementById('expRes'); sel.options = [{ textContent: '' }, { textContent: '' }]; sel.value = '1080';
+      const sel = document.getElementById('expRes'); sel.options = [{ value: '1080', textContent: '' }, { value: 'orig', textContent: '' }]; sel.value = '1080';
+      sel.remove = i => sel.options.splice(i, 1); sel.add = o => sel.options.push(o);
       vid.videoWidth = 540; vid.videoHeight = 960; T.syncExpSub();
       ok(document.getElementById('btnVideoSub').textContent === 'MP4 · 540×960 (source size) · no watermark', 'Unterzeile Knopf: ' + document.getElementById('btnVideoSub').textContent);
-      ok(/^Source size · 540×960 \(recommended\)$/.test(sel.options[0].textContent) && /^Original/.test(sel.options[1].textContent), 'Auswahl „Resolution“: nicht „1080p“ bei kleiner Quelle: ' + sel.options[0].textContent);
+      // A12: bei kleiner Quelle ergeben „1080p“ und „Original“ dieselben Maße → nur EINE Option (keine Dublette)
+      ok(sel.options.length === 1 && sel.options[0].value === '1080' && /^Source size · 540×960 \(recommended\)$/.test(sel.options[0].textContent), 'Auswahl „Resolution“: identische Maße → eine Option, nicht „1080p“ bei kleiner Quelle: ' + sel.options.map(o => o.textContent).join(' | '));
+      vid.videoWidth = 1280; vid.videoHeight = 720; T.syncExpSub();
+      ok(sel.options.length === 1 && sel.options[0].value === '1080', 'A12: 1280×720 → keine Dublette „Source size“/„Original“');
+      vid.videoWidth = 3840; vid.videoHeight = 2160; T.syncExpSub();
+      ok(sel.options.length === 2 && sel.options[0].value === '1080' && sel.options[1].value === 'orig' && /^Original · 3840×2160$/.test(sel.options[1].textContent), 'A12: 4K → beide Optionen (1080p ≠ Original): ' + sel.options.map(o => o.textContent).join(' | '));
+      // gespeicherte Wahl „orig“ wird bei identischen Maßen auf die verbleibende Option abgebildet (ohne die Wahl zu verlieren)
+      T.setExportRes('orig'); vid.videoWidth = 1280; vid.videoHeight = 720; T.syncExpSub();
+      ok(sel.options.length === 1 && sel.value === '1080' && T.getExportRes && T.getExportRes() === 'orig', 'A12: gespeichertes „orig“ → Anzeige auf die verbleibende Option, Wahl bleibt gemerkt');
+      T.setExportRes('1080');
       vid.videoWidth = 1080; vid.videoHeight = 1920; T.syncExpSub();
       ok(/^MP4 · 1080p/.test(document.getElementById('btnVideoSub').textContent) && sel.options[0].textContent === '1080p (recommended)', 'Unterzeile bei 1080×1920: „1080p“');
       vid.videoWidth = o0[0]; vid.videoHeight = o0[1];

@@ -15,7 +15,7 @@ Gluephs (formerly Capivo) is made in Switzerland by Jonas Treier (sole proprieto
 - Export: MP4 with burned-in captions (1080p by default, no watermark), SRT, VTT and a plain TXT transcript.
 - Privacy: only the audio track is sent for transcription; the video stays on the device and the MP4 is rendered locally in the browser. Audio and transcripts are not stored on Gluephs servers.
 - Devices: runs in desktop and mobile browsers (including iPhone and Android); no app or plugin to install.
-- Price: free during the beta, no account needed; an email address is asked before the first video download. Paid plans Creator (planned $7.99/month, 300 transcription minutes) and Pro (planned $14.99/month, 1,200 transcription minutes) are announced as "coming soon" and are not available yet.
+- Price: free during the beta, no account needed; an email address is asked before the first video download. Paid plans Creator (planned $7.99/month, approx. CHF 6.50 / € 7; 300 transcription minutes) and Pro (planned $14.99/month, approx. CHF 12 / € 14; 1,200 transcription minutes) are announced as "coming soon" and are not available yet.
 
 ## Pages
 
@@ -27,7 +27,7 @@ Gluephs (formerly Capivo) is made in Switzerland by Jonas Treier (sole proprieto
 ## FAQ highlights
 
 - How do I add captions to Instagram Reels, TikTok or YouTube Shorts? Upload the video on the page, check the captions, pick a style and download the MP4. The captions are burned into the video, so the file can be posted as it is.
-- Is it free? Is there a watermark? Free during the beta, no account needed; MP4 export has no watermark. An email is asked (optionally, you can skip it) before the first video download. Once paid plans exist: Free has no watermark for the first 2 videos each day, from the 3rd video per day a small watermark appears; paid plans never have one.
+- Is it free? Is there a watermark? Free during the beta, no account needed; MP4 export has no watermark. An email is asked (optionally, you can skip it) before the first video download. During the beta there is never a watermark.
 - Do I need to install anything? No, it runs in the browser.
 - Is my video uploaded? No, only the audio track is sent for transcription.
 
