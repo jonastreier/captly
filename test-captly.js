@@ -140,7 +140,7 @@ styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:clo
 videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateSkip:function(){_gateSkipped=false;try{sessionStorage.removeItem(GATE_SKIP_KEY);}catch(e){}},skipEmailGate:skipEmailGate,wmNoticeText:wmNoticeText,trHeaders:trHeaders,
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
 capNoItalic:capNoItalic,capPopFactor:capPopFactor,setCsBase:function(b){_csBase=b;},drawTextGrouped:drawTextGrouped,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
-setActiveId:function(i){activeId=i;}};`;
+setActiveId:function(i){activeId=i;},lookSnapshot:lookSnapshot,lookUndoRun:lookUndoRun,lookUndoEnd:lookUndoEnd,tlHandleKey:tlHandleKey,tlGlobalKey:tlGlobalKey,capNoHyphen:capNoHyphen,landBrandId:landBrandId,setCsDirtyGet:function(){return _csDirty;},setHOff:function(v){capHOff=v;},setFree:function(v){capFree=v;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -4380,6 +4380,143 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(E('csWeight').value === '700' && E('csWeight').disabled === true && labels() === '700:Bold', 'Oswald (nur 700): Seed waehlt 700');
     T.setCsDirty({}); ok(T.buildCustomStyle().fw === '600', 'Seed allein veraendert fw des Looks nicht');
     T.seedCustomFields(base);
+  }
+
+  // ── Paket A-Edit: Undo für Look/Grösse/Position/Regler (A2), globale Tasten (A3), Standard-Template (A1), kein Trennen kurzer Wörter (A9) ──
+  {
+    const src = fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8');
+    const E = id => document.getElementById(id);
+    const ws = Array.from({ length: 8 }, (_, i) => ({ word: 'w' + i, start: i * 0.5, end: i * 0.5 + 0.4 }));
+    const fresh = () => { T.setState(T.buildCaptionBlocks(ws), ws.map(w => Object.assign({}, w)), 'karaoke'); T.setCaptionsEdited(false); T.resetUndo(); T.lookUndoEnd(); };
+    const posBtn = pos => ({ dataset: { pos }, parentElement: { querySelectorAll: () => [] }, classList: { add() {}, remove() {} } });
+    T.selectStyle('classic'); T.onWpbChange('4'); fresh();
+
+    // A2: Look-Wechsel = 1 Schritt, Undo/Redo stellt Look zurück, Blöcke bleiben
+    const blocks0 = T.captionSnapshot();
+    T.lookUndoRun(null, () => T.selectStyle('hormozi'));
+    ok(T.getActiveId() === 'hormozi' && T.undoDepth()[0] === 1, 'A2: Look-Wechsel legt genau 1 Undo-Schritt an: ' + T.undoDepth());
+    ok(T.undoCaptions() && T.getActiveId() === 'classic', 'A2: Undo macht den Look-Wechsel rückgängig: ' + T.getActiveId());
+    ok(T.captionSnapshot() === blocks0, 'A2: Undo des Looks lässt die Blöcke unberührt');
+    ok(T.redoCaptions() && T.getActiveId() === 'hormozi', 'A2: Redo wendet den Look wieder an');
+    T.undoCaptions();
+    T.lookUndoRun(null, () => T.selectStyle('classic')); // gleicher Look erneut → kein Schritt
+    ok(T.undoDepth()[0] === 0, 'A2: erneuter Klick auf aktiven Look erzeugt keinen Schritt: ' + T.undoDepth());
+
+    // Grösse: Slider-Zug (viele input-Events) = 1 Schritt bis change; danach neuer Zug = neuer Schritt
+    fresh(); const sz0 = T.getFontSize();
+    ['30', '31', '32', '33'].forEach(v => T.onSzChange(v));
+    ok(T.getFontSize() === 33 && T.undoDepth()[0] === 1, 'A2: Grösse-Slider-Zug = 1 Undo-Schritt: ' + T.undoDepth());
+    T.lookUndoEnd(); // = change/pointerup
+    T.onSzChange('40'); T.onSzChange('41');
+    ok(T.undoDepth()[0] === 2, 'A2: zweiter Zug = zweiter Schritt: ' + T.undoDepth());
+    T.undoCaptions(); ok(T.getFontSize() === 33, 'A2: Undo 1 → Grösse vor dem 2. Zug: ' + T.getFontSize());
+    T.undoCaptions(); ok(T.getFontSize() === sz0, 'A2: Undo 2 → Ausgangsgrösse: ' + T.getFontSize());
+    ok(E('szSlider').value === sz0 && E('szDisp').textContent === sz0 + 'px', 'A2: Slider-Anzeige folgt dem Undo');
+    T.redoCaptions(); ok(T.getFontSize() === 33, 'A2: Redo → Grösse nach dem 1. Zug');
+
+    // Position: Preset-Klick und freies Verschieben
+    fresh(); T.setPosState('bottom'); T.setHOff(0); T.setFree(false);
+    const lay0 = T.currentLayout();
+    T.setPos(posBtn('top'));
+    ok(T.currentLayout().pos === 'top' && T.undoDepth()[0] === 1, 'A2: Position-Preset = 1 Schritt');
+    T.undoCaptions(); const lay1 = T.currentLayout();
+    ok(lay1.pos === lay0.pos && lay1.voff === lay0.voff && lay1.hoff === lay0.hoff && lay1.free === lay0.free, 'A2: Undo stellt Position wieder her');
+    ok(/_capDragUndoSnap = lookSnapshot\(\)/.test(src) && /pushUndo\(null, _capDragUndoSnap\)/.test(src), 'A2: freies Verschieben sichert den Zustand beim Drag-Start und legt EINEN Schritt bei der ersten Bewegung an');
+    ok(src.indexOf('pushUndo(null, _capDragUndoSnap)') < src.indexOf('capDragMoved = true;\n  var r = capDragPlace'), 'A2: Drag-Schritt wird vor der ersten Positionsänderung angelegt');
+
+    // Custom-Regler: ein Zug = 1 Schritt, Undo stellt Style + Regler-Basis
+    fresh(); T.selectStyle('classic'); T.seedCustomFields(T.STYLES.find(x => x.id === 'classic')); T.resetUndo(); T.lookUndoEnd();
+    const act0 = T.getActiveId(), dirty0 = JSON.stringify(T.setCsDirtyGet());
+    ['2', '3', '4'].forEach(v => { E('csOutlineW').value = v; T.applyCustomStyle('stroke'); });
+    T.flushCustomStyle();
+    ok(T.getActiveId() === 'custom' && T.undoDepth()[0] === 1, 'A2: Custom-Regler-Zug = 1 Schritt: ' + T.getActiveId() + ' ' + T.undoDepth());
+    T.undoCaptions();
+    ok(T.getActiveId() === act0 && JSON.stringify(T.setCsDirtyGet()) === dirty0, 'A2: Undo stellt Look + Regler-Basis wieder her: ' + T.getActiveId());
+    T.lookUndoEnd();
+    E('csOutlineW').value = '3'; T.applyCustomStyle('stroke'); T.lookUndoEnd(); E('csText').value = '#ff0000'; T.applyCustomStyle('text'); T.flushCustomStyle();
+    ok(T.undoDepth()[0] === 3 || T.undoDepth()[0] === 2, 'A2: verschiedene Regler = eigene Schritte: ' + T.undoDepth());
+
+    // Gemeinsamer Stapel: Split → Look → Undo nimmt NUR den Look zurück, nächstes Undo den Split
+    fresh(); T.selectStyle('classic'); T.resetUndo();
+    ok(T.tlSplitAt(0, 0.45), 'Testaufbau: Split'); const afterSplit = T.captionSnapshot();
+    T.lookUndoRun(null, () => T.selectStyle('hormozi'));
+    T.undoCaptions();
+    ok(T.getActiveId() === 'classic' && T.captionSnapshot() === afterSplit, 'A2: Undo nach Split+Look nimmt nur den Look zurück (Split bleibt)');
+    T.undoCaptions();
+    ok(T.captionSnapshot() === blocks0, 'A2: zweites Undo nimmt den Split zurück');
+    // umgekehrt: Look → Split → Undo nimmt nur den Split zurück
+    fresh(); T.lookUndoRun(null, () => T.selectStyle('hormozi')); T.tlSplitAt(0, 0.45);
+    T.undoCaptions();
+    ok(T.getActiveId() === 'hormozi' && T.captionSnapshot() === blocks0, 'A2: Undo nach Look+Split nimmt nur den Split zurück');
+    T.undoCaptions(); ok(T.getActiveId() === 'classic', 'A2: danach der Look');
+    T.selectStyle('classic');
+    // Quelltext-Verdrahtung: Kachel, Regler, Grösse, Position, Modus, Zeilen
+    ok(/tile\.onclick = function\(\)\{ lookUndoRun\(null, function\(\)\{ selectStyle\(s\.id\); \}\); \};/.test(src), 'A2: Stil-Kachel läuft über lookUndoRun');
+    ['applyCustomStyle', 'onSzChange', 'setPos', 'setMode', 'setLines', 'onVOffChange', 'togglePunct', 'setCaptionCase'].forEach(fn =>
+      ok(new RegExp('function ' + fn + '\\([^)]*\\) \\{ return lookUndoRun\\(').test(src), 'A2: ' + fn + ' ist Undo-fähig'));
+
+    // A3: S / Pfeile / Entf global
+    const ev = (key, extra) => Object.assign({ key, code: key.length === 1 ? 'Key' + key.toUpperCase() : key, preventDefault() { this.pd = true; }, stopPropagation() {} }, extra || {});
+    fresh(); T.tlSelState(-1, -1); E('mainVid').currentTime = 0.45;
+    E('expSheet').style.display = 'none'; // Export-Blatt offen = Tasten gehören dem Blatt (kbModalOpen)
+    const nb = T.getBlocks().length, e1 = ev('s');
+    ok(T.tlGlobalKey(e1) === true && e1.pd && T.getBlocks().length === nb + 1, 'A3: S ohne Auswahl teilt den Block am Abspielkopf (global): ' + T.getBlocks().length + '/' + nb);
+    fresh(); T.tlSelState(1, -1);
+    const st0 = T.getBlocks()[1].start, en0 = T.getBlocks()[1].end;
+    ok(T.tlGlobalKey(ev('ArrowRight', { shiftKey: true })) === true && (T.getBlocks()[1].start !== st0 || T.getBlocks()[1].end !== en0), 'A3: Pfeil bei gewählter Zeile verschiebt sie auch ohne Canvas-Fokus');
+    fresh(); T.tlSelState(-1, -1);
+    ok(T.tlGlobalKey(ev('ArrowRight')) === false && T.tlGlobalKey(ev('Delete')) === false, 'A3: ohne Auswahl bleibt ← → Seek, Entf tut nichts');
+    fresh(); T.tlSelState(1, -1); const n2 = T.getBlocks().length;
+    ok(T.tlGlobalKey(ev('Delete')) === true && T.getBlocks().length === n2 - 1, 'A3: Entf löscht die gewählte Zeile global');
+    fresh(); T.tlSelState(0, -1); const n3 = T.getBlocks().length;
+    ok(T.tlGlobalKey(ev('Backspace')) === true && T.getBlocks().length === n3 - 1, 'A3: Backspace löscht die gewählte Zeile global');
+    T.undoCaptions(); ok(T.getBlocks().length === n3, 'A3: Undo des Löschens');
+    T.tlSelState(-1, -1);
+    ok(/if \(\['s', 'S', 'Delete', 'Backspace', 'ArrowLeft', 'ArrowRight'\][\s\S]{0,120}tlGlobalKey\(e\)/.test(src), 'A3: globaler keydown-Handler ruft tlGlobalKey');
+    ok(/var typing = tg\.tagName === 'INPUT' \|\| tg\.tagName === 'TEXTAREA' \|\| tg\.tagName === 'SELECT' \|\| tg\.isContentEditable;/.test(src) && /if \(typing \|\| mod \|\| e\.altKey\) return;[\s\S]{0,400}tlGlobalKey/.test(src), 'A3: nicht in input/textarea/select/contenteditable');
+    ok(/<b>S<\/b> split at the playhead/.test(src), 'A3: Shortcut-Menü nennt S');
+
+    // A1: Standard-Template schlägt zuletzt gewähltes Preset
+    {
+      const store = {};
+      const prevLS = global.localStorage;
+      global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+      T.setUserTemplates([]); T.loadTemplates();
+      T.selectStyle('beast'); E('tplName').value = 'Gym'; T.saveTemplate();
+      const gym = T.getUserTemplates().find(t => t.name === 'Gym');
+      ok(gym && T.brandTplId() === gym.id, 'A1: Testaufbau: Gym ist Standard');
+      T.selectStyle('hormozi');
+      ok(store['capivo.style'] === 'hormozi' && T.brandTplId() === gym.id, 'A1: zuletzt gewähltes Preset ändert das Standard-Template nicht');
+      T.selectStyle('classic'); T.applyBrandOnOpen();
+      ok(T.getActiveId() === gym.id, 'A1: neues Video: Standard-Template schlägt capivo.style: ' + T.getActiveId());
+      ok(T.landBrandId() === gym.id, 'A1: Startseite zeigt das Standard-Template als gewählt');
+      T.toggleBrandTpl(gym.id); T.selectStyle('hormozi'); T.applyBrandOnOpen();
+      ok(T.getActiveId() === 'hormozi' && T.landBrandId() === '', 'A1: ohne Standard-Template gilt das zuletzt gewählte Preset');
+      T.setUserTemplates([]); T.loadTemplates(); T.selectStyle('hormozi');
+      global.localStorage = prevLS; if (!prevLS) delete global.localStorage;
+    }
+
+    // A9: kurze Wörter nicht trennen, lieber verkleinern; Auto-Limit hängt an Grösse + Rahmenbreite
+    {
+      document.getElementById('prevFrame').style.width = '176px';
+      const st9 = T.STYLES.find(x => !x.boxBg && !x.pill && !x.hlPillBg && !x.circle && !(parseFloat(x.ls) > 0) && !x.fs && !x.motion);
+      const mw = T.capFitMaxW(st9);
+      const fk = T.fitCaptionWords(['FUNKTIONIERT.'], st9, 34, mw, 2);
+      ok(fk.words.length === 1 && fk.words[0] === 'FUNKTIONIERT.' && fk.px < 34, 'A9: «FUNKTIONIERT.» bleibt ganz (verkleinert statt FUNKTIO-/NIERT.): ' + fk.words.join(' | ') + ' px=' + fk.px);
+      ok(fk.words[0].length * fk.px * 0.55 <= mw + 1e-9, 'A9: verkleinertes Wort passt in die Breite');
+      const fk1 = T.fitCaptionWords(['FUNKTIONIERT.'], st9, 34, mw, 1);
+      ok(fk1.words.length === 1, 'A9: auch bei 1 Zeile ganz');
+      const fl = T.fitCaptionWords(['Rindfleischverarbeitungsbetriebe'], st9, 34, mw, 2);
+      ok(fl.words.length > 1, 'A9: echte Komposita werden weiter getrennt: ' + fl.words.join(' | '));
+      const fx = T.fitCaptionWords(['Zusammenhalten'], st9, 54, 100, 2);
+      ok(fx.words.length > 1, 'A9: passt selbst bei Mindestgrösse nicht → Trennung als letzter Ausweg: ' + fx.words.join(' | '));
+      ok(T.capNoHyphen('FUNKTIONIERT.') && T.capNoHyphen('Verantwortung') && !T.capNoHyphen('Rindfleischverarbeitung'), 'A9: capNoHyphen: bis 14 Buchstaben (ohne Satzzeichen)');
+      T.setFontSizeState(22); const w176 = T.capAutoChars(st9);
+      document.getElementById('prevFrame').style.width = '360px'; const w360 = T.capAutoChars(st9);
+      T.setFontSizeState(34); const big = T.capAutoChars(st9);
+      ok(w360 > w176 && big < w360, 'A9: Auto-Zeichenlimit wächst mit Rahmenbreite und sinkt mit Schriftgrösse: ' + [w176, w360, big].join('/'));
+      document.getElementById('prevFrame').style.width = '270px';
+    }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
