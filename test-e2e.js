@@ -959,6 +959,39 @@ if (require.main !== module) return;
     ok(!hscroll, 'kein horizontales Scrollen');
     await ctx.close();
   }
+  // Handy quer / kleine Handys: Video und Kopfzeile oben vollständig sichtbar, nichts ragt unten über den Bildschirm (Timeline zu)
+  for (const [vw, vh] of [[844, 390], [932, 430], [390, 664], [360, 640]]) {
+    const c2 = await browser.newContext({ viewport: { width: vw, height: vh }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+    await routeSupabase(c2, base);
+    const p3 = await c2.newPage();
+    await p3.goto(base + '/', { waitUntil: 'load' });
+    await p3.setInputFiles('#landInput', VIDEO);
+    await p3.waitForFunction(() => typeof captionBlocks !== 'undefined' && captionBlocks.length > 0, null, { timeout: 60000 }).catch(() => {});
+    await p3.waitForTimeout(900);
+    const g = await p3.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom }; };
+      return { vh: innerHeight, topbar: r('.topbar'), frame: r('#prevFrame'), ctrls: r('#vidCtrls'), tlOpen: !!(window._tl && _tl.open), hs: document.documentElement.scrollWidth > innerWidth + 1 }; });
+    const tag = vw + '×' + vh;
+    ok(g.frame && g.topbar && g.frame.t >= g.topbar.b - 0.5, 'Handy ' + tag + ': Video beginnt unter der Kopfzeile, oberer Rand nicht abgeschnitten (' + Math.round(g.frame.t) + ' ≥ ' + Math.round(g.topbar.b) + ')');
+    ok(g.frame.b <= g.vh && g.ctrls.b <= g.vh + 0.5 || vw <= 640, 'Handy ' + tag + ': Video + Leiste passen auf den Bildschirm');
+    ok(vw <= 640 || !g.tlOpen, 'Handy ' + tag + ': Timeline startet zugeklappt (niedriger Bildschirm)');
+    ok(!g.hs, 'Handy ' + tag + ': kein horizontales Scrollen');
+    await c2.close();
+  }
+  // Nicht abspielbares Video nach gescrollter Startseite (Chrome Android): Kopfzeile bleibt sichtbar, Warnbox überlappt nichts
+  {
+    const c3 = await browser.newContext({ viewport: { width: 412, height: 780 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+    await routeSupabase(c3, base);
+    const p4 = await c3.newPage();
+    await p4.goto(base + '/', { waitUntil: 'load' });
+    await p4.evaluate(() => window.scrollTo(0, 700));
+    await p4.setInputFiles('#landInput', { name: 'kaputt.mp4', mimeType: 'video/mp4', buffer: Buffer.alloc(120000, 7) });
+    await p4.waitForTimeout(3500);
+    const g2 = await p4.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: b.top, b: b.bottom, d: getComputedStyle(e).display }; };
+      return { sy: scrollY, topbar: r('.topbar'), frame: r('#prevFrame'), warn: r('#vidWarn'), pc: r('.prev-col') }; });
+    ok(g2.sy === 0 && g2.topbar.t >= 0, 'Fehlerfall Handy: Seite oben (scrollY ' + g2.sy + '), Kopfzeile sichtbar');
+    ok(g2.warn.d === 'none' || (g2.frame.t >= g2.pc.t && g2.warn.b <= g2.pc.b + 1), 'Fehlerfall Handy: Video und Warnbox liegen komplett in der Vorschau-Spalte (Warnbox bis ' + Math.round(g2.warn.b) + ', Spalte bis ' + Math.round(g2.pc.b) + ')');
+    await c3.close();
+  }
   await browser.close(); server.close();
   console.log(fails ? `\n${fails}/${n} FEHLER` : `\ntest-e2e: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);
