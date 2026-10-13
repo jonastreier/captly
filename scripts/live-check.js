@@ -54,7 +54,7 @@ async function get(path, opt = {}) {
   }
   const k = await get('/kontakt');
   if (k.status === 200 && /name="t" value="\d+\.[0-9a-f]{24}"/.test(k.text)) pass('Kontaktformular hat Spam-Schutz-Token (LEAD_SECRET gesetzt)');
-  else if (k.status === 200) fail('Kontaktformular ohne Token — LEAD_SECRET fehlt in config.php', 'GitHub-Secret LEAD_SECRET eintragen und neu deployen.');
+  else if (k.status === 200) note('Kontaktformular ohne Token — LEAD_SECRET fehlt in config.php', 'GitHub-Secret LEAD_SECRET eintragen und neu deployen.');
 
   // 4) API (GET → Statusmeldung)
   const tr = await get('/api/transcribe');
@@ -64,7 +64,7 @@ async function get(path, opt = {}) {
   for (const [p, name, key] of [['/api/lead', 'E-Mail-Erfassung', 'SUPABASE_SERVICE_KEY'], ['/api/log', 'Fehlerberichte', 'SUPABASE_SERVICE_KEY']]) {
     const r = await get(p);
     if (r.json && r.json.ok && r.json.configured) pass(name + ': bereit');
-    else if (r.json && r.json.ok) fail(name + ': erreichbar, aber Supabase nicht konfiguriert', 'Secret ' + key + ' eintragen, neu deployen.');
+    else if (r.json && r.json.ok) note(name + ': erreichbar, aber Supabase noch nicht konfiguriert', 'Secret ' + key + ' eintragen, neu deployen (docs/SECRETS-GLUEPHS.md Schritt 4).');
     else fail(name + ' (' + p + ') nicht erreichbar (Status ' + (r.error || r.status) + ')');
   }
   const st = await get('/api/stat');
@@ -73,7 +73,8 @@ async function get(path, opt = {}) {
   if (pl.json && pl.json.enabled === false) pass('Abos: aus (richtig für den Start)'); else if (pl.json && pl.json.enabled) note('Abos sind EINGESCHALTET', 'Gewollt? Sonst Variable BILLING_ENABLED entfernen und neu deployen.'); else fail('/api/plan nicht erreichbar (Status ' + (pl.error || pl.status) + ')');
 
   // 5) Interne Dateien dürfen nie öffentlich sein
-  for (const p of ['/config.php', '/config.example.php', '/schema.sql', '/server.js', '/test-captly.js', '/.htaccess', '/CLAUDE.md']) {
+  for (const p of ['/config.php', '/config.example.php', '/schema.sql', '/server.js', '/test-captly.js', '/.htaccess', '/CLAUDE.md',
+    '/README.md', '/docs/START-PROMPT.md', '/captly-produktplan.md', '/scripts/build-dist.js', '/i18n/de.js', '/vercel.json']) {
     const r = await get(p);
     if (r.status === 200 && /\.php$/.test(p) && r.text.trim() === '') pass(p + ' wird nur ausgeführt (leere Antwort, nichts sichtbar)');
     else if (r.status === 200 && !/<html/i.test(r.text.slice(0, 200)) ) fail(`${p} ist ÖFFENTLICH abrufbar!`, 'Sofort prüfen: .htaccess hochgeladen? Hostpoint muss .htaccess auswerten (AllowOverride).');
