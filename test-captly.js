@@ -13,7 +13,7 @@ function mkEl(id) {
       toggle(c, f) { f ? this._s.add(c) : this._s.delete(c); },
       contains(c) { return this._s.has(c); }
     },
-    innerHTML: '', textContent: '', value: '', className: '', title: '', href: '', download: '', rows: 1, scrollHeight: 12, offsetWidth: 0,
+    get innerHTML() { return this._ih || ''; }, set innerHTML(v) { this._ih = v; if (v === '') this.children = []; }, textContent: '', value: '', className: '', title: '', href: '', download: '', rows: 1, scrollHeight: 12, offsetWidth: 0,
     src: '', paused: true, ended: false, currentTime: 0, duration: NaN, muted: true, volume: 1, videoWidth: 1080, videoHeight: 1920, readyState: 0, files: [],
     appendChild(c) { this.children.push(c); }, addEventListener() {}, removeAttribute() {}, setAttribute() {},
     querySelectorAll() { return []; }, getBoundingClientRect() { return { left: 0, width: 100 }; },
@@ -127,7 +127,7 @@ emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopSt
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
 setLines:setLines,splitBlockAtCursor:splitBlockAtCursor,getLines:function(){return CAPTION_LINES;},getMaxChars:function(){return CAP_MAX_CHARS;},getPresetPrevLayout:function(){return _presetPrevLayout;},setFontSizeState:function(v){fontSize=v;},
-setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
+setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capFontWeights:capFontWeights,csSyncWeights:csSyncWeights,onFontPick:onFontPick,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
 capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
 capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},setProgDrag:function(v){_progDrag=v;},
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
@@ -4181,6 +4181,41 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const main2 = mkG({ width: 1080, height: 1920 }); T.drawTextGrouped(main2, 'so', 100, 200, plan, 3, 1, 60, 120, 1, 1);
     ok(main2.calls.length >= 2 && main2.calls.every(k => k.a === 1), 'Deckkraft 1: direkt auf den Hauptkontext gezeichnet');
     document.createElement = origCreate;
+  }
+  // ── Gewichts-Auswahl folgt der Schrift: nur vorhandene Schnitte, nächstliegendes Gewicht wird gewählt UND angewendet ──
+  {
+    const E = id => document.getElementById(id);
+    const W = T.capFontWeights;
+    ok(JSON.stringify(W('Bungee')) === '[400]' && JSON.stringify(W('Anton')) === '[400]' && JSON.stringify(W('Bebas Neue')) === '[400]', 'Weights: Display-Fonts nur Regular');
+    ok(JSON.stringify(W('Roboto')) === '[400,700,900]' && JSON.stringify(W('DM Sans')) === '[700]' && JSON.stringify(W('Montserrat')) === '[600,700,800,900]', 'Weights: Roboto/DM Sans/Montserrat laut CAP_FONT_W');
+    ok(W('Meine Eigene').length === 5 && W('').length === 5, 'Weights: unbekannte/eigene Schrift behaelt alle Stufen');
+    const labels = () => E('csWeight').children.map(o => o.value + ':' + o.textContent).join(',');
+    const base = T.STYLES.find(x => x.id === 'tbox');
+    T.selectStyle('tbox');
+    T.seedCustomFields(Object.assign({}, base, { fl: 'Bungee', font: "'Bungee'", fw: '800' }));
+    ok(labels() === '400:Regular' && E('csWeight').value === '400' && E('csWeight').disabled === true && /only one weight/.test(E('csWeight').title),
+       'Bungee: nur Regular, Select deaktiviert + Hinweis: ' + labels());
+    // Schrift wechseln → Gewicht der Nutzerin (800) kommt zurueck und wird in den Style uebernommen
+    E('csFont').value = 'Montserrat'; T.onFontPick(E('csFont')); T.flushCustomStyle();
+    ok(labels() === '600:Semi,700:Bold,800:Extra,900:Black' && E('csWeight').value === '800' && E('csWeight').disabled === false && E('csWeight').title === 'Font weight',
+       'Montserrat: 4 Stufen, 800 wiederhergestellt: ' + labels() + ' / ' + E('csWeight').value);
+    ok(T.STYLES.find(x => x.id === 'custom').fw === '800', 'Style-fw = Auswahl (Vorschau = Export)');
+    // Einzel-Gewicht-Font → fw 400 im Style (Canvas-Export zeichnet dasselbe wie die Vorschau, kein Faux-Bold)
+    E('csFont').value = 'Anton'; T.onFontPick(E('csFont')); T.flushCustomStyle();
+    ok(E('csWeight').value === '400' && E('csWeight').disabled === true && T.STYLES.find(x => x.id === 'custom').fw === '400', 'Anton: Gewicht 400 angewendet: ' + T.STYLES.find(x => x.id === 'custom').fw);
+    // Roboto (400;700;900): 800 liegt genau zwischen 700 und 900 → schwerer
+    E('csFont').value = 'Roboto'; T.onFontPick(E('csFont')); T.flushCustomStyle();
+    ok(labels() === '400:Regular,700:Bold,900:Black' && E('csWeight').value === '900' && T.STYLES.find(x => x.id === 'custom').fw === '900', 'Roboto: nächstliegendes Gewicht 900: ' + E('csWeight').value);
+    // Eigene Auswahl merken: Bold gewaehlt → bleibt bei Wechsel auf Poppins
+    E('csWeight').value = '700'; T.applyCustomStyle('weight'); T.flushCustomStyle();
+    E('csFont').value = 'Poppins'; T.onFontPick(E('csFont')); T.flushCustomStyle();
+    ok(E('csWeight').value === '700' && T.STYLES.find(x => x.id === 'custom').fw === '700', 'Poppins: gewähltes Bold bleibt');
+    // Look mit Single-Weight-Schrift: Seed zeigt nächstliegendes Gewicht, ändert den Look aber nicht
+    T.selectStyle('tbox');
+    T.seedCustomFields(Object.assign({}, base, { fl: 'Oswald', font: "'Oswald'", fw: '600' }));
+    ok(E('csWeight').value === '700' && E('csWeight').disabled === true && labels() === '700:Bold', 'Oswald (nur 700): Seed waehlt 700');
+    T.setCsDirty({}); ok(T.buildCustomStyle().fw === '600', 'Seed allein veraendert fw des Looks nicht');
+    T.seedCustomFields(base);
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

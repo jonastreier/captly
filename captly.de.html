@@ -6397,6 +6397,44 @@ function buildFontSelect() {
   sel.appendChild(other);
   if (cur) sel.value = cur;
 }
+// Gewichte-Auswahl passend zur Schrift: nur die Schnitte anbieten, die die Schrift wirklich hat (sonst bleibt „Bold“/„Black“
+// ohne Wirkung bzw. der Browser fälscht Fett). Eigene Schriften und unbekannte Familien behalten alle fünf Stufen.
+var CS_WEIGHTS = [[400, 'Regular'], [600, 'Semi'], [700, 'Bold'], [800, 'Extra'], [900, 'Black']];
+function capFontWeights(name) {
+  var all = CS_WEIGHTS.map(function(x){ return x[0]; });
+  if (!name || _userFonts[name] || !Object.prototype.hasOwnProperty.call(CAP_FONT_W, name)) return all;
+  var spec = CAP_FONT_W[name];
+  if (!spec) return [400];
+  var have = String(spec).split(';').map(function(v){ return parseInt(v, 10); });
+  var list = all.filter(function(w){ return have.indexOf(w) >= 0; });
+  return list.length ? list : [400];
+}
+function capNearestWeight(list, want) {
+  return list.reduce(function(b, v){ var dv = Math.abs(v - want), db = Math.abs(b - want); return dv < db || (dv === db && v > b) ? v : b; }, list[0]);
+}
+var _csWantW = 0; // gewünschtes Gewicht der Nutzerin: kommt nach einem Wechsel zu einer Schrift mit mehr Schnitten wieder zurück
+// Baut #csWeight für die Schrift neu auf, wählt das nächstliegende vorhandene Gewicht und gibt es zurück.
+function csSyncWeights(font, want) {
+  var sel = csEl('csWeight'), list = capFontWeights(font);
+  var w = capNearestWeight(list, want || _csWantW || parseInt(sel && sel.value, 10) || 700);
+  if (!sel) return w;
+  if (sel.appendChild && typeof document.createElement === 'function') {
+    sel.innerHTML = '';
+    CS_WEIGHTS.forEach(function(x) {
+      if (list.indexOf(x[0]) < 0) return;
+      var o = document.createElement('option'); o.value = String(x[0]); o.textContent = x[1]; sel.appendChild(o);
+    });
+  }
+  sel.value = String(w);
+  sel.disabled = list.length < 2;
+  sel.title = list.length < 2 ? 'This font has only one weight' : 'Font weight';
+  return w;
+}
+function csFontWeightApply(font) {
+  var w = csSyncWeights(font), cur = STYLES.find(function(x){ return x.id === activeId; });
+  if (w !== (parseInt(cur && cur.fw, 10) || 0)) _csDirty.weight = true;
+  return w;
+}
 var _csFontPrev = 'Poppins';
 function onFontPick(sel) {
   if (sel.value === '__other') {
@@ -6407,6 +6445,8 @@ function onFontPick(sel) {
   }
   ensureCapFont(sel.value);
   _csFontPrev = sel.value;
+  // Neue Schrift hat evtl. nicht das aktuelle Gewicht → Auswahl neu aufbauen und das nächstliegende Gewicht auch anwenden
+  csFontWeightApply(sel.value);
   applyCustomStyle('font');
 }
 // ── Eigene Schrift (.ttf/.otf/.woff/.woff2): bleibt auf dem Gerät (Browser-Datenbank), wird nie hochgeladen ──
@@ -6451,7 +6491,7 @@ function onFontFile(inp) {
       fontDbOp('readwrite', function(st){ return st.put({ name: name, buf: buf }); }).catch(function(){}); // Speichern ist Zugabe, kein Muss
       buildFontSelect();
       var sel = document.getElementById('csFont'); if (sel) sel.value = name;
-      _csFontPrev = name;
+      _csFontPrev = name; csFontWeightApply(name);
       applyCustomStyle('font');
       capToast('✓ “' + name + '” added — stays on this device');
     });
@@ -6561,7 +6601,8 @@ function seedCustomFields(st) {
   }
   csSeedEmFields(st);
   var fw = parseInt(st.fw, 10) || 700;
-  csSetVal('csWeight', String([400, 600, 700, 800, 900].reduce(function(b, v){ return Math.abs(v - fw) < Math.abs(b - fw) ? v : b; }, 700)));
+  _csWantW = capNearestWeight(CS_WEIGHTS.map(function(x){ return x[0]; }), fw);
+  csSyncWeights((fEl && fEl.value) || st.fl || '', _csWantW);
   var ol = parseOutline(st.ts);
   csSetVal('csOutlineW', ol.w); csSetVal('csOutlineC', ol.c);
   var od = csEl('csOutlineDisp'); if (od) od.textContent = ol.w + 'px';
@@ -6661,6 +6702,7 @@ function applyCustomStyle(group) {
   if (group === 'boxc') { var bxs = csEl('csBox'); if (bxs && (bxs.value || 'off') === 'off') bxs.value = 'box'; group = 'box'; }
   if (group === 'strokec') { var oww = csEl('csOutlineW'); if (oww && !(parseFloat(oww.value) > 0)) oww.value = 2; group = 'stroke'; }
   if (group) _csDirty[group] = true;
+  if (group === 'weight') _csWantW = parseInt((csEl('csWeight') || {}).value, 10) || _csWantW;
   if (group === 'anim') _capDemoPending = true; // nach dem Anwenden: Effekt bei pausiertem Video kurz vorführen (capAnimDemoStart)
   syncCsUi();
   // Throttled: Farbregler feuern beim Ziehen dutzende Events — max. alle 200 ms neu bauen (1. Aufruf sofort).
