@@ -51,6 +51,9 @@ global.document = {
 global.window = global;
 global.requestAnimationFrame = () => 0; global.cancelAnimationFrame = () => {};
 global.URL = { createObjectURL: b => { global.LASTBLOB = b; return 'blob:x'; }, revokeObjectURL() {} };
+// Node ≥ 24 lädt undici (FormData) erst beim ersten Zugriff und merkt sich dabei das globale Blob → vor dem Stub laden,
+// sonst lehnt FormData.append in api/transcribe.js echte Blobs ab
+const NativeBlob = global.Blob; void global.FormData;
 global.Blob = function (parts, opts) { this.content = parts.join(''); this.type = opts && opts.type; };
 global.alert = m => { global.ALERTS = (global.ALERTS || []).concat(m); };
 global.MediaRecorder = undefined;
@@ -2073,6 +2076,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const { Readable } = require('stream');
     const handler = require(path.join(__dirname, 'api', 'transcribe.js'));
+    const stubBlob = global.Blob; global.Blob = NativeBlob; // Function baut echtes FormData
     // gültiges WAV (16 kHz mono 16 bit) mit secs Sekunden — der Server prüft die Dauer im Header
     const wav = secs => { const n = Math.round(secs * 32000), b = Buffer.alloc(44 + n); b.write('RIFF', 0); b.writeUInt32LE(36 + n, 4); b.write('WAVE', 8);
       b.write('fmt ', 12); b.writeUInt32LE(16, 16); b.writeUInt16LE(1, 20); b.writeUInt16LE(1, 22); b.writeUInt32LE(16000, 24); b.writeUInt32LE(32000, 28);
@@ -2120,6 +2124,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     process.env.MAX_AUDIO_SEC_PER_HOUR = '';
     const rl = []; for (let i = 0; i < 3; i++) rl.push((await run('POST', '/api/transcribe', wav(1), { GROQ_API_KEY: 'k', RATE_LIMIT_PER_HOUR: '2' })).statusCode);
     ok(rl[2] === 429, 'Function: Rate-Limit greift: ' + rl);
+    global.Blob = stubBlob;
   }
 
   // 23) Komprimierter Upload (Ogg/Opus) + parallele Stücke
