@@ -1335,7 +1335,7 @@ body.editor-open .lang-hint{display:none}
     <div class="tb-right">
       <button type="button" class="min-left" id="minLeft" style="display:none" onclick="showUpgrade()" title="Transcription minutes left this month"></button>
       <div class="tb-undo" id="tbUndo">
-        <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Undo caption edit (Ctrl/⌘+Z)" aria-label="Undo"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg></button>
+        <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Undo last change (Ctrl/⌘+Z)" aria-label="Undo"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg></button>
         <button type="button" class="tb-icon" id="redoBtn" onclick="redoCaptions()" disabled title="Redo (Ctrl/⌘+Shift+Z)" aria-label="Redo"><svg class="ic" aria-hidden="true"><use href="#i-redo"/></svg></button>
       </div>
       <div class="tb-more">
@@ -1350,7 +1350,7 @@ body.editor-open .lang-hint{display:none}
             </select>
           </label>
           <details class="kb-help tm-kb"><summary class="tm-item">Keyboard shortcuts</summary>
-            <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field<br><b>Captions:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there<br><b>Timeline:</b> drag a caption to move it, drag its edges to trim, double-click to edit · with a caption selected: <b>← →</b> 1 frame, <b>Shift+← →</b> 0.1 s, <b>Delete</b> removes · hold <b>Alt</b> to skip snapping · <b>Ctrl/⌘+wheel</b> zooms</div>
+            <div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>S</b> split at the playhead · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field<br><b>Captions:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there<br><b>Timeline:</b> drag a caption to move it, drag its edges to trim, double-click to edit · with a caption selected: <b>← →</b> 1 frame, <b>Shift+← →</b> 0.1 s, <b>Delete</b>/<b>⌫</b> removes, <b>S</b> splits (works anywhere in the editor, except while typing) · hold <b>Alt</b> to skip snapping · <b>Ctrl/⌘+wheel</b> zooms</div>
           </details>
           <div class="tm-legal"><a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="impressum.html" target="_blank" rel="noopener">Impressum</a></div>
         </div>
@@ -3158,6 +3158,13 @@ function capMeasureCtx() {
 var CAP_FIT_MIN = 0.55;
 var CAP_FIT_MIN_LINES = 0.35; // tiefere Untergrenze NUR für die „Max lines“-Grenze (s. fitCaptionWords)
 var CAP_FIT_MAX_H = 0.40; // max. Anteil der Rahmenhöhe für einen Caption-Block
+// Kurze Wörter (bis CAP_NOHYPH_LEN Buchstaben, z. B. „FUNKTIONIERT.“) werden NIE getrennt, solange sie durch Verkleinern
+// (bis CAP_FIT_MIN_LINES der gewählten Größe) in die Breite passen — „FUNKTIO-/NIERT.“ wirkt amateurhaft. Nur echte
+// Komposita („Rindfleischverarbeitungsbetriebe“) bzw. Wörter, die selbst dann nicht passen, werden getrennt.
+var CAP_NOHYPH_LEN = 14;
+function capNoHyphen(w) {
+  return !capSpaceless(w) && Array.from(String(w).replace(/[^\p{L}\p{N}]/gu, '')).length <= CAP_NOHYPH_LEN;
+}
 var _capFitCache = {}, _capFitN = 0, _capFontGen = 0;
 // Web-Fonts laden asynchron: eine Messung mit der Fallback-Schrift darf NICHT dauerhaft im Cache landen
 // (sonst überlaufen lange Wörter in Vorschau UND Export, obwohl der Export auf fonts.ready wartet).
@@ -3228,6 +3235,16 @@ function fitCaptionWords(words, s, px, maxW, lines, em) {
     }
     return Math.max(normal, hl) + capLsPx(s, p) * w.length;
   }
+  // Kurze Wörter (capNoHyphen), die bei der gewählten Größe zu breit sind: Schrift verkleinern statt trennen (solange
+  // sie dafür nicht unter CAP_FIT_MIN_LINES schrumpfen müssten). keepWhole[i] = Wort bleibt ganz; nhPx = nötige Größe.
+  var keepWhole = {}, nhPx = px;
+  words.forEach(function(w, i) {
+    if (!capNoHyphen(w)) return;
+    var m0 = measure(w, px, i);
+    if (!(m0 > maxW)) return;
+    var r = Math.floor(px * maxW * 0.99 / m0 * 10) / 10; // 1 % Reserve wie in layoutAt
+    if (r >= px * CAP_FIT_MIN_LINES) { keepWhole[i] = true; nhPx = Math.min(nhPx, r); }
+  });
   // Kurzes Nachbarwort + überlanges Wort (capLongPairFits) → wie ein Einzelwort zuerst trennen statt schrumpfen
   var pair = null;
   if (words.length === 2 && (lines || 0) >= 2) {
@@ -3241,7 +3258,7 @@ function fitCaptionWords(words, s, px, maxW, lines, em) {
   function layoutAt(p) {
     var outW = [], orig = [], hq = 0;
     words.forEach(function(w, i) {
-      if ((w.length < 8 && !capSpaceless(w)) || measure(w, p, i) <= maxW) { outW.push(w); orig.push(i); return; } // ≤ 7 Zeichen: nie trennen (CJK: jede Länge, sofern zu breit)
+      if ((w.length < 8 && !capSpaceless(w)) || keepWhole[i] || measure(w, p, i) <= maxW) { outW.push(w); orig.push(i); return; } // ≤ 7 Zeichen: nie trennen (CJK: jede Länge, sofern zu breit)
       var pcs = capHyphenate(w, function(piece){ return measure(piece, p, i) <= maxW; });
       // Paar „kurzes Wort + langes Wort“: Trennung so wählen, dass das kurze Wort in die Zeile des
       // angrenzenden Wortteils passt („Das Bundes- / verfassungsgericht“) — nur wenn das die Zeilen hält.
@@ -3271,13 +3288,14 @@ function fitCaptionWords(words, s, px, maxW, lines, em) {
   }
   var floor = px * CAP_FIT_MIN;
   var widest = 0;
-  words.forEach(function(w, i){ widest = Math.max(widest, measure(w, px, i)); });
+  words.forEach(function(w, i){ if (!keepWhole[i]) widest = Math.max(widest, measure(w, px, i)); });
   var epx = px;
   // Einzelnes überlanges Wort (eigener Block dank Zeichenlimit) bei ≥ 2 Zeilen: zuerst an Wortfugen trennen
   // („Rindfleisch-/verarbeitungsbetriebe“) statt sofort auf eine Zeile zu schrumpfen — die Schleife unten
   // verkleinert nur so weit, bis die Teile in die Zeilenzahl passen.
   var hyphFirst = (words.length === 1 || !!pair) && (lines || 0) >= 2;
   if (widest > maxW) epx = Math.max(floor, Math.floor(px * Math.min(1, maxW * (hyphFirst ? lines * 0.92 : 1) / widest) * 10) / 10);
+  if (nhPx < epx) epx = nhPx;
   var res = layoutAt(epx);
   // Höhe: Block darf nicht mehr als ~40 % des Rahmens belegen (sonst ragt z. B. bei Position „Bottom“
   // die erste Zeile oben aus dem Bild) → weiter verkleinern, gleiche 55-%-Untergrenze.
@@ -6706,7 +6724,8 @@ function buildCustomStyle() {
   return cs;
 }
 var _csLast = 0, _csTimer = null, _capDemoPending = false;
-function applyCustomStyle(group) {
+function applyCustomStyle(group) { return lookUndoRun('cs:' + (group || ''), function(){ applyCustomStyleRaw(group); }); }
+function applyCustomStyleRaw(group) {
   // Farbe/Deckkraft bei „Background: None“ bzw. Konturfarbe bei 0 px hatten keinerlei Wirkung („Änderung
   // kommt nicht an“) → den zugehörigen Schalter automatisch einschalten.
   if (group === 'boxc') { var bxs = csEl('csBox'); if (bxs && (bxs.value || 'off') === 'off') bxs.value = 'box'; group = 'box'; }
@@ -6953,7 +6972,7 @@ function deleteTemplate(id) {
 function editTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
   if (!t) return;
-  selectStyle(id);           // Regler aus dem Template befüllen (seedCustomFields)
+  lookUndoRun(null, function(){ selectStyle(id); }); // Regler aus dem Template befüllen (seedCustomFields)
   setTplEditing(id);
   setTplStatus('Editing “' + t.name + '”: change the style below, then click Update.');
   var nm = csEl('tplName'); if (nm && nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' });
@@ -7355,7 +7374,7 @@ function makeStyleTile(s) {
     var tile = document.createElement('div');
     tile.className = 'stile' + (s.id === activeId ? ' on' : '');
     tile.dataset.id = s.id;
-    tile.onclick = function(){ selectStyle(s.id); };
+    tile.onclick = function(){ lookUndoRun(null, function(){ selectStyle(s.id); }); };
     var thumb = document.createElement('div');
     thumb.className = 'stile-thumb';
     thumb.style.background = _tileFrame
@@ -7526,7 +7545,8 @@ function checkSafeZoneCollision() {
   rect.classList.toggle('warn', collide);
   warn.classList.toggle('show', collide);
 }
-function setPos(btn) {
+function setPos(btn) { return lookUndoRun(null, function(){ setPosRaw(btn); }); }
+function setPosRaw(btn) {
   // Preset = Zurücksetzen: frei gezogene Position (Versatz horizontal/vertikal, Safe-Zone-Freigabe) fällt weg.
   capPos = btn.dataset.pos;
   capHOff = 0; capFree = false; capVOff = capPos === 'center' ? 0 : CAP_PRESET_OFF;
@@ -7538,7 +7558,8 @@ function setPos(btn) {
 }
 // Höhen-Regler gibt es nicht mehr (doppelt zu Position + Ziehen in der Vorschau); capVOff bleibt als Zustand
 // für gespeicherte Projekte/Templates und wird beim Ziehen gesetzt. Funktion bleibt für ältere Aufrufer.
-function onVOffChange(v) {
+function onVOffChange(v) { return lookUndoRun('voff', function(){ onVOffChangeRaw(v); }); }
+function onVOffChangeRaw(v) {
   capVOff = parseInt(v);
   var vd = document.getElementById('voffDisp'); if (vd) vd.textContent = (capVOff > 0 ? '+' : '') + capVOff + '%';
   applyPos();
@@ -7547,7 +7568,7 @@ function onVOffChange(v) {
 // ═══════════════════════════════════════
 // UNTERTITEL PER MAUS/TOUCH VERSCHIEBEN
 // ═══════════════════════════════════════
-var capDragActive = false, capDragMoved = false, capDragSt = null;
+var capDragActive = false, capDragMoved = false, capDragSt = null, _capDragUndoSnap = null;
 var CAP_PRESET_OFF = 20;  // Versatz der Presets oben/unten (hält die Caption frei von Plattform-UI); Mitte = 0
 var CAP_DRAG_PAD = 4.5;   // px Mindestabstand zum Bildrand beim Ziehen
 var CAP_SNAP_PX = 6;      // Magnet-Reichweite (Rahmen-px)
@@ -7616,6 +7637,7 @@ function capDragStart(e) {
   }
   capDragSt = st; // ohne messbare Caption (leerer Block) gibt es nichts zu greifen
   capDragActive = true; capDragMoved = false;
+  _capDragUndoSnap = lookSnapshot(); // Zustand VOR dem Verschieben → ein Drag = ein Undo-Schritt (gesetzt bei der ersten Bewegung)
   ov.classList.add('dragging');
   var isTouch = e.type === 'touchstart';
   document.addEventListener(isTouch ? 'touchmove' : 'mousemove', capDragMove, { passive: false });
@@ -7628,6 +7650,7 @@ function capDragMove(e) {
   var st = capDragSt; if (!st) return;
   var p = capPointer(e), dx = (p.x - st.x0) / st.z, dy = (p.y - st.y0) / st.z;
   if (!capDragMoved && Math.abs(dx) + Math.abs(dy) < 3) return; // Antippen ist kein Ziehen (Klick = Play/Pause)
+  if (!capDragMoved && _capDragUndoSnap) { pushUndo(null, _capDragUndoSnap); _capDragUndoSnap = null; }
   capDragMoved = true;
   var r = capDragPlace(st, dx, dy, !e.altKey); // Alt/Option = Magnet aus
   var pv = capPosFromBox(r.y, st.bh, st.fw, st.fh);
@@ -7653,7 +7676,7 @@ function capDragMove(e) {
 }
 function capDragEnd(e) {
   if (!capDragActive) return;
-  capDragActive = false; capDragSt = null;
+  capDragActive = false; capDragSt = null; _capDragUndoSnap = null;
   document.getElementById('capOverlay').classList.remove('dragging');
   document.removeEventListener('mousemove', capDragMove);
   document.removeEventListener('mouseup', capDragEnd);
@@ -7673,7 +7696,8 @@ function syncPosButtons() {
     b.classList.toggle('on', !capFree && b.dataset.pos === capPos); // frei platziert → kein Preset aktiv
   });
 }
-function onSzChange(v) {
+function onSzChange(v) { return lookUndoRun('size', function(){ onSzChangeRaw(v); }); }
+function onSzChangeRaw(v) {
   fontSize = parseInt(v);
   document.getElementById('szDisp').textContent = fontSize + 'px';
   onCapMetricsChange('size');
@@ -7687,14 +7711,16 @@ function syncModeUI() {
   var c = document.getElementById('pauseChk'); if (c) c.checked = displayMode !== 'all';
 }
 function setPauseHide(on) { setMode({ dataset: { mode: on ? 'karaoke' : 'all' } }); }
-function setMode(btn) {
+function setMode(btn) { return lookUndoRun(null, function(){ setModeRaw(btn); }); }
+function setModeRaw(btn) {
   displayMode = btn.dataset.mode;
   syncModeUI();
   _lastKey = null;
   updateOverlay();
   scheduleAutosave();
 }
-function setLines(btn) {
+function setLines(btn) { return lookUndoRun(null, function(){ setLinesRaw(btn); }); }
+function setLinesRaw(btn) {
   _presetPrevLayout = null; // manuell geändert → behalten
   CAPTION_LINES = parseInt(btn.dataset.lines);
   document.querySelectorAll('#linesRow .pos-btn').forEach(function(b){ b.classList.toggle('on', b.dataset.lines === btn.dataset.lines); });
@@ -8024,13 +8050,26 @@ function loadStyleStats() {
 }
 var LAND_CHIPS = ['tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'hormozi', 'classic', 'boxkara', 'beast'];
 var landPick = null;
+// ID des Standard-Templates, falls es (noch) existiert — sonst ''. Lädt die Templates bei Bedarf (Startseite kommt vor openEditor).
+function landBrandId() {
+  var bid = '';
+  try {
+    bid = resolveStyleId(brandTplId());
+    if (bid && !STYLES.some(function(x){ return x.id === bid; })) { loadTemplates(); }
+    if (bid && !STYLES.some(function(x){ return x.id === bid; })) bid = '';
+  } catch (e) { bid = ''; }
+  return bid;
+}
 function renderLandChips() {
   var row = document.getElementById('landChips');
   if (!row || typeof STYLES === 'undefined') return;
   row.innerHTML = '';
-  var cur = resolveStyleId(landPick || activeId);
+  // Standard-Template („Use for every new video“) schlägt den zuletzt angeklickten Look: openEditor() wählt es für jedes neue
+  // Video (landPick = bewusst auf der Startseite gewählt gewinnt). Die Chips zeigen deshalb dasselbe, nicht den letzten Klick.
+  var bid = landBrandId();
+  var cur = resolveStyleId(landPick || bid || activeId);
   var ids = _dropIds.slice(0, 2).concat(LAND_CHIPS).filter(function(id){ return STYLES.some(function(s){ return s.id === id; }); });
-  if (cur && ids.indexOf(cur) < 0 && STYLES.some(function(s){ return s.id === cur && !s._tpl && s.id !== 'custom'; })) ids.unshift(cur);
+  if (cur && ids.indexOf(cur) < 0 && STYLES.some(function(s){ return s.id === cur && (!s._tpl || s.id === bid) && s.id !== 'custom'; })) ids.unshift(cur);
   ids.forEach(function(id) {
     var s = STYLES.find(function(x){ return x.id === id; });
     var b = document.createElement('button');
@@ -9869,8 +9908,10 @@ function syncTextFormatUI() {
   var co = document.getElementById('caseOrig'); if (co) co.checked = capCase === 'orig';
   syncCsSegs();
 }
-function togglePunct() { capNoPunct = !capNoPunct; syncTextFormatUI(); onCapMetricsChange('punct'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
-function setCaptionCase(v) { capCase = (['upper', 'lower', 'orig'].indexOf(v) >= 0) ? v : 'asis'; syncTextFormatUI(); onCapMetricsChange('case'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
+function togglePunct() { return lookUndoRun(null, togglePunctRaw); }
+function togglePunctRaw() { capNoPunct = !capNoPunct; syncTextFormatUI(); onCapMetricsChange('punct'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
+function setCaptionCase(v) { return lookUndoRun(null, function(){ setCaseRaw(v); }); }
+function setCaseRaw(v) { capCase = (['upper', 'lower', 'orig'].indexOf(v) >= 0) ? v : 'asis'; syncTextFormatUI(); onCapMetricsChange('case'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
 // EIN Schalter für Groß/Klein: „Style default“ (asis) lässt den Style entscheiden (z. B. Bold Pop = GROSS);
 // UPPERCASE/lowercase/„As typed“ überstimmen die Schreibweise des Styles (text-transform + hlUpper) in
 // Vorschau UND Export — vorher konnte „Case: as spoken“ neben einem Großbuchstaben-Style stehen
@@ -12759,6 +12800,7 @@ function collapseTrSettings(collapse) {
 var _undoStack = [], _redoStack = [], UNDO_MAX = 100, UNDO_COALESCE_MS = 1200, _undoTag = null, _undoAt = 0;
 function captionSnapshot() { return JSON.stringify(captionBlocks); }
 function pushUndo(tag, snap) {
+  if (_undoMute) return; // innerhalb einer Look-Aktion (lookUndoRun): der EINE Schritt wird dort gesetzt
   var now = Date.now();
   if (tag && tag === _undoTag && now - _undoAt < UNDO_COALESCE_MS) { _undoAt = now; return; }
   if (snap === undefined) snap = captionSnapshot();
@@ -12769,7 +12811,7 @@ function pushUndo(tag, snap) {
   _redoStack = [];
   syncUndoBtns();
 }
-function resetUndo() { _undoStack = []; _redoStack = []; _undoTag = null; syncUndoBtns(); }
+function resetUndo() { _undoStack = []; _redoStack = []; _undoTag = null; _lookTag = null; syncUndoBtns(); }
 function syncUndoBtns() {
   var u = document.getElementById('undoBtn'), r = document.getElementById('redoBtn');
   if (u) u.disabled = !_undoStack.length;
@@ -12784,22 +12826,105 @@ function refreshCaptionViews() {
 // nicht nur die Blöcke, sondern auch die Anzeige des Reglers zurückstellt. Format: {"__set":{mc,wpb},"b":[…]}.
 function layoutSnapshot(mc, wpb, blocksSnap) { return '{"__set":{"mc":' + (+mc || 0) + ',"wpb":' + (+wpb || 1) + '},"b":' + blocksSnap + '}'; }
 function isLayoutSnapshot(snap) { return String(snap).slice(0, 8) === '{"__set"'; }
+function isLookSnapshot(snap) { return String(snap).slice(0, 9) === '{"__look"'; }
 // Gegenstück für den Redo/Undo-Stapel: aktueller Stand im selben Format wie der Eintrag, der gleich angewendet wird
-function counterSnapshot(entry) { return isLayoutSnapshot(entry) ? layoutSnapshot(CAP_MAX_CHARS, WORDS_PER_BLOCK, captionSnapshot()) : captionSnapshot(); }
-function restoreCaptionSnapshot(snap) {
-  if (isLayoutSnapshot(snap)) {
-    var o = JSON.parse(snap);
-    CAP_MAX_CHARS = o.__set.mc; WORDS_PER_BLOCK = o.__set.wpb;
-    var ws = document.getElementById('wpbSlider'); if (ws) ws.value = WORDS_PER_BLOCK;
-    var wd = document.getElementById('wpbDisp'); if (wd) wd.textContent = WORDS_PER_BLOCK;
-    syncMaxCharsUI();
-    snap = JSON.stringify(o.b);
-  }
-  captionBlocks = JSON.parse(snap);
-  _relayoutKey = capLimitKey(capBlockLimit()); // Undo einer Anpassung nicht sofort wieder überschreiben
-  markCaptionsEdited();
-  refreshCaptionViews();
+function counterSnapshot(entry) {
+  if (isLookSnapshot(entry)) return lookSnapshot();
+  return isLayoutSnapshot(entry) ? layoutSnapshot(CAP_MAX_CHARS, WORDS_PER_BLOCK, captionSnapshot()) : captionSnapshot();
 }
+function restoreCaptionSnapshot(snap) {
+  _undoMute++; _lookTag = null;
+  try {
+    var blocks = null;
+    if (isLookSnapshot(snap)) {
+      var ol = JSON.parse(snap);
+      restoreLook(ol.__look);
+      blocks = ol.b;
+    } else if (isLayoutSnapshot(snap)) {
+      var o = JSON.parse(snap);
+      CAP_MAX_CHARS = o.__set.mc; WORDS_PER_BLOCK = o.__set.wpb;
+      var ws = document.getElementById('wpbSlider'); if (ws) ws.value = WORDS_PER_BLOCK;
+      var wd = document.getElementById('wpbDisp'); if (wd) wd.textContent = WORDS_PER_BLOCK;
+      syncMaxCharsUI();
+      blocks = o.b;
+    }
+    captionBlocks = blocks || JSON.parse(snap);
+    _relayoutKey = capLimitKey(capBlockLimit()); // Undo einer Anpassung nicht sofort wieder überschreiben
+    markCaptionsEdited();
+    refreshCaptionViews();
+  } finally { _undoMute--; }
+}
+// ── Undo für Look/Grösse/Position/Custom-Regler ──
+// EIN gemeinsamer, zeitlich geordneter Stapel mit den Text-/Split-Schritten: jeder Eintrag ist der Gesamtzustand VOR der Aktion
+// ({"__look":{Look + Layout},"b":[Blöcke]}). Weil Blöcke mitgesichert werden, nimmt Undo eines Look-Wechsels (der z. B. das Layout
+// neu gruppiert) genau diese Aktion zurück — und ein Text-/Split-Schritt davor/danach bleibt unberührt (eigene Einträge).
+// Nicht im Zustand: Emphasis-Schalter (Keywords/Emoji/Zoom) und Wörter/Zeichenlimit-Regler (haben eigene Undo-Einträge).
+var _undoMute = 0, _lookTag = null, _lookAt = 0, LOOK_IDLE_MS = 4000;
+function lookState() {
+  var cs = STYLES.find(function(x){ return x.id === 'custom'; });
+  return { id: activeId, cs: cs ? cloneStyle(cs) : null, base: _csBase ? cloneStyle(_csBase) : null,
+           dirty: JSON.parse(JSON.stringify(_csDirty || {})), editing: _csEditingTpl || null,
+           pos: capPos, voff: capVOff, hoff: capHOff, free: !!capFree, size: fontSize, mode: displayMode,
+           wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, mc: CAP_MAX_CHARS, kase: capCase, punct: !!capNoPunct,
+           prev: _presetPrevLayout ? { wpb: _presetPrevLayout.wpb, lines: _presetPrevLayout.lines, maxChars: _presetPrevLayout.maxChars } : null };
+}
+function lookSnapshot(blocksSnap) { return '{"__look":' + JSON.stringify(lookState()) + ',"b":' + (blocksSnap || captionSnapshot()) + '}'; }
+function restoreLook(L) {
+  if (!L) return;
+  clearTimeout(_csTimer); _csTimer = null; // gedrosselte Regler-Änderung verwerfen: sie würde den alten Stand überschreiben
+  var customChanged = false;
+  if (L.cs) {
+    var ci = STYLES.findIndex(function(x){ return x.id === 'custom'; });
+    customChanged = ci < 0 || JSON.stringify(cloneStyle(STYLES[ci])) !== JSON.stringify(L.cs);
+    if (ci >= 0) STYLES[ci] = L.cs; else STYLES.push(L.cs);
+  }
+  var st = STYLES.find(function(x){ return x.id === L.id; });
+  if (st) {
+    activeId = L.id;
+    if (L.id !== 'custom') { try { localStorage.setItem(STYLE_KEY, L.id); } catch (e) {} }
+    ensureCapFont(styleFontName(st)); ensureStyleFaces(st);
+  }
+  if (customChanged && L.cs && !replacePickerTile(L.cs)) buildPicker();
+  document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === activeId); });
+  var cur = STYLES.find(function(x){ return x.id === activeId; });
+  if (cur) { seedCustomFields(cur); _csBase = L.base ? L.base : _csBase; _csDirty = L.dirty || {}; syncCsUi(); }
+  if ((L.editing || null) !== (_csEditingTpl || null)) setTplEditing(L.editing || null);
+  // Layout/Größe/Position
+  capPos = L.pos; capVOff = L.voff; capHOff = L.hoff; capFree = !!L.free;
+  syncPosButtons();
+  var vs = document.getElementById('voffSlider'); if (vs) { vs.value = Math.max(-30, Math.min(30, Math.round(capVOff))); var vd = document.getElementById('voffDisp'); if (vd) vd.textContent = (capVOff > 0 ? '+' : '') + Math.round(capVOff) + '%'; }
+  fontSize = L.size;
+  var ss = document.getElementById('szSlider'); if (ss) { ss.value = fontSize; var sd = document.getElementById('szDisp'); if (sd) sd.textContent = fontSize + 'px'; }
+  capCase = L.kase; capNoPunct = !!L.punct; syncTextFormatUI();
+  displayMode = L.mode; syncModeUI();
+  CAPTION_LINES = L.lines; syncLinesButtons();
+  WORDS_PER_BLOCK = L.wpb;
+  var ws = document.getElementById('wpbSlider'); if (ws) ws.value = WORDS_PER_BLOCK;
+  var wd = document.getElementById('wpbDisp'); if (wd) wd.textContent = WORDS_PER_BLOCK;
+  CAP_MAX_CHARS = L.mc; syncMaxCharsUI();
+  _presetPrevLayout = L.prev ? { wpb: L.prev.wpb, lines: L.prev.lines, maxChars: L.prev.maxChars } : null;
+  applyPos(); _lastKey = null;
+  if (cur) pickerRevealActive(true, false);
+  scheduleAutosave();
+}
+// Führt eine Look-Aktion aus (fn) und legt GENAU EINEN Undo-Schritt an (Zustand davor), falls sich etwas geändert hat.
+// Innerhalb von fn sind andere Undo-Einträge stumm (z. B. das Neu-Gruppieren durch Größe/Look). tag: Reglerzug — alle Aufrufe mit
+// demselben tag bis zum Loslassen (change/pointerup/…, spätestens nach LOOK_IDLE_MS Pause) sind EIN Schritt.
+function lookUndoRun(tag, fn) {
+  if (_undoMute) return fn();
+  var cont = !!tag && _lookTag === tag && Date.now() - _lookAt < LOOK_IDLE_MS;
+  var snap = cont ? null : lookSnapshot(), r;
+  _undoMute++;
+  try { r = fn(); } finally { _undoMute--; }
+  if (cont) { _lookAt = Date.now(); return r; }
+  if (lookSnapshot() !== snap) { pushUndo(null, snap); _lookTag = tag || null; _lookAt = Date.now(); }
+  return r;
+}
+function lookUndoEnd() { _lookTag = null; }
+(function() { // Reglerzug endet beim Loslassen / Bestätigen
+  if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+  ['change', 'pointerup', 'pointercancel', 'mouseup', 'touchend', 'touchcancel'].forEach(function(ev) { document.addEventListener(ev, lookUndoEnd, true); });
+})();
 function undoCaptions() {
   if (!_undoStack.length || isExporting) return false;
   var u = _undoStack.pop();
@@ -14294,25 +14419,46 @@ function tlOnWheel(e) {
   _tl.userAt = Date.now();
   tlRequestDraw();
 }
-function tlOnKey(e) {
-  if (e.ctrlKey || e.metaKey) return; // Undo/Redo → globaler Handler
-  var b = captionBlocks[tlSel];
-  if (!b) return; // nichts gewählt → globale Shortcuts (←/→ = Seek, Leertaste)
-  var k = e.key;
-  var rg = tlRange();
+// Timeline-Tasten (S, ←/→, Entf/⌫, Enter, Esc). Liefert true, wenn die Taste verbraucht wurde.
+// Läuft sowohl bei Canvas-Fokus (tlOnKey) als auch GLOBAL im Editor (tlGlobalKey) — Fokus in Eingabefeldern filtert der Aufrufer.
+function tlHandleKey(e) {
+  var k = e.key, b = captionBlocks[tlSel], rg = tlRange();
+  var isS = (k === 's' || k === 'S' || e.code === 'KeyS');
+  // S teilt den Block am Abspielkopf — auch ohne Auswahl (Block unter dem Abspielkopf)
+  if (isS && !rg && !e.altKey) { e.preventDefault(); e.stopPropagation(); tlSplitAtPlayhead(); return true; }
+  if (!b) return false; // nichts gewählt → globale Shortcuts (←/→ = Seek, Leertaste)
   if (k === 'ArrowLeft' || k === 'ArrowRight') {
     e.preventDefault(); e.stopPropagation();
     if (rg) tlNudgeRange(rg, (k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 0.1 : TL_FRAME));
     else tlNudge(tlSel, (k === 'ArrowLeft' ? -1 : 1) * (e.shiftKey ? 0.1 : TL_FRAME));
     var vid = document.getElementById('mainVid');
     if (vid && vid.paused && captionBlocks[tlSel]) tlSeekVideo(captionBlocks[tlSel].start - (timeOff || 0) + 0.01);
+    return true;
   } else if (k === 'Delete' || k === 'Backspace') {
     e.preventDefault(); e.stopPropagation();
     if (rg) tlDeleteRange(rg);
     else { var i = tlSel; tlSel = -1; deleteSeg(i); }
-  } else if (k === 'Enter') { e.preventDefault(); e.stopPropagation(); tlEditText(tlSel); }
-  else if ((k === 's' || k === 'S') && !rg && !e.altKey) { e.preventDefault(); e.stopPropagation(); tlSplitAtPlayhead(); }
-  else if (k === 'Escape') { e.stopPropagation(); tlSel = -1; tlSelEnd = -1; selectSegRow(null); tlRequestDraw(); }
+    return true;
+  } else if (k === 'Enter') { e.preventDefault(); e.stopPropagation(); tlEditText(tlSel); return true; }
+  else if (k === 'Escape') { e.stopPropagation(); tlSel = -1; tlSelEnd = -1; selectSegRow(null); tlRequestDraw(); return true; }
+  return false;
+}
+function tlOnKey(e) {
+  if (e.ctrlKey || e.metaKey) return; // Undo/Redo → globaler Handler
+  tlHandleKey(e);
+}
+// Globaler Pfad: Fokus liegt NICHT auf der Timeline (Body, Button, Vorschau …), nur Eingabefelder/Dialoge sind ausgenommen
+// (Aufrufer prüft typing/mod/alt). Enter/Escape bleiben der Timeline vorbehalten (Enter wäre sonst auf Buttons doppelt belegt).
+function tlGlobalKey(e) {
+  if (typeof isExporting !== 'undefined' && isExporting) return false;
+  if (!captionBlocks.length || kbModalOpen()) return false;
+  if (e.key === 'Enter' || e.key === 'Escape') return false;
+  return tlHandleKey(e);
+}
+function kbModalOpen() {
+  var ids = ['coverModal', 'acctModal', 'expSheet', 'emoPick'];
+  for (var i = 0; i < ids.length; i++) { var el = document.getElementById(ids[i]); if (el && el.style && el.style.display && el.style.display !== 'none') return true; }
+  return false;
 }
 // ── Kopfzeile: Ein-/Ausklappen, Snap, Zoom, Einpassen ──
 function tlSetOpen(open, save) {
@@ -14465,6 +14611,10 @@ document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape' && capField) { tg.blur(); return; }
   if (typing || mod || e.altKey) return;
   if (e.code === 'Space') { e.preventDefault(); togglePlay(); return; }
+  // S / Entf / ⌫ / ←→ auf der gewählten Zeile wirken im ganzen Editor, nicht nur bei Timeline-Fokus
+  if (['s', 'S', 'Delete', 'Backspace', 'ArrowLeft', 'ArrowRight'].indexOf(e.key) >= 0 || e.code === 'KeyS') {
+    if (tlGlobalKey(e)) return;
+  }
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
     var v = document.getElementById('mainVid');
     if (!v || !v.duration || isExporting) return;
