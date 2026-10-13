@@ -1,6 +1,6 @@
 <?php
 /**
- * CaptionRush – Lead-Erfassung (E-Mail für den Download, optional Newsletter mit Double-Opt-in).
+ * Gluephs – Lead-Erfassung (E-Mail für den Download, optional Newsletter mit Double-Opt-in).
  * POST /api/lead  {email, newsletter, consent_text, source, lang}  →  {ok:true}
  *
  * Schreibt mit dem service_role-Key NUR serverseitig in public.leads (RLS: anon hat dort keinen Zugriff).
@@ -16,7 +16,7 @@ header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 function out($code, $arr) { http_response_code($code); echo json_encode($arr); exit; }
 
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'service' => 'captionrush-lead', 'configured' => !empty($cfg['SUPABASE_SERVICE_KEY'])]);
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'service' => 'gluephs-lead', 'configured' => !empty($cfg['SUPABASE_SERVICE_KEY'])]);
 $SB  = rtrim((string)($cfg['SUPABASE_URL'] ?? ''), '/');
 $KEY = (string)($cfg['SUPABASE_SERVICE_KEY'] ?? '');
 if ($SB === '' || $KEY === '') out(503, ['error' => 'not_configured']);
@@ -69,13 +69,13 @@ if ($needMail) {
   $token = bin2hex(random_bytes(24));
   [$st3] = sb('PATCH', 'leads?id=eq.' . rawurlencode($id), ['confirm_hash' => hash('sha256', $token), 'confirm_sent' => gmdate('c')], 'return=minimal');
   if ($st3 < 300) {
-    $site = rtrim((string)($cfg['SITE_URL'] ?? 'https://captionrush.com'), '/');
+    $site = rtrim((string)($cfg['SITE_URL'] ?? 'https://gluephs.com'), '/');
     $link = $site . '/api/confirm?t=' . $token;
     $de = stripos($lang, 'de') === 0;
-    $subject = $de ? 'Bitte bestätige deine Anmeldung bei CaptionRush' : 'Please confirm your CaptionRush subscription';
+    $subject = $de ? 'Bitte bestätige deine Anmeldung bei Gluephs' : 'Please confirm your Gluephs subscription';
     $text = $de
-      ? "Hallo\n\nDu hast dich für Neuigkeiten von CaptionRush angemeldet. Bitte bestätige das mit diesem Link:\n\n$link\n\nHast du dich nicht angemeldet, ignoriere diese Mail – du bekommst dann nichts von uns.\n\nCaptionRush · Jonas Treier · Hauptstrasse 84A · 5070 Frick · Schweiz\n"
-      : "Hi\n\nYou signed up for CaptionRush news. Please confirm with this link:\n\n$link\n\nIf you didn't sign up, just ignore this email – you won't hear from us.\n\nCaptionRush · Jonas Treier · Hauptstrasse 84A · 5070 Frick · Switzerland\n";
+      ? "Hallo\n\nDu hast dich für Neuigkeiten von Gluephs angemeldet. Bitte bestätige das mit diesem Link:\n\n$link\n\nHast du dich nicht angemeldet, ignoriere diese Mail – du bekommst dann nichts von uns.\n\nGluephs · Jonas Treier · Hauptstrasse 84A · 5070 Frick · Schweiz\n"
+      : "Hi\n\nYou signed up for Gluephs news. Please confirm with this link:\n\n$link\n\nIf you didn't sign up, just ignore this email – you won't hear from us.\n\nGluephs · Jonas Treier · Hauptstrasse 84A · 5070 Frick · Switzerland\n";
     $unsub = cr_unsub_link($cfg, $email);
     if ($unsub !== '') $text .= ($de ? "\nAbmelden: " : "\nUnsubscribe: ") . $unsub . "\n";
     $mailed = cr_send_mail($cfg, $email, $subject, $text, cr_unsub_headers($cfg, $email));

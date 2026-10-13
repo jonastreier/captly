@@ -1,5 +1,5 @@
 // OPTIONAL (nicht der Live-Weg): Vercel-Alternative; live laufen die PHP-Gegenstücke auf Hostpoint.
-// CaptionRush – gemeinsamer Missbrauchsschutz + Betreiber-Alarm für /api/* (kein eigener Endpunkt:
+// Gluephs – gemeinsamer Missbrauchsschutz + Betreiber-Alarm für /api/* (kein eigener Endpunkt:
 // Dateien mit „_“ werden von Vercel nicht als Route ausgeliefert).
 //
 //   audioSeconds(buf, isOgg)  Dauer eines Upload-Stücks aus dem Header (WAV) bzw. der letzten Ogg-Seite
@@ -68,7 +68,7 @@ async function alertOps(key, msg) {
   if ((lastAlert.get(key) || 0) > now - 3600000) return;
   lastAlert.set(key, now);
   try {
-    await fetch(url, { method: 'POST', headers: { Title: 'CaptionRush', Tags: 'warning' }, body: String(msg).slice(0, 500),
+    await fetch(url, { method: 'POST', headers: { Title: 'Gluephs', Tags: 'warning' }, body: String(msg).slice(0, 500),
       signal: AbortSignal.timeout(3000) });
   } catch (e) { /* Alarm ist best effort — nie den Nutzer-Request scheitern lassen */ }
 }

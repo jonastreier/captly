@@ -110,7 +110,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
       const good = await sendC(form()); ok(good.status === 200 && /Danke/.test(await good.text()) && mails.length === mBefore + 1, 'contact: gültige Anfrage → Danke + genau 1 Mail');
       const craw = mails[mails.length - 1] || '';
       const cbody = Buffer.from((craw.split('\r\n\r\n')[1] || '').replace(/\r\n|\r?\n\.\r?\n?$/g, ''), 'base64').toString('utf8');
-      ok(/To: <contact@captionrush\.com>/.test(craw) && /Reply-To: <anna@example\.com>/.test(craw), 'contact: Mail geht an contact@ mit Reply-To der Absenderin');
+      ok(/To: <contact@gluephs\.com>/.test(craw) && /Reply-To: <anna@example\.com>/.test(craw), 'contact: Mail geht an contact@ mit Reply-To der Absenderin');
       ok(/Name: Anna/.test(cbody) && /E-Mail: anna@example\.com/.test(cbody) && /Frage zum Export/.test(cbody), 'contact: Mailtext enthält Name, Adresse, Nachricht');
       const inj = await sendC(form({ email: 'x@example.com\r\nBcc: opfer@example.com', message: 'Header-Einschleusung' })); await inj.text();
       ok(!mails.slice(mBefore).some(m => /Bcc:/i.test(m.split('\r\n\r\n')[0])), 'contact: keine Header-Einschleusung über die Adresse');

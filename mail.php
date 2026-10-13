@@ -1,6 +1,6 @@
 <?php
 /**
- * CaptionRush – Mailversand ohne Abhängigkeiten (nur include, kein Endpunkt).
+ * Gluephs – Mailversand ohne Abhängigkeiten (nur include, kein Endpunkt).
  * SMTP mit Login über SSL (Port 465) oder STARTTLS (Port 587); ohne SMTP_HOST fällt es auf PHP mail() zurück.
  * Konfiguration aus config.php: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, MAIL_FROM, MAIL_FROM_NAME
  * (optional SMTP_SECURE = ssl | starttls; Standard: Port 465 → ssl, sonst starttls).
@@ -28,7 +28,7 @@ function cr_send_mail($cfg, $to, $subject, $text, $extraHeaders = []) {
   if (!filter_var($to, FILTER_VALIDATE_EMAIL)) return false;
   $from = cr_header_safe($cfg['MAIL_FROM'] ?? '');
   if (!filter_var($from, FILTER_VALIDATE_EMAIL)) return false;
-  $fromName = cr_header_safe($cfg['MAIL_FROM_NAME'] ?? 'CaptionRush');
+  $fromName = cr_header_safe($cfg['MAIL_FROM_NAME'] ?? 'Gluephs');
   $subj = '=?UTF-8?B?' . base64_encode(cr_header_safe($subject)) . '?=';
   $headers = [
     'From: =?UTF-8?B?' . base64_encode($fromName) . "?= <$from>",
@@ -92,7 +92,7 @@ function cr_unsub_sig($cfg, $email) {
 function cr_unsub_link($cfg, $email) {
   $sig = cr_unsub_sig($cfg, $email);
   if ($sig === '') return '';
-  $site = rtrim((string)($cfg['SITE_URL'] ?? 'https://captionrush.com'), '/');
+  $site = rtrim((string)($cfg['SITE_URL'] ?? 'https://gluephs.com'), '/');
   return $site . '/api/unsubscribe?e=' . rtrim(strtr(base64_encode(strtolower($email)), '+/', '-_'), '=') . '&s=' . $sig;
 }
 /** Zusatz-Header für Newsletter-Mails (RFC 8058: Ein-Klick-Abmeldung, von Gmail/Yahoo verlangt). */

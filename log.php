@@ -1,6 +1,6 @@
 <?php
 /**
- * CaptionRush – minimale Fehlerüberwachung: POST /api/log {m, s, p} → Zeile in public.client_errors.
+ * Gluephs – minimale Fehlerüberwachung: POST /api/log {m, s, p} → Zeile in public.client_errors.
  * Ohne personenbezogene Daten: keine IP, kein User-Agent-String (nur Browser-Familie), keine Dateinamen,
  * keine Adressen mit Query, keine E-Mail-Adressen oder langen Zahlen. Client sendet gesampelt (max. 5 pro Seitenaufruf),
  * der Server begrenzt zusätzlich pro IP (Dateien in sys_get_temp_dir, nur gehashte IP, 1 Stunde).
@@ -13,7 +13,7 @@ header('X-Content-Type-Options: nosniff');
 function out($code, $arr = null) { http_response_code($code); if ($arr !== null) echo json_encode($arr); exit; }
 
 $SB = rtrim((string)($cfg['SUPABASE_URL'] ?? ''), '/'); $KEY = (string)($cfg['SUPABASE_SERVICE_KEY'] ?? '');
-if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'service' => 'captionrush-log', 'configured' => $SB !== '' && $KEY !== '']);
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'service' => 'gluephs-log', 'configured' => $SB !== '' && $KEY !== '']);
 if ($SB === '' || $KEY === '') out(503, ['error' => 'not_configured']);
 
 $ip = $_SERVER['REMOTE_ADDR'] ?? 'x'; $now = time();

@@ -1,7 +1,7 @@
 // Baut das Upload-Paket für Hostpoint nach ./dist (nur, was der Server wirklich braucht — keine Tests,
 // Doku, Vercel-Dateien oder Entwicklungsskripte). Wird von der GitHub-Action und manuell genutzt:
 //   node scripts/build-dist.js            → ./dist
-//   node scripts/build-dist.js --zip      → zusätzlich captionrush-dist.zip (für manuellen Upload)
+//   node scripts/build-dist.js --zip      → zusätzlich gluephs-dist.zip (für manuellen Upload)
 // config.php wird NICHT hier erzeugt, sondern in der Action aus den GitHub-Secrets (scripts/write-config.js).
 const fs = require('fs');
 const path = require('path');
@@ -32,7 +32,7 @@ console.log('dist/ gebaut' + (missing.length ? ' — fehlt (noch nicht vorhanden
 
 if (process.argv.includes('--zip')) {
   const { execFileSync } = require('child_process');
-  const zip = path.join(root, 'captionrush-dist.zip');
+  const zip = path.join(root, 'gluephs-dist.zip');
   fs.rmSync(zip, { force: true });
   execFileSync('zip', ['-qr', zip, '.'], { cwd: out });
   console.log('→ ' + zip);
