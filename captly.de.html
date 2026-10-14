@@ -448,6 +448,8 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .tpl-name-top:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(124,58,237,.14)}
 .tpl-inl-ok,.tpl-inl-no{flex:0 0 auto;min-height:36px;padding:0 14px;border-radius:var(--r-btn);border:1px solid var(--line2);background:#fff;color:var(--ink2);font:600 12.5px 'Inter',sans-serif;cursor:pointer}
 .tpl-inl-ok{background:var(--brand);border-color:transparent;color:#fff}
+.tpl-inl-hook{flex:1 1 100%;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);cursor:pointer}
+.tpl-inl-hook input{margin:0}
 .tpl-inl-msg{flex:1 1 100%;font-size:12px;color:var(--muted);min-height:0}
 .tpl-inl-msg:empty{display:none}
 .tpl-inl-msg.warn{color:#b91c1c}
@@ -593,6 +595,7 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .tpl-menu{position:fixed;z-index:1000;min-width:132px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 30px rgba(30,20,60,.18);padding:4px}
 .tpl-menu button{display:block;width:100%;text-align:left;border:none;background:none;padding:7px 10px;border-radius:6px;font-family:'Inter',sans-serif;font-size:12.5px;color:var(--ink2);cursor:pointer}
 .tpl-menu button:hover{background:var(--fill2);color:var(--brand-ink)}
+.tpl-menu .tpl-menu-info{padding:5px 10px 3px;font:600 11.5px 'Inter',sans-serif;color:var(--brand-ink)}
 .tpl-menu button.danger{color:#c2410c}
 .tpl-menu.renaming{min-width:208px;padding:8px}
 .tpl-menu .tpl-rename{display:block;width:100%;box-sizing:border-box;border:1px solid var(--line2);border-radius:6px;padding:7px 8px;font:500 13px 'Inter',sans-serif;color:var(--ink)}
@@ -640,6 +643,17 @@ input.lang-sel{cursor:text}
 .cap-segs::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
 .cap-seg{display:flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:9px 12px;cursor:pointer;transition:border-color .15s,background .15s}
 .cap-seg:hover{border-color:var(--line2);background:var(--fill)}
+/* Ausgeschnittene Zeilen (Trim/Schnitt/Auto-Cut): abgeblendet + Schere + Restore; teilweise geschnitten: nur Hinweis */
+.cap-seg.cut{background:var(--fill);border-style:dashed}
+.cap-seg.cut .cap-seg-time,.cap-seg.cut .cap-seg-ta{opacity:.5}
+.cap-seg.cut .cap-seg-ta{text-decoration:line-through;text-decoration-color:rgba(0,0,0,.25)}
+.cap-seg.cut-part{border-left:3px solid #f59e0b}
+.seg-cutbar{flex-basis:100%;display:none;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:2px}
+.cap-seg.cut .seg-cutbar,.cap-seg.cut-part .seg-cutbar{display:flex}
+.seg-cutbar .ic{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;flex:0 0 auto}
+.seg-cutbar .sc-lbl{flex:1;min-width:0}
+.seg-cutbar button{border:1px solid var(--line2);background:#fff;border-radius:6px;min-height:24px;padding:0 10px;font:600 12px 'Inter',sans-serif;color:var(--brand-ink);cursor:pointer}
+.seg-cutbar button:hover{border-color:var(--brand)}
 .cap-seg.active{border-color:var(--brand-line);background:var(--brand-soft)}
 .cap-seg-time{font-size:12px;color:var(--muted);min-width:30px;margin-top:3px;font-variant-numeric:tabular-nums;flex-shrink:0}
 .cap-seg-ta{flex:1;font-size:14px;color:var(--ink);line-height:1.45;outline:none;background:transparent;border:none;font-family:'Inter',sans-serif;resize:none;word-break:break-word;min-height:14px;cursor:text}
@@ -842,6 +856,8 @@ input[type=checkbox]{accent-color:var(--brand)}
 .lang-hint a{color:#fff;font-weight:600;white-space:nowrap}
 body.editor-open .lang-hint{display:none}
 .lang-hint button{border:none;background:rgba(255,255,255,.14);color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;flex-shrink:0;font-size:15px;line-height:1}
+/* Handy: Hinweis darf Chips/Dropzone der Landing nie überdecken → klein, und erst sichtbar, wenn die Upload-Karte aus dem Bild gescrollt ist (initLangHint) */
+@media (max-width:640px){.lang-hint{bottom:calc(10px + env(safe-area-inset-bottom,0px));gap:8px;padding:5px 5px 5px 12px;font-size:12px;opacity:0;pointer-events:none;transition:opacity .25s}.lang-hint.lh-on{opacity:1;pointer-events:auto}.lang-hint button{width:22px;height:22px;font-size:13px}}
 .foot-copy a,.es-gate-fine a{color:inherit;text-decoration:underline}
 
 /* ═══ UX-VEREINFACHUNG (Editor) ═══
@@ -1122,6 +1138,10 @@ body.editor-open .lang-hint{display:none}
   .style-grid .stile-info{padding:4px 5px 5px}
   .style-grid .stile-group{flex:0 0 76px;grid-column:auto;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;margin:0;white-space:normal;line-height:1.25}
   .style-grid .stile-empty{flex:0 0 150px;grid-column:auto;align-self:center}
+  /* Style-Tab: grosse Vorschau (layoutPreviewFrame: Sheet-Minimum PH_STYLE_SHEET) → Look-Streifen steht ganz oben im Sheet, «Save as template» darunter */
+  #editor.ed-style:not(.tl-mode) .prev-col{max-height:none}
+  .ctrl-col[data-tab="style"] .csect[data-tab="style"]:not(.cs-panel){display:flex;flex-direction:column}
+  .csect[data-tab="style"] .tpl-bar{order:3;margin:8px 0 2px}
   /* «Customize»: Kopfzeile + Chip-Leiste (klebt oben im Sheet-Scroller, wenn der Streifen weggescrollt ist) */
   .ctrl-col .csect.cs-panel{padding-top:0}
   .ctrl-col .csect[data-tab="style"]:not(.cs-panel){padding-bottom:2px}
@@ -1132,7 +1152,7 @@ body.editor-open .lang-hint{display:none}
   .cs-chip{flex:0 0 auto;min-height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:999px;background:#fff;color:var(--ink2);font:600 13px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
   .cs-chip.on{background:var(--brand-soft);border-color:var(--brand-line);color:var(--brand-ink)}
   /* Einmaliger Wisch-Hinweis über dem Streifen (nicht modal, keine Layout-Verschiebung, ohne Klicks) */
-  .style-hint{display:block;position:absolute;left:50%;top:76px;transform:translate(-50%,-4px);max-width:calc(100% - 32px);padding:6px 12px;border-radius:999px;background:rgba(16,24,28,.82);color:#fff;font:600 12px 'Inter',sans-serif;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s,transform .3s;z-index:8}
+  .style-hint{display:block;position:absolute;left:50%;top:14px;transform:translate(-50%,-4px);max-width:calc(100% - 32px);padding:6px 12px;border-radius:999px;background:rgba(16,24,28,.82);color:#fff;font:600 12px 'Inter',sans-serif;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s,transform .3s;z-index:8}
   .style-hint.show{opacity:1;transform:translate(-50%,0)}
   /* Timeline-Modus: Vorschau + Spur + Aktionsleiste füllen den Platz bis zur Tab-Leiste; das Panel ruht */
   #editor.tl-mode .prev-col{flex:1 1 auto;max-height:none;min-height:0;padding-bottom:calc(72px + env(safe-area-inset-bottom));justify-content:flex-start}
@@ -1910,6 +1930,7 @@ body.editor-open .lang-hint{display:none}
             <input type="text" id="tplNameTop" class="tpl-name-top" maxlength="60" placeholder="Template name (e.g. Client A)" aria-label="Template name" onkeydown="if(event.key==='Enter'){event.preventDefault();tplInlineSave();}else if(event.key==='Escape'){event.preventDefault();closeTplSaveInline();}">
             <button type="button" class="tpl-inl-ok" id="tplInlineOk" onclick="tplInlineSave()">Save</button>
             <button type="button" class="tpl-inl-no" id="tplInlineNo" onclick="closeTplSaveInline()">Cancel</button>
+            <label class="tpl-inl-hook" title="Off by default: the template then never switches the hook title on for a new video"><input type="checkbox" id="tplHookTop" onchange="syncTplHookChk(this)"> Include hook title</label>
             <div class="tpl-inl-msg" id="tplInlMsg" role="status" aria-live="polite"></div>
           </div>
         </div>
@@ -2162,6 +2183,7 @@ body.editor-open .lang-hint{display:none}
             <input type="text" id="tplName" class="lang-sel" style="margin:0;flex:1" placeholder="Name (e.g. My look)" onkeydown="if(event.key==='Enter'){event.preventDefault();saveTemplate();}">
             <button class="pos-btn" id="tplSaveBtn" type="button" style="flex:0 0 auto;padding:6px 12px" onclick="saveTemplate()" title="Save the current style + position + size + mode as a named template">Save</button>
           </div>
+          <label class="tpl-inl-hook" title="Off by default: the template then never switches the hook title on for a new video"><input type="checkbox" id="tplHook" onchange="syncTplHookChk(this)"> Include hook title</label>
           <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
           <div class="tpl-io">
             <span id="tplEditing" style="display:none"></span>
@@ -2443,7 +2465,9 @@ var capPos          = 'bottom';
 var capHOff         = 0;    // Horizontaler Versatz der Caption-Mitte in % der Rahmenbreite (+ = nach rechts) — auflösungsunabhängig, gleich im Export
 var capFree         = false; // true = per Ziehen frei platziert: Safe-Zone-Mindestabstand von oben/unten gilt nicht mehr (nur der Bildrahmen)
 var capVOff         = 20;   // Höhen-Feinjustierung in % (+ = weiter oben), additiv zur Position — Default etwas höher, damit Captions nicht mit UI-Elementen der Plattformen (Beschreibung, Like-Leiste) kollidieren
-var showSafeZone     = false; // Safe-Zone-Anzeige (Reels-UI-Bereich) an/aus
+var showSafeZone     = false; // Safe-Zone-Anzeige (Reels-UI-Bereich) an/aus — nur Anzeige, nie im Export
+var SZ_KEY = 'capivo.safezone', szUserChoice = null; // gespeicherte Nutzerwahl (true/false); null = noch keine → Standard: bei 9:16 an
+(function() { try { var v = typeof localStorage !== 'undefined' && localStorage.getItem(SZ_KEY); if (v === '1' || v === '0') { szUserChoice = v === '1'; showSafeZone = szUserChoice; } } catch (e) {} })();
 var _trRun           = 0;     // Lauf-Token für transcribeVideo(): nur der jüngste Lauf darf Ergebnisse/Status schreiben
 var captionsEdited   = false; // Text/Split/Merge seit letzter Transkription bzw. Projekt-Load → vor Neu-Transkription fragen
 var zoomLevel        = 1;   // Vorschau-Zoom, 1.0–2.5
@@ -4573,7 +4597,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
 //   w.zm   1 = Zoom-Moment (Punch-in) beginnt bei diesem Wort
 // Darstellung: Vorschau (buildCap) und Export (capLayout/drawCaptionsOnCtx) nutzen dieselben Helfer.
 var EM_KEY = 'capivo.emph';
-var emKw = true, emEmoji = true, emZoom = 'off'; // Schalter im Style-Tab (Default: Keywords + Emojis an — N-KI: antwortet die KI nicht, zeigt der Schalter den Hinweis; Zoom aus)
+var emKw = true, emEmoji = true, emZoom = 'subtle'; // Schalter im Style-Tab (Default: Keywords + Emojis an — N-KI: antwortet die KI nicht, zeigt der Schalter den Hinweis; Auto-Zoom «Subtle» ab Werk, gespeicherte Wahl gewinnt)
 var emSrc = null;      // 'llm' | 'local' | null — Herkunft der automatischen Auswahl
 var EMPH_SCALE = 1.12; // hervorgehobenes Wort ~12 % größer (One Word: s.emS)
 var EMO_REL = 1.35;    // Emoji-Größe relativ zur (angepassten) Caption-Schriftgröße
@@ -5010,8 +5034,8 @@ function syncEmphUI() {
 // Zeit = AUSGABEZEIT (nach Auto-Cut; _cuts im Export, in der Vorschau gibt es keine Schnitte). Stil leitet sich vom Look ab:
 // Schrift und Grossschreibung des Looks, fett, Box in der Akzentfarbe (coverEmColor), Schriftfarbe nach Kontrast.
 // Standard AUS: nur wer ihn einschaltet, bekommt ihn (Schalter + Dauer werden gemerkt, der Text gehört zum Video).
-// Textquelle: 1) eigener Text · 2) KI-Vorschlag (optionales Feld `hook` der Post-Antwort von /api/enhance) · 3) lokal: erster Satz, ≤ 6 Wörter.
-var HOOK_KEY = 'capivo.hook', HOOK_DUR_DEF = 2, HOOK_DUR_MIN = 1, HOOK_DUR_MAX = 4, HOOK_WORDS = 6, HOOK_CHARS = 80;
+// Textquelle: 1) eigener Text · 2) KI-Vorschlag (optionales Feld `hook` der Post-Antwort von /api/enhance) · 3) lokal: ganzer erster Satz, wenn ≤ 8 Wörter (sonst am Komma/Doppelpunkt gekürzt).
+var HOOK_KEY = 'capivo.hook', HOOK_DUR_DEF = 2, HOOK_DUR_MIN = 1, HOOK_DUR_MAX = 4, HOOK_WORDS = 8, HOOK_CHARS = 80;
 var HOOK_FADE_IN = 0.22, HOOK_FADE_OUT = 0.22;
 var hookOn = false, hookText = '', hookDur = HOOK_DUR_DEF, hookAi = '', _hookBusy = false;
 (function() {
@@ -5031,12 +5055,13 @@ function hookClean(t, maxWords) {
   if (maxWords) {
     var ws = t.split(' ');
     if (ws.length > maxWords) {
-      // Bevorzugt an einem Komma/Doppelpunkt innerhalb der Grenze enden (ab 3 Wörtern), sonst hart kürzen
+      // Bevorzugt an einem Komma/Doppelpunkt innerhalb der Grenze enden (Teil davor ≥ 2 Wörter), sonst hart kürzen
       var cut = -1;
-      for (var i = 2; i < maxWords; i++) if (/[,;:–—]$/.test(ws[i])) { cut = i + 1; break; }
+      for (var i = 1; i < maxWords; i++) if (/[,;:–—]$/.test(ws[i])) { cut = i + 1; break; }
       ws = ws.slice(0, cut > 0 ? cut : maxWords);
       // Kein hängendes Füllwort am Ende («… deine Reels mehr»): Artikel/Konjunktionen/Präpositionen abschneiden, mind. 3 Wörter
-      while (ws.length > 3 && emStopSet()[emNorm(ws[ws.length - 1])]) ws.pop();
+      // (nicht nach einem Komma/Doppelpunkt: dort endet ein vollständiger Teilsatz, «Heute zeige ich dir,»)
+      while (cut < 0 && ws.length > 3 && emStopSet()[emNorm(ws[ws.length - 1])]) ws.pop();
       t = ws.join(' ');
     }
   }
@@ -5044,7 +5069,7 @@ function hookClean(t, maxWords) {
   if (t.length > HOOK_CHARS) t = t.slice(0, HOOK_CHARS).replace(/\s+\S*$/, '');
   return t;
 }
-// Lokaler Vorschlag: erster Satz (bei < 3 Wörtern mit dem nächsten), höchstens HOOK_WORDS Wörter
+// Lokaler Vorschlag: ganzer erster Satz (Ein-Wort-Sätze am Anfang werden übersprungen), höchstens HOOK_WORDS Wörter
 var _hookLocalCache = { key: '', val: '' };
 function hookLocalText(blocks) {
   blocks = blocks || captionBlocks;
@@ -5053,16 +5078,11 @@ function hookLocalText(blocks) {
   var all = parts.join(' ').replace(/\s+/g, ' ').trim();
   if (_hookLocalCache.key === all) return _hookLocalCache.val;
   var sents = all.match(/[^.!?…]+[.!?…]*/g) || [], out = '';
-  // Ganze Sätze bevorzugen: erster Satz; weitere nur, wenn der erste sehr kurz ist (< 3 Wörter) UND der nächste
-  // vollständig in HOOK_WORDS passt – nie mitten im Folgesatz abbrechen («Stop scrolling.» ist selbst ein guter Hook)
+  // Ganzer erster Satz; kurze ganze Sätze bleiben allein («Stop scrolling.» ist selbst ein guter Hook), nie mitten im
+  // Folgesatz abbrechen. Längere Sätze kürzt hookClean am Komma/Doppelpunkt bzw. ohne hängendes Füllwort.
   var nw = function(x) { return x ? x.split(' ').length : 0; };
   var s0 = 0; while (s0 < sents.length - 1 && nw(sents[s0].trim()) < 2) s0++; // «Ja.» allein ist kein Hook → nächster Satz
   out = (sents[s0] || '').trim();
-  for (var k = s0 + 1; k < sents.length && nw(out) < 3; k++) {
-    var nx = (out + ' ' + sents[k].trim()).trim();
-    if (nw(nx) > HOOK_WORDS) break;
-    out = nx;
-  }
   var val = hookClean(out, HOOK_WORDS);
   _hookLocalCache = { key: all, val: val };
   return val;
@@ -6734,17 +6754,19 @@ function closeCaptionGaps(blocks, cuts, maxGap, bridgeCuts) {
 // CAP_SEG_ORPHAN: Ein-Wort-Caption bei wpb ≥ 2 — so teuer, dass jede Aufteilung ohne Waise gewinnt (auch mit einem Block mehr).
 // CAP_SEG_KEEP: Naht, die der Nutzer per Hand verschmolzen hat (Wort-Flag nj) — nur bei Wort-/Zeichenlimit wieder trennen.
 // CAP_PAUSE_SPLIT: Sprechpause (s), ab der ein neuer Block beginnt; CAP_PAUSE_LONG: Pause, über die nie eine Waise gebrückt wird.
-var CAP_SEG_BLOCK = 5, CAP_SEG_ORPHAN = 40, CAP_SEG_KEEP = 10, CAP_PAUSE_SPLIT = 0.35, CAP_PAUSE_LONG = 0.8;
+// CAP_SEG_OVER: bei wpb = 2 darf eine Caption ausnahmsweise 3 Wörter haben, wenn sonst ein Einzelwort bliebe (ungerade Wortzahl: «This one | setting | doubled my |…» → «This one | setting doubled | my watch time.»); teurer als jede normale Naht, billiger als eine Waise (CAP_SEG_ORPHAN).
+var CAP_SEG_BLOCK = 5, CAP_SEG_ORPHAN = 40, CAP_SEG_OVER = 20, CAP_SEG_KEEP = 10, CAP_PAUSE_SPLIT = 0.35, CAP_PAUSE_LONG = 0.8;
 var CAP_COORD = ' und oder sowie and or et ou e o y ';
 function capSegmentRun(ws, lens, maxWords, lim) {
   var n = ws.length, i, j, b;
   if (n <= 1) return [[0, n]];
   if (!(maxWords > 1)) return ws.map(function(w, k){ return [k, k + 1]; });
   maxWords = Math.min(maxWords, n);
+  var capW = maxWords === 2 ? 3 : maxWords; // harte Obergrenze je Caption (wpb 2: bis 3 Wörter gegen Einzelwort-Waisen, mit Zuschlag CAP_SEG_OVER)
   var lang = capLang(), toks = ws.map(function(w){ return capTok(w.word); });
   var okM = [];
-  for (i = 0; i < n; i++) { okM.push([]); for (j = i + 1; j <= n && j - i <= maxWords; j++) okM[i][j] = capCharsFit(lens.slice(i, j), lim); }
-  function ok(i2, j2) { return j2 - i2 <= maxWords && !!okM[i2][j2]; }
+  for (i = 0; i < n; i++) { okM.push([]); for (j = i + 1; j <= n && j - i <= capW; j++) okM[i][j] = capCharsFit(lens.slice(i, j), lim); }
+  function ok(i2, j2) { return j2 - i2 <= capW && !!okM[i2][j2]; }
   var cut = [0];
   for (j = 1; j < n; j++) {
     var gap = (ws[j].start || 0) - (ws[j - 1].end || ws[j - 1].start || 0);
@@ -6755,7 +6777,7 @@ function capSegmentRun(ws, lens, maxWords, lim) {
     if (j + 2 === n && CAP_COORD.indexOf(' ' + toks[j].low + ' ') >= 0) cut[j] += 3;
   }
   var minB = [0];
-  for (j = 1; j <= n; j++) { minB[j] = Infinity; for (i = Math.max(0, j - maxWords); i < j; i++) if (ok(i, j) && minB[i] + 1 < minB[j]) minB[j] = minB[i] + 1; }
+  for (j = 1; j <= n; j++) { minB[j] = Infinity; for (i = Math.max(0, j - capW); i < j; i++) if (ok(i, j) && minB[i] + 1 < minB[j]) minB[j] = minB[i] + 1; }
   if (!isFinite(minB[n])) return null;
   var bestAll = null, bestCost = Infinity;
   for (var k = minB[n]; k <= Math.min(n, minB[n] + 2); k++) {
@@ -6764,10 +6786,10 @@ function capSegmentRun(ws, lens, maxWords, lim) {
     dp[0][0] = 0;
     for (b = 1; b <= k; b++) {
       for (j = b; j <= n; j++) {
-        for (i = Math.max(b - 1, j - maxWords); i < j; i++) {
+        for (i = Math.max(b - 1, j - capW); i < j; i++) {
           if (!isFinite(dp[b - 1][i]) || !ok(i, j)) continue;
           var nw = j - i, d = (nw - avg) / avg;
-          var c = dp[b - 1][i] + 3 * d * d + 0.03 * (b - 1) * nw + (nw === 1 ? CAP_SEG_ORPHAN : 0) + (j < n ? cut[j] : 0);
+          var c = dp[b - 1][i] + 3 * d * d + 0.03 * (b - 1) * nw + (nw === 1 ? CAP_SEG_ORPHAN : 0) + (nw > maxWords ? CAP_SEG_OVER : 0) + (j < n ? cut[j] : 0);
           if (c < dp[b][j]) { dp[b][j] = c; from[b][j] = i; }
         }
       }
@@ -6882,10 +6904,23 @@ function capFixOrphans(chunks, maxWords, lim, cuts) {
     if (union.length <= maxWords && capWordsFit(union, lim)) parts = [union];
     else {
       var segs = capSegmentRun(union, lens(union), maxWords, lim);
-      if (!segs || segs.length < 2 || segs.some(function(r){ return r[1] - r[0] < 2; })) return false;
+      if (!segs || segs.some(function(r){ return r[1] - r[0] < 2; })) return false; // bei wpb 2 kann die Vereinigung auch EIN 3-Wort-Block sein
       parts = segs.map(function(r){ return union.slice(r[0], r[1]); });
     }
     out.splice.apply(out, [lo, 2].concat(parts));
+    return true;
+  }
+  // Zweiter Versuch: Waise + Nachbar + dessen Nachbar neu aufteilen («Erstens: | Die ersten | zwei Sekunden» → «Erstens: Die | ersten zwei | Sekunden»),
+  // nur über eine weiche Naht (kein Satzende, keine lange Pause/Schnitt/Handnaht) und nur, wenn dabei keine neue Waise entsteht
+  function tryJoin2(side, i) {
+    var a = side < 0 ? out[i - 2] : out[i + 1], b2 = side < 0 ? out[i - 1] : out[i + 2], o = out[i];
+    if (!a || !b2) return false;
+    var lw = a[a.length - 1], rw = b2[0]; // Naht zwischen den beiden Nachbar-Chunks (a vor b2 in Sprechreihenfolge)
+    if (capSentEnd(lw.word) || !capCanBridge(lw, rw, cuts)) return false;
+    var union = side < 0 ? a.concat(b2, o) : o.concat(a, b2);
+    var segs = capSegmentRun(union, lens(union), maxWords, lim);
+    if (!segs || segs.some(function(r){ return r[1] - r[0] < 2; })) return false;
+    out.splice.apply(out, [side < 0 ? i - 2 : i, 3].concat(segs.map(function(r){ return union.slice(r[0], r[1]); })));
     return true;
   }
   for (var i = 0; i < out.length; i++) {
@@ -6904,8 +6939,12 @@ function capFixOrphans(chunks, maxWords, lim, cuts) {
                  : capSentEnd(w.word) ? true : capSentEnd(p[p.length - 1].word) ? false : true;
       order = toPrev ? [-1, 1] : [1, -1];
     } else order = [canP ? -1 : 1];
-    for (var k = 0; k < order.length; k++) {
-      if (tryJoin(order[k], i)) { i = Math.max(-1, i - 2); break; }
+    var joined = false;
+    for (var k = 0; k < order.length && !joined; k++) {
+      if (tryJoin(order[k], i)) { i = Math.max(-1, i - 2); joined = true; }
+    }
+    for (k = 0; k < order.length && !joined; k++) {
+      if (tryJoin2(order[k], i)) { i = Math.max(-1, i - 3); joined = true; }
     }
   }
   return out;
@@ -7175,6 +7214,7 @@ async function renderSegments() {
   });
   c.innerHTML = '';
   c.appendChild(frag);
+  syncSegCutMarks();
   var heights = new Array(rows.length);
   for (var i = 0; i < rows.length; i++) {
     heights[i] = rows[i].scrollHeight || 14; // Lesephase: alle Reads zuerst -> nur EIN Reflow für alle Zeilen
@@ -7186,6 +7226,73 @@ async function renderSegments() {
   }
 }
 
+// Liegt der Block (b.start…b.end, Quellzeit) ganz/teilweise in einem Schnitt? Reine Funktion (testbar):
+// → { full, part, manual:[Indizes der überlappenden manuellen Schnitte], trimIn, trimOut, auto }
+function segCutState(b, dur, tIn, tOut, manual, auto) {
+  var r = { full: false, part: false, manual: [], trimIn: false, trimOut: false, auto: false };
+  if (!b || !(b.end > b.start)) return r;
+  var ov = function(x) { return Math.min(x.end, b.end) - Math.max(x.start, b.start); };
+  var regs = allCutRegionsOf(dur, tIn, tOut, manual, auto), len = b.end - b.start, cov = 0;
+  regs.forEach(function(x) { var o = ov(x); if (o > 0) cov += o; });
+  r.full = cov >= len - 0.03;
+  r.part = !r.full && cov > 0.04;
+  (manual || []).forEach(function(x, i) { if (ov(x) > 0.01) r.manual.push(i); });
+  r.trimIn = tIn > 0.0005 && ov({ start: 0, end: tIn }) > 0.01;
+  r.trimOut = tOut !== null && tOut !== undefined && dur > 0 && tOut < dur - 0.0005 && ov({ start: tOut, end: dur }) > 0.01;
+  r.auto = (auto || []).some(function(x) { return ov(x) > 0.01; });
+  return r;
+}
+function segCutStateOf(b) {
+  var dur = tlDur();
+  return segCutState(b, dur, trimIn, trimOut, manualCuts, autoCutSilence ? autoCutRegions() : []);
+}
+// Zeile wieder einsetzen: überlappende manuelle Schnitte + Trim-Rand, der sie überdeckt, fallen weg. Ein Undo-Schritt.
+function segRestoreCut(idx) {
+  var b = captionBlocks[idx];
+  if (!b || isExporting) return false;
+  var st = segCutStateOf(b);
+  if (!st.manual.length && !st.trimIn && !st.trimOut) return false;
+  var ok = trimUndoRun(function() {
+    for (var k = st.manual.length - 1; k >= 0; k--) manualCuts.splice(st.manual[k], 1);
+    if (st.trimIn) trimIn = 0;
+    if (st.trimOut) trimOut = null;
+    tlCutSel = -1;
+  });
+  if (ok) capToast('Restored — Ctrl/⌘+Z to undo');
+  return ok;
+}
+// Markierung aller Zeilen der Liste (abgeblendet + Schere + Restore bzw. Hinweis «Partly cut out») — nur Klassen/Leiste, kein Neuaufbau
+function syncSegCutMarks() {
+  var c = document.getElementById('capSegs');
+  if (!c || !captionBlocks.length) return;
+  var any = trimIsSet() || autoCutSilence, dur = tlDur(), auto = autoCutSilence ? autoCutRegions() : []; // Auto-Cut-Liste nur einmal berechnen
+  for (var i = 0; i < captionBlocks.length; i++) {
+    var row = document.getElementById('seg' + i);
+    if (!row || !row.classList || !row.querySelector || !row.insertBefore) continue;
+    var st = any ? segCutState(captionBlocks[i], dur, trimIn, trimOut, manualCuts, auto) : { full: false, part: false, manual: [], trimIn: false, trimOut: false };
+    row.classList.toggle('cut', !!st.full);
+    row.classList.toggle('cut-part', !!st.part);
+    var bar = row.querySelector ? row.querySelector('.seg-cutbar') : null;
+    if (!st.full && !st.part) { if (bar && bar.parentNode) bar.parentNode.removeChild(bar); continue; }
+    if (!bar) {
+      bar = document.createElement('div'); bar.className = 'seg-cutbar';
+      row.insertBefore(bar, row.querySelector('.seg-tools'));
+    }
+    var canRestore = st.full && (st.manual.length > 0 || st.trimIn || st.trimOut);
+    var lbl = st.full ? (canRestore ? 'Cut out — not in the video' : 'Removed by Auto-cut — not in the video') : 'Partly cut out — only some words stay in the video';
+    var key = (st.full ? 'f' : 'p') + canRestore + lbl;
+    if (bar._key === key) continue;
+    bar._key = key;
+    bar.innerHTML = '';
+    var ic = document.createElement('span'); ic.innerHTML = icon('split'); bar.appendChild(ic);
+    var lb = document.createElement('span'); lb.className = 'sc-lbl'; lb.textContent = lbl; bar.appendChild(lb);
+    if (canRestore) {
+      var btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'Restore'; btn.title = 'Put this caption back into the video';
+      btn.onclick = (function(ix) { return function(e) { if (e && e.stopPropagation) e.stopPropagation(); segRestoreCut(ix); }; })(i);
+      bar.appendChild(btn);
+    }
+  }
+}
 // Werkzeugleiste je Zeile: Anfang/Ende ±0.1 s, Löschen. Sichtbar an der Zeile mit Fokus bzw. zuletzt angeklickt.
 function buildSegTools(idx, b) {
   var t = document.createElement('div');
@@ -7232,6 +7339,7 @@ function segRefreshTimes(idx) {
   if (st) st.textContent = fmtT2(b.start);
   if (en) en.textContent = fmtT2(b.end);
   if (ts) ts.textContent = fmtS(b.start);
+  syncSegCutMarks();
 }
 function segDragStart(idx, edge, el, e) {
   var b = captionBlocks[idx];
@@ -8183,6 +8291,7 @@ function setTplEditing(id) {
   if (lbl) { lbl.style.display = t ? '' : 'none'; lbl.textContent = t ? ('Editing “' + t.name + '”') : ''; }
   if (btn) { btn.textContent = t ? 'Update' : '💾 Save'; btn.title = t ? 'Overwrite this template with the current style + layout' : 'Save the current style + position + size + mode as a named template'; }
   if (nm && t) nm.value = t.name;
+  if (t) setTplHookChk(tplHasHook(t));
 }
 function setTplStatus(msg, warn) {
   var el = csEl('tplStatus');
@@ -8192,6 +8301,11 @@ function setTplStatus(msg, warn) {
   clearTimeout(setTplStatus._t);
   if (msg && !warn) setTplStatus._t = setTimeout(function(){ el.textContent = ''; }, 6000);
 }
+// Häkchen «Include hook title» (zwei Kopien: Inline-Leiste oben + Abschnitt unten, beide halten denselben Zustand)
+function tplHookChecked() { var a = csEl('tplHook'), b = csEl('tplHookTop'); return !!((a && a.checked) || (b && b.checked)); }
+function setTplHookChk(v) { ['tplHook', 'tplHookTop'].forEach(function(id){ var e = csEl(id); if (e) e.checked = !!v; }); }
+function syncTplHookChk(el) { setTplHookChk(el && el.checked); }
+function tplHasHook(t) { return !!(t && t.layout && t.layout.hook && t.layout.hook.on === true); }
 function saveTemplate() {
   flushCustomStyle(); // eine gerade gezogene, noch gedrosselte Regler-Änderung gehört mit ins Template
   var nameEl = csEl('tplName');
@@ -8214,8 +8328,11 @@ function saveTemplate() {
   var src = STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0];
   var st = sanitizeStyle(cloneStyle(src));
   var now = Date.now(), t;
-  if (target) { t = target; t.name = name; t.style = st; t.layout = currentLayout(); t.updatedAt = now; }
-  else { t = { id: newTplId(), name: name, style: st, layout: currentLayout(), createdAt: now, updatedAt: now }; userTemplates.push(t); }
+  // Hook-Titel gehört nur dann ins Template, wenn der Nutzer das Häkchen «Include hook title» ausdrücklich setzt (Standard aus):
+  // Dauer reist immer mit (Stil leitet sich vom Look ab), «an» nur mit Häkchen.
+  var lay = currentLayout(); lay.hook = { on: tplHookChecked(), dur: hookDur };
+  if (target) { t = target; t.name = name; t.style = st; t.layout = lay; t.updatedAt = now; }
+  else { t = { id: newTplId(), name: name, style: st, layout: lay, createdAt: now, updatedAt: now }; userTemplates.push(t); }
   // Der ungespeicherte Custom-Entwurf IST jetzt das Template → Kachel entfernen, sonst stehen zwei gleiche
   // Kacheln nebeneinander und man weiß nicht, welche gespeichert ist.
   if (activeId === 'custom') {
@@ -8228,6 +8345,7 @@ function saveTemplate() {
   persistTemplates();
   rebuildTemplateStyles();
   nameEl.value = '';
+  setTplHookChk(false);
   setTplEditing(null);
   buildPicker();
   selectStyle(t.id);
@@ -8267,7 +8385,8 @@ function openTplSaveInline() {
   var cur = csEl('tplName');
   if (cur && cur.value && !inp.value) inp.value = cur.value; // «Edit» legt den Namen im Feld unten ab
   var m = document.getElementById('tplInlMsg'); if (m) { m.textContent = ''; m.classList.remove('warn'); }
-  if (inp.focus) inp.focus();
+  try { if (box.scrollIntoView) box.scrollIntoView({ block: 'center' }); } catch (e) {} // Handy: Leiste steht unter dem Look-Streifen → ins Sichtfeld holen (über der Tab-Leiste)
+  if (inp.focus) inp.focus({ preventScroll: true });
   if (inp.select) inp.select();
 }
 function closeTplSaveInline() {
@@ -8372,6 +8491,13 @@ function _tplMenuPlace(m, btn) {
     if (r.bottom + 4 + mh > window.innerHeight - 8 && r.top - 4 - mh >= 8) m.style.top = Math.round(r.top - 4 - mh) + 'px';
   }
 }
+function removeTemplateHook(id) {
+  var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
+  if (!t || !t.layout || !t.layout.hook) return;
+  t.layout.hook.on = false; t.updatedAt = Date.now();
+  persistTemplates(); buildPicker();
+  capToast('Hook title removed from “' + t.name + '”');
+}
 function openTplMenu(id, btn) {
   closeTplMenu();
   var m = document.createElement('div');
@@ -8380,6 +8506,14 @@ function openTplMenu(id, btn) {
   var isBrand = brandTplId() === id;
   var items = [[isBrand ? '☆ Stop using as default' : '★ Use for every new video', toggleBrandTpl], ['Edit', editTemplate],
     ['Rename', function(tid){ showTplRename(m, tid, btn); }], ['Duplicate', duplicateTemplate], ['Delete', deleteTemplate]];
+  var tplNow = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
+  if (tplHasHook(tplNow)) { // Hook-Titel steckt im Template → sichtbar machen (kein Überraschungs-Hook beim nächsten Video)
+    var info = document.createElement('div');
+    info.className = 'tpl-menu-info'; info.textContent = '\u2713 Hook on (' + tplNow.layout.hook.dur + ' s)';
+    info.title = 'This template switches the hook title on for every video you apply it to';
+    m.appendChild(info);
+    items.splice(1, 0, ['Remove hook title', removeTemplateHook]);
+  }
   items.forEach(function(it) {
     var b = document.createElement('button');
     b.type = 'button'; b.textContent = it[0];
@@ -8973,6 +9107,7 @@ function makeStyleTile(s) {
     // Nur Name (+ Badge) — die Schriftart-Zeile in 7 px war unlesbar und für die Wahl unwichtig. Status
     // (eigener Entwurf / Standard-Template) bleibt als zweite Zeile.
     var sub = s.id === 'custom' ? 'unsaved' : (s._isTpl && s.id === brandTplId() ? '★ default' : '');
+    if (s._isTpl && tplHasHook(userTemplates.find(function(x){ return x.id === s.id && !x.deleted; }))) sub = (sub ? sub + ' · ' : '') + 'Hook on';
     info.innerHTML = '<div class="stile-name">' + escHtml(s.id === 'custom' ? 'Custom' : s.name) + badge + '</div>' + (sub ? '<div class="stile-font">' + escHtml(sub) + '</div>' : '');
     tile.appendChild(info);
     if (s._isTpl) {
@@ -9120,7 +9255,17 @@ function clampCapVertical() {
 var SAFE_ZONE = { top: 11.46, right: 12.5, bottom: 23.44, left: 0 }; // % von Vorschau-Breite/-Höhe
 function toggleSafeZone() {
   showSafeZone = !showSafeZone;
+  szUserChoice = showSafeZone; try { localStorage.setItem(SZ_KEY, showSafeZone ? '1' : '0'); } catch (e) {} // Nutzerwahl merken (überstimmt den 9:16-Standard)
   document.getElementById('safeZoneBtn').classList.toggle('on', showSafeZone);
+  applySafeZone();
+}
+// Standard ohne gespeicherte Wahl: Hilfslinien an, solange das Ausgabeformat 9:16 ist (ar = Breite/Höhe des Rahmens)
+function syncSafeZoneDefault(ar) {
+  if (szUserChoice !== null) return;
+  var want = ar > 0 && Math.abs(ar - 9 / 16) < 0.03;
+  if (want === showSafeZone) return;
+  showSafeZone = want;
+  var b = document.getElementById('safeZoneBtn'); if (b) b.classList.toggle('on', showSafeZone);
   applySafeZone();
 }
 function applySafeZone() {
@@ -10234,8 +10379,26 @@ function restoreAutosave(entry) {
   setTStatus('✅', 'Restored your last session · <a href="#" onclick="retranscribeFromStatus(event)" '
     + 'style="color:#7c3aed;font-weight:600;text-decoration:none">Re-transcribe</a>', false, false);
   if (setProcessing(false)) switchTab('captions'); // nichts zu transkribieren → direkt zum Text
+  // Dasselbe Video nochmal hochgeladen: Wiederherstellung bleibt, aber mit Ausweg «Start fresh» (alte Texte/Schnitte/Hook-Text weg)
+  capToastAction('Restored your last session', 'Start fresh', function() { startFreshSession(); });
   return true;
 }
+// Dieses Video von vorn: Untertitel, Trim/Schnitte und Hook-Text zurücksetzen, neu transkribieren (die frische Transkription ersetzt die Sitzung)
+function startFreshSession() {
+  if (!currentFile || isExporting) return false;
+  _trRun++; // evtl. laufende Transkription entwerten
+  captionBlocks = []; wordTimestamps = []; captionsEdited = false; emSrc = null;
+  trimResetState();
+  hookText = ''; hookAi = '';
+  tlSel = -1; tlSelEnd = -1;
+  resetUndo();
+  try { renderSegments(); renderWPills(); } catch (err) {}
+  try { syncHookUI(); } catch (err3) {}
+  _lastKey = null; try { updateOverlay(); } catch (err2) {}
+  transcribeVideo(currentFile);
+  return true;
+}
+
 function retranscribeFromStatus(e) {
   if (e && e.preventDefault) e.preventDefault();
   if (currentFile) confirmRetranscribe(function() { if (currentFile) transcribeVideo(currentFile); });
@@ -11349,6 +11512,7 @@ function setEdCompact(on) {
   if (vidReady) { layoutPreviewFrame(false); _lastKey = null; updateOverlay(); applyPos(); }
 }
 var PH_CAP_PREV = 0.43; // Handy, Captions-Tab: Anteil der Fensterhöhe für die Vorschau-Spalte (Style-Tab: 0.48)
+var PH_STYLE_SHEET = 140; // Handy, Style-Tab: so viel Höhe (px) bleibt dem Sheet über der Tab-Leiste mindestens (Look-Streifen 108 + Kopf); alles darüber gehört der Vorschau
 function layoutPreviewFrame(setFont) {
   var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
   var ar = vid.videoWidth / vid.videoHeight;
@@ -11366,6 +11530,12 @@ function layoutPreviewFrame(setFont) {
   // Handy (außer Timeline-Modus): die Spalte wächst mit dem Video → feste Obergrenze statt gemessener Höhe
   // Beim Tippen in einer Zeile (Tastatur offen) kompakter, damit Zeile + Video gleichzeitig sichtbar bleiben.
   if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * (_edCompact ? 0.34 : (edTab === 'captions' ? PH_CAP_PREV : 0.48))); // Paket N-Handy: Captions-Tab kleinere Vorschau → mind. 4 Zeilen sichtbar // 0.48 statt 0.52: Sheet ~35 px höher → Looks-Streifen + Customize-Chips + Beginn «Text» sichtbar
+  // Handy, Style-Tab: die Vorschau nimmt alles, was dem Look-Streifen nicht gehört (vorher fest 48 % → ~150 px breit, jetzt ≥ 240 px bei 375×812)
+  if (typeof tlPhone === 'function' && tlPhone() && edTab === 'style' && !_edCompact) {
+    var topH = (document.querySelector('#editor > .topbar') || {}).offsetHeight || 52, tabsEl = document.getElementById('edTabs');
+    var tabsH = (tabsEl && tabsEl.offsetHeight) || 65;
+    pcH = Math.max(pcH, Math.round((window.innerHeight || 700) - topH - tabsH - PH_STYLE_SHEET));
+  }
   var warnEl = document.getElementById('vidWarn'), warnH = (warnEl && warnEl.style.display !== 'none' && warnEl.offsetHeight) ? warnEl.offsetHeight + 10 : 0; // Warnbox unter dem Video braucht Platz
   syncFormatRow(); // Format-Pille/-Hinweis zuerst auf den aktuellen Stand → ihre Höhe stimmt für die Rechnung
   var fmtBarEl = document.getElementById('fmtBar'), fmtBarH = (fmtBarEl && fmtBarEl.style.display !== 'none' && fmtBarEl.offsetHeight) ? fmtBarEl.offsetHeight + 10 : 0; // N3: Leiste über der Vorschau
@@ -11396,6 +11566,7 @@ function layoutPreviewFrame(setFont) {
   applyPreviewCrop(); // «crop»: Video-Ausschnitt an die (neue) Rahmengrösse anpassen
   if (frame.classList && frame.classList.contains('reframe-blur')) updatePreviewBlurBg();
   syncFormatRow();
+  syncSafeZoneDefault(ar);
   return w;
 }
 function loadVideo(file) {
@@ -12238,6 +12409,7 @@ function syncTrimUI() {
   });
   if (_tl) _tl.actKey = '';
   if (typeof tlSyncAct === 'function') tlSyncAct();
+  syncSegCutMarks();
 }
 // Baut aus den wortgenauen Timestamps eine Liste von [start,end]-Zeitfenstern, die beim Export
 // übersprungen werden (Stille-Lücken zwischen Wörtern + reine Füllwort-Interjektionen). `pad`
@@ -14378,7 +14550,7 @@ function switchTab(name) {
   edTab = name;
   // Handy: „Timeline“ ist ein eigener Modus — Vorschau + Spur + Aktionsleiste statt Panel (wie Captions-App)
   var ed = document.getElementById('editor');
-  if (ed && ed.classList) ed.classList.toggle('tl-mode', name === 'timeline');
+  if (ed && ed.classList) { ed.classList.toggle('tl-mode', name === 'timeline'); ed.classList.toggle('ed-style', name === 'style'); }
   if (name === 'timeline' || wasTl) tlSetOpen(name === 'timeline', false);
   var col = document.getElementById('ctrlCol');
   if (col) { col.dataset.tab = name; if (col.setAttribute) col.setAttribute('data-tab', name); col.scrollTop = 0; }
@@ -17280,6 +17452,12 @@ function initLangHint() {
     d.remove(); try { localStorage.setItem('capivo.langHint', '1'); } catch (e) {}
   };
   document.body.appendChild(d);
+  // Handy: erst zeigen, wenn die Upload-Karte (Dropzone + Look-Chips) ganz aus dem Bild gescrollt ist; Desktop: sofort (CSS)
+  var card = document.querySelector('.hero-card'), tmr = 0;
+  function upd() { tmr = 0; var r = card && card.getBoundingClientRect(); d.classList.toggle('lh-on', !card || !r || r.bottom < 0); }
+  function sched() { if (!tmr) tmr = setTimeout(upd, 60); }
+  window.addEventListener('scroll', sched, { passive: true }); window.addEventListener('resize', sched);
+  upd();
 }
 function initScrollReveal() {
   var els = document.querySelectorAll('.reveal');

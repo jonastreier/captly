@@ -133,6 +133,8 @@ capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CA
 capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},
 capBlurBand:capBlurBand,capBlurTop:capBlurTop,fmtHintApplies:fmtHintApplies,fmtHintAnswer:fmtHintAnswer,fmtHintArm:fmtHintArm,syncFormatBar:syncFormatBar,getFmtHint:function(){return {armed:fmtHintArmed,done:fmtHintDone};},setFmtHint:function(a,d){fmtHintArmed=a;fmtHintDone=d;},setProgDrag:function(v){_progDrag=v;},
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
+setWpbState:function(v){WORDS_PER_BLOCK=v;},getWpbState:function(){return WORDS_PER_BLOCK;},segCutState:segCutState,segCutStateOf:segCutStateOf,segRestoreCut:segRestoreCut,syncSegCutMarks:syncSegCutMarks,startFreshSession:startFreshSession,tplHookChecked:tplHookChecked,setTplHookChk:setTplHookChk,tplHasHook:tplHasHook,removeTemplateHook:removeTemplateHook,syncSafeZoneDefault:syncSafeZoneDefault,getSafeZone:function(){return {on:showSafeZone,user:szUserChoice};},HOOK_WORDS:HOOK_WORDS,getHookWords:function(){return HOOK_WORDS;},getZoomState:function(){return emZoom;},
+setSzUser:function(v){szUserChoice=v;showSafeZone=v===null?false:v;},
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
 subtitleCues:subtitleCues,srtFile:srtFile,vttCues:vttCues,subLines:subLines,setSrtMode:setSrtMode,getSrtMode:function(){return srtMode;},setFileSuffix:setFileSuffix,getFileSuffix:function(){return fileSuffixOn;},loadSubOpts:loadSubOpts,buildTemplateExport:buildTemplateExport,fontFormatOf:fontFormatOf,bytesToB64:bytesToB64,b64ToBytes:b64ToBytes,importEmbeddedFonts:importEmbeddedFonts,getUserFontsMap:function(){return _userFonts;},TPL_FONT_MAX_BYTES:TPL_FONT_MAX_BYTES,templateFontNames:templateFontNames,exportTemplatesMsg:exportTemplatesMsg,
@@ -307,7 +309,7 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   T.onWpbChangeT(2);
   const all = T.getBlocks().flatMap(b => b.words);
   ok(all[0].word === 'Korrigiert' && all[0].start === t0, 'Regroup behaelt Edit + Timing (' + firstWord + ' → Korrigiert)');
-  ok(T.getBlocks().every(b => b.words.length <= 2) && T.getBlocks()[0].text.startsWith('Korrigiert'), 'Regroup mit neuer Blockgroesse');
+  ok(T.getBlocks().every(b => b.words.length <= 3) && T.getBlocks()[0].text.startsWith('Korrigiert'), 'Regroup mit neuer Blockgroesse (wpb 2: Ausnahme 3 Wörter statt Einzelwort, Runde 2 P13)');
   ok(T.getBlocks()[0].srcWords[0].word === 'Korrigiert', 'Regroup: srcWords = aktueller Stand');
   T.onWpbChangeT(4);
 }
@@ -5504,7 +5506,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const mix = T.STYLES.find(s => s.id === 'mix'), tight = T.STYLES.find(s => s.id === 'tight');
 
     // ── KI-Standard: Keywords + Emojis an, Hinweis bleibt am Schalter ──
-    ok(/var emKw = true, emEmoji = true, emZoom = 'off';/.test(script), 'N-KI: Standard (ohne gemerkte Wahl): Keywords + Emojis an, Zoom aus');
+    ok(/var emKw = true, emEmoji = true, emZoom = 'subtle';/.test(script), 'N-KI: Standard (ohne gemerkte Wahl): Keywords + Emojis an, Auto-Zoom Subtle (Runde 2: P8)');
     ok(/id="emKwBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /id="emEmoBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /class="em-chip on" id="emEmoBtn"/.test(htmlContent), 'N-KI: Markup der beiden Schalter zeigt «an»');
     ok(/emSrc === 'local' \|\| aiOff\(\)/.test(script) && /Simple emoji picks – AI picks when available/.test(script) && /AI picks unavailable — using simple keyword detection/.test(script), 'N-KI: Hinweis am Schalter bleibt, wenn die KI nicht antwortet');
     // Fallback (lokale Heuristik): jede Caption ab 3 Wörtern bekommt ≥ 1 sichtbares Keyword
@@ -5534,7 +5536,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.hookClean('  Drei  Tricks,\n damit… ') === 'Drei Tricks, damit…', 'Hook-Text: Leerraum bereinigt (' + T.hookClean('  Drei  Tricks,\n damit… ') + ')');
     ok(T.hookClean('Warum das so ist.') === 'Warum das so ist' && T.hookClean('Wirklich?') === 'Wirklich?' && T.hookClean('Krass!') === 'Krass!', 'Hook-Text: Schlusspunkt weg, ? und ! bleiben');
     ok(T.hookClean('eins zwei drei vier fünf sechs sieben acht', 6) === 'eins zwei drei vier fünf sechs', 'Hook-Text: auf 6 Wörter gekürzt');
-    ok(T.hookClean('Drei Tricks, damit deine Reels mehr Views bekommen', 6) === 'Drei Tricks, damit deine Reels', 'Hook-Text: kein hängendes Füllwort am Ende (' + T.hookClean('Drei Tricks, damit deine Reels mehr Views bekommen', 6) + ')');
+    ok(T.hookClean('Drei Tricks damit deine Reels mehr Views bekommen', 6) === 'Drei Tricks damit deine Reels', 'Hook-Text: kein hängendes Füllwort am Ende (' + T.hookClean('Drei Tricks damit deine Reels mehr Views bekommen', 6) + ')');
     ok(T.hookClean('x'.repeat(200)).length <= 80, 'Hook-Text: höchstens 80 Zeichen');
     {
       const hb = [mkBlk('Ja.', 0), mkBlk('Heute zeige ich euch drei Tricks für mehr Reichweite.', 1), mkBlk('Zweiter Satz.', 5)];
@@ -6020,6 +6022,174 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(Lh.lines.length < 2 || Lh.lines[0][0].x > Lh.lines[1][0].x || near(Lh.lines[0][0].x, Lh.lines[1][0].x), 'Andere Looks bleiben zentriert (kürzere Zeile weiter rechts)');
       const dom = T.buildCap(['damit', 'deine', 'Reels'], tw, 1, 22, [0, 0.6, 1.2], 2);
       ok((dom.match(/display:block;white-space:nowrap;text-align:left/g) || []).length === 2 && !/text-align:left/.test(T.buildCap(['damit', 'deine', 'Reels'], g('hormozi'), 1, 22, [0, 0.6, 1.2], 2)), 'Typewriter-DOM: Zeilen text-align:left (nur dieser Look)');
+    }
+  }
+
+  // ═══════════════ Runde 2 Misc: P5 Template+Hook · P8 Defaults · P9 Hook-Vorschlag · P11 ausgeschnittene Zeile · P12 Neustart · P13 Waisen bei wpb 2 ═══════════════
+  {
+    const E = id => document.getElementById(id);
+    const fixDirR2 = path.join(__dirname, 'scripts', 'creator-test', 'fixtures');
+    const fixR2 = n => JSON.parse(fs.readFileSync(path.join(fixDirR2, n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end }));
+    const store = {};
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    global.confirm = () => true;
+
+    // ── P5: Template speichert Hook nur mit ausdrücklichem Häkchen «Include hook title» ──
+    {
+      T.setUserTemplates([]); T.loadTemplates();
+      ok(/id="tplHook"[^>]*type="checkbox"|type="checkbox"[^>]*id="tplHook"/.test(htmlContent) && /id="tplHookTop"/.test(htmlContent) && (htmlContent.match(/Include hook title/g) || []).length >= 2, 'R2-P5: Häkchen «Include hook title» im Speichern-Bereich und in der Inline-Leiste');
+      ok(!/id="tplHook(Top)?"[^>]*\bchecked\b/.test(htmlContent), 'R2-P5: Häkchen standardmässig aus');
+      T.setHookState(true, 'Titel', 3, '');
+      T.selectStyle('classic'); E('tplName').value = 'R2 ohne Haken'; T.saveTemplate();
+      const a = T.getUserTemplates().find(t => t.name === 'R2 ohne Haken');
+      ok(a && a.layout.hook && a.layout.hook.on === false && a.layout.hook.dur === 3, 'R2-P5: Hook an, aber ohne Häkchen → Template speichert Dauer, aber «aus» (' + JSON.stringify(a && a.layout.hook) + ')');
+      T.setTplHookChk(true); ok(T.tplHookChecked() === true, 'R2-P5: Häkchen lesbar');
+      E('tplName').value = 'R2 mit Haken'; T.saveTemplate();
+      const b = T.getUserTemplates().find(t => t.name === 'R2 mit Haken');
+      ok(b && b.layout.hook.on === true && b.layout.hook.dur === 3 && T.tplHasHook(b) && !T.tplHasHook(a), 'R2-P5: mit Häkchen → Hook «an» im Template');
+      ok(T.tplHookChecked() === false, 'R2-P5: Häkchen nach dem Speichern wieder aus (kein Dauerzustand)');
+      // Anwenden: ohne Haken schaltet das Template den Hook nie an
+      T.setHookState(false, 'bleibt', 2, '');
+      T.applyTemplateSettings(a.layout);
+      ok(T.getHookState().on === false && T.getHookState().dur === 3 && T.getHookState().text === 'bleibt', 'R2-P5: Template ohne Haken lässt den Hook aus (Dauer wird übernommen, Text bleibt)');
+      T.applyTemplateSettings(b.layout);
+      ok(T.getHookState().on === true, 'R2-P5: Template mit Haken schaltet den Hook an');
+      // Bestehendes Template mit Hook an (alte Speicherung) bleibt wirksam und wird im Menü als «Hook on» gekennzeichnet
+      const legacy = T.normalizeTemplate({ id: 'tpl_legacy', name: 'Alt', style: { fl: 'Inter', font: "'Inter'", fw: '800', tc: '#fff', hl: '#fa0', anim: 'none' }, layout: { hook: { on: true, dur: 2 } } });
+      T.getUserTemplates().push(legacy);
+      T.setHookState(false, '', 2, ''); T.applyTemplateSettings(legacy.layout);
+      ok(T.getHookState().on === true, 'R2-P5: altes Template mit Hook an → beim Anwenden bleibt der Hook an');
+      const btn = { getBoundingClientRect: () => ({ left: 100, top: 10, bottom: 30, right: 120 }) };
+      T.openTplMenu(legacy.id, btn); let m = T.getTplMenu();
+      ok(m && /Hook on/.test(m.children[0].textContent) && m.children.map(x => x.textContent).indexOf('Remove hook title') > 0, 'R2-P5: Template-Menü kennzeichnet «Hook on» und bietet «Remove hook title» (' + (m && m.children.map(x => x.textContent).join('|')) + ')');
+      T.closeTplMenu(); T.openTplMenu(a.id, btn); m = T.getTplMenu();
+      ok(m && !m.children.some(x => /Hook on/.test(x.textContent)), 'R2-P5: Template ohne Hook → keine Kennzeichnung');
+      T.closeTplMenu();
+      T.removeTemplateHook(legacy.id);
+      ok(!T.tplHasHook(legacy), 'R2-P5: «Remove hook title» schaltet den Hook im Template ab');
+      T.setUserTemplates([]); T.setHookState(false, '', 2, '');
+    }
+
+    // ── P8: Defaults für neue Nutzer (Auto-Zoom Subtle, Safe-Zone bei 9:16); gespeicherte Wahl bleibt ──
+    {
+      ok(/emZoom = 'subtle'/.test(script) && /if \(\['off', 'subtle', 'punchy'\]\.indexOf\(o\.zoom\) >= 0\) emZoom = o\.zoom;/.test(script), 'R2-P8: Auto-Zoom «Subtle» ab Werk, gespeicherte Wahl (o.zoom) überstimmt');
+      T.setSzUser(null);
+      T.syncSafeZoneDefault(9 / 16);
+      ok(T.getSafeZone().on === true && T.getSafeZone().user === null, 'R2-P8: ohne gespeicherte Wahl → Hilfslinien bei 9:16 an');
+      T.syncSafeZoneDefault(16 / 9);
+      ok(T.getSafeZone().on === false, 'R2-P8: 16:9 → Standard aus');
+      T.syncSafeZoneDefault(4 / 5); ok(T.getSafeZone().on === false, 'R2-P8: 4:5 → Standard aus');
+      T.setSzUser(false); T.syncSafeZoneDefault(9 / 16);
+      ok(T.getSafeZone().on === false, 'R2-P8: gespeicherte Wahl «aus» bleibt auch bei 9:16');
+      T.setSzUser(true); T.syncSafeZoneDefault(16 / 9);
+      ok(T.getSafeZone().on === true, 'R2-P8: gespeicherte Wahl «an» bleibt auch bei 16:9');
+      T.setSzUser(null);
+      ok(/localStorage\.getItem\(SZ_KEY\)/.test(script) && /localStorage\.setItem\(SZ_KEY, showSafeZone \? '1' : '0'\)/.test(script), 'R2-P8: Nutzerwahl wird gemerkt (try/catch)');
+      const expSrc = (script.match(/async function exportVideoWithCaptions[\s\S]*?\n}\n/) || [''])[0] + (script.match(/function drawCaptionsOnCtx[\s\S]*?\n}\n/) || [''])[0];
+      ok(expSrc.length > 500 && !/showSafeZone|safeZoneOverlay|safeZoneRect/.test(expSrc), 'R2-P8: Safe-Zone ist reine Anzeige — Export/Canvas-Zeichnen kennen sie nicht');
+    }
+
+    // ── P9: Hook-Vorschlag = ganzer erster Satz (≤ 8 Wörter), sonst am Komma/Doppelpunkt kürzen ──
+    {
+      const blocksOf = ws => T.buildCaptionBlocks(ws, []);
+      ok(T.getHookWords() === 8, 'R2-P9: HOOK_WORDS = 8');
+      const h1 = T.hookLocalText(blocksOf(fixR2('v1-reel-de'))), h2 = T.hookLocalText(blocksOf(fixR2('v2-podcast-de-16x9'))), h3 = T.hookLocalText(blocksOf(fixR2('v3-hook-en')));
+      ok(h1 === 'Drei Tricks, damit deine Reels mehr Views bekommen', 'R2-P9: v1 → ganzer erster Satz (' + h1 + ')');
+      ok(h2 === 'Willkommen zurück bei Klartext Business', 'R2-P9: v2 → ganzer erster Satz (' + h2 + ')');
+      ok(h3 === 'Stop scrolling', 'R2-P9: v3 → kurzer erster Satz bleibt allein (' + h3 + ')');
+      const mk = txt => txt.split(' ').map((w, i) => ({ word: w, start: i * .3, end: i * .3 + .25 }));
+      const blk = txt => [{ start: 0, end: 9, text: txt, words: mk(txt) }];
+      const c1 = T.hookLocalText(blk('Heute zeige ich dir, wie du in drei Schritten viel mehr Views bekommst.'));
+      ok(c1 === 'Heute zeige ich dir', 'R2-P9: langer Satz mit Komma → am Komma gekürzt, Teilsatz bleibt vollständig (' + c1 + ')');
+      const c2 = T.hookLocalText(blk('Ich erkläre dir jetzt ganz genau warum deine Videos so wenig Aufrufe bekommen.'));
+      ok(c2.split(' ').length <= 8 && /^Ich erkläre dir/.test(c2) && !/(^| )(deine|so|und|der|die|das|ein|mit|für)$/i.test(c2), 'R2-P9: langer Satz ohne Komma → erste Wörter ohne hängendes Füllwort (' + c2 + ')');
+      const c3 = T.hookLocalText(blk('Achtung. Dieses Video ändert alles für dich.'));
+      ok(c3 === 'Dieses Video ändert alles für dich', 'R2-P9: Ein-Wort-Satz am Anfang wird übersprungen (' + c3 + ')');
+      const c4 = T.hookLocalText(blk('Warte. Das hier ist wichtig. Hör gut zu.'));
+      ok(c4 === 'Das hier ist wichtig', 'R2-P9: Ein-Wort-Satz übersprungen, nächster ganzer Satz bleibt allein (' + c4 + ')');
+      ok(T.hookClean('Alpha, beta gamma delta epsilon zeta eta theta iota', 8) === 'Alpha, beta gamma delta epsilon zeta eta theta', 'R2-P9: Komma nach dem 1. Wort wird nicht zum Abschneiden genutzt (hart auf 8 Wörter)');
+      ok(T.hookClean('Drei Tricks, damit deine Reels mehr Views bekommen heute', 8) === 'Drei Tricks', 'R2-P9: hookClean kürzt am Komma, wenn der Teil davor ≥ 2 Wörter hat');
+    }
+
+    // ── P11: ausgeschnittene Zeilen in der Liste markieren (Restore) ──
+    {
+      const blocks = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]].map(([a, b], i) => ({ start: a, end: b, text: 'w' + i, words: [{ word: 'w' + i, start: a, end: b }] }));
+      const S = (b, manual, tIn, tOut, auto) => T.segCutState(b, 10, tIn || 0, tOut === undefined ? null : tOut, manual || [], auto || []);
+      ok(S(blocks[1], [{ start: 0.9, end: 2.1 }]).full === true && S(blocks[1], [{ start: 0.9, end: 2.1 }]).manual.join() === '0', 'R2-P11: Block ganz im Schnitt → full');
+      const part = S(blocks[2], [{ start: 2.5, end: 3.5 }]);
+      ok(part.part === true && part.full === false, 'R2-P11: Block halb im Schnitt → part');
+      ok(S(blocks[0], [], 1.2).full === true && S(blocks[0], [], 1.2).trimIn === true, 'R2-P11: Trim-Anfang schneidet Zeile weg (full, trimIn)');
+      ok(S(blocks[4], [], 0, 4.2).part === true && S(blocks[4], [], 0, 3.9).full === true && S(blocks[4], [], 0, 3.9).trimOut === true, 'R2-P11: Trim-Ende: teils/ganz');
+      ok(S(blocks[3], [{ start: 7, end: 8 }]).full === false && S(blocks[3], [{ start: 7, end: 8 }]).part === false, 'R2-P11: unberührte Zeile bleibt normal');
+      ok(S(blocks[2], [], 0, null, [{ start: 2, end: 3 }]).full === true && S(blocks[2], [], 0, null, [{ start: 2, end: 3 }]).auto === true, 'R2-P11: Auto-Cut wird erkannt (ohne Restore)');
+      // DOM: Klassen, Schere + Restore, Hinweis; Restore holt die Zeile zurück
+      const mkRow = () => { const cls = new Set(); return { classList: { toggle: (c, f) => { f ? cls.add(c) : cls.delete(c); }, add: c => cls.add(c), remove: c => cls.delete(c), contains: c => cls.has(c), _s: cls }, _bar: null, children: [],
+        querySelector(sel) { return sel === '.seg-cutbar' ? this._bar : (sel === '.seg-tools' ? {} : null); }, insertBefore(bar) { this._bar = bar; bar.parentNode = this; }, removeChild(bar) { if (this._bar === bar) this._bar = null; } }; };
+      const rows = blocks.map((b, i) => { const r = mkRow(); document.getElementById('seg' + i); els['seg' + i] = r; return r; });
+      T.setCaptionBlocksForTest(blocks); document.getElementById('capSegs');
+      document.getElementById('mainVid').duration = 10;
+      T.setTrim(0, null);
+      T.cutOutRange(1, 2); T.cutOutRange(2.5, 3.5);
+      ok(rows[1].classList._s.has('cut') && !rows[1].classList._s.has('cut-part') && rows[1]._bar && /Cut out/.test(rows[1]._bar.children[1].textContent) && rows[1]._bar.children[2] && rows[1]._bar.children[2].textContent === 'Restore', 'R2-P11: ganz ausgeschnittene Zeile: abgeblendet (cut), Schere + «Restore» in der Zeile');
+      ok(rows[2].classList._s.has('cut-part') && !rows[2].classList._s.has('cut') && rows[2]._bar && /Partly cut out/.test(rows[2]._bar.children[1].textContent) && !rows[2]._bar.children[2], 'R2-P11: teilweise geschnittene Zeile: Hinweis «Partly cut out», kein Restore');
+      ok(!rows[0].classList._s.has('cut') && !rows[0]._bar && !rows[4].classList._s.has('cut'), 'R2-P11: übrige Zeilen unverändert');
+      rows[1]._bar.children[2].onclick({ stopPropagation() {} });
+      ok(T.getTrim().c.length === 1 && !rows[1].classList._s.has('cut') && !rows[1]._bar, 'R2-P11: Restore in der Zeile holt den Schnitt zurück (ein Schnitt bleibt, Hinweis weg)');
+      T.setTrim(1.5, null); T.setTrim(0, null);
+      T.setCaptionBlocksForTest([]); for (let i = 0; i < 5; i++) delete els['seg' + i];
+    }
+
+    // ── P12: Wiederherstellung + «Start fresh» ──
+    {
+      const wR = fixR2('v3-hook-en');
+      T.setState(T.buildCaptionBlocks(wR, []), wR, 'karaoke');
+      T.setAutosaveKey('r2-clip.mp4|4321|190'); T.setHookState(true, 'Alter Titel', 2, ''); T.setCaptionsEdited(true);
+      ok(T.autosaveNow() === true, 'R2-P12: Setup — Autosave geschrieben');
+      T.setState([], []); T.setCaptionsEdited(false); T.setAutosaveKey(null); T.setHookState(false, '', 2, '');
+      document.getElementById('capToast').children = [];
+      const restored = T.restoreOrTranscribe({ name: 'r2-clip.mp4', size: 4321 }, 19.04);
+      ok(restored === true && T.getBlocks().length > 0 && T.getHookState().text === 'Alter Titel', 'R2-P12: gleiches Video erneut → Sitzung wird wiederhergestellt (inkl. Hook-Text)');
+      const tc = document.getElementById('capToast'); // Stub: capToastAction hängt den Knopf an das registrierte Element
+      const tbtn = tc.children.find(c => c.textContent === 'Start fresh');
+      ok(!!tbtn && typeof tbtn.onclick === 'function' && /capToastAction\('Restored your last session', 'Start fresh'/.test(script), 'R2-P12: Toast «Restored your last session» hat den Knopf «Start fresh»');
+      T.setCurrentFile({ name: 'r2-clip.mp4', size: 4321, type: 'video/mp4' });
+      T.setTrim(1, null);
+      const run0 = T.getTrRun();
+      ok(T.startFreshSession() === true, 'R2-P12: Start fresh läuft');
+      ok(T.getBlocks().length === 0 && T.getHookState().text === '' && T.getHookState().ai === '' && T.getTrim().i === 0 && T.getTrim().c.length === 0 && T.getCaptionsEdited() === false, 'R2-P12: Start fresh setzt Captions, Trim/Schnitte und Hook-Text dieses Videos zurück');
+      ok(T.getTrRun() > run0, 'R2-P12: Start fresh startet eine neue Transkription (alter Lauf entwertet)');
+      T.setCurrentFile(null); T.setAutosaveKey(null); T.setExporting(false);
+    }
+
+    // ── P13: Waisen bei 2-Wort-Looks (wpb 2): Einzelwort nur bei Ein-Wort-Satz oder wenn Limits es erzwingen ──
+    {
+      const lines1 = { dataset: { lines: '1' }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } };
+      const prevWpb = T.getWpbState(), prevMc = T.getMaxChars();
+      T.setWpbState(2); T.setLines(lines1);
+      const stats = {};
+      for (const per of [18, 24]) {
+        T.setMaxCharsState(per);
+        stats[per] = {};
+        for (const n of ['v1-reel-de', 'v2-podcast-de-16x9', 'v3-hook-en']) {
+          const bl = T.buildCaptionBlocks(fixR2(n), []);
+          const single = bl.filter(b => b.words.length === 1).map(b => b.text), over = bl.filter(b => b.words.length > 3).length;
+          // Alle Wörter erhalten, nie mehr als 3 Wörter je Block
+          ok(bl.map(b => b.text).join(' ') === fixR2(n).map(w => w.word).join(' ') && over === 0, 'R2-P13: ' + n + ' per ' + per + ': kein Wort verloren, ≤ 3 Wörter je Block');
+          stats[per][n] = single;
+        }
+      }
+      ok(stats[24]['v1-reel-de'].length === 0 && stats[24]['v2-podcast-de-16x9'].length === 0 && stats[24]['v3-hook-en'].length === 0, 'R2-P13: wpb 2, 24 Zeichen: keine Einzelwort-Blöcke (vorher 4: Erstens:/Business./time./them.) — ' + JSON.stringify(stats[24]));
+      ok(stats[18]['v1-reel-de'].length + stats[18]['v2-podcast-de-16x9'].length + stats[18]['v3-hook-en'].length <= 4, 'R2-P13: wpb 2, 18 Zeichen: höchstens 4 Einzelwörter, nur durch das Zeichenlimit erzwungen (vorher 10) — ' + JSON.stringify(stats[18]));
+      // Ganze Ein-Wort-Sätze bleiben bewusst allein
+      const w1 = ['Ja.', 'Das', 'ist', 'wirklich', 'so', 'gut', 'gemacht.', 'Stopp.'].map((w, i) => ({ word: w, start: i * .4, end: i * .4 + .3 }));
+      T.setMaxCharsState(30);
+      const b1 = T.buildCaptionBlocks(w1, []).map(b => b.text);
+      ok(b1[0] === 'Ja.' && b1[b1.length - 1] === 'Stopp.', 'R2-P13: echte Ein-Wort-Sätze («Ja.», «Stopp.») bleiben allein (' + b1.join(' | ') + ')');
+      // wpb 3 und 1 unverändert
+      T.setWpbState(3); T.setMaxCharsState(40);
+      ok(T.buildCaptionBlocks(fixR2('v1-reel-de'), []).every(b => b.words.length <= 3), 'R2-P13: wpb 3 bleibt hart bei ≤ 3 Wörtern');
+      T.setWpbState(prevWpb); T.setMaxCharsState(prevMc || 40);
+      T.setLines({ dataset: { lines: '2' }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
     }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
