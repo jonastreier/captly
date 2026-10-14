@@ -4955,7 +4955,16 @@ function hookLocalText(blocks) {
   var all = parts.join(' ').replace(/\s+/g, ' ').trim();
   if (_hookLocalCache.key === all) return _hookLocalCache.val;
   var sents = all.match(/[^.!?…]+[.!?…]*/g) || [], out = '';
-  for (var k = 0; k < sents.length; k++) { out = (out + ' ' + sents[k]).trim(); if (out.split(' ').length >= 3) break; }
+  // Ganze Sätze bevorzugen: erster Satz; weitere nur, wenn der erste sehr kurz ist (< 3 Wörter) UND der nächste
+  // vollständig in HOOK_WORDS passt – nie mitten im Folgesatz abbrechen («Stop scrolling.» ist selbst ein guter Hook)
+  var nw = function(x) { return x ? x.split(' ').length : 0; };
+  var s0 = 0; while (s0 < sents.length - 1 && nw(sents[s0].trim()) < 2) s0++; // «Ja.» allein ist kein Hook → nächster Satz
+  out = (sents[s0] || '').trim();
+  for (var k = s0 + 1; k < sents.length && nw(out) < 3; k++) {
+    var nx = (out + ' ' + sents[k].trim()).trim();
+    if (nw(nx) > HOOK_WORDS) break;
+    out = nx;
+  }
   var val = hookClean(out, HOOK_WORDS);
   _hookLocalCache = { key: all, val: val };
   return val;

@@ -5537,7 +5537,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.hookClean('x'.repeat(200)).length <= 80, 'Hook-Text: höchstens 80 Zeichen');
     {
       const hb = [mkBlk('Ja.', 0), mkBlk('Heute zeige ich euch drei Tricks für mehr Reichweite.', 1), mkBlk('Zweiter Satz.', 5)];
-      ok(T.hookLocalText(hb) === 'Ja. Heute zeige ich euch' || T.hookLocalText(hb).split(' ').length <= 6 && T.hookLocalText(hb).length > 3, 'Hook lokal: kurzer erster Satz wird mit dem nächsten ergänzt, ≤ 6 Wörter (' + T.hookLocalText(hb) + ')');
+      ok(!/^Ja\.?$/.test(T.hookLocalText(hb)) && /^Heute zeige ich/.test(T.hookLocalText(hb)) && T.hookLocalText(hb).split(' ').length <= 6, 'Hook lokal: Ein-Wort-Satz wird übersprungen, nächster Satz ≤ 6 Wörter (' + T.hookLocalText(hb) + ')');
       T.setState(hb, [], 'karaoke');
       T.setHookState(true, '', 2, '');
       ok(T.hookTextNow() === T.hookLocalText(hb), 'Hook: ohne eigenen Text/KI → lokaler Vorschlag');
@@ -5921,6 +5921,15 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(/left:100%/.test(hs) && /capEmoSticker/.test(hs) && !/bottom:100%/.test(hs), 'Sticker-Emoji: DOM rechts neben der Caption statt darüber');
       ok(/glassbox/.test(JSON.stringify(file)) && /inset 0 0 0 1px/.test(T.buildCap(['ab'], g('glassbox'), -1, 22, null)) , 'Glas-Box: Innenrand als inset-Schatten im DOM');
     }
+  }
+  // ── Integration: Hook-Vorschlag bricht nie mitten im Folgesatz ab ──
+  {
+    const mk = txt => txt.split(' ').map((w, i) => ({ word: w, start: i * .3, end: i * .3 + .25 }));
+    const blk = txt => [{ start: 0, end: 5, text: txt, words: mk(txt) }];
+    const h1 = T.hookLocalText(blk('Stop scrolling. This one setting doubled my watch time.'));
+    ok(/^Stop scrolling\.?$/i.test(h1), 'Hook lokal: kurzer erster Satz bleibt allein (kein abgeschnittener Folgesatz) — ' + h1);
+    const h2 = T.hookLocalText(blk('Hey. Drei Tricks. Für mehr Views heute.'));
+    ok(!/Für mehr Views heute/.test(h2) || h2.split(' ').length <= 6, 'Hook lokal: Folgesatz nur, wenn er ganz in 6 Wörter passt — ' + h2);
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
