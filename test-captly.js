@@ -3870,7 +3870,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(['Tight', 'Mix', 'Statement', 'Accent', 'Serif Bold', 'Bold Pop', 'Comic'].every(n => T.STYLES.some(x => x.name === n)) && !T.STYLES.slice(0, 24).some(x => /hormozi|beast|tiktok/i.test(x.name)), 'Anzeigenamen: keine Personen-/Markennamen (IDs bleiben)');
     ok(st('hormozi') && st('beast') && st('tiktok'), 'IDs hormozi/beast/tiktok bleiben (gespeicherte Daten)');
     // em-Buchstabenabstand folgt der tatsächlichen Schriftgrösse
-    ok(Math.abs(T.capLsPx({ ls: '-.04em', fs: '1.5em' }, 20) - (-1.2)) < 1e-9 && T.capLsPx({ ls: '2px' }, 20) === 2 && T.capLsPx({ ls: 'normal' }, 20) === 0 && T.capLsPx({}, 20) === 0, 'capLsPx: em × Schrift × fs, px unverändert');
+    ok(Math.abs(T.capLsPx({ ls: '-.04em', fs: '1.5em' }, 20) - (-1.2)) < 1e-9 && Math.abs(T.capLsPx({ ls: '2px' }, 20) - 2 * T.capOutK()) < 1e-9 && T.capLsPx({ ls: 'normal' }, 20) === 0 && T.capLsPx({}, 20) === 0, 'capLsPx: em × Schrift × fs, px schriftrelativ (× capOutK, R3)');
     const sb = st('serifbold');
     ok(T.capWordFace(sb, false, false).it === true && T.capWordFace(sb, false, true).it === false && T.capWordFace(sb, false, true).fam === 'Inter Tight' && T.capWordFace(sb, false, true).fw === '900', 'Serif Bold: Text kursiv, Keyword aufrecht (Inter Tight 900)');
     ok(T.capWordFace(st('accent'), false, true).it === true && T.capWordFace(st('accent'), false, false).it === false, 'Accent: nur Keyword kursiv');
@@ -4134,9 +4134,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const base = T.STYLES.find(x => x.id === sid);
       const sig = lh => {
         const s = Object.assign({}, base, { id: 'lhtest', lh });
+        T.setLinesState(nl); T.setFontSizeState(px); // vor dem Messen: px-Laufweite/Kontur sind schriftrelativ (capOutK = aktuelle Schrift)
         const f = T.fitCaptionWords(ws, s, px, T.capFitMaxW(s), nl);
         const wr = T.wrapCaptionLines(ws, s, -1, f.px, nl);
-        T.setLinesState(nl); T.setFontSizeState(px);
         const bw = ws.map((w, i) => ({ word: w, start: i, end: i + 0.5 }));
         T.setState([{ words: bw, start: 0, end: ws.length, text: ws.join(' ') }], bw, 'karaoke');
         const L = T.capLayout(ctx, T.getBlocks()[0], 0, -1, s, 1080, 1920);
@@ -6439,6 +6439,54 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       T.capToastAction('Hallo', 'Start fresh', () => {}); T.hideCapToast();
       ok(tEl.children.filter(c => c.className === 'cap-toast-btn').length === 0, 'R3-Toast: auch beim Ausblenden (hideCapToast) wird der Knopf entfernt');
     }
+  }
+
+  // ═══════════════ Runde 3 Layout (Folge): Segmentierung und Schriftgrösse unabhängig von der Vorschau-Breite ═══════════════
+  {
+    const near = (a, b, e) => Math.abs(a - b) <= (e === undefined ? 0.5 : e);
+    const frameEl = document.getElementById('prevFrame');
+    const prevW = frameEl.style.width, prevH = frameEl.style.height, prevFs = T.getFontSize();
+    const setFrame = w => { frameEl.style.width = w + 'px'; frameEl.style.height = Math.round(w * 16 / 9) + 'px'; T.setFontSizeState(Math.round(w * 0.08 * 100) / 100); };
+    const mkCtx = () => ({ font: '', letterSpacing: '0px', measureText(str) { const m = /([\d.]+)px/.exec(this.font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+      roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},
+      fillRect() {}, clip() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } });
+    const fixR = n => JSON.parse(fs.readFileSync(path.join(__dirname, 'scripts', 'creator-test', 'fixtures', n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end }));
+    const looks = ['colorpop', 'squashpop', 'stickeremoji', 'hormozi', 'glassbox'];
+    const prevId = T.getActiveId(), prevWpb = T.getWpbState(), prevMc = T.getMaxChars(), prevLines = T.getLines();
+    const lines1 = { dataset: { lines: '1' }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } };
+    T.setMaxCharsState(0);
+    // 1) Vorlagen-/Standardgrösse: reines Verhältnis, kein 10-px-Minimum
+    ok(T.templateFontSize({ sizeRel: 0.08 }, 90) === 7.2 && T.templateFontSize({ sizeRel: 0.08 }, 720) === 57.6, 'R3: templateFontSize bleibt ein Verhältnis zur Rahmenbreite (90 px → 7,2 · 720 px → 57,6), kein 10-px-Minimum');
+    // 2) Zeichenlimit + Blöcke: identisch bei 90 / 220 / 330 / 720 px Rahmenbreite
+    for (const id of looks) {
+      const st = T.STYLES.find(x => x.id === id); if (!st) continue;
+      T.setActiveId(id); if (st.layout) { T.setWpbState(st.layout.wpb); T.setLines({ dataset: { lines: String(st.layout.lines) }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } }); } else { T.setWpbState(4); T.setLines({ dataset: { lines: '2' }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } }); }
+      const sig = {};
+      for (const w of [90, 220, 330, 720]) {
+        setFrame(w);
+        sig[w] = { per: T.capAutoChars(), blocks: ['v1-reel-de', 'v2-podcast-de-16x9', 'v3-hook-en'].map(n => T.buildCaptionBlocks(fixR(n), []).map(b => b.text).join('|')).join('##') };
+      }
+      ok([220, 330, 720].every(w => sig[w].per === sig[90].per && sig[w].blocks === sig[90].blocks), 'R3 ' + id + ': Zeichenlimit (' + sig[90].per + ') und Blöcke bei Rahmen 90/220/330/720 px identisch');
+      if (st.layout && st.layout.wrap) {
+        setFrame(90); let n = 0, one = 0;
+        for (const f of ['v1-reel-de', 'v2-podcast-de-16x9', 'v3-hook-en']) { const bl = T.buildCaptionBlocks(fixR(f), []); n += bl.length; one += bl.filter(b => b.words.length === 1).length; }
+        ok(one / n < 0.2, 'R3 ' + id + ' bei 90-px-Rahmen: Einzelwort-Anteil ' + Math.round(100 * one / n) + ' % < 20 %');
+      }
+    }
+    // 3) Export-Geometrie (capLayout 1080×1920): Schrifthöhe/Boxhöhe relativ zur Videohöhe bei 90 und 330 px gleich; px-Laufweite schriftrelativ
+    {
+      const sty = T.STYLES.find(x => x.id === 'colorpop') || T.STYLES.find(x => x.id === 'hormozi');
+      T.setActiveId(sty.id); T.setWpbState(2); T.setLines(lines1);
+      const ws = ['Drei', 'Tricks,'], blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+      T.setState([blk], blk.words, 'karaoke');
+      const H = 1920, geo = {};
+      for (const w of [90, 330]) { setFrame(w); const L = T.capLayout(mkCtx(), blk, 0, 0, sty, 1080, H); geo[w] = { h: (L.boxB - L.boxT) / H, fsS: L.fsS / H }; }
+      ok(near(geo[90].h, geo[330].h, 0.004) && near(geo[90].fsS, geo[330].fsS, 0.0015), 'R3 Export: Boxhöhe/Videohöhe ' + geo[90].h.toFixed(4) + ' (90 px) = ' + geo[330].h.toFixed(4) + ' (330 px), Schrift/Höhe ' + geo[90].fsS.toFixed(4) + ' = ' + geo[330].fsS.toFixed(4));
+      const sq = T.STYLES.find(x => x.id === 'squashpop');
+      if (sq) { setFrame(90); const a = T.capLsPx(sq) / 90; setFrame(720); const b = T.capLsPx(sq) / 720; ok(near(a, b, 1e-6) && a > 0, 'R3: px-Laufweite (Squash Pop) skaliert mit der Rahmenbreite (' + a.toFixed(5) + ' = ' + b.toFixed(5) + ' je px Rahmen)'); }
+    }
+    frameEl.style.width = prevW; frameEl.style.height = prevH; T.setFontSizeState(prevFs);
+    T.setActiveId(prevId); T.setWpbState(prevWpb); T.setMaxCharsState(prevMc); T.setLines({ dataset: { lines: String(prevLines) }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
