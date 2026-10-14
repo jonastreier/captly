@@ -148,6 +148,7 @@ parseHexInput:parseHexInput,csHexCommit:csHexCommit,csOpCommit:csOpCommit,csColo
 onTemplatesStorage:onTemplatesStorage,undoDeleteTemplate:undoDeleteTemplate,importTemplateMessage:importTemplateMessage,persistTemplates:persistTemplates,
 emojiSearch:emojiSearch,EMO_CATS:EMO_CATS,EMO_PICK:EMO_PICK,emAiUnavailable:emAiUnavailable,setEmSrc:function(v){emSrc=v;},syncEmphUI:syncEmphUI,setEmphEmoji:setEmphEmoji,setCaptionBlocksForTest:function(b){captionBlocks=b;},
 autoCutRegions:autoCutRegions,exportCutRegions:exportCutRegions,cutSavedSeconds:cutSavedSeconds,cutSavedLabel:cutSavedLabel,syncAutoCutUI:syncAutoCutUI,onAutoCutChange:onAutoCutChange,getAutoCut:function(){return autoCutSilence;},estimateSourceBitrate:estimateSourceBitrate,snapFrameRate:snapFrameRate,createCfrPlanner:createCfrPlanner,cfrFrameTimeUs:cfrFrameTimeUs,syncExportAgainIfOpen:syncExportAgainIfOpen,exportSignature:exportSignature,setExportFill:setExportFill,setExportFormat:setExportFormat,setExportResUI:setExportRes,
+mergeCutRegions:mergeCutRegions,allCutRegionsOf:allCutRegionsOf,allCutRegions:allCutRegions,srcToOut:srcToOut,outToSrc:outToSrc,cuesToOutput:cuesToOutput,setTrim:setTrim,cutOutRange:cutOutRange,restoreCut:restoreCut,getTrim:function(){return {i:trimIn,o:trimOut,c:manualCuts};},currentSubCues:currentSubCues,previewSkipCuts:previewSkipCuts,tlCutRange:tlCutRange,tlCutOut:tlCutOut,tlSetMark:tlSetMark,tlSelectCut:tlSelectCut,tlRestoreSel:tlRestoreSel,trimSnapshot:trimSnapshot,trimResetState:trimResetState,tlTrimHit:tlTrimHit,setTlSel:function(i){tlSel=i;},
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -5323,6 +5324,94 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       sheet.style.display = 'none'; T.setExportResUI('orig'); ok(ag.style.display === 'none', 'N10: Blatt zu → keine Aktualisierung nötig'); T.setExportResUI('1080');
       sheet.style.display = 'block'; T.releaseLastExport(); T.onAutoCutChange(false);
     }
+  }
+
+  // ═══ Paket B5: Trimmen + Ausschneiden ═══
+  {
+    const E = id => document.getElementById(id);
+    const near = (a, b, e) => Math.abs(a - b) < (e || 1e-6);
+    // allCutRegionsOf: sortiert, zusammengeführt, Trim + manuell + Auto
+    const au = [{ start: 12, end: 13 }, { start: 5, end: 6.5 }];
+    const r1 = T.allCutRegionsOf(20, 1, 18, [{ start: 6, end: 8 }], []);
+    ok(JSON.stringify(r1) === JSON.stringify([{ start: 0, end: 1 }, { start: 6, end: 8 }, { start: 18, end: 20 }]), 'B5: Trim 1–18 + Schnitt 6–8 → [0,1] [6,8] [18,20]: ' + JSON.stringify(r1));
+    ok(near(T.cutSavedSeconds(r1), 5) && near(20 - T.cutSavedSeconds(r1), 15), 'B5: Ausgabelänge 20 − 5 = 15 s');
+    const r2 = T.allCutRegionsOf(20, 1, 18, [{ start: 6, end: 8 }], au);
+    ok(JSON.stringify(r2) === JSON.stringify([{ start: 0, end: 1 }, { start: 5, end: 8 }, { start: 12, end: 13 }, { start: 18, end: 20 }]), 'B5: Auto-Cut (unsortiert, überlappt 6–8) wird einsortiert und zusammengeführt: ' + JSON.stringify(r2));
+    ok(T.allCutRegionsOf(20, 0, null, [], au) === au, 'B5: ohne Trim/Schnitt kommt die Auto-Cut-Liste unverändert zurück');
+    ok(T.allCutRegionsOf(20, 0, 20, [], []).length === 0 && T.allCutRegionsOf(20, 0, null, [], []).length === 0, 'B5: volle Länge → keine Schnitte');
+    const r3 = T.allCutRegionsOf(20, 0, null, [{ start: 4, end: 6 }, { start: 6, end: 7 }, { start: 3, end: 4.5 }, { start: 19, end: 25 }], []);
+    ok(JSON.stringify(r3) === JSON.stringify([{ start: 3, end: 7 }, { start: 19, end: 20 }]), 'B5: anstossende/überlappende Schnitte verschmelzen, Ende auf Dauer gekappt: ' + JSON.stringify(r3));
+    // srcToOut an den Grenzen
+    ok(T.srcToOut(0.5, r1) === null && near(T.srcToOut(1, r1), 0) && near(T.srcToOut(5.99, r1), 4.99), 'B5: srcToOut: im Trim null, Trim-Ende = 0, vor Schnitt unverändert verschoben');
+    ok(T.srcToOut(6, r1) === null && T.srcToOut(7.99, r1) === null && near(T.srcToOut(8, r1), 5) && near(T.srcToOut(8.5, r1), 5.5), 'B5: srcToOut: Schnitt-Anfang inklusiv null, Schnitt-Ende exklusiv; Quelle 8,5 s = Ausgabe 5,5 s');
+    ok(T.srcToOut(18, r1) === null && near(T.srcToOut(17.999, r1), 14.999), 'B5: srcToOut: Trim-Out-Grenze');
+    ok(near(T.outToSrc(5.5, r1), 8.5) && near(T.outToSrc(0, r1), 1) && near(T.outToSrc(4.999, r1), 5.999), 'B5: outToSrc ist die Umkehrung');
+    // SRT mit Schnitten: Hand-Rechnung. Cue A 2–4 s (voll sichtbar), Cue B 5.5–6.5 s (angeschnitten: Schnitt ab 6), Cue C 6.2–7.5 (ganz im Schnitt), Cue D 9–10
+    const cues = [{ start: 2, end: 4, text: 'A' }, { start: 5.5, end: 6.5, text: 'B' }, { start: 6.2, end: 7.5, text: 'C' }, { start: 9, end: 10, text: 'D' }, { start: 0.2, end: 0.8, text: 'E' }];
+    const co = T.cuesToOutput(cues, r1);
+    ok(co.length === 3 && co[0].text === 'A' && near(co[0].start, 1) && near(co[0].end, 3), 'B5: SRT: Cue A 2–4 → 1–3 (Trim 1 s)');
+    ok(co[1].text === 'B' && near(co[1].start, 4.5) && near(co[1].end, 5), 'B5: SRT: Cue B 5,5–6,5 wird auf 5,5–6 geklemmt → 4,5–5,0');
+    ok(co[2].text === 'D' && near(co[2].start, 6) && near(co[2].end, 7), 'B5: SRT: Cue D 9–10 → 6–7 (Trim 1 s + Schnitt 2 s); C und E (ganz im Schnitt) entfallen');
+    const span = T.cuesToOutput([{ start: 4, end: 10, text: 'X' }], r1)[0];
+    ok(near(span.start, 3) && near(span.end, 5 + 2), 'B5: Schnitt mitten im Cue verkürzt ihn (4–10 → 3–7: 2 s vor + 2 s nach dem Schnitt): ' + span.start + '–' + span.end);
+    ok(T.cuesToOutput(cues, []) === cues, 'B5: ohne Schnitte bleiben die Cues dasselbe Objekt (SRT byte-gleich)');
+    // currentSubCues folgt exportCutRegions (SRT/VTT = Video-Zeit), inkl. Auto-Cut
+    const vidB = E('mainVid'), dB = vidB.duration; vidB.duration = 20;
+    T.onAutoCutChange(false); T.trimResetState();
+    T.setState([{ start: 2, end: 4, text: 'Eins zwei', words: [{ word: 'Eins', start: 2, end: 3 }, { word: 'zwei', start: 3, end: 4 }] },
+                { start: 9, end: 10, text: 'Neun zehn', words: [{ word: 'Neun', start: 9, end: 9.5 }, { word: 'zehn', start: 9.5, end: 10 }] }], [], 'words');
+    T.setSrtMode('snippets');
+    const before = JSON.stringify(T.currentSubCues());
+    ok(T.setTrim(1, 18) === true && T.cutOutRange(6, 8) === true, 'B5: Trim 1–18 und Schnitt 6–8 gesetzt');
+    const sc = T.currentSubCues();
+    ok(sc.length === 2 && near(sc[0].start, 1) && near(sc[0].end, 3) && near(sc[1].start, 6) && near(sc[1].end, 7), 'B5: currentSubCues: 2–4 → 1–3, 9–10 → 6–7 (Hand-Rechnung): ' + JSON.stringify(sc));
+    ok(T.exportCutRegions().length === 3 && near(T.cutSavedSeconds(T.exportCutRegions()), 5), 'B5: exportCutRegions liefert Trim + Schnitt (auch ohne Auto-Cut und ohne Wort-Timings)');
+    ok(E('tlOut').textContent === 'Output 15.0 s (−5.0 s)' && E('expOutLen').textContent === 'Output 15.0 s (−5.0 s)', 'B5: Anzeige «Output 15.0 s»: ' + E('tlOut').textContent);
+    // Signatur (N10) enthält Trim/Schnitte; Projekt-Payload speichert sie, Template nicht
+    const sigCut = T.exportSignature();
+    const pl = T.projectPayload();
+    ok(pl.trimIn === 1 && pl.trimOut === 18 && pl.manualCuts.length === 1 && pl.manualCuts[0].start === 6 && pl.manualCuts[0].end === 8, 'B5: projectPayload speichert trimIn/trimOut/manualCuts');
+    T.trimResetState();
+    ok(T.exportSignature() !== sigCut && !('trimIn' in T.projectPayload()) && !('manualCuts' in T.projectPayload()), 'B5: Signatur ändert sich mit dem Schnitt; ohne Trim/Schnitt keine Felder im Projekt');
+    ok(JSON.stringify(T.currentSubCues()) === before, 'B5: ohne Trim/Schnitt/Auto-Cut ist die SRT-Ausgabe unverändert');
+    T.applyProjectPayload(Object.assign({}, pl, { blocks: undefined, style: undefined }));
+    ok(T.getTrim().i === 1 && T.getTrim().o === 18 && T.getTrim().c.length === 1, 'B5: applyProjectPayload stellt Trim/Schnitt wieder her');
+    ok(!/trimIn|manualCuts/.test((htmlContent.match(/function buildTemplateExport[\s\S]{0,1500}/) || [''])[0]) && !/trimIn|manualCuts/.test((htmlContent.match(/function snapshotTemplate[\s\S]{0,1200}/) || [''])[0]), 'B5: Templates enthalten keine Trim-Felder');
+    // Undo/Redo: jede Aktion = ein Schritt
+    T.trimResetState(); T.resetUndoForTest && T.resetUndoForTest();
+    T.setTrim(1, 18); T.cutOutRange(6, 8); T.cutOutRange(10, 11);
+    ok(T.getTrim().c.length === 2, 'B5: zwei Schnitte');
+    T.undoCaptions(); ok(T.getTrim().c.length === 1 && T.getTrim().c[0].start === 6 && T.getTrim().i === 1, 'B5: Undo nimmt genau den letzten Schnitt zurück');
+    T.undoCaptions(); ok(T.getTrim().c.length === 0 && T.getTrim().i === 1 && T.getTrim().o === 18, 'B5: Undo 2 nimmt den Schnitt 6–8 zurück, Trim bleibt');
+    T.redoCaptions(); ok(T.getTrim().c.length === 1, 'B5: Redo stellt den Schnitt wieder her');
+    T.undoCaptions(); T.undoCaptions(); ok(T.getTrim().i === 0 && T.getTrim().o === null, 'B5: Trim (In und Out zusammen) ist EIN Schritt');
+    // Mindestlänge 0,2 s
+    ok(T.setTrim(19.9, null) === false || T.getTrim().o === null && T.getTrim().i <= 19.8 + 1e-6, 'B5: Trim-In wird so geklemmt, dass ≥ 0,2 s bleiben (In = ' + T.getTrim().i + ')');
+    T.trimResetState();
+    ok(T.cutOutRange(0.1, 19.95) === false && T.getTrim().c.length === 0, 'B5: Schnitt, der weniger als 0,2 s übrig liesse, wird abgelehnt');
+    // Cut out aus Auswahl / In-Out; Restore
+    T.trimResetState();
+    T.setCaptionBlocksForTest(JSON.parse(JSON.stringify([{ start: 2, end: 4, text: 'a', words: [] }, { start: 9, end: 10, text: 'b', words: [] }])));
+    T.setTlSel(1); const cr = T.tlCutRange();
+    ok(cr && near(cr.a, 9) && near(cr.b, 10), 'B5: gewählter Block = Schnittbereich');
+    ok(T.tlCutOut() && T.getTrim().c.length === 1, 'B5: tlCutOut (X) schneidet den gewählten Block aus');
+    T.tlSelectCut(0); ok(T.tlRestoreSel() && T.getTrim().c.length === 0, 'B5: Restore stellt den Schnitt wieder her');
+    // Vorschau-Sprung
+    T.setTrim(1, 18); T.cutOutRange(6, 8);
+    const fv = { paused: false, ended: false, duration: 20, currentTime: 0.2 };
+    ok(T.previewSkipCuts(fv) && near(fv.currentTime, 1), 'B5: Vorschau springt vom Anfang auf Trim-In');
+    fv.currentTime = 6.1; ok(T.previewSkipCuts(fv) && near(fv.currentTime, 8), 'B5: Vorschau springt über den Schnitt 6–8');
+    fv.currentTime = 12; ok(!T.previewSkipCuts(fv) && fv.currentTime === 12, 'B5: im behaltenen Bereich kein Sprung');
+    fv.currentTime = 18.2; ok(T.previewSkipCuts(fv) && fv.currentTime === 20, 'B5: hinter Trim-Out → Ende');
+    fv.currentTime = 7; fv.paused = true; ok(!T.previewSkipCuts(fv), 'B5: pausiert darf man in den Schnitt hineinscrubben');
+    // Trim-Griffe ≥ 44 px Trefferfläche (Handy)
+    T.trimResetState(); vidB.duration = dB;
+    ok(/16 : touch \? 14 : 3[\s\S]{0,60}14 : touch \? 14 : 3/.test(script) && /hw: mob \? 14 : 9/.test(script), 'B5: Handy-Griffe: Trefferfläche 16 + 14 + 14 = 44 px');
+    // Steuerelemente
+    ok(/id="tlCutBtn"[^>]*onclick="tlCutOut\(\)"/.test(htmlContent) && /id="taCut"[^>]*onclick="tlCutOut\(\)"/.test(htmlContent) && /id="tlRestoreBtn"/.test(htmlContent) && /id="taRestore"/.test(htmlContent), 'B5: «Cut out»/«Restore» in Timeline-Leiste und Handy-Aktionsleiste');
+    ok(/e\.code === 'KeyX'/.test(script) && /tlSetMark\('in'\)/.test(script) && /tlSetMark\('out'\)/.test(script), 'B5: Tasten X, I, O');
+    ok((script.match(/exportCutRegions\(\)/g) || []).length >= 4 && !/wordTimestamps\.length \? exportCutRegions\(\)/.test(script), 'B5: beide Export-Pfade + SRT nutzen exportCutRegions() ohne Wort-Bedingung');
+    T.setWordsState([]); T.trimResetState();
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
