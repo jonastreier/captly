@@ -148,7 +148,8 @@ parseHexInput:parseHexInput,csHexCommit:csHexCommit,csOpCommit:csOpCommit,csColo
 onTemplatesStorage:onTemplatesStorage,undoDeleteTemplate:undoDeleteTemplate,importTemplateMessage:importTemplateMessage,persistTemplates:persistTemplates,
 emojiSearch:emojiSearch,EMO_CATS:EMO_CATS,EMO_PICK:EMO_PICK,emAiUnavailable:emAiUnavailable,setEmSrc:function(v){emSrc=v;},syncEmphUI:syncEmphUI,setEmphEmoji:setEmphEmoji,setCaptionBlocksForTest:function(b){captionBlocks=b;},
 autoCutRegions:autoCutRegions,exportCutRegions:exportCutRegions,cutSavedSeconds:cutSavedSeconds,cutSavedLabel:cutSavedLabel,syncAutoCutUI:syncAutoCutUI,onAutoCutChange:onAutoCutChange,getAutoCut:function(){return autoCutSilence;},estimateSourceBitrate:estimateSourceBitrate,snapFrameRate:snapFrameRate,createCfrPlanner:createCfrPlanner,cfrFrameTimeUs:cfrFrameTimeUs,syncExportAgainIfOpen:syncExportAgainIfOpen,exportSignature:exportSignature,setExportFill:setExportFill,setExportFormat:setExportFormat,setExportResUI:setExportRes,
-openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey};`;
+openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
+segFrameSnap:segFrameSnap,segDragTarget:segDragTarget,segDragApply:segDragApply,fmtT2:fmtT2,landTemplates:landTemplates,landPickLabel:landPickLabel,getBlocksB2:function(){return captionBlocks;}};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -5360,6 +5361,96 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(/\.cap-seg\{min-height:44px;align-items:center\}/.test(css) && /\.cap-seg-ta\{overflow-y:hidden\}/.test(css), 'N-Handy: Zeilen 44 px hoch, kein Scrollbalken im Textfeld');
     // Kein horizontales Scrollen: Zeilen der Kopfzeile schrumpfen (Titel), Schalter/Regler brechen bei 320 px um
     ok(/@media \(max-width:380px\)\{\.sz-row\{flex-wrap:wrap\}\}/.test(css) && /\.tb-title\{min-height:44px;min-width:44px\}/.test(css), 'N-Handy: 320 px — Regler-Zeilen umbrechen, Titel bleibt ≥ 44 px');
+  }
+
+  // ═════════════════════════════════════════════════════════════════
+  // Paket B2-B6: Template beim Upload (Landing «My templates»), Template-Umschalter + «Save as template»-Chip, Timing per Ziehen
+  // ═════════════════════════════════════════════════════════════════
+  {
+    const E = id => document.getElementById(id);
+    // B2: Landing — eigene Templates als Gruppe vor den Looks, Standard zuerst + markiert
+    const rl = htmlContent.slice(htmlContent.indexOf('function renderLandChips()'), htmlContent.indexOf('function pickLandStyle('));
+    ok(/addGrp\(LT\.myTpl\);[\s\S]*tpls\.forEach[\s\S]*addGrp\(LT\.looks\);[\s\S]*ids\.forEach/.test(rl), 'B2: Landing-Chips: «My templates» vor «Looks»');
+    ok(/id === bid \? '<span class="hc-dflt">/.test(rl) && /if \(tpls\.length\)/.test(rl), 'B2: Standard-Template mit Abzeichen; ohne Templates keine Gruppen (Landing wie vorher)');
+    ok(/s\.id === cur && !s\._isTpl/.test(rl), 'B2: gewähltes Template wird nicht zusätzlich als Look vorangestellt');
+    ok(/\.hc-chip\{min-height:44px\}/.test(htmlContent) && /\.hc-chips\{display:flex;gap:8px;overflow-x:auto/.test(htmlContent), 'B2: Chips ≥ 44 px, Reihe horizontal scrollbar');
+    ok(/myTpl: 'My templates'/.test(htmlContent) && /myTpl: 'Meine Templates'/.test(htmlContent), 'B2: Landing-Texte EN + DE');
+    {
+      const store = {}; const prevLS = global.localStorage;
+      global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+      T.setUserTemplates([]); T.loadTemplates();
+      T.selectStyle('beast'); E('tplName').value = 'Kunde A'; T.saveTemplate();
+      T.selectStyle('classic'); E('tplName').value = 'Kunde B'; T.saveTemplate();
+      const ts = T.getUserTemplates(), A = ts.find(t => t.name === 'Kunde A'), B = ts.find(t => t.name === 'Kunde B');
+      A.createdAt = 1000; B.createdAt = 2000; T.persistTemplates();
+      let order = T.landTemplates(T.brandTplId()).map(x => x.name);
+      ok(order[0] === 'Kunde A' && order[1] === 'Kunde B', 'B2: Standard-Template zuerst, dann neueste: ' + order.join(','));
+      T.toggleBrandTpl(A.id); T.toggleBrandTpl(B.id);
+      order = T.landTemplates(T.brandTplId()).map(x => x.name);
+      ok(order[0] === 'Kunde B', 'B2: neuer Standard rückt nach vorn: ' + order.join(','));
+      const lbl = T.landPickLabel(T.STYLES.find(x => x.id === B.id), B.id);
+      ok(/^★ Kunde B/.test(lbl) && T.landPickLabel(T.STYLES.find(x => x.id === 'hormozi'), B.id).indexOf('★') < 0, 'B2: Beschriftung markiert nur das Standard-Template: ' + lbl);
+      // Template-Wahl auf der Landing → neues Video: Format/Fill aus dem Template (B1), schlägt das Standard-Template
+      const A2 = T.getUserTemplates().find(t => t.name === 'Kunde A'), B2 = T.getUserTemplates().find(t => t.name === 'Kunde B');
+      B2.layout = Object.assign({}, B2.layout, { aspect: '1:1', fill: 'blur' }); A2.layout = Object.assign({}, A2.layout, { aspect: '16:9', fill: 'crop' }); A2.updatedAt = B2.updatedAt = Date.now() + 5000; T.persistTemplates(); T.loadTemplates();
+      T.setActiveId(A.id); T.applyBrandOnOpen(); // brand = B
+      ok(T.getActiveId() === B.id, 'B2: Standard-Template B vorgewählt');
+      T.selectStyle(A.id);
+      const fm = T.currentLayout();
+      ok(fm.aspect === '16:9' && fm.fill === 'crop', 'B2: Klick auf Template A setzt dessen Format/Fill: ' + fm.aspect + '/' + fm.fill);
+      T.setUserTemplates([]); T.loadTemplates(); T.selectStyle('hormozi');
+      global.localStorage = prevLS; if (!prevLS) delete global.localStorage;
+    }
+    // B2: Umschalter im Style-Tab
+    ok(/<select id="tplSwSel"[^>]*onchange="switchTplFromBar\(this\.value\)"/.test(htmlContent) && /function syncTplSwitch\(\)/.test(htmlContent), 'B2: Template-Umschalter im Style-Tab');
+    ok(/onCapMetricsChange\('style'\);[^\n]*\n  _lastKey = null;\n  updateOverlay\(\);\n  syncTplSwitch\(\);/.test(htmlContent) && /syncTplSwitch\(\);\n\}/.test(htmlContent), 'B2: Umschalter folgt jeder Style-Wahl + Picker-Neuaufbau');
+    ok(htmlContent.indexOf('id="tplBar"') < htmlContent.indexOf('id="stylePicker"') && htmlContent.indexOf('id="tplBar"') > htmlContent.indexOf('<div class="csect" data-tab="style">'), 'B2/B6: Template-Leiste steht oben im Style-Tab, vor den Looks');
+
+    // B6: «Save as template» als Chip oben, Name inline, Toast mit «Use for every new video»
+    ok(/id="tplChip"[^>]*onclick="openTplSaveInline\(\)"[^>]*>＋ Save as template/.test(htmlContent) && /id="tplNameTop"/.test(htmlContent), 'B6: «Save as template»-Chip + Inline-Name oben');
+    ok(/\.tpl-chip,\.tpl-sel,\.tpl-name-top,\.tpl-inl-ok,\.tpl-inl-no\{min-height:44px\}/.test(htmlContent), 'B6: Handy: Chip/Feld/Knöpfe ≥ 44 px');
+    {
+      const store = {}; const prevLS = global.localStorage;
+      global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+      T.setUserTemplates([]); T.loadTemplates();
+      T.selectStyle('beast'); E('tplName').value = 'Erstes';
+      const t1 = T.saveTemplate();
+      ok(t1 && t1.name === 'Erstes' && T.brandTplId() === t1.id, 'B6: saveTemplate gibt das Template zurück; erstes wird Standard');
+      T.selectStyle('classic'); E('tplName').value = 'Zweites';
+      const t2 = T.saveTemplate();
+      ok(t2 && T.brandTplId() === t1.id, 'B6: zweites Template wird nicht automatisch Standard (Toast bietet «Use for every new video»)');
+      ok(/capToastAction\('✓ ' \+ verb[^)]*\)[^;]*'Use for every new video'/.test(htmlContent) || /'Use for every new video', function\(\) \{ setBrandTpl\(t\.id\)/.test(htmlContent), 'B6: Toast mit «Use for every new video»-Aktion');
+      E('tplName').value = ''; ok(T.saveTemplate() === null, 'B6: ohne Namen kein Speichern (null)');
+      T.setUserTemplates([]); T.loadTemplates(); T.selectStyle('hormozi');
+      global.localStorage = prevLS; if (!prevLS) delete global.localStorage;
+    }
+
+    // B6: Timing per Ziehen — 1 px ≈ 0,01 s, Frame-Raster 1/30 s, ein Zug = ein Undo-Schritt
+    ok(T.segDragTarget(2, 0) === T.segFrameSnap(2) && T.segFrameSnap(2.0) === 2, 'B6: Frame-Raster: 2,000 s liegt auf dem Raster');
+    ok(T.segDragTarget(2, 10) === 2.1 && T.segDragTarget(2, 20) === 2.2 && T.segDragTarget(2, -30) === 1.7, 'B6: 10 px = 0,1 s (auf Raster): ' + [T.segDragTarget(2, 10), T.segDragTarget(2, 20), T.segDragTarget(2, -30)]);
+    {
+      const g = T.segDragTarget(1.234, 7); ok(Math.abs(g * 30 - Math.round(g * 30)) < 0.02, 'B6: Ziel liegt auf dem 1/30-s-Raster: ' + g);
+      ok(T.fmtT2(2.4333) === '0:02.43' && T.fmtT2(61.5) === '1:01.50', 'B6: Zeitanzeige mit 2 Stellen');
+      const mk = (s, e) => ({ start: s, end: e, text: 'a b', words: [{ word: 'a', start: s, end: (s + e) / 2 }, { word: 'b', start: (s + e) / 2, end: e }] });
+      T.setCaptionBlocksForTest([mk(0, 1), mk(1.5, 3), mk(3, 4)]);
+      T.resetUndo();
+      const bl = T.getBlocksB2();
+      ok(T.segDragApply(1, 'start', 1.7) && bl[1].start === 1.7 && bl[1].words[0].start === 1.7, 'B6: Ziehen verschiebt Start samt Wörtern');
+      ok(!T.segDragApply(1, 'start', 0.2) || bl[1].start >= 1, 'B6: Start nie über den Vorgänger hinaus: ' + bl[1].start);
+      T.segDragApply(1, 'start', 0.2); ok(bl[1].start === 1, 'B6: Start stoppt am Ende des Vorgängers: ' + bl[1].start);
+      T.segDragApply(1, 'end', 9); ok(bl[1].end === 3, 'B6: Ende stoppt am Beginn des Nachfolgers: ' + bl[1].end);
+      T.segDragApply(1, 'end', 1.0); ok(bl[1].end - bl[1].start >= 0.2 - 1e-9, 'B6: Mindestdauer bleibt: ' + (bl[1].end - bl[1].start));
+      // ein Zug = ein Undo-Schritt (Vor-Zustand wird beim Loslassen EINMAL gepusht)
+      T.setCaptionBlocksForTest([mk(0, 1), mk(1.5, 3), mk(3, 4)]); T.resetUndo();
+      const snapBefore = JSON.stringify(T.getBlocksB2());
+      T.segDragApply(1, 'start', 1.6); T.segDragApply(1, 'start', 1.7); T.segDragApply(1, 'start', 1.8);
+      T.pushUndo('segdrag:test', snapBefore);
+      ok(T.undoDepth()[0] === 1, 'B6: ein Zug = ein Undo-Schritt: ' + T.undoDepth()[0]);
+      T.undoCaptions();
+      ok(T.getBlocksB2()[1].start === 1.5 && T.getBlocksB2()[1].words[0].start === 1.5, 'B6: Undo stellt den Zustand vor dem Zug wieder her');
+    }
+    ok(/pushUndo\('segdrag:' \+ Date\.now\(\)/.test(htmlContent) && /addEventListener\('pointerdown'/.test(htmlContent.slice(htmlContent.indexOf('function buildSegTools'), htmlContent.indexOf('function segFrameSnap'))), 'B6: Zeitwerte per Pointer-Events ziehbar (Maus/Touch), Undo beim Loslassen');
+    ok(/\.seg-tools \.stv\.stv-drag\{min-width:52px;min-height:44px/.test(htmlContent), 'B6: ziehbarer Zeitwert am Handy ≥ 44 px');
   }
 
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

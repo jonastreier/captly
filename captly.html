@@ -123,6 +123,10 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .hc-cap{position:relative;display:block;width:100%;text-align:center;line-height:1.2;white-space:nowrap;pointer-events:none}
 .hc-nm{font-size:12px;font-weight:600;color:var(--ink2);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .hc-chip.on .hc-nm{color:var(--brand-ink)}
+.hc-grp{flex:0 0 auto;scroll-snap-align:start;align-self:center;max-width:68px;padding:0 6px 0 2px;font-size:12px;font-weight:700;line-height:1.25;color:var(--muted);text-align:left;white-space:normal}
+.hc-grp:not(:first-child){padding-left:12px;margin-left:4px;border-left:1px solid var(--line)}
+.hc-chip{min-height:44px}
+.hc-dflt{position:absolute;left:4px;top:4px;padding:1px 6px;border-radius:999px;background:var(--brand);color:#fff;font-size:10px;font-weight:700;line-height:1.5;letter-spacing:.02em}
 .hc-more{flex:0 0 auto;align-self:center;font-size:12.5px;color:var(--muted);padding:0 10px;white-space:nowrap}
 .hero-price{position:relative;display:inline-block;margin-top:10px;font-size:13px;font-weight:600;color:var(--brand-ink);text-decoration:none;background:var(--brand-soft);border-radius:999px;padding:6px 14px;text-align:center}
 .hero-price::after{content:' \203A'}
@@ -412,6 +416,25 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .cap-inline-row span{flex:1;font-size:12px;color:#b9b2c9}
 .cap-inline-row button{border:1px solid rgba(255,255,255,.25);background:transparent;color:var(--line);border-radius:7px;padding:5px 10px;font:600 12px 'Inter',sans-serif;cursor:pointer}
 .cap-inline-row button.ok{background:var(--brand);border-color:transparent;color:#fff}
+/* Template-Leiste oben im Style-Tab (Umschalter + «Save as template»-Chip) */
+.tpl-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 10px}
+.tpl-sw{display:flex;align-items:center;gap:6px;flex:1 1 150px;min-width:0;font-size:12px;font-weight:600;color:var(--muted)}
+.tpl-sw-k{flex:0 0 auto}
+.tpl-sel{flex:1 1 auto;min-width:0;min-height:36px;border:1px solid var(--line2);background:#fff;color:var(--ink);border-radius:var(--r-btn);padding:6px 8px;font:600 12.5px 'Inter',sans-serif;cursor:pointer;text-overflow:ellipsis}
+.tpl-sel:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(124,58,237,.14)}
+.tpl-chip{flex:0 0 auto;min-height:36px;padding:0 14px;border:1px solid var(--brand-line);border-radius:999px;background:var(--brand-soft);color:var(--brand-ink);font:600 12.5px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.tpl-chip:hover{border-color:var(--brand)}
+.tpl-inline{flex:1 1 100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.tpl-name-top{flex:1 1 140px;min-width:0;min-height:36px;border:1px solid var(--line2);border-radius:var(--r-btn);padding:6px 10px;font:500 14px 'Inter',sans-serif;color:var(--ink);background:#fff}
+.tpl-name-top:focus{border-color:var(--brand);outline:none;box-shadow:0 0 0 3px rgba(124,58,237,.14)}
+.tpl-inl-ok,.tpl-inl-no{flex:0 0 auto;min-height:36px;padding:0 14px;border-radius:var(--r-btn);border:1px solid var(--line2);background:#fff;color:var(--ink2);font:600 12.5px 'Inter',sans-serif;cursor:pointer}
+.tpl-inl-ok{background:var(--brand);border-color:transparent;color:#fff}
+.tpl-inl-msg{flex:1 1 100%;font-size:12px;color:var(--muted);min-height:0}
+.tpl-inl-msg:empty{display:none}
+.tpl-inl-msg.warn{color:#b91c1c}
+/* Timing-Wert (Start/Ende) lässt sich ziehen: 1 px ≈ 0,01 s, Raster 1/30 s */
+.seg-tools .stv.stv-drag{cursor:ew-resize;touch-action:none;user-select:none;-webkit-user-select:none;border-bottom:1px dotted var(--line3)}
+.seg-tools .stv.stv-drag.dragging{color:var(--brand-ink);border-bottom-color:var(--brand)}
 /* Zeilen-Werkzeuge (Timing ±0.1 s, Löschen) — nur an der Zeile, die gerade bearbeitet wird */
 .cap-seg{flex-wrap:wrap}
 .seg-tools{display:none;flex-basis:100%;align-items:center;gap:3px;margin-top:5px;padding-top:5px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted)}
@@ -1090,7 +1113,7 @@ body.editor-open .lang-hint{display:none}
   .cs-chip{flex:0 0 auto;min-height:36px;padding:0 12px;border:1px solid var(--line2);border-radius:999px;background:#fff;color:var(--ink2);font:600 13px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
   .cs-chip.on{background:var(--brand-soft);border-color:var(--brand-line);color:var(--brand-ink)}
   /* Einmaliger Wisch-Hinweis über dem Streifen (nicht modal, keine Layout-Verschiebung, ohne Klicks) */
-  .style-hint{display:block;position:absolute;left:50%;top:18px;transform:translate(-50%,-4px);max-width:calc(100% - 32px);padding:6px 12px;border-radius:999px;background:rgba(16,24,28,.82);color:#fff;font:600 12px 'Inter',sans-serif;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s,transform .3s;z-index:8}
+  .style-hint{display:block;position:absolute;left:50%;top:76px;transform:translate(-50%,-4px);max-width:calc(100% - 32px);padding:6px 12px;border-radius:999px;background:rgba(16,24,28,.82);color:#fff;font:600 12px 'Inter',sans-serif;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .3s,transform .3s;z-index:8}
   .style-hint.show{opacity:1;transform:translate(-50%,0)}
   /* Timeline-Modus: Vorschau + Spur + Aktionsleiste füllen den Platz bis zur Tab-Leiste; das Panel ruht */
   #editor.tl-mode .prev-col{flex:1 1 auto;max-height:none;min-height:0;padding-bottom:calc(72px + env(safe-area-inset-bottom));justify-content:flex-start}
@@ -1151,6 +1174,8 @@ body.editor-open .lang-hint{display:none}
   .seg-tools{flex-wrap:wrap;row-gap:2px}
   .seg-tools .st-sep{flex-basis:100%;width:100%;height:0}
   .seg-tools button{min-width:44px;height:44px}
+  .seg-tools .stv.stv-drag{min-width:52px;min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+  .tpl-chip,.tpl-sel,.tpl-name-top,.tpl-inl-ok,.tpl-inl-no{min-height:44px}
   .seg-emph button{min-height:44px;height:44px}
   .seg-emph .se-emo{min-width:44px}
   /* Style-Tab */
@@ -1828,6 +1853,18 @@ body.editor-open .lang-hint{display:none}
 
       <!-- Style: während der Transkription Überschrift „Choose a style…“; Preset-Raster in voller Breite -->
       <div class="csect" data-tab="style">
+        <!-- Template-Leiste (B2/B6): Umschalter für eigene Templates + «Save as template» als sichtbarer Chip (Name inline) -->
+        <div class="tpl-bar" id="tplBar">
+          <label class="tpl-sw" id="tplSw" style="display:none"><span class="tpl-sw-k">Template</span>
+            <select id="tplSwSel" class="tpl-sel" onchange="switchTplFromBar(this.value)" aria-label="Template for this video"></select></label>
+          <button type="button" class="tpl-chip" id="tplChip" onclick="openTplSaveInline()" title="Save the current style + layout as a template">＋ Save as template</button>
+          <div class="tpl-inline" id="tplInline" style="display:none">
+            <input type="text" id="tplNameTop" class="tpl-name-top" maxlength="60" placeholder="Template name (e.g. Client A)" aria-label="Template name" onkeydown="if(event.key==='Enter'){event.preventDefault();tplInlineSave();}else if(event.key==='Escape'){event.preventDefault();closeTplSaveInline();}">
+            <button type="button" class="tpl-inl-ok" id="tplInlineOk" onclick="tplInlineSave()">Save</button>
+            <button type="button" class="tpl-inl-no" id="tplInlineNo" onclick="closeTplSaveInline()">Cancel</button>
+            <div class="tpl-inl-msg" id="tplInlMsg" role="status" aria-live="polite"></div>
+          </div>
+        </div>
         <div class="style-hdr" id="styleHdr" style="display:none">
           <b>Choose a style while we transcribe</b>
           <div class="sh-bar"><div class="sh-fill" id="shFill"></div></div>
@@ -6466,9 +6503,9 @@ function buildSegTools(idx, b) {
   var t = document.createElement('div');
   t.className = 'seg-tools';
   t.innerHTML = '<span class="stl">Start</span><button type="button" title="Start 0.1 s earlier" data-a="start:-0.1">−</button>'
-    + '<span class="stv st-start">' + fmtT1(b.start) + '</span><button type="button" title="Start 0.1 s later" data-a="start:0.1">+</button>'
+    + '<span class="stv stv-drag st-start" data-edge="start" title="Drag left/right to move the start (1 px = 0.01 s)">' + fmtT2(b.start) + '</span><button type="button" title="Start 0.1 s later" data-a="start:0.1">+</button>'
     + '<span class="st-sep"></span><span class="stl">End</span><button type="button" title="End 0.1 s earlier" data-a="end:-0.1">−</button>'
-    + '<span class="stv st-end">' + fmtT1(b.end) + '</span><button type="button" title="End 0.1 s later" data-a="end:0.1">+</button>'
+    + '<span class="stv stv-drag st-end" data-edge="end" title="Drag left/right to move the end (1 px = 0.01 s)">' + fmtT2(b.end) + '</span><button type="button" title="End 0.1 s later" data-a="end:0.1">+</button>'
     + '<button type="button" class="st-del" title="Delete this caption (Ctrl/⌘+Z to undo)" data-a="del" aria-label="Delete caption">' + icon('trash') + '</button>';
   t.onclick = function(e) {
     e.stopPropagation();
@@ -6478,8 +6515,60 @@ function buildSegTools(idx, b) {
     if (a === 'del') { deleteSeg(idx); return; }
     var p = a.split(':'); nudgeSeg(idx, p[0], parseFloat(p[1]));
   };
-  t.onmousedown = function(e) { if (e.target && (e.target.tagName === 'BUTTON' || (e.target.closest && e.target.closest('button')))) e.preventDefault(); }; // Fokus im Textfeld lassen
+  t.onmousedown = function(e) { if (e.target && (e.target.tagName === 'BUTTON' || (e.target.closest && e.target.closest('button')) || (e.target.closest && e.target.closest('.stv-drag')))) e.preventDefault(); }; // Fokus im Textfeld lassen
+  // Zeitwert ziehen (Maus/Touch/Stift): horizontal, 1 px ≈ 0,01 s, Frame-Raster 1/30 s; ein Zug = EIN Undo-Schritt
+  if (t.addEventListener) t.addEventListener('pointerdown', function(e) {
+    var v = e.target && e.target.closest ? e.target.closest('.stv-drag') : null;
+    if (!v || (e.button !== undefined && e.button > 0)) return;
+    e.preventDefault(); e.stopPropagation();
+    segDragStart(idx, v.getAttribute('data-edge'), v, e);
+  });
   return t;
+}
+var SEG_DRAG_S_PER_PX = 0.01, SEG_FPS = 30;
+// Zeit auf das Frame-Raster (1/30 s) runden, auf 1 ms genau gespeichert (rein, testbar)
+function segFrameSnap(t) { return Math.round(Math.round(t * SEG_FPS) / SEG_FPS * 1000) / 1000; }
+// Ziel-Zeit für einen Zug von dxPx Pixeln ab der Ausgangszeit orig (rein, testbar)
+function segDragTarget(orig, dxPx) { return segFrameSnap(orig + dxPx * SEG_DRAG_S_PER_PX); }
+function segDragApply(idx, edge, target) {
+  var b = captionBlocks[idx], vid = document.getElementById('mainVid');
+  if (!b) return false;
+  var d = target - b[edge];
+  if (Math.abs(d) < 1e-4) return false;
+  return nudgeBlockEdge(captionBlocks, idx, edge, d, vid && vid.duration);
+}
+function segRefreshTimes(idx) {
+  var row = document.getElementById('seg' + idx), b = captionBlocks[idx];
+  if (!row || !b || !row.querySelector) return;
+  var st = row.querySelector('.st-start'), en = row.querySelector('.st-end'), ts = row.querySelector('.cap-seg-time');
+  if (st) st.textContent = fmtT2(b.start);
+  if (en) en.textContent = fmtT2(b.end);
+  if (ts) ts.textContent = fmtS(b.start);
+}
+function segDragStart(idx, edge, el, e) {
+  var b = captionBlocks[idx];
+  if (!b || isExporting || (edge !== 'start' && edge !== 'end')) return;
+  var snap = captionSnapshot(), orig = b[edge], x0 = e.clientX, moved = false, vid = document.getElementById('mainVid');
+  var id = e.pointerId;
+  try { if (el.setPointerCapture && id !== undefined) el.setPointerCapture(id); } catch (err) {}
+  if (el.classList) el.classList.add('dragging');
+  var move = function(ev) {
+    if (id !== undefined && ev.pointerId !== undefined && ev.pointerId !== id) return;
+    if (segDragApply(idx, edge, segDragTarget(orig, ev.clientX - x0))) {
+      moved = true; segRefreshTimes(idx); _lastKey = null;
+      var nb = captionBlocks[idx];
+      if (vid && vid.duration && nb) { try { vid.currentTime = edge === 'start' ? nb.start : Math.max(nb.start, nb.end - 0.05); } catch (err) {} updateOverlay(); }
+      if (typeof tlRequestDraw === 'function') tlRequestDraw();
+    }
+  };
+  var end = function(ev) {
+    if (id !== undefined && ev && ev.pointerId !== undefined && ev.pointerId !== id) return;
+    document.removeEventListener('pointermove', move, true); document.removeEventListener('pointerup', end, true); document.removeEventListener('pointercancel', end, true);
+    try { if (el.releasePointerCapture && id !== undefined) el.releasePointerCapture(id); } catch (err) {}
+    if (el.classList) el.classList.remove('dragging');
+    if (moved) { pushUndo('segdrag:' + Date.now() + ':' + idx + ':' + edge, snap); markCaptionsEdited(); } // genau ein Schritt pro Zug
+  };
+  document.addEventListener('pointermove', move, true); document.addEventListener('pointerup', end, true); document.addEventListener('pointercancel', end, true);
 }
 // Fokus in Zeile idx (Cursor ans Ende bzw. an den Anfang), Video springt ohne Abspielen mit
 function focusSegRow(idx, toEnd) {
@@ -6626,6 +6715,7 @@ function selectStyle(id, fromEditor) {
   onCapMetricsChange('style'); // Auto-Zeichenlimit hängt von Schrift/Style ab
   _lastKey = null;
   updateOverlay();
+  syncTplSwitch();
 }
 // Hex-Farbe auf #rrggbb normalisieren (color-Input braucht 6 Stellen); nicht-hex (rgba/gradient) → null
 function toHex6(c) {
@@ -7411,14 +7501,14 @@ function saveTemplate() {
   if (!name) {
     if (nameEl.focus) nameEl.focus(); nameEl.placeholder = 'Enter a name';
     setTplStatus('Give your template a name first.', true);
-    return;
+    return null;
   }
   // Gleicher Name wie ein anderes Template → überschreiben statt eine Dublette anzulegen (nach Rückfrage)
   var same = liveTemplates().find(function(x){ return x.name.trim().toLowerCase() === name.toLowerCase() && (!editing || x.id !== editing.id); });
   var target = editing;
   if (same) {
     var okOverwrite = typeof confirm !== 'function' || confirm('A template named “' + same.name + '” already exists. Overwrite it with the current style?');
-    if (!okOverwrite) { if (nameEl.select) nameEl.select(); setTplStatus('Not saved — choose another name to keep both.', true); return; }
+    if (!okOverwrite) { if (nameEl.select) nameEl.select(); setTplStatus('Not saved — choose another name to keep both.', true); return null; }
     target = same; name = same.name; // Überschreiben behält den bestehenden Namen (nur Groß-/Kleinschreibung getippt)
   }
   var src = STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0];
@@ -7444,8 +7534,57 @@ function saveTemplate() {
   var verb = target ? 'Updated' : 'Saved as';
   setTplStatus('✓ ' + verb + ' “' + t.name + '” — find it under My templates' + (meEmail ? ' (synced to your account)' : ' (saved in this browser)')
     + (madeBrand ? '. ★ It’s now your default look for every new video (change via ⋯).' : ''));
-  capToast('✓ ' + verb + ' “' + t.name + '”');
+  // Toast mit Option: nicht Standard → «Use for every new video» gleich im Toast anbieten (sonst nur ⋯-Menü an der Kachel)
+  if (!madeBrand && brandTplId() !== t.id) {
+    capToastAction('✓ ' + verb + ' “' + t.name + '”', 'Use for every new video', function() { setBrandTpl(t.id); buildPicker(); capToast('★ “' + t.name + '” will be used for every new video'); });
+  } else capToast('✓ ' + verb + ' “' + t.name + '”' + (madeBrand ? ' · ★ default for every new video' : ''));
   scrollPickerTo(t.id, true, true);
+  return t;
+}
+// Template-Leiste oben im Style-Tab: Umschalter (nur wenn es eigene Templates gibt) + Inline-Speichern
+function syncTplSwitch() {
+  var sw = document.getElementById('tplSw'), sel = document.getElementById('tplSwSel');
+  if (!sw || !sel) return;
+  var tpls = typeof landTemplates === 'function' ? landTemplates(brandTplId()) : [];
+  if (!tpls.length) { sw.style.display = 'none'; return; }
+  sw.style.display = '';
+  var bid = brandTplId(), cur = STYLES.find(function(x){ return x.id === activeId; });
+  var html = '';
+  if (!cur || !cur._isTpl) html += '<option value="" disabled selected>No template · ' + escHtml(cur ? (cur.id === 'custom' ? 'Custom' : cur.name) : '') + '</option>';
+  tpls.forEach(function(t) { html += '<option value="' + escHtml(t.id) + '"' + (t.id === activeId ? ' selected' : '') + '>' + (t.id === bid ? '★ ' : '') + escHtml(t.name) + '</option>'; });
+  sel.innerHTML = html;
+  if (cur && cur._isTpl) sel.value = cur.id;
+}
+function switchTplFromBar(id) {
+  if (!id || !STYLES.some(function(x){ return x.id === id; })) return;
+  lookUndoRun(null, function(){ selectStyle(id); });
+  scrollPickerTo(id, false);
+}
+function openTplSaveInline() {
+  var box = document.getElementById('tplInline'), inp = document.getElementById('tplNameTop'), chip = document.getElementById('tplChip');
+  if (!box || !inp) return;
+  box.style.display = 'flex'; if (chip) chip.style.display = 'none';
+  var cur = csEl('tplName');
+  if (cur && cur.value && !inp.value) inp.value = cur.value; // «Edit» legt den Namen im Feld unten ab
+  var m = document.getElementById('tplInlMsg'); if (m) { m.textContent = ''; m.classList.remove('warn'); }
+  if (inp.focus) inp.focus();
+  if (inp.select) inp.select();
+}
+function closeTplSaveInline() {
+  var box = document.getElementById('tplInline'), chip = document.getElementById('tplChip');
+  if (box) box.style.display = 'none';
+  if (chip) chip.style.display = '';
+}
+function tplInlineSave() {
+  var inp = document.getElementById('tplNameTop'), m = document.getElementById('tplInlMsg');
+  if (!inp) return null;
+  var nm = inp.value.trim(), bot = csEl('tplName');
+  if (!nm) { if (m) { m.textContent = 'Give your template a name first.'; m.classList.add('warn'); } if (inp.focus) inp.focus(); return null; }
+  if (bot) bot.value = nm;
+  var t = saveTemplate();
+  if (t) { inp.value = ''; closeTplSaveInline(); }
+  else if (m) { var st = csEl('tplStatus'); m.textContent = (st && st.textContent) || 'Not saved.'; m.classList.add('warn'); }
+  return t;
 }
 // Inline im Menü (kein prompt()): neuer Name kommt als Argument. Gibt true zurück, wenn umbenannt wurde.
 function renameTemplate(id, newName) {
@@ -7923,6 +8062,7 @@ function buildPicker() {
   if (keepLeft) c.scrollLeft = keepLeft;
   var cnt = document.getElementById('tplCount');
   if (cnt) cnt.textContent = nTpl ? ('· ' + nTpl + ' saved') : '';
+  syncTplSwitch();
 }
 // Kachel ersetzen (Custom-Style beim Regler-Ziehen) — false, wenn sie (noch) nicht im Picker ist.
 function replacePickerTile(s) {
@@ -8694,9 +8834,11 @@ function setLandLang(v) {
 // ist übersetzt; die wenigen Landing-Texte, die per JS gesetzt werden, stehen hier.
 var PAGE_LANG = (typeof document !== 'undefined' && document.documentElement && String(document.documentElement.lang || '').slice(0, 2)) || 'en';
 var LAND_TXT = {
-  en: { auto: 'Auto-detect', picked: ' selected · change it any time in the editor', tryStyle: function(n){ return 'Try the ' + n + ' style on a sample video'; },
+  en: { auto: 'Auto-detect', picked: ' selected · change it any time in the editor',
+        myTpl: 'My templates', looks: 'Looks', tplDefaultTag: 'Default', tplDefault: ' · your default template for every new video', tryStyle: function(n){ return 'Try the ' + n + ' style on a sample video'; },
         demo: { run: 'Auto-captioning', ready: 'Captions ready', p1: ['Captions', 'in', 'seconds,'], p2: ['word', 'by', 'word.'] } },
-  de: { auto: 'Automatisch erkennen', picked: ' gewählt · im Editor jederzeit änderbar', tryStyle: function(n){ return 'Style «' + n + '» am Beispielvideo ausprobieren'; },
+  de: { auto: 'Automatisch erkennen', picked: ' gewählt · im Editor jederzeit änderbar',
+        myTpl: 'Meine Templates', looks: 'Looks', tplDefaultTag: 'Standard', tplDefault: ' · dein Standard-Template für jedes neue Video', tryStyle: function(n){ return 'Style «' + n + '» am Beispielvideo ausprobieren'; },
         demo: { run: 'Untertitel entstehen', ready: 'Untertitel fertig', p1: ['Untertitel', 'in', 'Sekunden,'], p2: ['Wort', 'für', 'Wort.'] },
         langs: { english: 'Englisch', spanish: 'Spanisch', german: 'Deutsch', french: 'Französisch', portuguese: 'Portugiesisch',
                  italian: 'Italienisch', dutch: 'Niederländisch', polish: 'Polnisch', turkish: 'Türkisch', russian: 'Russisch',
@@ -8848,29 +8990,63 @@ function landBrandId() {
   } catch (e) { bid = ''; }
   return bid;
 }
+// Chip-Beschriftung unter der Karte: bei Template «★ Kunde A · Standard-Template …», sonst wie bisher «Name selected …»
+function landPickLabel(s, bid) {
+  if (!s) return '';
+  if (s._isTpl) return (s.id === bid ? '★ ' : '') + s.name + (s.id === bid ? LT.tplDefault : LT.picked);
+  return s.name + LT.picked;
+}
+// Eigene Templates für die Startseite: Standard-Template zuerst, danach neueste zuerst (wie «My templates» im Editor)
+function landTemplates(bid) {
+  var made = {};
+  userTemplates.forEach(function(t){ made[t.id] = t.createdAt || t.updatedAt || 0; });
+  return STYLES.filter(function(s){ return s._isTpl; }).sort(function(a, b) {
+    if (a.id === bid) return -1; if (b.id === bid) return 1;
+    return (made[b.id] || 0) - (made[a.id] || 0);
+  });
+}
 function renderLandChips() {
   var row = document.getElementById('landChips');
   if (!row || typeof STYLES === 'undefined') return;
   row.innerHTML = '';
+  // Eigene Templates stehen schon vor dem ersten Video bereit (Startseite kommt vor openEditor)
+  try { if (!userTemplates.length) loadTemplates(); } catch (e) {}
   // Standard-Template („Use for every new video“) schlägt den zuletzt angeklickten Look: openEditor() wählt es für jedes neue
   // Video (landPick = bewusst auf der Startseite gewählt gewinnt). Die Chips zeigen deshalb dasselbe, nicht den letzten Klick.
   var bid = landBrandId();
   var cur = resolveStyleId(landPick || bid || activeId);
+  var tpls = landTemplates(bid);
   var ids = _dropIds.slice(0, 2).concat(LAND_CHIPS).filter(function(id){ return STYLES.some(function(s){ return s.id === id; }); });
-  if (cur && ids.indexOf(cur) < 0 && STYLES.some(function(s){ return s.id === cur && (!s._tpl || s.id === bid) && s.id !== 'custom'; })) ids.unshift(cur);
-  ids.forEach(function(id) {
+  if (cur && ids.indexOf(cur) < 0 && STYLES.some(function(s){ return s.id === cur && !s._isTpl && s.id !== 'custom'; })) ids.unshift(cur);
+  var addChip = function(id, isTpl) {
     var s = STYLES.find(function(x){ return x.id === id; });
     var b = document.createElement('button');
-    b.type = 'button'; b.className = 'hc-chip' + (id === cur ? ' on' : ''); b.dataset.id = id;
+    b.type = 'button'; b.className = 'hc-chip' + (isTpl ? ' tpl' : '') + (id === cur ? ' on' : ''); b.dataset.id = id;
     if (b.setAttribute) { b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', id === cur ? 'true' : 'false'); }
+    if (isTpl) b.title = s.name + (id === bid ? ' · ' + LT.tplDefaultTag : '');
     b.onclick = function(){ pickLandStyle(id); };
-    b.innerHTML = '<span class="hc-th"><span class="hc-cap">' + buildCap(['So', 'good'], s, 1, 11, null) + '</span></span>'
+    b.innerHTML = '<span class="hc-th"><span class="hc-cap">' + buildCap(['So', 'good'], s, 1, 11, null) + '</span>'
+      + (isTpl && id === bid ? '<span class="hc-dflt">★ ' + escHtml(LT.tplDefaultTag) + '</span>' : '') + '</span>'
       + '<span class="hc-nm">' + escHtml(s.name) + '</span>';
     row.appendChild(b);
-  });
+  };
+  var addGrp = function(txt) {
+    var g = document.createElement('span');
+    g.className = 'hc-grp'; g.textContent = txt;
+    row.appendChild(g);
+  };
+  if (tpls.length) {
+    addGrp(LT.myTpl);
+    tpls.forEach(function(t){ addChip(t.id, true); });
+    addGrp(LT.looks);
+  }
+  ids.forEach(function(id){ addChip(id, false); });
   var more = document.createElement('span');
   more.className = 'hc-more'; more.textContent = '+' + Math.max(0, STYLES.filter(function(x){ return !x._tpl && x.id !== 'custom'; }).length - ids.length) + ' more in the editor';
   row.appendChild(more);
+  // Vorgewähltes Template (Standard) sagt es auch in der Zeile unter der Überschrift
+  var cs = STYLES.find(function(x){ return x.id === cur; }), lbl = document.getElementById('landPickLbl');
+  if (lbl && cs && cs._isTpl) lbl.textContent = landPickLabel(cs, bid);
 }
 function pickLandStyle(id) {
   landPick = id;
@@ -8882,7 +9058,7 @@ function pickLandStyle(id) {
     if (c.setAttribute) c.setAttribute('aria-checked', on ? 'true' : 'false');
   });
   var s = STYLES.find(function(x){ return x.id === id; }), lbl = document.getElementById('landPickLbl');
-  if (lbl && s) lbl.textContent = s.name + LT.picked;
+  if (lbl && s) lbl.textContent = landPickLabel(s, landBrandId());
 }
 // Wort-Chunks von Whisper → saubere Timestamps (NaN/null abfangen)
 function chunksToWords(chunks) {
@@ -14233,6 +14409,11 @@ function fmtT1(t) { // 0:02.4
   var m = Math.floor(t / 60), s = t - m * 60;
   return m + ':' + (s < 10 ? '0' : '') + s.toFixed(1);
 }
+function fmtT2(t) { // 0:02.43 (Frame-genau für die Zeilen-Werkzeuge)
+  if (!isFinite(t) || t < 0) t = 0;
+  var m = Math.floor(t / 60), s = t - m * 60;
+  return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2);
+}
 function nudgeSeg(idx, edge, delta) {
   var snap = captionSnapshot();
   var vid = document.getElementById('mainVid');
@@ -14242,10 +14423,7 @@ function nudgeSeg(idx, edge, delta) {
   var row = document.getElementById('seg' + idx);
   var b = captionBlocks[idx];
   if (row && row.querySelector) {
-    var st = row.querySelector('.st-start'), en = row.querySelector('.st-end'), ts = row.querySelector('.cap-seg-time');
-    if (st) st.textContent = fmtT1(b.start);
-    if (en) en.textContent = fmtT1(b.end);
-    if (ts) ts.textContent = fmtS(b.start);
+    segRefreshTimes(idx);
   }
   _lastKey = null;
   seekToTime(edge === 'start' ? b.start : Math.max(b.start, b.end - 0.6)); // sofort ansehen, wo der Rand jetzt liegt
@@ -14909,8 +15087,8 @@ function tlRefreshRow(idx) {
   var b = captionBlocks[idx], row = document.getElementById('seg' + idx);
   if (!b || !row || !row.querySelector) return;
   var st = row.querySelector('.st-start'), en = row.querySelector('.st-end'), ts = row.querySelector('.cap-seg-time');
-  if (st) st.textContent = fmtT1(b.start);
-  if (en) en.textContent = fmtT1(b.end);
+  if (st) st.textContent = fmtT2(b.start);
+  if (en) en.textContent = fmtT2(b.end);
   if (ts) ts.textContent = fmtS(b.start);
 }
 // Tastatur (Fokus in der Timeline, Block gewählt): ←/→ = 1 Frame (1/30 s), Shift = 0.1 s.
