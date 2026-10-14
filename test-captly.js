@@ -118,6 +118,7 @@ tlNudge:tlNudge,tlNudgeEdge:tlNudgeEdge,tlNudgeWhy:tlNudgeWhy,tlCenterView:tlCen
 tlSweepRange:tlSweepRange,tlSweepApply:tlSweepApply,
 setTlSnapOn:function(v){tlSnapOn=v;},setSpeech:function(s){tlSpeech=s;},getSpeech:function(){return tlSpeech;},setTimeOffState:function(v){timeOff=v;},
 capDistributeLines:capDistributeLines,capSegmentRun:capSegmentRun,capTok:capTok,capLang:capLang,capHyphLang:capHyphLang,capHyphPoints:capHyphPoints,capTypo:capTypo,
+capWordsFit:capWordsFit,capSegmentWords:capSegmentWords,capFixOrphans:capFixOrphans,capSentEnd:capSentEnd,syncWordsFromBlocks:syncWordsFromBlocks,mergeBlockWithPrevious:mergeBlockWithPrevious,
 wrapCaptionLines:wrapCaptionLines,capLayout:capLayout,fileSlug:fileSlug,exportBaseName:exportBaseName,openExportSheet:openExportSheet,closeExportSheet:closeExportSheet,
 exportDone:exportDone,dlBlob:dlBlob,shareLastExport:shareLastExport,topExport:topExport,setCapLang:function(v){_capLangForce=v;},setWordsState:function(w){wordTimestamps=w;},setEnhAuto:function(v){ENH_AUTO=v;},
 localEmphasis:localEmphasis,clearAutoFlags:clearAutoFlags,isEmphWord:isEmphWord,emWordRef:emWordRef,applyEnhanceResult:applyEnhanceResult,blockEmoji:blockEmoji,
@@ -4858,6 +4859,126 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       T.setUserTemplates([]); T.selectStyle('hormozi');
     }
   }
+  // ══ Paket N-Blöcke: satz- und pausenbewusste Segmentierung (Fixtures = Wort-Timings der Creator-Testvideos v1/v2/v3) ══
+  {
+    const W = arr => arr.map(([w, a, b]) => ({ word: w, start: a, end: b }));
+  const V1 = W([['Drei',0.337,0.555],['Tricks,',0.579,0.961],['damit',1.004,1.276],['deine',1.307,1.58],['Reels',1.61,1.883],['mehr',1.913,2.131],['Views',2.155,2.428],['bekommen.',2.458,2.949],['Erstens:',3.598,4.072],['Die',4.125,4.303],['ersten',4.323,4.679],['zwei',4.718,4.955],['Sekunden',4.982,5.456],['entscheiden',5.509,6.162],['alles.',6.234,6.59],['Zweitens:',7.255,7.843],['Untertitel,',7.908,8.627],['weil',8.707,8.968],['fast',8.997,9.258],['alle',9.287,9.548],['ohne',9.577,9.839],['Ton',9.868,10.064],['schauen.',10.085,10.608],['Drittens:',11.344,11.927],['Poste',11.991,12.315],['regelmässig,',12.351,13.128],['am',13.214,13.343],['besten',13.358,13.746],['jeden',13.789,14.113],['Dienstag',14.149,14.667],['um',14.724,14.854],['achtzehn',14.868,15.386],['Uhr.',15.443,15.702],['Speicher',16.402,16.884],['dir',16.938,17.118],['das',17.138,17.319],['Video,',17.339,17.701],['sonst',17.741,18.042],['vergisst',18.075,18.557],['du',18.611,18.731],['es!',18.745,18.925]]);
+  const V2 = W([['Willkommen',0.339,1.023],['zurück',1.099,1.51],['bei',1.556,1.761],['Klartext',1.784,2.331],['Business.',2.392,3.007],['Heute',3.734,4.059],['spreche',4.095,4.549],['ich',4.599,4.794],['mit',4.815,5.01],['Sandra',5.032,5.421],['Meier',5.464,5.788],['aus',5.824,6.019],['Winterthur',6.041,6.689],['über',6.761,7.021],['Preise',7.049,7.439],['für',7.482,7.676],['Selbständige.',7.698,8.541],['Ihr',9.404,9.625],['wichtigster',9.65,10.463],['Tipp:',10.553,10.923],['Verkauf',10.964,11.481],['keine',11.538,11.908],['Stunden,',11.949,12.54],['verkauf',12.606,13.123],['Ergebnisse.',13.18,13.993],['Ein',14.84,15.043],['Kunde',15.066,15.404],['zahlt',15.442,15.78],['nicht',15.818,16.157],['für',16.194,16.397],['deine',16.42,16.758],['Zeit,',16.796,17.135],['sondern',17.172,17.646],['für',17.699,17.902],['das',17.925,18.128],['Problem,',18.15,18.692],['das',18.752,18.955],['du',18.978,19.113],['löst.',19.129,19.467],['Und',20.289,20.48],['wenn',20.501,20.757],['ein',20.785,20.977],['Angebot',20.998,21.445],['dreimal',21.495,21.942],['hintereinander',21.991,22.885],['sofort',22.984,23.367],['angenommen',23.41,24.048],['wird,',24.119,24.439],['ist',24.474,24.666],['dein',24.687,24.942],['Preis',24.971,25.29],['zu',25.325,25.453],['tief.',25.467,25.787]]);
+  const V3 = W([['Stop',0.28,0.516],['scrolling.',0.543,1.133],['This',1.669,1.902],['one',1.928,2.102],['setting',2.122,2.53],['doubled',2.575,2.983],['my',3.028,3.145],['watch',3.158,3.449],['time.',3.481,3.773],['Most',4.411,4.657],['creators',4.684,5.175],['put',5.23,5.414],['captions',5.434,5.925],['too',5.98,6.164],['low,',6.184,6.43],['right',6.457,6.764],['where',6.798,7.105],['the',7.139,7.323],['app',7.344,7.528],['buttons',7.548,7.978],['cover',8.026,8.332],['them.',8.367,8.673],['Move',9.446,9.681],['them',9.707,9.941],['to',9.967,10.084],['the',10.097,10.273],['upper',10.293,10.586],['third,',10.619,10.97],['keep',11.01,11.244],['two',11.27,11.446],['to',11.466,11.583],['four',11.596,11.83],['words',11.856,12.15],['per',12.182,12.358],['line,',12.378,12.671],['and',12.703,12.879],['highlight',12.899,13.426],['the',13.485,13.661],['key',13.68,13.856],['word.',13.876,14.169],['Try',14.896,15.073],['it',15.093,15.211],['on',15.224,15.342],['your',15.355,15.591],['next',15.618,15.854],['video',15.88,16.176],['and',16.208,16.386],['tell',16.405,16.642],['me',16.668,16.786],['if',16.799,16.917],['it',16.931,17.049],['worked.',17.062,17.475]]);
+    const FIX = { v1: V1, v2: V2, v3: V3 };
+    // Zeichenlimit pro Zeile je Look, wie im Editor bei ~400 px Vorschaubreite gemessen (Mix 1 Zeile, Bold Pop/Karaoke 2, Statement 3)
+    const LOOKS = [['mix', 12], ['hormozi', 9], ['statement', 8], ['focus', 10]];
+    const build = (id, per, words) => { T.selectStyle(id); T.setMaxCharsState(per); return T.buildCaptionBlocks(words.map(w => Object.assign({}, w)), []); };
+    const single = bl => bl.filter(b => b.words.length === 1);
+    // Ein Einzelwort-Block ist nur erlaubt, wenn es sich nicht (auch nicht per Umverteilen) an einen Nachbarn hängen lässt
+    // (Wort-/Zeichenlimit), er ein ganzer Ein-Wort-Satz ist oder zwischen zwei langen Pausen steht.
+    const avoidable = (bl, i) => {
+      const b = bl[i], w = b.words[0], lim = T.capBlockLimit(), wpb = T.getWpb();
+      const sentEnd = x => /[.!?…]$/.test(x.word);
+      if (sentEnd(w) && (!bl[i - 1] || sentEnd(bl[i - 1].words[bl[i - 1].words.length - 1]))) return false;
+      const gp = bl[i - 1] ? w.start - bl[i - 1].words[bl[i - 1].words.length - 1].end : 9, gn = bl[i + 1] ? bl[i + 1].words[0].start - w.end : 9;
+      const joinable = (nb, before) => {
+        if (!nb || (before ? gp : gn) > 0.8) return false;
+        const u = before ? nb.words.concat(b.words) : b.words.concat(nb.words);
+        if (u.length <= wpb && T.capWordsFit(u, lim)) return true;
+        const segs = T.capSegmentRun(u, u.map(x => x.word.length), wpb, lim);
+        return !!segs && segs.length > 1 && segs.every(r => r[1] - r[0] > 1);
+      };
+      return joinable(bl[i - 1], true) || joinable(bl[i + 1], false);
+    };
+    const hist = bl => { const h = {}; bl.forEach(b => { h[b.words.length] = (h[b.words.length] || 0) + 1; }); return JSON.stringify(h); };
+    let bad = [];
+    for (const [id, per] of LOOKS) for (const v of Object.keys(FIX)) {
+      const bl = build(id, per, FIX[v]);
+      bl.forEach((b, i) => { if (b.words.length === 1 && T.getWpb() > 1 && avoidable(bl, i)) bad.push(id + '/' + v + ': «' + b.text + '»'); });
+      ok(bl.map(b => b.text).join(' ').replace(/\s+/g, ' ') === FIX[v].map(w => w.word).join(' '), 'N-Blöcke ' + id + '/' + v + ': kein Wort verloren/doppelt');
+      ok(bl.every(b => b.words.length <= T.getWpb() || b.words.length === 1), 'N-Blöcke ' + id + '/' + v + ': höchstens Wörter-pro-Block-Vorgabe');
+    }
+    ok(!bad.length, 'N-Blöcke: keine vermeidbaren Einzelwort-Blöcke in Mix/Bold Pop/Statement/Karaoke × v1–v3' + (bad.length ? ': ' + bad.slice(0, 8).join(' | ') : ''));
+    // Messwerte: Einzelwort-Anteil (Hauptrepo vorher: Karaoke v1 7 von 21, Bold Pop v1 7 von 23, Statement v1 5 von 18)
+    const cnt = (id, per, v) => single(build(id, per, FIX[v])).length;
+    ok(cnt('focus', 10, 'v1') <= 1, 'N-Blöcke Karaoke v1: höchstens 1 Einzelwort-Block (vorher 7 von 21): ' + cnt('focus', 10, 'v1'));
+    ok(cnt('hormozi', 9, 'v1') <= 2, 'N-Blöcke Bold Pop v1: höchstens 2 Einzelwort-Blöcke (vorher 7 von 23): ' + cnt('hormozi', 9, 'v1'));
+    ok(cnt('statement', 8, 'v1') <= 3 && cnt('hormozi', 9, 'v3') === 0 && cnt('focus', 10, 'v3') === 0, 'N-Blöcke Statement v1 ≤ 3, Bold Pop/Karaoke v3 ohne Einzelwörter');
+    // Beispiele aus dem Creator-Test: «Uhr.» nie allein, «Zweitens:» nie allein, kein Block quer über Satzende + Pause > 0,35 s
+    for (const [id, per] of [['focus', 10], ['hormozi', 9]]) {
+      const bl = build(id, per, V1), txt = bl.map(b => b.text);
+      ok(!txt.includes('Uhr.') && txt.some(t => /achtzehn Uhr\.$/.test(t)), 'N-Blöcke ' + id + ' v1: «um achtzehn Uhr.» statt «Uhr.» allein: ' + txt.join(' | '));
+      ok(!txt.includes('Zweitens:') && !txt.includes('Drittens:'), 'N-Blöcke ' + id + ' v1: «Zweitens:»/«Drittens:» nicht allein: ' + txt.join(' | '));
+    }
+    // Reine Funktion capSegmentWords: Pausen, Satzenden, Look mit einem Wort, Schnitte, Handnähte
+    {
+      const lim = null, seg = (ws, mw, cuts) => T.capSegmentWords(W(ws), mw, lim, cuts || []).map(c => c.map(w => w.word).join(' '));
+      let r = seg([['eins', 0, 0.3], ['zwei', 0.35, 0.65], ['drei', 1.1, 1.4], ['vier', 1.45, 1.75]], 4);
+      ok(JSON.stringify(r) === '["eins zwei","drei vier"]', 'Sprechpause 0,45 s trennt Blöcke: ' + JSON.stringify(r));
+      r = seg([['eins', 0, 0.3], ['zwei', 0.35, 0.65], ['drei', 0.9, 1.2], ['vier', 1.25, 1.55]], 4);
+      ok(JSON.stringify(r) === '["eins zwei drei vier"]', 'Pause 0,25 s trennt nicht: ' + JSON.stringify(r));
+      r = seg([['Das', 0, 0.3], ['ist', 0.35, 0.65], ['gut.', 0.7, 1.0], ['Wirklich', 1.05, 1.5], ['sehr', 1.55, 1.8], ['gut.', 1.85, 2.2]], 4);
+      ok(JSON.stringify(r) === '["Das ist gut.","Wirklich sehr gut."]', 'Satzende beendet den Block: ' + JSON.stringify(r));
+      r = seg([['Zweitens:', 0, 0.5], ['Untertitel', 0.55, 1.0], ['helfen', 1.05, 1.4], ['sehr.', 1.45, 1.8]], 4);
+      ok(JSON.stringify(r) === '["Zweitens: Untertitel helfen sehr."]' || r.every(t => t.split(' ').length > 1), 'Doppelpunkt-Wort wird nicht zur Waise: ' + JSON.stringify(r));
+      r = seg([['Ende.', 0, 0.4], ['Zweitens:', 1.0, 1.5], ['Untertitel', 1.55, 2.0], ['sind', 2.05, 2.3], ['wichtig.', 2.35, 2.8]], 3);
+      ok(r.every(t => t.split(' ').length > 1) || r[0] === 'Ende.', 'Aufzählungs-Doppelpunkt nach Pause: Wort hängt am Nachfolger: ' + JSON.stringify(r));
+      r = seg([['Ja.', 0, 0.3], ['Und', 0.35, 0.6], ['weiter', 0.65, 1.0]], 4);
+      ok(JSON.stringify(r) === '["Ja.","Und weiter"]', 'Ganzer Ein-Wort-Satz bleibt allein: ' + JSON.stringify(r));
+      r = seg([['Wow', 0, 0.3], ['Mega', 1.5, 1.8], ['super', 1.85, 2.1], ['dies', 2.15, 2.4]], 4);
+      ok(JSON.stringify(r) === '["Wow","Mega super dies"]', 'Wort allein hinter langer Pause (> 0,8 s) bleibt allein: ' + JSON.stringify(r));
+      r = seg([['Wow', 0, 0.3], ['Mega', 0.55, 0.8], ['super', 0.85, 1.1], ['dies', 1.15, 1.4]], 4);
+      ok(JSON.stringify(r) === '["Wow Mega super dies"]', 'Waise vor Pause 0,25–0,8 s hängt sich an: ' + JSON.stringify(r));
+      r = seg([['Wow', 0, 0.3], ['Mega', 0.55, 0.8], ['super', 0.85, 1.1], ['dies', 1.15, 1.4]], 1);
+      ok(r.length === 4, 'Look mit einem Wort pro Block: jedes Wort einzeln: ' + JSON.stringify(r));
+      r = seg([['a', 0, 0.2], ['b', 0.25, 0.45], ['c', 0.5, 0.7]], 4, [0.47]);
+      ok(JSON.stringify(r) === '["a b","c"]', 'Szenenschnitt wird nie überbrückt (auch nicht für Waisen): ' + JSON.stringify(r));
+      const nb = W([['a', 0, 0.2], ['b', 0.25, 0.45], ['c', 0.5, 0.7], ['d', 0.75, 0.95]]); nb[2].nb = true;
+      r = T.capSegmentWords(nb, 4, null, []).map(c => c.map(w => w.word).join(''));
+      ok(JSON.stringify(r) === '["ab","cd"]', 'Handnaht (Wort-Flag nb) trennt immer: ' + JSON.stringify(r));
+      const nj = W([['a', 0, 0.2], ['b', 0.25, 0.45], ['c', 0.9, 1.1], ['d', 1.15, 1.35]]); nj[2].nj = true;
+      r = T.capSegmentWords(nj, 4, null, []).map(c => c.map(w => w.word).join(''));
+      ok(JSON.stringify(r) === '["abcd"]', 'Handverschmelzung (nj) hebt die Sprechpause auf: ' + JSON.stringify(r));
+      const pin = W([['Ende', 0, 0.3], ['jetzt.', 0.35, 0.65], ['Drittens:', 1.2, 1.7], ['Poste', 1.75, 2.0], ['mehr', 2.05, 2.3]]); pin[3].nb = true;
+      r = T.capSegmentWords(pin, 4, null, []).map(c => c.map(w => w.word).join(' '));
+      ok(JSON.stringify(r) === '["Ende jetzt.","Drittens:","Poste mehr"]', 'Von Hand abgeteiltes Wort («Drittens: | Poste») wird nicht zurückgeklebt: ' + JSON.stringify(r));
+    }
+    // Look-Wechsel zerstört keine Handkorrekturen: Text, manueller Split, manueller Merge, Timing
+    {
+      const ws = Array.from({ length: 12 }, (_, i) => ({ word: 'wort' + 'abcdefghijkl'[i], start: i * 0.4, end: i * 0.4 + 0.35 }));
+      const qs0 = document.querySelector; document.querySelector = () => null; // Split/Merge fokussieren danach
+      T.selectStyle('classic'); T.setMaxCharsState(40); T.onWpbChange(2); T.setLines({ dataset: { lines: '2' } });
+      T.setState(T.buildCaptionBlocks(ws.map(w => Object.assign({}, w)), []), ws.map(w => Object.assign({}, w)), 'karaoke'); T.setCaptionsEdited(false); T.resetUndo();
+      const names = () => T.getBlocks().map(b => b.words.map(w => w.word.slice(4)).join(''));
+      ok(JSON.stringify(names()) === '["ab","cd","ef","gh","ij","kl"]', 'Testaufbau 2 Wörter/Block: ' + JSON.stringify(names()));
+      // (1) Merge «ab»+«cd» per Hand, (2) Split «ef» → «e|f», (3) Texteingabe «gh», (4) Timing «ij» um +0,05 s
+      await T.mergeBlockWithPrevious(1, { });
+      ok(names()[0] === 'abcd' && T.getBlocks().length === 5, 'Merge ausgeführt: ' + JSON.stringify(names()));
+      ok(T.tlSplitAt(1, (T.getBlocks()[1].words[0].end + T.getBlocks()[1].words[1].start) / 2) && names()[1] === 'e', 'Split ausgeführt: ' + JSON.stringify(names()));
+      const bg = T.getBlocks()[3]; bg.text = 'wortg KORRIGIERT'; T.retimeEditedBlock(bg);
+      const bi = T.getBlocks()[4]; bi.words.forEach(w => { w.start += 0.05; w.end += 0.05; }); bi.start += 0.05; bi.end += 0.05; bi.srcWords = bi.words.map(w => Object.assign({}, w));
+      T.setCaptionsEdited(true);
+      const tIstart = bi.words[0].start, tIend = bi.words[1].end;
+      const check = (label) => {
+        const bl = T.getBlocks(), txt = bl.map(b => b.text).join(' ');
+        const all = [].concat(...bl.map(b => b.words)), wi = all.find(w => w.word === 'worti'), wj = all.find(w => w.word === 'wortj');
+        ok(txt.includes('wortg KORRIGIERT'), label + ': Texteingabe bleibt: ' + txt);
+        ok(wi && wj && Math.abs(wi.start - tIstart) < 1e-6 && Math.abs(wj.end - tIend) < 1e-6, label + ': Timing-Korrektur bleibt');
+        const idx = w => bl.findIndex(b => b.words.some(x => x.word === w));
+        return { idx, bl };
+      };
+      T.selectStyle('statement'); T.setMaxCharsState(40); // 5 Wörter, 3 Zeilen → baut neu
+      let c = check('Look-Wechsel Statement');
+      ok(T.getWpb() === 5 && c.idx('worte') !== c.idx('wortf'), 'Look-Wechsel: manueller Split «e|f» bleibt eine Blockgrenze: ' + JSON.stringify(names()));
+      ok(c.idx('wortb') === c.idx('wortc'), 'Look-Wechsel: manuell verschmolzene Naht «b|c» bleibt zusammen: ' + JSON.stringify(names()));
+      T.selectStyle('tight'); T.setMaxCharsState(40); // 1 Wort pro Block
+      c = check('Look-Wechsel Tight');
+      T.selectStyle('classic'); T.setMaxCharsState(40); T.onWpbChange(4); // zurück auf 4 Wörter
+      c = check('Look-Wechsel zurück');
+      ok(c.idx('worte') !== c.idx('wortf') && c.idx('wortb') === c.idx('wortc'), 'Rundreise Statement → Tight → 4 Wörter: Split-Naht + Handverschmelzung (b|c) erhalten: ' + JSON.stringify(names()));
+      // Undo des Looks stellt den Zustand vor dem Wechsel wieder her (inkl. Handnaht-Flags im Schnappschuss)
+      document.querySelector = qs0;
+      T.selectStyle('classic'); T.onWpbChange(2); T.setCaptionsEdited(false); T.resetUndo(); T.setState(T.buildCaptionBlocks(ws.map(w => Object.assign({}, w)), []), ws.map(w => Object.assign({}, w)), 'karaoke');
+      T.onWpbChange(4);
+    }
+  }
+
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();
