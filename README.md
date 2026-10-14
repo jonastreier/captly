@@ -31,7 +31,8 @@ Dateien, kein Build:
 - [`captly.html`](captly.html) — kompletter Editor + Landing (Single-File).
 - [`captly.de.html`](captly.de.html) — deutsche Landing unter `/de`, **generiert** aus `captly.html` + [`i18n/de.js`](i18n/de.js)
   mit `node scripts/build-i18n.js` (`--check` prüft nur). Übersetzt sind `<head>` (Titel, Description, OG, JSON-LD) und
-  die Landing; der Editor bleibt englisch. Beide Seiten verlinken sich per `hreflang` + Sprachumschalter (Nav/Footer);
+  die Landing **und der Editor** (statisches HTML per Wörterbuch [`i18n/de-ui.js`](i18n/de-ui.js), JS-Texte per `_t('English text', …)` in `captly.html`;
+  neuer sichtbarer Editor-Text → `_t()` bzw. Eintrag in `i18n/de-ui.js`, sonst bricht Build/Test ab). Beide Seiten verlinken sich per `hreflang` + Sprachumschalter (Nav/Footer);
   kein Auto-Redirect, nur ein wegklickbarer Hinweis für deutschsprachige Browser auf der EN-Seite.
   Die FAQ-Strukturdaten (JSON-LD) entstehen aus der sichtbaren FAQ: der Build schreibt sie auch in `captly.html` zurück
   (EN), der erste JSON-LD-Block ist ein `@graph` (Organization, WebSite, SoftwareApplication; DE ersetzt nur den App-Knoten).

@@ -93,6 +93,14 @@ function mockGroq(plan) {
      && cp.hashtags.filter(h => h.toLowerCase() === '#hof').length === 1, 'Post: Hashtags aus dem Text verschoben, bereinigt, dedupliziert, max 6 ' + JSON.stringify(cp));
   ok(T.cleanPost({ caption: 'Ich weiß es.', hashtags: ['#Spaß'] }, 'weiss').caption === 'Ich weiss es.' && T.cleanPost({ caption: 'Ich weiß es.', hashtags: ['#Spaß'] }, 'weiss').hashtags[0] === '#Spass', 'Post: kein ß, wenn das Transkript keins hat');
   ok(T.cleanPost({ caption: '', hashtags: [] }, '') === null && T.cleanPost(null, '') === null, 'Post leer → null');
+  // Hook-Titel (optionales Feld der Post-Antwort, Paket N-KI)
+  ok(!('hook' in T.cleanPost({ caption: 'Ok', hashtags: [] }, '')), 'Hook fehlt → Antwort unverändert (kein hook-Schlüssel)');
+  ok(T.cleanPost({ caption: 'Ok', hashtags: [], hook: '  Warum Rinder draussen bleiben. ' }, '').hook === 'Warum Rinder draussen bleiben', 'Hook: bereinigt, Schlusspunkt weg');
+  ok(T.cleanPost({ caption: 'Ok', hashtags: [], hook: 'Wusstest du das? #fyp' }, '').hook === 'Wusstest du das?', 'Hook: Hashtags raus, Fragezeichen bleibt');
+  ok(T.cleanPost({ caption: 'Ok', hashtags: [], hook: 'So läuft das ganze Jahr auf der Weide ab, sagt der Bauer' }, '').hook === undefined, 'Hook > 8 Wörter → verworfen');
+  ok(T.cleanPost({ caption: 'Ok', hashtags: [], hook: 'x'.repeat(61) }, '').hook === undefined && T.cleanPost({ caption: 'Ok', hashtags: [], hook: 5 }, '').hook === undefined && T.cleanPost({ caption: 'Ok', hashtags: [], hook: '…' }, '').hook === undefined, 'Hook: zu lang / kein Text / nur Zeichen → verworfen');
+  ok(T.cleanHook('Ich weiß es', 'weiss') === 'Ich weiss es' && T.cleanHook('Ich weiß es', 'weiß') === 'Ich weiß es', 'Hook: ß → ss ausser das Transkript enthält ß');
+  ok(/"hook"/.test(T.POST_PROMPT) && /max\. 6 words/.test(T.POST_PROMPT), 'Post-Prompt verlangt hook (≤ 6 Wörter)');
   ok(Array.from(T.cleanPost({ caption: 'wort '.repeat(100), hashtags: [] }, '').caption).length <= 300, 'Post-Text gekappt');
 
   console.log('Input');
@@ -155,6 +163,9 @@ function mockGroq(plan) {
   mockGroq({ 'openai/gpt-oss-120b': { status: 200, content: JSON.stringify({ caption: 'Highland Rinder, die das ganze Jahr draussen sind 🐄', hashtags: ['#HighlandRinder', '#Weide', 'Hof', '#viral'] }) } });
   const po = await run('POST', { lang: 'de', want: ['post'], text: SEGS.map(s => s.text).join(' ') }, KEY);
   ok(po.statusCode === 200 && po.json.post.caption.indexOf('Highland') === 0 && po.json.post.hashtags.join(' ') === '#HighlandRinder #Weide #Hof', 'Post happy path ' + JSON.stringify(po.json));
+  mockGroq({ 'openai/gpt-oss-120b': { status: 200, content: JSON.stringify({ caption: 'Ok', hashtags: ['#Hof'], hook: 'Highland Rinder: das ganze Jahr draussen.' }) } });
+  const ph = await run('POST', { lang: 'de', want: ['post'], text: 'Highland Rinder sind das ganze Jahr draussen.' }, KEY);
+  ok(ph.statusCode === 200 && ph.json.post.hook === 'Highland Rinder: das ganze Jahr draussen', 'Post liefert optional hook mit ' + JSON.stringify(ph.json.post));
   ok(calls[0].body.messages.length === 2 && calls[0].body.temperature <= 0.5, 'Post: ein Call, ohne Few-Shot');
   mockGroq({ 'openai/gpt-oss-120b': { status: 200, content: '{"caption":"","hashtags":[]}' }, 'openai/gpt-oss-20b': { status: 200, content: '{"caption":"Ok","hashtags":["#a1"]}' } });
   const pf = await run('POST', { want: ['post'], text: 'hallo' }, KEY);
@@ -174,7 +185,9 @@ function mockGroq(plan) {
     ok(lint.status === 0, 'php -l enhance.php');
     const posts = [
       [{ caption: 'So läbed üsi Rinder 🐄 #Hof #highland', hashtags: ['Highland Beef', '#Fricktal', '#fyp', '#hof', '#123', 'x', '#Weide', '#Bio', '#Schweiz', '#Rind'] }, 'x'],
-      [{ caption: 'Ich weiß es.', hashtags: '#Spaß, #Hof' }, 'weiss'], [{ caption: '', hashtags: [] }, ''], [{ caption: 'wort '.repeat(80) }, '']
+      [{ caption: 'Ich weiß es.', hashtags: '#Spaß, #Hof' }, 'weiss'], [{ caption: '', hashtags: [] }, ''], [{ caption: 'wort '.repeat(80) }, ''],
+      [{ caption: 'Ok', hashtags: ['#a1'], hook: '  Warum Rinder draussen bleiben. ' }, 'x'], [{ caption: 'Ok', hook: 'Ich weiß es #fyp' }, 'weiss'],
+      [{ caption: 'Ok', hook: 'eins zwei drei vier fünf sechs sieben acht neun' }, 'x'], [{ caption: 'Ok', hook: 'x'.repeat(61) }, 'x'], [{ caption: 'Ok', hook: 7 }, 'x']
     ];
     const kws = [[['Highland', 'Rinder'], toks], [['rinder', 'Highland Rinder'], toks], [[99, -1, 'ich', 'Kuh', 'Rinder', 'zeig', 'Highland'], toks], [[6, 6], toks]];
     const segAns = { segments: ans.segments };

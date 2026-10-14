@@ -11,7 +11,7 @@
  *   { "lang": "de", "want": ["keywords","emojis","zoom"], "segments": [ { "id": 0, "text": "...", "start": 1.2 } ] }
  *   { "lang": "de", "want": ["post"], "text": "ganzes Transkript" }
  * 200 → { "segments": [ { "id", "kw": [..], "emoji": "…"|null, "zoom": bool } ], "model", "dropped" }
- *     | { "post": { "caption", "hashtags": [..] }, "model" }
+ *     | { "post": { "caption", "hashtags": [..], "hook"? }, "model" }   (hook = optionaler Kurztitel ≤ 6 Wörter für den Hook-Titel)
  * Fehler → { "error": "..." }: 400, 401 login_required, 413, 429, 500 „Server nicht konfiguriert“, 502.
  *
  * Setup: dieselbe config.php wie transcribe.php (GROQ_API_KEY, optional CORS_ORIGIN, RATE_LIMIT_PER_HOUR
@@ -29,6 +29,8 @@ const ENH_EMOJI_SHARE = 0.3;
 const ENH_ZOOM_GAP_S = 4;
 const ENH_ZOOM_SHARE = 0.2;
 const ENH_CAPTION_MAX = 300;
+const ENH_HOOK_MAX_WORDS = 8;
+const ENH_HOOK_MAX_CHARS = 60;
 const ENH_TAGS_MAX = 6;
 const ENH_WANT_SEG = ['keywords', 'emojis', 'zoom'];
 
@@ -63,10 +65,11 @@ TXT;
 
 const ENH_POST_PROMPT = <<<'TXT'
 You write the post text for a short social video (Instagram Reels / TikTok) from its transcript.
-Input: JSON {"lang": ISO code, "text": transcript}. Output: ONLY a JSON object {"caption":"...","hashtags":["#...", ...]}.
+Input: JSON {"lang": ISO code, "text": transcript}. Output: ONLY a JSON object {"caption":"...","hashtags":["#...", ...],"hook":"..."}.
 caption: in the language of the transcript (a Swiss German transcript gets Swiss Standard German: "ss", never "ß"). A short hook plus at most one more sentence, max. 180 characters, at most 2 emojis, no hashtags inside.
 Use ONLY facts that are in the transcript. Never invent names, places, prices, dates, numbers, offers or claims. If unsure, stay general.
 hashtags: 3 to 6 relevant hashtags (topic, product, place or name only if mentioned), each starting with #, no spaces, no generic spam like #fyp #viral #foryou.
+hook: a punchy on-screen title for the first seconds of the video, same language rules, max. 6 words, no hashtags, no emojis, no full stop at the end, may be a question. Only facts from the transcript.
 TXT;
 
 function enh_few_shot() {
@@ -251,7 +254,19 @@ function enh_clean_post($obj, $src) {
     if (count($tags) >= ENH_TAGS_MAX) break;
   }
   if ($cap === '' && !$tags) return null;
-  return ['caption' => $cap, 'hashtags' => $tags];
+  $out = ['caption' => $cap, 'hashtags' => $tags];
+  $hook = enh_clean_hook($obj['hook'] ?? null, $src);
+  if ($hook !== '') $out['hook'] = $hook; // optional: alte Antworten/Modelle ohne hook bleiben unverändert
+  return $out;
+}
+/** Hook-Titel (kurzer Bildschirmtitel): bereinigt, ohne Hashtags/Schlusspunkt, ≤ 8 Wörter und ≤ 60 Zeichen, sonst '' (= verworfen). */
+function enh_clean_hook($raw, $src) {
+  if (!is_string($raw)) return '';
+  $h = enh_clean(preg_replace('/#[\p{L}\p{N}_]+/u', ' ', $raw));
+  $h = preg_replace('/[\s.,;:–—-]+$/u', '', $h);
+  if (!preg_match('/[ßẞ]/u', (string)$src)) $h = str_replace(['ẞ', 'ß'], ['SS', 'ss'], $h);
+  if (!preg_match('/[\p{L}\p{N}]/u', $h) || count(explode(' ', $h)) > ENH_HOOK_MAX_WORDS || enh_len($h) > ENH_HOOK_MAX_CHARS) return '';
+  return $h;
 }
 /** Request prüfen → ['kind'..] oder ['code','msg'] */
 function enh_parse_input($in) {

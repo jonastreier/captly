@@ -152,6 +152,7 @@ function qaMain() {
       o['cfg.active'] = activeId; o['cfg.lines'] = CAPTION_LINES; o['cfg.wpb'] = WORDS_PER_BLOCK; o['cfg.maxChars'] = CAP_MAX_CHARS;
       o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.hoff'] = capHOff; o['cfg.free'] = capFree; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
       o['cfg.punct'] = capNoPunct ? 1 : 0; o['cfg.kw'] = emKw ? 1 : 0; o['cfg.emoji'] = emEmoji ? 1 : 0; o['cfg.zoom'] = emZoom; o['cfg.timeOff'] = timeOff;
+      o['cfg.hook'] = hookOn ? 1 : 0; o['cfg.hookDur'] = hookDur; o['cfg.hookText'] = hookText; // Hook-Titel (N-KI)
       o['cfg.blocks'] = captionBlocks.length;
       o['cfg.text'] = hash(captionBlocks.map(b => b.text).join('|'));
       o['cfg.timing'] = hash(captionBlocks.map(b => b.start.toFixed(2) + '-' + b.end.toFixed(2)).join('|'));
@@ -386,6 +387,10 @@ const CTL = [
   { id: 'emKwBtn', tab: 'style', op: 'click', sel: '#emKwBtn', values: [null], emph: true, changes: ['cfg.kw', 'dom.hash'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize'] },
   { id: 'emEmoBtn', tab: 'style', op: 'click', sel: '#emEmoBtn', values: [null], changes: ['cfg.emoji', 'dom.hash'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize'],
     setup: sc => sc.page.evaluate(() => { setBlockEmoji(__qa.curBi(), '🔥'); setEmphEmoji(false); }) },
+  // ── Style-Tab: Hook-Titel (N-KI) — Schalter, Text, Dauer; Standard aus ──
+  { id: 'hookBtn', tab: 'style', op: 'click', sel: '#hookBtn', values: [null], changes: ['cfg.hook'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize', 'cfg.blocks'] },
+  { id: 'hookTxt', tab: 'style', op: 'run', values: [null], run: async sc => { await sc.page.evaluate(() => setHookOn(true)); await sc.page.fill('#hookTxt', 'Mein Titel'); }, changes: ['cfg.hookText'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize', 'cfg.blocks'] },
+  { id: 'hookDur', tab: 'style', op: 'range', sel: '#hookDur', values: [1, 3.5], setup: sc => sc.page.evaluate(() => setHookOn(true)), changes: ['cfg.hookDur'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize', 'cfg.blocks'] },
   { id: 'emZoomRow', tab: 'style', op: 'click', values: ['#emZoomRow [data-z="subtle"]', '#emZoomRow [data-z="punchy"]'], changes: ['cfg.zoom', 'dom.vidTransform'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize', 'dom.lines'],
     setup: sc => sc.page.evaluate(() => { captionBlocks[__qa.curBi()].words[0].zm = 1; _zoomPlanKey = null; }), seek: { word: 0, dt: 1.0 } },
   // ── Style-Tab: Customize ──
@@ -418,7 +423,7 @@ const CTL = [
   { id: 'csBoxR', tab: 'style', custom: true, pre: sc => sc.page.selectOption('#csBox', 'box'), op: 'range', sel: '#csBoxR', values: [0, 30], changes: ['style.boxBr', 'dom.root.borderRadius'], styleOnly: ['boxBg', 'boxBr'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
   { id: 'csHlType', tab: 'style', custom: true, op: 'select', sel: '#csHlType', values: ['pill'], changes: ['style.hlPillBg'], styleOnly: HL_FIELDS, inv: inv('dom.lines', 'cfg.blocks').concat('dom.span0.fontSize') },
   { id: 'csMotion', tab: 'style', custom: true, op: 'select', sel: '#csMotion', values: ['reveal', 'fill', 'none'], changes: ['style.motion', 'dom.hash'], styleOnly: ['motion'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
-  { id: 'csAnim', tab: 'style', custom: true, op: 'select', sel: '#csAnim', values: ['scale', 'punch', 'bounce', 'flash', 'glow'], changes: ['style.anim', 'dom.act.*'], styleOnly: ['anim'], inv: LAYOUT_INV.concat('dom.span0.fontSize'),
+  { id: 'csAnim', tab: 'style', custom: true, op: 'select', sel: '#csAnim', values: ['scale', 'punch', 'bounce', 'flash', 'glow', 'overshoot', 'squash'], changes: ['style.anim', 'dom.act.*'], styleOnly: ['anim'], inv: LAYOUT_INV.concat('dom.span0.fontSize'),
     pre: sc => sc.page.selectOption('#csAnim', 'none'), seek: { word: 1, dt: 0.08, scrub: true }, reseek: true, wait: 1100 },
   // ── Style-Tab: Customize › Timing & text ──
   { id: 'toSlider', tab: 'style', custom: false, op: 'range', sel: '#toSlider', values: [-0.3, 0.3], changes: ['cfg.timeOff'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], customize: true },
@@ -484,7 +489,11 @@ CTL.push(
   // Ausfüllart erscheint erst bei einem Zielformat ≠ Quelle (Testvideo 9:16 → 1:1); Pan/Zurücksetzen nur bei «crop» mit Spielraum
   { id: 'expFill', tab: 'style', op: 'select', sel: '#expFill', values: ['blur'], pre: async sc => { await OPEN_EXPOPTS(sc); await sc.page.evaluate(() => { setExportFormat('1:1'); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'panReset', tab: 'style', op: 'click', sel: '#panReset', values: [null], pre: async sc => { await OPEN_EXPOPTS(sc); await sc.page.evaluate(() => { setExportFormat('1:1'); exportPan = { x: 0, y: 0.6 }; applyExportFormat(exportFormatState()); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
+  // N3: Format-Pille im Editor (über der Vorschau, synchron mit dem Export-Popup) + Hinweis «Make this a 9:16 Reel?» (nur Querformat/Quadrat)
+  { id: 'edFmt', tab: 'style', op: 'select', sel: '#edFmt', values: ['1:1', '16:9'], changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
+  { id: 'edFill', tab: 'style', op: 'select', sel: '#edFill', values: ['blur'], pre: async sc => { await sc.page.evaluate(() => { setExportFormat('1:1'); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'autoCutChk', tab: 'style', op: 'check', sel: '#autoCutChk', values: [null], pre: OPEN_EXPOPTS, changes: ['cfg.autoCut'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
+  { id: 'autoCutEd', tab: 'captions', op: 'check', sel: '#autoCutEd', values: [null], changes: ['cfg.autoCut'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 }, // Auto-Cut-Schalter im Captions-Tab (gleicher Zustand wie #autoCutChk)
   { id: 'expSkipChk', tab: 'style', op: 'check', sel: '#expSkipChk', values: [null], pre: OPEN_EXPORT, changes: ['cfg.expSkip'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'gateNews', tab: 'style', op: 'check', sel: '#gateNews', values: [null], pre: OPEN_EXPORT, noopOk: 'reines Formularfeld — wirkt erst beim Download (test-e2e prüft den Lead-Eintrag)', inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'btnSRT', tab: 'style', op: 'click', sel: '#btnSRT', values: [null], pre: OPEN_EXPORT, download: { re: /\.srt$/, has: '-->' }, inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
@@ -682,7 +691,7 @@ SECTIONS.hyg = async (browser, prof) => {
 
 // ═══════════ Abschnitt anim: Wort-Animation bei Wortstart + 0.08 s sichtbar ═══════════
 // Aktiver Span: Transformation (Pop/Punch/Lift), Deckkraft (Fade in) bzw. Filter/Schatten (Glow) muss sich gegenüber «None» ändern.
-const ANIMS = [['scale', 'Pop', true], ['punch', 'Punch', true], ['bounce', 'Lift', true], ['flash', 'Fade in', false], ['glow', 'Glow', false]];
+const ANIMS = [['scale', 'Pop', true], ['punch', 'Punch', true], ['bounce', 'Lift', true], ['flash', 'Fade in', false], ['glow', 'Glow', false], ['overshoot', 'Overshoot', true], ['squash', 'Squash', true]];
 SECTIONS.anim = async (browser, prof) => {
   const sc = await newScenario(browser, prof);
   const p = sc.page;
