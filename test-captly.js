@@ -129,7 +129,8 @@ capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:cap
 setLines:setLines,splitBlockAtCursor:splitBlockAtCursor,getLines:function(){return CAPTION_LINES;},getMaxChars:function(){return CAP_MAX_CHARS;},getPresetPrevLayout:function(){return _presetPrevLayout;},setFontSizeState:function(v){fontSize=v;},
 setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capFontWeights:capFontWeights,csSyncWeights:csSyncWeights,onFontPick:onFontPick,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
 capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
-capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},setProgDrag:function(v){_progDrag=v;},
+capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},
+capBlurBand:capBlurBand,capBlurTop:capBlurTop,fmtHintApplies:fmtHintApplies,fmtHintAnswer:fmtHintAnswer,fmtHintArm:fmtHintArm,syncFormatBar:syncFormatBar,getFmtHint:function(){return {armed:fmtHintArmed,done:fmtHintDone};},setFmtHint:function(a,d){fmtHintArmed=a;fmtHintDone=d;},setProgDrag:function(v){_progDrag=v;},
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
@@ -4857,6 +4858,95 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       delete global.localStorage; delete global.prompt; delete global.confirm;
       T.setUserTemplates([]); T.selectStyle('hormozi');
     }
+  }
+
+  // ═══ Paket N-Format: «Als 9:16-Reel?»-Hinweis (N3) + Untertitel bei Fill «blur» nicht auf der Bandkante (N7) ═══
+  {
+    const near = (a, b, e) => Math.abs(a - b) <= (e === undefined ? 0.5 : e);
+    const H = 1920, band = { top: 656.25, bot: 1263.75 }, gap = H * 0.015, lo = H * (11.46 + 1) / 100, hi = H * (1 - (23.44 + 1) / 100);
+    // 1) capBlurTop (reine Funktion): bevorzugt in die Unschärfe-Zone (mit Abstand + Safe-Zone), sonst ganz ins Band; Frei/Mitte/kein Band unverändert
+    let t = T.capBlurTop(1200, 100, H, band, 'bottom', false);
+    ok(t >= band.bot + gap - 0.01 && t + 100 <= hi + 0.01, 'N7: Preset unten, Box auf der Bandkante → ganz UNTER das Band (Abstand ≥ ' + gap.toFixed(0) + ' px, innerhalb Safe-Zone): ' + t.toFixed(1));
+    ok(near(t - (band.bot + gap), (hi - band.bot - gap - 100) / 2, 0.5), 'N7: Box mittig in der unteren Unschärfe-Zone');
+    t = T.capBlurTop(1200, 300, H, band, 'bottom', false);
+    ok(t >= band.top + gap - 0.01 && t + 300 <= band.bot - gap + 0.01, 'N7: zu hoch für die Zone unten → ganz IM Band, unten bündig mit Abstand: ' + t.toFixed(1));
+    t = T.capBlurTop(620, 100, H, band, 'top', false);
+    ok(t >= lo - 0.01 && t + 100 <= band.top - gap + 0.01, 'N7: Preset oben, Box auf der oberen Bandkante → ganz ÜBER das Band, innerhalb Safe-Zone: ' + t.toFixed(1));
+    ok(T.capBlurTop(1300, 100, H, band, 'bottom', false) === 1300 && T.capBlurTop(300, 100, H, band, 'top', false) === 300, 'N7: Box schon sauber in der Unschärfe → unverändert');
+    ok(T.capBlurTop(1200, 100, H, band, 'bottom', true) === 1200, 'N7: frei verschoben (capFree) → Position des Nutzers gilt');
+    ok(T.capBlurTop(900, 100, H, band, 'center', false) === 900 && T.capBlurTop(1200, 100, H, null, 'bottom', false) === 1200, 'N7: Mitte / kein Band → unverändert');
+    t = T.capBlurTop(900, 700, H, band, 'bottom', false);
+    ok(t >= band.top - 0.01 && t + 700 <= band.bot + 0.01 || t === band.top, 'N7: passt nirgends → bleibt wenigstens im Band');
+    // 2) capBlurBand: nur bei Fill «blur» mit Reframe und passender Leinwand
+    {
+      const vid = document.getElementById('mainVid'), o = [vid.videoWidth, vid.videoHeight];
+      vid.videoWidth = 1920; vid.videoHeight = 1080;
+      T.setExportFormatState({ aspect: '9:16', fill: 'blur' });
+      let b = T.capBlurBand(1080, 1920);
+      ok(b && near(b.top, 656.25, 0.01) && near(b.bot, 1263.75, 0.01), 'N7: Bildband 16:9 → 9:16 bei 1080×1920 = 656…1264 px');
+      ok(T.capBlurBand(1080, 1080) === null, 'N7: Leinwand ohne Ausgabeformat (z. B. Cover) → kein Band');
+      T.setExportFormatState({ aspect: '9:16', fill: 'crop' }); ok(T.capBlurBand(1080, 1920) === null, 'N7: Fill «crop» → kein Band');
+      T.setExportFormatState('original'); ok(T.capBlurBand(1080, 1920) === null, 'N7: Format Original → kein Band');
+      T.setExportFormatState({ aspect: '1:1', fill: 'blur' }); b = T.capBlurBand(1080, 1080);
+      ok(b && near(b.top, 236.25, 0.01) && near(b.bot, 843.75, 0.01), 'N7: 16:9 → 1:1 blur: Band 236…844 px');
+      // 3) Export (capLayout): Block mit Preset-Position unten liegt bei Fill «blur» nie auf der Bandkante
+      T.setExportFormatState({ aspect: '9:16', fill: 'blur' });
+      const sty = T.STYLES.find(x => x.id === 'hormozi');
+      const mkCtx = () => ({ font: '', letterSpacing: '0px', measureText(str) { const m = /([\d.]+)px/.exec(this.font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+        roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},
+        fillRect() {}, clip() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } });
+      const ws = ['Das', 'ist', 'ein', 'Test'], blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+      T.setState([blk], blk.words, 'karaoke');
+      const lay = () => T.capLayout(mkCtx(), blk, 0, 0, sty, 1080, 1920);
+      const bd = T.capBlurBand(1080, 1920), g = 1920 * 0.015, safeB = 1920 * (1 - 24.44 / 100);
+      T.setPosState('bottom'); T.setVOffState(20); T.setFreeState(false); T.setHOffState(0);
+      for (const ln of [1, 2, 3]) {
+        T.setLines({ dataset: { lines: String(ln) } });
+        const L = lay(), edgeClear = L.boxB <= bd.top - g + 0.5 || L.boxT >= bd.bot + g - 0.5 || (L.boxT >= bd.top + g - 0.5 && L.boxB <= bd.bot - g + 0.5);
+        const below = L.boxT >= bd.bot + g - 0.5 && L.boxB <= safeB + 0.5, inBand = L.boxT >= bd.top && L.boxB <= bd.bot - g + 0.5;
+        ok(edgeClear && (below || inBand), 'N7 Export ' + ln + ' Zeile(n): Box ' + L.boxT.toFixed(0) + '…' + L.boxB.toFixed(0) + ' px liegt ganz unter dem Band (' + bd.bot.toFixed(0) + ', Safe ' + safeB.toFixed(0) + ') oder ganz im Band');
+      }
+      // Position oben: nie auf der oberen Kante
+      T.setPosState('top'); T.setVOffState(20); T.setLines({ dataset: { lines: '2' } });
+      { const L = lay(); ok(L.boxB <= bd.top - g + 0.5 || (L.boxT >= bd.top + g - 0.5 && L.boxB <= bd.bot - g + 0.5), 'N7 Export oben: Box ' + L.boxT.toFixed(0) + '…' + L.boxB.toFixed(0) + ' liegt nicht auf der oberen Bandkante'); }
+      // Frei verschoben auf die Kante: Nutzerposition bleibt (gleiche Box wie ohne Blur)
+      T.setPosState('bottom'); T.setVOffState(32); T.setFreeState(true);
+      const Lfree = lay(); T.setExportFormatState('original'); const Lorig = lay();
+      ok(near(Lfree.boxT, Lorig.boxT, 0.01) && near(Lfree.boxB, Lorig.boxB, 0.01), 'N7: frei platziert → bei blur dieselbe Box wie ohne Format (Nutzer-Position gilt)');
+      // Layout-Cache: Wechsel Blur ↔ Original liefert wieder die richtige Position
+      T.setFreeState(false); T.setVOffState(20); T.setExportFormatState({ aspect: '9:16', fill: 'blur' }); const Lb = lay(); T.setExportFormatState('original'); const Lo = lay();
+      ok(Math.abs(Lb.boxT - Lo.boxT) > 1, 'N7: Layout-Cache unterscheidet Blur und Original');
+      T.setExportFormatState('original'); T.setPosState('bottom'); T.setVOffState(20); T.setFreeState(false); T.setLines({ dataset: { lines: '2' } });
+      vid.videoWidth = o[0]; vid.videoHeight = o[1];
+    }
+    // 4) N3: Hinweis nur bei Querformat/Quadrat ohne Format, nicht nach «Keep», nicht wenn Template/Projekt ein Format setzt
+    ok(T.fmtHintApplies(1920, 1080, 'original', false) && T.fmtHintApplies(1080, 1080, 'original', false) && T.fmtHintApplies(1000, 1020, { aspect: 'original' }, false), 'N3: 16:9 / 1:1 ohne Format → Hinweis');
+    ok(!T.fmtHintApplies(1080, 1920, 'original', false) && !T.fmtHintApplies(1080, 1350, 'original', false) && !T.fmtHintApplies(0, 0, 'original', false), 'N3: Hochformat (9:16, 4:5) / keine Masse → kein Hinweis');
+    ok(!T.fmtHintApplies(1920, 1080, 'original', true) && !T.fmtHintApplies(1920, 1080, { aspect: '9:16', fill: 'blur' }, false) && !T.fmtHintApplies(1920, 1080, 'crop', false), 'N3: «Keep» gewählt bzw. Format schon gesetzt (Template/Projekt, auch alter Wert «crop») → kein Hinweis');
+    {
+      const vid = document.getElementById('mainVid'), o = [vid.videoWidth, vid.videoHeight];
+      vid.videoWidth = 1920; vid.videoHeight = 1080;
+      T.setExportFormatState('original'); T.setFmtHint(false, false); T.fmtHintArm();
+      ok(T.getFmtHint().armed === true, 'N3: Querformat geladen → Hinweis steht (fmtHintArm)');
+      T.fmtHintAnswer('blur');
+      ok(JSON.stringify(T.exportFormatState()) === '{"aspect":"9:16","fill":"blur","pan":{"x":0,"y":0}}' && !T.getFmtHint().armed && T.getFmtHint().done, 'N3: Knopf «Blur» setzt 9:16 + blur (B1-Modell) und schliesst den Hinweis');
+      T.setExportFormatState('original'); T.setFmtHint(true, false); T.fmtHintAnswer('crop');
+      ok(JSON.stringify(T.exportFormatState()) === '{"aspect":"9:16","fill":"crop","pan":{"x":0,"y":0}}', 'N3: Knopf «Crop» setzt 9:16 + crop');
+      T.setExportFormatState('original'); T.setFmtHint(true, false); T.fmtHintAnswer('keep');
+      ok(T.exportFormatState().aspect === 'original' && !T.getFmtHint().armed && T.getFmtHint().done, 'N3: «Keep» behält Original und merkt es');
+      ok(T.projectPayload().fmtKeep === true && !('fmt' in T.projectPayload()), 'N3: «Keep» wird im Projekt gespeichert (fmtKeep)');
+      T.setFmtHint(false, false); T.applyProjectPayload({ fmtKeep: true }); T.fmtHintArm();
+      ok(T.getFmtHint().done && !T.getFmtHint().armed, 'N3: Projekt mit fmtKeep → Hinweis kommt bei diesem Video nicht wieder');
+      T.setExportFormatState('original'); T.setFmtHint(false, false); T.applyTemplateSettings({ aspect: '1:1', fill: 'crop' }); T.fmtHintArm();
+      ok(T.exportFormatState().aspect === '1:1' && !T.getFmtHint().armed && T.getFmtHint().done, 'N3: Template mit Format → kein Hinweis');
+      T.setFmtHint(true, false); T.setExportFormatState('4:5'); T.syncFormatBar(true, 'crop');
+      ok(!T.getFmtHint().armed && T.getFmtHint().done, 'N3: Format über die Auswahl gesetzt → Hinweis ist erledigt');
+      T.setExportFormatState('original'); T.setFmtHint(false, false);
+      vid.videoWidth = o[0]; vid.videoHeight = o[1];
+    }
+    // 5) Markup: Format-Pille im Editor teilt die Quelle der Wahrheit mit dem Export-Popup
+    ok(/id="edFmt"[^>]*setExportFormat\(this\.value\)/.test(htmlContent) && /id="edFill"[^>]*setExportFill\(this\.value\)/.test(htmlContent) && /id="fmtHint"/.test(htmlContent) && /fmtHintAnswer\('crop'\)/.test(htmlContent) && /fmtHintAnswer\('blur'\)/.test(htmlContent), 'N3: Editor hat Format-/Fill-Auswahl (edFmt/edFill) und Hinweis mit Crop/Blur/Keep');
+    ok(/getElementById\('edFmt'\)[\s\S]{0,100}exportAspect/.test(htmlContent) && /getElementById\('edFill'\)[\s\S]{0,80}exportFill/.test(htmlContent), 'N3: syncFormatBar hält edFmt/edFill mit exportAspect/exportFill synchron');
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

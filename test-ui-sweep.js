@@ -484,6 +484,9 @@ CTL.push(
   // Ausfüllart erscheint erst bei einem Zielformat ≠ Quelle (Testvideo 9:16 → 1:1); Pan/Zurücksetzen nur bei «crop» mit Spielraum
   { id: 'expFill', tab: 'style', op: 'select', sel: '#expFill', values: ['blur'], pre: async sc => { await OPEN_EXPOPTS(sc); await sc.page.evaluate(() => { setExportFormat('1:1'); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'panReset', tab: 'style', op: 'click', sel: '#panReset', values: [null], pre: async sc => { await OPEN_EXPOPTS(sc); await sc.page.evaluate(() => { setExportFormat('1:1'); exportPan = { x: 0, y: 0.6 }; applyExportFormat(exportFormatState()); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
+  // N3: Format-Pille im Editor (über der Vorschau, synchron mit dem Export-Popup) + Hinweis «Make this a 9:16 Reel?» (nur Querformat/Quadrat)
+  { id: 'edFmt', tab: 'style', op: 'select', sel: '#edFmt', values: ['1:1', '16:9'], changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
+  { id: 'edFill', tab: 'style', op: 'select', sel: '#edFill', values: ['blur'], pre: async sc => { await sc.page.evaluate(() => { setExportFormat('1:1'); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'autoCutChk', tab: 'style', op: 'check', sel: '#autoCutChk', values: [null], pre: OPEN_EXPOPTS, changes: ['cfg.autoCut'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'expSkipChk', tab: 'style', op: 'check', sel: '#expSkipChk', values: [null], pre: OPEN_EXPORT, changes: ['cfg.expSkip'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'gateNews', tab: 'style', op: 'check', sel: '#gateNews', values: [null], pre: OPEN_EXPORT, noopOk: 'reines Formularfeld — wirkt erst beim Download (test-e2e prüft den Lead-Eintrag)', inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
