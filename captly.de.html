@@ -55,12 +55,12 @@ body{background:var(--canvas);color:var(--ink);font-family:'Inter',sans-serif;-w
 body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 
 /* Wort-Animationen: sofort erkennbar, aber nur 0,34 s kurz. Pop 1 → 1.14 → 1 · Punch 1.28 → 1 (ease-out) · Lift = 0,22 em
-   von unten (Deckkraft .5 → 1) · Fade in = 0 → 1 · Glow = Leuchten in der Textfarbe. flash/wobble bleiben als Namen für alte Templates.
+   von unten (Deckkraft .5 → 1) · Fade in = .35 → 1 in nur 0,12 s (ease-out, damit kurze Wörter nie halbtransparent stehen) · Glow = Leuchten in der Textfarbe. flash/wobble bleiben als Namen für alte Templates.
    Nur noch für Kacheln/Showcase — die Editor-Vorschau rechnet dieselben Keyframes (ANIM_KEYFRAMES) aus der Videozeit;
    Werte hier und dort müssen übereinstimmen (test-captly.js prüft das). */
 @keyframes captly-bounce{0%{transform:translateY(.22em);opacity:.5}100%{transform:translateY(0);opacity:1}}
 @keyframes captly-scale{0%{transform:scale(1)}30%{transform:scale(1.14)}100%{transform:scale(1)}}
-@keyframes captly-flash{0%{opacity:0}100%{opacity:1}}
+@keyframes captly-flash{0%{opacity:.35;animation-timing-function:cubic-bezier(.33,1,.68,1)}100%{opacity:1}}
 @keyframes captly-glow{0%,100%{filter:drop-shadow(0 0 0 currentColor) drop-shadow(0 0 0 currentColor)}30%{filter:drop-shadow(0 0 .35em currentColor) drop-shadow(0 0 .8em currentColor)}}
 @keyframes captly-punch{0%{transform:scale(1.28);animation-timing-function:cubic-bezier(.33,1,.68,1)}100%{transform:scale(1)}}
 @keyframes captly-wobble{0%{transform:translateY(.22em);opacity:.5}100%{transform:translateY(0);opacity:1}}
@@ -1736,7 +1736,7 @@ body.editor-open .lang-hint{display:none}
           <div class="q-row sz-row">
             <span class="q-k">Size</span>
             <input type="range" min="10" max="54" value="22" id="szSlider" oninput="onSzChange(this.value)" aria-label="Caption size">
-            <span class="sz-val" id="szDisp">22px</span>
+            <span class="sz-val" id="szDisp">M 4.5%</span>
           </div>
           <div class="q-row case-row">
             <span class="q-k">Case</span>
@@ -2033,7 +2033,7 @@ body.editor-open .lang-hint{display:none}
 // motion: s. capMotion() — fehlt es, gilt 'highlight' (aktives Wort hebt sich ab, wie alle bisherigen Styles).
 var STYLES = [
   // ── Neue Looks (2026, nach aktuellen Reels-Ads): Schriften lokal unter vendor/fonts ──
-  {id:'tight',    name:'Tight',      fl:'Inter Tight', // Standard: EIN grosses Wort pro Caption, eng gesetzt, Gross-/Kleinschreibung wie gesprochen, weicher Schatten, ruhiges Einblenden
+  {id:'tight',    name:'Tight',      fl:'Inter Tight', // EIN grosses Wort pro Caption, eng gesetzt, Gross-/Kleinschreibung wie gesprochen, weicher Schatten, kurzes Einblenden (Fade .35 → 1 in 0,12 s); Standard-Look für neue Nutzer ist seit N-Style Bold Pop (hormozi)
    font:"'Inter Tight'", fw:'800', ls:'-.04em', fs:'1.75em', anim:'flash',
    thumbBg:'linear-gradient(160deg,#17191f,#08090b)',
    tc:'#fff', ts:readHalo() + ',0 2px 14px rgba(0,0,0,.5)',
@@ -2195,7 +2195,7 @@ function resolveStyleId(id) {
 // Standard-Style für neue Nutzer: Reveal (ruhig wie die Captions-App, kleiner weicher Schatten → schneller
 // Export). Vorher Bold Pop, davor „Petal“ (große Blur-Glows, Export bis 6× langsamer). Eine bewusste frühere
 // Wahl (gemerkter Style, Brand-Default) bleibt erhalten.
-var DEFAULT_STYLE   = 'tight', STYLE_KEY = 'capivo.style';
+var DEFAULT_STYLE   = 'hormozi', STYLE_KEY = 'capivo.style';
 var activeId        = (function(){ try { return resolveStyleId((typeof localStorage !== 'undefined' && localStorage.getItem(STYLE_KEY)) || DEFAULT_STYLE); } catch (e) { return DEFAULT_STYLE; } })();
 var capPos          = 'bottom';
 var capHOff         = 0;    // Horizontaler Versatz der Caption-Mitte in % der Rahmenbreite (+ = nach rechts) — auflösungsunabhängig, gleich im Export
@@ -4167,7 +4167,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
       else if (s.hlPillBg)          ws += 'background:' + s.hlPillBg + ';padding:2px 9px;border-radius:5px;color:' + (s.hlc || '#fff') + ';-webkit-text-fill-color:' + (s.hlc || '#fff') + ';';
       else                          ws += 'color:' + hlColorFor(s, oi) + ';';
       ws += 'text-shadow:' + (s.hls || 'none') + ';';
-      if (!live && s.anim && s.anim !== 'none') ws += 'animation:captly-' + s.anim + ' .34s ease both;';
+      if (!live && s.anim && s.anim !== 'none') ws += 'animation:captly-' + s.anim + ' ' + animDur(s.anim) + 's ease both;';
     } else if (isKw) {
       // Hervorgehoben (nicht aktiv): Akzentfarbe des Styles (emphColor), sonst Textfarbe; Schatten s. emphShadowIsHl
       if (s.hlg)      ws += 'background:' + s.hlg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
@@ -6259,7 +6259,7 @@ async function renderSegments() {
     row.onclick = function(e) {
       if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON') return;
       selectSegRow(row);
-      seekToTime(b.start);
+      segSeek(idx);
     };
     var ts = document.createElement('span');
     ts.className = 'cap-seg-time';
@@ -6269,6 +6269,9 @@ async function renderSegments() {
     ta.rows = 1;
     ta.value = b.text;
     ta.onclick = function(e){ e.stopPropagation(); };
+    // Der Text IST fast die ganze Zeile: ein Klick darauf (Fokus wechselt in diese Zeile) springt wie ein Klick auf den Rand an den Zeilenanfang.
+    // Klick in die schon fokussierte Zeile (Cursor setzen) und programmatisches focus() (Split/Merge/Pfeiltasten) springen nicht.
+    ta.addEventListener('pointerdown', (function(i, el) { return function() { if (document.activeElement !== el) segSeek(i); }; })(idx, ta));
     ta.onfocus = (function(r, el) { return function() { selectSegRow(r); el._orig = el.value; setEdCompact(true); }; })(row, ta);
     ta.onblur = segBlur;
     ta.onchange = (function(i, el) { return function() { suggestFixAll(el._orig, el.value, i); el._orig = el.value; }; })(idx, ta);
@@ -6426,6 +6429,14 @@ function setActiveSeg(idx) {
   document.querySelectorAll('.cap-seg').forEach(function(s, i){ s.classList.toggle('active', i === idx); });
 }
 
+// Klick auf eine Zeile der Liste: an den Zeilenanfang springen und PAUSIEREN (Korrekturlesen: Bild + Untertitel stehen am Blockanfang).
+// Block wird beim Klick aus captionBlocks gelesen (nicht aus dem Aufbau-Zeitpunkt) und timeOff berücksichtigt wie in der Timeline.
+function segSeek(idx) {
+  var b = captionBlocks[idx], vid = document.getElementById('mainVid');
+  if (!b || !vid || isExporting || !(vid.duration > 0)) return;
+  if (!vid.paused) vid.pause();
+  tlSeekVideo(b.start - (timeOff || 0) + 0.01);
+}
 function seekToTime(t) {
   var vid = document.getElementById('mainVid');
   if (!vid.duration) return;
@@ -7605,7 +7616,7 @@ function applyTemplateSettings(t) {
   if (tsz) {
     fontSize = tsz;
     var ss = document.getElementById('szSlider');
-    if (ss) { ss.value = tsz; document.getElementById('szDisp').textContent = tsz + 'px'; }
+    if (ss) { ss.value = tsz; syncSzDisp(); }
   }
   if (t.case) capCase = t.case;
   if (typeof t.punct === 'boolean') capNoPunct = t.punct;
@@ -8166,10 +8177,27 @@ function syncPosButtons() {
     b.classList.toggle('on', !capFree && b.dataset.pos === capPos); // frei platziert → kein Preset aktiv
   });
 }
+// Anzeige neben dem Grössen-Regler: relativ statt «22px» (die Vorschau-Pixel hängen am Rahmen und haben mit dem 1080-px-Export nichts
+// zu tun). Basis = Regler (fontSize) im Verhältnis zum Rahmen — gleiche Zahl in Vorschau und Export, weil fontSize mit dem Rahmen
+// mitskaliert und der Export mit fontSize / Rahmenbreite rechnet. Anzeige: Stufe S/M/L/XL nach Anteil an der Rahmenbreite
+// (Standard ≈ 8 % = M) + Grösse in % der Rahmenhöhe. Regler-Bereich (10–54) und gespeicherte Werte bleiben unverändert.
+function capSizeInfo(px, fw, fh) {
+  var rel = fw > 0 ? px / fw : 0, pctH = fh > 0 ? px / fh * 100 : 0;
+  var tag = rel < 0.06 ? 'S' : rel < 0.105 ? 'M' : rel < 0.15 ? 'L' : 'XL';
+  return { tag: tag, pctH: Math.round(pctH * 10) / 10, px1080: Math.round(rel * 1080) };
+}
+function syncSzDisp(fw, fh) {
+  var d = document.getElementById('szDisp'); if (!d) return;
+  var i = capSizeInfo(fontSize, fw > 0 ? fw : previewFrameW(), fh > 0 ? fh : previewFrameH());
+  d.textContent = i.tag + ' ' + i.pctH.toFixed(1) + '%';
+  var t = 'Caption size ' + i.tag + ': ' + i.pctH.toFixed(1) + ' % of the frame height (≈ ' + i.px1080 + ' px on a 1080-px-wide export, before the look’s own size factor). Same value in preview and export.';
+  d.title = t;
+  var sl = document.getElementById('szSlider'); if (sl) sl.title = t;
+}
 function onSzChange(v) { return lookUndoRun('size', function(){ onSzChangeRaw(v); }); }
 function onSzChangeRaw(v) {
   fontSize = parseInt(v);
-  document.getElementById('szDisp').textContent = fontSize + 'px';
+  syncSzDisp();
   onCapMetricsChange('size');
   _lastKey = null;
   updateOverlay();
@@ -8536,7 +8564,7 @@ function loadStyleStats() {
     return n;
   }).catch(function(){ return 0; });
 }
-var LAND_CHIPS = ['tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'hormozi', 'classic', 'boxkara', 'beast'];
+var LAND_CHIPS = ['hormozi', 'tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'classic', 'boxkara', 'beast']; // Standard-Look (DEFAULT_STYLE) zuerst
 var landPick = null;
 // ID des Standard-Templates, falls es (noch) existiert — sonst ''. Lädt die Templates bei Bedarf (Startseite kommt vor openEditor).
 function landBrandId() {
@@ -9115,7 +9143,7 @@ function applyProjectPayload(p) {
   if (p.fontSize) {
     var fsz = p.fontSize;
     if (typeof p.fontRel === 'number' && p.fontRel > 0 && vidReady) fsz = Math.max(10, Math.min(54, Math.round(p.fontRel * previewFrameW())));
-    fontSize = fsz; var ss = document.getElementById('szSlider'); if (ss) { ss.value = fsz; document.getElementById('szDisp').textContent = fsz + 'px'; }
+    fontSize = fsz; var ss = document.getElementById('szSlider'); if (ss) { ss.value = fsz; syncSzDisp(); }
   }
   if (p.wpb) { WORDS_PER_BLOCK = p.wpb; var ws = document.getElementById('wpbSlider'); if (ws) { ws.value = p.wpb; document.getElementById('wpbDisp').textContent = p.wpb; } }
   if (typeof p.lines === 'number') { CAPTION_LINES = p.lines; syncLinesButtons(); }
@@ -10162,9 +10190,9 @@ function layoutPreviewFrame(setFont) {
   var w0 = parseFloat(frame.style.width);
   if (!setFont && w0 > 0 && w !== w0) {
     fontSize = fontSize * w / w0;
-    var szS = document.getElementById('szSlider'), szD = document.getElementById('szDisp');
+    var szS = document.getElementById('szSlider');
     if (szS) szS.value = Math.round(fontSize);
-    if (szD) szD.textContent = Math.round(fontSize) + 'px';
+    syncSzDisp(w, h);
   }
   frame.style.width  = w + 'px';
   frame.style.height = h + 'px';
@@ -10172,8 +10200,7 @@ function layoutPreviewFrame(setFont) {
     fontSize = Math.max(10, Math.min(54, Math.round(w * 0.08)));
     var szSliderEl = document.getElementById('szSlider');
     if (szSliderEl) szSliderEl.value = fontSize;
-    var szDispEl = document.getElementById('szDisp');
-    if (szDispEl) szDispEl.textContent = fontSize + 'px';
+    syncSzDisp(w, h);
   }
   syncMaxCharsUI(); // Auto-Zeichenlimit hängt von Rahmenbreite/Schriftgröße ab
   applyPreviewCrop(); // «crop»: Video-Ausschnitt an die (neue) Rahmengrösse anpassen
@@ -11988,12 +12015,16 @@ function fillTextWithShadow(ctx, text, x, y, shadowStr, scale) {
 var ANIM_KEYFRAMES = {
   bounce: [[0,{ty:.22,op:.5}],[100,{ty:0,op:1}]],                      // Lift: steigt 0,22 em von unten, blendet .5 → 1 ein
   scale:  [[0,{sx:1,sy:1}],[30,{sx:1.14,sy:1.14}],[100,{sx:1,sy:1}]],  // Pop: 1 → 1.14 → 1
-  flash:  [[0,{op:0}],[100,{op:1}]],                                   // Fade in: 0 → 1
+  flash:  [[0,{op:.35},'out'],[100,{op:1}]],                           // Fade in: .35 → 1, ease-out, nur ANIM_DURS.flash (0,12 s)
   glow:   [[0,{glow:0}],[30,{glow:1}],[100,{glow:0}]],                 // Glow: Leuchten in der Highlight-Farbe
   punch:  [[0,{sx:1.28,sy:1.28},'out'],[100,{sx:1,sy:1}]],             // Punch: 1.28 → 1 (ease-out)
   wobble: [[0,{ty:.22,op:.5}],[100,{ty:0,op:1}]]                       // Alt-Name = Lift
 };
 var ANIM_DUR = 0.34;
+// Dauer je Animation (Standard ANIM_DUR). Fade in (flash) = Look „Tight“: Ein-Wort-Blöcke dauern oft nur 0,3 s — mit 0,34 s Fade von 0 stand das Wort fast
+// die ganze Zeit halbtransparent. Jetzt .35 → 1 in 0,12 s (ease-out). Vorschau (animState) und Export (drawCaptionsOnCtx) nutzen dieselbe Kurve.
+var ANIM_DURS = { flash: 0.12 };
+function animDur(anim) { return ANIM_DURS[anim] || ANIM_DUR; }
 // Pop/Punch skaliert das aktive Wort um seine Mitte. Bei langen Wörtern wuchs es dabei über die Hälfte des Wortabstands in die Nachbarn
 // («wieschnell», ~0,3 s lang) — das Layout steht fest und darf sich nicht verschieben. Darum wächst das Wort pro Seite höchstens
 // CAP_POP_SIDE em der Schrift (≈ 36 % des Wortabstands): Faktor 0..1 auf die Animationsstärke (kurze Wörter behalten den vollen Pop).
@@ -12007,8 +12038,9 @@ function capPopFactor(anim, wordW, fpx) {
 }
 function animState(anim, elapsed) {
   var kf = ANIM_KEYFRAMES[anim];
-  if (!kf || !(elapsed >= 0) || elapsed >= ANIM_DUR) return null;
-  var pct = (elapsed / ANIM_DUR) * 100;
+  var dur = animDur(anim);
+  if (!kf || !(elapsed >= 0) || elapsed >= dur) return null;
+  var pct = (elapsed / dur) * 100;
   var lo = kf[0], hi = kf[kf.length - 1];
   for (var i = 0; i < kf.length - 1; i++) { if (pct >= kf[i][0] && pct <= kf[i + 1][0]) { lo = kf[i]; hi = kf[i + 1]; break; } }
   var span = hi[0] - lo[0], f = span > 0 ? (pct - lo[0]) / span : 0;
@@ -13576,7 +13608,7 @@ function restoreLook(L) {
   syncPosButtons();
   var vs = document.getElementById('voffSlider'); if (vs) { vs.value = Math.max(-30, Math.min(30, Math.round(capVOff))); var vd = document.getElementById('voffDisp'); if (vd) vd.textContent = (capVOff > 0 ? '+' : '') + Math.round(capVOff) + '%'; }
   fontSize = L.size;
-  var ss = document.getElementById('szSlider'); if (ss) { ss.value = fontSize; var sd = document.getElementById('szDisp'); if (sd) sd.textContent = fontSize + 'px'; }
+  var ss = document.getElementById('szSlider'); if (ss) { ss.value = fontSize; syncSzDisp(); }
   capCase = L.kase; capNoPunct = !!L.punct; syncTextFormatUI();
   displayMode = L.mode; syncModeUI();
   CAPTION_LINES = L.lines; syncLinesButtons();
