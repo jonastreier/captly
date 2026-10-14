@@ -14765,6 +14765,68 @@ function tlDeleteRange(r) {
   markCaptionsEdited(); refreshCaptionViews();
   capToast(n + ' captions deleted — Ctrl/⌘+Z to undo');
 }
+// ── B5: Ausschneiden / Trimmen in der Timeline ──
+// Bereich zum Ausschneiden (Quellzeit): In/Out-Marken > Mehrfachauswahl > gewählter Block. null, wenn nichts gewählt.
+function tlCutRange() {
+  if (tlMarkIn !== null && tlMarkOut !== null && tlMarkOut - tlMarkIn >= 0.05) return { a: tlMarkIn, b: tlMarkOut };
+  var off = timeOff || 0, rg = tlRange(), b0 = captionBlocks[tlSel];
+  if (rg) return { a: captionBlocks[rg.a].start - off, b: captionBlocks[rg.b].end - off };
+  if (b0) return { a: b0.start - off, b: b0.end - off };
+  return null;
+}
+function tlCutOut() {
+  var r = tlCutRange();
+  if (!r) { capToast('Select captions, or set In/Out with I and O, then Cut out (X)'); return false; }
+  var ok = cutOutRange(r.a, r.b);
+  if (ok) { tlMarkIn = null; tlMarkOut = null; _tl.actKey = ''; tlSyncAct(); }
+  return ok;
+}
+function tlRestoreSel() { return tlCutSel >= 0 ? restoreCut(tlCutSel) : false; }
+function tlSelectCut(idx) {
+  tlCutSel = manualCuts[idx] ? idx : -1; tlSel = -1; tlSelEnd = -1; selectSegRow(null);
+  tlHintSeen(); _tl.actKey = ''; tlSyncAct(); tlRequestDraw();
+}
+// I / O: Marke am Abspielkopf setzen (Quellzeit); kreuzen sich die Marken, fällt die andere weg
+function tlSetMark(which) {
+  var vid = document.getElementById('mainVid'), t = _tl.mob ? tlMobCenter() : (vid && isFinite(vid.currentTime) ? vid.currentTime : 0);
+  t = cutR3(t);
+  if (which === 'in') { tlMarkIn = t; if (tlMarkOut !== null && tlMarkOut <= t) tlMarkOut = null; }
+  else { tlMarkOut = t; if (tlMarkIn !== null && tlMarkIn >= t) tlMarkIn = null; }
+  _tl.actKey = ''; tlSyncAct(); tlRequestDraw();
+  return t;
+}
+// Trim-Griff ziehen (d.mode 'in'/'out'); der Undo-Schritt entsteht erst beim Loslassen
+function tlTrimMove(d, x) {
+  var t = tlXToTime(x, tlView);
+  trimSetRaw(d.mode, t);
+  var vid = document.getElementById('mainVid');
+  if (!_tl.mob && vid && vid.paused && vid.duration > 0) { vid.currentTime = Math.max(0, Math.min(vid.duration, d.mode === 'in' ? trimIn + 0.01 : trimOutEff(vid.duration) - 0.04)); _lastKey = null; updateOverlay(vid.currentTime); }
+  tlRequestDraw();
+}
+function tlTrimEnd(d, cancelled) {
+  if (!d || !d.undoSnap) return;
+  if (cancelled) { restoreTrim(JSON.parse(d.undoSnap).__trim); return; }
+  if (trimSnapshot() !== d.undoSnap) { pushUndo(null, d.undoSnap); _lookTag = null; trimChanged(); }
+}
+function tlTrimGeom(v, dur, mob) { return { xi: tlTimeToX(trimIn, v), xo: tlTimeToX(trimOutEff(dur), v), hw: mob ? 14 : 9 }; }
+// Trefferprüfung für Trim-Griffe (Handy: je 44 px breit), Wiederherstellen-Pille und manuelle Schnitte; sonst null
+function tlTrimHit(x, y, g, v, touch, mob) {
+  var dur = tlDur();
+  if (!(v.pps > 0) || !(dur > 0)) return null;
+  if (y < g.barY - (mob ? 3 : 1)) {
+    var tg = tlTrimGeom(v, dur, mob), pad = mob ? 16 : touch ? 14 : 3, pad2 = mob ? 14 : touch ? 14 : 3;
+    var dIn = (x >= tg.xi - pad && x <= tg.xi + tg.hw + pad2) ? Math.abs(x - (tg.xi + tg.hw / 2)) : Infinity;
+    var dOut = (x >= tg.xo - tg.hw - pad2 && x <= tg.xo + pad) ? Math.abs(x - (tg.xo - tg.hw / 2)) : Infinity;
+    if (dIn < Infinity || dOut < Infinity) return { type: 'trim', mode: dIn <= dOut ? 'in' : 'out' };
+    var pl = _tl.pill, pp = mob ? 6 : 0;
+    if (pl && tlCutSel >= 0 && x >= pl.x0 - pp && x <= pl.x1 + pp && y >= pl.y0 - pp && y <= pl.y1 + pp) return { type: 'pill', idx: tlCutSel };
+    if (y >= g.ruler || mob) {
+      var t = tlXToTime(x, v);
+      for (var i = 0; i < manualCuts.length; i++) if (t >= manualCuts[i].start && t < manualCuts[i].end) return { type: 'cut', idx: i };
+    }
+  }
+  return null;
+}
 var tlView = { start: 0, pps: 0 };  // linker Rand (s) + Pixel pro Sekunde
 var _tl = { cv: null, ctx: null, raf: 0, drag: null, ptrs: {}, pinch: null, fit: true, userAt: 0, lastTap: null,
             snap: null, tw: {}, twN: 0, open: false, shown: false, hover: '',
@@ -15108,7 +15170,7 @@ function tlSeekVideo(tv) {
 // Auswahl ↔ Zeilenliste: Balken wählen markiert die Zeile (und scrollt sie in Sicht), Zeile wählen markiert den Balken.
 function tlSelect(idx, seek) {
   var b = captionBlocks[idx];
-  tlSel = b ? idx : -1; tlSelEnd = -1;
+  tlSel = b ? idx : -1; tlSelEnd = -1; if (b) tlCutSel = -1;
   var row = b ? document.getElementById('seg' + idx) : null;
   selectSegRow(row && row.classList ? row : null);
   if (row) tlScrollRowIntoView(row);
@@ -15227,13 +15289,15 @@ function tlFlingStart(v, to) {
 }
 // Aktionsleiste (nur Handy/Touch) nachziehen — billig: DOM nur bei geänderter Auswahl/Zeit/Snap.
 function tlSyncAct() {
-  var b = captionBlocks[tlSel], rg = tlRange(), key = _tl.mob + '|' + tlSel + '|' + tlSelEnd + '|' + tlMulti + '|' + (b ? b.start + '|' + b.end : '') + '|' + tlSnapOn + '|' + captionBlocks.length;
+  var b = captionBlocks[tlSel], rg = tlRange(), key = _tl.mob + '|' + tlSel + '|' + tlSelEnd + '|' + tlMulti + '|' + (b ? b.start + '|' + b.end : '') + '|' + tlSnapOn + '|' + captionBlocks.length + '|' + trimIn + '|' + trimOut + '|' + manualCuts.length + '|' + tlCutSel + '|' + tlMarkIn + '|' + tlMarkOut + '|' + (autoCutSilence ? 1 : 0);
   if (key === _tl.actKey) return;
   _tl.actKey = key;
   var hint = document.getElementById('taHint');
   if (hint) hint.textContent = rg ? ((rg.b - rg.a + 1) + ' captions selected · hold one to move them · Delete removes them')
                              : tlMulti ? (b ? 'Tap the last caption of the range' : 'Swipe across captions to select them, or tap the first and the last')
                              : b ? (fmtT1(b.start) + ' – ' + fmtT1(b.end) + ' · hold to move · drag the edges to trim')
+                                 : (tlCutSel >= 0 && manualCuts[tlCutSel]) ? ('Cut ' + fmtT1(manualCuts[tlCutSel].start) + ' – ' + fmtT1(manualCuts[tlCutSel].end) + ' selected · Restore brings it back')
+                                 : trimSummaryText() ? (trimSummaryText() + ' · tap a hatched cut to restore it')
                                  : 'Tap a caption to adjust it · swipe to scrub · pinch to zoom';
   ['taSplit', 'taEdit', 'taDel'].forEach(function(id){ var el = document.getElementById(id); if (el) el.disabled = !b; });
   var sp = document.getElementById('taSplit');
@@ -15242,6 +15306,9 @@ function tlSyncAct() {
   var mu = document.getElementById('taMulti');
   if (mu) { mu.classList.toggle('on', tlMulti); if (mu.setAttribute) mu.setAttribute('aria-pressed', tlMulti ? 'true' : 'false'); mu.disabled = !captionBlocks.length; }
   var gp = document.getElementById('taGaps'); if (gp) gp.disabled = !captionBlocks.length;
+  var canCut = !!tlCutRange(), canRes = tlCutSel >= 0 && !!manualCuts[tlCutSel];
+  ['tlCutBtn', 'taCut'].forEach(function(id) { var el = document.getElementById(id); if (el) el.disabled = !canCut; });
+  ['tlRestoreBtn', 'taRestore'].forEach(function(id) { var el = document.getElementById(id); if (el) el.disabled = !canRes; });
   var sn = document.getElementById('taSnap');
   if (sn) { sn.classList.toggle('on', tlSnapOn); if (sn.setAttribute) sn.setAttribute('aria-pressed', tlSnapOn ? 'true' : 'false'); }
 }
@@ -15421,6 +15488,7 @@ function tlDraw() {
     ctx.fillStyle = '#fff';
     ctx.beginPath(); tlRRect(ctx, selH.xs - 8.5, yB + hB * 0.32, 3, hB * 0.36, 1.5); tlRRect(ctx, selH.xe + 5.5, yB + hB * 0.32, 3, hB * 0.36, 1.5); ctx.fill();
   }
+  tlDrawCuts(ctx, v, w, g, dur, mob);
   // Auswahlrahmen (Desktop-Ziehen auf leerer Fläche bzw. Handy-Wisch im «Select»-Modus)
   if (d && (d.type === 'marquee' || d.type === 'sweep') && d.moved && d.t1 !== undefined) {
     var mx0 = tlTimeToX(Math.min(d.tDown, d.t1), v), mx1 = tlTimeToX(Math.max(d.tDown, d.t1), v), my0 = mob ? yB - 4 : g.ruler + 1;
@@ -15462,10 +15530,75 @@ function tlDraw() {
     }
   }
 }
+// B5: Schraffur für geschnittene Bereiche (Trim grau, manuell rot, Auto-Cut bernstein), In/Out-Marken, Trim-Griffe, Wiederherstellen-Pille
+function tlHatch(ctx, w, x0, x1, y0, y1, fill, line) {
+  x0 = Math.max(-2, x0); x1 = Math.min(w + 2, x1);
+  if (x1 - x0 < 1) return;
+  var h = y1 - y0, hasClip = typeof ctx.clip === 'function' && typeof ctx.save === 'function';
+  if (hasClip) { ctx.save(); ctx.beginPath(); ctx.rect(x0, y0, x1 - x0, h); ctx.clip(); }
+  ctx.fillStyle = fill; ctx.fillRect(x0, y0, x1 - x0, h);
+  ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath();
+  for (var sx = Math.floor((x0 - h) / 7) * 7; sx < x1; sx += 7) { ctx.moveTo(sx, y1); ctx.lineTo(sx + h, y0); }
+  ctx.stroke();
+  if (hasClip) ctx.restore();
+}
+function tlDrawCuts(ctx, v, w, g, dur, mob) {
+  var i, r, x0, x1, hAll = g.h, yTop = g.ruler;
+  if (autoCutSilence) {
+    var ar = autoCutRegions();
+    for (i = 0; i < ar.length; i++) tlHatch(ctx, w, tlTimeToX(ar[i].start, v), tlTimeToX(ar[i].end, v), yTop, hAll, 'rgba(217,119,6,.10)', 'rgba(217,119,6,.45)');
+  }
+  for (i = 0; i < manualCuts.length; i++) {
+    r = manualCuts[i]; x0 = tlTimeToX(r.start, v); x1 = tlTimeToX(r.end, v);
+    var sel = i === tlCutSel;
+    tlHatch(ctx, w, x0, x1, yTop, hAll, sel ? 'rgba(220,38,38,.22)' : 'rgba(220,38,38,.10)', sel ? 'rgba(220,38,38,.75)' : 'rgba(220,38,38,.45)');
+    if (sel) { ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 1.5; ctx.strokeRect(Math.max(-2, x0) + 0.5, yTop + 0.5, Math.min(w + 2, x1) - Math.max(-2, x0) - 1, hAll - yTop - 1); }
+    else if (x1 - x0 > 44) { ctx.fillStyle = '#b91c1c'; ctx.font = '600 10px Inter, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText('−' + (r.end - r.start).toFixed(1) + ' s', Math.max(x0, 0) / 2 + Math.min(x1, w) / 2, g.ruler + g.wave / 2); ctx.textAlign = 'left'; }
+  }
+  var tg = tlTrimGeom(v, dur, mob), outT = trimOutEff(dur);
+  if (trimIn > 0.0005) tlHatch(ctx, w, tlTimeToX(0, v) - 2, tg.xi, 0, hAll, 'rgba(60,70,80,.26)', 'rgba(60,70,80,.5)');
+  if (outT < dur - 0.0005) tlHatch(ctx, w, tg.xo, tlTimeToX(dur, v) + 2, 0, hAll, 'rgba(60,70,80,.26)', 'rgba(60,70,80,.5)');
+  // In/Out-Marken
+  if (tlMarkIn !== null || tlMarkOut !== null) {
+    var mi = tlMarkIn !== null ? tlTimeToX(tlMarkIn, v) : null, mo = tlMarkOut !== null ? tlTimeToX(tlMarkOut, v) : null;
+    if (mi !== null && mo !== null) { ctx.fillStyle = 'rgba(37,99,235,.13)'; ctx.fillRect(mi, yTop, mo - mi, hAll - yTop); }
+    ctx.font = '700 9.5px Inter, system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.lineWidth = 1.5;
+    [[mi, 'I'], [mo, 'O']].forEach(function(m) {
+      if (m[0] === null || m[0] < -6 || m[0] > w + 6) return;
+      ctx.strokeStyle = '#2563eb'; ctx.beginPath(); ctx.moveTo(Math.round(m[0]) + 0.5, 0); ctx.lineTo(Math.round(m[0]) + 0.5, hAll); ctx.stroke();
+      ctx.fillStyle = '#2563eb'; ctx.beginPath(); tlRRect(ctx, m[0] - 7, 1, 14, g.ruler - 3, 3); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.fillText(m[1], m[0], g.ruler / 2);
+    });
+    ctx.textAlign = 'left';
+  }
+  // Griffe (Handy 14 px sichtbar, Trefferfläche je 44 px — s. tlTrimHit)
+  var dr = _tl.drag && _tl.drag.type === 'trim' ? _tl.drag.mode : '', hh = g.barY - 2;
+  [['in', tg.xi, tg.xi, trimIn > 0.0005], ['out', tg.xo, tg.xo - tg.hw, outT < dur - 0.0005]].forEach(function(hd) {
+    ctx.fillStyle = dr === hd[0] ? '#0f766e' : hd[3] ? '#0d9488' : '#9aa3a5';
+    ctx.beginPath(); tlRRect(ctx, hd[2], 0, tg.hw, hh, 3); ctx.fill();
+    ctx.fillStyle = '#fff'; var gx = hd[2] + tg.hw / 2;
+    ctx.beginPath(); tlRRect(ctx, gx - 2, hh * 0.3, 1.5, hh * 0.4, 0.7); tlRRect(ctx, gx + 0.5, hh * 0.3, 1.5, hh * 0.4, 0.7); ctx.fill();
+  });
+  // Wiederherstellen-Pille am gewählten Schnitt
+  _tl.pill = null;
+  var cs = manualCuts[tlCutSel];
+  if (cs) {
+    var cx0 = Math.max(0, tlTimeToX(cs.start, v)), cx1 = Math.min(w, tlTimeToX(cs.end, v));
+    if (cx1 > cx0) {
+      ctx.font = '600 11px Inter, system-ui, sans-serif';
+      var pw = ctx.measureText('Restore').width + 18, ph2 = 20, px = Math.max(2, Math.min(w - pw - 2, (cx0 + cx1) / 2 - pw / 2)), py = g.ruler + Math.max(0, (g.wave - ph2) / 2);
+      ctx.fillStyle = '#dc2626'; ctx.beginPath(); tlRRect(ctx, px, py, pw, ph2, ph2 / 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText('Restore', px + pw / 2, py + ph2 / 2 + 0.5); ctx.textAlign = 'left';
+      _tl.pill = { x0: px, x1: px + pw, y0: py, y1: py + ph2 };
+    }
+  }
+}
 // Trefferprüfung: Lineal (Seek) · Balken-Kante (Trimmen) · Balken (Verschieben) · leer (Scrollen/Seek).
 // Kanten: innen 6 px + außen 3 px (Maus), auf Touch 12 + 8 px (≥ 16 px Trefferfläche) und nur am gewählten Block.
 function tlHit(x, y, touch) {
   var g = tlGeom(), v = tlView, off = timeOff || 0, mob = !!(touch && _tl.mob);
+  var th = tlTrimHit(x, y, g, v, touch, mob); // B5: Trim-Griffe, Wiederherstellen-Pille, Schnitte
+  if (th) return th;
   if (y < g.ruler) return mob ? { type: 'empty' } : { type: 'ruler' };
   if (y < g.barY - (mob ? 10 : touch ? 6 : 2) || !(v.pps > 0)) return { type: 'empty' };
   var bl = captionBlocks, t = tlXToTime(x, v) + off, inN = mob ? TL_HANDLE : touch ? 12 : 6, outN = mob ? TL_HANDLE + 2 : touch ? 8 : 3, tol = Math.max(outN, TL_MIN_HIT / 2) / v.pps;
@@ -15534,6 +15667,7 @@ function tlOnDown(e) {
   var d = { id: e.pointerId, x0: p.x, y0: p.y, moved: false, touch: touch, hit: hit, tDown: tlXToTime(p.x, tlView), view0: { start: tlView.start, pps: tlView.pps } };
   if (mid) { d.type = 'pan'; d.mid = true; } // Mittelklick-Ziehen = Scrollen
   else if (hit.type === 'ruler') { d.type = 'seek'; tlSeekVideo(tlXToTime(p.x, tlView)); }
+  else if (hit.type === 'trim') { d.type = 'trim'; d.mode = hit.mode; }
   else if (hit.type === 'block' && (!touch || hit.idx === tlSel)) {
     d.type = 'block'; d.idx = hit.idx; d.mode = hit.mode;
     if (!e.shiftKey && hit.mode === 'move' && tlInRange(hit.idx)) d.group = tlRange();
@@ -15556,6 +15690,7 @@ function tlOnDown(e) {
   }
   _tl.drag = d;
   if (d.type === 'block') _tl.cv.style.cursor = d.mode === 'move' ? 'grabbing' : 'ew-resize';
+  else if (d.type === 'trim') _tl.cv.style.cursor = 'ew-resize';
   else if (d.type === 'pan' && d.mid) _tl.cv.style.cursor = 'grabbing';
   e.preventDefault();
 }
@@ -15582,12 +15717,15 @@ function tlOnMove(e) {
   if (d && d.mob) { if (d.id === e.pointerId) tlMobMove(e, p, d); return; }
   if (!d) { // Hover: Cursor + Tooltip je Bereich
     if (e.pointerType !== 'mouse' || _tl.mob) return;
-    var h = tlHit(p.x, p.y, false), cur = h.type === 'ruler' ? 'pointer' : h.type === 'block' ? (h.mode === 'move' ? 'grab' : 'ew-resize') : 'crosshair';
-    var hb = h.type === 'block' ? captionBlocks[h.idx] : null, hk = cur + '|' + (hb ? h.idx + '|' + hb.text + '|' + hb.start + '|' + hb.end : '');
+    var h = tlHit(p.x, p.y, false), cur = h.type === 'ruler' || h.type === 'cut' || h.type === 'pill' ? 'pointer' : h.type === 'trim' ? 'ew-resize' : h.type === 'block' ? (h.mode === 'move' ? 'grab' : 'ew-resize') : 'crosshair';
+    var hb = h.type === 'block' ? captionBlocks[h.idx] : null, hk = cur + '|' + h.type + '|' + (hb ? h.idx + '|' + hb.text + '|' + hb.start + '|' + hb.end : '');
     if (_tl.hover !== hk) {
       _tl.hover = hk; _tl.cv.style.cursor = cur;
       // Block-Tooltip mit Text + Zeit: schmale Balken haben keinen Platz für eine Beschriftung
       _tl.cv.title = h.type === 'ruler' ? 'Click or drag to seek'
+        : h.type === 'trim' ? (h.mode === 'in' ? 'Drag to trim the start of the video (everything before it is cut)' : 'Drag to trim the end of the video (everything after it is cut)')
+        : h.type === 'cut' ? 'Cut-out range — click to select it, then Restore'
+        : h.type === 'pill' ? 'Bring this cut back'
         : hb ? ('“' + (String(hb.text || '').trim() || '(empty caption)') + '”  ' + fmtT1(hb.start - (timeOff || 0)) + '–' + fmtT1(hb.end - (timeOff || 0)) + '\nDrag to move · drag edges to trim · double-click to edit')
         : 'Drag to select several captions (Shift adds) · scroll or middle-drag to pan · Ctrl/⌘+wheel to zoom · click to seek';
     }
@@ -15599,7 +15737,9 @@ function tlOnMove(e) {
     if (Math.abs(dx) < (d.touch ? 8 : 3) && Math.abs(p.y - d.y0) < (d.touch ? 8 : 3)) return;
     d.moved = true; clearTimeout(d.lp);
     if (d.type === 'block' && !tlBeginBlockDrag(d)) { _tl.drag = null; return; }
+    if (d.type === 'trim') { d.undoSnap = trimSnapshot(); tlHintSeen(); }
   }
+  if (d.type === 'trim') { tlTrimMove(d, p.x); return; }
   if (d.type === 'seek') { tlSeekVideo(tlXToTime(p.x, tlView)); return; }
   if (d.type === 'pan') {
     tlView = tlClampView({ start: d.view0.start - dx / tlView.pps, pps: tlView.pps }, dur, w);
@@ -15638,7 +15778,8 @@ function tlOnUp(e) {
   _tl.drag = null; _tl.hover = '';
   _tl.cv.style.cursor = '';
   if (d.type === 'seek') updateOverlay(); // Scrub-Ende: Ruhezustand
-  if (e.type === 'pointercancel') { if (d.type === 'marquee') tlSweepRestore(d); tlRevertDrag(d); tlRequestDraw(); return; }
+  if (e.type === 'pointercancel') { if (d.type === 'trim') tlTrimEnd(d, true); if (d.type === 'marquee') tlSweepRestore(d); tlRevertDrag(d); tlRequestDraw(); return; }
+  if (d.type === 'trim') { tlTrimEnd(d, false); tlRequestDraw(); return; }
   if (d.type === 'marquee' && d.moved) { tlRequestDraw(); return; } // Auswahl steht schon (live gesetzt)
   if (d.type === 'block' && d.base && d.group) {
     _tl.snap = null;
@@ -15658,6 +15799,8 @@ function tlOnUp(e) {
   }
   if (d.moved || d.lpDone) { tlRequestDraw(); return; }
   var now = Date.now();
+  if (d.hit.type === 'pill') { restoreCut(d.hit.idx); return; }
+  if (d.hit.type === 'cut') { tlSelectCut(d.hit.idx); tlSeekVideo(tlXToTime(d.x0, tlView)); return; }
   if (d.hit.type === 'block') {
     if (e.shiftKey && captionBlocks[tlSel] && d.hit.idx !== tlSel) { tlSelEnd = d.hit.idx; _tl.lastTap = null; tlRequestDraw(); return; }
     var lt = _tl.lastTap;
@@ -15666,7 +15809,7 @@ function tlOnUp(e) {
     tlSelect(d.hit.idx, true);
   } else if ((d.type === 'pan' && !d.mid) || d.type === 'marquee') { // Klick auf leere Fläche: abwählen + springen (Shift behält die Auswahl)
     _tl.lastTap = null;
-    if (!e.shiftKey) { tlSel = -1; tlSelEnd = -1; selectSegRow(null); }
+    if (!e.shiftKey) { tlSel = -1; tlSelEnd = -1; tlCutSel = -1; selectSegRow(null); _tl.actKey = ''; }
     tlSeekVideo(tlXToTime(d.x0, tlView));
   }
 }
@@ -15678,7 +15821,8 @@ function tlMobDown(e, p) {
   var hit = tlHit(p.x, p.y, true), now = Date.now();
   var d = { id: e.pointerId, x0: p.x, y0: p.y, at: now, moved: false, touch: true, mob: true, hit: hit,
             tDown: tlXToTime(p.x, tlView), samples: [{ t: now, x: p.x }] };
-  if (hit.type === 'block' && hit.idx === tlSel && hit.mode !== 'move') { d.type = 'block'; d.idx = hit.idx; d.mode = hit.mode; }
+  if (hit.type === 'trim') { d.type = 'trim'; d.mode = hit.mode; }
+  else if (hit.type === 'block' && hit.idx === tlSel && hit.mode !== 'move') { d.type = 'block'; d.idx = hit.idx; d.mode = hit.mode; }
   else {
     d.type = 'pan';
     if (tlMulti && hit.type === 'block') { d.sweep = true; d.px = p.x; d.sel0 = { sel: tlSel, end: tlSelEnd }; } // «Select»-Modus: Wisch ab einem Block wählt den Bereich
@@ -15701,6 +15845,7 @@ function tlMobMove(e, p, d) {
     if (k === 'pending' || k === 'hold') return;
     d.moved = true; clearTimeout(d.lp);
     if (d.type === 'block' && !tlBeginBlockDrag(d)) { _tl.drag = null; return; }
+    if (d.type === 'trim') { d.undoSnap = trimSnapshot(); tlHintSeen(); }
     if (d.type === 'pan' && d.sweep) { // Auswahl-Wisch statt Scrubben: Video anhalten, Spur bleibt stehen
       d.type = 'sweep';
       var vs = document.getElementById('mainVid');
@@ -15711,6 +15856,7 @@ function tlMobMove(e, p, d) {
       d.c0 = tlMobCenter(); d.x0 = p.x; // ab hier ohne Sprung um die Schwelle
     }
   }
+  if (d.type === 'trim') { tlTrimMove(d, p.x); return; }
   if (d.type === 'pan') { tlScrubTo(d.c0 - (p.x - d.x0) / _tl.mpps); return; }
   if (d.type === 'sweep') { tlSweepMove(d, p.x); return; }
   if (d.type !== 'block' || !d.base) return;
@@ -15727,7 +15873,8 @@ function tlMobMove(e, p, d) {
 }
 function tlMobUp(e, d) {
   var now = Date.now();
-  if (e.type === 'pointercancel') { if (d.type === 'sweep') tlSweepRestore(d); tlRevertDrag(d); tlScrubEnd(); tlRequestDraw(); return; }
+  if (e.type === 'pointercancel') { if (d.type === 'trim') tlTrimEnd(d, true); if (d.type === 'sweep') tlSweepRestore(d); tlRevertDrag(d); tlScrubEnd(); tlRequestDraw(); return; }
+  if (d.type === 'trim') { tlTrimEnd(d, false); tlScrubEnd(); tlRequestDraw(); return; }
   if (d.type === 'sweep') { tlScrubEnd(); tlRequestDraw(); return; } // Auswahl steht schon (live gesetzt)
   if (d.type === 'block' && d.base && d.group) { // Bereich gemeinsam verschoben: Auswahl bleibt bestehen
     _tl.snap = null;
@@ -15754,6 +15901,8 @@ function tlMobUp(e, d) {
   if (d.moved || d.lpDone) { tlRequestDraw(); return; }
   if (tlClassify(0, 0, now - d.at, true) !== 'tap') { tlRequestDraw(); return; } // lange gehalten auf leerer Fläche
   var hit = d.hit, vid = document.getElementById('mainVid');
+  if (hit.type === 'pill') { restoreCut(hit.idx); return; }
+  if (hit.type === 'cut') { tlSelectCut(hit.idx); return; }
   if (tlMulti) { // Mehrfachmodus: Antippen setzt Anfang bzw. Ende des Bereichs, leere Fläche ändert nichts
     if (hit.type === 'block') {
       if (!captionBlocks[tlSel] || hit.idx === tlSel) tlSelect(hit.idx, false);
@@ -15767,7 +15916,7 @@ function tlMobUp(e, d) {
     tlSelect(hit.idx, false);
     // Gewählten Block sanft an den Abspielkopf holen (Vorschau zeigt ihn) — nur pausiert und nur beim Wählen
     if (!was && b && (!vid || vid.paused)) tlFlingStart(0, Math.max(0, b.start - (timeOff || 0) + 0.01));
-  } else { tlSel = -1; selectSegRow(null); tlRequestDraw(); }
+  } else { tlSel = -1; tlCutSel = -1; _tl.actKey = ''; selectSegRow(null); tlRequestDraw(); }
 }
 function tlOnWheel(e) {
   if (!_tl.cv || !_tl.open) return;
@@ -15799,6 +15948,14 @@ function tlHandleKey(e) {
   var isS = (k === 's' || k === 'S' || e.code === 'KeyS');
   // S teilt den Block am Abspielkopf — auch ohne Auswahl (Block unter dem Abspielkopf)
   if (isS && !rg && !e.altKey) { e.preventDefault(); e.stopPropagation(); tlSplitAtPlayhead(); return true; }
+  // B5: X schneidet aus (Auswahl bzw. In/Out), I/O setzen die Marken am Abspielkopf, Entf stellt den gewählten Schnitt wieder her
+  if (!e.altKey && !e.shiftKey) {
+    if (k === 'x' || k === 'X' || e.code === 'KeyX') { e.preventDefault(); e.stopPropagation(); tlCutOut(); return true; }
+    if (k === 'i' || k === 'I' || e.code === 'KeyI') { e.preventDefault(); e.stopPropagation(); tlSetMark('in'); return true; }
+    if (k === 'o' || k === 'O' || e.code === 'KeyO') { e.preventDefault(); e.stopPropagation(); tlSetMark('out'); return true; }
+  }
+  if (tlCutSel >= 0 && !b && (k === 'Delete' || k === 'Backspace')) { e.preventDefault(); e.stopPropagation(); tlRestoreSel(); return true; }
+  if (k === 'Escape' && !b && (tlCutSel >= 0 || tlMarkIn !== null || tlMarkOut !== null)) { e.stopPropagation(); tlCutSel = -1; tlMarkIn = null; tlMarkOut = null; _tl.actKey = ''; tlSyncAct(); tlRequestDraw(); return true; }
   if (!b) return false; // nichts gewählt → globale Shortcuts (←/→ = Seek, Leertaste)
   if (k === 'ArrowLeft' || k === 'ArrowRight') {
     e.preventDefault(); e.stopPropagation();
@@ -15902,7 +16059,7 @@ function tlZoomBtn(f) {
 }
 // Neues Video: Wellenform/Sprache/Auswahl gehören zum alten
 function tlReset() {
-  tlWave = null; tlSpeech = []; tlSel = -1; tlSelEnd = -1; tlMulti = false; _tl.fit = true; tlView = { start: 0, pps: 0 }; _tl.drag = null; _tl.snap = null; _tl.tw = {}; _tl.twN = 0;
+  tlWave = null; tlSpeech = []; tlSel = -1; tlSelEnd = -1; tlMulti = false; tlCutSel = -1; tlMarkIn = null; tlMarkOut = null; _tl.pill = null; _tl.fit = true; tlView = { start: 0, pps: 0 }; _tl.drag = null; _tl.snap = null; _tl.tw = {}; _tl.twN = 0;
   tlFlingStop(); _tl.scrubT = null; _tl.pendSeek = null; _tl.mpps = TL_MOB_PPS; _tl.actKey = '';
 }
 (function tlInit() {
