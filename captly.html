@@ -14796,7 +14796,8 @@ function tlSetMark(which) {
 }
 // Trim-Griff ziehen (d.mode 'in'/'out'); der Undo-Schritt entsteht erst beim Loslassen
 function tlTrimMove(d, x) {
-  var t = tlXToTime(x, tlView);
+  if (d.dt === undefined) d.dt = tlXToTime(d.x0, tlView) - (d.mode === 'in' ? trimIn : trimOutEff(tlDur())); // Greifpunkt: Kante springt nicht unter den Zeiger
+  var t = tlXToTime(x, tlView) - d.dt;
   trimSetRaw(d.mode, t);
   var vid = document.getElementById('mainVid');
   if (!_tl.mob && vid && vid.paused && vid.duration > 0) { vid.currentTime = Math.max(0, Math.min(vid.duration, d.mode === 'in' ? trimIn + 0.01 : trimOutEff(vid.duration) - 0.04)); _lastKey = null; updateOverlay(vid.currentTime); }
