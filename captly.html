@@ -2230,6 +2230,20 @@ body.editor-open .lang-hint{display:none}
 
 <script>
 // ═══════════════════════════════════════
+// UI-TEXTE (i18n): _t(«English text», arg0, arg1 …) — Platzhalter {0}, {1}. Auf captly.html gibt _t den Text
+// unverändert zurück; scripts/build-i18n.js ersetzt die nächste Zeile für captly.de.html durch das Wörterbuch
+// {EN: DE} aus i18n/de-ui.js. Nur sichtbare Texte wrappen — nie IDs, CSS-Klassen, Look-IDs oder Storage-Schlüssel.
+// ═══════════════════════════════════════
+var UI_DICT = null;
+function _t(s) {
+  var r = UI_DICT && Object.prototype.hasOwnProperty.call(UI_DICT, s) ? UI_DICT[s] : s, a = arguments;
+  return a.length < 2 ? r : String(r).replace(/\{(\d)\}/g, function(m, i) { return +i + 1 < a.length ? a[+i + 1] : m; });
+}
+// Mehrzahl: _tn(n, «Text für 1», «Text für mehrere», n, …) — nimmt den ersten Text bei n === 1, sonst den zweiten
+function _tn(n, one, other) {
+  return _t.apply(null, [n === 1 ? one : other].concat(Array.prototype.slice.call(arguments, 3)));
+}
+// ═══════════════════════════════════════
 // STYLES
 // ═══════════════════════════════════════
 // Kuratierte Presets (2026): die gängigen Short-Form-Looks, ruhig animiert (kein Blinken/Wackeln/Farbwechsel
@@ -3239,7 +3253,7 @@ async function transcribeChunked(pipe, audioData, opts, isStale, spans) {
     var seg = audioData.subarray(start, Math.min(start + WIN, audioData.length));
     if (seg.length < SR * 0.4) break;
     if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); // kein Worker-Job mehr für alten Lauf
-    if (n > 1) setTStatus('', 'Detecting speech… window ' + (i + 1) + '/' + n, true, true);
+    if (n > 1) setTStatus('', _t('Detecting speech… window {0}/{1}', i + 1, n), true, true);
     setTProgress(76 + ((i + 1) / n) * 16);
     var r = await safePipe(pipe, seg, opts);
     if (!detectedLang && r.chunks && r.chunks.length && r.chunks[0].language) detectedLang = r.chunks[0].language;
@@ -3376,14 +3390,14 @@ async function getPipe(model) {
   var handle = workerCall('load', { model: model }, function(p) {
     var pct = 15 + (p.loaded / p.total) * 50;
     setTProgress(pct);
-    setTStatus('', 'Preparing captions (first time only)…', true, true);
+    setTStatus('', _t('Preparing captions (first time only)…'), true, true);
   }).then(function() { return { model: model }; }, function(err) {
     // Engine/Modell nicht ladbar (CDN blockiert, offline, …): technische Meldung wie „Failed to fetch
     // dynamically imported module: https://cdn.jsdelivr.net/…“ nur in die Konsole, Nutzer bekommt
     // eine verständliche. Cache leeren, sonst bliebe das abgelehnte Promise bis zum Reload hängen.
     console.error('Lokale Transkriptions-Engine konnte nicht geladen werden:', err);
     delete whisperPipes[model];
-    throw transcribeErr('Transcription server is not available and the offline engine could not be loaded — check your connection and try again.', { engineLoad: true });
+    throw transcribeErr(_t('Transcription server is not available and the offline engine could not be loaded — check your connection and try again.'), { engineLoad: true });
   });
   whisperPipes[model] = handle;
   return handle;
@@ -4864,7 +4878,7 @@ function setEmphKw(on) { emKw = !!on; if (_presetPrevLayout) delete _presetPrevL
 function setEmphEmoji(on) {
   emEmoji = !!on; if (_presetPrevLayout) delete _presetPrevLayout.emoji; persistEmph(); afterEmphChange();
   // KI nicht erreichbar: der Schalter wirkt sonst «an», liefert aber nichts → direkt Rückmeldung am Schalter (Hinweis unter den Chips + Toast)
-  if (emEmoji && emAiUnavailable() && captionBlocks.length) capToast('Emojis need the AI service — it isn’t reachable right now.');
+  if (emEmoji && emAiUnavailable() && captionBlocks.length) capToast(_t('Emojis need the AI service — it isn’t reachable right now.'));
 }
 // KI-Anreicherung nicht verfügbar: Server/enhance antwortet nicht (emSrc 'local') bzw. KI in den Einstellungen aus.
 function emAiUnavailable() { return emSrc === 'local' || aiOff(); }
@@ -4891,8 +4905,8 @@ function syncEmphUI() {
   }
   var wn = document.getElementById('emWarn');
   if (wn) {
-    var wtxt = warnEmo ? (aiOff() ? 'Emojis need AI, which is switched off (Settings).' : 'Emojis need the AI service, which isn’t reachable right now — none will appear.')
-      : warnKw ? (aiOff() ? 'AI is switched off — using simple keyword detection.' : 'AI picks unavailable — using simple keyword detection.') : '';
+    var wtxt = warnEmo ? (aiOff() ? _t('Emojis need AI, which is switched off (Settings).') : _t('Emojis need the AI service, which isn’t reachable right now — none will appear.'))
+      : warnKw ? (aiOff() ? _t('AI is switched off — using simple keyword detection.') : _t('AI picks unavailable — using simple keyword detection.')) : '';
     wn.textContent = wtxt;
     wn.style.display = wtxt ? '' : 'none';
     var wr = document.getElementById('emWarnRow'); if (wr) wr.style.display = wtxt ? '' : 'none';
@@ -4900,7 +4914,7 @@ function syncEmphUI() {
     if (rb) rb.style.display = wtxt && !aiOff() ? '' : 'none';
   }
   if (n) {
-    var txt = !captionBlocks.length ? '' : _enhancing ? 'AI is picking keywords…' : '';
+    var txt = !captionBlocks.length ? '' : _enhancing ? _t('AI is picking keywords…') : '';
     n.textContent = txt; n.style.display = txt ? '' : 'none';
   }
 }
@@ -5199,7 +5213,7 @@ function syncHookUI() {
   var ti = document.getElementById('hookTxt');
   if (ti) {
     if (typeof document.activeElement === 'undefined' || document.activeElement !== ti) ti.value = hookText;
-    ti.placeholder = hookAutoText() || 'Title for the first seconds';
+    ti.placeholder = hookAutoText() || _t('Title for the first seconds');
   }
   var sl = document.getElementById('hookDur'), d = document.getElementById('hookDurDisp');
   if (sl && String(sl.value) !== String(hookDur)) sl.value = String(hookDur);
@@ -5208,9 +5222,9 @@ function syncHookUI() {
 }
 function hookNoteText() {
   if (!hookOn || !captionBlocks.length) return '';
-  if (_hookBusy) return 'Asking the AI for a title…';
+  if (_hookBusy) return _t('Asking the AI for a title…');
   if (hookText.trim()) return '';
-  return hookAi ? 'AI suggestion — edit it freely.' : 'Suggestion from the start of your video — edit it freely.';
+  return hookAi ? _t('AI suggestion — edit it freely.') : _t('Suggestion from the start of your video — edit it freely.');
 }
 
 // ── Pro Wort / pro Caption (Captions-Tab) ──
@@ -5220,7 +5234,7 @@ function toggleWordEmph(bi, wi) {
   pushUndo();
   w.kw = isEmphWord(w) ? -1 : 2;
   syncSrcFlags(b);
-  if (!emKw) { emKw = true; persistEmph(); capToast('Keyword highlighting turned on'); }
+  if (!emKw) { emKw = true; persistEmph(); capToast(_t('Keyword highlighting turned on')); }
   markCaptionsEdited();
   afterEmphChange();
 }
@@ -5234,14 +5248,14 @@ function setBlockEmoji(bi, emo) {
   anchor = anchor || b.words[0];
   anchor.emo = emo || ''; anchor.emoU = 1;
   syncSrcFlags(b);
-  if (emo && !emEmoji) { emEmoji = true; persistEmph(); capToast('Emojis turned on'); }
+  if (emo && !emEmoji) { emEmoji = true; persistEmph(); capToast(_t('Emojis turned on')); }
   markCaptionsEdited();
   afterEmphChange();
 }
 // Emoji-Auswahl: kuratiert nach Kategorien, durchsuchbar (englische + deutsche Stichwörter, lokal — keine Bibliothek).
 // Eintrag = [Emoji, 'Stichwörter …']. Suche: Kleinschreibung, ohne Akzente/Umlaut-Punkte (ü → u), Teilwort-Treffer.
 var EMO_CATS = [
-  { id: 'react', name: 'Reactions', icon: '😀', items: [
+  { id: 'react', name: _t('Reactions'), icon: '😀', items: [
     ['🔥', 'fire hot flame lit feuer heiss flamme'], ['💯', 'hundred perfect score 100 hundert perfekt'], ['😂', 'laugh lol funny joy lachen lustig'],
     ['🤣', 'rofl laughing floor lachen lustig'], ['😍', 'love heart eyes liebe verliebt herzaugen'], ['🥰', 'adore love hearts verliebt liebe'],
     ['😎', 'cool sunglasses cool sonnenbrille'], ['🤔', 'think thinking hmm denken nachdenken'], ['😮', 'wow surprised open mouth ueberrascht staunen'],
@@ -5254,7 +5268,7 @@ var EMO_CATS = [
     ['😇', 'angel innocent engel unschuldig'], ['🤪', 'crazy silly wild verrueckt albern'], ['😏', 'smirk sly schmunzeln frech'],
     ['😐', 'neutral meh poker face neutral egal'], ['🥱', 'yawn boring gaehnen langweilig'], ['🤫', 'shh secret quiet psst geheim leise']
   ] },
-  { id: 'gest', name: 'Gestures', icon: '👍', items: [
+  { id: 'gest', name: _t('Gestures'), icon: '👍', items: [
     ['👍', 'thumbs up like yes ok daumen hoch gefaellt ja'], ['👎', 'thumbs down dislike no daumen runter nein'], ['👏', 'clap applause bravo applaus klatschen'],
     ['🙌', 'praise hands celebrate hooray haende hoch jubeln'], ['🙏', 'pray thanks please bitte danke beten'], ['💪', 'strong muscle flex power stark muskel kraft'],
     ['👋', 'wave hello hi bye winken hallo tschuess'], ['🤝', 'handshake deal agreement haendedruck abmachung einigung'], ['👉', 'point right zeigen rechts dorthin'],
@@ -5265,7 +5279,7 @@ var EMO_CATS = [
     ['🫶', 'heart hands love herzhaende liebe'], ['☝️', 'one index up number one eins zeigefinger'], ['👀', 'eyes look see watch augen schauen sehen'],
     ['🧠', 'brain smart think gehirn schlau denken'], ['🗣️', 'speak talking say sprechen reden sagen'], ['👂', 'ear listen hear ohr hoeren zuhoeren']
   ] },
-  { id: 'obj', name: 'Objects', icon: '💡', items: [
+  { id: 'obj', name: _t('Objects'), icon: '💡', items: [
     ['💡', 'idea light bulb tip idee gluehbirne tipp'], ['💰', 'money bag cash geld sack'], ['💸', 'money flying spend geld ausgeben'],
     ['📱', 'phone mobile smartphone handy telefon'], ['💻', 'laptop computer notebook rechner arbeit'], ['⏰', 'alarm clock time wecker uhr zeit'],
     ['⏳', 'hourglass wait time sanduhr warten zeit'], ['📅', 'calendar date kalender datum termin'], ['🎁', 'gift present geschenk'],
@@ -5279,7 +5293,7 @@ var EMO_CATS = [
     ['🚗', 'car drive auto fahren'], ['✈️', 'plane travel flight flugzeug reisen flug'], ['🚜', 'tractor farm traktor landwirtschaft'],
     ['🏠', 'house home haus zuhause'], ['🏋️', 'weights gym workout fitness training sport'], ['🎮', 'game controller gaming spiel']
   ] },
-  { id: 'nat', name: 'Nature', icon: '🌳', items: [
+  { id: 'nat', name: _t('Nature'), icon: '🌳', items: [
     ['☀️', 'sun sunny summer sonne sonnig sommer'], ['🌧️', 'rain rainy regen regnerisch'], ['❄️', 'snow winter cold schnee kalt'],
     ['☁️', 'cloud wolke bewoelkt'], ['🌈', 'rainbow regenbogen'], ['🌙', 'moon night mond nacht'],
     ['🌍', 'earth world globe erde welt'], ['🌊', 'wave water sea welle wasser meer'], ['⛰️', 'mountain berg'],
@@ -5292,7 +5306,7 @@ var EMO_CATS = [
     ['🦌', 'deer reh hirsch wild'], ['🐻', 'bear baer'], ['🦊', 'fox fuchs'],
     ['🐑', 'sheep schaf'], ['🐢', 'turtle slow schildkroete langsam']
   ] },
-  { id: 'food', name: 'Food', icon: '🍕', items: [
+  { id: 'food', name: _t('Food'), icon: '🍕', items: [
     ['🍕', 'pizza'], ['🍔', 'burger hamburger'], ['🍟', 'fries chips pommes frites'],
     ['🌮', 'taco mexican mexikanisch'], ['🍣', 'sushi fish japan fisch'], ['🍝', 'pasta spaghetti nudeln'],
     ['🥗', 'salad healthy salat gesund'], ['🍎', 'apple fruit apfel frucht'], ['🍓', 'strawberry erdbeere beere'],
@@ -5305,7 +5319,7 @@ var EMO_CATS = [
     ['🍦', 'ice cream eis glace'], ['🍿', 'popcorn movie film kino'], ['🧁', 'cupcake muffin'],
     ['🍽️', 'plate dinner eat teller essen'], ['🥂', 'cheers toast champagne prost anstossen']
   ] },
-  { id: 'sym', name: 'Symbols', icon: '❤️', items: [
+  { id: 'sym', name: _t('Symbols'), icon: '❤️', items: [
     ['❤️', 'heart red love herz rot liebe'], ['🧡', 'orange heart herz orange'], ['💛', 'yellow heart herz gelb'],
     ['💚', 'green heart herz gruen'], ['💙', 'blue heart herz blau'], ['💜', 'purple heart herz lila'],
     ['🖤', 'black heart herz schwarz'], ['🤍', 'white heart herz weiss'], ['💔', 'broken heart herzschmerz gebrochen'],
@@ -5343,8 +5357,8 @@ function segEmphHtml(idx) {
   var b = captionBlocks[idx];
   if (!b) return '';
   var emo = blockEmoji(b);
-  var h = '<button type="button" class="se-emo' + (emo ? ' has' : '') + '" data-a="emo" title="' + (emo ? 'Change or remove the emoji' : 'Add an emoji to this caption') + '" aria-label="Caption emoji">'
-    + (emo ? '<span class="se-emo-g">' + escHtml(emo) + '</span>' : icon('smile')) + '</button><span class="se-lbl">Highlight</span>';
+  var h = '<button type="button" class="se-emo' + (emo ? ' has' : '') + '" data-a="emo" title="' + (emo ? _t('Change or remove the emoji') : _t('Add an emoji to this caption')) + '" aria-label="' + _t('Caption emoji') + '">'
+    + (emo ? '<span class="se-emo-g">' + escHtml(emo) + '</span>' : icon('smile')) + '</button><span class="se-lbl">' + _t('Highlight') + '</span>';
   b.words.forEach(function(w, i) {
     h += '<button type="button" class="se-w' + (isEmphWord(w) ? ' on' : '') + '" data-a="w:' + i + '" aria-pressed="' + (isEmphWord(w) ? 'true' : 'false') + '">' + escHtml(w.word) + '</button>';
   });
@@ -5354,7 +5368,7 @@ function buildSegEmph(idx) {
   var d = document.createElement('div');
   d.className = 'seg-emph';
   d.innerHTML = segEmphHtml(idx);
-  d.title = 'Tap a word to highlight it';
+  d.title = _t('Tap a word to highlight it');
   d.onclick = function(e) {
     e.stopPropagation();
     var tg = e.target && e.target.closest ? e.target.closest('[data-a]') : e.target;
@@ -5380,7 +5394,7 @@ function refreshAllSegEmph() {
 }
 var _emoPickIdx = -1, _emoPickCat = 'react';
 function emoGridHtml(list, cur) {
-  if (!list.length) return '<p class="ep-empty">No emoji found — try another word.</p>';
+  if (!list.length) return '<p class="ep-empty">' + _t('No emoji found — try another word.') + '</p>';
   return '<div class="ep-grid">' + list.map(function(e) {
     return '<button type="button" class="ep-e' + (e === cur ? ' on' : '') + '" data-e="' + e + '">' + e + '</button>';
   }).join('') + '</div>';
@@ -5408,11 +5422,11 @@ function openEmojiPicker(idx, anchorEl) {
   var cur = blockEmoji(captionBlocks[idx]);
   var hit = EMO_CATS.find(function(c){ return c.items.some(function(it){ return it[0] === cur; }); });
   _emoPickCat = hit ? hit.id : 'react';
-  p.innerHTML = '<input type="search" class="ep-search" id="emoSearch" placeholder="Search emoji (e.g. fire, Feuer, money)" aria-label="Search emoji" autocomplete="off" oninput="renderEmojiGrid()" onkeydown="emoSearchKey(event)">'
-    + '<div class="ep-cats" role="group" aria-label="Emoji categories">' + EMO_CATS.map(function(c) {
+  p.innerHTML = '<input type="search" class="ep-search" id="emoSearch" placeholder="' + _t('Search emoji (e.g. fire, Feuer, money)') + '" aria-label="' + _t('Search emoji') + '" autocomplete="off" oninput="renderEmojiGrid()" onkeydown="emoSearchKey(event)">'
+    + '<div class="ep-cats" role="group" aria-label="' + _t('Emoji categories') + '">' + EMO_CATS.map(function(c) {
       return '<button type="button" class="ep-cat" data-cat="' + c.id + '" title="' + c.name + '" aria-label="' + c.name + '" aria-pressed="false" onclick="event.stopPropagation();emoPickCat(\'' + c.id + '\')">' + c.icon + '</button>';
     }).join('') + '</div><div id="emoGrid" class="ep-gridwrap"></div>'
-    + '<button type="button" class="ep-none" data-e="">' + icon('x') + ' No emoji</button>';
+    + '<button type="button" class="ep-none" data-e="">' + icon('x') + ' ' + _t('No emoji') + '</button>';
   renderEmojiGrid();
   p.style.display = 'block';
   try {
@@ -5600,12 +5614,12 @@ function zoomDemoStart() {
 // Rückmeldung nach dem Umschalten auf Subtle/Punchy: Anzahl Momente (0 = Hinweis) und — pausiert — kurze Vorführung
 function zoomFeedback() {
   var rm = capReduceMotion(), n = zoomPlan().length, msg;
-  if (!captionBlocks.length) msg = 'Auto zoom is on \u2014 it starts once your captions are ready';
-  else if (_enhancing && !n) msg = 'Auto zoom is on \u2014 the AI is still picking the key moments\u2026';
-  else if (!n) msg = 'No zoom moments found \u2014 zooms start on key words and numbers';
-  else msg = 'Auto zoom: ' + n + (n === 1 ? ' moment' : ' moments');
+  if (!captionBlocks.length) msg = _t('Auto zoom is on \u2014 it starts once your captions are ready');
+  else if (_enhancing && !n) msg = _t('Auto zoom is on \u2014 the AI is still picking the key moments\u2026');
+  else if (!n) msg = _t('No zoom moments found \u2014 zooms start on key words and numbers');
+  else msg = n === 1 ? _t('Auto zoom: 1 moment') : _t('Auto zoom: {0} moments', n);
   var demo = n > 0 && zoomDemoStart();
-  if (n > 0 && rm) msg += ' \u00B7 Preview animation off (reduce motion) \u2014 the export includes the zoom';
+  if (n > 0 && rm) msg += _t(' \u00B7 Preview animation off (reduce motion) \u2014 the export includes the zoom');
   try { capToast(msg); } catch (e) {}
   return { n: n, demo: demo, msg: msg };
 }
@@ -5642,8 +5656,8 @@ function syncPostUI() {
     ta.value = postText(postCaption);
     if (body && body.style.display !== 'none' && ta.style) { ta.style.height = 'auto'; ta.style.height = Math.min(220, (ta.scrollHeight || 92) + 2) + 'px'; } // ganze Caption + Hashtags sichtbar
   }
-  if (go) { go.textContent = _postBusy ? 'Writing…' : postCaption ? '' : 'Write'; go.style.display = postCaption && !_postBusy ? 'none' : ''; }
-  if (note) note.textContent = postCaption && postCaption.src === 'local' ? 'AI unavailable — simple version from your transcript.' : '';
+  if (go) { go.textContent = _postBusy ? _t('Writing…') : postCaption ? '' : _t('Write'); go.style.display = postCaption && !_postBusy ? 'none' : ''; }
+  if (note) note.textContent = postCaption && postCaption.src === 'local' ? _t('AI unavailable — simple version from your transcript.') : '';
 }
 var _postBusy = false;
 async function genPostCaption(regen) {
@@ -5669,7 +5683,7 @@ function onPostEdit(v) {
 }
 function copyPostCaption(btn) {
   var ta = document.getElementById('expPostTa'), v = ta ? ta.value : postText(postCaption);
-  function done(ok) { if (btn) { var o = btn.textContent; btn.textContent = ok ? 'Copied ✓' : 'Select & copy'; setTimeout(function(){ btn.textContent = o; }, 1500); } }
+  function done(ok) { if (btn) { var o = btn.textContent; btn.textContent = ok ? _t('Copied ✓') : _t('Select & copy'); setTimeout(function(){ btn.textContent = o; }, 1500); } }
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(v).then(function(){ done(true); }, function(){ if (ta) ta.select(); done(false); }); return; }
   } catch (e) {}
@@ -6504,7 +6518,7 @@ function noteSceneCuts() {
   var st = _cutState;
   if (st && st.waiting) { // Export wartet → Fortschritt im Export-Blatt
     var rm = document.getElementById('recMsg'), rb = document.getElementById('recBar');
-    if (rm) rm.textContent = 'Preparing… ' + st.pct + '%';
+    if (rm) rm.textContent = _t('Preparing… {0}%', st.pct);
     if (rb) rb.style.width = st.pct + '%';
   }
 }
@@ -7092,11 +7106,11 @@ async function renderSegments() {
 function buildSegTools(idx, b) {
   var t = document.createElement('div');
   t.className = 'seg-tools';
-  t.innerHTML = '<span class="stl">Start</span><button type="button" title="Start 0.1 s earlier" data-a="start:-0.1">−</button>'
-    + '<span class="stv stv-drag st-start" data-edge="start" title="Drag left/right to move the start (1 px = 0.01 s)">' + fmtT2(b.start) + '</span><button type="button" title="Start 0.1 s later" data-a="start:0.1">+</button>'
-    + '<span class="st-sep"></span><span class="stl">End</span><button type="button" title="End 0.1 s earlier" data-a="end:-0.1">−</button>'
-    + '<span class="stv stv-drag st-end" data-edge="end" title="Drag left/right to move the end (1 px = 0.01 s)">' + fmtT2(b.end) + '</span><button type="button" title="End 0.1 s later" data-a="end:0.1">+</button>'
-    + '<button type="button" class="st-del" title="Delete this caption (Ctrl/⌘+Z to undo)" data-a="del" aria-label="Delete caption">' + icon('trash') + '</button>';
+  t.innerHTML = '<span class="stl">' + _t('Start') + '</span><button type="button" title="' + _t('Start 0.1 s earlier') + '" data-a="start:-0.1">−</button>'
+    + '<span class="stv stv-drag st-start" data-edge="start" title="' + _t('Drag left/right to move the start (1 px = 0.01 s)') + '">' + fmtT2(b.start) + '</span><button type="button" title="' + _t('Start 0.1 s later') + '" data-a="start:0.1">+</button>'
+    + '<span class="st-sep"></span><span class="stl">' + _t('End') + '</span><button type="button" title="' + _t('End 0.1 s earlier') + '" data-a="end:-0.1">−</button>'
+    + '<span class="stv stv-drag st-end" data-edge="end" title="' + _t('Drag left/right to move the end (1 px = 0.01 s)') + '">' + fmtT2(b.end) + '</span><button type="button" title="' + _t('End 0.1 s later') + '" data-a="end:0.1">+</button>'
+    + '<button type="button" class="st-del" title="' + _t('Delete this caption (Ctrl/⌘+Z to undo)') + '" data-a="del" aria-label="' + _t('Delete caption') + '">' + icon('trash') + '</button>';
   t.onclick = function(e) {
     e.stopPropagation();
     var tg = e.target && e.target.closest ? (e.target.closest('[data-a]') || e.target) : e.target; // Klick auf das SVG im Knopf
@@ -7221,13 +7235,13 @@ function suggestFixAll(before, after, idx) {
   if (!sw) return;
   var n = fixAllHits(sw.from, sw.to, idx);
   if (!n) return;
-  capToastAction('Change “' + sw.from + '” → “' + sw.to + '” in ' + n + ' more ' + (n === 1 ? 'place' : 'places') + '?', 'Fix all', function() {
+  capToastAction(_tn(n, 'Change “{1}” → “{2}” in 1 more place?', 'Change “{1}” → “{2}” in {0} more places?', n, sw.from, sw.to), _t('Fix all'), function() {
     var snap = captionSnapshot();
     if (!fixWordEverywhere(sw.from, sw.to)) return;
     pushUndo(null, snap);
     markCaptionsEdited();
     refreshCaptionViews();
-    capToast('✓ Fixed ' + n + '× — Ctrl/⌘+Z to undo');
+    capToast(_t('✓ Fixed {0}× — Ctrl/⌘+Z to undo', n));
   });
 }
 function selectSegRow(row) {
@@ -7439,16 +7453,16 @@ function contrastText(hex) {
 // (Vorschau UND Canvas-Export). Gewichte je Font explizit, weil die css2-API bei einem nicht vorhandenen
 // Gewicht die GANZE Anfrage mit 400 ablehnt. '' = nur Regular (Display-Fonts ohne Bold-Schnitte).
 var CAP_FONT_GROUPS = [
-  ['Bold & clean', ['Montserrat|600;700;800;900', 'Poppins|600;700;800;900', 'Inter|400;600;700;800;900', 'Roboto|400;700;900',
+  [_t('Bold & clean'), ['Montserrat|600;700;800;900', 'Poppins|600;700;800;900', 'Inter|400;600;700;800;900', 'Roboto|400;700;900',
     'Open Sans|600;700;800', 'Lato|700;900', 'Nunito|700;800;900', 'Rubik|600;700;800;900', 'Work Sans|600;700;800;900',
     'DM Sans|700', 'Manrope|600;700;800', 'Outfit|600;700;800;900', 'Sora|600;700;800', 'Plus Jakarta Sans|600;700;800',
     'Archivo|600;700;800;900', 'Inter Tight|500;600;700;800;900', 'Barlow|600;700;800;900', 'Raleway|300;700;800;900', 'Space Grotesk|700', 'Exo 2|700']],
-  ['Impact & display', ['Anton|', 'Bebas Neue|', 'Oswald|700', 'Archivo Black|', 'Bangers|', 'Luckiest Guy|', 'Lilita One|',
+  [_t('Impact & display'), ['Anton|', 'Bebas Neue|', 'Oswald|700', 'Archivo Black|', 'Bangers|', 'Luckiest Guy|', 'Lilita One|',
     'Titan One|', 'Bungee|', 'Russo One|', 'Black Ops One|', 'Righteous|', 'Fredoka|600;700', 'Barlow Condensed|800',
     'Teko|600;700', 'Staatliches|', 'Passion One|400;700;900', 'Paytone One|']],
-  ['Handwritten', ['Kalam|700', 'Caveat|700', 'Permanent Marker|', 'Pacifico|', 'Dancing Script|700', 'Lobster|', 'Satisfy|', 'Shadows Into Light|']],
-  ['Serif', ['Playfair Display|700', 'Instrument Serif|', 'Merriweather|700;900', 'Lora|700', 'DM Serif Display|', 'Abril Fatface|']],
-  ['Retro & mono', ['VT323|', 'Orbitron|700', 'Press Start 2P|', 'Space Mono|700']]
+  [_t('Handwritten'), ['Kalam|700', 'Caveat|700', 'Permanent Marker|', 'Pacifico|', 'Dancing Script|700', 'Lobster|', 'Satisfy|', 'Shadows Into Light|']],
+  [_t('Serif'), ['Playfair Display|700', 'Instrument Serif|', 'Merriweather|700;900', 'Lora|700', 'DM Serif Display|', 'Abril Fatface|']],
+  [_t('Retro & mono'), ['VT323|', 'Orbitron|700', 'Press Start 2P|', 'Space Mono|700']]
 ];
 var CAP_FONT_W = {};
 CAP_FONT_GROUPS.forEach(function(g){ g[1].forEach(function(f){ var p = f.split('|'); CAP_FONT_W[p[0]] = p[1]; }); });
@@ -7501,17 +7515,17 @@ function buildFontSelect() {
   });
   var mine = Object.keys(_userFonts);
   if (mine.length) {
-    var og2 = document.createElement('optgroup'); og2.label = 'My fonts (on this device)';
+    var og2 = document.createElement('optgroup'); og2.label = _t('My fonts (on this device)');
     mine.forEach(function(f) { var o = document.createElement('option'); o.textContent = o.value = f; og2.appendChild(o); });
     sel.appendChild(og2);
   }
-  var other = document.createElement('option'); other.value = '__other'; other.textContent = '＋ Upload your own font…';
+  var other = document.createElement('option'); other.value = '__other'; other.textContent = _t('＋ Upload your own font…');
   sel.appendChild(other);
   if (cur) sel.value = cur;
 }
 // Gewichte-Auswahl passend zur Schrift: nur die Schnitte anbieten, die die Schrift wirklich hat (sonst bleibt „Bold“/„Black“
 // ohne Wirkung bzw. der Browser fälscht Fett). Eigene Schriften und unbekannte Familien behalten alle fünf Stufen.
-var CS_WEIGHTS = [[400, 'Regular'], [600, 'Semi'], [700, 'Bold'], [800, 'Extra'], [900, 'Black']];
+var CS_WEIGHTS = [[400, _t('Regular')], [600, _t('Semi')], [700, _t('Bold')], [800, _t('Extra')], [900, _t('Black')]];
 function capFontWeights(name) {
   var all = CS_WEIGHTS.map(function(x){ return x[0]; });
   if (!name || _userFonts[name] || !Object.prototype.hasOwnProperty.call(CAP_FONT_W, name)) return all;
@@ -7539,7 +7553,7 @@ function csSyncWeights(font, want) {
   }
   sel.value = String(w);
   sel.disabled = list.length < 2;
-  sel.title = list.length < 2 ? 'This font has only one weight' : 'Font weight';
+  sel.title = list.length < 2 ? _t('This font has only one weight') : _t('Font weight');
   return w;
 }
 function csFontWeightApply(font) {
@@ -7593,9 +7607,9 @@ function onFontFile(inp) {
   var f = inp && inp.files && inp.files[0];
   if (inp) inp.value = '';
   if (!f) return;
-  if (!/\.(ttf|otf|woff2?)$/i.test(f.name)) { capToast('Please choose a .ttf, .otf, .woff or .woff2 file'); return; }
-  if (f.size > USER_FONT_BYTES) { capToast('That font file is too large (max. 3 MB)'); return; }
-  if (Object.keys(_userFonts).length >= USER_FONT_MAX) { capToast('You can keep up to ' + USER_FONT_MAX + ' own fonts — remove one first'); return; }
+  if (!/\.(ttf|otf|woff2?)$/i.test(f.name)) { capToast(_t('Please choose a .ttf, .otf, .woff or .woff2 file')); return; }
+  if (f.size > USER_FONT_BYTES) { capToast(_t('That font file is too large (max. 3 MB)')); return; }
+  if (Object.keys(_userFonts).length >= USER_FONT_MAX) { capToast(_t('You can keep up to {0} own fonts — remove one first', USER_FONT_MAX)); return; }
   var name = cleanFontName(f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ')) || 'My font';
   if (isKnownFont(name)) name = cleanFontName(name + ' (own)') || 'My font ' + Date.now() % 1000;
   f.arrayBuffer().then(function(buf) {
@@ -7605,9 +7619,9 @@ function onFontFile(inp) {
       var sel = document.getElementById('csFont'); if (sel) sel.value = name;
       _csFontPrev = name; csFontWeightApply(name);
       applyCustomStyle('font');
-      capToast('✓ “' + name + '” added — stays on this device');
+      capToast(_t('✓ “{0}” added — stays on this device', name));
     });
-  }).catch(function(){ capToast('Couldn’t read that font file'); });
+  }).catch(function(){ capToast(_t('Couldn’t read that font file')); });
 }
 
 function csEl(id) { return document.getElementById(id); }
@@ -7724,8 +7738,8 @@ function csSegPick(btn) {
 // Glow-Stärke nur mit Glow), Segment-Stände, Pixel-Anzeigen.
 function syncCsUi() {
   var pill = (csEl('csHlType') || {}).value === 'pill';
-  var lbl = csEl('csHlLbl'); if (lbl) lbl.textContent = pill ? 'Pill' : 'Highlight';
-  var sw = csEl('csHlSw'); if (sw) sw.title = pill ? 'Pill color behind the active (spoken) word' : 'Color of the active (spoken) word';
+  var lbl = csEl('csHlLbl'); if (lbl) lbl.textContent = pill ? _t('Pill') : _t('Highlight');
+  var sw = csEl('csHlSw'); if (sw) sw.title = pill ? _t('Pill color behind the active (spoken) word') : _t('Color of the active (spoken) word');
   var glowOn = _cbChecked('csGlow', false);
   var gi = csEl('csGlowInt'); if (gi) gi.disabled = !glowOn;
   csShow('csGlowStrRow', glowOn);
@@ -7738,8 +7752,8 @@ function syncCsUi() {
   csShow('csAnimRow', hlMode); csShow('csHlTypeRow', hlMode);
   var ahint = csEl('csAnimHint');
   if (ahint) {
-    var ahMsg = !hlMode ? 'Word pop works with Animation: Highlight.'
-      : (capReduceMotion() && an && an.value && an.value !== 'none' ? 'Preview is still (system setting \u201Creduce motion\u201D) \u2014 the export includes the animation.' : '');
+    var ahMsg = !hlMode ? _t('Word pop works with Animation: Highlight.')
+      : (capReduceMotion() && an && an.value && an.value !== 'none' ? _t('Preview is still (system setting \u201Creduce motion\u201D) \u2014 the export includes the animation.') : '');
     ahint.textContent = ahMsg; ahint.style.display = ahMsg ? '' : 'none';
   }
   var od = csEl('csOutlineDisp'), ow = csEl('csOutlineW'); if (od && ow) od.textContent = (ow.value || 0) + 'px';
@@ -7766,8 +7780,8 @@ function csSeedEmFields(st) {
   Array.prototype.forEach.call((fEl && fEl.options) || [], function(o){ if (o.value && o.value !== '__other' && names.indexOf(o.value) < 0) names.push(o.value); });
   if (cur && names.indexOf(cur) < 0) names.unshift(cur);
   ef.innerHTML = '';
-  var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Keywords: same font as text'; ef.appendChild(o0);
-  names.forEach(function(n){ var o = document.createElement('option'); o.value = n; o.textContent = 'Keywords: ' + n; ef.appendChild(o); });
+  var o0 = document.createElement('option'); o0.value = ''; o0.textContent = _t('Keywords: same font as text'); ef.appendChild(o0);
+  names.forEach(function(n){ var o = document.createElement('option'); o.value = n; o.textContent = _t('Keywords: {0}', n); ef.appendChild(o); });
   ef.value = cur;
 }
 function seedActiveStyle() { var st = STYLES.find(function(x){ return x.id === activeId; }); if (st) seedCustomFields(st); }
@@ -7816,7 +7830,7 @@ function seedCustomFields(st) {
 function buildCustomStyle() {
   var base = _csBase || cloneStyle(STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0]);
   var cs = cloneStyle(base), d = _csDirty;
-  cs.id = 'custom'; cs.name = 'My style'; cs.badge = '❤️';
+  cs.id = 'custom'; cs.name = _t('My style'); cs.badge = '❤️';
   delete cs.layout; // Preset-Blockgröße (Tight/Mix/Statement/One Word) gehört nicht zum Look — s. selectStyle
   if (!cs.thumbBg) cs.thumbBg = CS_THUMB_BG;
   // Neue Schrift gilt auch fürs aktive Wort (eigene hlFont des Styles fällt weg) — vorher wechselte nur der Rest.
@@ -8042,7 +8056,7 @@ function onTemplatesStorage(e) {
   buildPicker();
   if (gone) { activeId = 'classic'; selectStyle('classic'); }
   else { _lastKey = null; try { updateOverlay(); } catch (err) {} }
-  capToast('Templates updated from another tab');
+  capToast(_t('Templates updated from another tab'));
   return true;
 }
 if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') window.addEventListener('storage', onTemplatesStorage);
@@ -8083,7 +8097,7 @@ function setTplEditing(id) {
   var t = id && userTemplates.find(function(x){ return x.id === id; });
   var lbl = csEl('tplEditing'), btn = csEl('tplSaveBtn'), nm = csEl('tplName');
   if (lbl) { lbl.style.display = t ? '' : 'none'; lbl.textContent = t ? ('Editing “' + t.name + '”') : ''; }
-  if (btn) { btn.textContent = t ? 'Update' : '💾 Save'; btn.title = t ? 'Overwrite this template with the current style + layout' : 'Save the current style + position + size + mode as a named template'; }
+  if (btn) { btn.textContent = t ? _t('Update') : _t('💾 Save'); btn.title = t ? _t('Overwrite this template with the current style + layout') : _t('Save the current style + position + size + mode as a named template'); }
   if (nm && t) nm.value = t.name;
 }
 function setTplStatus(msg, warn) {
@@ -8101,16 +8115,16 @@ function saveTemplate() {
   var editing = _csEditingTpl && userTemplates.find(function(x){ return x.id === _csEditingTpl && !x.deleted; });
   if (!name && editing) name = editing.name;
   if (!name) {
-    if (nameEl.focus) nameEl.focus(); nameEl.placeholder = 'Enter a name';
-    setTplStatus('Give your template a name first.', true);
+    if (nameEl.focus) nameEl.focus(); nameEl.placeholder = _t('Enter a name');
+    setTplStatus(_t('Give your template a name first.'), true);
     return null;
   }
   // Gleicher Name wie ein anderes Template → überschreiben statt eine Dublette anzulegen (nach Rückfrage)
   var same = liveTemplates().find(function(x){ return x.name.trim().toLowerCase() === name.toLowerCase() && (!editing || x.id !== editing.id); });
   var target = editing;
   if (same) {
-    var okOverwrite = typeof confirm !== 'function' || confirm('A template named “' + same.name + '” already exists. Overwrite it with the current style?');
-    if (!okOverwrite) { if (nameEl.select) nameEl.select(); setTplStatus('Not saved — choose another name to keep both.', true); return null; }
+    var okOverwrite = typeof confirm !== 'function' || confirm(_t('A template named “{0}” already exists. Overwrite it with the current style?', same.name));
+    if (!okOverwrite) { if (nameEl.select) nameEl.select(); setTplStatus(_t('Not saved — choose another name to keep both.'), true); return null; }
     target = same; name = same.name; // Überschreiben behält den bestehenden Namen (nur Groß-/Kleinschreibung getippt)
   }
   var src = STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0];
@@ -8133,13 +8147,13 @@ function saveTemplate() {
   setTplEditing(null);
   buildPicker();
   selectStyle(t.id);
-  var verb = target ? 'Updated' : 'Saved as';
-  setTplStatus('✓ ' + verb + ' “' + t.name + '” — find it under My templates' + (meEmail ? ' (synced to your account)' : ' (saved in this browser)')
-    + (madeBrand ? '. ★ It’s now your default look for every new video (change via ⋯).' : ''));
+  setTplStatus((target ? _t('✓ Updated “{0}” — find it under My templates', t.name) : _t('✓ Saved as “{0}” — find it under My templates', t.name))
+    + (meEmail ? _t(' (synced to your account)') : _t(' (saved in this browser)'))
+    + (madeBrand ? _t('. ★ It’s now your default look for every new video (change via ⋯).') : ''));
   // Toast mit Option: nicht Standard → «Use for every new video» gleich im Toast anbieten (sonst nur ⋯-Menü an der Kachel)
   if (!madeBrand && brandTplId() !== t.id) {
-    capToastAction('✓ ' + verb + ' “' + t.name + '”', 'Use for every new video', function() { setBrandTpl(t.id); buildPicker(); capToast('★ “' + t.name + '” will be used for every new video'); });
-  } else capToast('✓ ' + verb + ' “' + t.name + '”' + (madeBrand ? ' · ★ default for every new video' : ''));
+    capToastAction(target ? _t('✓ Updated “{0}”', t.name) : _t('✓ Saved as “{0}”', t.name), _t('Use for every new video'), function() { setBrandTpl(t.id); buildPicker(); capToast(_t('★ “{0}” will be used for every new video', t.name)); });
+  } else capToast((target ? _t('✓ Updated “{0}”', t.name) : _t('✓ Saved as “{0}”', t.name)) + (madeBrand ? _t(' · ★ default for every new video') : ''));
   scrollPickerTo(t.id, true, true);
   return t;
 }
@@ -8152,7 +8166,7 @@ function syncTplSwitch() {
   sw.style.display = '';
   var bid = brandTplId(), cur = STYLES.find(function(x){ return x.id === activeId; });
   var html = '';
-  if (!cur || !cur._isTpl) html += '<option value="" disabled selected>No template · ' + escHtml(cur ? (cur.id === 'custom' ? 'Custom' : cur.name) : '') + '</option>';
+  if (!cur || !cur._isTpl) html += '<option value="" disabled selected>' + _t('No template · {0}', escHtml(cur ? (cur.id === 'custom' ? 'Custom' : cur.name) : '')) + '</option>';
   tpls.forEach(function(t) { html += '<option value="' + escHtml(t.id) + '"' + (t.id === activeId ? ' selected' : '') + '>' + (t.id === bid ? '★ ' : '') + escHtml(t.name) + '</option>'; });
   sel.innerHTML = html;
   if (cur && cur._isTpl) sel.value = cur.id;
@@ -8181,11 +8195,11 @@ function tplInlineSave() {
   var inp = document.getElementById('tplNameTop'), m = document.getElementById('tplInlMsg');
   if (!inp) return null;
   var nm = inp.value.trim(), bot = csEl('tplName');
-  if (!nm) { if (m) { m.textContent = 'Give your template a name first.'; m.classList.add('warn'); } if (inp.focus) inp.focus(); return null; }
+  if (!nm) { if (m) { m.textContent = _t('Give your template a name first.'); m.classList.add('warn'); } if (inp.focus) inp.focus(); return null; }
   if (bot) bot.value = nm;
   var t = saveTemplate();
   if (t) { inp.value = ''; closeTplSaveInline(); }
-  else if (m) { var st = csEl('tplStatus'); m.textContent = (st && st.textContent) || 'Not saved.'; m.classList.add('warn'); }
+  else if (m) { var st = csEl('tplStatus'); m.textContent = (st && st.textContent) || _t('Not saved.'); m.classList.add('warn'); }
   return t;
 }
 // Inline im Menü (kein prompt()): neuer Name kommt als Argument. Gibt true zurück, wenn umbenannt wurde.
@@ -8197,7 +8211,7 @@ function renameTemplate(id, newName) {
   t.name = nn; t.updatedAt = Date.now();
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
   if (_csEditingTpl === id) setTplEditing(id);
-  capToast('✓ Renamed to “' + nn + '”');
+  capToast(_t('✓ Renamed to “{0}”', nn));
   return true;
 }
 function duplicateTemplate(id) {
@@ -8208,7 +8222,7 @@ function duplicateTemplate(id) {
             layout: JSON.parse(JSON.stringify(t.layout || {})), createdAt: now, updatedAt: now };
   userTemplates.push(c);
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
-  capToast('✓ Duplicated as “' + c.name + '”');
+  capToast(_t('✓ Duplicated as “{0}”', c.name));
   scrollPickerTo(c.id, false, true);
 }
 // Löschen ohne confirm(): sofort, dafür mit „Undo“-Toast (8 s). Undo stellt das Template mit neuem Zeitstempel her
@@ -8224,7 +8238,7 @@ function deleteTemplate(id) {
   persistTemplates(); rebuildTemplateStyles();
   if (wasActive) activeId = 'classic';
   buildPicker(); selectStyle(activeId);
-  capToastAction('Deleted “' + t.name + '”', 'Undo', function(){ undoDeleteTemplate(snapshot, wasBrand); });
+  capToastAction(_t('Deleted “{0}”', t.name), _t('Undo'), function(){ undoDeleteTemplate(snapshot, wasBrand); });
   return true;
 }
 function undoDeleteTemplate(snap, wasBrand) {
@@ -8236,7 +8250,7 @@ function undoDeleteTemplate(snap, wasBrand) {
   userTemplates.push(snap);
   if (wasBrand) setBrandTpl(snap.id);
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
-  capToast('✓ Restored “' + snap.name + '”');
+  capToast(_t('✓ Restored “{0}”', snap.name));
   return true;
 }
 function editTemplate(id) {
@@ -8244,7 +8258,7 @@ function editTemplate(id) {
   if (!t) return;
   lookUndoRun(null, function(){ selectStyle(id); }); // Regler aus dem Template befüllen (seedCustomFields)
   setTplEditing(id);
-  setTplStatus('Editing “' + t.name + '”: change the style below, then click Update.');
+  setTplStatus(_t('Editing “{0}”: change the style below, then click Update.', t.name));
   var nm = csEl('tplName'); if (nm && nm.scrollIntoView) nm.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 var _tplMenuEl = null, _tplMenuRename = false;
@@ -8280,14 +8294,14 @@ function openTplMenu(id, btn) {
   m.className = 'tpl-menu';
   if (m.setAttribute) m.setAttribute('role', 'menu');
   var isBrand = brandTplId() === id;
-  var items = [[isBrand ? '☆ Stop using as default' : '★ Use for every new video', toggleBrandTpl], ['Edit', editTemplate],
-    ['Rename', function(tid){ showTplRename(m, tid, btn); }], ['Duplicate', duplicateTemplate], ['Delete', deleteTemplate]];
+  var items = [[isBrand ? _t('☆ Stop using as default') : _t('★ Use for every new video'), toggleBrandTpl], [_t('Edit'), editTemplate],
+    [_t('Rename'), function(tid){ showTplRename(m, tid, btn); }], [_t('Duplicate'), duplicateTemplate], [_t('Delete'), deleteTemplate]];
   items.forEach(function(it) {
     var b = document.createElement('button');
     b.type = 'button'; b.textContent = it[0];
     if (b.setAttribute) b.setAttribute('role', 'menuitem');
-    if (it[0] === 'Delete') b.className = 'danger';
-    b.onclick = function(e){ e.stopPropagation(); if (it[0] === 'Rename') it[1](id); else { closeTplMenu(); it[1](id); } };
+    if (it[1] === deleteTemplate) b.className = 'danger';
+    b.onclick = function(e){ e.stopPropagation(); if (it[0] === _t('Rename')) it[1](id); else { closeTplMenu(); it[1](id); } };
     m.appendChild(b);
   });
   document.body.appendChild(m);
@@ -8312,10 +8326,10 @@ function showTplRename(m, id, btn) {
   m.classList.add('renaming');
   var inp = document.createElement('input');
   inp.type = 'text'; inp.className = 'tpl-rename'; inp.value = t.name; inp.maxLength = 60;
-  if (inp.setAttribute) inp.setAttribute('aria-label', 'Template name');
+  if (inp.setAttribute) inp.setAttribute('aria-label', _t('Template name'));
   var row = document.createElement('div'); row.className = 'tpl-rename-row';
-  var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'primary'; ok.textContent = 'Save';
-  var no = document.createElement('button'); no.type = 'button'; no.textContent = 'Cancel';
+  var ok = document.createElement('button'); ok.type = 'button'; ok.className = 'primary'; ok.textContent = _t('Save');
+  var no = document.createElement('button'); no.type = 'button'; no.textContent = _t('Cancel');
   var commit = function() {
     var nn = inp.value.trim();
     if (!nn) { inp.classList.add('bad'); if (inp.focus) inp.focus(); return; }
@@ -8384,18 +8398,18 @@ function buildTemplateExport(list, userFonts, nowIso) {
   return { data: data, fonts: fonts.length, skipped: skipped };
 }
 function exportTemplatesMsg(n, r) {
-  var m = '✓ Exported ' + n + ' template' + (n === 1 ? '' : 's') + (r.fonts ? ' + ' + r.fonts + ' font' + (r.fonts === 1 ? '' : 's') : '');
+  var m = _tn(n, '✓ Exported 1 template', '✓ Exported {0} templates', n) + (r.fonts ? ' + ' + _tn(r.fonts, '1 font', '{0} fonts', r.fonts) : '');
   if (r.skipped.length) {
-    m += ' — not included: ' + r.skipped.map(function(s) {
-      return '“' + s.name + '” (' + (s.why === 'size' ? (s.size / 1048576).toFixed(1) + ' MB, max. ' + (TPL_FONT_MAX_BYTES / 1048576) + ' MB' : 'unknown font format') + ')';
-    }).join(', ') + '. Send that font file along separately.';
+    m += _t(' — not included: ') + r.skipped.map(function(s) {
+      return '“' + s.name + '” (' + (s.why === 'size' ? _t('{0} MB, max. {1} MB', (s.size / 1048576).toFixed(1), TPL_FONT_MAX_BYTES / 1048576) : _t('unknown font format')) + ')';
+    }).join(', ') + _t('. Send that font file along separately.');
   }
   return m;
 }
 function exportTemplates(e) {
   if (e && e.preventDefault) e.preventDefault();
   var list = liveTemplates();
-  if (!list.length) { capToast('No templates yet — save one first.'); return; }
+  if (!list.length) { capToast(_t('No templates yet — save one first.')); return; }
   var usesOwn = list.some(function(t){ return templateFontNames(t).some(function(n){ return _userFonts[n]; }); });
   function finish(userFonts) {
     var r = buildTemplateExport(list, userFonts);
@@ -8455,9 +8469,9 @@ function importTemplatesFromText(text) {
   return res;
 }
 function importTemplateMessage(r) {
-  var n = r.imported, parts = ['Imported ' + n + ' template' + (n === 1 ? '' : 's')];
-  if (r.skipped) parts.push(r.skipped + ' skipped (already up to date)');
-  if (r.errors) parts.push(r.errors + ' failed');
+  var n = r.imported, parts = [_tn(n, 'Imported 1 template', 'Imported {0} templates', n)];
+  if (r.skipped) parts.push(_t('{0} skipped (already up to date)', r.skipped));
+  if (r.errors) parts.push(_t('{0} failed', r.errors));
   return parts.join(' · ');
 }
 function importTemplates(input) {
@@ -8466,13 +8480,13 @@ function importTemplates(input) {
   f.text().then(function(txt) {
     var r = importTemplatesFromText(txt);
     return r.fontsReady.then(function(fr) {
-      var msg = importTemplateMessage(r) + (fr.added ? ' · ' + fr.added + ' font' + (fr.added === 1 ? '' : 's') + ' added' : '') + (fr.failed ? ' · ' + fr.failed + ' font' + (fr.failed === 1 ? '' : 's') + ' could not be added' : '');
+      var msg = importTemplateMessage(r) + (fr.added ? ' · ' + _tn(fr.added, '1 font added', '{0} fonts added', fr.added) : '') + (fr.failed ? ' · ' + _tn(fr.failed, '1 font could not be added', '{0} fonts could not be added', fr.failed) : '');
       capToast((r.errors && !r.imported ? '' : '✓ ') + msg);
       setTplStatus(msg, !!r.errors || !!fr.failed);
     });
   }).catch(function(err) {
     console.error('Template-Import fehlgeschlagen:', err);
-    var msg = 'Could not read this file — please choose a Gluephs templates JSON.';
+    var msg = _t('Could not read this file — please choose a Gluephs templates JSON.');
     capToast(msg); setTplStatus(msg, true);
   }).then(function(){ input.value = ''; });
 }
@@ -8652,18 +8666,18 @@ function buildPicker() {
   if (mine.length) {
     var hdr = document.createElement('div');
     hdr.className = 'stile-group';
-    hdr.innerHTML = 'My templates <span class="sg-n">' + (nTpl ? nTpl + ' saved' : '') + '</span>';
+    hdr.innerHTML = _t('My templates') + ' <span class="sg-n">' + (nTpl ? _t('{0} saved', nTpl) : '') + '</span>';
     c.appendChild(hdr);
     mine.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
     if (!nTpl) {
       var em = document.createElement('div');
       em.className = 'stile-empty';
-      em.innerHTML = 'Like your custom look? <a href="#" onclick="focusTemplateSave(event)">Save it as a template</a> to reuse it.';
+      em.innerHTML = _t('Like your custom look?') + ' <a href="#" onclick="focusTemplateSave(event)">' + _t('Save it as a template') + '</a> ' + _t('to reuse it.');
       c.appendChild(em);
     }
     var hdr2 = document.createElement('div');
     hdr2.className = 'stile-group presets';
-    hdr2.textContent = 'Presets';
+    hdr2.textContent = _t('Presets');
     c.appendChild(hdr2);
   }
   var moreShown = false;
@@ -8671,7 +8685,7 @@ function buildPicker() {
     if (!moreShown && STYLE_MORE.indexOf(s.id) >= 0) { // schwächere Looks hinter den neuen/starken
       moreShown = true;
       var hdrM = document.createElement('div');
-      hdrM.className = 'stile-group more'; hdrM.textContent = 'More looks';
+      hdrM.className = 'stile-group more'; hdrM.textContent = _t('More looks');
       c.appendChild(hdrM);
     }
     c.appendChild(makeStyleTile(s));
@@ -8878,13 +8892,13 @@ function makeStyleTile(s) {
     info.innerHTML = '<div class="stile-name">' + escHtml(s.id === 'custom' ? 'Custom' : s.name) + badge + '</div>' + (sub ? '<div class="stile-font">' + escHtml(sub) + '</div>' : '');
     tile.appendChild(info);
     if (s._isTpl) {
-      tile.title = 'Your template “' + s.name + '”';
+      tile.title = _t('Your template “{0}”', s.name);
       var mb = document.createElement('button');
-      mb.type = 'button'; mb.className = 'stile-menu-btn'; mb.textContent = '⋯'; mb.title = 'Template options';
-      if (mb.setAttribute) mb.setAttribute('aria-label', 'Options for template ' + s.name);
+      mb.type = 'button'; mb.className = 'stile-menu-btn'; mb.textContent = '⋯'; mb.title = _t('Template options');
+      if (mb.setAttribute) mb.setAttribute('aria-label', _t('Options for template {0}', s.name));
       mb.onclick = function(e){ e.stopPropagation(); openTplMenu(s.id, mb); };
       tile.appendChild(mb);
-    } else if (s.id === 'custom') tile.title = 'Your current custom style (not saved yet)';
+    } else if (s.id === 'custom') tile.title = _t('Your current custom style (not saved yet)');
     return tile;
 }
 
@@ -9220,7 +9234,7 @@ function syncSzDisp(fw, fh) {
   var d = document.getElementById('szDisp'); if (!d) return;
   var i = capSizeInfo(fontSize, fw > 0 ? fw : previewFrameW(), fh > 0 ? fh : previewFrameH());
   d.textContent = i.tag + ' ' + i.pctH.toFixed(1) + '%';
-  var t = 'Caption size ' + i.tag + ': ' + i.pctH.toFixed(1) + ' % of the frame height (≈ ' + i.px1080 + ' px on a 1080-px-wide export, before the look’s own size factor). Same value in preview and export.';
+  var t = _t('Caption size {0}: {1} % of the frame height (≈ {2} px on a 1080-px-wide export, before the look’s own size factor). Same value in preview and export.', i.tag, i.pctH.toFixed(1), i.px1080);
   d.title = t;
   var sl = document.getElementById('szSlider'); if (sl) sl.title = t;
 }
@@ -9334,7 +9348,7 @@ function syncMaxCharsUI() {
   if (sl.classList) sl.classList.toggle('mc-off', isAuto);
   var btn = document.getElementById('mcAuto');
   if (btn) {
-    btn.textContent = isAuto && auto ? 'Auto · ' + auto : 'Auto';
+    btn.textContent = isAuto && auto ? _t('Auto · {0}', auto) : _t('Auto');
     if (btn.classList) btn.classList.toggle('on', isAuto);
     if (btn.setAttribute) btn.setAttribute('aria-pressed', isAuto ? 'true' : 'false');
   }
@@ -9482,14 +9496,14 @@ var _sampleLoading = false;
 function trySample(styleId) {
   if (_sampleLoading) return;
   var b = document.getElementById('sampleBtn');
-  if (b) { b.disabled = true; b.textContent = 'Loading sample…'; }
+  if (b) { b.disabled = true; b.textContent = _t('Loading sample…'); }
   _sampleLoading = true;
   fetch('assets/showcase/bloom.mp4').then(function(r) {
     if (!r.ok) throw new Error('HTTP ' + r.status);
     return r.blob();
   }).then(function(bl) {
     _sampleLoading = false;
-    if (b) { b.disabled = false; b.innerHTML = '<span class="ll-long">Try a sample video</span><span class="ll-short">Try a sample</span>'; }
+    if (b) { b.disabled = false; b.innerHTML = '<span class="ll-long">' + _t('Try a sample video') + '</span><span class="ll-short">' + _t('Try a sample') + '</span>'; }
     loadVideo(new File([bl], 'Sample video.mp4', { type: 'video/mp4' }));
     if (styleId && STYLES.find(function(x){ return x.id === styleId; })) selectStyle(styleId);
   }).catch(function(e) {
@@ -9533,7 +9547,7 @@ function dropToStyle(o, now) {
     if (typeof lay.kw === 'boolean') st.layout.kw = lay.kw;
   }
   var t = Date.parse(o.added);
-  if (t && (now || Date.now()) - t < DROP_NEW_DAYS * 864e5) st.badge = 'New';
+  if (t && (now || Date.now()) - t < DROP_NEW_DAYS * 864e5) st.badge = _t('New');
   st._drop = true;
   if (/^[a-z0-9]{3,24}$/.test(String(o.photo || ''))) SHOWCASE_PHOTO[id] = o.photo;
   return st;
@@ -9589,7 +9603,7 @@ function applyTrending(res) {
   var n = 0;
   res.top.slice(0, 3).forEach(function(t) {
     var st = STYLES.filter(function(x){ return x.id === t.style; })[0];
-    if (st && !st._isTpl && !st.badge) { st.badge = 'Trending'; st._trend = true; n++; }
+    if (st && !st._isTpl && !st.badge) { st.badge = _t('Trending'); st._trend = true; n++; }
   });
   return n;
 }
@@ -9754,14 +9768,14 @@ function showAcct() {
 // ── Anmeldung nicht erreichbar (Supabase pausiert/DNS weg, offline, CDN blockiert) ──
 // Statt roher Browser-Fehler („Failed to fetch“) eine verständliche Meldung; Netzwerkfehler erkennt man an
 // TypeError bzw. Supabase-AuthRetryableFetchError (status 0) — echte Auth-Fehler (falscher Code) bleiben.
-var SIGNIN_DOWN_MSG = 'Sign-in is temporarily unavailable — please try again later.';
+var SIGNIN_DOWN_MSG = _t('Sign-in is temporarily unavailable — please try again later.');
 function isNetErr(e) {
   if (!e) return false;
   var msg = String(e.message || e), nm = String(e.name || '');
   return nm === 'TypeError' || nm === 'AbortError' || /RetryableFetch|FetchError/i.test(nm) || e.status === 0
     || /failed to fetch|networkerror|load failed|network request failed|fetch failed|err_name_not_resolved|timed? ?out/i.test(msg);
 }
-function authErrText(e) { return isNetErr(e) ? SIGNIN_DOWN_MSG : String((e && e.message) || e || 'Something went wrong.'); }
+function authErrText(e) { return isNetErr(e) ? SIGNIN_DOWN_MSG : String((e && e.message) || e || _t('Something went wrong.')); }
 // Erreichbarkeit vorab prüfen (für „Remove watermark“: kein kaputtes Formular öffnen). Health-Endpoint mit
 // 4-s-Timeout; jede HTTP-Antwort = erreichbar, Netzwerkfehler = nicht. Ergebnis 60 s gemerkt.
 var _signinCheck = null;
@@ -9787,11 +9801,11 @@ async function reqCode() {
   var m = document.getElementById('acctMsg');
   try {
     var sb = await getSb();
-    if (!sb) { m.textContent = _sbFailed ? SIGNIN_DOWN_MSG : 'Accounts are not set up on this deployment yet.'; return; }
+    if (!sb) { m.textContent = _sbFailed ? SIGNIN_DOWN_MSG : _t('Accounts are not set up on this deployment yet.'); return; }
     var res = await sb.auth.signInWithOtp({ email: document.getElementById('acctEmail').value.trim() });
     if (res && res.error) { m.textContent = authErrText(res.error); return; }
   } catch (e) { m.textContent = authErrText(e); return; }
-  m.textContent = 'Code sent — check your inbox.';
+  m.textContent = _t('Code sent — check your inbox.');
   document.getElementById('acctStep1').style.display = 'none';
   document.getElementById('acctStep2').style.display = 'block';
 }
@@ -9799,7 +9813,7 @@ async function verifyCode() {
   var m = document.getElementById('acctMsg');
   try {
     var sb = await getSb();
-    if (!sb) { m.textContent = _sbFailed ? SIGNIN_DOWN_MSG : 'Accounts are not set up on this deployment yet.'; return; }
+    if (!sb) { m.textContent = _sbFailed ? SIGNIN_DOWN_MSG : _t('Accounts are not set up on this deployment yet.'); return; }
     var res = await sb.auth.verifyOtp({
       email: document.getElementById('acctEmail').value.trim(),
       token: document.getElementById('acctCode').value.trim(),
@@ -9818,7 +9832,7 @@ async function exportWithoutWatermark() {
   // Anmeldung nicht erreichbar → klare Meldung statt eines Formulars, das nur „Failed to fetch“ liefern kann
   if (!(await signInAvailable())) { showSigninDown(); return; }
   _pendingWmExport = true;
-  document.getElementById('acctSub').textContent = 'Enter your email to get a free login code — your video then exports without the watermark.';
+  document.getElementById('acctSub').textContent = _t('Enter your email to get a free login code — your video then exports without the watermark.');
   showAcct();
 }
 async function logout() {
@@ -9828,9 +9842,9 @@ async function logout() {
 }
 function resetAcctUI() {
   mePlan = 'anon'; meEmail = ''; billing = null; renderBilling();
-  document.getElementById('acctBtn').textContent = 'Sign in';
+  document.getElementById('acctBtn').textContent = _t('Sign in');
   document.getElementById('acctModal').style.display = 'none';
-  var pl = document.getElementById('projList'); if (pl) pl.innerHTML = '<option value="">— Load project —</option>';
+  var pl = document.getElementById('projList'); if (pl) pl.innerHTML = '<option value="">' + _t('— Load project —') + '</option>';
   updateAcctUI();
 }
 // Konto selbst löschen (DSGVO Art. 17 / nDSG Art. 32): delete_my_account() in schema.sql löscht auth.users,
@@ -9841,24 +9855,24 @@ async function deleteAccount() {
   var m = document.getElementById('acctMsg');
   // Laufendes Paddle-Abo würde sonst weiter abbuchen, ohne dass ein Konto existiert → erst kündigen.
   if (billingOn() && billing.loggedIn && billing.plan && billing.plan !== 'free') {
-    if (m) m.textContent = 'Please cancel your ' + (PLAN_NAMES[billing.plan] || billing.plan) + ' plan first (Manage billing). Once it has ended you can delete the account here, or email contact@gluephs.com.';
+    if (m) m.textContent = _t('Please cancel your {0} plan first (Manage billing). Once it has ended you can delete the account here, or email contact@gluephs.com.', PLAN_NAMES[billing.plan] || billing.plan);
     return;
   }
-  if (!confirm('Delete your account ' + meEmail + ' and all saved projects and templates? This cannot be undone.')) return;
+  if (!confirm(_t('Delete your account {0} and all saved projects and templates? This cannot be undone.', meEmail))) return;
   var sb = await getSb();
-  if (!sb) { if (m) m.textContent = 'Sign-in service is unavailable right now. Please try again later.'; return; }
+  if (!sb) { if (m) m.textContent = _t('Sign-in service is unavailable right now. Please try again later.'); return; }
   var res;
   try { res = await sb.rpc('delete_my_account'); } catch (e) { res = { error: e }; }
-  if (res && res.error) { if (m) m.textContent = 'Could not delete the account: ' + (res.error.message || res.error); return; }
+  if (res && res.error) { if (m) m.textContent = _t('Could not delete the account: {0}', res.error.message || res.error); return; }
   try { await sb.auth.signOut({ scope: 'local' }); } catch (e) {} // Nutzer existiert nicht mehr → nur lokal abmelden
   resetAcctUI();
-  capToast('Your account and saved projects were deleted');
+  capToast(_t('Your account and saved projects were deleted'));
 }
 function applyUser(user) {
   meEmail = user.email || user.phone || 'account'; mePlan = (billing && billing.loggedIn && billing.plan) || 'free';
   var b = document.getElementById('acctBtn'), i = document.getElementById('acctInfo');
-  if (b) b.textContent = 'Account · ' + meEmail.split('@')[0];
-  if (i) i.textContent = meEmail + ' · signed in';
+  if (b) b.textContent = _t('Account · {0}', meEmail.split('@')[0]);
+  if (i) i.textContent = meEmail + _t(' · signed in');
   updateAcctUI();
 }
 // Ursache des Logos trotz Login: getUser() ist ein Netzwerk-Call — Fehler/Offline/Refresh-Race lieferten
@@ -9891,7 +9905,7 @@ function updateAcctUI() {
   if (wo) { // Hinweis im Export-Blatt VOR dem Rendern (keine Überraschung); Beta: nie
     var wm = needsWatermark();
     wo.style.display = wm ? '' : 'none';
-    if (wm) wo.innerHTML = wmNoticeText().replace('Upgrade to remove it', '<a href="#" onclick="closeExportSheet();showUpgrade();return false">Upgrade to remove it</a>');
+    if (wm) wo.innerHTML = wmNoticeText('<a href="#" onclick="closeExportSheet();showUpgrade();return false">' + _t('Upgrade to remove it') + '</a>');
   }
   var aw = document.getElementById('acctWm');
   if (aw) { aw.style.display = needsWatermark() ? '' : 'none'; aw.textContent = needsWatermark() ? wmNoticeText() : ''; }
@@ -9899,8 +9913,8 @@ function updateAcctUI() {
   if (rw && !needsWatermark()) rw.style.display = 'none';
   var qi = document.getElementById('quotaInfo');
   if (!qi) return;
-  if (mePlan === 'anon') qi.textContent = 'Captions in seconds · free, no download — works on any device';
-  else qi.textContent = '⚡ Signed in · your projects are saved to the cloud';
+  if (mePlan === 'anon') qi.textContent = _t('Captions in seconds · free, no download — works on any device');
+  else qi.textContent = _t('⚡ Signed in · your projects are saved to the cloud');
 }
 // Bezahlung ist noch nicht angebunden (kein Stripe im aktuellen Umfang) — die Plan-Buttons
 // bleiben sichtbar, sagen aber ehrlich, dass es noch nichts zu kaufen gibt.
@@ -9908,11 +9922,11 @@ function updateAcctUI() {
 var billing = null, _paddleReady = false;
 function billingOn() { return !!(billing && billing.enabled); }
 function minOf(sec) { return Math.max(0, Math.floor((sec || 0) / 60)); }
-var PLAN_NAMES = { anon: 'Guest', free: 'Free', creator: 'Creator', pro: 'Pro' };
+var PLAN_NAMES = { anon: _t('Guest'), free: _t('Free'), creator: 'Creator', pro: 'Pro' };
 function quotaText(plan) {
-  return plan === 'anon' ? 'Today\'s guest minutes are used up. Sign in free for ' + minOf(billing && billing.limits && billing.limits.free) + ' minutes a month.'
-    : plan === 'free' ? 'You\'ve used your free minutes for this month. Upgrade for more minutes, or come back next month.'
-    : 'You\'ve used all minutes of your plan this month. They reset next month.';
+  return plan === 'anon' ? _t('Today\'s guest minutes are used up. Sign in free for {0} minutes a month.', minOf(billing && billing.limits && billing.limits.free))
+    : plan === 'free' ? _t('You\'ve used your free minutes for this month. Upgrade for more minutes, or come back next month.')
+    : _t('You\'ve used all minutes of your plan this month. They reset next month.');
 }
 async function loadBilling() {
   if (typeof fetch !== 'function' || typeof location === 'undefined' || !/^https?:$/.test(location.protocol)) return null;
@@ -9938,13 +9952,13 @@ function renderBilling() {
     if (el.classList) el.classList.toggle('low', on && billing.left_sec < billing.limit_sec * 0.1);
   });
   var info = document.getElementById('acctInfo');
-  if (info && meEmail) info.textContent = meEmail + ' · signed in' + (on ? ' · ' + PLAN_NAMES[billing.plan] + ' plan · ' + minOf(billing.left_sec) + ' of ' + minOf(billing.limit_sec) + ' min left this month' : '');
+  if (info && meEmail) info.textContent = meEmail + _t(' · signed in') + (on ? _t(' · {0} plan · {1} of {2} min left this month', PLAN_NAMES[billing.plan], minOf(billing.left_sec), minOf(billing.limit_sec)) : '');
   var c = document.getElementById('btnPlanCreator'), p = document.getElementById('btnPlanPro'), po = document.getElementById('btnPortal');
   if (c && p) {
     var lim = (billing && billing.limits) || {};
-    c.textContent = billingOn() ? 'Creator · ' + minOf(lim.creator) + ' min/month' : 'Creator · 300 min/mo · $7.99 (≈ CHF 6.50 / € 7) — coming soon';
-    p.textContent = billingOn() ? 'Pro · ' + minOf(lim.pro) + ' min/month' : 'Pro · 1200 min/mo · $14.99 (≈ CHF 12 / € 14) — coming soon';
-    c.title = p.title = billingOn() ? 'Price shown in your local currency at checkout' : 'Paid plans are coming soon';
+    c.textContent = billingOn() ? _t('Creator · {0} min/month', minOf(lim.creator)) : _t('Creator · 300 min/mo · $7.99 (≈ CHF 6.50 / € 7) — coming soon');
+    p.textContent = billingOn() ? _t('Pro · {0} min/month', minOf(lim.pro)) : _t('Pro · 1200 min/mo · $14.99 (≈ CHF 12 / € 14) — coming soon');
+    c.title = p.title = billingOn() ? _t('Price shown in your local currency at checkout') : _t('Paid plans are coming soon');
     c.style.display = on && billing.plan === 'creator' ? 'none' : ''; p.style.display = on && billing.plan === 'pro' ? 'none' : '';
   }
   if (po) po.style.display = on && billing.canPortal ? '' : 'none';
@@ -9962,12 +9976,12 @@ function loadPaddleJs() {
 }
 async function startCheckout(plan) {
   var m = document.getElementById('acctMsg');
-  if (!billingOn()) { m.textContent = 'Paid plans are coming soon — everything is free while Gluephs is in beta.'; return; }
-  if (!meEmail) { showAcct(); m.textContent = 'Sign in first, then pick a plan.'; return; }
+  if (!billingOn()) { m.textContent = _t('Paid plans are coming soon — everything is free while Gluephs is in beta.'); return; }
+  if (!meEmail) { showAcct(); m.textContent = _t('Sign in first, then pick a plan.'); return; }
   var pd = billing.paddle || {}, price = pd.prices && pd.prices[plan];
-  if (!pd.clientToken || !price) { m.textContent = 'Checkout is not available yet — please try again later.'; return; }
-  m.textContent = 'Opening checkout…';
-  try { await loadPaddleJs(); } catch (e) { m.textContent = 'Could not load the payment window. Please check your connection and try again.'; return; }
+  if (!pd.clientToken || !price) { m.textContent = _t('Checkout is not available yet — please try again later.'); return; }
+  m.textContent = _t('Opening checkout…');
+  try { await loadPaddleJs(); } catch (e) { m.textContent = _t('Could not load the payment window. Please check your connection and try again.'); return; }
   try {
     if (!_paddleReady) {
       if (pd.env === 'sandbox') window.Paddle.Environment.set('sandbox');
@@ -9977,26 +9991,26 @@ async function startCheckout(plan) {
     window.Paddle.Checkout.open({ items: [{ priceId: price, quantity: 1 }], customer: { email: meEmail }, customData: { user_id: billing.userId },
       settings: { displayMode: 'overlay', theme: 'light', locale: String(navigator.language || 'en').slice(0, 2) } });
     m.textContent = '';
-  } catch (e) { m.textContent = 'Checkout could not start. Please try again.'; }
+  } catch (e) { m.textContent = _t('Checkout could not start. Please try again.'); }
 }
 // Nach dem Bezahlen: der Webhook braucht einen Moment → Plan ein paar Mal nachladen
 async function onCheckoutDone() {
-  var m = document.getElementById('acctMsg'); if (m) m.textContent = 'Thank you! Activating your plan…';
+  var m = document.getElementById('acctMsg'); if (m) m.textContent = _t('Thank you! Activating your plan…');
   for (var i = 0; i < 8; i++) {
     await new Promise(function(r){ setTimeout(r, 2500); });
     await loadBilling();
-    if (billing && billing.plan && billing.plan !== 'free') { if (m) m.textContent = 'Your ' + PLAN_NAMES[billing.plan] + ' plan is active.'; return; }
+    if (billing && billing.plan && billing.plan !== 'free') { if (m) m.textContent = _t('Your {0} plan is active.', PLAN_NAMES[billing.plan]); return; }
   }
-  if (m) m.textContent = 'Payment received — your plan will show up in a minute. Reload if it doesn\'t.';
+  if (m) m.textContent = _t('Payment received — your plan will show up in a minute. Reload if it doesn\'t.');
 }
 async function openPortal() {
-  var m = document.getElementById('acctMsg'); m.textContent = 'Opening…';
+  var m = document.getElementById('acctMsg'); m.textContent = _t('Opening…');
   try {
     var r = await fetch('api/portal', { method: 'POST', headers: { 'X-Capivo-Token': await authToken() } });
     var j = r.ok ? await r.json() : null;
     if (j && /^https:\/\//.test(j.url || '')) { m.textContent = ''; window.open(j.url, '_blank', 'noopener'); return; }
   } catch (e) {}
-  m.textContent = 'Could not open the billing portal. Please try again.';
+  m.textContent = _t('Could not open the billing portal. Please try again.');
 }
 // Landing-Preiskarten: „Coming soon“ öffnet das Konto-Modal mit derselben ehrlichen Beta-Meldung
 // (anmelden lohnt sich trotzdem: entfernt das Wasserzeichen, speichert Projekte).
@@ -10009,11 +10023,11 @@ async function saveProject() {
   var sb = await getSb();
   if (!sb) return;
   var payload = projectPayload();
-  var title = document.getElementById('projTitle').value || 'Untitled';
+  var title = document.getElementById('projTitle').value || _t('Untitled');
   if (title === TPL_ROW_TITLE) title += ' (project)'; // reservierter Name der Templates-Zeile
   var { error } = await sb.from('projects').insert({ title: title, payload: payload });
-  if (error) { alert('Could not save the project: ' + error.message); return; }
-  capToast('✓ Saved to your account');
+  if (error) { alert(_t('Could not save the project: {0}', error.message)); return; }
+  capToast(_t('✓ Saved to your account'));
   loadProjects();
 }
 async function loadProjects() {
@@ -10024,7 +10038,7 @@ async function loadProjects() {
   if (error || !data) return;
   data = data.filter(function(p){ return p.title !== TPL_ROW_TITLE; }); // doppelt hält besser (Templates-Zeile)
   var sel = document.getElementById('projList');
-  sel.innerHTML = '<option value="">— Load project —</option>';
+  sel.innerHTML = '<option value="">' + _t('— Load project —') + '</option>';
   data.forEach(function(p) { var o = document.createElement('option'); o.value = p.id; o.textContent = p.title; sel.appendChild(o); });
 }
 async function loadProject(id) {
@@ -10035,7 +10049,7 @@ async function loadProject(id) {
   if (error || !data) return;
   if (data.payload && data.payload.kind === 'capivo_templates') return; // reservierte Templates-Zeile, kein Projekt
   applyProjectPayload(data.payload || {});
-  setTStatus('📂', 'Project loaded — add the video again for preview & export.', false, false);
+  setTStatus('📂', _t('Project loaded — add the video again for preview & export.'), false, false);
 }
 // ── Lokaler Autosave (Reload/Absturz-Schutz) ──
 // Pro Video (Name|Größe|Dauer) der letzte Stand in EINEM localStorage-Eintrag, LRU mit max. 5 Videos.
@@ -10133,8 +10147,8 @@ function restoreAutosave(entry) {
   _vocabUsed = (d.meta && typeof d.meta.vocab === 'string') ? d.meta.vocab : cleanVocab(vocabText);
   syncVocabApply();
   document.getElementById('retryWrap').style.display = 'none';
-  setTStatus('✅', 'Restored your last session · <a href="#" onclick="retranscribeFromStatus(event)" '
-    + 'style="color:#7c3aed;font-weight:600;text-decoration:none">Re-transcribe</a>', false, false);
+  setTStatus('✅', _t('Restored your last session') + ' · <a href="#" onclick="retranscribeFromStatus(event)" '
+    + 'style="color:#7c3aed;font-weight:600;text-decoration:none">' + _t('Re-transcribe') + '</a>', false, false);
   if (setProcessing(false)) switchTab('captions'); // nichts zu transkribieren → direkt zum Text
   return true;
 }
@@ -10182,7 +10196,7 @@ function projectPayload() {
 function restoreSavedStyle(p) {
   var id = resolveStyleId(p.style), def = (p.styleDef && typeof p.styleDef === 'object') ? sanitizeStyle(p.styleDef) : null;
   function asCustom() {
-    var cs = def; cs.id = 'custom'; cs.name = 'My style'; cs.badge = '❤️';
+    var cs = def; cs.id = 'custom'; cs.name = _t('My style'); cs.badge = '❤️';
     if (!cs.thumbBg) cs.thumbBg = CS_THUMB_BG;
     var i = STYLES.findIndex(function(x){ return x.id === 'custom'; });
     if (i >= 0) STYLES[i] = cs; else STYLES.push(cs);
@@ -10195,13 +10209,13 @@ function restoreSavedStyle(p) {
     if (t && !t.deleted) { if (!STYLES.find(function(x){ return x.id === id; })) rebuildTemplateStyles(); return; }
     if (!def) { activeId = 'classic'; return; }
     if (t && t.deleted) { asCustom(); return; }
-    var nt = normalizeTemplate({ id: id, name: p.styleName || 'Saved style', style: def, layout: p.tplLayout || {}, createdAt: Date.now(), updatedAt: 1 });
+    var nt = normalizeTemplate({ id: id, name: p.styleName || _t('Saved style'), style: def, layout: p.tplLayout || {}, createdAt: Date.now(), updatedAt: 1 });
     if (nt) { userTemplates.push(nt); persistTemplates(); rebuildTemplateStyles(); activeId = nt.id; }
     else activeId = 'classic';
     return;
   }
   if (!STYLES.find(function(x){ return x.id === id; })) {
-    if (def) { def.id = id; def.name = 'Saved style'; def.badge = '❤️'; if (!def.thumbBg) def.thumbBg = CS_THUMB_BG; STYLES.push(def); }
+    if (def) { def.id = id; def.name = _t('Saved style'); def.badge = '❤️'; if (!def.thumbBg) def.thumbBg = CS_THUMB_BG; STYLES.push(def); }
     else activeId = 'classic';
   }
 }
@@ -10309,9 +10323,9 @@ function trHeaders(ctype, tok) {
   if (vk) h['X-Video-Key'] = vk; // nur ein Hash: gesplittetes Audio / erneutes Transkribieren zählt serverseitig als EIN Video
   return h;
 }
-function wmNoticeText() {
+function wmNoticeText(upgradeHtml) {
   var n = (billing && billing.clean_videos) || 2;
-  return 'You\'ve used your ' + n + ' free video' + (n === 1 ? '' : 's') + ' without watermark today — this one carries a small watermark. Upgrade to remove it, or come back tomorrow.';
+  return _tn(n, 'You\'ve used your 1 free video without watermark today — this one carries a small watermark. {1}, or come back tomorrow.', 'You\'ve used your {0} free videos without watermark today — this one carries a small watermark. {1}, or come back tomorrow.', n, upgradeHtml || _t('Upgrade to remove it'));
 }
 // ── Beta-E-Mail-Gate ──
 // Download ohne Wasserzeichen gegen E-Mail-Adresse (kein Login, kein Mailversand nötig). Die Adresse wird
@@ -10347,7 +10361,7 @@ function passEmailGate() {
   var v = String((inp && inp.value) || '').trim();
   if (!v) { _gateSkipped = true; g.style.display = 'none'; return true; } // leeres Feld = freiwillig übersprungen
   if (!isEmail(v)) {
-    if (err) { err.textContent = 'That doesn\'t look like a valid email address — fix it, or tap Skip.'; err.style.display = ''; }
+    if (err) { err.textContent = _t('That doesn\'t look like a valid email address — fix it, or tap Skip.'); err.style.display = ''; }
     if (inp && inp.focus) inp.focus();
     return false;
   }
@@ -10419,7 +10433,7 @@ function setTProgress(pct) {
   var pctEl = document.getElementById('tProgPct');
   if (pctEl) pctEl.textContent = Math.round(p) + '%';
   // Vorschau-Überlagerung + Fortschrittsbalken über dem Style-Raster
-  var pm = document.getElementById('procMsg'); if (pm) pm.textContent = (_reTr ? 'Re-transcribing… ' : 'Transcribing… ') + Math.round(p) + '%';
+  var pm = document.getElementById('procMsg'); if (pm) pm.textContent = (_reTr ? _t('Re-transcribing… {0}%', Math.round(p)) : _t('Transcribing… {0}%', Math.round(p)));
   ['procFill', 'shFill'].forEach(function(id) { var f = document.getElementById(id); if (f) f.style.width = p + '%'; });
 }
 // ── Verarbeitungs-Schritt = Style-Wahl ──
@@ -10434,8 +10448,8 @@ function setReTranscribing(on) {
   var ov = document.getElementById('procOv'); if (!ov) return;
   if (_reTr) {
     ov.style.display = 'flex';
-    var pm = document.getElementById('procMsg'); if (pm) pm.textContent = 'Re-transcribing… 0%';
-    var ps = document.getElementById('procStep'); if (ps) ps.textContent = 'Your captions update when it finishes';
+    var pm = document.getElementById('procMsg'); if (pm) pm.textContent = _t('Re-transcribing… 0%');
+    var ps = document.getElementById('procStep'); if (ps) ps.textContent = _t('Your captions update when it finishes');
     ['procFill', 'shFill'].forEach(function(id) { var f = document.getElementById(id); if (f) f.style.width = '0%'; });
   } else if (!_processing) ov.style.display = 'none';
 }
@@ -10448,8 +10462,8 @@ function setProcessing(on) {
   var ov = document.getElementById('procOv'); if (ov) ov.style.display = _processing ? 'flex' : 'none';
   var sh = document.getElementById('styleHdr'); if (sh) sh.style.display = _processing ? 'block' : 'none';
   if (_processing && !was) {
-    var pm = document.getElementById('procMsg'); if (pm) pm.textContent = 'Transcribing… 0%';
-    var ps = document.getElementById('procStep'); if (ps) ps.textContent = 'Loading video';
+    var pm = document.getElementById('procMsg'); if (pm) pm.textContent = _t('Transcribing… 0%');
+    var ps = document.getElementById('procStep'); if (ps) ps.textContent = _t('Loading video');
     ['procFill', 'shFill'].forEach(function(id) { var f = document.getElementById(id); if (f) f.style.width = '0%'; });
     switchTab('style');
   }
@@ -10508,9 +10522,9 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       clearTimeout(timer);
       // file:// ohne Server → kein Proxy erreichbar → lokaler Fallback. Sonst: Netzproblem, nochmal versuchen.
       if (!openaiKey && typeof location !== 'undefined' && location.protocol === 'file:') throw transcribeErr('no proxy', { noProxy: true });
-      lastMsg = e && e.name === 'AbortError' ? 'The transcription service took too long.' : 'Network problem — check your connection.';
+      lastMsg = e && e.name === 'AbortError' ? _t('The transcription service took too long.') : _t('Network problem — check your connection.');
       if (attempt < maxAttempts) { await sleepMs(1500 * attempt); continue; }
-      throw transcribeErr(lastMsg + ' Please try again.');
+      throw transcribeErr(lastMsg + _t(' Please try again.'));
     }
     clearTimeout(timer);
     // Proxy nicht vorhanden → Fallback. 403 = Vercels Antwort auf per .vercelignore ausgeschlossene Dateien (Demo ohne PHP).
@@ -10536,18 +10550,18 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       // Konkrete Wartezeit nennen statt „wait a minute“ — Groq-Free-Tier sperrt teils mehrere Minuten.
       var raSec = parseFloat(resp.headers.get('Retry-After'));
       var rlMsg = isFinite(raSec) && raSec > 0
-        ? 'Free-tier limit reached — please try again in ~' + Math.max(1, Math.ceil(raSec / 60)) + ' min.'
-        : 'Free-tier limit reached (too many requests) — wait a minute and try again.';
+        ? _t('Free-tier limit reached — please try again in ~{0} min.', Math.max(1, Math.ceil(raSec / 60)))
+        : _t('Free-tier limit reached (too many requests) — wait a minute and try again.');
       if (resp.status === 402 && detail === 'quota') {
         var qj = null; try { qj = ej; } catch (e3) {}
         throw transcribeErr(quotaText(qj && qj.plan), { status: 402, quota: true });
       }
-      throw transcribeErr(resp.status === 401 && detail === 'login_required' ? 'Please log in (top right) to transcribe videos.'
-        : resp.status === 401 ? 'Invalid API key — check the server config (config.php).'
-        : resp.status === 413 ? 'Audio too large for the server — please trim the video.'
+      throw transcribeErr(resp.status === 401 && detail === 'login_required' ? _t('Please log in (top right) to transcribe videos.')
+        : resp.status === 401 ? _t('Invalid API key — check the server config (config.php).')
+        : resp.status === 413 ? _t('Audio too large for the server — please trim the video.')
         : resp.status === 429 ? rlMsg
-        : resp.status >= 500 ? 'Transcription service is busy right now — please try again.'
-        : 'Transcription error ' + resp.status + (detail ? ' (' + detail.slice(0, 120) + ')' : '') + '. Please try again.',
+        : resp.status >= 500 ? _t('Transcription service is busy right now — please try again.')
+        : _t('Transcription error {0}', resp.status) + (detail ? ' (' + detail.slice(0, 120) + ')' : '') + _t('. Please try again.'),
         { status: resp.status }); // Status für den Aufrufer (400 auf Ogg → einmal mit WAV wiederholen)
     }
     var j;
@@ -10572,7 +10586,7 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
 async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt, spans) {
   prompt = cleanVocab(prompt);
   function checkStale() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
-  var label = 'Transcribing';
+  var label = _t('Transcribing');
   var track = spans && spans.length ? buildSpeechTrack(audioData, 16000, spans) : null;
   var chunks = splitAudioChunks(track ? track.samples : audioData, 16000), n = chunks.length;
   var all = [], language = null, forced = lc, results = [], encP = [], done = 0, posted = 0, failed = null;
@@ -10617,7 +10631,7 @@ async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt,
     if (posted > 0 && (language || forced || doTranslate)) break; // Sprache steht → Rest darf parallel
     checkStale();
     setTProgress(60 + 32 * i / n);
-    if (n > 1) setTStatus('', label + ' (part ' + (i + 1) + '/' + n + ')…', true, true);
+    if (n > 1) setTStatus('', _t('{0} (part {1}/{2})…', label, i + 1, n), true, true);
     if (silent[i]) { done++; continue; }
     var nextK = i + 1; while (nextK < n && silent[nextK]) nextK++;
     encodeAt(i); encodeAt(nextK); // nächstes Stück schon kodieren, während dieses hochlädt
@@ -10635,7 +10649,7 @@ async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt,
   var queue = [];
   for (; i < n; i++) { if (silent[i]) done++; else queue.push(i); }
   if (queue.length) {
-    if (n > 1) setTStatus('', label + ' (' + done + '/' + n + ' parts done)…', true, true);
+    if (n > 1) setTStatus('', _t('{0} ({1}/{2} parts done)…', label, done, n), true, true);
     await new Promise(function(resolve, reject) {
       var next = 0, running = 0, settled = false;
       function pump() {
@@ -10651,7 +10665,7 @@ async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt,
           running--; results[k] = r; done++;
           if (!stopFn()) {
             setTProgress(60 + 32 * done / n);
-            setTStatus('', label + ' (' + done + '/' + n + ' parts done)…', true, true);
+            setTStatus('', _t('{0} ({1}/{2} parts done)…', label, done, n), true, true);
           }
           pump();
         }, function(e) { running--; if (!failed) failed = e; pump(); });
@@ -10685,8 +10699,8 @@ function isIOSDevice() {
 function noAudioTrackErr() { return new Error('This video has no audio track — nothing to transcribe.'); }
 // Ton nicht lesbar: beschädigte/abgeschnittene Datei oder falsches Format? Das <video> meldet kaputte Dateien selbst
 // (MEDIA_ERR_NETWORK 2 / DECODE 3, oft erst nach 1–3 s) — falsches Format dagegen als SRC_NOT_SUPPORTED (4) bzw. gar nicht.
-var MSG_AUDIO_FORMAT = 'Could not read the audio. Please use MP4, MOV or WebM.';
-var MSG_AUDIO_DAMAGED = 'This file looks damaged or incomplete — the audio can\'t be read. Try re-saving it from your Photos app or another file.';
+var MSG_AUDIO_FORMAT = _t('Could not read the audio. Please use MP4, MOV or WebM.');
+var MSG_AUDIO_DAMAGED = _t('This file looks damaged or incomplete — the audio can\'t be read. Try re-saving it from your Photos app or another file.');
 function videoErrIsDamage(v) { return !!(v && v.error && (v.error.code === 2 || v.error.code === 3)); }
 async function audioUnreadableMsg() {
   var v = document.getElementById('mainVid');
@@ -10752,7 +10766,7 @@ async function webAudioDecode(file) {
 // ist, aber keine Tonspur hat; {stale:true}, wenn ein neuerer Transkriptionslauf gestartet wurde.
 async function ffmpegExtractPcm(file, isStale) {
   function bail() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
-  setTStatus('', 'Extracting audio…', true, true);
+  setTStatus('', _t('Extracting audio…'), true, true);
   setTProgress(12);
   var g = await getFFmpeg(), ff = g.ff;
   bail();
@@ -10923,7 +10937,7 @@ async function transcribeVideo(file) {
   function bailIfStale() { if (stale()) throw transcribeErr('stale', { stale: true }); }
   var vocab = cleanVocab(vocabText);
   _vocabUsed = vocab; syncVocabApply();
-  setTStatus('', 'Preparing transcription…', true, true);
+  setTStatus('', _t('Preparing transcription…'), true, true);
   setTProgress(5);
   document.getElementById('retryWrap').style.display = 'none';
   // Bisherige Captions bleiben stehen (Vorschau, Editor, Exporte), bis der neue Lauf ERFOLGREICH ist —
@@ -10938,7 +10952,7 @@ async function transcribeVideo(file) {
 
   try {
     setTProgress(10);
-    setTStatus('', 'Extracting audio…', true, true);
+    setTStatus('', _t('Extracting audio…'), true, true);
 
     var dec = await decodeToMono16k(file, stale);
     bailIfStale();
@@ -10969,7 +10983,7 @@ async function transcribeVideo(file) {
 
     // ── 0) Sprache finden (VAD): nur Sprache an Whisper, Wortzeiten später darauf beschränken.
     // spans = null → keine/kaum Sprache erkannt → wie bisher alles senden, nichts beschränken.
-    setTStatus('', 'Finding speech…', true, true);
+    setTStatus('', _t('Finding speech…'), true, true);
     var speech = await detectSpeechRegions(audioData, 16000);
     bailIfStale();
     var spans = speechSpans(speech, audioDur);
@@ -10985,7 +10999,7 @@ async function transcribeVideo(file) {
     catch (eS) {
       if (stale() || (eS && eS.stale) || !turboFallbackOk(eS)) throw eS;
       console.warn('large-v3 fehlgeschlagen, Fallback turbo:', eS && eS.message || eS);
-      setTStatus('', 'Transcribing (backup model)…', true, true);
+      setTStatus('', _t('Transcribing (backup model)…'), true, true);
       served = await serverTranscribe(audioData, SERVER_MODEL.fast, lc, audioDur, stale, vocab, spans);
     }
     bailIfStale();
@@ -11019,7 +11033,7 @@ async function transcribeVideo(file) {
         && detectedTarget && looksLikeEnglishBias(wts);
       var retryTarget = detectedTarget || NAV_LANG;
       if (whisperLang === 'auto' && retryTarget && (repetitive || suspiciousEnglishBias)) {
-        setTStatus('', 'Auto-detect uncertain — trying ' + retryTarget + '…', true, true);
+        setTStatus('', _t('Auto-detect uncertain — trying {0}…', retryTarget), true, true);
         // Fuer den Korrektur-Versuch IMMER large-v3 statt turbo verwenden (auch wenn oben der turbo-
         // Fallback lief): whisper-large-v3-turbo hat laut Groq/OpenAI eine bekannt schwaechere mehrsprachige
         // Genauigkeit (reduzierte Decoder-Tiefe) -- selbst mit erzwungenem `language`-Parameter bleibt
@@ -11040,7 +11054,7 @@ async function transcribeVideo(file) {
       }
     } else {
       // ── 2) Fallback: lokal im Browser (z. B. Vercel-Demo ohne PHP-Proxy) ──
-      setTStatus('', 'Server unavailable — running locally (one-time model download)…', true, true);
+      setTStatus('', _t('Server unavailable — running locally (one-time model download)…'), true, true);
       var pipe = await getPipe(LOCAL_MODEL[whisperModel] || 'base');
       bailIfStale();
       // return_language:true haengt die von Whisper selbst erkannte Audio-Sprache an die Chunks an
@@ -11060,7 +11074,7 @@ async function transcribeVideo(file) {
         && looksLikeEnglishBias(wts);
       var retryTargetLocal = detectedTargetLocal || NAV_LANG;
       if (whisperLang === 'auto' && retryTargetLocal && (repetitiveLocal || suspiciousEnglishBiasLocal)) {
-        setTStatus('', 'Auto-detect uncertain — trying ' + retryTargetLocal + '…', true, true);
+        setTStatus('', _t('Auto-detect uncertain — trying {0}…', retryTargetLocal), true, true);
         // Gleicher Grund wie beim Server-Pfad: fuer den seltenen Korrektur-Versuch auf 'small'
         // eskalieren statt beim (im Fast-Modus bewusst kleinen/schnellen) 'tiny'-Modell zu bleiben --
         // 'tiny' ist bei nicht-englischer Sprache deutlich unzuverlaessiger, auch mit erzwungenem Hint.
@@ -11100,9 +11114,9 @@ async function transcribeVideo(file) {
     // Kurz und menschlich statt Technik-Protokoll: „✓ German · 56 words“. Sprach-Details stehen in der
     // eingeklappten „Video & language“-Zusammenfassung. Polish + KI-Hervorhebung laufen danach im Hintergrund.
     setTStatus(qWarn ? '⚠️' : '✅',
-      langLabel(usedLang) + ' · ' + wordTimestamps.length + ' words' + (doTranslate ? ' · → English' : '')
-      + (truncated ? ' · only the first ' + (MAX_AUDIO_SEC / 60) + ' min were transcribed' : '')
-      + (qWarn ? ' · quality uncertain — pick the spoken language under “Video &amp; language”' : ''), false, false);
+      langLabel(usedLang) + ' · ' + _t('{0} words', wordTimestamps.length) + (doTranslate ? _t(' · → English') : '')
+      + (truncated ? _t(' · only the first {0} min were transcribed', MAX_AUDIO_SEC / 60) : '')
+      + (qWarn ? _t(' · quality uncertain — pick the spoken language under “Video &amp; language”') : ''), false, false);
     var wasProcessing = setProcessing(false);
     setReTranscribing(false);
     if (wasProcessing) switchTab('captions'); // VOR renderSegments: Zeilenhöhen lassen sich nur sichtbar messen
@@ -11117,7 +11131,7 @@ async function transcribeVideo(file) {
     scheduleAutosave();
     if (wasProcessing) {
       showCoach('coachEdit');
-      if (!hintSeen('readyToast')) { markHintSeen('readyToast'); capToast('Captions ready — fix any word, then Export.'); }
+      if (!hintSeen('readyToast')) { markHintSeen('readyToast'); capToast(_t('Captions ready — fix any word, then Export.')); }
     }
     // Feinschliff im Hintergrund: Captions sind schon sichtbar/bearbeitbar; Korrekturen landen nur, solange
     // niemand etwas geändert hat (sonst still verworfen).
@@ -11138,7 +11152,7 @@ async function transcribeVideo(file) {
       // wieder auf die Werte stellen, die diese Captions erzeugt haben (sonst zeigt die UI z. B. „Translate“ an
       // über nicht übersetzten Captions) und sagen, wie man den Versuch wiederholt.
       var hint = revertTranscriptionSettings(_lastTrMeta);
-      setTStatus('❌', 'Error: ' + (err.message || err) + ' Your previous captions are kept.' + (hint ? ' ' + hint : ''), false, false);
+      setTStatus('❌', _t('Error: {0}', err.message || err) + _t(' Your previous captions are kept.') + (hint ? ' ' + hint : ''), false, false);
       document.getElementById('capEditor').style.display = 'block';
       enableExports(true);
     } else {
@@ -11154,8 +11168,8 @@ async function transcribeVideo(file) {
 function revertTranscriptionSettings(meta) {
   if (!meta || !meta.model) return '';
   var tried = { lang: whisperLang, translate: doTranslate }, hint = '';
-  if (tried.translate !== !!meta.translate) hint = (tried.translate ? 'Turn on' : 'Turn off') + ' “Translate to English” again to retry.';
-  else if (meta.langSetting && tried.lang !== meta.langSetting) hint = 'Pick the language again to retry.';
+  if (tried.translate !== !!meta.translate) hint = tried.translate ? _t('Turn on “Translate to English” again to retry.') : _t('Turn off “Translate to English” again to retry.');
+  else if (meta.langSetting && tried.lang !== meta.langSetting) hint = _t('Pick the language again to retry.');
   doTranslate = !!meta.translate;
   var tr = document.getElementById('trEn'); if (tr) tr.checked = doTranslate;
   if (meta.langSetting) { whisperLang = meta.langSetting; var ls = document.getElementById('langSel'); if (ls) ls.value = whisperLang; }
@@ -11171,10 +11185,10 @@ function enableExports(on) {
   syncTopExport(null, !!on && videoPlayable);
 }
 // ── Abspielbarkeit prüfen: HEVC ohne Decoder / reine Audiodatei ──
-var MSG_HEVC = 'This video uses HEVC (iPhone "High Efficiency"), which this browser can\'t play. Open Gluephs in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.';
-var MSG_NOVIDEO = 'This file has no video track.';
-var MSG_H264 = 'This browser can\'t play this H.264 video — open Gluephs in Chrome, Safari or Edge.';
-var MSG_CODEC = 'This browser can\'t play this video format. Try Chrome, Safari or Edge, or convert the video to MP4 (H.264).';
+var MSG_HEVC = _t('This video uses HEVC (iPhone "High Efficiency"), which this browser can\'t play. Open Gluephs in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.');
+var MSG_NOVIDEO = _t('This file has no video track.');
+var MSG_H264 = _t('This browser can\'t play this H.264 video — open Gluephs in Chrome, Safari or Edge.');
+var MSG_CODEC = _t('This browser can\'t play this video format. Try Chrome, Safari or Edge, or convert the video to MP4 (H.264).');
 function showVideoWarn(msg) {
   var w = document.getElementById('vidWarn');
   if (!w) return;
@@ -11227,11 +11241,11 @@ async function checkVideoPlayable(vid, file) {
 }
 function applyPlayability(state) {
   videoPlayable = state === 'ok';
-  var msgs = { hevc: MSG_HEVC, h264: MSG_H264, codec: MSG_CODEC, novideo: MSG_NOVIDEO + ' Captions, SRT and TXT still work — video export needs a picture.' };
-  var tips = { hevc: 'This browser can\'t play HEVC video', h264: 'This browser can\'t play this H.264 video', codec: 'This browser can\'t play this video format', novideo: 'No video track' };
+  var msgs = { hevc: MSG_HEVC, h264: MSG_H264, codec: MSG_CODEC, novideo: MSG_NOVIDEO + _t(' Captions, SRT and TXT still work — video export needs a picture.') };
+  var tips = { hevc: _t('This browser can\'t play HEVC video'), h264: _t('This browser can\'t play this H.264 video'), codec: _t('This browser can\'t play this video format'), novideo: _t('No video track') };
   showVideoWarn(msgs[state] || '');
   var bv = document.getElementById('btnVideo');
-  if (bv) { if (!videoPlayable) bv.disabled = true; bv.title = videoPlayable ? '' : (tips[state] || 'Video can\'t be played'); }
+  if (bv) { if (!videoPlayable) bv.disabled = true; bv.title = videoPlayable ? '' : (tips[state] || _t('Video can\'t be played')); }
 }
 
 // ═══════════════════════════════════════
@@ -11306,7 +11320,7 @@ function loadVideo(file) {
     // rote Fehlerbox wie bei Transkriptionsfehlern zeigen — Editor ggf. dafür erst öffnen,
     // falls der Fehler vom Landing-Page-Upload kommt (Editor ist dort noch nicht offen).
     openEditor();
-    setTStatus('❌', 'That\'s not a video file. Please choose an MP4, MOV or WebM.', false, false);
+    setTStatus('❌', _t('That\'s not a video file. Please choose an MP4, MOV or WebM.'), false, false);
     return;
   }
   if (_autosaveTimer) autosaveNow(); // ausstehenden Autosave des vorigen Videos noch unter SEINEM Key sichern
@@ -11350,7 +11364,7 @@ function loadVideo(file) {
     document.getElementById('frameDropZone').style.display = 'none';
     document.getElementById('prevBg').style.background    = 'transparent';
     document.getElementById('vidCtrls').style.display     = 'flex';
-    document.getElementById('uploadLabel').innerHTML       = icon('upload') + ' Replace video';
+    document.getElementById('uploadLabel').innerHTML       = icon('upload') + ' ' + _t('Replace video');
     vidReady = true; syncAutoCutUI(); // Dauer bekannt → gesparte Zeit inkl. Stille am Ende
     // Gesamtdauer sofort zeigen, nicht erst beim ersten timeupdate (sonst steht bis zum Abspielen "0:00 / 0:00")
     document.getElementById('timeLbl').textContent = fmtS(0) + ' / ' + fmtS(vid.duration);
@@ -11385,17 +11399,17 @@ function loadVideo(file) {
     videoPlayable = false; enableExports(false);
     if (setProcessing(false)) switchTab('captions'); // Fehlertext steht im Captions-Tab
     var damaged = videoErrIsDamage(vid);
-    setTStatus('❌', damaged ? 'This file looks damaged or incomplete. Try re-saving it from your Photos app, or choose another file.'
-      : 'Couldn\'t load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone\'s Photos app, then upload it again.', false, false);
-    showVideoWarn(damaged ? 'This video file looks damaged or incomplete, so it can\'t be played. Tap “Upload video” to choose another file.'
-      : 'This video couldn\'t be opened in this browser. Tap “Upload video” to try another file.');
+    setTStatus('❌', damaged ? _t('This file looks damaged or incomplete. Try re-saving it from your Photos app, or choose another file.')
+      : _t('Couldn\'t load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone\'s Photos app, then upload it again.'), false, false);
+    showVideoWarn(damaged ? _t('This video file looks damaged or incomplete, so it can\'t be played. Tap “Upload video” to choose another file.')
+      : _t('This video couldn\'t be opened in this browser. Tap “Upload video” to try another file.'));
     // Manche Browser (z. B. Firefox bei HEVC) melden einen Fehler statt Breite 0 — der Ton ist trotzdem
     // lesbar: dann HEVC-Hinweis zeigen und die Captions dennoch erzeugen (SRT/TXT bleiben nutzbar).
     var errFile = file;
     probeVideoTrack(file).then(function(pr) {
       if (currentFile !== errFile || !(pr && pr.hasVideo)) return;
       applyPlayability(classifyUnplayable(pr, errFile));
-      setTStatus('', 'Preparing transcription…', true, true);
+      setTStatus('', _t('Preparing transcription…'), true, true);
       restoreOrTranscribe(errFile, 0);
     });
   };
@@ -11412,7 +11426,7 @@ function setPPIcon(playing) {
   var b = document.getElementById('ppBtn');
   if (!b) return;
   b.innerHTML = icon(playing ? 'pause' : 'play');
-  if (b.setAttribute) b.setAttribute('aria-label', playing ? 'Pause' : 'Play');
+  if (b.setAttribute) b.setAttribute('aria-label', playing ? _t('Pause') : _t('Play'));
 }
 // Play-Icon aus dem Untertitel-Bereich schieben: liegt der Untertitel (z. B. Position „Middle“ oder
 // per Drag verschoben) in der Bildmitte, wandert das Icon in den größeren freien Bereich darüber bzw.
@@ -11504,7 +11518,7 @@ function toggleMute() {
   vidMuted = !vidMuted; v.muted = vidMuted;
   var b = document.getElementById('muteBtn');
   b.innerHTML = icon(vidMuted ? 'mute' : 'vol');
-  if (b.setAttribute) b.setAttribute('aria-label', vidMuted ? 'Unmute' : 'Mute');
+  if (b.setAttribute) b.setAttribute('aria-label', vidMuted ? _t('Unmute') : _t('Mute'));
   b.className   = vidMuted ? 'mute-btn' : 'mute-btn on';
 }
 
@@ -11566,8 +11580,8 @@ function caseStyle(s) {
 function syncTimeOffUI() {
   var sl = document.getElementById('toSlider'); if (sl) sl.value = String(-timeOff);
   var d = document.getElementById('toDisp');
-  if (d) d.textContent = Math.abs(timeOff) < 0.001 ? 'Captions in sync with the audio'
-    : ('Captions ' + Math.abs(timeOff).toFixed(2) + ' s ' + (timeOff > 0 ? 'earlier' : 'later'));
+  if (d) d.textContent = Math.abs(timeOff) < 0.001 ? _t('Captions in sync with the audio')
+    : (timeOff > 0 ? _t('Captions {0} s earlier', Math.abs(timeOff).toFixed(2)) : _t('Captions {0} s later', Math.abs(timeOff).toFixed(2)));
 }
 function onTimeOffChange(v) {
   var x = Math.max(-0.5, Math.min(0.5, parseFloat(v) || 0));
@@ -11613,7 +11627,7 @@ function updateFindCount() {
   var q = (document.getElementById('frFind') || {}).value || '';
   var n = countMatches(q, _cbChecked('frWhole', false));
   var btn = document.getElementById('frBtn');
-  if (btn) { btn.textContent = 'Replace all (' + n + ')'; btn.disabled = !n; }
+  if (btn) { btn.textContent = _t('Replace all ({0})', n); btn.disabled = !n; }
   return n;
 }
 function replaceInCaptions(q, repl, whole) {
@@ -11671,7 +11685,7 @@ function copyTranscript(srcBtn) {
   function done(ok) {
     if (!btn) return;
     var old = btn._label || (btn._label = btn.textContent);
-    btn.textContent = ok ? '✓ Copied' : 'Copy failed';
+    btn.textContent = ok ? _t('✓ Copied') : _t('Copy failed');
     setTimeout(function(){ btn.textContent = old; }, 1600);
   }
   function fallback() {
@@ -12110,18 +12124,18 @@ function cutOutRange(a, b) {
   var dur = tlDur();
   if (isExporting || !(dur > 0) || !isFinite(a) || !isFinite(b)) return false;
   var lo = Math.max(0, Math.min(a, b)), hi = Math.min(dur, Math.max(a, b));
-  if (hi - lo < 0.05) { capToast('Select a longer range to cut out'); return false; }
+  if (hi - lo < 0.05) { capToast(_t('Select a longer range to cut out')); return false; }
   var next = sanitizeCuts(manualCuts.concat([{ start: lo, end: hi }]));
-  if (!trimValid(dur, next)) { capToast('Keep at least ' + TRIM_MIN_REST + ' s of video'); return false; }
+  if (!trimValid(dur, next)) { capToast(_t('Keep at least {0} s of video', TRIM_MIN_REST)); return false; }
   var ok = trimUndoRun(function() { manualCuts = next; tlCutSel = -1; });
-  if (ok) capToast('Cut out ' + fmtT1(lo) + ' – ' + fmtT1(hi) + ' — Ctrl/⌘+Z to undo');
+  if (ok) capToast(_t('Cut out {0} – {1} — Ctrl/⌘+Z to undo', fmtT1(lo), fmtT1(hi)));
   return ok;
 }
 // Manuellen Schnitt idx wieder einsetzen. Ein Undo-Schritt.
 function restoreCut(idx) {
   if (!manualCuts[idx]) return false;
   var ok = trimUndoRun(function() { manualCuts.splice(idx, 1); tlCutSel = -1; });
-  if (ok) capToast('Restored — Ctrl/⌘+Z to undo');
+  if (ok) capToast(_t('Restored — Ctrl/⌘+Z to undo'));
   return ok;
 }
 // Kurzfassung der Ausgabelänge («Output 15.0 s (−5.5 s)»); leer ohne Trim/Schnitt/Auto-Cut-Wirkung
@@ -12129,7 +12143,7 @@ function trimSummaryText() {
   var dur = tlDur();
   if (!(dur > 0)) return '';
   var sec = cutSavedSeconds(allCutRegions(dur));
-  return sec >= 0.05 ? 'Output ' + (dur - sec).toFixed(1) + ' s (−' + sec.toFixed(1) + ' s)' : '';
+  return sec >= 0.05 ? _t('Output {0} s (−{1} s)', (dur - sec).toFixed(1), sec.toFixed(1)) : '';
 }
 function syncTrimUI() {
   var txt = trimSummaryText();
@@ -12647,7 +12661,7 @@ async function tryFastExport(vid, tok) {
   vid.pause();
   recProg.style.display = 'block';
   recBar.style.width = '0%';
-  recMsg.textContent = 'Rendering video…' + (cutTotalSec > 0.05 ? ' · ✂️ cutting ' + cutTotalSec.toFixed(1) + 's' : '');
+  recMsg.textContent = _t('Rendering video…') + (cutTotalSec > 0.05 ? _t(' · ✂️ cutting {0}s', cutTotalSec.toFixed(1)) : '');
   var t0 = Date.now(), wmF = needsWatermark();
   try {
     var blob = await exportFastWebCodecs(currentFile, {
@@ -12659,15 +12673,15 @@ async function tryFastExport(vid, tok) {
       isCancelled: function() { return !!(tok && tok.cancelled); },
       onProgress: function(p) {
         recBar.style.width = Math.round(p * 100) + '%';
-        recMsg.textContent = 'Rendering ' + Math.round(p * 100) + '%…';
-        exportBtnState('Rendering ' + Math.round(p * 100) + '%…');
+        recMsg.textContent = _t('Rendering {0}%…', Math.round(p * 100));
+        exportBtnState(_t('Rendering {0}%…', Math.round(p * 100)));
       }
     });
     console.info('[export] WebCodecs-Schnellexport fertig in ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s (Video: '
                  + vid.duration.toFixed(1) + ' s)');
     // Sicherheitsnetz: kaputte/abgeschnittene Datei lieber verwerfen und in Echtzeit neu rendern
     if (tok && tok.cancelled) throw new Error('cancelled');
-    recMsg.textContent = 'Checking video…';
+    recMsg.textContent = _t('Checking video…');
     var check = await validateExportBlob(blob, vid.duration - cutTotalSec);
     if (!check.ok) throw new Error('Validierung fehlgeschlagen: ' + check.reason);
     if (!exportBlobOk(blob)) throw new Error('Validierung fehlgeschlagen: Datei leer');
@@ -13021,7 +13035,7 @@ function syncFormatRow() {
   if (nt) {
     var same = loaded && exportAspect !== 'original' && mode === 'original';
     nt.style.display = same ? '' : 'none';
-    nt.textContent = same ? 'Your video already has this shape — nothing to fill.' : '';
+    nt.textContent = same ? _t('Your video already has this shape — nothing to fill.') : '';
   }
 }
 // MediaRecorder-Format wählen. Ein MP4 nur dann, wenn es AAC-Ton ausdrücklich zusagt (mp4a): Chrome auf
@@ -13051,7 +13065,7 @@ var _expTok = null;
 function newExportToken() { return (_expTok = { cancelled: false, abort: null }); }
 // Kleiner als das ist keine echte Videodatei (allein der Container-Kopf ist > 1 KB) → leere/kaputte Aufnahme
 var EXPORT_MIN_BYTES = 1024;
-var MSG_EXPORT_DAMAGED = 'Export failed — the video file seems damaged. Try re-saving it from your Photos app or another file.';
+var MSG_EXPORT_DAMAGED = _t('Export failed — the video file seems damaged. Try re-saving it from your Photos app or another file.');
 function exportBlobOk(blob) { return !!blob && blob.size >= EXPORT_MIN_BYTES; }
 // Echtzeit-Export: war die Wiedergabe viel kürzer als die Videodauer, endete die Quelldatei vorzeitig (abgeschnitten)
 function exportPlaybackTooShort(elapsedSec, expectedSec) { return expectedSec > 2 && elapsedSec < expectedSec * 0.5; }
@@ -13068,7 +13082,7 @@ function resetExportUI(tok) {
 }
 function exportAborted(tok) {
   resetExportUI(tok); showExportMain();
-  capToast('Export cancelled — nothing was downloaded.');
+  capToast(_t('Export cancelled — nothing was downloaded.'));
 }
 // Fehlermeldung dort zeigen, wo der Nutzer hinschaut: im (ggf. dafür geöffneten) Export-Blatt, nicht als alert()
 function exportFailed(tok, msg) {
@@ -13082,14 +13096,14 @@ function cancelExport() {
   if (!t || t.cancelled) return false;
   t.cancelled = true;
   var cb = document.getElementById('expCancel'); if (cb) cb.disabled = true;
-  var rm = document.getElementById('recMsg'); if (rm) rm.textContent = 'Cancelling…';
+  var rm = document.getElementById('recMsg'); if (rm) rm.textContent = _t('Cancelling…');
   try { if (t.abort) t.abort(); } catch (e) {}
   return true;
 }
 // Seite verlassen (Zurück-Knopf/Browser-Zurück) während eines Exports: nachfragen; bei „OK“ wird der Export abgebrochen
 function confirmLeaveExport() {
   if (!(isExporting || _expTok)) return true;
-  var ok = typeof confirm === 'function' && confirm('An export is still running. Leave and cancel it?');
+  var ok = typeof confirm === 'function' && confirm(_t('An export is still running. Leave and cancel it?'));
   if (ok) cancelExport();
   return ok;
 }
@@ -13120,7 +13134,7 @@ function syncExportAgain() {
   var ch = exportChangedSinceLast();
   var ag = document.getElementById('expAgain'), dl = document.getElementById('expDlFile'), ht = document.getElementById('expChangedHint');
   if (ag) { ag.style.display = ch ? '' : 'none'; if (ag.classList) ag.classList.toggle('on', ch); }
-  if (dl) { dl.style.display = ch ? 'none' : ''; dl.textContent = 'Download again'; }
+  if (dl) { dl.style.display = ch ? 'none' : ''; dl.textContent = _t('Download again'); }
   if (ht) ht.style.display = ch ? '' : 'none';
   syncLastExportUI(); // Export-Ansicht: „Last export … Download again“ weg + Hauptknopf „Export with changes“
   return ch;
@@ -13132,7 +13146,7 @@ function syncLastExportUI() {
   var ch = !!_lastExportBlob && exportChangedSinceLast();
   if (el) el.style.display = (_lastExportBlob && !isExporting && !_expTok && !ch) ? '' : 'none'; // „Download again“ nur ohne Änderung seit dem Export
   var b = document.getElementById('btnVideo'), lbl = b && b.querySelector ? b.querySelector('.exp-btn-label') : null;
-  if (lbl && !(b.classList && b.classList.contains('busy'))) lbl.textContent = ch ? 'Export with changes' : 'Download video';
+  if (lbl && !(b.classList && b.classList.contains('busy'))) lbl.textContent = ch ? _t('Export with changes') : _t('Download video');
 }
 // Fortschritt direkt AM Export-Button (Handy: die Fortschrittsleiste darunter liegt oft außerhalb des
 // sichtbaren Bereichs) — Button währenddessen gesperrt. text = null → zurücksetzen.
@@ -13159,7 +13173,7 @@ function exportBtnState(text) {
     if (b.style && b.style.removeProperty) b.style.removeProperty('--p');
     b.disabled = !videoPlayable || !captionBlocks.length;
     b.removeAttribute && b.removeAttribute('aria-busy');
-    if (lbl) lbl.textContent = (_lastExportBlob && exportChangedSinceLast()) ? 'Export with changes' : 'Download video';
+    if (lbl) lbl.textContent = (_lastExportBlob && exportChangedSinceLast()) ? _t('Export with changes') : _t('Download video');
   }
 }
 async function exportVideoWithCaptions() {
@@ -13172,16 +13186,16 @@ async function exportVideoWithCaptions() {
   // Button zeigen — die Fortschrittsleiste darunter liegt auf dem Handy oft außerhalb des Bildschirms.
   var cutTimer = null;
   if (breakAtCuts && typeof cutsDetecting === 'function' && cutsDetecting() && !isExporting) {
-    var showCuts = function() { exportBtnState('Preparing ' + Math.max(0, Math.min(99, (_cutState && _cutState.pct) || 0)) + '%…'); };
+    var showCuts = function() { exportBtnState(_t('Preparing {0}%…', Math.max(0, Math.min(99, (_cutState && _cutState.pct) || 0)))); };
     showCuts(); cutTimer = setInterval(showCuts, 250);
   }
   try { await waitForSceneCuts(20000); }
   finally { if (cutTimer) { clearInterval(cutTimer); exportBtnState(null); } }
   var vid = document.getElementById('mainVid');
   if (tok.cancelled) { exportAborted(tok); return; }
-  if (!vid.src || !vid.duration) { resetExportUI(tok); alert('Please upload a video first.'); return; }
+  if (!vid.src || !vid.duration) { resetExportUI(tok); alert(_t('Please upload a video first.')); return; }
   showExportMain(); // „Export again“/neuer Export: Erfolgszeile weg, Fortschritt sichtbar
-  exportBtnState('Preparing…');
+  exportBtnState(_t('Preparing…'));
   await waitAuth(); // Session-Wiederherstellung abwarten, bevor needsWatermark() entscheidet
   if (tok.cancelled) { exportAborted(tok); return; }
   if (billingOn() && videoKeyHash() && billing.video_key !== videoKeyHash()) await loadBilling(); // Marke gilt pro Video → Stand zu DIESEM Video holen
@@ -13197,7 +13211,7 @@ async function exportVideoWithCaptions() {
   if (await tryFastExport(vid, tok)) return;
   if (tok.cancelled) { exportAborted(tok); return; }
 
-  if (!window.MediaRecorder) { resetExportUI(tok); alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
+  if (!window.MediaRecorder) { resetExportUI(tok); alert(_t('Your browser does not support video export. Please use Chrome, Firefox or Safari.')); return; }
 
   var geo = exportGeometry(vid.videoWidth, vid.videoHeight, 30, undefined, undefined, currentFile ? estimateSourceBitrate(currentFile.size, vid.duration) : 0);
   if (_blurBgCanvas) _blurBgCanvas.width = 0; // Blur-Hintergrund des vorigen Exports nicht wiederverwenden
@@ -13256,20 +13270,20 @@ async function exportVideoWithCaptions() {
     } else {
       // Firefox/Chromium ohne H.264: WebM → H.264-MP4 umkodieren, damit der Upload zu Instagram/TikTok klappt
       try {
-        recMsg.textContent = 'Creating MP4 (one-time ~15 MB converter download)…';
+        recMsg.textContent = _t('Creating MP4 (one-time ~15 MB converter download)…');
         recBar.style.width = '0%';
         var mp4 = await webmToMp4(blob, function(p){
           recBar.style.width = Math.round(p * 100) + '%';
-          recMsg.textContent = 'Creating MP4… ' + Math.round(p * 100) + '%';
-          exportBtnState('Creating MP4 ' + Math.round(p * 100) + '%…');
+          recMsg.textContent = _t('Creating MP4… {0}%', Math.round(p * 100));
+          exportBtnState(_t('Creating MP4 {0}%…', Math.round(p * 100)));
         }, vid.duration - cutTotalSec, tok, geo.bitrate); // Bild und Ton exakt auf die Ausgabedauer kürzen; Bitrate gedeckelt
         if (!exportBlobOk(mp4)) throw new Error('leeres MP4 (' + (mp4 && mp4.size) + ' B)');
         outBlob = mp4; outName = exportBaseName() + '.mp4';
       } catch (e) {
         if (tok.cancelled) { restoreVideo(); exportAborted(tok); return; }
         console.error('MP4-Konvertierung fehlgeschlagen:', e);
-        alert('MP4 conversion failed (maybe offline) — saving as WebM instead. '
-            + 'Tip: exporting in Chrome or Safari gives you an Instagram-ready MP4 directly.');
+        alert(_t('MP4 conversion failed (maybe offline) — saving as WebM instead. ')
+            + _t('Tip: exporting in Chrome or Safari gives you an Instagram-ready MP4 directly.'));
         outBlob = blob; outName = exportBaseName() + '.webm';
       }
     }
@@ -13298,8 +13312,8 @@ async function exportVideoWithCaptions() {
 
   document.getElementById('recProg').style.display = 'block';
   document.getElementById('recBar').style.width = '0%';
-  document.getElementById('recMsg').textContent = (hasAudio ? 'Rendering video…' : 'Rendering video (no audio track found)…')
-    + (cutTotalSec > 0.05 ? ' · ✂️ cutting ' + cutTotalSec.toFixed(1) + 's' : '');
+  document.getElementById('recMsg').textContent = (hasAudio ? _t('Rendering video…') : _t('Rendering video (no audio track found)…'))
+    + (cutTotalSec > 0.05 ? _t(' · ✂️ cutting {0}s', cutTotalSec.toFixed(1)) : '');
 
   // Sauber auf 0 seeken, DANN Aufnahme starten → Audio & Video starten synchron
   vid.pause();
@@ -13363,8 +13377,8 @@ async function exportVideoWithCaptions() {
 
     var pct = t / totalDur;
     document.getElementById('recBar').style.width = (pct * 100) + '%';
-    document.getElementById('recMsg').textContent = 'Rendering ' + Math.round(pct * 100) + '%…';
-    exportBtnState('Rendering ' + Math.round(pct * 100) + '%…');
+    document.getElementById('recMsg').textContent = _t('Rendering {0}%…', Math.round(pct * 100));
+    exportBtnState(_t('Rendering {0}%…', Math.round(pct * 100)));
 
     drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
       drawReframed(ctx, W, H, geo.mode, function(c, w, h, fit, pan){ drawVideoFit(c, vid, w, h, fit, pan); }, geo.pan);
@@ -14375,9 +14389,9 @@ function syncTopExport(text, enabled) {
     // Bleibt klickbar: auch bei geschlossenem Blatt kommt man so zum Fortschritt und zu „Cancel export“
     tb.disabled = false; if (tb.classList) tb.classList.add('busy');
     var pm = /(\d+)%/.exec(text);
-    var prep = /scene cuts|Preparing|Checking/i.test(text);
-    tb.textContent = (prep ? 'Preparing' : 'Exporting') + (pm ? ' ' + pm[1] + '%' : '…');
-  } else { tb.disabled = !enabled; tb.textContent = 'Export'; if (tb.classList) tb.classList.remove('busy'); }
+    var prep = /scene cuts|Preparing|Checking|Vorbereit|Prüf/i.test(text); // EN + DE (_t-Texte beginnen auf DE mit «Vorbereiten»/«Prüfe»)
+    tb.textContent = (prep ? _t('Preparing') : _t('Exporting')) + (pm ? ' ' + pm[1] + '%' : '…');
+  } else { tb.disabled = !enabled; tb.textContent = _t('Export'); if (tb.classList) tb.classList.remove('busy'); }
 }
 // ── Export-Blatt ──
 // Klick 1 = Blatt öffnen, Klick 2 = „Download video“ (Datei → MP4 bleibt bei 2 Klicks: Upload + Download,
@@ -14435,11 +14449,19 @@ function exportSizeLabel(srcW, srcH, res, fmt) {
   return g.mode !== 'original' ? dims : dims + ' (source size)'; // Reframe = neue Leinwand (z. B. 1:1 → 1080×1080)
 }
 // Platzhalter für den Wasserzeichen-Teil der Unterzeile (die Regel dazu — needsWatermark — ändert sich separat)
-function exportWmNote() { return needsWatermark() ? '' : ' · no watermark'; }
+function exportWmNote() { return needsWatermark() ? '' : _t(' · no watermark'); }
+// exportSizeLabel liefert englische Beschriftungen (intern, von Tests geprüft) → hier fürs Anzeigen übersetzen
+function expSizeShow(l) {
+  if (l === 'original size') return _t('original size');
+  var m = /^original size \((.+)\)$/.exec(l);
+  if (m) return _t('original size ({0})', m[1]);
+  if (/ \(source size\)$/.test(l)) return _t('{0} (source size)', l.replace(' (source size)', ''));
+  return l;
+}
 function syncExpSub() {
   var vid = document.getElementById('mainVid'), sw = vid && vid.videoWidth, sh = vid && vid.videoHeight;
   var el = document.getElementById('btnVideoSub');
-  if (el) el.textContent = 'MP4 · ' + exportSizeLabel(sw, sh) + exportWmNote();
+  if (el) el.textContent = 'MP4 · ' + expSizeShow(exportSizeLabel(sw, sh)) + exportWmNote();
   // Auswahlliste mit denselben Maßen (bei kleiner Quelle ist „1080p“ gelogen: es wird nicht hochskaliert).
   // Ergeben „1080p“ und „Original“ dieselben Maße (z. B. 1280×720-Quelle), gibt es nur EINE Option — keine Dublette.
   // Die gespeicherte Wahl (capivo.expRes) bleibt unangetastet; sie wird nur für die Anzeige auf die Option abgebildet.
@@ -14448,8 +14470,8 @@ function syncExpSub() {
     var l1080 = exportSizeLabel(sw, sh, '1080'), lOrig = exportSizeLabel(sw, sh, 'orig');
     var g1 = exportGeometry(sw, sh, 30, '1080'), g2 = exportGeometry(sw, sh, 30, 'orig');
     var dup = sw > 0 && sh > 0 && g1.W === g2.W && g1.H === g2.H;
-    var txt1 = (l1080 === '1080p' ? '1080p' : (l1080.indexOf(' (source size)') > 0 ? 'Source size · ' + l1080.replace(' (source size)', '') : l1080)) + ' (recommended)';
-    var txt2 = 'Original' + (lOrig.indexOf('(') > 0 ? ' · ' + lOrig.slice(lOrig.indexOf('(') + 1, -1) : '');
+    var txt1 = _t('{0} (recommended)', l1080 === '1080p' ? '1080p' : (l1080.indexOf(' (source size)') > 0 ? _t('Source size · {0}', l1080.replace(' (source size)', '')) : l1080));
+    var txt2 = _t('Original') + (lOrig.indexOf('(') > 0 ? ' · ' + lOrig.slice(lOrig.indexOf('(') + 1, -1) : '');
     var want = dup ? [['1080', txt1]] : [['1080', txt1], ['orig', txt2]];
     var same = r.options.length === want.length && want.every(function(o, i) { return r.options[i].value === o[0]; });
     if (!same) { while (r.options.length) r.remove(0); want.forEach(function(o) { var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; r.add(op); }); }
@@ -14506,7 +14528,7 @@ function exportDone(wmOn) {
   if (nt) nt.style.display = 'none';
   // SRT/VTT/TXT, „Copy text“, Cover und die Optionen liegen außerhalb von expMain/expDone und bleiben sichtbar
   if (m) m.style.display = 'none'; if (ow) ow.style.display = ''; if (d) d.style.display = ''; // Optionen bleiben änderbar (→ syncExportAgain)
-  if (!exportSheetOpen()) capToast('✓ Saved — ' + _lastDlName);
+  if (!exportSheetOpen()) capToast(_t('✓ Saved — {0}', _lastDlName));
   statExport();
 }
 
@@ -14743,8 +14765,8 @@ function coverDrawGuides(ctx, W, H, box) {
   var bad = box && !coverInRect(box, r);
   ctx.strokeStyle = bad ? 'rgba(239,68,68,.95)' : 'rgba(255,255,255,.55)'; ctx.strokeRect(r.x, r.y, r.w, r.h);
   ctx.setLineDash([]); ctx.font = '600 ' + (11 * u) + 'px Inter, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = 'rgba(255,255,255,.9)';
-  ctx.fillText('Profile grid 3:4', c.x + 8 * u, c.y + 14 * u);
-  ctx.fillText('Reels / TikTok safe area', r.x + 8 * u, r.y + r.h - 8 * u);
+  ctx.fillText(_t('Profile grid 3:4'), c.x + 8 * u, c.y + 14 * u);
+  ctx.fillText(_t('Reels / TikTok safe area'), r.x + 8 * u, r.y + r.h - 8 * u);
   ctx.restore();
 }
 
@@ -14809,8 +14831,8 @@ function coverRedraw() {
     var warn = coverEl('cvWarn');
     if (warn) {
       var reg = coverSafeRegion(COVER_W, COVER_H), msg = '';
-      if (!r.hasBg) msg = 'No frame available for this video here — upload an image instead.';
-      else if (r.box && !coverInRect(r.box, reg)) msg = 'Title is outside the safe area — shorten it or make it smaller.';
+      if (!r.hasBg) msg = _t('No frame available for this video here — upload an image instead.');
+      else if (r.box && !coverInRect(r.box, reg)) msg = _t('Title is outside the safe area — shorten it or make it smaller.');
       warn.textContent = msg; warn.style.display = msg ? '' : 'none';
     }
   });
@@ -14818,7 +14840,7 @@ function coverRedraw() {
 function coverSyncUI() {
   var st = coverState, vid = coverEl('mainVid');
   var tm = coverEl('cvTime'); if (tm) { tm.max = Math.max(0.1, (vid && vid.duration) || 1).toFixed(1); tm.value = st.t || 0; tm.disabled = !!_coverImg; }
-  var tl = coverEl('cvTimeLbl'); if (tl) tl.textContent = _coverImg ? 'Your image' : fmtS(st.t || 0);
+  var tl = coverEl('cvTimeLbl'); if (tl) tl.textContent = _coverImg ? _t('Your image') : fmtS(st.t || 0);
   var dk = coverEl('cvDark'); if (dk) dk.value = st.dark;
   var gr = coverEl('cvGrad'); if (gr) gr.checked = !!st.grad;
   var ta = coverEl('cvTitle'); if (ta && document.activeElement !== ta) ta.value = st.title;
@@ -14940,11 +14962,11 @@ function coverPoint(cv, e) {
 function coverResetPos() { coverState.ox = 0; coverState.oy = 0; coverState.wo = {}; _coverSel = -1; coverSyncUI(); coverRedraw(); scheduleAutosave(); }
 function coverOnImage(inp) {
   var f = inp && inp.files && inp.files[0]; if (inp) inp.value = '';
-  if (!f || !/^image\//.test(f.type)) { if (f) capToast('Please choose an image (JPG, PNG, WebP)'); return; }
-  if (f.size > 25 * 1024 * 1024) { capToast('That image is too large (max. 25 MB)'); return; }
+  if (!f || !/^image\//.test(f.type)) { if (f) capToast(_t('Please choose an image (JPG, PNG, WebP)')); return; }
+  if (f.size > 25 * 1024 * 1024) { capToast(_t('That image is too large (max. 25 MB)')); return; }
   var url = URL.createObjectURL(f), im = new Image();
   im.onload = function() { _coverImg = im; coverSyncUI(); coverRedraw(); setTimeout(function(){ URL.revokeObjectURL(url); }, 2000); };
-  im.onerror = function() { capToast('Couldn’t read that image'); URL.revokeObjectURL(url); };
+  im.onerror = function() { capToast(_t('Couldn’t read that image')); URL.revokeObjectURL(url); };
   im.src = url;
 }
 function coverUseFrame() { _coverImg = null; coverSyncUI(); coverLoadFrame(coverState.t); }
@@ -14955,21 +14977,21 @@ async function downloadCover() {
     await coverEnsureFonts();
     var cv = document.createElement('canvas'); cv.width = COVER_W; cv.height = COVER_H;
     var r = coverRender(cv.getContext('2d'), COVER_W, COVER_H, false);
-    if (!r.hasBg) { capToast('No background — upload an image first'); return; }
+    if (!r.hasBg) { capToast(_t('No background — upload an image first')); return; }
     await waitAuth(); // Anmeldestatus abwarten: wie beim Video trägt das Bild ohne E-Mail/Login ein kleines Zeichen
     if (needsWatermark()) drawWatermark(cv.getContext('2d'), COVER_W, COVER_H, true);
     var blob = await new Promise(function(res){ cv.toBlob(res, 'image/png'); });
-    if (!blob) { capToast('Couldn’t create the image'); return; }
+    if (!blob) { capToast(_t('Couldn’t create the image')); return; }
     var url = URL.createObjectURL(blob), a = document.createElement('a');
     a.href = url; a.download = coverFileName(coverState.title, exportBaseName()); a.click();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
-    capToast('✓ Cover saved — ' + a.download);
+    capToast(_t('✓ Cover saved — {0}', a.download));
   } finally { if (btn) btn.disabled = false; }
 }
 // Muss direkt aus einem Tipp kommen (navigator.share verlangt eine Nutzergeste) — nie automatisch nach dem Rendern.
 function shareLastExport() {
   var b = _lastExportBlob;
-  if (!b) { capToast('That file is no longer available — export again.'); return Promise.resolve(false); }
+  if (!b) { capToast(_t('That file is no longer available — export again.')); return Promise.resolve(false); }
   var f = new File([b], _lastDlName, { type: b.type || 'video/mp4' });
   return navigator.share({ files: [f] }).then(function(){ return true; }, function(e) {
     if (e && e.name === 'AbortError') return false; // Nutzer hat das Teilen-Blatt geschlossen
@@ -14980,9 +15002,9 @@ function shareLastExport() {
 }
 // „Download again“: dieselbe Datei erneut speichern — kein Neu-Rendern
 function downloadLastExport() {
-  if (!_lastExportBlob) { capToast('That file is no longer available — export again.'); return false; }
+  if (!_lastExportBlob) { capToast(_t('That file is no longer available — export again.')); return false; }
   dlBlob(_lastExportBlob, _lastDlName);
-  capToast('✓ Saved again — ' + _lastDlName);
+  capToast(_t('✓ Saved again — {0}', _lastDlName));
   return true;
 }
 // „Caption another video“: zurück zum Upload; Style/Layout bleiben (gemerkt), das nächste Video startet damit
@@ -15061,13 +15083,13 @@ function setSaveInd(state) {
   var el = document.getElementById('saveInd');
   if (!el) return;
   clearTimeout(_saveIndTimer);
-  if (state === 'saved') el.innerHTML = icon('check') + 'Saved';
-  else if (state === 'saving') el.textContent = 'Saving…';
+  if (state === 'saved') el.innerHTML = icon('check') + _t('Saved');
+  else if (state === 'saving') el.textContent = _t('Saving…');
   else el.textContent = '';
   if (el.classList) el.classList.toggle('on', !!state);
 }
 // Sprache als Wort für Status/Zusammenfassung: 'german' → 'German'
-function langLabel(l) { return (!l || l === 'auto') ? 'Auto language' : l.charAt(0).toUpperCase() + l.slice(1); }
+function langLabel(l) { return (!l || l === 'auto') ? _t('Auto language') : _t(l.charAt(0).toUpperCase() + l.slice(1)); } // «German» usw.: Schlüssel stehen in de.js (uiDynamic)
 // Zusammenfassung der eingeklappten „Video & language“-Sektion
 function updateTrSetSum() {
   var el = document.getElementById('trSetSum');
@@ -15224,7 +15246,7 @@ function undoCaptions() {
   _redoStack.push(counterSnapshot(u));
   restoreCaptionSnapshot(u);
   _undoTag = null; syncUndoBtns();
-  capToast('↶ Undone');
+  capToast(_t('↶ Undone'));
   return true;
 }
 function redoCaptions() {
@@ -15233,7 +15255,7 @@ function redoCaptions() {
   _undoStack.push(counterSnapshot(r));
   restoreCaptionSnapshot(r);
   _undoTag = null; syncUndoBtns();
-  capToast('↷ Redone');
+  capToast(_t('↷ Redone'));
   return true;
 }
 
@@ -15293,7 +15315,7 @@ function deleteSeg(idx) {
   captionBlocks.splice(idx, 1);
   markCaptionsEdited();
   refreshCaptionViews();
-  capToast('Caption deleted — Ctrl/⌘+Z to undo');
+  capToast(_t('Caption deleted — Ctrl/⌘+Z to undo'));
 }
 
 // ── Direkt in der Vorschau bearbeiten: Doppelklick (bzw. Tippen auf das schon aktive Wort) ──
@@ -15359,7 +15381,7 @@ function closeInlineEdit(save) {
   else { captionBlocks[bi].text = v; retimeEditedBlock(captionBlocks[bi]); }
   markCaptionsEdited();
   refreshCaptionViews();
-  capToast(v ? '✓ Caption updated' : 'Caption deleted — Ctrl/⌘+Z to undo');
+  capToast(v ? _t('✓ Caption updated') : _t('Caption deleted — Ctrl/⌘+Z to undo'));
   if (v) suggestFixAll(before, v, bi);
 }
 // Klick woanders hin (andere Zeile, Tab, Player) speichert — kurz verzögert, damit ein Tipp auf
@@ -15382,8 +15404,8 @@ function setBrandTpl(id) { try { if (id) localStorage.setItem(BRAND_KEY, id); el
 function toggleBrandTpl(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
   if (!t) return;
-  if (brandTplId() === id) { setBrandTpl(''); capToast('“' + t.name + '” is no longer your default'); }
-  else { setBrandTpl(id); capToast('★ “' + t.name + '” will be used for every new video'); }
+  if (brandTplId() === id) { setBrandTpl(''); capToast(_t('“{0}” is no longer your default', t.name)); }
+  else { setBrandTpl(id); capToast(_t('★ “{0}” will be used for every new video', t.name)); }
   buildPicker();
 }
 // Beim Öffnen eines neuen Videos: Brand-Template wählen (falls vorhanden) und das Layout des aktiven
@@ -15438,7 +15460,7 @@ function openEditorClean() {
   if (typeof setZoom === 'function') setZoom(1);
   document.getElementById('capEditor').style.display     = 'none';
   document.getElementById('retryWrap').style.display     = 'none';
-  setTStatus('', 'Upload a video to generate captions', false, false);
+  setTStatus('', _t('Upload a video to generate captions'), false, false);
   enableExports(false);
   resetUndo(); collapseTrSettings(true);
   setProcessing(false); setTitle(''); setSaveInd(''); closeExportSheet();
@@ -15688,7 +15710,7 @@ function tlDeleteRange(r) {
   captionBlocks.splice(r.a, n);
   tlSel = -1; tlSelEnd = -1;
   markCaptionsEdited(); refreshCaptionViews();
-  capToast(n + ' captions deleted — Ctrl/⌘+Z to undo');
+  capToast(_t('{0} captions deleted — Ctrl/⌘+Z to undo', n));
 }
 // ── B5: Ausschneiden / Trimmen in der Timeline ──
 // Bereich zum Ausschneiden (Quellzeit): In/Out-Marken > Mehrfachauswahl > gewählter Block. null, wenn nichts gewählt.
@@ -15701,7 +15723,7 @@ function tlCutRange() {
 }
 function tlCutOut() {
   var r = tlCutRange();
-  if (!r) { capToast('Select captions, or set In/Out with I and O, then Cut out (X)'); return false; }
+  if (!r) { capToast(_t('Select captions, or set In/Out with I and O, then Cut out (X)')); return false; }
   var ok = cutOutRange(r.a, r.b);
   if (ok) { tlMarkIn = null; tlMarkOut = null; _tl.actKey = ''; tlSyncAct(); }
   return ok;
@@ -16041,13 +16063,13 @@ function tlNudgeWhy(idx, edge, dir) {
   if (!b) return '';
   var off = timeOff || 0, eps = 1e-3;
   var grow = (edge === 'start' && dir < 0) || (edge === 'end' && dir > 0);
-  if (!grow) return 'This caption is already as short as it can be';
+  if (!grow) return _t('This caption is already as short as it can be');
   var bd = tlBounds(captionBlocks, idx, { base: b, dur: tlDur(), cuts: activeCuts(), off: off, respectCuts: tlSnapOn });
   var nb = edge === 'start' ? captionBlocks[idx - 1] : captionBlocks[idx + 1];
   var lim = edge === 'start' ? bd.lo : bd.hi;
-  if (nb && Math.abs((edge === 'start' ? nb.end : nb.start) - lim) < eps) return edge === 'start' ? 'The previous caption ends here — shorten it first' : 'The next caption starts here — shorten it first';
-  if (edge === 'start' ? lim <= eps : !isFinite(lim) || lim >= tlDur() - eps) return edge === 'start' ? 'Already at the start of the video' : 'Already at the end of the video';
-  return 'Stops at a scene cut — turn off Snap to go past it';
+  if (nb && Math.abs((edge === 'start' ? nb.end : nb.start) - lim) < eps) return edge === 'start' ? _t('The previous caption ends here — shorten it first') : _t('The next caption starts here — shorten it first');
+  if (edge === 'start' ? lim <= eps : !isFinite(lim) || lim >= tlDur() - eps) return edge === 'start' ? _t('Already at the start of the video') : _t('Already at the end of the video');
+  return _t('Stops at a scene cut — turn off Snap to go past it');
 }
 // Block idx am Zeitpunkt t (Block-Zeit) teilen: echte Wort-Zeiten, die Naht liegt am Abspielkopf (innerhalb der
 // Lücke zwischen den beiden Wörtern), beide Hälften behalten srcWords. Ein Undo-Schritt.
@@ -16073,9 +16095,9 @@ function tlSplitAt(idx, t) {
 function tlSplitAtPlayhead() {
   var off = timeOff || 0, t = tlMobCenter() + off, s = captionBlocks[tlSel];
   var idx = s && t >= s.start && t <= s.end ? tlSel : currentBlockIdx(t);
-  if (!(idx >= 0) || !captionBlocks[idx] || t < captionBlocks[idx].start || t > captionBlocks[idx].end) { capToast('Move the playhead onto a caption to split it'); return false; }
-  if (!tlSplitAt(idx, t)) { capToast('Move the playhead between two words to split'); return false; }
-  capToast('Split into two captions');
+  if (!(idx >= 0) || !captionBlocks[idx] || t < captionBlocks[idx].start || t > captionBlocks[idx].end) { capToast(_t('Move the playhead onto a caption to split it')); return false; }
+  if (!tlSplitAt(idx, t)) { capToast(_t('Move the playhead between two words to split')); return false; }
+  capToast(_t('Split into two captions'));
   return true;
 }
 function tlDeleteSel() {
@@ -16151,7 +16173,7 @@ function tlApplyMode() {
   var pcol = wrap && wrap.parentElement;
   if (pcol && pcol.style && pcol.style.setProperty) pcol.style.setProperty('--tl-h', g.h + 'px');
   var hint = document.getElementById('tlHint');
-  if (hint) hint.textContent = g.coarse ? 'Tap a caption to select it · drag its edges to trim · hold to move it' : 'Drag to move · drag edges to trim · drag over captions to select several';
+  if (hint) hint.textContent = g.coarse ? _t('Tap a caption to select it · drag its edges to trim · hold to move it') : _t('Drag to move · drag edges to trim · drag over captions to select several');
   _tl.actKey = ''; tlSyncAct();
   tlRequestDraw();
 }
@@ -16220,12 +16242,12 @@ function tlSyncAct() {
   if (key === _tl.actKey) return;
   _tl.actKey = key;
   var hint = document.getElementById('taHint');
-  if (hint) hint.textContent = rg ? ((rg.b - rg.a + 1) + ' captions selected · hold one to move them · Delete removes them')
-                             : tlMulti ? (b ? 'Tap the last caption of the range' : 'Swipe across captions to select them, or tap the first and the last')
-                             : b ? (fmtT1(b.start) + ' – ' + fmtT1(b.end) + ' · hold to move · drag the edges to trim')
-                                 : (tlCutSel >= 0 && manualCuts[tlCutSel]) ? ('Cut ' + fmtT1(manualCuts[tlCutSel].start) + ' – ' + fmtT1(manualCuts[tlCutSel].end) + ' selected · Restore brings it back')
-                                 : trimSummaryText() ? (trimSummaryText() + ' · tap a hatched cut to restore it')
-                                 : 'Tap a caption to adjust it · swipe to scrub · pinch to zoom';
+  if (hint) hint.textContent = rg ? _t('{0} captions selected · hold one to move them · Delete removes them', rg.b - rg.a + 1)
+                             : tlMulti ? (b ? _t('Tap the last caption of the range') : _t('Swipe across captions to select them, or tap the first and the last'))
+                             : b ? (fmtT1(b.start) + ' – ' + fmtT1(b.end) + _t(' · hold to move · drag the edges to trim'))
+                                 : (tlCutSel >= 0 && manualCuts[tlCutSel]) ? _t('Cut {0} – {1} selected · Restore brings it back', fmtT1(manualCuts[tlCutSel].start), fmtT1(manualCuts[tlCutSel].end))
+                                 : trimSummaryText() ? (trimSummaryText() + _t(' · tap a hatched cut to restore it'))
+                                 : _t('Tap a caption to adjust it · swipe to scrub · pinch to zoom');
   ['taSplit', 'taEdit', 'taDel'].forEach(function(id){ var el = document.getElementById(id); if (el) el.disabled = !b; });
   var sp = document.getElementById('taSplit');
   if (sp && b) sp.disabled = !!rg || !(b.words && b.words.length > 1);
@@ -16272,7 +16294,7 @@ function tlFitText(ctx, txt, maxW) {
   _tl.tw[key] = out; _tl.twN++;
   return out;
 }
-var TL_SNAP_LBL = { cut: 'Scene cut', playhead: 'Playhead', caption: 'Caption', speech: 'Speech', word: 'Word' };
+var TL_SNAP_LBL = { cut: _t('Scene cut'), playhead: _t('Playhead'), caption: _t('Caption'), speech: _t('Speech'), word: _t('Word') };
 function tlDraw() {
   var cv = _tl.cv, ctx = _tl.ctx;
   tlSyncAct();
@@ -16287,7 +16309,7 @@ function tlDraw() {
   var dur = tlDur();
   if (!dur) {
     ctx.fillStyle = '#7a8284'; ctx.font = '500 12px Inter, system-ui, sans-serif';
-    ctx.fillText('The timeline appears once the video has loaded', 10, g.h / 2);
+    ctx.fillText(_t('The timeline appears once the video has loaded'), 10, g.h / 2);
     return;
   }
   var vid = document.getElementById('mainVid'), ph = vid && isFinite(vid.currentTime) ? vid.currentTime : 0;
@@ -16513,9 +16535,9 @@ function tlDrawCuts(ctx, v, w, g, dur, mob) {
     var cx0 = Math.max(0, tlTimeToX(cs.start, v)), cx1 = Math.min(w, tlTimeToX(cs.end, v));
     if (cx1 > cx0) {
       ctx.font = '600 11px Inter, system-ui, sans-serif';
-      var pw = ctx.measureText('Restore').width + 18, ph2 = 20, px = Math.max(2, Math.min(w - pw - 2, (cx0 + cx1) / 2 - pw / 2)), py = g.ruler + Math.max(0, (g.wave - ph2) / 2);
+      var pw = ctx.measureText(_t('Restore')).width + 18, ph2 = 20, px = Math.max(2, Math.min(w - pw - 2, (cx0 + cx1) / 2 - pw / 2)), py = g.ruler + Math.max(0, (g.wave - ph2) / 2);
       ctx.fillStyle = '#dc2626'; ctx.beginPath(); tlRRect(ctx, px, py, pw, ph2, ph2 / 2); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText('Restore', px + pw / 2, py + ph2 / 2 + 0.5); ctx.textAlign = 'left';
+      ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(_t('Restore'), px + pw / 2, py + ph2 / 2 + 0.5); ctx.textAlign = 'left';
       _tl.pill = { x0: px, x1: px + pw, y0: py, y1: py + ph2 };
     }
   }
@@ -16649,12 +16671,12 @@ function tlOnMove(e) {
     if (_tl.hover !== hk) {
       _tl.hover = hk; _tl.cv.style.cursor = cur;
       // Block-Tooltip mit Text + Zeit: schmale Balken haben keinen Platz für eine Beschriftung
-      _tl.cv.title = h.type === 'ruler' ? 'Click or drag to seek'
-        : h.type === 'trim' ? (h.mode === 'in' ? 'Drag to trim the start of the video (everything before it is cut)' : 'Drag to trim the end of the video (everything after it is cut)')
-        : h.type === 'cut' ? 'Cut-out range — click to select it, then Restore'
-        : h.type === 'pill' ? 'Bring this cut back'
-        : hb ? ('“' + (String(hb.text || '').trim() || '(empty caption)') + '”  ' + fmtT1(hb.start - (timeOff || 0)) + '–' + fmtT1(hb.end - (timeOff || 0)) + '\nDrag to move · drag edges to trim · double-click to edit')
-        : 'Drag to select several captions (Shift adds) · scroll or middle-drag to pan · Ctrl/⌘+wheel to zoom · click to seek';
+      _tl.cv.title = h.type === 'ruler' ? _t('Click or drag to seek')
+        : h.type === 'trim' ? (h.mode === 'in' ? _t('Drag to trim the start of the video (everything before it is cut)') : _t('Drag to trim the end of the video (everything after it is cut)'))
+        : h.type === 'cut' ? _t('Cut-out range — click to select it, then Restore')
+        : h.type === 'pill' ? _t('Bring this cut back')
+        : hb ? ('“' + (String(hb.text || '').trim() || _t('(empty caption)')) + '”  ' + fmtT1(hb.start - (timeOff || 0)) + '–' + fmtT1(hb.end - (timeOff || 0)) + '\n' + _t('Drag to move · drag edges to trim · double-click to edit'))
+        : _t('Drag to select several captions (Shift adds) · scroll or middle-drag to pan · Ctrl/⌘+wheel to zoom · click to seek');
     }
     return;
   }
@@ -16924,7 +16946,7 @@ function tlSetOpen(open, save) {
   if (wrap && wrap.classList) wrap.classList.toggle('open', _tl.open);
   if (wrap && wrap.parentElement && wrap.parentElement.classList) wrap.parentElement.classList.toggle('tl-open', _tl.open);
   var tl = document.getElementById('tlTogLbl');
-  if (tl) tl.textContent = _tl.open ? 'Hide timeline' : 'Show timeline';
+  if (tl) tl.textContent = _tl.open ? _t('Hide timeline') : _t('Show timeline');
   if (tog && tog.setAttribute) tog.setAttribute('aria-expanded', _tl.open ? 'true' : 'false');
   if (!_tl.open) { tlFlingStop(); _tl.scrubT = null; }
   if (save) { try { localStorage.setItem(TL_OPEN_KEY, _tl.open ? '1' : '0'); } catch (e) {} }
@@ -16966,12 +16988,12 @@ function tlCloseGaps() {
   var removed = captionBlocks.length - kept.length;
   if (removed) captionBlocks = kept;
   var n = closeCaptionGaps(captionBlocks, activeCuts(), Infinity, true);
-  if (!n && !removed) { capToast('No gaps to close'); return 0; }
+  if (!n && !removed) { capToast(_t('No gaps to close')); return 0; }
   pushUndo(null, snap);
   markCaptionsEdited();
   refreshCaptionViews();
   tlRequestDraw();
-  capToast('Closed ' + n + ' gap' + (n === 1 ? '' : 's') + (removed ? ' · removed ' + removed + ' empty' : '') + ' — Ctrl/⌘+Z to undo');
+  capToast(_tn(n, 'Closed 1 gap', 'Closed {0} gaps', n) + (removed ? _t(' · removed {0} empty', removed) : '') + _t(' — Ctrl/⌘+Z to undo'));
   return n;
 }
 function tlZoomBtn(f) {

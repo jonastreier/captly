@@ -43,6 +43,30 @@ module.exports = {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD', description: 'Kostenlos während der Beta. Kein Konto nötig; vor dem ersten Video-Download fragen wir nach der E-Mail.' },
     publisher: { '@id': 'https://gluephs.com/#organization' },
   },
+  // Editor: Wörterbuch (statische Texte + _t('…') im Script) → i18n/de-ui.js; Mischinhalt mit Tags als Paare
+  ui: require('./de-ui.js'),
+  editor: [
+    // Tastenkürzel-Hilfe (Mischinhalt mit <b>-Tags)
+    ['<div><b>Space</b> play/pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0.1 s · <b>S</b> split at the playhead · <b>Ctrl/⌘+Z</b> undo · <b>Ctrl/⌘+Shift+Z</b> redo · <b>Esc</b> leave text field<br><b>Captions:</b> click a line to edit · <b>Enter</b> splits · <b>⌫</b> at the start merges · double-click the caption in the video to edit it there<br><b>Timeline:</b> drag a caption to move it, drag its edges to trim, double-click to edit · with a caption selected: <b>← →</b> 1 frame, <b>Shift+← →</b> 0.1 s, <b>Delete</b>/<b>⌫</b> removes, <b>S</b> splits (works anywhere in the editor, except while typing) · hold <b>Alt</b> to skip snapping · <b>Ctrl/⌘+wheel</b> zooms</div>',
+     '<div><b>Leertaste</b> Wiedergabe/Pause · <b>← →</b> ±1 s · <b>Shift+← →</b> ±0,1 s · <b>S</b> am Abspielkopf teilen · <b>Ctrl/⌘+Z</b> rückgängig · <b>Ctrl/⌘+Shift+Z</b> wiederholen · <b>Esc</b> Textfeld verlassen<br><b>Untertitel:</b> Zeile anklicken zum Bearbeiten · <b>Enter</b> teilt · <b>⌫</b> am Anfang verbindet · Doppelklick auf den Untertitel im Video bearbeitet ihn dort<br><b>Timeline:</b> Untertitel ziehen zum Verschieben, Ränder ziehen zum Kürzen, Doppelklick zum Bearbeiten · bei gewähltem Untertitel: <b>← →</b> 1 Bild, <b>Shift+← →</b> 0,1 s, <b>Delete</b>/<b>⌫</b> löscht, <b>S</b> teilt (funktioniert überall im Editor, ausser beim Tippen) · <b>Alt</b> gedrückt halten, um das Einrasten zu überspringen · <b>Ctrl/⌘+Mausrad</b> zoomt</div>'],
+    ['<span class="hint-desk"><b>Tip:</b> click a line to fix a word — <b>Enter</b> splits it, <b>⌫</b> at the start merges. Below the selected line you can highlight words or add an emoji.</span>',
+     '<span class="hint-desk"><b>Tipp:</b> Zeile anklicken, um ein Wort zu korrigieren — <b>Enter</b> teilt sie, <b>⌫</b> am Anfang verbindet. Unter der gewählten Zeile kannst du Wörter hervorheben oder ein Emoji hinzufügen.</span>'],
+    ['<span class="hint-touch"><b>Tip:</b> tap a line to fix a word. Below the selected line you can highlight words or add an emoji.</span>',
+     '<span class="hint-touch"><b>Tipp:</b> Zeile antippen, um ein Wort zu korrigieren. Unter der gewählten Zeile kannst du Wörter hervorheben oder ein Emoji hinzufügen.</span>'],
+    // Rechtliches: deutsche Datenschutzseite, wie auf der Landing
+    ['<a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="impressum.html"',
+     '<a href="datenschutz.html" target="_blank" rel="noopener">Datenschutz</a> · <a href="terms.html" target="_blank" rel="noopener">Nutzungsbedingungen</a> · <a href="impressum.html"'],
+    ['<a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>', '<a href="datenschutz.html" target="_blank" rel="noopener">Datenschutz</a></p>'],
+  ],
+  // Editor-Texte, die auf DE bewusst gleich bleiben (Marken, Dateiformate, Schriftnamen, Kürzel)
+  keepUi: ['Gluephs', 'glue', 'phs', 'Export', 'Original', 'Format', 'Impressum', 'SRT', 'VTT', 'TXT', 'gluephs-video.mp4', '&times;',
+    '9:16 · Reels, TikTok, Shorts', '16:9 · YouTube, LinkedIn', '9:16 · Reels', '4:5 · Feed', 'AA', 'aa',
+    'Shift+← →', 'Ctrl/⌘+Z', 'Ctrl/⌘+Shift+Z', 'Esc', 'Enter', 'Timeline:', 'Delete', 'Alt', '0px', '8px',
+    'Poppins', 'Anton', 'Bangers', 'Playfair Display', 'Kalam', 'Bebas Neue', 'Montserrat', 'Space Grotesk', 'Caveat', 'Inter', 'Oswald'],
+  // Schlüssel, die das Script zur Laufzeit aus Daten zusammensetzt (nicht als _t('…')-Literal sichtbar): Sprachnamen für langLabel()
+  uiDynamic: ['English', 'Spanish', 'German', 'French', 'Portuguese', 'Italian', 'Dutch', 'Polish', 'Turkish', 'Russian', 'Ukrainian', 'Japanese', 'Korean', 'Chinese', 'Arabic', 'Hindi'],
+  // _t-Texte / Literale, die bewusst nicht übersetzt werden (z. B. der deutsche Sprachhinweis auf der EN-Seite)
+  keepJs: ['<span>Auch auf Deutsch verfügbar.</span><a href="/de" hreflang="de">Wechseln →</a>'],
   landing: [
     // Navigation & Sprachumschalter
     ['<a class="nav-lang" href="/de" hreflang="de" lang="de" title="Deutsch">DE</a>', '<a class="nav-lang" href="/" hreflang="en" lang="en" title="English">EN</a>'],

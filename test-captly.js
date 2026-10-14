@@ -5315,7 +5315,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(ag.style.display === 'none' && dl.style.display === '' && dl.textContent === 'Download again' && ht.style.display === 'none', 'N10: direkt nach dem Export: «Download again», kein «Export with changes» (Last-export-Zeile sichtbar: ' + (E('expLast').style.display === '') + ')');
       T.setExportResUI('orig');
       ok(ag.style.display === '' && ag.classList.contains('on') && dl.style.display === 'none' && ht.style.display === '' && /id="expAgain"[^>]*>Export with changes</.test(htmlContent), 'N10: Auflösung geändert → «Export with changes» (Hauptknopf), «Download again» weg — ohne Dialog neu zu öffnen');
-      ok(E('expLast').style.display === 'none' && /\(_lastExportBlob && exportChangedSinceLast\(\)\) \? 'Export with changes' : 'Download video'/.test(script) && /ch \? 'Export with changes' : 'Download video'/.test(script), 'N10: Export-Ansicht: «Last export … Download again» weg, Hauptknopf heisst «Export with changes»');
+      ok(E('expLast').style.display === 'none' && /\(_lastExportBlob && exportChangedSinceLast\(\)\) \? _t\('Export with changes'\) : _t\('Download video'\)/.test(script) && /ch \? _t\('Export with changes'\) : _t\('Download video'\)/.test(script), 'N10: Export-Ansicht: «Last export … Download again» weg, Hauptknopf heisst «Export with changes»');
       T.setExportResUI('1080');
       ok(ag.style.display === 'none' && dl.style.display === '' , 'N10: Änderung zurück → wieder «Download again»');
       T.onAutoCutChange(true);
@@ -5716,7 +5716,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       T.selectStyle('classic'); E('tplName').value = 'Zweites';
       const t2 = T.saveTemplate();
       ok(t2 && T.brandTplId() === t1.id, 'B6: zweites Template wird nicht automatisch Standard (Toast bietet «Use for every new video»)');
-      ok(/capToastAction\('✓ ' \+ verb[^)]*\)[^;]*'Use for every new video'/.test(htmlContent) || /'Use for every new video', function\(\) \{ setBrandTpl\(t\.id\)/.test(htmlContent), 'B6: Toast mit «Use for every new video»-Aktion');
+      ok(/capToastAction\('✓ ' \+ verb[^)]*\)[^;]*'Use for every new video'/.test(htmlContent) || /_t\('Use for every new video'\), function\(\) \{ setBrandTpl\(t\.id\)/.test(htmlContent), 'B6: Toast mit «Use for every new video»-Aktion');
       E('tplName').value = ''; ok(T.saveTemplate() === null, 'B6: ohne Namen kein Speichern (null)');
       T.setUserTemplates([]); T.loadTemplates(); T.selectStyle('hormozi');
       global.localStorage = prevLS; if (!prevLS) delete global.localStorage;
@@ -5930,6 +5930,42 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(/^Stop scrolling\.?$/i.test(h1), 'Hook lokal: kurzer erster Satz bleibt allein (kein abgeschnittener Folgesatz) — ' + h1);
     const h2 = T.hookLocalText(blk('Hey. Drei Tricks. Für mehr Views heute.'));
     ok(!/Für mehr Views heute/.test(h2) || h2.split(' ').length <= 6, 'Hook lokal: Folgesatz nur, wenn er ganz in 6 Wörter passt — ' + h2);
+  }
+  // ── Editor auf Deutsch (/de): statische Editor-Texte + _t('…')-Texte aus JS (Wörterbuch i18n/de-ui.js) ──
+  {
+    const i18n = require('./scripts/build-i18n.js');
+    const de = i18n.build('de'), dui = require('./i18n/de-ui.js');
+    const es = de.editorStat, js = de.jsStat;
+    const miss = es.missing.concat(js.missing), tot = es.total + js.total, done = es.translated + es.kept + js.translated;
+    miss.slice(0, 15).forEach(t => console.log('  fehlt (Editor-i18n): ' + JSON.stringify(t)));
+    console.log('  info Editor-Übersetzung: ' + done + '/' + tot + ' Texte (statisch ' + (es.translated + es.kept) + '/' + es.total + ' davon ' + es.kept + ' bewusst gleich; JS-_t ' + js.translated + '/' + js.total + ')');
+    ok(es.missing.length === 0, 'i18n Editor: alle statischen Editor-Texte (Tabs, Knöpfe, Labels, Platzhalter, Tooltips, Export-Blatt, Dialoge) haben eine deutsche Übersetzung');
+    ok(js.missing.length === 0 && js.total > 300, 'i18n Editor: alle _t(…)-Texte aus JS (Toasts, Status, Knöpfe, Fehler) übersetzt (' + js.translated + '/' + js.total + ')');
+    ok(de.unwrapped.length === 0, 'i18n Editor: kein englischer Text direkt in capToast/.textContent/.title/alert ohne _t()' + (de.unwrapped[0] ? ' — z. B. ' + JSON.stringify(de.unwrapped[0].text.slice(0, 50)) : ''));
+    // Lint selbst: erkennt nackte englische Literale, lässt _t und Technisches durch
+    const lint = i18n.jsScan("capToast('Hello there friend');\ncapToast(_t('Hello there friend'));\nel.title = 'tight';\nel.textContent = 'Saved now';\nel.className = 'btn-primary';");
+    ok(lint.unwrapped.length === 2 && lint.keys.has('Hello there friend'), 'i18n Lint: meldet capToast/.textContent mit nacktem Englisch, kennt _t-Schlüssel, ignoriert CSS-Wörter');
+    // Platzhalter bleiben erhalten, Schweizer Schreibweise, kein verschlucktes Englisch bei Markennamen
+    const phs = x => (x.match(/\{\d\}/g) || []).sort().join(',');
+    const badPh = Object.keys(dui).filter(k => phs(k) !== phs(dui[k]));
+    badPh.forEach(k => console.log('  Platzhalter weichen ab: ' + JSON.stringify(k.slice(0, 70))));
+    ok(badPh.length === 0, 'i18n Editor: Platzhalter {0}/{1} in jeder Übersetzung wie im Original');
+    ok(!Object.values(dui).some(v => /ß/.test(v)), 'i18n Editor: Schweizer Schreibweise (kein ß)');
+    ok(!Object.keys(dui).some(k => /^(capivo|csg|tb[A-Z]|exp[A-Z])/.test(k) || /^[a-z]+[A-Z][A-Za-z]+$/.test(k)), 'i18n Editor: Wörterbuch enthält keine internen IDs/Schlüssel');
+    // Laufzeit: _t ersetzt Platzhalter (EN unverändert), DE-Seite trägt das Wörterbuch, EN-Seite nicht
+    const fnSrc = htmlContent.match(/var UI_DICT = null;\nfunction _t\(s\) \{[\s\S]*?\n\}\n[\s\S]*?function _tn\([\s\S]*?\n\}\n/);
+    ok(!!fnSrc, 'i18n: _t/_tn und «var UI_DICT = null;» stehen am Anfang des Scripts von captly.html');
+    if (fnSrc) {
+      const mkT = dict => new Function(fnSrc[0].replace('var UI_DICT = null;', 'var UI_DICT = ' + JSON.stringify(dict) + ';') + ';return {t:_t,tn:_tn};')();
+      const en = mkT(null), dd = mkT({ 'Saved “{0}”': '«{0}» gespeichert', '1 font': '1 Schrift', '{0} fonts': '{0} Schriften' });
+      ok(en.t('Saved “{0}” in {1}', 'A', 'B') === 'Saved “A” in B' && en.t('No args') === 'No args' && en.tn(1, '1 font', '{0} fonts', 1) === '1 font' && en.tn(3, '1 font', '{0} fonts', 3) === '3 fonts', 'i18n _t/_tn: EN gibt den Text unverändert zurück, ersetzt {0}/{1}, Mehrzahl');
+      ok(dd.t('Saved “{0}”', 'X') === '«X» gespeichert' && dd.t('Unknown {0}', 1) === 'Unknown 1' && dd.tn(2, '1 font', '{0} fonts', 2) === '2 Schriften' && dd.t('constructor') === 'constructor', 'i18n _t/_tn: DE übersetzt, unbekannter Text bleibt, kein Prototyp-Zugriff');
+    }
+    ok(/var UI_DICT = null;/.test(htmlContent) && /var UI_DICT = \{"/.test(de.html) && !/var UI_DICT = null;/.test(de.html), 'i18n: Wörterbuch nur in captly.de.html eingesetzt, captly.html bleibt englisch');
+    ok(['Export with changes', 'Download again', 'Cut out', 'Restore', 'Download video'].every(k => dui[k] && dui[k] !== k), 'i18n Editor: Schlüsselknöpfe (Export with changes, Download again, Cut out, Restore, Download video) übersetzt');
+    // DE-Editor-HTML: Beispiele sichtbar, EN-Rest nur bewusst
+    const edHtml = de.html.slice(de.html.indexOf('<!-- EDITOR -->'), de.html.indexOf('<script>\n', de.html.indexOf('<!-- EDITOR -->')));
+    ok(/>\s*Untertitel\s*</.test(edHtml) && /aria-label="Rückgängig"|title="Letzte Änderung rückgängig/.test(edHtml) && />\s*Zurück\s*</.test(edHtml) && !/>\s*Back\s*</.test(edHtml) && !/>\s*Cut out\s*</.test(edHtml), 'i18n Editor: DE-HTML enthält deutsche Tabs/Knöpfe, keine englischen Standardknöpfe');
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
