@@ -8096,7 +8096,7 @@ function setTplEditing(id) {
   _csEditingTpl = id;
   var t = id && userTemplates.find(function(x){ return x.id === id; });
   var lbl = csEl('tplEditing'), btn = csEl('tplSaveBtn'), nm = csEl('tplName');
-  if (lbl) { lbl.style.display = t ? '' : 'none'; lbl.textContent = t ? ('Editing “' + t.name + '”') : ''; }
+  if (lbl) { lbl.style.display = t ? '' : 'none'; lbl.textContent = t ? _t('Editing “{0}”', t.name) : ''; }
   if (btn) { btn.textContent = t ? _t('Update') : _t('💾 Save'); btn.title = t ? _t('Overwrite this template with the current style + layout') : _t('Save the current style + position + size + mode as a named template'); }
   if (nm && t) nm.value = t.name;
 }
@@ -8218,7 +8218,7 @@ function duplicateTemplate(id) {
   var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
   if (!t) return;
   var now = Date.now();
-  var c = { id: newTplId(), name: (t.name + ' copy').slice(0, 60), style: cloneStyle(t.style),
+  var c = { id: newTplId(), name: _t('{0} copy', t.name).slice(0, 60), style: cloneStyle(t.style),
             layout: JSON.parse(JSON.stringify(t.layout || {})), createdAt: now, updatedAt: now };
   userTemplates.push(c);
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
@@ -8693,7 +8693,7 @@ function buildPicker() {
   c.scrollTop = keepScroll;
   if (keepLeft) c.scrollLeft = keepLeft;
   var cnt = document.getElementById('tplCount');
-  if (cnt) cnt.textContent = nTpl ? ('· ' + nTpl + ' saved') : '';
+  if (cnt) cnt.textContent = nTpl ? ('· ' + _t('{0} saved', nTpl)) : '';
   syncTplSwitch();
 }
 // Kachel ersetzen (Custom-Style beim Regler-Ziehen) — false, wenn sie (noch) nicht im Picker ist.
@@ -8888,7 +8888,7 @@ function makeStyleTile(s) {
     if (tagBadge) { var tg = document.createElement('span'); tg.className = 'stile-tag'; tg.textContent = s.badge; tile.appendChild(tg); }
     // Nur Name (+ Badge) — die Schriftart-Zeile in 7 px war unlesbar und für die Wahl unwichtig. Status
     // (eigener Entwurf / Standard-Template) bleibt als zweite Zeile.
-    var sub = s.id === 'custom' ? 'unsaved' : (s._isTpl && s.id === brandTplId() ? '★ default' : '');
+    var sub = s.id === 'custom' ? _t('unsaved') : (s._isTpl && s.id === brandTplId() ? _t('★ default') : '');
     info.innerHTML = '<div class="stile-name">' + escHtml(s.id === 'custom' ? 'Custom' : s.name) + badge + '</div>' + (sub ? '<div class="stile-font">' + escHtml(sub) + '</div>' : '');
     tile.appendChild(info);
     if (s._isTpl) {
@@ -9663,7 +9663,7 @@ function renderLandChips() {
     if (b.setAttribute) { b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', id === cur ? 'true' : 'false'); }
     if (isTpl) b.title = s.name + (id === bid ? ' · ' + LT.tplDefaultTag : '');
     b.onclick = function(){ pickLandStyle(id); };
-    b.innerHTML = '<span class="hc-th"><span class="hc-cap">' + buildCap(['So', 'good'], s, 1, 11, null) + '</span>'
+    b.innerHTML = '<span class="hc-th"><span class="hc-cap">' + buildCap([_t('So'), _t('good')], s, 1, 11, null) + '</span>'
       + (isTpl && id === bid ? '<span class="hc-dflt">★ ' + escHtml(LT.tplDefaultTag) + '</span>' : '') + '</span>'
       + '<span class="hc-nm">' + escHtml(s.name) + '</span>';
     row.appendChild(b);
@@ -9680,7 +9680,7 @@ function renderLandChips() {
   }
   ids.forEach(function(id){ addChip(id, false); });
   var more = document.createElement('span');
-  more.className = 'hc-more'; more.textContent = '+' + Math.max(0, STYLES.filter(function(x){ return !x._tpl && x.id !== 'custom'; }).length - ids.length) + ' more in the editor';
+  more.className = 'hc-more'; more.textContent = _t('+{0} more in the editor', Math.max(0, STYLES.filter(function(x){ return !x._tpl && x.id !== 'custom'; }).length - ids.length));
   row.appendChild(more);
   // Vorgewähltes Template (Standard) sagt es auch in der Zeile unter der Überschrift
   var cs = STYLES.find(function(x){ return x.id === cur; }), lbl = document.getElementById('landPickLbl');
@@ -9945,7 +9945,7 @@ function renderBilling() {
   // Aussagen, die nur bei aktivem Billing gelten (z. B. FAQ «ab dem 3. Video Wasserzeichen»): in der Beta unsichtbar
   Array.prototype.forEach.call(document.querySelectorAll('.bill-only'), function(el) { el.hidden = !billingOn(); });
   var on = billingOn() && billing.loggedIn, pill = document.getElementById('minLeft'), mm = document.getElementById('mmMin');
-  var txt = on ? '⏱ ' + minOf(billing.left_sec) + ' min left' : '';
+  var txt = on ? '⏱ ' + _t('{0} min left', minOf(billing.left_sec)) : '';
   [pill, mm].forEach(function(el) {
     if (!el) return;
     el.style.display = on ? '' : 'none'; el.textContent = txt;
@@ -11156,7 +11156,7 @@ async function transcribeVideo(file) {
       document.getElementById('capEditor').style.display = 'block';
       enableExports(true);
     } else {
-      setTStatus('❌', 'Error: ' + (err.message || err), false, false);
+      setTStatus('❌', _t('Error: {0}', err.message || err), false, false);
     }
     document.getElementById('retryWrap').style.display = 'block';
     if (err && err.quota) setTimeout(showUpgrade, 400);
@@ -12034,9 +12034,9 @@ function cuesToOutput(cues, regions) {
 function cutSavedSeconds(regions) { return (regions || []).reduce(function(a, r) { return a + Math.max(0, r.end - r.start); }, 0); }
 // „−4.8 s“ (an) bzw. „4.8 s possible“ (aus); ohne Treffer leer / „nothing to cut“
 function cutSavedLabel(sec, on) {
-  if (!(sec >= 0.05)) return on ? 'nothing to cut' : '';
+  if (!(sec >= 0.05)) return on ? _t('nothing to cut') : '';
   var t = sec.toFixed(1) + ' s';
-  return on ? '−' + t : t + ' possible';
+  return on ? '−' + t : _t('{0} possible', t);
 }
 function syncAutoCutUI() {
   // an: was der Auto-Cut ZUSÄTZLICH zu Trim/Schnitten spart (ohne Trim/Schnitte = Summe aller Fenster); aus: was er sparen könnte
@@ -14106,11 +14106,11 @@ function p3(n){ return String(n).padStart(3,'0'); }
 // VIEW
 // ═══════════════════════════════════════
 // Phone-Mockup-Showcase: jeder Style als Beispiel-Caption auf seinem Verlaufs-Hintergrund
-var SHOW_SAMPLES = ['this changes everything','wait for it','the secret nobody tells you',
-  'let me show you how','watch this till the end','you need to know this','here is the truth',
-  'nobody talks about this','save this for later','it gets better','this is your sign',
-  'stop scrolling right now','i wish i knew this','the results speak','trust the process',
-  'level up today','one simple trick','before and after','game changer','do this instead'];
+var SHOW_SAMPLES = [_t('this changes everything'),_t('wait for it'),_t('the secret nobody tells you'),
+  _t('let me show you how'),_t('watch this till the end'),_t('you need to know this'),_t('here is the truth'),
+  _t('nobody talks about this'),_t('save this for later'),_t('it gets better'),_t('this is your sign'),
+  _t('stop scrolling right now'),_t('i wish i knew this'),_t('the results speak'),_t('trust the process'),
+  _t('level up today'),_t('one simple trick'),_t('before and after'),_t('game changer'),_t('do this instead')];
 // Styles, für die tatsächlich ein Live-Loop unter assets/showcase/<id>.mp4 liegt. Ohne diese
 // Liste versucht JEDE Karte beim Scrollen ihr Video zu laden — das sind ~30 vergebliche
 // 404-Anfragen, weil bisher nur ein Loop generiert ist. Neue Videos hier eintragen.
@@ -15097,8 +15097,8 @@ function updateTrSetSum() {
   // Nach der Transkription mit „Auto“: erkannte Sprache zeigen („German (detected)“) statt „Auto language“
   var m = typeof _lastTrMeta !== 'undefined' ? _lastTrMeta : null;
   var lang = (whisperLang === 'auto' && m && m.langSetting === 'auto' && m.lang && m.lang !== 'auto')
-    ? langLabel(m.lang) + ' (detected)' : langLabel(whisperLang);
-  el.textContent = '· ' + lang + (doTranslate ? ' · → EN' : '');
+    ? _t('{0} (detected)', langLabel(m.lang)) : langLabel(whisperLang);
+  el.textContent = '· ' + lang + (doTranslate ? _t(' · → EN') : '');
 }
 // „Video & language“ ist standardmäßig zu (Sprache wählt man schon auf der Startseite); nur Fehler öffnen sie.
 function collapseTrSettings(collapse) {
