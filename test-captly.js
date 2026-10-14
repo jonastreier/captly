@@ -127,7 +127,7 @@ emphScale:emphScale,emphColor:emphColor,emphShadowIsHl:emphShadowIsHl,emojiPopSt
 runEnhance:runEnhance,genPostCaption:genPostCaption,getPost:function(){return postCaption;},postText:postText,getTrRun:function(){return _trRun;},
 capMotion:capMotion,capWordFx:capWordFx,capBlockFx:capBlockFx,capBlockVisEnd:capBlockVisEnd,capSlideBoxes:capSlideBoxes,capMixColor:capMixColor,capFxSteady:capFxSteady,
 setLines:setLines,splitBlockAtCursor:splitBlockAtCursor,getLines:function(){return CAPTION_LINES;},getMaxChars:function(){return CAP_MAX_CHARS;},getPresetPrevLayout:function(){return _presetPrevLayout;},setFontSizeState:function(v){fontSize=v;},
-setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,syncCsUi:syncCsUi,capFontWeights:capFontWeights,csSyncWeights:csSyncWeights,onFontPick:onFontPick,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
+setReduceMotion:function(v){_capRM=v;},animState:animState,ANIM_KEYFRAMES:ANIM_KEYFRAMES,ANIM_DUR:ANIM_DUR,animDur:animDur,ANIM_DURS:ANIM_DURS,syncCsUi:syncCsUi,capFontWeights:capFontWeights,csSyncWeights:csSyncWeights,onFontPick:onFontPick,capGlowLayers:capGlowLayers,capAnimDemoStart:capAnimDemoStart,getAnimDemo:function(){return _capAnimDemo;},clearAnimDemo:function(){_capAnimDemo=null;},
 capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CAP_MOT,CAP_PILL_GAP:CAP_PILL_GAP,capWordGap:capWordGap,sanitizeStyle:sanitizeStyle,deleteAccount:deleteAccount,setSbState:function(s){_sb=s;},setBillingState:function(b){billing=b;},setMeEmail:function(e){meEmail=e;},getMeEmail:function(){return meEmail;},
 capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},setProgDrag:function(v){_progDrag=v;},
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
@@ -139,6 +139,7 @@ applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
 styleFromTemplate:styleFromTemplate,TPL_STYLE_KEYS:TPL_STYLE_KEYS,cloneStyle:cloneStyle,
 videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateSkip:function(){_gateSkipped=false;try{sessionStorage.removeItem(GATE_SKIP_KEY);}catch(e){}},skipEmailGate:skipEmailGate,wmNoticeText:wmNoticeText,trHeaders:trHeaders,
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
+capSizeInfo:capSizeInfo,syncSzDisp:syncSzDisp,segSeek:segSeek,previewFrameW:previewFrameW,previewFrameH:previewFrameH,
 capNoItalic:capNoItalic,capPopFactor:capPopFactor,setCsBase:function(b){_csBase=b;},drawTextGrouped:drawTextGrouped,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
 setActiveId:function(i){activeId=i;},lookSnapshot:lookSnapshot,lookUndoRun:lookUndoRun,lookUndoEnd:lookUndoEnd,tlHandleKey:tlHandleKey,tlGlobalKey:tlGlobalKey,capNoHyphen:capNoHyphen,landBrandId:landBrandId,setCsDirtyGet:function(){return _csDirty;},setHOff:function(v){capHOff=v;},setFree:function(v){capFree=v;},
 parseHexInput:parseHexInput,csHexCommit:csHexCommit,csOpCommit:csOpCommit,csColorCss:csColorCss,csSyncColors:csSyncColors,getCsAlpha:function(){return _csAlpha;},
@@ -1580,7 +1581,7 @@ ok(T.webmToMp4Trim(33.96).join(' ') === '-t 33.960 -shortest' && T.webmToMp4Trim
   T.applyPlayability('ok'); T.enableExports(true);
   ok(document.getElementById('btnVideo').disabled === false && document.getElementById('vidWarn').style.display === 'none', 'abspielbar: alles normal');
 }
-ok(T.DEFAULT_STYLE === 'tight', 'Standard-Style fuer neue Nutzer: Tight');
+ok(T.DEFAULT_STYLE === 'hormozi', 'Standard-Style fuer neue Nutzer: Bold Pop (N-Style)');
 
 // 16b) computeCutRegions: Stille-Luecken + Fuellwoerter erkennen, Ergebnisse mergen
 const cutW = [
@@ -3652,16 +3653,17 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const strong = a => a && (Math.abs(a.sx - 1) >= 0.1 || Math.abs(a.ty) >= 0.15 || a.op <= 0.3 || a.glow >= 0.5);
       ok(T.animState('none', 0.08) === null && T.animState('scale', T.ANIM_DUR) === null && T.animState('scale', -0.1) === null, 'animState: none/abgelaufen/vorher → null');
       opts.filter(o => o !== 'none').forEach(o => {
-        const a = T.animState(o, 0.08);
-        ok(a !== null && strong(a), 'Word pop «' + o + '» bei 80 ms deutlich erkennbar: ' + JSON.stringify(a));
+        const dur = T.animDur(o);
+        const a = T.animState(o, o === 'flash' ? 0.02 : 0.08); // Fade in (flash) ist nur 0,12 s lang: Deutlichkeit schon bei 20 ms
+        ok(a !== null && (o === 'flash' ? a.op < 0.7 : strong(a)), 'Word pop «' + o + '» bei 80 ms deutlich erkennbar: ' + JSON.stringify(a));
         let mx = { sx: 1, ty: 0, op: 1, glow: 0 };
-        for (let k = 0; k <= 339; k++) { const q = T.animState(o, k * 0.001); mx = { sx: Math.max(mx.sx, q.sx), ty: Math.max(mx.ty, q.ty), op: Math.min(mx.op, q.op), glow: Math.max(mx.glow, q.glow) }; }
-        ok(mx.sx >= 1.14 - 1e-9 || mx.ty >= 0.22 - 1e-9 || mx.op <= 1e-9 || mx.glow >= 1 - 1e-9, 'Word pop «' + o + '»: Spitzenausschlag: ' + JSON.stringify(mx));
-        const e = T.animState(o, T.ANIM_DUR - 1e-6);
+        for (let k = 0; k < Math.round(dur * 1000) - 1; k++) { const q = T.animState(o, k * 0.001); mx = { sx: Math.max(mx.sx, q.sx), ty: Math.max(mx.ty, q.ty), op: Math.min(mx.op, q.op), glow: Math.max(mx.glow, q.glow) }; }
+        ok(mx.sx >= 1.14 - 1e-9 || mx.ty >= 0.22 - 1e-9 || mx.op <= 0.36 || mx.glow >= 1 - 1e-9, 'Word pop «' + o + '»: Spitzenausschlag: ' + JSON.stringify(mx));
+        const e = T.animState(o, dur - 1e-6);
         ok(Math.abs(e.sx - 1) < 0.02 && Math.abs(e.ty) < 0.01 && e.op > 0.98 && e.glow < 0.02, 'Word pop «' + o + '» endet im Ruhezustand');
       });
       ok(near(T.animState('punch', 0).sx, 1.28) && near(T.animState('punch', 0.17).sx, 1.0 + 0.28 * Math.pow(0.5, 3)) && T.animState('punch', 0.08).sx < T.animState('punch', 0.0).sx, 'Punch: 1.28 → 1 mit ease-out');
-      ok(near(T.animState('bounce', 0).ty, 0.22) && near(T.animState('bounce', 0).op, 0.5) && near(T.animState('flash', 0).op, 0) && near(T.animState('wobble', 0.1).ty, T.animState('bounce', 0.1).ty), 'Lift: 0,22 em + Deckkraft .5; Fade: 0; wobble = Lift');
+      ok(near(T.animState('bounce', 0).ty, 0.22) && near(T.animState('bounce', 0).op, 0.5) && near(T.animState('flash', 0).op, 0.35) && near(T.animState('wobble', 0.1).ty, T.animState('bounce', 0.1).ty), 'Lift: 0,22 em + Deckkraft .5; Fade: .35; wobble = Lift');
       // Vorschau = Export: die CSS-Keyframes (Kacheln/Hover) tragen dieselben Werte wie ANIM_KEYFRAMES
       const css = n => (htmlContent.match(new RegExp('@keyframes captly-' + n + '(\\{.*)')) || [, ''])[1];
       const nums = (str, re) => [...str.matchAll(re)].map(m => parseFloat(m[1]));
@@ -3819,8 +3821,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
         global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem() {}, removeItem() {} };
         try { return new Function(script + ';return activeId;')(); } finally { delete global.localStorage; }
       };
-      ok(runWith({}) === 'tight', 'neuer Nutzer startet mit Tight');
-      ok(runWith({ 'capivo.style': 'reveal' }) === 'reveal', 'gemerkter Style bleibt (Reveal) — nur neue Nutzer starten mit Tight');
+      ok(runWith({}) === 'hormozi', 'neuer Nutzer startet mit Bold Pop');
+      ok(runWith({ 'capivo.style': 'reveal' }) === 'reveal', 'gemerkter Style bleibt (Reveal) — nur neue Nutzer starten mit Bold Pop');
       ok(runWith({ 'capivo.style': 'hormozi' }) === 'hormozi', 'gemerkter Style bleibt (Bold Pop)');
       ok(runWith({ 'capivo.style': 'prime' }) === 'lift', 'gemerkter alter Style folgt dem Alias');
     }
@@ -4600,7 +4602,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.undoDepth()[0] === 2, 'A2: zweiter Zug = zweiter Schritt: ' + T.undoDepth());
     T.undoCaptions(); ok(T.getFontSize() === 33, 'A2: Undo 1 → Grösse vor dem 2. Zug: ' + T.getFontSize());
     T.undoCaptions(); ok(T.getFontSize() === sz0, 'A2: Undo 2 → Ausgangsgrösse: ' + T.getFontSize());
-    ok(E('szSlider').value === sz0 && E('szDisp').textContent === sz0 + 'px', 'A2: Slider-Anzeige folgt dem Undo');
+    ok(E('szSlider').value === sz0 && /^(S|M|L|XL) \d+\.\d%$/.test(E('szDisp').textContent) && E('szDisp').textContent === (T.capSizeInfo(sz0, T.previewFrameW(), T.previewFrameH()).tag + ' ' + T.capSizeInfo(sz0, T.previewFrameW(), T.previewFrameH()).pctH.toFixed(1) + '%'), 'A2: Slider-Anzeige folgt dem Undo (relativ)');
     T.redoCaptions(); ok(T.getFontSize() === 33, 'A2: Redo → Grösse nach dem 1. Zug');
 
     // Position: Preset-Klick und freies Verschieben
@@ -4856,6 +4858,88 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(!T.liveTemplates().some(t => t.id === 'tpl_delta') && tpls().find(t => t.id === 'tpl_delta').deleted === true, 'Speichern: eigener Grabstein gewinnt gegen älteren Stand im Speicher');
       delete global.localStorage; delete global.prompt; delete global.confirm;
       T.setUserTemplates([]); T.selectStyle('hormozi');
+    }
+  }
+  // ══════════════════════════════════════════════════
+  // Paket N-Style: N1 Standard-Look Bold Pop, Tight-Fade ≤ 0,12 s, N8 relative Grössen-Anzeige, N13 Zeile anklicken
+  // ══════════════════════════════════════════════════
+  {
+    const src = fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8');
+    const E = id => document.getElementById(id);
+    // N1: neue Nutzer starten mit Bold Pop (Highlight sichtbar, schwarze Kontur, 4 Wörter); gemerkter Look/Standard-Template bleiben
+    {
+      const hz = T.STYLES.find(x => x.id === 'hormozi');
+      ok(T.DEFAULT_STYLE === 'hormozi' && /var DEFAULT_STYLE\s*=\s*'hormozi'/.test(src), 'N1: DEFAULT_STYLE = Bold Pop');
+      ok(hz.hl && hz.hl.toLowerCase() !== (hz.tc || '').toLowerCase() && hz.cstroke === '#000' && hz.layout === undefined && /var WORDS_PER_BLOCK\s*=\s*4/.test(src), 'N1: Bold Pop: Highlight ≠ Textfarbe, schwarze Kontur, 4 Wörter pro Block (Regler-Standard)');
+      const runWith = (store) => {
+        global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem() {}, removeItem() {} };
+        try { return new Function(script + ';return activeId;')(); } finally { delete global.localStorage; }
+      };
+      ok(runWith({}) === 'hormozi' && runWith({ 'capivo.style': 'tight' }) === 'tight' && runWith({ 'capivo.style': 'mix' }) === 'mix', 'N1: ohne gespeicherte Wahl Bold Pop, gespeicherte Wahl (Tight/Mix) bleibt');
+      ok(/var LAND_CHIPS = \['hormozi',/.test(src), 'N1: Landing-Chips: Standard-Look steht vorn (renderLandChips markiert ihn über activeId als gewählt)');
+    }
+    // Tight: Fade in nur 0,12 s, ease-out, Start > 0 — nur flash; kurze Wörter nie halbtransparent
+    {
+      ok(T.animDur('flash') <= 0.12 && T.ANIM_DURS.flash <= 0.12, 'Tight: Einblenden (flash) ≤ 0,12 s: ' + T.animDur('flash'));
+      ok(T.ANIM_KEYFRAMES.flash[0][1].op > 0 && T.ANIM_KEYFRAMES.flash[0][2] === 'out' && T.ANIM_KEYFRAMES.flash[0][1].op === 0.35, 'Tight: Fade startet bei 0,35 mit ease-out');
+      ok(['scale', 'punch', 'bounce', 'glow', 'wobble'].every(a => T.animDur(a) === T.ANIM_DUR) && T.ANIM_DUR === 0.34, 'andere Animationen unverändert 0,34 s');
+      ok(JSON.stringify(T.ANIM_KEYFRAMES.scale) === JSON.stringify([[0, { sx: 1, sy: 1 }], [30, { sx: 1.14, sy: 1.14 }], [100, { sx: 1, sy: 1 }]]) && JSON.stringify(T.ANIM_KEYFRAMES.punch) === JSON.stringify([[0, { sx: 1.28, sy: 1.28 }, 'out'], [100, { sx: 1, sy: 1 }]]) && JSON.stringify(T.ANIM_KEYFRAMES.bounce) === JSON.stringify([[0, { ty: 0.22, op: 0.5 }], [100, { ty: 0, op: 1 }]]), 'Pop/Punch/Lift-Keyframes unverändert');
+      ok(/@keyframes captly-flash\{0%\{opacity:\.35;animation-timing-function:cubic-bezier\(\.33,1,\.68,1\)\}100%\{opacity:1\}\}/.test(src) && /'animation:captly-' \+ s\.anim \+ ' ' \+ animDur\(s\.anim\) \+ 's ease both;'/.test(src), 'Tight: CSS-Keyframe (Kacheln) = JS, Dauer je Animation');
+      const f = t => T.animState('flash', t);
+      ok(f(0).op === 0.35 && f(0.06).op > 0.35 && f(0.06).op < 1 && f(0.12 - 1e-6).op > 0.999 && f(0.12) === null && f(-0.01) === null, 'Tight: Kurve .35 → 1, nach 0,12 s fertig');
+      // Wort mit 0,3 s Länge (Ein-Wort-Block): Deckkraft (Block × Wort) ab 0,12 s nach Wortbeginn ≥ 0,95; Vorschau (capWordFx/capBlockFx) = Export (drawCaptionsOnCtx nutzt dieselben Funktionen)
+      const sT = T.STYLES.find(x => x.id === 'tight');
+      T.setState([{ words: [{ word: 'Hallo', start: 5, end: 5.3 }], start: 5, end: 5.3, text: 'Hallo' }], [{ word: 'Hallo', start: 5, end: 5.3 }], 'karaoke');
+      const op = dt => { const t = 5 + dt, fx = T.capWordFx(sT, T.getBlocks()[0], 0, 0, t, false, false); return T.capBlockFx(0, t, false, false).op * fx.op * (fx.a ? fx.a.op : 1); };
+      ok(op(0.12) >= 0.95 && op(0.2) === 1, 'Tight: Wort mit 0,3 s ≥ 0,95 Deckkraft ab 0,12 s: ' + op(0.12).toFixed(3));
+      ok(op(0.05) > 0 && op(0.05) < op(0.1) && op(0.1) < op(0.12) + 1e-9, 'Tight: Deckkraft steigt monoton (0,05/0,1/0,12 s): ' + [0.05, 0.1, 0.12].map(d => op(d).toFixed(3)).join('/'));
+      const exp = src.slice(src.indexOf('function drawCaptionsOnCtx'), src.indexOf('function drawCaptionsOnCtx') + 40000), dom = src.slice(src.indexOf('function capDomMotion'), src.indexOf('function capDomMotion') + 3000);
+      ok(/capWordFx\(/.test(exp) && /capBlockFx\(/.test(exp) && /capWordFx\(/.test(dom) && /capBlockFx\(/.test(dom), 'Vorschau (capDomMotion) und Export (drawCaptionsOnCtx) rechnen dieselben Funktionen capWordFx/capBlockFx (→ animState)');
+    }
+    // N8: Anzeige neben dem Grössen-Regler relativ (S/M/L/XL + % der Rahmenhöhe), Regler-Bereich unverändert
+    {
+      const a = T.capSizeInfo(22, 275, 489), b = T.capSizeInfo(44, 550, 978);
+      ok(a.tag === 'M' && a.pctH === 4.5 && a.px1080 === 86, 'N8: 22 px im 275×489-Rahmen = M, 4,5 % der Höhe, ≈ 86 px im 1080-Export: ' + JSON.stringify(a));
+      ok(a.tag === b.tag && a.pctH === b.pctH && a.px1080 === b.px1080, 'N8: doppelter Rahmen + doppelte Schrift = gleiche Anzeige (Vorschau = Export)');
+      ok(['S', 'M', 'L', 'XL'].join() === [T.capSizeInfo(10, 300, 533).tag, T.capSizeInfo(24, 300, 533).tag, T.capSizeInfo(40, 300, 533).tag, T.capSizeInfo(54, 300, 533).tag].join(), 'N8: Stufen S/M/L/XL über den Reglerbereich');
+      ok(/id="szSlider"[^>]*min="10"|min="10" max="54" value="22" id="szSlider"/.test(src) && /<input type="range" min="10" max="54" value="22" id="szSlider"/.test(src), 'N8: Regler-Bereich 10–54 und Standardwert unverändert');
+      T.onSzChange('30'); T.lookUndoEnd();
+      ok(/^(S|M|L|XL) \d+\.\d%$/.test(E('szDisp').textContent) && !/px/.test(E('szDisp').textContent) && /of the frame height/.test(E('szDisp').title) && /1080-px/.test(E('szDisp').title), 'N8: Anzeige nach Regler-Zug relativ, Tooltip erklärt: ' + E('szDisp').textContent);
+      ok(!/szDisp'\)\.textContent = [^;]*'px'/.test(src), 'N8: keine px-Anzeige mehr im Quelltext');
+    }
+    // N13: Klick auf Zeile (Rand und Text) springt an den Zeilenanfang und pausiert; auch nach Wiederherstellen
+    {
+      const vid = E('mainVid');
+      const ws2 = Array.from({ length: 6 }, (_, i) => ({ word: 'wort' + i, start: 1 + i * 2, end: 1 + i * 2 + 0.4 }));
+      T.setState(T.buildCaptionBlocks(ws2), ws2.map(w => Object.assign({}, w)), 'karaoke');
+      const cb = T.getBlocks(); ok(cb.length >= 4, 'N13: Testblöcke vorhanden: ' + cb.length);
+      const origCreate = document.createElement, lis = [];
+      document.createElement = t => { const e = origCreate(t); if (t === 'textarea') e.addEventListener = (n, f) => { lis.push([e, n, f]); }; return e; };
+      const segs = E('capSegs'); segs.children = [];
+      await T.renderSegments();
+      document.createElement = origCreate;
+      const rows = segs.children.length ? segs.children[0].children : [];
+      const row = idx => rows[idx], ta = idx => row(idx).children[1];
+      ok(rows.length === cb.length && typeof row(2).onclick === 'function', 'N13: Zeilen gerendert (' + rows.length + ')');
+      vid.duration = 20; vid.paused = false; vid.currentTime = 9;
+      row(2).onclick({ target: { tagName: 'DIV' } });
+      ok(Math.abs(vid.currentTime - (cb[2].start + 0.01)) < 1e-9 && vid.paused === true, 'N13: Klick auf den Zeilenrand: springt an den Zeilenanfang und pausiert (läuft nicht weiter): ' + vid.currentTime);
+      vid.paused = false; vid.currentTime = 15;
+      const pd = lis.filter(l => l[0] === ta(1) && l[1] === 'pointerdown');
+      ok(pd.length === 1, 'N13: Text der Zeile (Textarea) reagiert auf Klick');
+      pd[0][2]();
+      ok(Math.abs(vid.currentTime - (cb[1].start + 0.01)) < 1e-9 && vid.paused === true, 'N13: Klick auf den Zeilentext springt ebenfalls und pausiert: ' + vid.currentTime);
+      document.activeElement = ta(3); vid.currentTime = 15; pd.length = 0;
+      lis.filter(l => l[0] === ta(3) && l[1] === 'pointerdown')[0][2]();
+      ok(vid.currentTime === 15, 'N13: Klick in die schon fokussierte Zeile (Cursor setzen) springt nicht'); delete document.activeElement;
+      // Block wird beim Klick gelesen (nicht beim Aufbau): nach Timing-Änderung/Wiederherstellen stimmt das Ziel
+      cb[2].start += 0.5; T.setTimeOff && 0; vid.paused = false;
+      row(2).onclick({ target: { tagName: 'DIV' } });
+      ok(Math.abs(vid.currentTime - (cb[2].start + 0.01)) < 1e-9, 'N13: Ziel = aktueller Blockstart zum Klickzeitpunkt');
+      const pausedBefore = vid.paused; vid.duration = NaN; vid.currentTime = 7; vid.paused = false;
+      T.segSeek(2); ok(vid.currentTime === 7 && vid.paused === false && pausedBefore === true, 'N13: ohne geladenes Video (Dauer unbekannt) passiert nichts');
+      vid.duration = NaN; vid.paused = true; vid.currentTime = 0;
+      ok(/function segSeek\(idx\)[\s\S]{0,400}vid\.pause\(\)[\s\S]{0,200}tlSeekVideo\(b\.start - \(timeOff \|\| 0\)/.test(src) && /segSeek\(idx\);\s*\n\s*\};/.test(src) && !/seekToTime\(b\.start\);\s*\n\s*\};\s*\n\s*var ts = /.test(src), 'N13: Quelltext: Zeile ruft segSeek (pausiert, timeOff), nicht mehr seekToTime');
     }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
