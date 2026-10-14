@@ -19,7 +19,7 @@
 //   Grenzen: Text ≤ 12 000 Zeichen, ≤ 1000 Segmente → sonst 413; Body ≤ 256 KB.
 // 200 a) → { "segments": [ { "id", "kw": [i, …], "emoji": "🔥"|null, "zoom": bool } … ],  // gleiche ids/Reihenfolge,
 //            "model": "…"|null, "dropped": n }                // nur angefragte Felder; kw = Wort-Indizes (Leerzeichen-Split)
-// 200 b) → { "post": { "caption": "…", "hashtags": ["#…", …] }, "model": "…" }
+// 200 b) → { "post": { "caption": "…", "hashtags": ["#…", …], "hook"?: "…" }, "model": "…" }   // hook = optionaler Kurztitel (≤ 6 Wörter) für den Hook-Titel im Editor
 // Fehler → { "error": "..." } mit 400, 401 login_required, 413, 429 (Retry-After), 500 („Server nicht
 //   konfiguriert: …“), 502 (Groq fehlgeschlagen/unlesbar/Timeout). Das Frontend fällt dann still auf eine
 //   lokale Heuristik zurück (nur Keywords).
@@ -42,6 +42,7 @@ const EMOJI_SHARE = 0.3;     // max. Anteil Captions mit Emoji
 const ZOOM_GAP_S = 4;        // min. Abstand zweier Zooms (mit Timing)
 const ZOOM_SHARE = 0.2;      // ohne Timing: max. Anteil
 const CAPTION_MAX = 300;     // Post-Text (Zeichen)
+const HOOK_MAX_WORDS = 8, HOOK_MAX_CHARS = 60; // Hook-Titel (optionales Feld hook der Post-Antwort)
 const TAGS_MIN = 3, TAGS_MAX = 6;
 const WANT_SEG = ['keywords', 'emojis', 'zoom'];
 
@@ -135,10 +136,11 @@ const SEG_FEW_SHOT = [{
 
 const POST_PROMPT = [
   'You write the post text for a short social video (Instagram Reels / TikTok) from its transcript.',
-  'Input: JSON {"lang": ISO code, "text": transcript}. Output: ONLY a JSON object {"caption":"...","hashtags":["#...", ...]}.',
+  'Input: JSON {"lang": ISO code, "text": transcript}. Output: ONLY a JSON object {"caption":"...","hashtags":["#...", ...],"hook":"..."}.',
   'caption: in the language of the transcript (a Swiss German transcript gets Swiss Standard German: "ss", never "ß"). A short hook plus at most one more sentence, max. 180 characters, at most 2 emojis, no hashtags inside.',
   'Use ONLY facts that are in the transcript. Never invent names, places, prices, dates, numbers, offers or claims. If unsure, stay general.',
-  'hashtags: 3 to 6 relevant hashtags (topic, product, place or name only if mentioned), each starting with #, no spaces, no generic spam like #fyp #viral #foryou.'
+  'hashtags: 3 to 6 relevant hashtags (topic, product, place or name only if mentioned), each starting with #, no spaces, no generic spam like #fyp #viral #foryou.',
+  'hook: a punchy on-screen title for the first seconds of the video, same language rules, max. 6 words, no hashtags, no emojis, no full stop at the end, may be a question. Only facts from the transcript.'
 ].join('\n');
 
 function buildMessages(kind, payload) {
@@ -295,7 +297,18 @@ function cleanPost(obj, srcText) {
     if (tags.length >= TAGS_MAX) break;
   }
   if (!cap && !tags.length) return null;
-  return { caption: cap, hashtags: tags };
+  const out = { caption: cap, hashtags: tags };
+  const hook = cleanHook(obj.hook, srcText);
+  if (hook) out.hook = hook; // optional: alte Antworten/Modelle ohne hook bleiben unverändert
+  return out;
+}
+// Hook-Titel (kurzer Bildschirmtitel): bereinigt, ohne Hashtags/Schlusspunkt, ≤ 8 Wörter und ≤ 60 Zeichen, sonst verworfen ('').
+function cleanHook(raw, srcText) {
+  if (typeof raw !== 'string') return '';
+  let h = cleanText(raw.replace(/#[\p{L}\p{N}_]+/gu, ' ')).replace(/[\s.,;:–—-]+$/u, '');
+  if (!/[ßẞ]/.test(srcText || '')) h = h.replace(/ẞ/g, 'SS').replace(/ß/g, 'ss');
+  if (!/[\p{L}\p{N}]/u.test(h) || h.split(' ').length > HOOK_MAX_WORDS || Array.from(h).length > HOOK_MAX_CHARS) return '';
+  return h;
 }
 
 // Validiert den Request-Body. → { kind, lang, want:Set, segments?, text? } oder { code, msg }.
@@ -418,4 +431,4 @@ function applySegResult(inp, map, model) {
 module.exports = handler;
 // Interne Helfer für test-enhance.js (Vercel nutzt nur den Default-Export).
 module.exports._test = { parseInput, parseLlmJson, parseSegAnswer, applySegAnswer, mapKeywords, kwEligible, normEmoji, graphemeCount,
-  cleanPost, buildMessages, tokens, normWord, EMOJI_LIST, MODELS, MAX_CHARS, SEG_PROMPT, POST_PROMPT };
+  cleanPost, cleanHook, buildMessages, tokens, normWord, EMOJI_LIST, MODELS, MAX_CHARS, SEG_PROMPT, POST_PROMPT };

@@ -136,6 +136,8 @@ csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
 subtitleCues:subtitleCues,srtFile:srtFile,vttCues:vttCues,subLines:subLines,setSrtMode:setSrtMode,getSrtMode:function(){return srtMode;},setFileSuffix:setFileSuffix,getFileSuffix:function(){return fileSuffixOn;},loadSubOpts:loadSubOpts,buildTemplateExport:buildTemplateExport,fontFormatOf:fontFormatOf,bytesToB64:bytesToB64,b64ToBytes:b64ToBytes,importEmbeddedFonts:importEmbeddedFonts,getUserFontsMap:function(){return _userFonts;},TPL_FONT_MAX_BYTES:TPL_FONT_MAX_BYTES,templateFontNames:templateFontNames,exportTemplatesMsg:exportTemplatesMsg,
+
+hookLayout:hookLayout,hookFx:hookFx,hookClean:hookClean,hookLocalText:hookLocalText,hookStyleOf:hookStyleOf,hookDodgeNeed:hookDodgeNeed,hookTextNow:hookTextNow,hookOutTime:hookOutTime,drawHookTitle:drawHookTitle,hookCapDodge:hookCapDodge,setHookState:function(o,t,d,a){hookOn=o;hookText=t||'';hookDur=d||2;hookAi=a||'';},getHookState:function(){return {on:hookOn,text:hookText,dur:hookDur,ai:hookAi};},setHookOn:setHookOn,onHookInput:onHookInput,onHookDur:onHookDur,hookFetchAi:hookFetchAi,syncHookUI:syncHookUI,hookClampDur:hookClampDur,projectPayload:projectPayload,HOOK_KEY:HOOK_KEY,
 exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,exportChangedSinceLast:exportChangedSinceLast,syncExportAgain:syncExportAgain,exportSignature:exportSignature,setExportRes:function(v){exportRes=v;},getExportRes:function(){return exportRes;},confirmRetranscribe:confirmRetranscribe,rtAnswer:rtAnswer,rtOpen:rtOpen,hideCapToast:hideCapToast,renderBilling:renderBilling,setReTranscribing:setReTranscribing,getCapPos:function(){return capPos;},downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,
 zoomFill:zoomFill,zoomPlan:zoomPlan,zoomFeedback:zoomFeedback,zoomDemoStart:zoomDemoStart,getZoomDemo:function(){return _zoomDemo;},clearZoomDemo:function(){_zoomDemo=null;},
 applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
@@ -5484,6 +5486,173 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
   }
 
+
+  // ═════════════════════════════════════════════════════════════════════════════════════
+  // Paket N-KI: Hook-Titel (Vorschau = Export), KI-Standard (Keywords + Emojis an), Fallback mit ≥ 1 Keyword je Caption ab 3 Wörtern
+  // ═════════════════════════════════════════════════════════════════════════════════════
+  {
+    const E = id => document.getElementById(id);
+    const mkBlk = (txt, t0) => { const ws = txt.split(' ').map((w, i) => ({ word: w, start: t0 + i * 0.3, end: t0 + i * 0.3 + 0.28 })); return { text: txt, start: t0, end: t0 + ws.length * 0.3, words: ws }; };
+    const meas = (font, str) => { const m = /([\d.]+)px/.exec(font); return String(str).length * (m ? parseFloat(m[1]) : 16) * 0.55; }; // wie der Stub-Kontext
+    const mix = T.STYLES.find(s => s.id === 'mix'), tight = T.STYLES.find(s => s.id === 'tight');
+
+    // ── KI-Standard: Keywords + Emojis an, Hinweis bleibt am Schalter ──
+    ok(/var emKw = true, emEmoji = true, emZoom = 'off';/.test(script), 'N-KI: Standard (ohne gemerkte Wahl): Keywords + Emojis an, Zoom aus');
+    ok(/id="emKwBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /id="emEmoBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /class="em-chip on" id="emEmoBtn"/.test(htmlContent), 'N-KI: Markup der beiden Schalter zeigt «an»');
+    ok(/emSrc === 'local' \|\| aiOff\(\)/.test(script) && /Emojis need the AI service, which isn’t reachable right now/.test(script) && /AI picks unavailable — using simple keyword detection/.test(script), 'N-KI: Hinweis am Schalter bleibt, wenn die KI nicht antwortet');
+    // Fallback (lokale Heuristik): jede Caption ab 3 Wörtern bekommt ≥ 1 sichtbares Keyword
+    {
+      const lines = ['Das ist ein guter Test', 'Wir sind so froh', 'und dann kam es', 'Ich bin Landwirt heute', 'Hallo zusammen', 'Heute zeigen wir drei Tricks', 'es ist so', 'Der Hof liegt im Tal', 'a b c', 'Das war Dienstag früh'];
+      const blocks = lines.map((l, i) => mkBlk(l, i * 2));
+      T.localEmphasis(blocks, 'de', 20);
+      const flagged = b => b.words.filter(w => w.kw === 1);
+      const miss = blocks.filter(b => b.words.length >= 3 && b.words.some(w => w.word.replace(/[^\p{L}\p{N}]/gu, '').length >= 3 && !['das', 'ist', 'ein', 'wir', 'sind', 'und', 'dann', 'kam', 'der', 'war'].includes(w.word.toLowerCase()) || false) && !flagged(b).length).map(b => b.text);
+      ok(miss.length === 0, 'N-KI Fallback: jede Caption ab 3 Wörtern mit Inhaltswort hat ≥ 1 Keyword (ohne: ' + miss.join(' / ') + ')');
+      ok(blocks.filter(b => b.words.length >= 3).every(b => flagged(b).length <= 1), 'N-KI Fallback: höchstens ein Keyword je Caption');
+      ok(blocks.filter(b => b.words.length < 3).filter(b => flagged(b).length).length <= 1, 'N-KI Fallback: kurze Captions (1–2 Wörter) bleiben zurückhaltend');
+      ok(flagged(blocks[0])[0].word === 'guter' || flagged(blocks[0])[0].word === 'Test', 'N-KI Fallback: stärkstes Inhaltswort gewinnt (' + flagged(blocks[0]).map(w => w.word) + ')');
+      const lone = [mkBlk('es ist so', 0)]; T.localEmphasis(lone, 'de', 5);
+      ok(!lone[0].words.some(w => w.kw === 1), 'N-KI Fallback: nur Füllwörter → nichts hervorgehoben');
+      const preU = [mkBlk('Das ist ein Test', 0)]; preU[0].words[3].kw = -1; T.localEmphasis(preU, 'de', 5);
+      ok(preU[0].words[3].kw === -1, 'N-KI Fallback: «vom Nutzer aus» bleibt aus');
+      // sichtbar: in Looks mit Keyword-Farbe wird das Keyword anders gefärbt (emphColor), der Standard-Look hat sie ggf. nicht
+      ok(T.emphColor(mix) === '#4ade80' && T.STYLES.filter(s => T.emphColor(s)).length >= 10, 'N-KI: Looks mit Keyword-Farbe (Mix → grün) färben das Keyword (' + T.STYLES.filter(s => T.emphColor(s)).length + ' von ' + T.STYLES.length + ' Looks)');
+      console.log('  info N-KI: Standard-Look «' + T.DEFAULT_STYLE + '» Keyword-Farbe: ' + T.emphColor(T.STYLES.find(s => s.id === T.DEFAULT_STYLE)));
+    }
+
+    // ── Hook-Titel: Standard aus, Text, Zeit ──
+    ok(T.getHookState().on === false && !/id="hookBtn"[^>]*aria-pressed="true"/.test(htmlContent) && !/class="em-chip on" id="hookBtn"/.test(htmlContent), 'Hook-Titel: Standard AUS (Zustand + Markup)');
+    ok(['hookBtn', 'hookTxt', 'hookSug', 'hookDur', 'hookDurDisp', 'hookNote', 'hookRow', 'hookDurRow', 'hookTitle'].every(id => (htmlContent.match(new RegExp('\\bid="' + id + '"', 'g')) || []).length === 1), 'Hook-Titel: Schalter, Textfeld, Dauer, Vorschau-Ebene genau einmal im Markup');
+    ok(/<input[^>]*min="1"[^>]*max="4"[^>]*id="hookDur"/.test(htmlContent), 'Hook-Titel: Dauer 1–4 s einstellbar');
+    ok(T.hookClean('  Drei  Tricks,\n damit… ') === 'Drei Tricks, damit…', 'Hook-Text: Leerraum bereinigt (' + T.hookClean('  Drei  Tricks,\n damit… ') + ')');
+    ok(T.hookClean('Warum das so ist.') === 'Warum das so ist' && T.hookClean('Wirklich?') === 'Wirklich?' && T.hookClean('Krass!') === 'Krass!', 'Hook-Text: Schlusspunkt weg, ? und ! bleiben');
+    ok(T.hookClean('eins zwei drei vier fünf sechs sieben acht', 6) === 'eins zwei drei vier fünf sechs', 'Hook-Text: auf 6 Wörter gekürzt');
+    ok(T.hookClean('Drei Tricks, damit deine Reels mehr Views bekommen', 6) === 'Drei Tricks, damit deine Reels', 'Hook-Text: kein hängendes Füllwort am Ende (' + T.hookClean('Drei Tricks, damit deine Reels mehr Views bekommen', 6) + ')');
+    ok(T.hookClean('x'.repeat(200)).length <= 80, 'Hook-Text: höchstens 80 Zeichen');
+    {
+      const hb = [mkBlk('Ja.', 0), mkBlk('Heute zeige ich euch drei Tricks für mehr Reichweite.', 1), mkBlk('Zweiter Satz.', 5)];
+      ok(T.hookLocalText(hb) === 'Ja. Heute zeige ich euch' || T.hookLocalText(hb).split(' ').length <= 6 && T.hookLocalText(hb).length > 3, 'Hook lokal: kurzer erster Satz wird mit dem nächsten ergänzt, ≤ 6 Wörter (' + T.hookLocalText(hb) + ')');
+      T.setState(hb, [], 'karaoke');
+      T.setHookState(true, '', 2, '');
+      ok(T.hookTextNow() === T.hookLocalText(hb), 'Hook: ohne eigenen Text/KI → lokaler Vorschlag');
+      T.setHookState(true, '', 2, 'Drei Tricks für Reichweite');
+      ok(T.hookTextNow() === 'Drei Tricks für Reichweite', 'Hook: KI-Vorschlag vor dem lokalen');
+      T.setHookState(true, '  Mein Titel. ', 2, 'Drei Tricks für Reichweite');
+      ok(T.hookTextNow() === 'Mein Titel', 'Hook: eigener Text vor KI und lokal');
+    }
+    // Zeitverlauf: Fenster [0, dur), Ein-/Ausblenden, Standbild, Auto-Cut (Ausgabezeit)
+    T.setHookState(true, 'x', 2, '');
+    ok(T.hookFx(-0.1, false).op === 0 && T.hookFx(0, false).op === 0 && T.hookFx(1, false).op === 1 && T.hookFx(1.99, false).op < 0.2 && T.hookFx(2, false).op === 0 && T.hookFx(5, false).op === 0, 'Hook-Zeit: unsichtbar vor 0 s und ab Dauer, dazwischen sichtbar, am Ende ausgeblendet');
+    ok(T.hookFx(0.1, false).op > 0 && T.hookFx(0.1, false).op < 1 && T.hookFx(0.1, false).dy < 0 && T.hookFx(1, false).dy === 0, 'Hook-Zeit: fährt von oben ein (dy < 0), danach in Ruhe');
+    ok(T.hookFx(0, true).op === 1 && T.hookFx(1.5, true).op === 1 && T.hookFx(2.5, true).op === 0, 'Hook-Zeit: Standbild (pausiert) zeigt den Endzustand innerhalb des Fensters');
+    T.setHookState(true, 'x', 3.5, ''); ok(T.hookFx(3.2, false).op > 0 && T.hookFx(3.6, false).op === 0, 'Hook-Zeit: Dauer einstellbar (3,5 s)');
+    ok(T.hookClampDur(0) === 1 && T.hookClampDur(9) === 4 && T.hookClampDur('2.5') === 2.5 && T.hookClampDur('x') === 2, 'Hook-Dauer: auf 1–4 s begrenzt');
+    const cutsH = [{ start: 0.5, end: 1.0 }];
+    ok(Math.abs(T.hookOutTime(2.2, cutsH) - 1.7) < 1e-9 && T.hookOutTime(0.7, cutsH) === null && T.hookOutTime(0.3, cutsH) === 0.3 && T.hookOutTime(0.3, null) === 0.3, 'Hook-Zeit: Auto-Cut rechnet auf die Ausgabezeit um');
+
+    // ── Layout (Vorschau-Einheiten): Safe-Bereich, Breite, Umbruch, Format-Unabhängigkeit ──
+    const SAFE = 11.46 + 1;
+    const fmts = { '9:16': [270, 480], '1:1': [360, 360], '4:5': [288, 360], '16:9': [480, 270] };
+    for (const [nm, [Wp, Hp]] of Object.entries(fmts)) {
+      for (const st of [tight, mix, T.STYLES.find(s => s.id === 'headline')]) {
+        const L = T.hookLayout(meas, st, 'Drei Tricks, damit deine Reels mehr Views bekommen', Wp, Hp);
+        const okBox = L && L.boxX >= 0 && L.boxX + L.boxW <= Wp + 0.01 && L.boxW <= Wp * 0.75 + 0.01 && Math.abs(L.boxY - Hp * SAFE / 100) < 0.01 && L.boxY + L.boxH < Hp * 0.5
+          && L.lines.length >= 1 && L.lines.length <= 3 && Math.abs((L.boxX + L.boxW / 2) - Wp / 2) < 0.01;
+        ok(okBox, 'Hook-Layout ' + nm + ' / ' + st.id + ': mittig, ≤ 75 % Breite, Oberkante in der Safe-Zone (' + (L && [Math.round(L.boxX), Math.round(L.boxY), Math.round(L.boxW), Math.round(L.boxH), L.lines.length].join(',')) + ')');
+      }
+    }
+    {
+      const a = T.hookLayout(meas, mix, 'Wichtiger Tipp für deine Videos heute', 270, 480), b = T.hookLayout(meas, mix, 'Wichtiger Tipp für deine Videos heute', 540, 960);
+      ok(a.lines.map(l => l.t).join('|') === b.lines.map(l => l.t).join('|') && Math.abs(a.boxW * 2 - b.boxW) < 0.5 && Math.abs(a.f * 2 - b.f) < 0.01 && Math.abs(a.boxY * 2 - b.boxY) < 0.01, 'Hook-Layout: gleicher Umbruch und proportionale Masse bei anderer Vorschaugrösse (Vorschau = Export)');
+      const lw = T.hookLayout(meas, tight, 'Sehr lange Titelwörter Rindfleischverarbeitungsbetriebe', 270, 480);
+      ok(lw && lw.boxW <= 270 * 0.75 + 0.01, 'Hook-Layout: überlanges Wort sprengt die Safe-Breite nicht');
+      const bal = T.hookLayout(meas, tight, 'Drei Tricks für mehr Views', 270, 480);
+      ok(bal.lines.length < 2 || Math.min(...bal.lines.map(l => l.w)) >= Math.max(...bal.lines.map(l => l.w)) * 0.5, 'Hook-Layout: ausgewogener Umbruch, keine Einzelwort-Waise (' + bal.lines.map(l => l.t).join('|') + ')');
+      ok(T.hookLayout(meas, tight, '   ', 270, 480) === null && T.hookLayout(meas, tight, 'x', 0, 480) === null, 'Hook-Layout: ohne Text/Rahmen → null');
+      const up = T.hookLayout(meas, T.STYLES.find(s => s.id === 'headline'), 'kleine titel', 270, 480);
+      ok(up.lines.map(l => l.t).join(' ') === 'KLEINE TITEL', 'Hook-Stil: Grossschreibung des Looks (Headline → Versalien)');
+      const hs = T.hookStyleOf(mix);
+      ok(hs.bg === '#4ade80' && hs.ink === '#111111' && T.hookStyleOf(T.STYLES.find(s => s.id === 'note')).ink === '#ffffff', 'Hook-Stil: Box in der Akzentfarbe des Looks, Schriftfarbe nach Kontrast');
+    }
+    // Untertitel weichen aus
+    {
+      const L = T.hookLayout(meas, tight, 'Titel', 270, 480), bot = L.boxY + L.boxH;
+      ok(T.hookDodgeNeed(L, 300, 380) === 0 && T.hookDodgeNeed(L, 10, 20) === 0, 'Hook: Untertitel unten/weit oben → kein Ausweichen');
+      const need = T.hookDodgeNeed(L, L.boxY, L.boxY + 90);
+      ok(need > L.boxH && L.boxY + need >= bot, 'Hook: Untertitel oben (Position «Top») weichen unter den Titel aus (' + Math.round(need) + ' px)');
+      ok(T.hookDodgeNeed(L, NaN, 50) === 0 && T.hookDodgeNeed(null, 10, 50) === 0, 'Hook: ungültige Masse → kein Ausweichen');
+    }
+
+    // ── Export (Canvas): gleiche Geometrie, nur im Zeitfenster, Auto-Cut ──
+    {
+      const fr = E('prevFrame'); fr.style.width = '270px'; fr.style.height = '480px';
+      const rec = () => { const c = { calls: [], font: '', fillStyle: '', textAlign: '', textBaseline: '', letterSpacing: '0px', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1 };
+        ['save', 'restore', 'beginPath', 'fill', 'rect', 'translate', 'drawImage'].forEach(n => { c[n] = () => { c.calls.push([n]); }; });
+        c.roundRect = (x, y, w, h, r) => { c.calls.push(['roundRect', x, y, w, h, r]); }; c.fillText = (t, x, y) => { c.calls.push(['fillText', t, x, y, c.font]); }; return c; };
+      T.setHookState(true, 'Drei Tricks für Views', 2, ''); T.setState([mkBlk('Hallo du da', 0)], [], 'karaoke');
+      const c1 = rec(); T.drawHookTitle(c1, 1.0, tight, 1080, 1920, null);
+      const rr = c1.calls.find(x => x[0] === 'roundRect'), ft = c1.calls.filter(x => x[0] === 'fillText');
+      const Ld = T.hookLayout(meas, tight, 'Drei Tricks für Views', 270, 480), k = 1080 / 270;
+      ok(rr && ft.length === Ld.lines.length && Math.abs(rr[1] - Ld.boxX * k) < 0.01 && Math.abs(rr[2] - Ld.boxY * (1920 / 480)) < 0.01 && Math.abs(rr[3] - Ld.boxW * k) < 0.01 && Math.abs(rr[4] - Ld.boxH * k) < 0.01,
+         'Hook-Export: Box = Vorschau-Layout × Export-Skala (' + (rr && rr.slice(1, 5).map(v => Math.round(v * 10) / 10).join(',')) + ')');
+      ok(ft.every((f, i) => Math.abs(f[2] - (rr[1] + rr[3] / 2)) < 0.01 && /^900 [\d.]+px "Inter Tight"/.test(f[4]) && Math.abs(parseFloat(/([\d.]+)px/.exec(f[4])[1]) - Ld.f * k) < 0.01), 'Hook-Export: Zeilen mittig in der Box, Schriftgrösse = Vorschau × Skala');
+      const c2 = rec(); T.drawHookTitle(c2, 2.5, tight, 1080, 1920, null); ok(c2.calls.length === 0, 'Hook-Export: ausserhalb des Zeitfensters wird nichts gezeichnet');
+      const c3 = rec(); T.drawHookTitle(c3, 2.2, tight, 1080, 1920, [{ start: 0.5, end: 1.0 }]); ok(c3.calls.some(x => x[0] === 'fillText'), 'Hook-Export: mit Auto-Cut zählt die Ausgabezeit (Quelle 2,2 s = 1,7 s)');
+      const c4 = rec(); T.drawHookTitle(c4, 0.7, tight, 1080, 1920, [{ start: 0.5, end: 1.0 }]); ok(c4.calls.length === 0, 'Hook-Export: Bild im Schnitt-Fenster → kein Titel');
+      T.setHookState(false, 'Drei Tricks für Views', 2, ''); const c5 = rec(); T.drawHookTitle(c5, 1.0, tight, 1080, 1920, null); ok(c5.calls.length === 0, 'Hook-Export: Schalter aus → nichts gezeichnet');
+      T.setHookState(true, 'Titel', 2, ''); const bT = T.hookCapDodge(1.0, tight, 1080, 1920, null, 220, 700);
+      ok(bT > 0 && T.hookCapDodge(1.0, tight, 1080, 1920, null, 1200, 1500) === 0 && T.hookCapDodge(2.5, tight, 1080, 1920, null, 220, 700) === 0, 'Hook-Export: Untertitel oben weichen nur im Zeitfenster aus (' + Math.round(bT) + ' px)');
+      fr.style.width = ''; fr.style.height = '';
+      // beide Export-Pfade zeichnen den Titel mit denselben Argumenten wie die Untertitel (Quelltext)
+      ok((script.match(/drawHookTitle\(ctx, t, [a-z.]+, W, H, [a-zA-Z]+\);/g) || []).length === 2 && /drawCaptionsOnCtx\(ctx, t, o\.style, W, H, false, cuts\)/.test(script) && /drawCaptionsOnCtx\(ctx, t, s, W, H, false, cutRegions\)/.test(script),
+         'Hook-Export: Schnellexport (WebCodecs) und Echtzeit-Pfad rufen drawHookTitle + Untertitel-Ausweichen auf');
+      ok(/hookUpdate\(tHook, rest, s, ov\);[\s\S]{0,120}capDomMotion\(ov/.test(script) && /\(ov\._hkDy \|\| 0\)/.test(script), 'Hook-Vorschau: Ausweichen der Untertitel fliesst in capDomMotion (wie im Export)');
+    }
+
+    // ── Speichern: Projekt/Autosave, Template, gemerkter Schalter ──
+    {
+      T.setHookState(true, 'Mein Titel', 3, 'KI Titel');
+      const hp = T.projectPayload().hook;
+      ok(hp && hp.on === true && hp.text === 'Mein Titel' && hp.dur === 3 && hp.ai === 'KI Titel', 'Hook im Projekt/Autosave gespeichert ' + JSON.stringify(hp));
+      T.setHookState(false, '', 2, '');
+      ok(T.projectPayload().hook === undefined, 'Hook aus + ohne Text: kein Eintrag im Projekt (alte Projekte unverändert)');
+      T.applyProjectPayload({ hook: { on: true, text: 'Zurück', dur: 3.5, ai: 'KI' } });
+      ok(JSON.stringify(T.getHookState()) === JSON.stringify({ on: true, text: 'Zurück', dur: 3.5, ai: 'KI' }), 'Projekt laden: Hook-Titel wiederhergestellt');
+      T.applyProjectPayload({ hook: { on: true, text: 5, dur: 99, ai: {} } });
+      ok(T.getHookState().text === '' && T.getHookState().dur === 4 && T.getHookState().ai === '', 'Projekt laden: ungültige Werte bereinigt');
+      T.applyProjectPayload({});
+      ok(T.getHookState().on === false && T.getHookState().text === '', 'Projekt ohne Hook-Eintrag (alt) → aus');
+      T.setHookState(true, '', 2.5, '');
+      ok(JSON.stringify(T.currentLayout().hook) === JSON.stringify({ on: true, dur: 2.5 }), 'Template-Layout enthält Hook-Schalter + Dauer (nicht den Text)');
+      const nt = T.normalizeTemplate({ id: 'tpl_hk', name: 'H', style: { fl: 'Inter', font: "'Inter'", fw: '800', tc: '#fff', hl: '#fa0', anim: 'none' }, layout: { hook: { on: true, dur: 9 } } });
+      ok(nt.layout.hook && nt.layout.hook.on === true && nt.layout.hook.dur === 4, 'Template: Hook-Feld normalisiert (Dauer begrenzt)');
+      ok(T.normalizeTemplate({ id: 'tpl_old', name: 'O', style: { fl: 'Inter', font: "'Inter'", fw: '800', tc: '#fff', hl: '#fa0', anim: 'none' }, layout: { pos: 'top' } }).layout.hook === undefined, 'Template ohne Hook-Feld bleibt ohne (altes Verhalten)');
+      T.setHookState(false, 'bleibt', 2, '');
+      T.applyTemplateSettings({ hook: { on: true, dur: 3 } });
+      ok(T.getHookState().on === true && T.getHookState().dur === 3 && T.getHookState().text === 'bleibt', 'Template anwenden: Schalter + Dauer, Text des Videos bleibt');
+      T.setHookState(true, 'bleibt', 3, ''); T.applyTemplateSettings({ pos: 'bottom' });
+      ok(T.getHookState().on === true, 'Template ohne Hook-Feld ändert den Schalter nicht');
+      ok(/localStorage\.setItem\(HOOK_KEY/.test(script) && T.HOOK_KEY === 'capivo.hook', 'Hook: Schalter + Dauer werden pro Gerät gemerkt (try/catch)');
+    }
+
+    // ── KI-Vorschlag (optionales Feld hook der Post-Antwort) ──
+    {
+      const hb = [mkBlk('Unsere Highland Rinder fressen nur Gras und Heu.', 0)];
+      T.setState(hb, [], 'karaoke'); T.setEmSrc(null); T.setHookState(true, '', 2, '');
+      let sentW = null;
+      global.fetch = async (u, o) => { sentW = JSON.parse(o.body).want; return { ok: true, status: 200, json: async () => ({ post: { caption: 'Ok', hashtags: ['#a'], hook: 'Nur Gras und Heu.' } }) }; };
+      const r = await T.hookFetchAi(true);
+      ok(sentW && sentW.join() === 'post' && r === 'Nur Gras und Heu' && T.getHookState().ai === 'Nur Gras und Heu' && T.hookTextNow() === 'Nur Gras und Heu', 'Hook-KI: Vorschlag aus dem Feld hook übernommen (' + r + ')');
+      T.setHookState(true, '', 2, '');
+      global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ post: { caption: 'Ok', hashtags: [] } }) });
+      ok(await T.hookFetchAi(true) === '' && T.getHookState().ai === '' && T.hookTextNow() === T.hookLocalText(hb), 'Hook-KI: Antwort ohne hook-Feld → lokaler Vorschlag bleibt');
+      global.fetch = async () => { throw new TypeError('Failed to fetch'); };
+      ok(await T.hookFetchAi(true) === '' && T.hookTextNow() === T.hookLocalText(hb), 'Hook-KI: offline → lokaler Vorschlag, kein Fehler');
+      T.setEmSrc('local'); let called = 0; global.fetch = async () => { called++; return { ok: false, status: 404, json: async () => ({}) }; };
+      await T.hookFetchAi(true); ok(called === 0, 'Hook-KI: bekannt nicht erreichbar (emSrc local) → keine Anfrage');
+      T.setEmSrc(null); T.setHookState(false, '', 2, ''); T.setState([], [], 'karaoke'); delete global.fetch;
+    }
+  }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();
