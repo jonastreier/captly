@@ -55,11 +55,11 @@ module.exports = {
      '<span class="hint-touch"><b>Tipp:</b> Zeile antippen, um ein Wort zu korrigieren. Unter der gewählten Zeile kannst du Wörter hervorheben oder ein Emoji hinzufügen.</span>'],
     // Handy-Aktionsleiste unter der Timeline: nur ca. 6 Zeichen pro Knopf → kurze deutsche Wörter (Tooltips bleiben ausführlich)
     ['<use href="#i-split"/></svg><span>Split</span></button>', '<use href="#i-split"/></svg><span>Teilen</span></button>'],
-    ['<use href="#i-edit"/></svg><span>Edit text</span></button>', '<use href="#i-edit"/></svg><span>Text</span></button>'],
+    ['<use href="#i-edit"/></svg><span>Text</span></button>', '<use href="#i-edit"/></svg><span>Text</span></button>'],
     ['<use href="#i-check"/></svg><span>Select</span></button>', '<use href="#i-check"/></svg><span>Wählen</span></button>'],
     ['<use href="#i-trash"/></svg><span>Delete</span></button>', '<use href="#i-trash"/></svg><span>Entf.</span></button>'],
     ['<use href="#i-magnet"/></svg><span>Snap</span></button>', '<use href="#i-magnet"/></svg><span>Raster</span></button>'],
-    ['<use href="#i-gap"/></svg><span>Close gaps</span></button>', '<use href="#i-gap"/></svg><span>Lücken</span></button>'],
+    ['<use href="#i-gap"/></svg><span>Gaps</span></button>', '<use href="#i-gap"/></svg><span>Lücken</span></button>'],
     ['<use href="#i-cut"/></svg><span>Cut out</span></button>', '<use href="#i-cut"/></svg><span>Cut</span></button>'],
     ['<use href="#i-restore"/></svg><span>Restore</span></button>', '<use href="#i-restore"/></svg><span>Zurück</span></button>'],
     // Rechtliches: deutsche Datenschutzseite, wie auf der Landing
