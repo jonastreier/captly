@@ -5245,6 +5245,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok((script.match(/computeCutRegions\(/g) || []).length === 2 && (script.match(/exportCutRegions\(\)/g) || []).length >= 3, 'N2: computeCutRegions nur in der gemeinsamen Quelle (autoCutRegions + Definition); beide Export-Pfade nutzen exportCutRegions()');
     const nw = [['Hallo', 0.0, 0.4], ['das', 0.5, 0.8], ['ist', 0.85, 1.1], ['ähm', 1.2, 1.5], ['ein', 3.0, 3.3], ['Test', 3.4, 3.8]].map(a => ({ word: a[0], start: a[1], end: a[2] }));
     T.setWordsState(nw); T.onAutoCutChange(false);
+    const vidN2 = document.getElementById('mainVid'), durN2 = vidN2.duration; vidN2.duration = 6; // Schluss-Stille (3,8–6 s) zählt mit, unabhängig von früheren Tests
     const regs = T.autoCutRegions(), saved = T.cutSavedSeconds(regs);
     ok(regs.length >= 2 && saved > 1.5 && T.getAutoCut() === false && T.exportCutRegions().length === 0, 'N2: aus → Export hat keine Schnittfenster (volle Länge), ' + regs.length + ' Fenster möglich, ' + saved.toFixed(2) + ' s');
     ok(E('autoCutEd').checked === false && E('autoCutChk').checked === false && /possible$/.test(E('cutSave').textContent) && E('cutSave').classList.contains('off'), 'N2: aus → beide Häkchen leer, Anzeige «x s possible» gedämpft: ' + E('cutSave').textContent);
@@ -5260,6 +5261,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.getAutoCut() === false && E('autoCutEd').checked === false && E('autoCutChk').checked === false, 'N2: neues Video / Startseite → Auto-Cut aus, beide Häkchen leer (Handy-Sheet auch)');
     T.setWordsState([]);
 
+    vidN2.duration = durN2;
     // N9: Bitrate an die Quelle koppeln
     ok(T.exportBitrate(1080, 1920, 30) === Math.round(0.07 * 1080 * 1920 * 30), 'N9: ohne Quellbitrate unverändert (alte Formel)');
     ok(T.exportBitrate(1080, 1920, 30, 2.1e6, 1080, 1920) === Math.round(2.1e6 * 1.2), 'N9: Quelle 2,1 Mbit/s, gleiche Grösse → Quelle × 1,2 = ' + T.exportBitrate(1080, 1920, 30, 2.1e6, 1080, 1920));

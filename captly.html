@@ -12039,7 +12039,7 @@ var _lastExportSig = null, _expSigStart = null;
 function exportSignature() {
   try {
     var p = projectPayload();
-    ['title', 'fontRel', 'cover', 'post', 'speech'].forEach(function(k) { delete p[k]; });
+    ['title', 'fontRel', 'cover', 'post', 'speech', 'fmtKeep'].forEach(function(k) { delete p[k]; }); // fmtKeep = nur UI-Zustand des Format-Hinweises
     p.res = exportRes; p.fmt = exportFormatState(); p.autoCut = !!autoCutSilence;
     return JSON.stringify(p);
   } catch (e) { return null; }
