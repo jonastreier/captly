@@ -6386,7 +6386,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       // Knopf: durchschalten, Text landet im Feld, nach der letzten Variante wieder die erste
       T.setCaptionBlocksForTest(b3); T.setHookState(true, '', 2, '');
       const seq = [T.hookNextVariant(), T.hookNextVariant(), T.hookNextVariant(), T.hookNextVariant()], vs3 = T.hookVariants(b3);
-      ok(seq[0] === vs3[1] && seq[1] === vs3[2] && seq[2] === vs3[0] && seq[3] === vs3[1] && T.getHookState().text === vs3[1], 'R3-Hook: «↻ Another suggestion» schaltet erste → prägnant → kurz → erste durch');
+      ok(vs3.length >= 2 && seq.every((x, k) => x === vs3[(k + 1) % vs3.length]) && T.getHookState().text === seq[3], 'R3-Hook: «↻ Another suggestion» schaltet alle Varianten durch und beginnt dann wieder vorne (' + vs3.join(' | ') + ')');
+      ok(!vs3.includes('This one setting doubled') && !T.hookVariants(b1).includes('Drei Tricks'), 'R3-Hook: Kurzfassung nur am Teilsatzende, nie mitten im Satz und nie = erste Untertitelzeile');
       T.setHookState(false, '', 2, '');
       ok(/id="hookSug" onclick="hookNextVariant\(\)"[^>]*>↻ Another suggestion</.test(htmlContent), 'R3-Hook: Knopf «↻ Another suggestion» im Hook-Feld');
       ok(require('./i18n/de-ui.js')['↻ Another suggestion'] === '↻ Anderer Vorschlag', 'R3-Hook: Knopf auf Deutsch');

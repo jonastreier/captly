@@ -5193,8 +5193,12 @@ function hookVariants(blocks) {
   var bestI = -1, bestSc = 0;
   sents.forEach(function(x, ix) { if (ix === iFirst || !okSent(x)) return; var sc = hookScoreSentence(x); if (sc > bestSc) { bestSc = sc; bestI = ix; } });
   if (bestI >= 0) push(hookClean(sents[bestI], HOOK_WORDS));
-  // 3) Kurzfassung: der erste (bzw. prägnante) Satz auf höchstens 4 Wörter gekürzt (am Komma)
-  var shortOf = function(x) { var y = hookClean(x, 4); return nw(y) >= 2 && nw(y) < nw(hookClean(x, HOOK_WORDS)) ? y : ''; };
+  // 3) Kurzfassung: nur der erste Teilsatz bis Komma/Doppelpunkt/Strich (2–4 Wörter) – nie mitten im Satz abgeschnitten («This one setting doubled»)
+  var shortOf = function(x) {
+    var m = String(x || '').match(/^([^,;:–—]+)[,;:–—]\s*\S/);
+    var y = m ? hookClean(m[1], 4) : '';
+    return y && nw(y) >= 2 && nw(y) <= 4 && nw(y) === nw(m[1].trim()) && nw(y) < nw(hookClean(x, HOOK_WORDS)) ? y : '';
+  };
   var sh = shortOf(first) || (bestI >= 0 ? shortOf(sents[bestI]) : '');
   if (sh && !hookDupOfCaptions(sh, parts)) push(sh);
   if (!vars.length) vars.push('');
