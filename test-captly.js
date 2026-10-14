@@ -5324,6 +5324,44 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       sheet.style.display = 'block'; T.releaseLastExport(); T.onAutoCutChange(false);
     }
   }
+
+  // ═════════════════════════════════════════════════════════════════
+  // Paket N-Handy: Handy-Editor (≤ 640 px) — Timeline standardmässig zu, keine Überlagerung, ≥ 4 Zeilen, Tippflächen ≥ 44 px (statisch)
+  // ═════════════════════════════════════════════════════════════════
+  {
+    const a0 = htmlContent.indexOf('Paket N-Handy (Handy'), a1 = htmlContent.indexOf('@keyframes sheetUp'), cssEnd = htmlContent.indexOf('</style>', a0);
+    ok(a0 > 0 && a1 > 0 && a0 > a1 && cssEnd > a0, 'N-Handy: CSS-Block vorhanden (nach den Handy-Regeln, damit er gewinnt)');
+    const css = htmlContent.slice(a0, cssEnd);
+    ok(/^[^]*@media \(max-width:640px\) \{/.test(css.slice(css.indexOf('*/'))), 'N-Handy: Regeln nur im Handy-@media (Desktop unverändert)');
+    // Regel (Selektor-Teil) → Eigenschaft ≥ 44 px
+    const rule = (selFrag, prop) => { const exact = /\{$/.test(selFrag), esc = selFrag.replace(/\{$/, '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); let m, out = []; const g = new RegExp('(?:^|\\n|\\})\\s*[^{}\\n]*' + esc + (exact ? '\\s*' : '[^{}\\n]*') + '\\{([^}]*)\\}', 'g'); while ((m = g.exec(css))) out.push(m[1]); return out.some(b => new RegExp('(?:^|;)\\s*' + prop + ':\\s*(\\d+)px').test(b) && +RegExp.$1 >= 44); };
+    const tap = [['.btn-back.tb-back', 'min-height'], ['.tb-title', 'min-height'], ['.tb-icon', 'width'], ['.tb-icon', 'height'], ['.tb-export', 'min-height'],
+      ['.pp-btn', 'width'], ['.pp-btn', 'height'], ['.prog-col', 'min-height'], ['.tr-set summary', 'min-height'], ['.fr-box summary', 'min-height'], ['.coach-x', 'width'], ['.coach-x', 'height'],
+      ['.cap-seg{', 'min-height'], ['.seg-tools button', 'min-width'], ['.seg-tools button', 'height'], ['.seg-emph button', 'min-height'], ['.seg-emph .se-emo', 'min-width'],
+      ['.cs-chip{', 'min-height'], ['.pos-btn', 'min-height'], ['.pos-row.seg .pos-btn', 'min-height'], ['.em-chip', 'min-height'], ['.em-retry', 'min-height'], ['.lang-sel', 'min-height'], ['.cs-hex', 'min-height'],
+      ['.cs-chipcol{', 'min-height'], ['.cs-sw', 'width'], ['.cs-sw', 'height'], ['input[type=checkbox].cs-switch{', 'width'], ['input[type=checkbox].cs-switch{', 'height'],
+      ['.sz-row input[type=range]{', 'height'], ['.tpl-io a', 'min-height'], ['.stile-menu-btn{', 'width'], ['.stile-menu-btn{', 'height'], ['.es-link', 'min-height'], ['.es-post-head', 'min-height'], ['.tm-item', 'min-height'],
+      ['input[type=checkbox]:not(.cs-switch){', 'width'], ['input[type=checkbox]:not(.cs-switch){', 'height'], ['.ctrl-upload', 'min-height']];
+    const missing = tap.filter(([sel, prop]) => !rule(sel, prop));
+    ok(missing.length === 0, 'N-Handy: Tippflächen ≥ 44 px per CSS — fehlt: ' + missing.map(m => m.join(' ')).join(' | '));
+    // Timeline ausserhalb des Timeline-Tabs nie sichtbar (sonst überlagert sie das Style-Panel)
+    ok(/#editor:not\(\.tl-mode\) \.tl-wrap\{display:none!important\}/.test(css), 'N-Handy: Desktop-Timeline ausserhalb des Timeline-Tabs ausgeblendet');
+    // Wechsel Desktop → Handy nach dem Laden schliesst die Timeline, zurück auf Desktop gilt die gemerkte Wahl
+    const om = htmlContent.slice(htmlContent.indexOf('var onMode = function()'), htmlContent.indexOf('var onMode = function()') + 1800);
+    ok(/_tl\.wasPhone\s*=\s*tlPhone\(\)/.test(htmlContent) && /phNow !== _tl\.wasPhone/.test(om) && /if \(phNow\) \{ if \(_tl\.open && edTab !== 'timeline'\) tlSetOpen\(false, false\); \}/.test(om) && /localStorage\.getItem\(TL_OPEN_KEY\)/.test(om), 'N-Handy: Modus-Wechsel Desktop↔Handy schliesst/öffnet die Timeline (gemerkte Wahl bleibt)');
+    ok(/tlSetOpen\(tlPhone\(\) \|\| tlShortScreen\(\) \? false : pref !== '0', false\)/.test(htmlContent), 'N-Handy: Start am Handy = Timeline zu, Desktop = gemerkte Wahl (TL_OPEN_KEY)');
+    // Zeilenbudget: ≥ 4 Zeilen im Captions-Tab bei 375×812 (Kopf: Tipp 44 + Video&Sprache 44 + Suchen 44 + Abstände)
+    const pcap = +(/^var PH_CAP_PREV = ([0-9.]+);/m.exec(htmlContent) || [])[1];
+    ok(pcap >= 0.3 && pcap <= 0.48, 'N-Handy: Vorschau-Anteil im Captions-Tab kleiner als im Style-Tab (0,48): ' + pcap);
+    ok(/\(edTab === 'captions' \? PH_CAP_PREV : 0\.48\)/.test(htmlContent) && /if \(tlPhone\(\) && name !== 'timeline' && !wasTl\) tlRelayout\(\)/.test(htmlContent), 'N-Handy: Vorschau-Grösse folgt dem Tab (switchTab → tlRelayout)');
+    const H = 812, topbar = 52, tabs = 65, header = 6 + 44 + 4 + 44 + 4 + 44 + 4, rowPitch = 44 + 4;
+    const free = H - topbar - Math.round(H * pcap) - tabs;
+    ok(free >= header + 4 * rowPitch, 'N-Handy: 375×812 — Platz für Kopf + 4 Zeilen: ' + free + ' ≥ ' + (header + 4 * rowPitch));
+    ok(/\.cap-seg\{min-height:44px;align-items:center\}/.test(css) && /\.cap-seg-ta\{overflow-y:hidden\}/.test(css), 'N-Handy: Zeilen 44 px hoch, kein Scrollbalken im Textfeld');
+    // Kein horizontales Scrollen: Zeilen der Kopfzeile schrumpfen (Titel), Schalter/Regler brechen bei 320 px um
+    ok(/@media \(max-width:380px\)\{\.sz-row\{flex-wrap:wrap\}\}/.test(css) && /\.tb-title\{min-height:44px;min-width:44px\}/.test(css), 'N-Handy: 320 px — Regler-Zeilen umbrechen, Titel bleibt ≥ 44 px');
+  }
+
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();
