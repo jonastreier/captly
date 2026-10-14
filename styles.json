@@ -1,1 +1,220 @@
-[]
+[
+ {
+  "id": "colorpop",
+  "name": "Color Pop",
+  "added": "2026-10-14",
+  "photo": "prismpro",
+  "layout": {
+   "wpb": 2,
+   "lines": 1
+  },
+  "style": {
+   "fl": "Montserrat",
+   "font": "'Montserrat'",
+   "fw": "900",
+   "tt": "uppercase",
+   "fs": "1.2em",
+   "thumbBg": "linear-gradient(160deg,#150d1f,#06040a)",
+   "tc": "#ffffff",
+   "ts": "3px 0px 0 #000,2.6px 1.5px 0 #000,1.5px 2.6px 0 #000,0px 3px 0 #000,-1.5px 2.6px 0 #000,-2.6px 1.5px 0 #000,-3px 0px 0 #000,-2.6px -1.5px 0 #000,-1.5px -2.6px 0 #000,0px -3px 0 #000,1.5px -2.6px 0 #000,2.6px -1.5px 0 #000,0 4px 10px rgba(0,0,0,.45)",
+   "hl": "#FFD60A",
+   "hlCycle": [
+    "#FFD60A",
+    "#22E36B",
+    "#FF3D9A"
+   ],
+   "hls": "3px 0px 0 #000,2.6px 1.5px 0 #000,1.5px 2.6px 0 #000,0px 3px 0 #000,-1.5px 2.6px 0 #000,-2.6px 1.5px 0 #000,-3px 0px 0 #000,-2.6px -1.5px 0 #000,-1.5px -2.6px 0 #000,0px -3px 0 #000,1.5px -2.6px 0 #000,2.6px -1.5px 0 #000,0 4px 10px rgba(0,0,0,.45)",
+   "anim": "overshoot",
+   "cstroke": "#000",
+   "em": "none",
+   "emS": 1
+  }
+ },
+ {
+  "id": "bigkeyword",
+  "name": "Big Keyword",
+  "added": "2026-10-14",
+  "photo": "carbon",
+  "layout": {
+   "wpb": 3,
+   "lines": 2,
+   "kw": true
+  },
+  "style": {
+   "fl": "Archivo Black",
+   "font": "'Archivo Black'",
+   "fw": "400",
+   "tt": "uppercase",
+   "fs": ".8em",
+   "lh": 1,
+   "motion": "reveal",
+   "thumbBg": "linear-gradient(160deg,#1a1606,#0a0803)",
+   "tc": "#ffffff",
+   "ts": "0 0 1.5px rgba(0,0,0,.9),0 0 1.5px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55),0 3px 12px rgba(0,0,0,.5)",
+   "hl": "#ffffff",
+   "hls": "0 0 1.5px rgba(0,0,0,.9),0 0 1.5px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55)",
+   "anim": "none",
+   "em": "#FACC15",
+   "emS": 2
+  }
+ },
+ {
+  "id": "gradkaraoke",
+  "name": "Gradient Karaoke",
+  "added": "2026-10-14",
+  "photo": "focus",
+  "layout": {
+   "wpb": 4,
+   "lines": 2
+  },
+  "style": {
+   "fl": "Poppins",
+   "font": "'Poppins'",
+   "fw": "800",
+   "fs": "1.05em",
+   "thumbBg": "linear-gradient(160deg,#120a1f,#07040d)",
+   "tc": "rgba(255,255,255,.5)",
+   "ts": "0 0 1.5px rgba(0,0,0,.9),0 0 1.5px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55)",
+   "hl": "#ffffff",
+   "hlg": "linear-gradient(90deg,#FDE047,#FB7185,#C084FC)",
+   "hls": "0 0 1.5px rgba(0,0,0,.9),0 0 1.5px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55),0 0 14px rgba(251,113,133,.75),0 0 30px rgba(192,132,252,.5)",
+   "anim": "scale",
+   "em": "none",
+   "emS": 1
+  }
+ },
+ {
+  "id": "stickeremoji",
+  "name": "Sticker Emoji",
+  "added": "2026-10-14",
+  "photo": "impact2",
+  "layout": {
+   "wpb": 2,
+   "lines": 1,
+   "emoji": true
+  },
+  "style": {
+   "fl": "Fredoka",
+   "font": "'Fredoka'",
+   "fw": "700",
+   "fs": "1.2em",
+   "thumbBg": "linear-gradient(160deg,#0b1730,#05070f)",
+   "tc": "#ffffff",
+   "ts": "3px 0px 0 #111,2.6px 1.5px 0 #111,1.5px 2.6px 0 #111,0px 3px 0 #111,-1.5px 2.6px 0 #111,-2.6px 1.5px 0 #111,-3px 0px 0 #111,-2.6px -1.5px 0 #111,-1.5px -2.6px 0 #111,0px -3px 0 #111,1.5px -2.6px 0 #111,2.6px -1.5px 0 #111,0 4px 10px rgba(0,0,0,.4)",
+   "hl": "#FFE14D",
+   "hls": "3px 0px 0 #111,2.6px 1.5px 0 #111,1.5px 2.6px 0 #111,0px 3px 0 #111,-1.5px 2.6px 0 #111,-2.6px 1.5px 0 #111,-3px 0px 0 #111,-2.6px -1.5px 0 #111,-1.5px -2.6px 0 #111,0px -3px 0 #111,1.5px -2.6px 0 #111,2.6px -1.5px 0 #111,0 4px 10px rgba(0,0,0,.4)",
+   "anim": "scale",
+   "cstroke": "#111",
+   "em": "none",
+   "emS": 1,
+   "emoSide": true
+  }
+ },
+ {
+  "id": "glassbox",
+  "name": "Glass Box",
+  "added": "2026-10-14",
+  "photo": "hush",
+  "layout": {
+   "wpb": 5,
+   "lines": 2
+  },
+  "style": {
+   "fl": "Inter",
+   "font": "'Inter'",
+   "fw": "700",
+   "thumbBg": "linear-gradient(160deg,#2a4a6b,#16283d)",
+   "tc": "rgba(255,255,255,.78)",
+   "ts": "0 1px 5px rgba(0,0,0,.45)",
+   "boxBg": "rgba(255,255,255,.18)",
+   "boxBr": "16px",
+   "boxBd": "rgba(255,255,255,.42)",
+   "hl": "#ffffff",
+   "hls": "0 1px 5px rgba(0,0,0,.45)",
+   "anim": "none",
+   "em": "#ffffff",
+   "emS": 1.06
+  }
+ },
+ {
+  "id": "swipeline",
+  "name": "Swipe Underline",
+  "added": "2026-10-14",
+  "photo": "lift",
+  "layout": {
+   "wpb": 3,
+   "lines": 1
+  },
+  "style": {
+   "fl": "Inter Tight",
+   "font": "'Inter Tight'",
+   "fw": "800",
+   "fs": "1.2em",
+   "ls": "-.02em",
+   "thumbBg": "linear-gradient(160deg,#17140a,#070604)",
+   "tc": "rgba(255,255,255,.8)",
+   "ts": "0 0 1.5px rgba(0,0,0,.9),0 0 1.5px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55),0 2px 12px rgba(0,0,0,.5)",
+   "hl": "#ffffff",
+   "hls": "0 0 1.5px rgba(0,0,0,.9),0 0 1.5px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55),0 2px 12px rgba(0,0,0,.5)",
+   "anim": "none",
+   "ul": "#FACC15",
+   "ulMode": "active",
+   "ulH": 0.2,
+   "em": "none",
+   "emS": 1
+  }
+ },
+ {
+  "id": "typewriter",
+  "name": "Typewriter",
+  "added": "2026-10-14",
+  "photo": "stack",
+  "layout": {
+   "wpb": 5,
+   "lines": 2
+  },
+  "style": {
+   "fl": "Space Mono",
+   "font": "'Space Mono'",
+   "fw": "700",
+   "fs": ".95em",
+   "motion": "type",
+   "thumbBg": "linear-gradient(160deg,#07110d,#030806)",
+   "tc": "#ffffff",
+   "ts": "0 0 1.5px rgba(0,0,0,.9),0 0 1.5px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55),0 2px 10px rgba(0,0,0,.5)",
+   "hl": "#ffffff",
+   "hls": "0 0 1.5px rgba(0,0,0,.9),0 0 1.5px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55)",
+   "anim": "none",
+   "cur": "#FACC15",
+   "em": "#FACC15",
+   "emS": 1
+  }
+ },
+ {
+  "id": "squashpop",
+  "name": "Squash Pop",
+  "added": "2026-10-14",
+  "photo": "sketch",
+  "layout": {
+   "wpb": 2,
+   "lines": 1
+  },
+  "style": {
+   "fl": "Lilita One",
+   "font": "'Lilita One'",
+   "fw": "400",
+   "tt": "uppercase",
+   "fs": "1.25em",
+   "ls": ".5px",
+   "thumbBg": "linear-gradient(160deg,#0c1410,#060907)",
+   "tc": "#ffffff",
+   "ts": "3px 0px 0 #000,2.6px 1.5px 0 #000,1.5px 2.6px 0 #000,0px 3px 0 #000,-1.5px 2.6px 0 #000,-2.6px 1.5px 0 #000,-3px 0px 0 #000,-2.6px -1.5px 0 #000,-1.5px -2.6px 0 #000,0px -3px 0 #000,1.5px -2.6px 0 #000,2.6px -1.5px 0 #000,0 4px 0 rgba(0,0,0,.8)",
+   "hl": "#4ADE80",
+   "hls": "3px 0px 0 #000,2.6px 1.5px 0 #000,1.5px 2.6px 0 #000,0px 3px 0 #000,-1.5px 2.6px 0 #000,-2.6px 1.5px 0 #000,-3px 0px 0 #000,-2.6px -1.5px 0 #000,-1.5px -2.6px 0 #000,0px -3px 0 #000,1.5px -2.6px 0 #000,2.6px -1.5px 0 #000,0 4px 0 rgba(0,0,0,.8)",
+   "anim": "squash",
+   "cstroke": "#000",
+   "em": "none",
+   "emS": 1
+  }
+ }
+]

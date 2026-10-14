@@ -3621,7 +3621,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // Modi
     ok(T.capMotion(ST('reveal')) === 'reveal' && T.capMotion(ST('note')) === 'fill' && T.capMotion(ST('script')) === 'reveal' && T.capMotion(ST('soft')) === 'fill'
        && T.capMotion(ST('hormozi')) === 'highlight' && T.capMotion({ motion: 'quatsch' }) === 'highlight', 'capMotion: neue Presets + Fallback Highlight');
-    ok(T.STYLES.slice(0, 9).map(x => x.id).join() === 'tight,mix,statement,accent,serifbold,reveal,note,script,soft', 'neue Looks und ruhige Presets stehen vorn im Picker');
+    ok(T.STYLES.slice(0, 9).map(x => x.id).join() === 'hormozi,tight,mix,statement,accent,serifbold,reveal,note,script', 'Standard-Look (Bold Pop) zuerst, dann neue Looks und ruhige Presets im Picker');
     // Reveal: unsichtbar vor dem Wort, ~220 ms Einblenden mit Anstieg, danach voll
     const rv = ST('reveal'), fx = (s, i, t, f, rm) => T.capWordFx(s, b, i, T.activeWordIdx(b, t), t, !!f, !!rm);
     ok(fx(rv, 1, 1.49).op === 0 && fx(rv, 2, 1.6).op === 0, 'Reveal: kommende Woerter unsichtbar');
@@ -3649,8 +3649,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     {
       const csHtml = htmlContent.match(/<select id="csAnim"[\s\S]*?<\/select>/)[0];
       const opts = [...csHtml.matchAll(/<option value="(\w+)">/g)].map(m => m[1]);
-      ok(opts.join() === 'none,scale,punch,bounce,flash,glow', 'csAnim: Optionen None/Pop/Punch/Lift/Fade/Glow: ' + opts.join());
-      const strong = a => a && (Math.abs(a.sx - 1) >= 0.1 || Math.abs(a.ty) >= 0.15 || a.op <= 0.3 || a.glow >= 0.5);
+      ok(opts.join() === 'none,scale,punch,bounce,flash,glow,overshoot,squash', 'csAnim: Optionen None/Pop/Punch/Lift/Fade/Glow/Overshoot/Squash: ' + opts.join());
+      const strong = a => a && (Math.abs(a.sx - 1) >= 0.1 || Math.abs(a.sy - 1) >= 0.1 || Math.abs(a.ty) >= 0.15 || a.op <= 0.3 || a.glow >= 0.5);
       ok(T.animState('none', 0.08) === null && T.animState('scale', T.ANIM_DUR) === null && T.animState('scale', -0.1) === null, 'animState: none/abgelaufen/vorher → null');
       opts.filter(o => o !== 'none').forEach(o => {
         const dur = T.animDur(o);
@@ -3788,7 +3788,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       T.setEmphState(true, false, 'off');
       const sc = ST('script');
       const hs = T.buildCap(['nur', 'langsam', 'atmen'], sc, -1, 22, [0, 0.5, 1], 2, { em: [false, true, false] });
-      ok(/font-family:'Caveat'/.test(hs) && /font-size:1\.4em/.test(hs) && /7ff0e0/.test(hs), 'Script: Keyword in Caveat, 1.4x, Akzentfarbe');
+      ok(/font-family:'Caveat'/.test(hs) && /font-size:1\.5em/.test(hs) && /7ff0e0/.test(hs), 'Script: Keyword in Caveat, 1.5x, Akzentfarbe');
       ok(/font-style:italic/.test(T.buildCap(['ein', 'Preis'], rv, -1, 22, [0, 0.5], 2, { em: [false, true] })), 'Reveal: Keyword kursiv');
       const fw0 = T.fitCaptionWords(['nur', 'Wahnsinnsgeschichte'], sc, 40, 200, 2, null), fw1 = T.fitCaptionWords(['nur', 'Wahnsinnsgeschichte'], sc, 40, 200, 2, [false, true]);
       ok(fw1.px < fw0.px || fw1.words.length > fw0.words.length, 'Betonung (1.4x) im Auto-Fit beruecksichtigt');
@@ -4296,8 +4296,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
 
     // ── 2) TPL_STYLE_KEYS: jedes Feld übersteht den Rundlauf; jedes Style-Feld der Presets hat einen Eintrag ──
     {
-      const bool = ['hlItalic', 'hlUpper', 'circle', 'emItalic'], num = ['lh', 'emS'];
-      const sample = k => bool.includes(k) ? true : num.includes(k) ? 1.25 : k === 'hlCycle' ? ['#ff0000', '#00ff00'] :
+      const bool = ['hlItalic', 'hlUpper', 'circle', 'emItalic', 'emoSide'], num = ['lh', 'emS', 'ulH'];
+      const ENUM = { anim: 'scale', motion: 'reveal', ulMode: 'kw', ulH: 0.2, ul: '#ff00ff', boxBd: 'rgba(255,255,255,.4)', cur: '#facc15' }; // N-Looks: Felder mit geprüftem Wertebereich
+      const sample = k => ENUM[k] ? ENUM[k] : bool.includes(k) ? true : num.includes(k) ? 1.25 : k === 'hlCycle' ? ['#ff0000', '#00ff00'] :
         k === 'pill' ? { bg: '#fff', br: '5px', p: '1px 2px', border: '1px solid #000', borderLeft: '2px solid #f00' } : 'v-' + k;
       T.TPL_STYLE_KEYS.forEach(k => {
         const o = { [k]: sample(k) }, s1 = T.sanitizeStyle(o);
