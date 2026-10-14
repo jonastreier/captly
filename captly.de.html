@@ -3588,6 +3588,7 @@ function previewFrameH() {
 // lines (optional): Ziel-Zeilenzahl (CAPTION_LINES) für die Höhen-Prüfung. Ergebnis in Vorschau-Einheiten.
 // em (optional): Maske hervorgehobener Wörter — diese werden mit emphScale(s) gemessen (größer gezeichnet).
 function fitCaptionWords(words, s, px, maxW, lines, em) {
+  lines = capLinesEff(lines); // Paar-Umbruch (R3)
   var maxH = previewFrameH() * CAP_FIT_MAX_H;
   var esc = emphScale(s);
   var key = words.join('\u0001') + '|' + [s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, capWordGap(s),
@@ -4183,7 +4184,9 @@ function capSmartLines(info, k, sp, maxW) {
 //    bleibt es bei mehr Zeilen (besser umbrechen als abschneiden).
 function capDistributeLines(info, targetLines, sp, maxW) {
   var n = info.length, lines;
-  var maxLines = Math.max(1, targetLines || 1);
+  var maxLines = Math.max(1, capLinesEff(targetLines) || 1);
+  // Paar-Umbruch (R3): passt der ganze Block in eine Zeile, bleibt er einzeilig (nur sonst 2 Zeilen)
+  if (maxLines === 2 && n > 1 && capPairWrap() && info.reduce(function(a, it){ return a + it.w; }, 0) + sp * (n - 1) <= maxW * 0.99) return [info];
   if (maxLines <= 1 || n <= 1) {
     lines = [info];
   } else {
@@ -4466,6 +4469,7 @@ function capSlideBoxes(P, R, k) {
 // gesprochenes Wort; Pop/Reveal per CSS-Keyframes.
 function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   if (!words || !words.length) return '';
+  lineTarget = capLinesEff(lineTarget); // Paar-Umbruch (R3)
   _capCycBase = (ex && ex.gi) || 0;
   var em = (ex && ex.em) || null, esc = emphScale(s), ec = emphColor(s);
   var mode = capMotion(s), live = !!lineTarget, hv = live && capHlVariant(s);
@@ -6728,8 +6732,22 @@ function capAutoChars(s) {
 function capBlockLimit() {
   var per = CAP_MAX_CHARS > 0 ? CAP_MAX_CHARS : capAutoChars();
   if (!(per > 0)) return null;
+  // Paar-Umbruch (R3): Looks mit 2+ Wörtern pro Block bei grosser Schrift (Color Pop, Squash Pop, Sticker Emoji) kommen mit der
+  // 1-Zeilen-Breite (7–10 Zeichen) kaum auf 2 Wörter → bis zu 79 % Einzelwort-Blöcke. Mit Umbruch auf 2 Zeilen darf ein Wort bis
+  // 1/CAP_PAIR_SHRINK × Zeilenbreite lang sein (Auto-Fit schrumpft es um höchstens diesen Faktor), und es zählen 2 Zeilen.
+  if (capPairWrap()) return { per: CAP_MAX_CHARS > 0 ? per : Math.floor(per / CAP_PAIR_SHRINK), lines: 2 };
   return { per: per, lines: Math.max(1, CAPTION_LINES || 1) };
 }
+var CAP_PAIR_SHRINK = 0.8;
+// Looks mit layout.wrap (styles.json): bei «Max lines 1» und ≥ 2 Wörtern pro Block darf ein Paar, das nicht in eine Zeile passt,
+// auf 2 Zeilen umbrechen (passt es in eine Zeile, bleibt es dort). Vorschau (buildCap/fitCaptionWords) und Export (capLayout) rechnen
+// über capLinesEff() mit derselben Zeilenzahl.
+function capPairWrap() {
+  if (!(WORDS_PER_BLOCK >= 2) || CAPTION_LINES !== 1) return false;
+  var s0 = STYLES.find(function(x){ return x.id === activeId; });
+  return !!(s0 && s0.layout && s0.layout.wrap);
+}
+function capLinesEff(lines) { return (lines === 1 && capPairWrap()) ? 2 : lines; }
 function capCharLen(word) {
   var s = capActiveStyle(), d = displayWord(String(word || ''));
   if (s && s.tt === 'uppercase') d = d.toUpperCase();
@@ -9175,10 +9193,10 @@ function clampPct(v) { return Math.max(0, Math.min(85, v)); }
 var SAFE_PAD = 1; // % Luft zur Safe-Zone-Kante
 function capTopPct(off) { return Math.round(Math.max(capFree ? 0 : SAFE_ZONE.top + SAFE_PAD, clampPct(10 - off)) * 100) / 100; }
 function capBottomPct(off) { return Math.round(Math.max(capFree ? 0 : SAFE_ZONE.bottom + SAFE_PAD, clampPct(12 + off)) * 100) / 100; }
-// Fill «blur» (N7): das scharfe Video liegt als Band mittig im Rahmen, darüber/darunter nur Unschärfe. Ein Untertitel auf der
+// Fill «blur» (N7, R3): das scharfe Video liegt als Band mittig im Rahmen, darüber/darunter nur Unschärfe. Ein Untertitel auf der
 // Bandkante (halb auf Bild, halb auf Unschärfe) hat schlechten Kontrast → bei Preset-Position (nicht frei gezogen) liegt die Box
-// ganz in der Unschärfe-Zone (Preset «Bottom» → unter dem Band, «Top» → über dem Band; mit Abstand zur Kante UND innerhalb der
-// Safe-Zone) oder, wenn dort kein Platz ist, ganz im Band. Frei verschobene Untertitel (capFree) behalten ihre Position.
+// ganz im Band (R3: jede Zeilenzahl, «Bottom» unten bündig, «Top» oben bündig, jeweils mit Abstand zur Kante) oder, wenn dort kein
+// Platz ist, ganz in der Unschärfe-Zone (unter/über dem Band, innerhalb der Safe-Zone). Frei verschobene Untertitel (capFree) behalten ihre Position.
 // Vorschau (clampCapVertical) und Export (capLayout) rechnen mit denselben Funktionen.
 var CAP_BLUR_GAP = 0.015; // Mindestabstand Box ↔ Bandkante, Anteil der Rahmenhöhe
 // Bildband des Videos auf der Leinwand W×H (px) bei Fill «blur», sonst null (auch wenn das Band fast die ganze Höhe füllt)
@@ -9198,14 +9216,17 @@ function capBlurTop(t, h, H, band, pos, free) {
   if (!band || free || pos === 'center') return t;
   var m = H * CAP_BLUR_GAP, lo = H * (SAFE_ZONE.top + SAFE_PAD) / 100, hi = H * (1 - (SAFE_ZONE.bottom + SAFE_PAD) / 100);
   var bt = band.top, bb = band.bot;
-  if (t + h <= bt - m + 0.01 || t >= bb + m - 0.01) return t; // schon sauber in der Unschärfe (mit Abstand)
+  // Runde 3: Passt die Box ganz ins scharfe Band, sitzt sie IMMER dort — «Bottom» unten bündig (mit Abstand), «Top» oben bündig,
+  // egal wie viele Zeilen. Vorher blieb ein Einzeiler, der schon in der Unschärfe unter dem Band lag, dort (Unterkante 0,69–0,74 der
+  // Höhe), Zweizeiler dagegen rutschten ins Band → zwei verschiedene Ankerlinien, Einzeiler auf unscharfem/dunklem Grund.
+  if (bb - bt - 2 * m >= h) return pos === 'top' ? bt + m : bb - m - h;
+  if (t + h <= bt - m + 0.01 || t >= bb + m - 0.01) return t; // zu hoch fürs Band, aber schon sauber in der Unschärfe (mit Abstand)
   var zb0 = bb + m, zb1 = hi, za0 = lo, za1 = bt - m; // Zonen unter / über dem Band (Box-Ober-/Unterkante)
   var cand = {
     below: (zb1 - zb0 >= h) ? zb0 + (zb1 - zb0 - h) / 2 : null,
-    above: (za1 - za0 >= h) ? za0 + (za1 - za0 - h) / 2 : null,
-    inside: (bb - bt - 2 * m >= h) ? (pos === 'top' ? bt + m : bb - m - h) : null
+    above: (za1 - za0 >= h) ? za0 + (za1 - za0 - h) / 2 : null
   };
-  var order = pos === 'top' ? ['above', 'inside', 'below'] : ['below', 'inside', 'above'];
+  var order = pos === 'top' ? ['above', 'below'] : ['below', 'above'];
   for (var i = 0; i < order.length; i++) if (cand[order[i]] !== null) return cand[order[i]];
   return Math.max(bt, Math.min(bb - h, t)); // nichts passt: wenigstens im Band halten
 }
@@ -9818,6 +9839,7 @@ function dropToStyle(o, now) {
   if (st.layout) { // optional: Emojis/Schlagwörter beim Wählen des Looks einschalten (z. B. Sticker-Emoji, Schlagwort gross)
     if (typeof lay.emoji === 'boolean') st.layout.emoji = lay.emoji;
     if (typeof lay.kw === 'boolean') st.layout.kw = lay.kw;
+    if (lay.wrap === true) st.layout.wrap = true; // Paar-Umbruch (R3): 2+ Wörter/Block, passt das Paar nicht in eine Zeile → 2 Zeilen statt Einzelwort-Blöcken, s. capPairWrap
   }
   var t = Date.parse(o.added);
   if (t && (now || Date.now()) - t < DROP_NEW_DAYS * 864e5) st.badge = _t('New');
@@ -13824,18 +13846,32 @@ function drawTextGrouped(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul
   ctx.drawImage(c, 0, 0, bw, bh, ox, oy, bw, bh);
   ctx.restore();
 }
+// Alpha der aktuellen Textfüllung (1 bei Verlauf/undurchsichtig): ctx.fillStyle liefert Farben mit Alpha als «rgba(r, g, b, a)».
+function capFillAlpha(ctx) {
+  var f = ctx.fillStyle, m = (typeof f === 'string') ? /^rgba\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)$/.exec(f) : null;
+  return m ? parseFloat(m[1]) : 1;
+}
 function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul) {
   if (plan.rest.length) {
     ctx.save();
     var lowRes = fsS > 0 && tw > 0 && typeof document !== 'undefined' && !!ctx.canvas;
+    // Halbtransparente Textfarbe (Gradient Karaoke «rgba(255,255,255,.5)», Soft …): jede Schatten-Schicht zeichnet die Glyphe selbst
+    // mit → n Schichten + Text stapelten das Alpha (0,5 → 0,94: Export fast weiss, Vorschau halb durchsichtig). Im DOM liegen die Schatten
+    // unter EINEM Glyphen-Zeichnen; Schatten-Alpha hängt nur von der Schattenfarbe ab. Darum bei Alpha < 1 nur den Schatten zeichnen
+    // (Glyphe weit ausserhalb, Schatten per Offset zurückholen) und die Glyphe erst unten einmal.
+    var shOnly = capFillAlpha(ctx) < 1, OFF = 100000, ta = 1, tb = 0;
+    if (shOnly) {
+      ctx.fillStyle = '#000';
+      if (ctx.getTransform) { var tm = ctx.getTransform(); ta = tm.a; tb = tm.b; } // Schatten-Offsets liegen im Geräteraum: Versatz der Glyphe durch die Transformation mitrechnen
+    }
     // unterste Schicht zuerst (CSS: erste Schicht liegt oben)
     for (var i = plan.rest.length - 1; i >= 0; i--) {
       var l = plan.rest[i];
       if (lowRes && l.blur * scale >= 16) { drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw); continue; }
       var kk = capShK(shMul);
-      ctx.shadowOffsetX = l.x * scale * kk.x; ctx.shadowOffsetY = l.y * scale * kk.y;
+      ctx.shadowOffsetX = l.x * scale * kk.x + (shOnly ? OFF * ta : 0); ctx.shadowOffsetY = l.y * scale * kk.y + (shOnly ? OFF * tb : 0);
       ctx.shadowBlur = l.blur * scale * kk.b; ctx.shadowColor = l.color;
-      ctx.fillText(text, x, y);
+      ctx.fillText(text, shOnly ? x - OFF : x, y);
     }
     ctx.restore();
   }
@@ -13985,14 +14021,14 @@ function capDomVMetrics(words, s, px, lineTarget, em) {
 // capHlVariant), die Highlight-Box belegt keine Breite → das Layout eines Blocks ändert sich nie während er läuft.
 function capLayout(ctx, b, bi, wi, s, W, H) {
   var emk = blockEmph(b), esc = emphScale(s);
-  var bandK = capBlurBand(W, H), key = [bi, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, capFree ? 1 : 0, previewFrameW(), previewFrameH(), bandK ? Math.round(bandK.top) + ':' + Math.round(bandK.bot) : '-',
+  var bandK = capBlurBand(W, H), key = [bi, s.id, W, H, fontSize, CAPTION_LINES, capPairWrap() ? 'pw' : '', capPos, capVOff, capFree ? 1 : 0, previewFrameW(), previewFrameH(), bandK ? Math.round(bandK.top) + ':' + Math.round(bandK.bot) : '-',
              _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length, capHyphLang(), emMaskKey(emk), esc, capMotion(s)].join('|');
   var c = _capLayoutCache;
   if (c.key === key && c.s === s && c.ctx === ctx) return c.val;
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
   var scale = W / previewFrameW(); // Vorschau-Rahmen ist variabel breit (Video-AR-abhängig) — NIE eine feste Zahl hier
   // Gleiches Auto-Fit wie die Vorschau (buildCap), in Vorschau-Einheiten berechnet → identisches Ergebnis.
-  var fit = fitCaptionWords(b.words.map(function(w){ return displayWord(w.word); }), s, fontSize, capFitMaxW(s), CAPTION_LINES, emk);
+  var fit = fitCaptionWords(b.words.map(function(w){ return displayWord(w.word); }), s, fontSize, capFitMaxW(s), capLinesEff(CAPTION_LINES), emk);
   // Nicht auf ganze px runden: die Vorschau misst/umbricht mit der exakten Grösse — gerundet war der Export bis ~1 %
   // breiter und brach knapp passende Zeilen anders um (z. B. Mindest-Schriftgrösse, test-captly «Vorschau-Umbruch»).
   var fsS = Math.round(fit.px * scale * fsMul * 100) / 100;
@@ -14034,7 +14070,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   // Zeilen verteilt (nicht nur bei Überlauf gebrochen), sonst würden kurze Blöcke nie umbrechen.
   // Identische Verteilung wie die Vorschau (wrapCaptionLines) — gemeinsame Funktion, nie mehr Zeilen als
   // „Max lines“, solange die Mindestgröße reicht.
-  var lines = capDistributeLines(wordInfo, CAPTION_LINES, sp, maxW);
+  var lines = capDistributeLines(wordInfo, capLinesEff(CAPTION_LINES), sp, maxW);
 
   // Vertikal: Vorschau = Referenz. Die Caption ist ein inline-block (.cap-root, Box-Padding p, line-height L·fs), den
   // applyPos() oben/unten an die Overlay-Kante bzw. in die Mitte setzt. Grundlinien, Box-Höhe und Wortboxen kommen aus
@@ -14047,7 +14083,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   var fm = capFontMetrics(ctx, fsS), padB = s.boxBg ? 5 * scale : 0;
   var gapBelow = padB + Lh * fsS / 2 + (fm.d - fm.a) / 2 * fsS;
   var gapAbove = padB + Lh * fsS / 2 + (fm.a - fm.d) / 2 * fsS;
-  var dm = capDomVMetrics(b.words.map(function(w){ return displayWord(w.word); }), s, fontSize, CAPTION_LINES, emk);
+  var dm = capDomVMetrics(b.words.map(function(w){ return displayWord(w.word); }), s, fontSize, capLinesEff(CAPTION_LINES), emk);
   if (dm && dm.base.length !== nL) dm = null; // anderer Umbruch als der Export (sollte nie passieren) → Modell
   var baseRel, boxH, offTop = 0, offBot = 0, capA = gapAbove - padB, capD = gapBelow - padB, pillT = null, pillB = null;
   if (dm) {
