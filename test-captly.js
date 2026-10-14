@@ -160,6 +160,7 @@ openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,ex
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 resetGrpBuf:function(){_grpBuf=null;},localEmojis:localEmojis,localEmoLookup:localEmoLookup,LOCAL_EMO:LOCAL_EMO,drawTextWithPlan:drawTextWithPlan,capShK:capShK,
 capOutK:capOutK,capScaleShadowStr:capScaleShadowStr,CAP_SH_REF:CAP_SH_REF,
+hookVariants:hookVariants,hookVariantList:hookVariantList,hookNextVariant:hookNextVariant,hookDupOfCaptions:hookDupOfCaptions,EMO_REL_SIDE:EMO_REL_SIDE,EMO_LOCAL_SEC:EMO_LOCAL_SEC,EMO_LOCAL_GAP:EMO_LOCAL_GAP,EMO_LOCAL_SAME:EMO_LOCAL_SAME,capToastAction:capToastAction,
 capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -6023,19 +6024,19 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       document.createElement = origCreate;
       ok(bufOffs.length >= 1 && bufOffs.some(o => near(o, 12)) && !bufOffs.some(o => near(o, 12 * 0.7) || near(o, 12 * 1.35)), 'Gruppen-Puffer: Schatten-Offset unskaliert (12 px) — keine doppelte Skalierung mit der Squash-Transformation');
     }
-    // 4) Emojis ohne KI: lokale Stichwort-Tabelle, ≤ 1 je 3 Blöcke, nur klare Treffer, KI/Nutzer haben Vorrang
+    // 4) Emojis ohne KI: lokale Stichwort-Tabelle, ≈ 1 je 6,5 s (R3), ≥ 2 Blöcke Abstand, nur klare Treffer, KI/Nutzer haben Vorrang
     {
       const mkB = (txt, t0) => { const words = txt.split(' ').map((w, i) => ({ word: w, start: +(t0 + i * 0.3).toFixed(2), end: +(t0 + i * 0.3 + 0.28).toFixed(2) })); return { text: txt, start: t0, end: t0 + words.length * 0.3, words }; };
       const mkAll = txts => txts.map((t, i) => mkB(t, i * 2));
       const v1 = mkAll(['Drei Tricks,', 'damit deine Reels', 'mehr Views bekommen.', 'Erstens: Die ersten', 'zwei Sekunden', 'entscheiden alles.', 'Zweitens: Untertitel,', 'weil fast alle', 'ohne Ton schauen.', 'Drittens: Poste regelmässig,', 'am besten jeden Dienstag', 'um achtzehn Uhr.', 'Speicher dir das Video,', 'sonst vergisst du es!']);
       const n1 = T.localEmojis(v1), e1 = v1.map((b, i) => [i, T.blockEmoji(b)]).filter(x => x[1]);
-      ok(n1 === e1.length && n1 >= 2 && n1 <= Math.floor(v1.length / 3), 'v1 (DE, ' + v1.length + ' Blöcke): ' + n1 + ' Emojis (max ' + Math.floor(v1.length / 3) + '): ' + e1.map(x => x[0] + T.blockEmoji(v1[x[0]])).join(' '));
-      ok(e1.every((x, k) => k === 0 || x[0] - e1[k - 1][0] >= 3) && e1.every(x => T.EMO_PICK.indexOf(x[1]) >= 0), 'Emojis: mindestens 3 Blöcke Abstand, alle in der Emoji-Auswahl');
-      const want = { 0: '💡', 4: '⏰', 12: '🎬' }; // Tricks → Idee/Tipp, Sekunden → Zeit, Video → Clapper
+      ok(n1 === e1.length && n1 >= 3 && n1 <= Math.round(v1[v1.length - 1].end / T.EMO_LOCAL_SEC), 'v1 (DE, ' + v1.length + ' Blöcke): ' + n1 + ' Emojis (max ' + Math.round(v1[v1.length - 1].end / T.EMO_LOCAL_SEC) + '): ' + e1.map(x => x[0] + T.blockEmoji(v1[x[0]])).join(' '));
+      ok(e1.every((x, k) => k === 0 || x[0] - e1[k - 1][0] >= 2) && e1.every(x => T.EMO_PICK.indexOf(x[1]) >= 0) && e1.every((x, k) => e1.every((y, j) => j >= k || x[1] !== y[1] || (x[0] - y[0]) * 2 >= T.EMO_LOCAL_SAME)), 'Emojis: mindestens 2 Blöcke Abstand, alle in der Emoji-Auswahl, dasselbe Motiv frühestens nach 8 s wieder');
+      const want = { 0: '💡', 4: '⏰', 8: '🔊', 12: '💾' }; // Tricks → Idee/Tipp, Sekunden → Zeit, Ton → Lautsprecher, Speicher → Disk
       ok(e1.every(x => want[x[0]] === x[1] || [11, 10, 6, 2, 1].includes(x[0])) && e1.some(x => x[0] === 0 && x[1] === '💡'), 'v1: Treffer passen zum Inhalt (Tricks → 💡): ' + JSON.stringify(e1));
       const v3 = mkAll(['Stop scrolling.', 'This one setting', 'doubled my watch time.', 'Here is how', 'you can do it', 'on your next video']);
       const n3 = T.localEmojis(v3), e3 = v3.map((b, i) => [i, T.blockEmoji(b)]).filter(x => x[1]);
-      ok(n3 >= 1 && n3 <= 2 && e3.every(x => x[1] === '⏰' || x[1] === '🎬'), 'v3 (EN): ' + n3 + ' Emojis, passend: ' + JSON.stringify(e3));
+      ok(n3 >= 2 && n3 <= 3 && e3.every(x => x[1] === '🛑' || x[1] === '⏰' || x[1] === '🎬'), 'v3 (EN): ' + n3 + ' Emojis, passend: ' + JSON.stringify(e3));
       const none = mkAll(['Das ist ein Test', 'und noch einer hier', 'mit ganz normalen Worten']);
       ok(T.localEmojis(none) === 0 && none.every(b => !T.blockEmoji(b)), 'Kein klares Stichwort → kein Emoji');
       ok(T.localEmoLookup('Feuer,') && T.localEmoLookup('Feuer,').e === '🔥' && T.localEmoLookup('Geld') .e === '💰' && T.localEmoLookup('Glück!').e === '🍀' && T.localEmoLookup('Idee').e === '💡' && T.localEmoLookup('Hackschnitzel') === null && T.localEmoLookup('fast') === null && T.localEmoLookup('Lachs') === null, 'Tabelle: Umlaute/Satzzeichen normalisiert, Fehltreffer (Hackschnitzel, fast, Lachs) ausgeschlossen');
@@ -6044,7 +6045,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const pri = mkAll(['Drei Tricks,', 'damit deine Reels', 'mehr Views bekommen.', 'Das Geld', 'weil das Feuer', 'und Zeit']);
       pri[0].words[0].emo = '🤖'; pri[3].words[1].emo = '🧪'; pri[3].words[1].emoU = true;
       T.localEmojis(pri);
-      ok(T.blockEmoji(pri[0]) === '🤖' && T.blockEmoji(pri[3]) === '🧪' && pri.filter(b => T.blockEmoji(b)).length <= 2 + Math.floor(pri.length / 3), 'Vorhandene KI-/Nutzer-Emojis bleiben unangetastet');
+      ok(T.blockEmoji(pri[0]) === '🤖' && T.blockEmoji(pri[3]) === '🧪' && pri.filter(b => T.blockEmoji(b)).length <= 2 + Math.max(1, Math.round(12 / T.EMO_LOCAL_SEC)), 'Vorhandene KI-/Nutzer-Emojis bleiben unangetastet');
       ok(T.localEmojis([mkB('Tipp des Tages', 0)]) === 1 && T.localEmojis([]) === 0, 'Einzelner Block: höchstens ein Emoji; leere Liste: 0');
       ok(/localEmojis\(captionBlocks\)/.test(script) && /localEmojis\(blocks\)/.test(script), 'runEnhance: lokaler Emoji-Fallback in beiden Ohne-KI-Pfaden');
     }
@@ -6132,8 +6133,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(T.getHookWords() === 8, 'R2-P9: HOOK_WORDS = 8');
       const h1 = T.hookLocalText(blocksOf(fixR2('v1-reel-de'))), h2 = T.hookLocalText(blocksOf(fixR2('v2-podcast-de-16x9'))), h3 = T.hookLocalText(blocksOf(fixR2('v3-hook-en')));
       ok(h1 === 'Drei Tricks, damit deine Reels mehr Views bekommen', 'R2-P9: v1 → ganzer erster Satz (' + h1 + ')');
-      ok(h2 === 'Willkommen zurück bei Klartext Business', 'R2-P9: v2 → ganzer erster Satz (' + h2 + ')');
-      ok(h3 === 'Stop scrolling', 'R2-P9: v3 → kurzer erster Satz bleibt allein (' + h3 + ')');
+      ok(h2 === 'Heute spreche ich mit Sandra Meier aus Winterthur', 'R2-P9/R3: v2 → «Willkommen zurück bei Klartext Business» steht schon in den ersten zwei Untertitelzeilen → nächster Satz (' + h2 + ')');
+      ok(h3 === 'This one setting doubled my watch time', 'R2-P9/R3: v3 → «Stop scrolling» ist die erste Untertitelzeile → nächster Satz (' + h3 + ')');
       const mk = txt => txt.split(' ').map((w, i) => ({ word: w, start: i * .3, end: i * .3 + .25 }));
       const blk = txt => [{ start: 0, end: 9, text: txt, words: mk(txt) }];
       const c1 = T.hookLocalText(blk('Heute zeige ich dir, wie du in drei Schritten viel mehr Views bekommst.'));
@@ -6248,6 +6249,88 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const live = T.buildCap(['der', 'weide'], hz, 0, 22, null, 1), tile = T.buildCap(['der', 'weide'], hz, 0, 9, null);
     ok(live.includes(T.capScaleShadowStr(hz.ts, T.capOutK()).split(',')[0].trim()) && tile.includes(hz.ts.split(',')[0].trim().replace(/\s+/g, ' ')), 'buildCap: live skaliert, Kacheln unveraendert');
     ok(near(T.capWordGap(hz, true), 2 * base.ring.w) && near(T.capWordGap(hz), 2 * base.ring.w * T.capOutK()), 'capWordGap: Ring-Zugabe skaliert mit der Kontur (raw = Cover-Export, eigene Skala)');
+  }
+  // ═══════════════ Runde 3 UX: Hook ≠ erste Untertitelzeile · Emoji-Fallback dichter · Sticker Emoji gross · Handy-Captions · Toast · DE-Kleinkram ═══════════════
+  {
+    const fixDir3 = path.join(__dirname, 'scripts', 'creator-test', 'fixtures');
+    const fix3 = n => JSON.parse(fs.readFileSync(path.join(fixDir3, n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end }));
+    const blk3 = n => T.buildCaptionBlocks(fix3(n), []);
+    const txt3 = b => b.words.map(w => w.word).join(' ');
+    const nrm = x => String(x).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+    // 1) Hook nie wörtlich = erste Untertitelzeile(n); «Another suggestion» schaltet 2–3 Varianten durch
+    {
+      const b1 = blk3('v1-reel-de'), b2 = blk3('v2-podcast-de-16x9'), b3 = blk3('v3-hook-en');
+      for (const [nm, bl] of [['v1', b1], ['v2', b2], ['v3', b3]]) {
+        const vs = T.hookVariants(bl);
+        ok(vs.length >= 2 && vs.length <= 3 && new Set(vs.map(nrm)).size === vs.length && vs.every(v => v && v.split(' ').length <= 8), 'R3-Hook ' + nm + ': 2–3 verschiedene Varianten, je ≤ 8 Wörter: ' + JSON.stringify(vs));
+        ok(vs.every(v => nrm(v) !== nrm(txt3(bl[0])) && nrm(v) !== nrm(txt3(bl[0]) + ' ' + txt3(bl[1]))), 'R3-Hook ' + nm + ': keine Variante = erste Untertitelzeile (' + txt3(bl[0]) + ')');
+      }
+      ok(T.hookLocalText(b3) === 'This one setting doubled my watch time' && nrm(txt3(b3[0])) === 'stop scrolling', 'R3-Hook v3: «Stop scrolling» steht oben als Untertitel → Vorschlag ist der nächste Satz (' + T.hookLocalText(b3) + ')');
+      ok(T.hookLocalText(b1) === 'Drei Tricks, damit deine Reels mehr Views bekommen' && T.hookVariants(b1)[1] === 'Speicher dir das Video, sonst vergisst du es!', 'R3-Hook v1: erster Satz + prägnanter Imperativ-Satz');
+      ok(T.hookVariants(b3).includes('Move them to the upper third') && T.hookVariants(b2).some(v => /^Ihr wichtigster Tipp/.test(v)), 'R3-Hook: prägnanteste Sätze (Zahl/Imperativ bzw. «Tipp:») kommen als Variante');
+      const mk = txt => txt.split(' ').map((w, i) => ({ word: w, start: i * .3, end: i * .3 + .25 }));
+      const one = (t, ws) => ({ start: 0, end: 2, text: t, words: mk(t) });
+      const bb = [one('STOP SCROLLING.'), one('This is the second line')];
+      T.hookVariants(bb); // Cache-Schlüssel wechselt mit dem Text
+      ok(T.hookDupOfCaptions('Stop scrolling.', ['STOP SCROLLING.', 'x']) && T.hookDupOfCaptions('stop scrolling', ['Stop', 'scrolling.']) && !T.hookDupOfCaptions('Stop scrolling now', ['Stop scrolling.']), 'R3-Hook: Vergleich ohne Gross-/Kleinschreibung und Satzzeichen, auch über zwei Zeilen');
+      const only = T.hookVariants([one('Stop scrolling.')]);
+      ok(only.length === 1 && only[0] === 'Stop scrolling', 'R3-Hook: gibt es keinen anderen Satz, bleibt der erste (' + only + ')');
+      // Knopf: durchschalten, Text landet im Feld, nach der letzten Variante wieder die erste
+      T.setCaptionBlocksForTest(b3); T.setHookState(true, '', 2, '');
+      const seq = [T.hookNextVariant(), T.hookNextVariant(), T.hookNextVariant(), T.hookNextVariant()], vs3 = T.hookVariants(b3);
+      ok(seq[0] === vs3[1] && seq[1] === vs3[2] && seq[2] === vs3[0] && seq[3] === vs3[1] && T.getHookState().text === vs3[1], 'R3-Hook: «↻ Another suggestion» schaltet erste → prägnant → kurz → erste durch');
+      T.setHookState(false, '', 2, '');
+      ok(/id="hookSug" onclick="hookNextVariant\(\)"[^>]*>↻ Another suggestion</.test(htmlContent), 'R3-Hook: Knopf «↻ Another suggestion» im Hook-Feld');
+      ok(require('./i18n/de-ui.js')['↻ Another suggestion'] === '↻ Anderer Vorschlag', 'R3-Hook: Knopf auf Deutsch');
+    }
+    // 2) Emoji-Fallback: ≈ 1 je 6,5 s, ≥ 2 Blöcke / ≥ 3 s Abstand, kein Motiv doppelt innerhalb 8 s
+    {
+      for (const [nm, n, minN] of [['v1', 'v1-reel-de', 3], ['v2', 'v2-podcast-de-16x9', 4], ['v3', 'v3-hook-en', 3]]) {
+        const bl = blk3(n), k = T.localEmojis(bl), list = bl.map((b, i) => ({ i, t: b.words[0].start, e: T.blockEmoji(b) })).filter(x => x.e);
+        const dur = bl[bl.length - 1].words[bl[bl.length - 1].words.length - 1].end - bl[0].words[0].start, per = dur / list.length;
+        ok(k === list.length && k >= minN && per >= 5 && per <= 8.5, 'R3-Emoji ' + nm + ': ' + k + ' Emojis in ' + dur.toFixed(1) + ' s (≈ 1 je ' + per.toFixed(1) + ' s): ' + list.map(x => x.i + T.blockEmoji(bl[x.i])).join(' '));
+        ok(list.every((x, j) => j === 0 || (x.i - list[j - 1].i >= 2 && x.t - list[j - 1].t >= T.EMO_LOCAL_GAP - 1e-9)) && list.every((x, j) => list.every((y, m) => m >= j || x.e !== y.e || x.t - y.t >= T.EMO_LOCAL_SAME)), 'R3-Emoji ' + nm + ': ≥ 2 Blöcke / ≥ 3 s Abstand, dasselbe Motiv frühestens nach 8 s wieder');
+      }
+      const L = w => (T.localEmoLookup(w) || {}).e;
+      ok(L('Stop') === '🛑' && L('Preis') === '🏷️' && L('Ergebnisse') === '✅' && L('settings') === '⚙️' && L('Kunden') === '🤝' && L('Ton') === '🔊' && L('Speicher') === '💾' && L('Problem') === '⚠️' && L('doubled') === '📈' && L('Dienstag') === '📅' && L('Kamera') === '📸' && L('Telefon') === '📱' && L('Fehler') === '❌' && L('Wachstum') === '📈' && L('Geld') === '💰' && L('Herz') === '❤️' && L('Feuer') === '🔥' && L('Ziel') === '🎯' && L('Idee') === '💡' && L('Erfolg') === '🏆' && L('Zeit') === '⏰', 'R3-Emoji: Wörterbuch DE/EN deckt Stopp, Preis, Ergebnis, Einstellung, Kunde, Ton, Speichern, Problem, Wachstum, Geld, Zeit, Fehler, Herz, Feuer, Ziel, Idee, Kamera, Telefon, Kalender, Erfolg ab');
+      ok(L('fast') === undefined && L('Halt') === undefined && L('laut') === undefined && L('Hackschnitzel') === undefined, 'R3-Emoji: Füllwörter (fast, halt, laut) lösen kein Emoji aus');
+      ok(T.LOCAL_EMO.length >= 70 && new Set(T.LOCAL_EMO.map(r => r[0])).size >= 55, 'R3-Emoji: ' + T.LOCAL_EMO.length + ' Zeilen / ' + new Set(T.LOCAL_EMO.map(r => r[0])).size + ' verschiedene Motive');
+    }
+    // 3) Sticker Emoji gross: Faktor 1,6–2 der gezeichneten Schrift, Vorschau (buildCap) = Export (drawCapEmoji) — gleiche Konstante
+    {
+      const st = T.dropToStyle(JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8')).find(o => o.id === 'stickeremoji'), Date.parse('2026-10-20')), fsEm = parseFloat(st.fs) || 1; // fs '1.2em'
+      const rel = T.EMO_REL_SIDE / fsEm;
+      ok(rel >= 1.6 && rel <= 2.0, 'R3-Sticker: Emoji = ' + rel.toFixed(2) + ' × gezeichnete Schrift (EMO_REL_SIDE ' + T.EMO_REL_SIDE + ' / fs ' + fsEm + ')');
+      const hs = T.buildCap(['ab', 'cd'], st, 0, 25, [0, 0.5], 2, { emoji: '🔥', age: 1 });
+      const fpx = +/font-size:(\d+)px;line-height:1;text-align:center/.exec(hs.slice(hs.indexOf('cap-emo')))[1];
+      ok(fpx === Math.round(25 * T.EMO_REL_SIDE) && fpx / (25 * fsEm) >= 1.6, 'R3-Sticker: Vorschau-DOM Emoji ' + fpx + ' px bei Basisschrift 25 px (' + (fpx / (25 * fsEm)).toFixed(2) + ' × gezeichnete Schrift)');
+      ok(/var Es = Math\.round\(\(px \|\| 24\) \* EMO_REL_SIDE\)/.test(script) && /var Es = Math\.round\(L\.fitPx \* EMO_REL_SIDE\) \* L\.scale/.test(script), 'R3-Sticker: Vorschau und Export-Zeichnung rechnen mit derselben Konstante EMO_REL_SIDE');
+    }
+    // 4) Handy-Captions-Tab / Timeline-Leiste: Kurzwörter, kompakter Format-Hinweis
+    {
+      ok(/id="taEdit"[^>]*><svg[^>]*><use href="#i-edit"\/><\/svg><span>Text<\/span>/.test(htmlContent) && /id="taGaps"[^>]*><svg[^>]*><use href="#i-gap"\/><\/svg><span>Gaps<\/span>/.test(htmlContent) && !/<span>Edit text<\/span>|<span>Close gaps<\/span>/.test(htmlContent), 'R3-Handy: Aktionsleiste mit Kurzwörtern «Text» / «Gaps» (Tooltips tragen die lange Fassung)');
+      const deHtml = fs.readFileSync(path.join(__dirname, 'captly.de.html'), 'utf8');
+      ok(/id="taEdit"[^>]*>.*?<span>Text<\/span>/.test(deHtml) && /id="taGaps"[^>]*>.*?<span>Lücken<\/span>/.test(deHtml), 'R3-Handy DE: «Text» / «Lücken» statt «Text bearbeiten» / «Lücken schliessen»');
+      ok(/\.fmt-hint:not\(\[style\*="none"\]\) ~ \.fmt-pill\{display:none\}/.test(htmlContent) && /\.fmt-hint\{position:relative;padding:4px 44px 4px 10px/.test(htmlContent), 'R3-Handy: Format-Hinweis einzeilig, Format-Pille darunter solange er steht → Querformat-Vorschau grösser');
+    }
+    // 5) Landing-Toast «Auch auf Deutsch verfügbar» nicht mehr sofort am Desktop
+    {
+      ok(/\.lang-hint\{[^}]*opacity:0;pointer-events:none/.test(htmlContent) && /\.lang-hint\.lh-on\{opacity:1;pointer-events:auto\}/.test(htmlContent) && /r\.bottom < \(window\.innerWidth > 640 \? \(window\.innerHeight \|\| 800\) - 80 : 0\)/.test(htmlContent), 'R3-Toast: Sprachhinweis ist auch am Desktop erst sichtbar, wenn die Upload-Karte den unteren Rand freigibt');
+    }
+    // 6) DE-Kleinkram: Suffix-Beschriftung, Toast-Knopf aus dem DOM
+    {
+      const dui = require('./i18n/de-ui.js'), lab = dui['Add “-gluephs” to file names'];
+      ok(lab === 'Dateiname mit Zusatz „-gluephs“' && !/[«»‹›]/.test(lab), 'R3-DE: Export-Blatt «' + lab + '» ohne spitze Klammern');
+      ok(!/[«»]-gluephs/.test(fs.readFileSync(path.join(__dirname, 'captly.de.html'), 'utf8')), 'R3-DE: generierte /de-Seite ohne «-gluephs»');
+      let called = 0; { const old = document.getElementById('capToast'); if (old) old.children = []; }
+      T.capToastAction('Hallo', 'Start fresh', () => { called++; });
+      const tEl = document.getElementById('capToast');
+      ok(tEl && tEl.children.filter(c => c.className === 'cap-toast-btn').length === 1, 'R3-Toast: Aktionsknopf steht im Toast');
+      tEl.children.find(c => c.className === 'cap-toast-btn').onclick();
+      ok(called === 1 && tEl.children.filter(c => c.className === 'cap-toast-btn').length === 0, 'R3-Toast: nach Gebrauch ist «Start fresh» aus dem DOM entfernt (kein unsichtbarer Knopf)');
+      T.capToastAction('Hallo', 'Start fresh', () => {}); T.hideCapToast();
+      ok(tEl.children.filter(c => c.className === 'cap-toast-btn').length === 0, 'R3-Toast: auch beim Ausblenden (hideCapToast) wird der Knopf entfernt');
+    }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

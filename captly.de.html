@@ -852,7 +852,8 @@ input[type=checkbox]{accent-color:var(--brand)}
 .foot-lang a[aria-current]{color:var(--ink);font-weight:600}
 .land-nav-links a.nav-lang{font-size:12px;font-weight:600;padding:3px 8px;border:1px solid var(--line2);border-radius:999px}
 /* Hinweis „Gibt's auch auf Deutsch“ (nur EN-Seite, nur bei deutscher Browsersprache, wegklickbar) */
-.lang-hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);padding:8px 8px 8px 16px;border-radius:999px;background:var(--ink);color:#fff;font-size:13px;box-shadow:var(--sh-3);white-space:nowrap}
+.lang-hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);padding:8px 8px 8px 16px;border-radius:999px;background:var(--ink);color:#fff;font-size:13px;box-shadow:var(--sh-3);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s}
+.lang-hint.lh-on{opacity:1;pointer-events:auto} /* R3: auch am Desktop erst nach dem Scrollen (sonst deckt er die letzte Look-Chip-Reihe bei 800 px Höhe) */
 .lang-hint a{color:#fff;font-weight:600;white-space:nowrap}
 body.editor-open .lang-hint{display:none}
 .lang-hint button{border:none;background:rgba(255,255,255,.14);color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;flex-shrink:0;font-size:15px;line-height:1}
@@ -1263,6 +1264,15 @@ body.editor-open .lang-hint{display:none}
   #editor input[type=checkbox]:not(.cs-switch):checked::before,.exp-sheet input[type=checkbox]:not(.cs-switch):checked::before{background:var(--brand);border-color:var(--brand)}
   #editor input[type=checkbox]:not(.cs-switch):checked::after,.exp-sheet input[type=checkbox]:not(.cs-switch):checked::after{content:'';position:absolute;left:18px;top:15px;width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
   #editor input[type=checkbox]:not(.cs-switch):focus-visible::before,.exp-sheet input[type=checkbox]:not(.cs-switch):focus-visible::before{box-shadow:0 0 0 3px rgba(124,58,237,.3)}
+}
+/* R3-UX Handy: «Make this a 9:16 Reel?» einzeilig (Frage + Crop/Blur/Keep, ✕ rechts oben) und ohne Format-Pille darunter, solange der Hinweis steht →
+   Querformat-Vorschau ≥ 180 px hoch statt 136 px (die Spalte bleibt gleich hoch, die Liste verliert keine Zeile). */
+@media (max-width:640px){
+  .fmt-hint{position:relative;padding:4px 44px 4px 10px;gap:2px 6px}
+  .fmt-hint .fh-q{flex:1 1 100px;font-size:12.5px;line-height:1.25}
+  .fmt-hint .fh-btns button{padding:0 10px}
+  .fmt-hint .fh-x{position:absolute;right:0;top:50%;transform:translateY(-50%);margin:0}
+  .fmt-hint:not([style*="none"]) ~ .fmt-pill{display:none}
 }
 /* Sehr schmale Handys: Preise + Sprache + Anmelden müssen in eine Zeile passen (FAQ bleibt im Footer/Seite erreichbar) */
 @media (max-width:360px){.land-nav-links{gap:10px;margin-left:8px}.land-nav-links a[href="#faq"]{display:none}.land-nav .nav-cta{padding-left:12px;padding-right:12px}}
@@ -1677,7 +1687,7 @@ body.editor-open .lang-hint{display:none}
         <select id="expSrtMode" class="lang-sel" onchange="setSrtMode(this.value)" aria-label="Aufteilung der Untertitel-Datei">
           <option value="snippets">Reel-Blöcke</option><option value="sentences">Ganze Sätze</option><option value="twolines">2 Zeilen × 42 Zeichen</option>
         </select></label>
-      <label class="exp-chk"><input type="checkbox" id="expSuffixChk" checked onchange="setFileSuffix(this.checked)"><span>«-gluephs» an Dateinamen anhängen</span></label>
+      <label class="exp-chk"><input type="checkbox" id="expSuffixChk" checked onchange="setFileSuffix(this.checked)"><span>Dateiname mit Zusatz „-gluephs“</span></label>
     </div>
     <div id="expOptsWrap">
       <details class="es-opts" id="expOpts"><summary>Optionen</summary>
@@ -1815,7 +1825,7 @@ body.editor-open .lang-hint{display:none}
           <p class="ta-hint" id="taHint">Untertitel antippen zum Anpassen · wischen zum Spulen · Pinch zum Zoomen</p>
           <div class="ta-tools">
             <button type="button" class="ta-tool" id="taSplit" onclick="tlSplitAtPlayhead()" disabled><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span>Teilen</span></button>
-            <button type="button" class="ta-tool" id="taEdit" onclick="tlEditText(tlSel)" disabled><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Text</span></button>
+            <button type="button" class="ta-tool" id="taEdit" onclick="tlEditText(tlSel)" disabled title="Text der gewählten Zeile bearbeiten"><svg class="ic" aria-hidden="true"><use href="#i-edit"/></svg><span>Text</span></button>
             <button type="button" class="ta-tool" id="taMulti" onclick="tlToggleMulti()" aria-pressed="false" title="Mehrere Untertitel wählen: darüberwischen oder den ersten, dann den letzten antippen"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg><span>Wählen</span></button>
             <button type="button" class="ta-tool ta-del" id="taDel" onclick="tlDeleteSel()" disabled><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg><span>Entf.</span></button>
             <button type="button" class="ta-tool on" id="taSnap" onclick="tlToggleSnap()" aria-pressed="true" title="Ränder rasten an Szenenschnitten, Abspielkopf und Nachbar-Untertiteln ein"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span>Raster</span></button>
@@ -2066,7 +2076,7 @@ body.editor-open .lang-hint{display:none}
             </div>
             <div class="em-row hk-row" id="hookRow" style="display:none">
               <input type="text" id="hookTxt" class="lang-sel" maxlength="80" spellcheck="true" autocomplete="off" aria-label="Text des Hook-Titels" placeholder="Titel für die ersten Sekunden" oninput="onHookInput(this.value)">
-              <button type="button" class="em-retry" id="hookSug" onclick="suggestHook()" title="Neuen Vorschlag aus deinem Transkript übernehmen">Vorschlagen</button>
+              <button type="button" class="em-retry" id="hookSug" onclick="hookNextVariant()" title="Weitere Vorschläge aus deinem Transkript durchschalten: erster Satz, prägnantester Satz, Kurzfassung">↻ Anderer Vorschlag</button>
             </div>
             <div class="q-row sz-row" id="hookDurRow" style="display:none">
               <span class="q-k">Angezeigt für</span>
@@ -4646,7 +4656,7 @@ var emSrc = null;      // 'llm' | 'local' | null — Herkunft der automatischen 
 var EMPH_SCALE = 1.12; // hervorgehobenes Wort ~12 % größer (One Word: s.emS)
 var EMO_REL = 1.35;    // Emoji-Größe relativ zur (angepassten) Caption-Schriftgröße
 var EMO_GAP = 0.12;    // Abstand Emoji ↔ Caption (Anteil der Emoji-Größe)
-var EMO_REL_SIDE = 1.3, EMO_SIDE_GAP = 0.1, EMO_STICKER_DUR = 0.4; // Sticker-Emoji (s.emoSide): Grösse relativ zur Caption, Abstand rechts (Anteil der Emoji-Grösse), Bounce-Dauer (s)
+var EMO_REL_SIDE = 2.0, EMO_SIDE_GAP = 0.1, EMO_STICKER_DUR = 0.4; // Sticker-Emoji (s.emoSide): Grösse relativ zur Basisschrift px (Look «Sticker Emoji» hat fs 1.2em → Emoji ≈ 1,67 × gezeichnete Schrift; R3: vorher 1,3 → 1,08×), Abstand rechts (Anteil der Emoji-Grösse), Bounce-Dauer (s)
 var EMO_FONT = "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol',sans-serif"; // einfache Anführungszeichen: steht auch im style-Attribut
 var WFLAGS = ['kw', 'emo', 'emoU', 'zm', 'nb', 'nj']; // nb/nj = Handnähte (s. capSegmentRun): nb = Nutzer hat VOR diesem Wort geteilt, nj = Nutzer hat es mit dem Vorgänger verschmolzen
 (function() {
@@ -4810,7 +4820,16 @@ var LOCAL_EMO = [
   ['⚡', 2, 'blitz energie energy strom quick'], ['✨', 1, 'magie magic magisch'], ['🌍', 1, 'welt world'], ['📸', 2, 'foto* photo* kamera camera'],
   ['🎵', 2, 'musik music song* lied'], ['📚', 1, 'lernen learn* buch book* kurs'], ['📅', 1, 'kalender calendar termin* montag dienstag mittwoch donnerstag freitag samstag sonntag monday tuesday wednesday thursday friday saturday sunday'],
   ['💻', 1, 'laptop computer rechner'], ['🔔', 1, 'benachrichtigung* notification* glocke'], ['🛒', 1, 'einkauf* shop* kaufen buy'], ['☕', 1, 'kaffee coffee'],
-  ['✈️', 1, 'reise* travel* flug flight'], ['🏖️', 1, 'urlaub holiday vacation strand'], ['🏠', 1, 'haus home zuhause'], ['🚗', 1, 'auto car']
+  ['✈️', 1, 'reise* travel* flug flight'], ['🏖️', 1, 'urlaub holiday vacation strand'], ['🏠', 1, 'haus home zuhause'], ['🚗', 1, 'auto car'],
+  // R3 (dichter, abwechslungsreicher): Stopp, Preis/Geld, Ergebnis, Einstellung, Kunde, Ton, Speichern, Problem, Überraschung, Zahlen, Verlust, Lernen
+  ['🛑', 3, 'stop stops stopp* stoppen'], ['🏷️', 2, 'preis* price* prices pricing rabatt* discount* angebot* offer* sale'], ['✅', 2, 'ergebnis* result* results geschafft solution loesung*'],
+  ['⚙️', 2, 'setting settings einstellung* option* optionen'], ['🤝', 2, 'kunde* kunden customer* client* clients partner* deal*'], ['🔊', 2, 'ton sound audio loud lautstaerke'],
+  ['💾', 2, 'speicher* save saved saving'], ['⚠️', 1, 'problem* problems'], ['❌', 2, 'falsch wrong error* bug*'], ['🤯', 2, 'unglaublich unbelievable insane krass wahnsinn crazy'],
+  ['😮', 1, 'wow'], ['🔢', 1, 'zahl* number* numbers'], ['📉', 2, 'verlust* loss losses verlier* losing crash'], ['📈', 2, 'verdoppel* double doubled doubling steiger* boost* increase*'],
+  ['🎓', 1, 'ausbildung studium university uni schule school'], ['🎁', 1, 'geschenk* gift gifts gratis free kostenlos bonus'], ['👂', 1, 'zuhoer* zuhoeren listen'], ['🧠', 1, 'gehirn brain schlau smart'],
+  ['⏳', 1, 'warten wait waiting geduld patience'], ['💸', 1, 'lohn salary gehalt ausgabe* ausgeben spend* spending'], ['💰', 2, 'franken chf euro dollar'], ['🔥', 2, 'viral* hype trend* trending'],
+  ['📱', 2, 'app apps instagram tiktok'], ['👀', 1, 'schauen anschauen aufrufe watch* beobacht*'], ['📅', 1, 'woche* week* monat* month* jahr year years datum date'], ['❓', 1, 'warum wieso why'],
+  ['🌟', 1, 'beste* best top premium perfekt perfect'], ['🙌', 1, 'super genial great amazing awesome wunderbar'], ['🎤', 1, 'podcast* interview* mikrofon microphone']
 ];
 var _localEmoIdx = null;
 function localEmoLookup(word) {
@@ -4831,28 +4850,38 @@ function localEmoLookup(word) {
   for (var i = 0; i < _localEmoIdx.stems.length; i++) if (n.indexOf(_localEmoIdx.stems[i].s) === 0) return _localEmoIdx.stems[i];
   return null;
 }
-// Höchstens ein Emoji je Block, nur bei klarem Stichwort, höchstens etwa jeder dritte Block (≥ 2 Blöcke Abstand, kein gleiches Emoji
-// kurz hintereinander). KI-Auswahl hat Vorrang: es werden nur Blöcke ohne Emoji (KI oder Nutzer) ergänzt. → Anzahl gesetzter Emojis.
+// Höchstens ein Emoji je Block, nur bei klarem Stichwort; Ziel etwa eines je EMO_LOCAL_SEC Sekunden (R3: vorher ≈ 3 in 20 s, v3 nur 2),
+// gleichmässig über die Zeit verteilt (erst das stärkste je Zeitfenster), ≥ 2 Blöcke und ≥ EMO_LOCAL_GAP s Abstand, dasselbe Emoji frühestens
+// nach EMO_LOCAL_SAME s wieder. KI-Auswahl hat Vorrang: es werden nur Blöcke ohne Emoji (KI oder Nutzer) ergänzt. → Anzahl gesetzter Emojis.
+var EMO_LOCAL_SEC = 6.5, EMO_LOCAL_GAP = 3, EMO_LOCAL_SAME = 8; // Ziel-Abstand (s) · Mindestabstand (s) · dasselbe Motiv frühestens nach (s) wieder
 function localEmojis(blocks) {
   blocks = blocks || [];
-  var cands = [];
+  var cands = [], t0 = Infinity, t1 = 0;
   blocks.forEach(function(b, bi) {
+    var ws = b && b.words || [], ts = ws.length && isFinite(ws[0].start) ? ws[0].start : (b && isFinite(b.start) ? b.start : NaN);
+    var te = ws.length && isFinite(ws[ws.length - 1].end) ? ws[ws.length - 1].end : (b && isFinite(b.end) ? b.end : ts);
+    if (isFinite(ts) && ts < t0) t0 = ts;
+    if (isFinite(te) && te > t1) t1 = te;
     if (!b || !b.words || blockEmoji(b) || b.words.some(function(w){ return w.emoU; })) return;
     var best = null;
     b.words.forEach(function(w, wi) {
       if (!w || w.kw === -1) return;
       var h = localEmoLookup(w.word);
-      if (h && EMO_PICK.indexOf(h.e) >= 0 && (!best || h.w > best.w)) best = { b: bi, wi: wi, e: h.e, w: h.w };
+      if (h && EMO_PICK.indexOf(h.e) >= 0 && (!best || h.w > best.w)) best = { b: bi, wi: wi, e: h.e, w: h.w, t: isFinite(ts) ? ts : bi };
     });
     if (best) cands.push(best);
   });
-  var max = Math.max(1, Math.floor(blocks.length / 3)), picked = [];
+  var dur = isFinite(t0) && t1 > t0 ? t1 - t0 : 0;
+  var max = Math.max(1, Math.round(dur / EMO_LOCAL_SEC)), picked = [];
   cands.sort(function(a, c) { return c.w - a.w || a.b - c.b; });
-  cands.forEach(function(c) {
-    if (picked.length >= max) return;
-    if (picked.some(function(p) { return Math.abs(p.b - c.b) < 3 || (p.e === c.e && Math.abs(p.b - c.b) < 9); })) return;
-    picked.push(c);
-  });
+  var fits = function(c) {
+    return picked.length < max && !picked.some(function(p) { return Math.abs(p.b - c.b) < 2 || Math.abs(p.t - c.t) < EMO_LOCAL_GAP || (p.e === c.e && Math.abs(p.t - c.t) < EMO_LOCAL_SAME); });
+  };
+  for (var wnd = 0; dur > 0 && wnd * EMO_LOCAL_SEC < dur && picked.length < max; wnd++) { // 1) das stärkste Wort je Zeitfenster
+    var lo = t0 + wnd * EMO_LOCAL_SEC, hi = lo + EMO_LOCAL_SEC;
+    for (var k = 0; k < cands.length; k++) if (cands[k].t >= lo && cands[k].t < hi && fits(cands[k])) { picked.push(cands[k]); break; }
+  }
+  cands.forEach(function(c) { if (fits(c) && picked.indexOf(c) < 0) picked.push(c); }); // 2) Rest nach Stärke bis zum Ziel
   picked.forEach(function(p) { blocks[p.b].words[p.wi].emo = p.e; });
   return picked.length;
 }
@@ -5113,24 +5142,62 @@ function hookClean(t, maxWords) {
   if (t.length > HOOK_CHARS) t = t.slice(0, HOOK_CHARS).replace(/\s+\S*$/, '');
   return t;
 }
-// Lokaler Vorschlag: ganzer erster Satz (Ein-Wort-Sätze am Anfang werden übersprungen), höchstens HOOK_WORDS Wörter
-var _hookLocalCache = { key: '', val: '' };
-function hookLocalText(blocks) {
+// Lokaler Vorschlag: ganzer erster Satz (Ein-Wort-Sätze am Anfang werden übersprungen), höchstens HOOK_WORDS Wörter.
+// Nie wörtlich identisch mit den ersten sichtbaren Untertitelzeilen (R3: «STOP SCROLLING» oben UND unten) → dann der nächste Satz.
+// hookVariants liefert bis zu 3 Varianten (erster Satz · prägnantester Satz · Kurzfassung) für «Another suggestion».
+var _hookLocalCache = { key: '', val: '', vars: [] };
+function hookNorm(t) { return String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim(); }
+function hookDupOfCaptions(cand, parts) {
+  var n = hookNorm(cand);
+  if (!n) return false;
+  for (var k = 1; k <= 2 && k <= parts.length; k++) if (hookNorm(parts.slice(0, k).join(' ')) === n) return true;
+  return false;
+}
+var HOOK_IMPERATIVE = /^(stop|stopp|wait|warte|listen|look|watch|try|never|don'?t|do not|forget|stell|hoer|hör|schau|probier|mach|vergiss|nimm|hol|lass|achtung|careful|attention|remember|merk|speicher|save|follow|folge|click|klick|start|fang|hey)(?![\p{L}\p{N}])/iu;
+function hookScoreSentence(t) {
+  var s = 0, n = t.split(' ').length;
+  if (/[?]\s*$/.test(t)) s += 3;
+  if (/\p{N}/u.test(t) || /(^|\s)(drei|vier|fuenf|fünf|zehn|three|four|five|ten|zwei|two)(?![\p{L}\p{N}])/iu.test(t)) s += 3;
+  if (HOOK_IMPERATIVE.test(t)) s += 3;
+  if (/!\s*$/.test(t)) s += 1;
+  if (n >= 3 && n <= HOOK_WORDS) s += 1;
+  if (n < 2) s -= 5;
+  return s;
+}
+function hookVariants(blocks) {
   blocks = blocks || captionBlocks;
   var parts = [];
-  for (var i = 0; i < blocks.length && i < 14; i++) parts.push((blocks[i].words || []).map(function(w){ return w.word; }).join(' '));
+  for (var i = 0; i < blocks.length && i < 20; i++) parts.push((blocks[i].words || []).map(function(w){ return w.word; }).join(' '));
   var all = parts.join(' ').replace(/\s+/g, ' ').trim();
-  if (_hookLocalCache.key === all) return _hookLocalCache.val;
-  var sents = all.match(/[^.!?…]+[.!?…]*/g) || [], out = '';
-  // Ganzer erster Satz; kurze ganze Sätze bleiben allein («Stop scrolling.» ist selbst ein guter Hook), nie mitten im
-  // Folgesatz abbrechen. Längere Sätze kürzt hookClean am Komma/Doppelpunkt bzw. ohne hängendes Füllwort.
+  if (_hookLocalCache.key === all) return _hookLocalCache.vars;
+  var sents = (all.match(/[^.!?…]+[.!?…]*/g) || []).map(function(x) { return x.trim(); }).filter(Boolean);
+  if (sents.length > 1 && !/[.!?…]$/.test(sents[sents.length - 1])) sents.pop(); // vom Fenster abgeschnittener Satz
   var nw = function(x) { return x ? x.split(' ').length : 0; };
-  var s0 = 0; while (s0 < sents.length - 1 && nw(sents[s0].trim()) < 2) s0++; // «Ja.» allein ist kein Hook → nächster Satz
-  out = (sents[s0] || '').trim();
-  var val = hookClean(out, HOOK_WORDS);
-  _hookLocalCache = { key: all, val: val };
-  return val;
+  var okSent = function(x) { return nw(x) >= 2 && !hookDupOfCaptions(x, parts) && !hookDupOfCaptions(hookClean(x, HOOK_WORDS), parts); };
+  var vars = [], push = function(v) {
+    v = hookClean(v); var n = hookNorm(v);
+    if (n && !vars.some(function(o) { return hookNorm(o) === n; })) vars.push(v);
+  };
+  // 1) erster passender Satz (nicht identisch mit der ersten Untertitelzeile); gibt es keinen anderen, bleibt es beim ersten
+  var s0 = 0; while (s0 < sents.length - 1 && nw(sents[s0]) < 2) s0++;
+  var iFirst = -1;
+  for (var a = s0; a < sents.length; a++) if (okSent(sents[a])) { iFirst = a; break; }
+  if (iFirst < 0) iFirst = s0;
+  var first = (sents[iFirst] || '').replace(/^[\p{L}]{3,10}:\s+(?=\S+\s+\S)/u, ''); // «Erstens: …» → ohne Aufzähl-Etikett
+  push(hookClean(first, HOOK_WORDS));
+  // 2) prägnantester Satz: Frage / Zahl / Imperativ (Gleichstand: der frühere), nicht identisch mit dem ersten Vorschlag
+  var bestI = -1, bestSc = 0;
+  sents.forEach(function(x, ix) { if (ix === iFirst || !okSent(x)) return; var sc = hookScoreSentence(x); if (sc > bestSc) { bestSc = sc; bestI = ix; } });
+  if (bestI >= 0) push(hookClean(sents[bestI], HOOK_WORDS));
+  // 3) Kurzfassung: der erste (bzw. prägnante) Satz auf höchstens 4 Wörter gekürzt (am Komma)
+  var shortOf = function(x) { var y = hookClean(x, 4); return nw(y) >= 2 && nw(y) < nw(hookClean(x, HOOK_WORDS)) ? y : ''; };
+  var sh = shortOf(first) || (bestI >= 0 ? shortOf(sents[bestI]) : '');
+  if (sh && !hookDupOfCaptions(sh, parts)) push(sh);
+  if (!vars.length) vars.push('');
+  _hookLocalCache = { key: all, val: vars[0], vars: vars };
+  return vars;
 }
+function hookLocalText(blocks) { return hookVariants(blocks)[0]; }
 function hookAutoText() { return hookAi || hookLocalText(); }
 function hookTextNow() { return hookClean(hookText) || hookAutoText(); }
 // Stil aus dem Look: Familie/Gewicht/Grossschreibung, Box = Akzentfarbe, Schriftfarbe nach Helligkeit der Box
@@ -5335,6 +5402,23 @@ function onHookDur(v) {
   hookDur = hookClampDur(v); persistHook();
   hookChanged(true);
 }
+// «↻ Another suggestion»: schaltet die Varianten durch (KI-Vorschlag, erster Satz, prägnantester Satz, Kurzfassung); der gewählte Text landet im Feld
+function hookVariantList() {
+  var vs = hookVariants().slice();
+  if (hookAi && vs.every(function(v) { return hookNorm(v) !== hookNorm(hookAi); })) vs.unshift(hookAi);
+  return vs.filter(Boolean);
+}
+function hookNextVariant() {
+  var vs = hookVariantList();
+  if (!vs.length) return '';
+  var cur = hookNorm(hookTextNow()), i = -1;
+  vs.forEach(function(v, k) { if (i < 0 && hookNorm(v) === cur) i = k; });
+  var next = vs[(i + 1) % vs.length];
+  hookText = next;
+  var ti = document.getElementById('hookTxt'); if (ti) ti.value = next;
+  hookChanged(true);
+  return next;
+}
 function suggestHook() {
   hookText = ''; hookAi = '';
   var ti = document.getElementById('hookTxt'); if (ti) ti.value = '';
@@ -5439,7 +5523,8 @@ var EMO_CATS = [
     ['🎯', 'target goal bullseye ziel treffer'], ['🚀', 'rocket launch start rakete startup'], ['🔑', 'key schluessel'],
     ['🔒', 'lock secure private schloss sicher privat'], ['📣', 'megaphone announce ankuendigung lautsprecher'], ['🛠️', 'tools build fix werkzeug bauen reparieren'],
     ['🚗', 'car drive auto fahren'], ['✈️', 'plane travel flight flugzeug reisen flug'], ['🚜', 'tractor farm traktor landwirtschaft'],
-    ['🏠', 'house home haus zuhause'], ['🏋️', 'weights gym workout fitness training sport'], ['🎮', 'game controller gaming spiel']
+    ['🏠', 'house home haus zuhause'], ['🏋️', 'weights gym workout fitness training sport'], ['🎮', 'game controller gaming spiel'],
+    ['⚙️', 'gear settings setting einstellung zahnrad'], ['🏷️', 'price tag label preis etikett'], ['💾', 'save floppy disk speichern diskette'], ['🔊', 'sound volume loud speaker ton lautsprecher laut']
   ] },
   { id: 'nat', name: _t('Nature'), icon: '🌳', items: [
     ['☀️', 'sun sunny summer sonne sonnig sommer'], ['🌧️', 'rain rainy regen regnerisch'], ['❄️', 'snow winter cold schnee kalt'],
@@ -5478,7 +5563,7 @@ var EMO_CATS = [
     ['⬆️', 'arrow up pfeil hoch'], ['⬇️', 'arrow down pfeil runter'], ['➕', 'plus add hinzufuegen'],
     ['💬', 'speech bubble chat comment sprechblase kommentar'], ['💭', 'thought bubble gedanke gedankenblase'], ['🔔', 'bell notification glocke benachrichtigung'],
     ['🔴', 'red circle rot kreis'], ['🟢', 'green circle gruen kreis'], ['🔵', 'blue circle blau kreis'],
-    ['🆕', 'new neu'], ['🔝', 'top oben'], ['♻️', 'recycle recycling'], ['🚫', 'forbidden no prohibited verboten']
+    ['🆕', 'new neu'], ['🔝', 'top oben'], ['🛑', 'stop sign halt stopp'], ['🔢', 'numbers digits input zahlen nummer'], ['♻️', 'recycle recycling'], ['🚫', 'forbidden no prohibited verboten']
   ] }
 ];
 var EMO_PICK = []; // flache Liste aller Emojis (Tests, „aktueller Emoji ist in der Liste?“)
@@ -9033,6 +9118,18 @@ function hideCapToast() {
   if (typeof document === 'undefined') return;
   var el = document.getElementById('capToast');
   if (el && el.classList) { el.classList.remove('show'); el.classList.remove('has-act'); }
+  capToastDropBtn(el);
+}
+// Toast-Knopf («Start fresh», «Fix all» …) nach Gebrauch/Ablauf aus dem DOM nehmen (sonst bleibt er unsichtbar, aber auffindbar, stehen)
+function capToastDropBtn(el) {
+  if (!el || !el.children) return;
+  var kids = Array.prototype.slice.call(el.children);
+  for (var i = 0; i < kids.length; i++) {
+    if (!/(^|\s)cap-toast-btn(\s|$)/.test(kids[i].className || '')) continue;
+    if (kids[i].parentNode && kids[i].parentNode.removeChild) kids[i].parentNode.removeChild(kids[i]);
+    else if (el.removeChild) el.removeChild(kids[i]);
+    else { var ix = el.children.indexOf ? el.children.indexOf(kids[i]) : -1; if (ix >= 0) el.children.splice(ix, 1); } // Test-Attrappe ohne DOM
+  }
 }
 // Toast mit einem Knopf (z. B. „Fix all“) — bleibt länger stehen und ist nur sichtbar klickbar
 function capToastAction(msg, label, fn) {
@@ -9041,12 +9138,12 @@ function capToastAction(msg, label, fn) {
   if (!el || !document.createElement) return;
   var b = document.createElement('button');
   b.type = 'button'; b.className = 'cap-toast-btn'; b.textContent = label;
-  b.onclick = function() { clearTimeout(_toastTimer); if (el.classList) el.classList.remove('show'); fn(); };
+  b.onclick = function() { clearTimeout(_toastTimer); if (el.classList) el.classList.remove('show'); capToastDropBtn(el); fn(); };
   el.appendChild(b);
   if (el.classList) el.classList.add('has-act');
   capToastAnchor(el); // mit Knopf breiter → neu einpassen
   clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(function(){ if (el.classList) el.classList.remove('show'); }, 8000);
+  _toastTimer = setTimeout(function(){ if (el.classList) el.classList.remove('show'); capToastDropBtn(el); }, 8000);
 }
 // Im Editor nicht über Timeline (Desktop) bzw. Video/Panelkopf (Handy): Desktop unten mittig über dem
 // Seitenpanel, Handy knapp über der Tab-Leiste. Sonst (Startseite) Standardplatz aus dem CSS.
@@ -17514,9 +17611,10 @@ function initLangHint() {
     d.remove(); try { localStorage.setItem('capivo.langHint', '1'); } catch (e) {}
   };
   document.body.appendChild(d);
-  // Handy: erst zeigen, wenn die Upload-Karte (Dropzone + Look-Chips) ganz aus dem Bild gescrollt ist; Desktop: sofort (CSS)
+  // Erst zeigen, wenn die Upload-Karte (Dropzone + Look-Chips) den Toast-Bereich unten freigibt: Handy = ganz aus dem Bild gescrollt,
+  // Desktop = Unterkante der Karte über dem Toast (vorher sofort → verdeckte bei 1280×800 die letzte Reihe der Look-Chips)
   var card = document.querySelector('.hero-card'), tmr = 0;
-  function upd() { tmr = 0; var r = card && card.getBoundingClientRect(); d.classList.toggle('lh-on', !card || !r || r.bottom < 0); }
+  function upd() { tmr = 0; var r = card && card.getBoundingClientRect(); d.classList.toggle('lh-on', !card || !r || r.bottom < (window.innerWidth > 640 ? (window.innerHeight || 800) - 80 : 0)); }
   function sched() { if (!tmr) tmr = setTimeout(upd, 60); }
   window.addEventListener('scroll', sched, { passive: true }); window.addEventListener('resize', sched);
   upd();
