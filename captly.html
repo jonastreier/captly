@@ -286,6 +286,8 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .tl-tog:hover{background:var(--fill2)}
 .tl-hint{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
 .tl-sp{flex:1 1 0;min-width:0}
+.tl-out{font:600 12px 'Inter',sans-serif;color:var(--brand-ink);font-variant-numeric:tabular-nums;white-space:nowrap;flex-shrink:0;padding:0 4px}
+.tl-btn:disabled{opacity:.45;cursor:default}
 .tl-btn{display:inline-flex;align-items:center;justify-content:center;gap:4px;border:1px solid var(--line2);background:#fff;color:var(--ink2);font:600 12px 'Inter',sans-serif;border-radius:8px;padding:4px 9px;cursor:pointer;min-width:26px;white-space:nowrap;flex-shrink:0;transition:all .15s}
 .tl-btn:hover{background:var(--fill);border-color:var(--line3);color:var(--ink)}
 .tl-btn.on{border-color:var(--brand-line);color:var(--brand-ink);background:var(--brand-soft)}
@@ -1025,7 +1027,7 @@ body.editor-open .lang-hint{display:none}
 /* Timeline-Aktionsleiste (Handy/Touch, s. tlSyncAct): immer gleich hoch → nichts springt beim Wählen */
 .tl-act{display:none;border-top:1px solid var(--line);padding:8px 8px 10px}
 .tl-mob.open .tl-act{display:block} /* zugeklappt (Querformat/Touch ab 641 px) nimmt die Aktionsleiste sonst ~130 px weg */
-.tl-mob .tl-hint,.tl-mob #tlSnapBtn,.tl-mob #tlGapBtn,.tl-mob #tlSplitBtn,.tl-mob .tl-fit{display:none}
+.tl-mob .tl-hint,.tl-mob #tlSnapBtn,.tl-mob #tlGapBtn,.tl-mob #tlSplitBtn,.tl-mob #tlCutBtn,.tl-mob #tlRestoreBtn,.tl-mob .tl-out,.tl-mob .tl-fit{display:none}
 .ta-hint{display:flex;align-items:center;justify-content:center;height:48px;margin:0;font-size:12.5px;color:var(--muted);text-align:center;line-height:1.35;padding:0 8px}
 .ta-tools{display:flex;gap:4px;margin-top:8px}
 .ta-tool{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:52px;padding:4px 2px;border:none;border-radius:12px;background:transparent;color:var(--ink);font:500 11.5px 'Inter',sans-serif;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -1144,6 +1146,8 @@ body.editor-open .lang-hint{display:none}
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
   <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4.5 7h15"/><path d="M9.5 7V4.8h5V7"/><path d="M6.5 7l1 12.5h9l1-12.5"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></symbol>
+  <symbol id="i-cut" viewBox="0 0 24 24"><path d="M3.5 5v14M20.5 5v14"/><path d="M9 9l6 6M15 9l-6 6"/></symbol>
+  <symbol id="i-restore" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 102.4-5.5"/><path d="M4.5 4.5V8.5H8.5"/></symbol>
   <symbol id="i-gap" viewBox="0 0 24 24"><path d="M3.5 5v14M20.5 5v14"/><path d="M6.5 12h4.5M8.8 9.5l2.4 2.5-2.4 2.5M17.5 12H13M15.2 9.5L12.8 12l2.4 2.5"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5l1.9 5.1 5.1 1.9-5.1 1.9L12 17.5l-1.9-5.1L5 10.5l5.1-1.9z"/><path d="M18.5 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/></symbol>
   <symbol id="i-smile" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14c.9 1.4 2.1 2.1 3.5 2.1s2.6-.7 3.5-2.1"/><circle class="fill" cx="9.2" cy="10" r="1.1"/><circle class="fill" cx="14.8" cy="10" r="1.1"/></symbol>
@@ -1533,6 +1537,7 @@ body.editor-open .lang-hint{display:none}
             <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)">
             <span>Cut silences &amp; filler words (“um”, “äh”…)</span><b class="cut-save off" id="cutSaveExp"></b>
           </label>
+          <p class="exp-note" id="expOutLen" style="display:none" aria-live="polite"></p>
         </div>
       </details>
       <label class="exp-chk es-skip" title="Export then downloads right away with these settings — untick here to see this sheet again">
@@ -1622,10 +1627,13 @@ body.editor-open .lang-hint{display:none}
         <div class="tl-bar">
           <button type="button" class="tl-tog" id="tlTog" onclick="tlToggle()" aria-expanded="true" aria-controls="tlBody"><svg class="ic" aria-hidden="true"><use href="#i-timeline"/></svg><span id="tlTogLbl">Hide timeline</span></button>
           <span class="tl-hint" id="tlHint">Drag to move · drag edges to trim · drag over captions to select several</span>
+          <span class="tl-out" id="tlOut" style="display:none" title="Length of the exported video after trim, cuts and auto-cut"></span>
           <span class="tl-sp"></span>
           <button type="button" class="tl-btn on" id="tlSnapBtn" onclick="tlToggleSnap()" aria-pressed="true" aria-label="Snap" title="Snap to scene cuts, playhead, captions, speech and words — hold Alt to skip snapping"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span class="tl-lbl"> Snap</span></button>
           <button type="button" class="tl-btn" id="tlGapBtn" onclick="tlCloseGaps()" aria-label="Close gaps" title="Close all gaps: each caption stays until the next one starts (at a scene cut both meet exactly at the cut)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span class="tl-lbl"> Close gaps</span></button>
           <button type="button" class="tl-btn" id="tlSplitBtn" onclick="tlSplitAtPlayhead()" aria-label="Split" title="Split the caption at the playhead (S)"><svg class="ic" aria-hidden="true"><use href="#i-split"/></svg><span class="tl-lbl"> Split</span></button>
+          <button type="button" class="tl-btn" id="tlCutBtn" onclick="tlCutOut()" aria-label="Cut out" disabled title="Cut out the selected captions or the In–Out range from the video (X) · I / O set In and Out at the playhead · drag the dark handles at both ends to trim"><svg class="ic" aria-hidden="true"><use href="#i-cut"/></svg><span class="tl-lbl"> Cut out</span></button>
+          <button type="button" class="tl-btn" id="tlRestoreBtn" onclick="tlRestoreSel()" aria-label="Restore" disabled title="Click a hatched cut, then bring it back (Delete)"><svg class="ic" aria-hidden="true"><use href="#i-restore"/></svg><span class="tl-lbl"> Restore</span></button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1/1.6)" title="Zoom out" aria-label="Zoom timeline out">−</button>
           <button type="button" class="tl-btn" onclick="tlZoomBtn(1.6)" title="Zoom in (Ctrl/⌘+wheel or pinch)" aria-label="Zoom timeline in">+</button>
           <button type="button" class="tl-btn tl-fit" onclick="tlFit()" title="Show the whole video">Fit</button>
@@ -1646,6 +1654,8 @@ body.editor-open .lang-hint{display:none}
             <button type="button" class="ta-tool ta-del" id="taDel" onclick="tlDeleteSel()" disabled><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg><span>Delete</span></button>
             <button type="button" class="ta-tool on" id="taSnap" onclick="tlToggleSnap()" aria-pressed="true" title="Snap edges to scene cuts, the playhead and neighbouring captions"><svg class="ic" aria-hidden="true"><use href="#i-magnet"/></svg><span>Snap</span></button>
             <button type="button" class="ta-tool" id="taGaps" onclick="tlCloseGaps()" title="Close all gaps: each caption stays until the next one starts (at a scene cut both meet exactly at the cut)"><svg class="ic" aria-hidden="true"><use href="#i-gap"/></svg><span>Close gaps</span></button>
+            <button type="button" class="ta-tool" id="taCut" onclick="tlCutOut()" disabled title="Cut the selected captions out of the video"><svg class="ic" aria-hidden="true"><use href="#i-cut"/></svg><span>Cut out</span></button>
+            <button type="button" class="ta-tool" id="taRestore" onclick="tlRestoreSel()" disabled title="Tap a hatched cut, then bring it back"><svg class="ic" aria-hidden="true"><use href="#i-restore"/></svg><span>Restore</span></button>
           </div>
         </div>
       </div>
@@ -5282,11 +5292,23 @@ function capAnimDemoStart() {
   return true;
 }
 function syncCaption(t) { updateOverlay(t); }
+// B5: Vorschau-Wiedergabe springt über Trim-Ränder und manuelle Schnitte (wie der Echtzeit-Export). Nur beim Abspielen — pausiert
+// darf man in einen Schnitt hineinscrubben. true = es wurde gesprungen. (Auto-Cut bleibt in der Vorschau wie bisher unberührt.)
+function previewSkipCuts(vid) {
+  if (!vid || vid.paused || vid.ended || isExporting || !(vid.duration > 0) || !(trimIn > 0.0005 || trimOut !== null || manualCuts.length)) return false;
+  var t = vid.currentTime, regs = allCutRegionsOf(vid.duration, trimIn, trimOut, manualCuts, []);
+  for (var i = 0; i < regs.length; i++) {
+    if (t < regs[i].start - 0.001) break;
+    if (t < regs[i].end) { vid.currentTime = regs[i].end >= vid.duration - 0.03 ? vid.duration : regs[i].end; return true; }
+  }
+  return false;
+}
 function startCapLoop() {
   cancelAnimationFrame(_rafId);
   var vid = document.getElementById('mainVid');
   (function loop() {
     if (!vid.paused && !vid.ended) {
+      previewSkipCuts(vid);
       syncCaption(vid.currentTime);
       _rafId = requestAnimationFrame(loop);
     }
@@ -9276,6 +9298,10 @@ function projectPayload() {
     align: coverState.align, ox: coverState.ox, oy: coverState.oy, wo: coverState.wo };
   if (postCaption) p.post = { caption: postCaption.caption, hashtags: (postCaption.hashtags || []).slice(0, 10), src: postCaption.src };
   if (tlSpeech.length) p.speech = tlSpeech.slice(0, 2000); // Sprachbereiche für die Timeline (klein, gerundet)
+  // B5: Trim + manuelle Schnitte gehören zum Video (Projekt/Autosave), nie ins Template
+  if (trimIn > 0.0005) p.trimIn = cutR3(trimIn);
+  if (trimOut !== null) p.trimOut = cutR3(trimOut);
+  if (manualCuts.length) p.manualCuts = manualCuts.slice(0, 500).map(function(r) { return { start: cutR3(r.start), end: cutR3(r.end) }; });
   // Eigener Style bzw. Template mitspeichern — die IDs allein existieren in einer neuen Sitzung/auf
   // einem anderen Gerät evtl. nicht (Custom lebt nur im Speicher, Templates im localStorage).
   var st = STYLES.find(function(x){ return x.id === activeId; });
@@ -9360,6 +9386,10 @@ function applyProjectPayload(p) {
   if (typeof p.noPunct === 'boolean') capNoPunct = p.noPunct;
   if (typeof p.breakAtCuts === 'boolean') { breakAtCuts = p.breakAtCuts; var bc = document.getElementById('cutChk'); if (bc) bc.checked = breakAtCuts; }
   if (Array.isArray(p.speech)) tlSpeech = tlCleanSpeech(p.speech);
+  trimIn = typeof p.trimIn === 'number' && isFinite(p.trimIn) && p.trimIn > 0 ? p.trimIn : 0; // B5 (ältere Projekte: volle Länge)
+  trimOut = typeof p.trimOut === 'number' && isFinite(p.trimOut) && p.trimOut > 0 ? p.trimOut : null;
+  manualCuts = sanitizeCuts(p.manualCuts); tlCutSel = -1; tlMarkIn = null; tlMarkOut = null;
+  syncAutoCutUI();
   if (Array.isArray(p.cuts)) sceneCuts = p.cuts.map(Number).filter(function(c){ return isFinite(c) && c > 0; }).sort(function(a, b){ return a - b; });
   if (p.textCase) capCase = (['upper', 'lower', 'orig'].indexOf(p.textCase) >= 0) ? p.textCase : 'asis';
   syncTextFormatUI();
@@ -10420,6 +10450,7 @@ function loadVideo(file) {
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
   _cutRun++; sceneCuts = []; // Szenenschnitte gehören zum Video
   autoCutSilence = false; syncAutoCutUI(); // Auto-Cut gilt pro Video: ein neues Video startet mit voller Länge (nie ungefragt gekürzt)
+  trimResetState(); // B5: Trim/Schnitte gelten ebenfalls pro Video
   videoPlayable = true; showVideoWarn('');
   resetUndo(); collapseTrSettings(true);
   openEditor();
@@ -10469,6 +10500,7 @@ function loadVideo(file) {
 
   vid.ontimeupdate = function() {
     if (!vid.duration) return;
+    if (previewSkipCuts(vid)) return; // Hintergrund-Tab (rAF pausiert): timeupdate springt trotzdem
     var t = vid.currentTime;
     document.getElementById('progFill').style.width = (t / vid.duration * 100) + '%';
     document.getElementById('timeLbl').textContent  = fmtS(t) + ' / ' + fmtS(vid.duration);
@@ -10933,7 +10965,8 @@ function srtFile(cues) {
 function vttCues(cues) {
   return cues.map(function(c, i){ return (i + 1) + '\n' + vttT(c.start) + ' --> ' + vttT(c.end) + '\n' + c.text; });
 }
-function currentSubCues() { return subtitleCues(captionBlocks, srtMode, { off: timeOff, caseFn: subtitleText }); }
+// Zeiten in Quellzeit → Ausgabezeit des exportierten Videos (Trim, Schnitte, Auto-Cut); ohne Schnitte unverändert
+function currentSubCues() { return cuesToOutput(subtitleCues(captionBlocks, srtMode, { off: timeOff, caseFn: subtitleText }), exportCutRegions()); }
 function exportSRT() { dlText(srtFile(currentSubCues()), exportBaseName() + '.srt'); }
 // Kopfzeile + genau EINE Leerzeile, dann die Cues durch Leerzeilen getrennt (ohne Cues: nur der Kopf)
 function vttFile(cues) { return 'WEBVTT\n\n' + cues.join('\n\n'); }
@@ -11054,7 +11087,67 @@ function autoCutRegions() {
   var vid = document.getElementById('mainVid'), dur = vid && vid.duration > 0 && isFinite(vid.duration) ? vid.duration : 0;
   return wordTimestamps.length ? computeCutRegions(wordTimestamps, dur ? { totalDur: dur } : {}) : [];
 }
-function exportCutRegions() { return autoCutSilence ? autoCutRegions() : []; }
+// ── B5 Trimmen + Ausschneiden ──
+// trimIn/trimOut (Quellzeit; trimOut null = bis zum Ende) und manualCuts [{start,end}] gehören pro Video ins Projekt/Autosave (nicht ins Template).
+// EINE Quelle für alle Schnitte: allCutRegions(dur) = Trim-Rand + manuelle Schnitte + Auto-Cut (falls an), sortiert und zusammengeführt.
+// Beide Export-Pfade, die Längenprüfung, SRT/VTT und die Anzeige lesen nur diese Liste (über exportCutRegions()).
+var trimIn = 0, trimOut = null, manualCuts = [], TRIM_MIN_REST = 0.2;
+function cutR3(x) { return Math.round(x * 1000) / 1000; }
+// Bereiche auf [0,dur] kappen, sortieren, überlappende/anstossende zusammenführen (reine Funktion)
+function mergeCutRegions(list, dur) {
+  var hi = dur > 0 && isFinite(dur) ? dur : Infinity, a = [], out = [];
+  (list || []).forEach(function(r) {
+    if (!r) return;
+    var s = Math.max(0, +r.start), e = Math.min(hi, +r.end);
+    if (isFinite(s) && isFinite(e) && e - s > 1e-6) a.push({ start: s, end: e });
+  });
+  a.sort(function(x, y) { return x.start - y.start; });
+  a.forEach(function(r) {
+    var l = out[out.length - 1];
+    if (l && r.start <= l.end + 1e-6) l.end = Math.max(l.end, r.end); else out.push({ start: r.start, end: r.end });
+  });
+  return out;
+}
+// Reine Variante (testbar): dur, Trim-In/-Out, manuelle Schnitte, Auto-Cut-Liste. Ohne Trim/Schnitt kommt die Auto-Cut-Liste unverändert zurück.
+function allCutRegionsOf(dur, tIn, tOut, manual, auto) {
+  var user = [];
+  if (tIn > 0.0005) user.push({ start: 0, end: tIn });
+  if (tOut !== null && tOut !== undefined && dur > 0 && tOut < dur - 0.0005) user.push({ start: tOut, end: dur });
+  user = user.concat(manual || []);
+  if (!user.length) return auto || [];
+  return mergeCutRegions(user.concat(auto || []), dur);
+}
+function allCutRegions(dur) { return allCutRegionsOf(dur, trimIn, trimOut, manualCuts, autoCutSilence ? autoCutRegions() : []); }
+function exportCutRegions() {
+  var vid = document.getElementById('mainVid');
+  return allCutRegions(vid && vid.duration > 0 && isFinite(vid.duration) ? vid.duration : 0);
+}
+// Quellzeit → Ausgabezeit; null, wenn t in einem Schnitt liegt (Start inklusiv, Ende exklusiv). Gleiche Rechnung wie im Fast-Export.
+function srcToOut(t, regions) { return rebaseCutTime(t, regions); }
+// Ausgabezeit → Quellzeit (Gegenstück; für Anzeige/Prüfung)
+function outToSrc(o, regions) {
+  var t = o;
+  for (var i = 0; i < (regions ? regions.length : 0); i++) { if (t < regions[i].start - 1e-9) break; t += regions[i].end - regions[i].start; }
+  return t;
+}
+// Untertitel-Cues (Quellzeit) auf die Ausgabezeit abbilden: Cues ganz im Schnitt entfallen, angeschnittene werden auf den sichtbaren
+// Rest geklemmt (Anfang hinter den Schnitt, Ende vor den Schnitt), ein Schnitt mitten im Cue verkürzt ihn. Ohne Schnitte unverändert.
+function cuesToOutput(cues, regions) {
+  if (!regions || !regions.length) return cues;
+  var out = [];
+  (cues || []).forEach(function(c) {
+    var s = c.start, e = c.end, i, r;
+    for (i = 0; i < regions.length; i++) { r = regions[i]; if (s >= r.start && s < r.end) s = r.end; }
+    for (i = regions.length - 1; i >= 0; i--) { r = regions[i]; if (e > r.start && e <= r.end) e = r.start; }
+    var touched = s !== c.start || e !== c.end;
+    if (touched && e - s < 0.05) return;
+    var rem = function(x) { var d = 0; for (var k = 0; k < regions.length; k++) { if (regions[k].start >= x) break; d += Math.min(regions[k].end, x) - regions[k].start; } return d; };
+    var ns = s - rem(s), ne = e - rem(e);
+    if (touched && ne - ns < 0.05) return;
+    out.push({ start: Math.max(0, ns), end: Math.max(0, ne), text: c.text });
+  });
+  return out;
+}
 function cutSavedSeconds(regions) { return (regions || []).reduce(function(a, r) { return a + Math.max(0, r.end - r.start); }, 0); }
 // „−4.8 s“ (an) bzw. „4.8 s possible“ (aus); ohne Treffer leer / „nothing to cut“
 function cutSavedLabel(sec, on) {
@@ -11063,18 +11156,121 @@ function cutSavedLabel(sec, on) {
   return on ? '−' + t : t + ' possible';
 }
 function syncAutoCutUI() {
-  var on = !!autoCutSilence, sec = cutSavedSeconds(autoCutRegions()), lbl = cutSavedLabel(sec, on);
+  // an: was der Auto-Cut ZUSÄTZLICH zu Trim/Schnitten spart (ohne Trim/Schnitte = Summe aller Fenster); aus: was er sparen könnte
+  var on = !!autoCutSilence, sec = cutSavedSeconds(autoCutRegions()), lbl;
+  if (on && (trimIn > 0.0005 || trimOut !== null || manualCuts.length)) {
+    var vd = document.getElementById('mainVid'), dd = vd && vd.duration > 0 && isFinite(vd.duration) ? vd.duration : 0;
+    sec = Math.max(0, cutSavedSeconds(allCutRegions(dd)) - cutSavedSeconds(allCutRegionsOf(dd, trimIn, trimOut, manualCuts, [])));
+  }
+  lbl = cutSavedLabel(sec, on);
   ['autoCutEd', 'autoCutChk'].forEach(function(id) { var c = document.getElementById(id); if (c) c.checked = on; });
   ['cutSave', 'cutSaveExp'].forEach(function(id) {
     var el = document.getElementById(id); if (!el) return;
     el.textContent = lbl;
     if (el.classList) el.classList.toggle('off', !on || !(sec >= 0.05));
   });
+  syncTrimUI();
   return sec;
 }
 function onAutoCutChange(v) {
   autoCutSilence = !!v; syncAutoCutUI();
   syncExportAgainIfOpen(); // Option nach dem Export geändert → „Export with changes“
+}
+// ── B5: Trim-/Schnitt-Zustand, Undo, Anzeige ──
+var tlCutSel = -1, tlMarkIn = null, tlMarkOut = null; // gewählter manueller Schnitt; In/Out-Marken (nur Oberfläche, nicht gespeichert)
+function trimOutEff(dur) { return trimOut === null || !(trimOut < dur) ? dur : trimOut; }
+function trimIsSet() { return trimIn > 0.0005 || trimOut !== null || manualCuts.length > 0; }
+function sanitizeCuts(list) {
+  return mergeCutRegions(Array.isArray(list) ? list : [], 0).map(function(r) { return { start: cutR3(r.start), end: cutR3(r.end) }; });
+}
+function trimSnapshot() { return '{"__trim":' + JSON.stringify({ i: trimIn, o: trimOut, c: manualCuts }) + '}'; }
+function isTrimSnapshot(snap) { return String(snap).slice(0, 9) === '{"__trim"'; }
+function restoreTrim(o) {
+  o = o || {};
+  trimIn = isFinite(+o.i) && +o.i > 0 ? +o.i : 0;
+  trimOut = o.o === null || o.o === undefined || !isFinite(+o.o) || !(+o.o > 0) ? null : +o.o;
+  manualCuts = sanitizeCuts(o.c);
+  tlCutSel = -1;
+  trimChanged();
+}
+// Neues Video / Startseite: alles auf volle Länge
+function trimResetState() { trimIn = 0; trimOut = null; manualCuts = []; tlCutSel = -1; tlMarkIn = null; tlMarkOut = null; syncTrimUI(); }
+function trimChanged() {
+  if (typeof scheduleAutosave === 'function') scheduleAutosave();
+  syncAutoCutUI(); // → syncTrimUI
+  syncExportAgainIfOpen(); // Trim/Schnitt nach dem Export geändert → „Export with changes“
+  tlRequestDraw();
+}
+// Jede Trim-/Schnitt-Aktion = EIN Undo-Schritt (Zustand davor); true bei Änderung
+function trimUndoRun(fn) {
+  if (isExporting) return false;
+  var snap = trimSnapshot();
+  fn();
+  if (trimSnapshot() === snap) return false;
+  pushUndo(null, snap); _lookTag = null;
+  trimChanged();
+  return true;
+}
+// Rest nach allen Trims/Schnitten (ohne Auto-Cut) muss mindestens TRIM_MIN_REST lang sein
+function trimValid(dur, mc) { return dur - cutSavedSeconds(allCutRegionsOf(dur, trimIn, trimOut, mc || manualCuts, [])) >= TRIM_MIN_REST - 1e-6; }
+function trimClamp(which, t, dur) {
+  if (which === 'in') { t = Math.max(0, Math.min(trimOutEff(dur) - TRIM_MIN_REST, t)); if (t < 0.03) t = 0; }
+  else { t = Math.min(dur, Math.max(trimIn + TRIM_MIN_REST, t)); if (t > dur - 0.03) t = dur; }
+  return cutR3(t);
+}
+// Griff setzen OHNE Undo-Schritt (beim Ziehen; der Schritt entsteht beim Loslassen). false, wenn der Rest zu kurz würde.
+function trimSetRaw(which, t) {
+  var dur = tlDur();
+  if (!(dur > 0) || !isFinite(t)) return false;
+  var v = trimClamp(which, t, dur), pi = trimIn, po = trimOut;
+  if (which === 'in') trimIn = v; else trimOut = v >= dur ? null : v;
+  if (!trimValid(dur)) { trimIn = pi; trimOut = po; return false; }
+  if (trimIn === pi && trimOut === po) return true;
+  trimChanged();
+  return true;
+}
+// Trim-Anfang/-Ende als EIN Undo-Schritt setzen (Sekunden; null = unverändert)
+function setTrim(tIn, tOut) {
+  return trimUndoRun(function() {
+    if (tIn !== null && tIn !== undefined) trimSetRaw('in', tIn);
+    if (tOut !== null && tOut !== undefined) trimSetRaw('out', tOut);
+  });
+}
+// Bereich a…b (Quellzeit) ausschneiden, mit bestehenden Schnitten zusammenführen. Ein Undo-Schritt.
+function cutOutRange(a, b) {
+  var dur = tlDur();
+  if (isExporting || !(dur > 0) || !isFinite(a) || !isFinite(b)) return false;
+  var lo = Math.max(0, Math.min(a, b)), hi = Math.min(dur, Math.max(a, b));
+  if (hi - lo < 0.05) { capToast('Select a longer range to cut out'); return false; }
+  var next = sanitizeCuts(manualCuts.concat([{ start: lo, end: hi }]));
+  if (!trimValid(dur, next)) { capToast('Keep at least ' + TRIM_MIN_REST + ' s of video'); return false; }
+  var ok = trimUndoRun(function() { manualCuts = next; tlCutSel = -1; });
+  if (ok) capToast('Cut out ' + fmtT1(lo) + ' – ' + fmtT1(hi) + ' — Ctrl/⌘+Z to undo');
+  return ok;
+}
+// Manuellen Schnitt idx wieder einsetzen. Ein Undo-Schritt.
+function restoreCut(idx) {
+  if (!manualCuts[idx]) return false;
+  var ok = trimUndoRun(function() { manualCuts.splice(idx, 1); tlCutSel = -1; });
+  if (ok) capToast('Restored — Ctrl/⌘+Z to undo');
+  return ok;
+}
+// Kurzfassung der Ausgabelänge («Output 15.0 s (−5.5 s)»); leer ohne Trim/Schnitt/Auto-Cut-Wirkung
+function trimSummaryText() {
+  var dur = tlDur();
+  if (!(dur > 0)) return '';
+  var sec = cutSavedSeconds(allCutRegions(dur));
+  return sec >= 0.05 ? 'Output ' + (dur - sec).toFixed(1) + ' s (−' + sec.toFixed(1) + ' s)' : '';
+}
+function syncTrimUI() {
+  var txt = trimSummaryText();
+  ['tlOut', 'expOutLen'].forEach(function(id) {
+    var el = document.getElementById(id); if (!el) return;
+    el.textContent = txt;
+    if (el.style) el.style.display = txt ? '' : 'none';
+  });
+  if (_tl) _tl.actKey = '';
+  if (typeof tlSyncAct === 'function') tlSyncAct();
 }
 // Baut aus den wortgenauen Timestamps eine Liste von [start,end]-Zeitfenstern, die beim Export
 // übersprungen werden (Stille-Lücken zwischen Wörtern + reine Füllwort-Interjektionen). `pad`
@@ -11574,14 +11770,14 @@ async function tryFastExport(vid, tok) {
   if (!fastExportSupported() || !isFastExportSource(currentFile)) return false;
   var recBar = document.getElementById('recBar'), recMsg = document.getElementById('recMsg');
   var recProg = document.getElementById('recProg'), ctrls = document.getElementById('vidCtrls');
-  var cutRegions = wordTimestamps.length ? exportCutRegions() : [];
+  var cutRegions = exportCutRegions(); // Trim + Schnitte + Auto-Cut (B5)
   var cutTotalSec = cutRegions.reduce(function(a, r){ return a + (r.end - r.start); }, 0);
   isExporting = true;
   if (ctrls) ctrls.classList.add('exporting');
   vid.pause();
   recProg.style.display = 'block';
   recBar.style.width = '0%';
-  recMsg.textContent = 'Rendering video…' + (cutTotalSec > 0.05 ? ' · ✂️ cutting ' + cutTotalSec.toFixed(1) + 's of silence/filler words' : '');
+  recMsg.textContent = 'Rendering video…' + (cutTotalSec > 0.05 ? ' · ✂️ cutting ' + cutTotalSec.toFixed(1) + 's' : '');
   var t0 = Date.now(), wmF = needsWatermark();
   try {
     var blob = await exportFastWebCodecs(currentFile, {
@@ -12226,14 +12422,14 @@ async function exportVideoWithCaptions() {
   var vidCtrlsEl = document.getElementById('vidCtrls');
   if (vidCtrlsEl) vidCtrlsEl.classList.add('exporting');
 
-  var cutRegions = wordTimestamps.length ? exportCutRegions() : [];
+  var cutRegions = exportCutRegions(); // Trim + Schnitte + Auto-Cut (B5)
   var cutIdx = 0;
   var cutTotalSec = cutRegions.reduce(function(a, r){ return a + (r.end - r.start); }, 0);
 
   document.getElementById('recProg').style.display = 'block';
   document.getElementById('recBar').style.width = '0%';
   document.getElementById('recMsg').textContent = (hasAudio ? 'Rendering video…' : 'Rendering video (no audio track found)…')
-    + (cutTotalSec > 0.05 ? ' · ✂️ cutting ' + cutTotalSec.toFixed(1) + 's of silence/filler words' : '');
+    + (cutTotalSec > 0.05 ? ' · ✂️ cutting ' + cutTotalSec.toFixed(1) + 's' : '');
 
   // Sauber auf 0 seeken, DANN Aufnahme starten → Audio & Video starten synchron
   vid.pause();
@@ -14002,6 +14198,7 @@ function isLayoutSnapshot(snap) { return String(snap).slice(0, 8) === '{"__set"'
 function isLookSnapshot(snap) { return String(snap).slice(0, 9) === '{"__look"'; }
 // Gegenstück für den Redo/Undo-Stapel: aktueller Stand im selben Format wie der Eintrag, der gleich angewendet wird
 function counterSnapshot(entry) {
+  if (isTrimSnapshot(entry)) return trimSnapshot();
   if (isLookSnapshot(entry)) return lookSnapshot();
   return isLayoutSnapshot(entry) ? layoutSnapshot(CAP_MAX_CHARS, WORDS_PER_BLOCK, captionSnapshot()) : captionSnapshot();
 }
@@ -14009,6 +14206,7 @@ function restoreCaptionSnapshot(snap) {
   _undoMute++; _lookTag = null;
   try {
     var blocks = null;
+    if (isTrimSnapshot(snap)) { restoreTrim(JSON.parse(snap).__trim); return; } // Trim/Schnitt-Schritt: Blöcke bleiben unberührt
     if (isLookSnapshot(snap)) {
       var ol = JSON.parse(snap);
       restoreLook(ol.__look);
@@ -14302,7 +14500,7 @@ function openEditorClean() {
   if (_autosaveTimer) autosaveNow();
   _autosaveKey = null; releaseLastExport();
   vidReady = false; currentFile = null; wordTimestamps = []; captionBlocks = []; captionsEdited = false; _trRun++; _vocabUsed = null; syncVocabApply();
-  autoCutSilence = false; syncAutoCutUI();
+  autoCutSilence = false; syncAutoCutUI(); trimResetState();
   var vid = document.getElementById('mainVid');
   if (vid.src && vid.src.startsWith('blob:')) URL.revokeObjectURL(vid.src);
   vid.src = ''; vid.style.display = 'none';
