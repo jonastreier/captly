@@ -154,7 +154,9 @@ autoCutRegions:autoCutRegions,exportCutRegions:exportCutRegions,cutSavedSeconds:
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 segFrameSnap:segFrameSnap,segDragTarget:segDragTarget,segDragApply:segDragApply,fmtT2:fmtT2,landTemplates:landTemplates,landPickLabel:landPickLabel,getBlocksB2:function(){return captionBlocks;},
 mergeCutRegions:mergeCutRegions,allCutRegionsOf:allCutRegionsOf,allCutRegions:allCutRegions,srcToOut:srcToOut,outToSrc:outToSrc,cuesToOutput:cuesToOutput,setTrim:setTrim,cutOutRange:cutOutRange,restoreCut:restoreCut,getTrim:function(){return {i:trimIn,o:trimOut,c:manualCuts};},currentSubCues:currentSubCues,previewSkipCuts:previewSkipCuts,tlCutRange:tlCutRange,tlCutOut:tlCutOut,tlSetMark:tlSetMark,tlSelectCut:tlSelectCut,tlRestoreSel:tlRestoreSel,trimSnapshot:trimSnapshot,trimResetState:trimResetState,tlTrimHit:tlTrimHit,setTlSel:function(i){tlSel=i;},
-openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey};`;
+openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
+openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
+capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -3630,7 +3632,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // Modi
     ok(T.capMotion(ST('reveal')) === 'reveal' && T.capMotion(ST('note')) === 'fill' && T.capMotion(ST('script')) === 'reveal' && T.capMotion(ST('soft')) === 'fill'
        && T.capMotion(ST('hormozi')) === 'highlight' && T.capMotion({ motion: 'quatsch' }) === 'highlight', 'capMotion: neue Presets + Fallback Highlight');
-    ok(T.STYLES.slice(0, 9).map(x => x.id).join() === 'tight,mix,statement,accent,serifbold,reveal,note,script,soft', 'neue Looks und ruhige Presets stehen vorn im Picker');
+    ok(T.STYLES.slice(0, 9).map(x => x.id).join() === 'hormozi,tight,mix,statement,accent,serifbold,reveal,note,script', 'Standard-Look (Bold Pop) zuerst, dann neue Looks und ruhige Presets im Picker');
     // Reveal: unsichtbar vor dem Wort, ~220 ms Einblenden mit Anstieg, danach voll
     const rv = ST('reveal'), fx = (s, i, t, f, rm) => T.capWordFx(s, b, i, T.activeWordIdx(b, t), t, !!f, !!rm);
     ok(fx(rv, 1, 1.49).op === 0 && fx(rv, 2, 1.6).op === 0, 'Reveal: kommende Woerter unsichtbar');
@@ -3658,8 +3660,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     {
       const csHtml = htmlContent.match(/<select id="csAnim"[\s\S]*?<\/select>/)[0];
       const opts = [...csHtml.matchAll(/<option value="(\w+)">/g)].map(m => m[1]);
-      ok(opts.join() === 'none,scale,punch,bounce,flash,glow', 'csAnim: Optionen None/Pop/Punch/Lift/Fade/Glow: ' + opts.join());
-      const strong = a => a && (Math.abs(a.sx - 1) >= 0.1 || Math.abs(a.ty) >= 0.15 || a.op <= 0.3 || a.glow >= 0.5);
+      ok(opts.join() === 'none,scale,punch,bounce,flash,glow,overshoot,squash', 'csAnim: Optionen None/Pop/Punch/Lift/Fade/Glow/Overshoot/Squash: ' + opts.join());
+      const strong = a => a && (Math.abs(a.sx - 1) >= 0.1 || Math.abs(a.sy - 1) >= 0.1 || Math.abs(a.ty) >= 0.15 || a.op <= 0.3 || a.glow >= 0.5);
       ok(T.animState('none', 0.08) === null && T.animState('scale', T.ANIM_DUR) === null && T.animState('scale', -0.1) === null, 'animState: none/abgelaufen/vorher → null');
       opts.filter(o => o !== 'none').forEach(o => {
         const dur = T.animDur(o);
@@ -3797,7 +3799,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       T.setEmphState(true, false, 'off');
       const sc = ST('script');
       const hs = T.buildCap(['nur', 'langsam', 'atmen'], sc, -1, 22, [0, 0.5, 1], 2, { em: [false, true, false] });
-      ok(/font-family:'Caveat'/.test(hs) && /font-size:1\.4em/.test(hs) && /7ff0e0/.test(hs), 'Script: Keyword in Caveat, 1.4x, Akzentfarbe');
+      ok(/font-family:'Caveat'/.test(hs) && /font-size:1\.5em/.test(hs) && /7ff0e0/.test(hs), 'Script: Keyword in Caveat, 1.5x, Akzentfarbe');
       ok(/font-style:italic/.test(T.buildCap(['ein', 'Preis'], rv, -1, 22, [0, 0.5], 2, { em: [false, true] })), 'Reveal: Keyword kursiv');
       const fw0 = T.fitCaptionWords(['nur', 'Wahnsinnsgeschichte'], sc, 40, 200, 2, null), fw1 = T.fitCaptionWords(['nur', 'Wahnsinnsgeschichte'], sc, 40, 200, 2, [false, true]);
       ok(fw1.px < fw0.px || fw1.words.length > fw0.words.length, 'Betonung (1.4x) im Auto-Fit beruecksichtigt');
@@ -4305,8 +4307,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
 
     // ── 2) TPL_STYLE_KEYS: jedes Feld übersteht den Rundlauf; jedes Style-Feld der Presets hat einen Eintrag ──
     {
-      const bool = ['hlItalic', 'hlUpper', 'circle', 'emItalic'], num = ['lh', 'emS'];
-      const sample = k => bool.includes(k) ? true : num.includes(k) ? 1.25 : k === 'hlCycle' ? ['#ff0000', '#00ff00'] :
+      const bool = ['hlItalic', 'hlUpper', 'circle', 'emItalic', 'emoSide'], num = ['lh', 'emS', 'ulH'];
+      const ENUM = { anim: 'scale', motion: 'reveal', ulMode: 'kw', ulH: 0.2, ul: '#ff00ff', boxBd: 'rgba(255,255,255,.4)', cur: '#facc15' }; // N-Looks: Felder mit geprüftem Wertebereich
+      const sample = k => ENUM[k] ? ENUM[k] : bool.includes(k) ? true : num.includes(k) ? 1.25 : k === 'hlCycle' ? ['#ff0000', '#00ff00'] :
         k === 'pill' ? { bg: '#fff', br: '5px', p: '1px 2px', border: '1px solid #000', borderLeft: '2px solid #f00' } : 'v-' + k;
       T.TPL_STYLE_KEYS.forEach(k => {
         const o = { [k]: sample(k) }, s1 = T.sanitizeStyle(o);
@@ -5837,6 +5840,88 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   }
   // ── Integration N-KI × B5: Hook-Titel in der Vorschau in derselben Ausgabezeit wie im Export (Trim/Schnitte) ──
   ok(/hookFx\(hookOutTime\(t, hookPreviewCuts\(\)\), rest\)/.test(htmlContent) && /function hookPreviewCuts\(\)[\s\S]{0,300}exportCutRegions\(\)/.test(htmlContent), 'Integration: Hook-Vorschau nutzt exportCutRegions (Trim/Schnitte wie im Export)');
+
+  // ── Paket N-Looks: neue Looks (styles.json), Engine-Erweiterungen, Zustandsfunktionen je Effekt ──
+  {
+    const near = (a, b, e = 1e-6) => Math.abs(a - b) <= e;
+    const now = Date.parse('2026-10-20');
+    const file = JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8'));
+    // styles.json: lädt, alle 8 Looks bestehen die Prüfung, neutrale Namen, stabile IDs, nur lokale Schriften
+    const want = ['colorpop', 'bigkeyword', 'gradkaraoke', 'stickeremoji', 'glassbox', 'swipeline', 'typewriter', 'squashpop'];
+    ok(want.every(id => file.some(o => o.id === id)), 'N-Looks: styles.json enthält die 8 Looks (' + file.map(o => o.id).join() + ')');
+    const ds = file.map(o => T.dropToStyle(o, now));
+    ok(ds.every(Boolean), 'N-Looks: jeder Eintrag besteht dropToStyle (Schrift lokal, sanitizeStyle)');
+    ok(file.every(o => !/hormozi|submagic|capcut|mrbeast|alex|ali |abdaal|iman|beast/i.test(o.name)), 'N-Looks: Anzeigenamen ohne Personen-/Markennamen');
+    const g = id => ds[file.findIndex(o => o.id === id)];
+    ok(g('colorpop').anim === 'overshoot' && g('colorpop').hlCycle.length === 3 && g('squashpop').anim === 'squash' && g('typewriter').motion === 'type' && g('typewriter').cur
+       && g('swipeline').ul && g('glassbox').boxBd && g('stickeremoji').emoSide === true && g('stickeremoji').layout.emoji === true && g('bigkeyword').emS === 2 && g('bigkeyword').layout.kw === true && g('gradkaraoke').hlg,
+       'N-Looks: neue Felder kommen durch sanitizeStyle/dropToStyle (anim, hlCycle, motion, cur, ul, boxBd, emoSide, emS 2, hlg, layout.emoji/kw)');
+    // Picker-Reihenfolge: Standard-Look zuerst, Drops direkt dahinter, More looks am Ende
+    {
+      const saved = T.STYLES.slice();
+      const add = T.applyStyleDrops(file.map(o => Object.assign({}, o, { id: 'x' + o.id })), now);
+      ok(add === 8 && T.STYLES[0].id === 'hormozi' && T.STYLES[1].id === 'xcolorpop' && T.STYLES[8].id === 'xsquashpop' && T.STYLES[9].id === 'tight', 'N-Looks: Drops direkt hinter Bold Pop');
+      T.STYLES.splice(0, T.STYLES.length, ...saved);
+      const idx = id => T.STYLES.findIndex(x => x.id === id);
+      ok(T.STYLES[0].id === 'hormozi' && T.STYLE_MORE.every(id => idx(id) > idx('marker')) && T.STYLE_MORE.every(id => T.STYLES.some(x => x.id === id)), 'N-Looks: Bold Pop vorn, schwache Looks («More looks») hinten, IDs unverändert: ' + T.STYLE_MORE.join());
+    }
+    // sanitizeStyle: akzeptiert gültige neue Felder, verwirft Unsinn
+    {
+      const okS = T.sanitizeStyle({ boxBd: 'rgba(255,255,255,.4)', ul: '#facc15', cur: '#fff', ulMode: 'kw', ulH: 0.2, emoSide: true, emS: 2.1, motion: 'type', anim: 'squash' });
+      ok(okS.boxBd && okS.ul === '#facc15' && okS.cur === '#fff' && okS.ulMode === 'kw' && okS.ulH === 0.2 && okS.emoSide === true && okS.emS === 2.1 && okS.motion === 'type' && okS.anim === 'squash', 'sanitizeStyle: gültige N-Looks-Felder bleiben');
+      const bad = T.sanitizeStyle({ boxBd: 'not a color!', ul: 'url(x)', cur: '#fff"onload', ulMode: 'zz', ulH: 9, emoSide: 'yes', emS: 5, motion: 'foo', anim: 'foo' });
+      ok(Object.keys(bad).filter(k => ['boxBd', 'ul', 'cur', 'ulMode', 'ulH', 'emoSide', 'emS', 'motion', 'anim'].includes(k)).length === 0, 'sanitizeStyle: Unsinn (Farbe mit Skript, Modus, Höhe 9, emS 5, motion/anim unbekannt) verworfen: ' + JSON.stringify(bad));
+      ok(T.emphScale({ emS: 2 }) === 2 && T.emphScale({ emS: 2.2 }) === 2.2 && T.emphScale({ emS: 3 }) === T.emphScale({}), 'emphScale: bis 2,2× (Schlagwort gross), darüber Standard');
+    }
+    // (h) Overshoot/Squash: Zustandsfunktion bei Start/Mitte/Ende
+    {
+      const a0 = T.animState('overshoot', 0), am = T.animState('overshoot', T.animDur('overshoot') * 0.45), ae = T.animState('overshoot', T.animDur('overshoot') - 1e-6);
+      ok(near(a0.sx, 0.6) && a0.op < 0.3 && am.sx > 1.15 && am.op === 1 && Math.abs(ae.sx - 1) < 0.01 && T.animState('overshoot', T.animDur('overshoot')) === null, 'Overshoot: Start 0,6 → Spitze > 1,15 (Überschwingen) → Ende 1 → danach null');
+      const q0 = T.animState('squash', 0), qm = T.animState('squash', T.animDur('squash') * 0.3), qe = T.animState('squash', T.animDur('squash') - 1e-6);
+      ok(q0.sx > 1.3 && q0.sy < 0.75 && qm.sx < 0.95 && qm.sy > 1.15 && Math.abs(qe.sx - 1) < 0.01 && Math.abs(qe.sy - 1) < 0.01, 'Squash: breit-flach → hoch-schmal → 1 (sx/sy gegenläufig)');
+      ok(T.capPopFactor('squash', 0, 40) === 1 && T.capPopFactor('overshoot', 0, 40) === 1, 'Pop: Ein-Wort-Block (Breite 0 = kein Nachbar) → voller Ausschlag');
+    }
+    // (a) Farbwechsel über die ganze Spur (auch bei 1 Wort pro Block)
+    {
+      const cs = g('colorpop');
+      T.setCycBase(0); const c0 = T.hlColorFor(cs, 0); T.setCycBase(1); const c1 = T.hlColorFor(cs, 0); T.setCycBase(2); const c2 = T.hlColorFor(cs, 0); T.setCycBase(3); const c3 = T.hlColorFor(cs, 0); T.setCycBase(0);
+      ok(c0 === '#FFD60A' && c1 === '#22E36B' && c2 === '#FF3D9A' && c3 === c0, 'Farbwechsel: Gelb → Grün → Pink → Gelb über Blöcke (Basis = Wörter davor)');
+      const ws = ['a', 'b', 'c', 'd', 'e'].map((w, i) => ({ word: w, start: i, end: i + 0.8 }));
+      T.setState([{ words: ws.slice(0, 2), start: 0, end: 1.8, text: 'a b' }, { words: ws.slice(2, 5), start: 2, end: 4.8, text: 'c d e' }], ws, 'karaoke');
+      ok(T.capBlockBase(0) === 0 && T.capBlockBase(1) === 2 && T.capBlockBase(2) === 5, 'capBlockBase: Summe der Wörter vorheriger Blöcke');
+    }
+    // (g) Typewriter: Zustand bei Start/Mitte/Ende, Zeichenzahl, Cursor
+    {
+      const b = { start: 1, words: [{ start: 1, end: 1.5 }, { start: 1.6, end: 2.2 }] };
+      ok(T.capTypeTp(b, 0, 0.9, false, false) === 0 && T.capTypeN(0, 7) === 0, 'Typewriter: vor dem Wort nichts');
+      const d = Math.min(0.8, Math.max(0.12, 0.5 * 0.9)), tpMid = T.capTypeTp(b, 0, 1 + d * 0.49, false, false);
+      ok(near(tpMid, 0.49) && T.capTypeN(tpMid, 8) === 4 && T.capTypeN(0.01, 8) === 1, 'Typewriter: Mitte = halbe Zeichen (4 von 8), sofort mindestens 1');
+      ok(T.capTypeTp(b, 0, 1 + d + 1e-6, false, false) === 1 && T.capTypeN(1, 8) === 8 && T.capTypeTp(b, 1, 0, true, false) === 1 && T.capTypeTp(b, 1, 1.5, false, true) === 0 && T.capTypeTp(b, 1, 1.7, false, true) === 1, 'Typewriter: Ende = alles; pausiert/vorab gezeigt = fertig; reduzierte Bewegung = ganze Wörter');
+      const ty = Object.assign({}, g('typewriter'));
+      ok(T.capMotion(ty) === 'type' && T.capWordFx(ty, b, 0, 0, 1 + d / 2, false, false).tp > 0 && T.capWordFx(ty, b, 1, 0, 1.2, false, false).op === 0 && !T.capFxSteady(T.capWordFx(ty, b, 0, 0, 1 + d / 2, false, false), 'type') && T.capFxSteady(T.capWordFx(ty, b, 0, 0, 2, false, false), 'type'), 'Typewriter: capWordFx (tippend = live, fertig = steady, später Wort unsichtbar)');
+      ok(T.capCurOn(b, 0, 1 + d / 2, false) === true && T.capCurOn(b, 0, 0.5, false) === false && T.capCurOn(b, 0, 1.5 + 0.1, false) === true && T.capCurOn(b, 0, 1.5 + 0.8, false) === false && T.capCurOn(b, 0, 1.5 + 0.8, true) === true, 'Cursor: beim Tippen an, danach blinkend (60 % an), pausiert dauerhaft');
+    }
+    // (f) Unterstreichung: active (Wort + Vorgänger blendet aus) und kw
+    {
+      const b = { start: 1, words: [{ start: 1, end: 1.4 }, { start: 1.5, end: 1.9 }, { start: 2, end: 2.4 }] };
+      const su = { ul: '#fc0', ulMode: 'active' };
+      ok(T.capUlFx({}, b, 0, 0, 1.1, false, false) === null && T.capUlFx(su, b, 0, 0, 1, false, false) === null, 'Unterstreichung: ohne ul bzw. zum Wortstart (k = 0) nichts');
+      const mid = T.capUlFx(su, b, 1, 1, 1.59, false, false), end = T.capUlFx(su, b, 1, 1, 1.8, false, false), prev = T.capUlFx(su, b, 0, 1, 1.56, false, false);
+      ok(mid.k > 0.3 && mid.k < 1 && end.k === 1 && prev && prev.k === 1 && prev.op < 1 && T.capUlFx(su, b, 0, 1, 1.9, false, false) === null && T.capUlFx(su, b, 2, 1, 1.8, false, false) === null, 'Unterstreichung active: Strich fährt (0 < k < 1 → 1), Vorgänger blendet aus, andere Wörter keine');
+      const sk = { ul: '#fc0', ulMode: 'kw' }, em = [false, true, false];
+      ok(T.capUlFx(sk, b, 0, 1, 1.8, false, false, em) === null && T.capUlFx(sk, b, 1, 2, 2.5, false, false, em).k === 1 && T.capUlFx(sk, b, 1, 0, 1.2, false, false, em) === null && T.capUlFx(sk, b, 1, 0, 1.2, true, false, em).k === 1, 'Unterstreichung kw: nur Schlagwörter, bleiben stehen, erst ab Wortstart (pausiert: gezeigt)');
+      const r = T.capUlRect({ ul: '#fc0', ulH: 0.2 }, 10, 100, 80, 40, 0.5);
+      ok(near(r.w, 40) && near(r.h, 8) && near(r.y, 100 - 0.06 * 40 - 8) && r.x === 10, 'capUlRect: Breite × k, Höhe ulH em, über der Wortbox-Unterkante');
+    }
+    // (d) Sticker-Emoji: Bounce-Zustand
+    {
+      const e0 = T.emojiStickerState(0), em = T.emojiStickerState(T.EMO_STICKER_DUR * 0.35), ee = T.emojiStickerState(T.EMO_STICKER_DUR);
+      ok(e0.op === 0 && e0.s < 0.4 && em.s > 1.25 && em.op > 0.99 && ee.s === 1 && ee.r === 0 && T.emojiStickerState(-1).op === 0, 'Sticker-Emoji: 0,3 → 1,3 (Spitze) → 1, Kippen −18° → +10° → 0');
+      const hs = T.buildCap(['ab', 'cd'], g('stickeremoji'), 0, 22, [0, 0.5], 2, { emoji: '🔥', age: 0.1 });
+      ok(/left:100%/.test(hs) && /capEmoSticker/.test(hs) && !/bottom:100%/.test(hs), 'Sticker-Emoji: DOM rechts neben der Caption statt darüber');
+      ok(/glassbox/.test(JSON.stringify(file)) && /inset 0 0 0 1px/.test(T.buildCap(['ab'], g('glassbox'), -1, 22, null)) , 'Glas-Box: Innenrand als inset-Schatten im DOM');
+    }
+  }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();

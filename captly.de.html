@@ -64,11 +64,14 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 @keyframes captly-glow{0%,100%{filter:drop-shadow(0 0 0 currentColor) drop-shadow(0 0 0 currentColor)}30%{filter:drop-shadow(0 0 .35em currentColor) drop-shadow(0 0 .8em currentColor)}}
 @keyframes captly-punch{0%{transform:scale(1.28);animation-timing-function:cubic-bezier(.33,1,.68,1)}100%{transform:scale(1)}}
 @keyframes captly-wobble{0%{transform:translateY(.22em);opacity:.5}100%{transform:translateY(0);opacity:1}}
+@keyframes captly-overshoot{0%{transform:scale(.6);opacity:.2;animation-timing-function:cubic-bezier(.33,1,.68,1)}45%{transform:scale(1.18);opacity:1}75%{transform:scale(.97)}100%{transform:scale(1)}}
+@keyframes captly-squash{0%{transform:translateY(.06em) scale(1.35,.7);opacity:.3;animation-timing-function:cubic-bezier(.33,1,.68,1)}30%{transform:translateY(-.04em) scale(.88,1.22);opacity:1}62%{transform:scale(1.05,.96)}100%{transform:translateY(0) scale(1,1)}}
 @keyframes capWordIn{from{opacity:0;transform:translateY(.25em)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes scaleIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 @keyframes capEmoIn{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.12);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes capEmoSticker{0%{transform:rotate(-18deg) scale(.3);opacity:0}35%{transform:rotate(10deg) scale(1.3);opacity:1}60%{transform:rotate(-4deg) scale(.92);opacity:1}100%{transform:rotate(0deg) scale(1);opacity:1}}
 @keyframes capIn{from{opacity:0;transform:translateY(6px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
 
 #app{display:flex;min-height:100vh}
@@ -529,7 +532,7 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 /* Style-Picker-Gruppen: „My templates“ oben, darunter die Presets */
 .stile-group{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--brand);margin:4px 0 1px}
 .stile-group .sg-n{font-weight:600;color:var(--muted);letter-spacing:0;text-transform:none}
-.stile-group.presets{color:var(--muted);margin-top:8px}
+.stile-group.presets,.stile-group.more{color:var(--muted);margin-top:8px}
 .stile-empty{grid-column:1/-1;box-sizing:border-box;font-size:12px;line-height:1.4;color:var(--muted);border:1px dashed var(--line2);border-radius:8px;padding:8px 10px}
 .stile-empty a{color:var(--brand);font-weight:600;text-decoration:none}
 .stile.just-saved{animation:stileSaved 1.6s ease}
@@ -1985,6 +1988,7 @@ body.editor-open .lang-hint{display:none}
             <select id="csAnim" class="lang-sel cs-sel" onchange="applyCustomStyle('anim')" title="Short extra motion on the spoken word (Animation: Highlight only). Changing it plays a short demo while the video is paused.">
               <option value="none">None</option><option value="scale">Pop</option><option value="punch">Punch</option>
               <option value="bounce">Lift</option><option value="flash">Fade in</option><option value="glow">Glow</option>
+              <option value="overshoot">Overshoot</option><option value="squash">Squash</option>
             </select>
           </div>
           <p class="cs-note" id="csAnimHint" style="display:none"></p>
@@ -2279,13 +2283,13 @@ var STYLES = [
    tc:'#18181b', ts:'none', boxBg:'#ffffff', boxBr:'9px',
    hl:'#18181b', hls:'none', anim:'none', em:'#6d28d9', emItalic:true, emFw:'800', emS:1.06},
   {id:'script',   name:'Script',     fl:'Poppins', // Fette weiße Sans + Keyword als Handschrift (Caveat) in Türkis, Wörter erscheinen nacheinander
-   font:"'Poppins'", fw:'700', fs:'.95em', motion:'reveal',
+   font:"'Poppins'", fw:'800', fs:'1.15em', motion:'reveal',
    thumbBg:'linear-gradient(160deg,#101a22,#070b10)',
    tc:'#fff', ts:readHalo(1) + ',0 2px 12px rgba(0,0,0,.5)',
    hl:'#fff', hls:readHalo(1) + ',0 2px 12px rgba(0,0,0,.5)', anim:'none',
-   em:'#7ff0e0', emFont:"'Caveat'", emFw:'700', emS:1.4},
+   em:'#7ff0e0', emFont:"'Caveat'", emFw:'700', emS:1.5},
   {id:'soft',     name:'Soft',       fl:'Poppins', // Weiche Satzschreibung: Phrase leicht transparent, gesprochene Wörter füllen sich weiß, Keyword kursiv in Pfirsich
-   font:"'Poppins'", fw:'600', motion:'fill',
+   font:"'Poppins'", fw:'700', fs:'1.12em', motion:'fill',
    thumbBg:'linear-gradient(160deg,#1a1420,#0c0910)',
    tc:'#fff', ts:readHalo(1) + ',0 2px 10px rgba(0,0,0,.45)',
    hl:'#fff', hls:readHalo(1) + ',0 2px 10px rgba(0,0,0,.45)', anim:'none', em:'#ffc9a8', emItalic:true, emFw:'700', emS:1.15},
@@ -2357,11 +2361,11 @@ var STYLES = [
    tc:'#fff', ts:'1px 1px 5px rgba(0,0,0,.9)',
    boxBg:'rgba(0,0,0,.72)', boxBr:'6px',
    hl:'#f7c204', hls:'1px 1px 5px rgba(0,0,0,.9)', anim:'scale', em:'#5eead4'},
-  {id:'neon',     name:'Neon',       fl:'Space Grotesk', // Dezentes Neon: weißer Text mit kühlem Schein, aktives Wort hellblau (statisch, kein Pulsieren)
-   font:"'Space Grotesk'", fw:'700',
+  {id:'neon',     name:'Neon',       fl:'Space Grotesk', // Neon-Röhre: heller Kern + mehrstufiges Leuchten (eng → weit), aktives Wort heller mit stärkerem Schein (statisch, kein Pulsieren)
+   font:"'Space Grotesk'", fw:'700', fs:'1.12em',
    thumbBg:'linear-gradient(160deg,#03080d,#060d14)',
-   tc:'#f0f9ff', ts:readHalo() + ',0 0 6px rgba(56,189,248,.55),0 0 16px rgba(56,189,248,.3)',
-   hl:'#7dd3fc', hls:readHalo() + ',0 0 8px rgba(125,211,252,.85),0 0 18px rgba(56,189,248,.5)', anim:'none', em:'#f0abfc'},
+   tc:'#e8f8ff', ts:readHalo() + ',0 0 3px rgba(255,255,255,.9),0 0 9px rgba(56,189,248,.95),0 0 20px rgba(56,189,248,.75),0 0 40px rgba(14,165,233,.55)',
+   hl:'#ffffff', hls:readHalo() + ',0 0 4px rgba(255,255,255,1),0 0 12px rgba(125,211,252,1),0 0 26px rgba(56,189,248,.9),0 0 52px rgba(14,165,233,.7)', anim:'none', em:'#f0abfc'},
   {id:'editorial',name:'Elegant',    fl:'Playfair Display', // Edle Serif (Luxus/Lifestyle), aktives Wort kursiv in Gold
    font:"'Playfair Display'", fw:'700',
    thumbBg:'linear-gradient(160deg,#111114,#0a0a0c)',
@@ -2386,6 +2390,14 @@ var STYLE_ALIASES = {
   paper2: 'tiktok',
   muse: 'marker', sketch: 'marker', chalk: 'marker'
 };
+// Reihenfolge im Picker (N-Looks): Standard-Look (Bold Pop = DEFAULT_STYLE) zuerst, dann neue Looks aus styles.json (applyStyleDrops fügt sie dahinter ein),
+// die ruhigen Klassiker, und die schwächeren Looks («More looks») am Ende — nur die Reihenfolge, IDs/Eigenschaften bleiben (Templates, gemerkte Wahl).
+var STYLE_FIRST = 'hormozi', STYLE_MORE = ['minimal', 'classic', 'beast', 'headline'];
+(function() {
+  var first = STYLES.filter(function(x){ return x.id === STYLE_FIRST; }), more = STYLE_MORE.map(function(id){ return STYLES.filter(function(x){ return x.id === id; })[0]; }).filter(Boolean),
+      rest = STYLES.filter(function(x){ return x.id !== STYLE_FIRST && STYLE_MORE.indexOf(x.id) < 0; });
+  STYLES.splice.apply(STYLES, [0, STYLES.length].concat(first, rest, more));
+})();
 // Style-ID beim Laden auflösen (gemerkter Style, Projekt, Autosave, Brand-Default): Aliase folgen.
 function resolveStyleId(id) {
   id = String(id == null ? '' : id);
@@ -4139,8 +4151,12 @@ function capDistributeLines(info, targetLines, sp, maxW) {
   return lines;
 }
 // Aktive-Wort-Farbe; s.hlCycle (z. B. „Comic“) wechselt die Farbe von Wort zu Wort.
+// idx = Wortindex im Block; _capCycBase = Anzahl Wörter in allen Blöcken davor → der Wechsel läuft über die ganze Spur («reihum»,
+// auch bei 1 Wort pro Block). Wird an jedem Einstieg gesetzt (buildCap per ex.gi, capDomMotion, drawCaptionsOnCtx) — Vorschau = Export.
+var _capCycBase = 0;
+function capBlockBase(bi) { var n = 0; for (var k = 0; k < bi && k < captionBlocks.length; k++) n += (captionBlocks[k].words || []).length; return n; }
 function hlColorFor(s, idx) {
-  if (s.hlCycle && s.hlCycle.length) return s.hlCycle[Math.abs(idx || 0) % s.hlCycle.length];
+  if (s.hlCycle && s.hlCycle.length) return s.hlCycle[Math.abs((idx || 0) + _capCycBase) % s.hlCycle.length];
   return s.hl || '#fff';
 }
 // Konturierte Styles (Ring-Kontur der Breite w): die Kontur wächst w px in jede Richtung, also um 2w in
@@ -4178,10 +4194,12 @@ var CAP_MOT = {
   enter: 0.15, enterRise: 0.12, exit: 0.10, // Block: Einblenden (+ leichter Anstieg) / Ausblenden, s
   hl: 0.12,                                 // Highlight-Farbe ein-/ausblenden + Box-Gleiten, s
   reveal: 0.22, revealRise: 0.25,           // Reveal: Einblenden je Wort (s) + Anstieg (em)
-  fill: 0.12, dim: 0.4                      // Fill: Übergang (s) + Deckkraft noch nicht gesprochener Wörter
+  fill: 0.12, dim: 0.4,                     // Fill: Übergang (s) + Deckkraft noch nicht gesprochener Wörter
+  ul: 0.18,                                 // Unterstreichung: Strich fährt in 0,18 s unter das Wort
+  tpMin: 0.12, tpMax: 0.8, curBlink: 0.9    // Typewriter: Tippdauer je Wort (0,9 × Wortdauer, begrenzt) · Cursor-Blinkperiode (s)
 };
 var CAP_PILL_PAD_X = 9, CAP_PILL_PAD_Y = 2, CAP_PILL_GAP = 8; // Highlight-Box (Vorschau-px)
-function capMotion(s) { var m = s && s.motion; return (m === 'reveal' || m === 'fill' || m === 'none') ? m : 'highlight'; }
+function capMotion(s) { var m = s && s.motion; return (m === 'reveal' || m === 'fill' || m === 'none' || m === 'type') ? m : 'highlight'; }
 function capEaseOut(x) { x = x > 0 ? (x < 1 ? x : 1) : 0; return 1 - (1 - x) * (1 - x) * (1 - x); }
 // Fortschritt 0..1 eines Übergangs, der dt Sekunden läuft (dur 0 = sofort, z. B. reduzierte Bewegung)
 function capPhase(dt, dur) { return dur > 0 ? capEaseOut(dt / dur) : (dt >= 0 ? 1 : 0); }
@@ -4231,6 +4249,8 @@ function capWordFx(s, b, i, wi, t, forced, rm) {
     var kf = capPhase(t - st, rm ? 0 : CAP_MOT.fill);
     f.op = CAP_MOT.dim + (1 - CAP_MOT.dim) * kf; f.hk = kf;
     if (kf >= 1) f.op = 1;
+  } else if (mode === 'type') {
+    f.tp = capTypeTp(b, i, t, forced, rm); f.op = f.tp > 0 ? 1 : 0; // Buchstaben erscheinen einzeln (Clip am Wort), Platz steht fest
   } else if (mode === 'highlight') {
     var d = rm ? 0 : CAP_MOT.hl;
     if (i === wi) {
@@ -4243,8 +4263,49 @@ function capWordFx(s, b, i, wi, t, forced, rm) {
   }
   return f;
 }
+// Typewriter: Fortschritt 0..1 des Wortes i (Buchstaben erscheinen über 0,9 × Wortdauer, 0,12–0,8 s); pausiert/außerhalb: alles getippt
+function capTypeTp(b, i, t, forced, rm) {
+  var w = b.words[i] || {}, st = w.start || 0;
+  if (forced && t < b.start) return 1;
+  if (rm) return t >= st ? 1 : 0;
+  var d = Math.max(CAP_MOT.tpMin, Math.min(CAP_MOT.tpMax, ((w.end > st ? w.end : st) - st) * 0.9));
+  return Math.max(0, Math.min(1, (t - st) / d));
+}
+// Anzahl sichtbarer Zeichen: sobald das Wort beginnt mindestens 1, bei tp 1 alle
+function capTypeN(tp, len) { return tp >= 1 ? len : tp <= 0 ? 0 : Math.min(len, Math.max(1, Math.ceil(tp * len))); }
+// Cursor-Zustand: sichtbar am aktiven Wort; beim Tippen dauerhaft, danach blinkend (Periode CAP_MOT.curBlink, 60 % an); pausiert (rm) dauerhaft
+function capCurOn(b, wi, t, rm) {
+  var w = b.words[wi]; if (!w) return false;
+  var tp = capTypeTp(b, wi, t, false, rm);
+  if (!(tp > 0)) return false;
+  if (rm || tp < 1) return true;
+  var te = w.end > (w.start || 0) ? w.end : (w.start || 0);
+  var ph = ((t - te) / CAP_MOT.curBlink) % 1; if (ph < 0) ph += 1;
+  return ph < 0.6;
+}
+// Unterstreichung (s.ul = Farbe): { k Strichlänge 0..1, op } für Wort i oder null. ulMode 'active' (aktives Wort, Vorgänger blendet aus) |
+// 'kw' (Schlagwörter, bleiben unterstrichen). em = Maske hervorgehobener Wörter (blockEmph). Vorschau (capDomMotion) = Export (paint).
+function capUlFx(s, b, i, wi, t, forced, rm, em) {
+  if (!s || !s.ul) return null;
+  var w = b.words[i] || {}, st = w.start || 0, k, op = 1;
+  if (s.ulMode === 'kw') {
+    if (!em || !em[i]) return null;
+    k = forced ? 1 : capPhase(t - st, rm ? 0 : CAP_MOT.ul);
+  } else if (i === wi) {
+    k = forced ? 1 : capPhase(t - st, rm ? 0 : CAP_MOT.ul);
+  } else if (wi > 0 && i === wi - 1) {
+    k = 1; op = 1 - capPhase(t - ((b.words[wi] || {}).start || 0), rm ? 0 : CAP_MOT.hl);
+  } else return null;
+  return (k > 0 && op > 0) ? { k: k, op: op } : null;
+}
+// Strich-Rechteck unter einer Wortbox {x, b (Unterkante), w}: Höhe s.ulH em (Standard .16), 0,06 em über der Unterkante der Wortbox
+function capUlRect(s, x, bottom, w, fpx, k) {
+  var h = (s.ulH > 0 ? s.ulH : 0.16) * fpx;
+  return { x: x, y: bottom - 0.06 * fpx - h, w: w * k, h: h };
+}
 // Endzustand ohne laufenden Übergang? (Export: solche Wörter liegen in der gecachten statischen Ebene)
 function capFxSteady(f, mode) {
+  if (f.tp !== undefined && f.tp > 0 && f.tp < 1) return false;
   if (f.a || f.dy) return false;
   if (f.hk !== 0 && f.hk !== 1) return false;
   return f.op === 0 || f.op === 1 || (mode === 'fill' && f.op === CAP_MOT.dim);
@@ -4310,6 +4371,7 @@ function capSlideBoxes(P, R, k) {
 // gesprochenes Wort; Pop/Reveal per CSS-Keyframes.
 function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   if (!words || !words.length) return '';
+  _capCycBase = (ex && ex.gi) || 0;
   var em = (ex && ex.em) || null, esc = emphScale(s), ec = emphColor(s);
   var mode = capMotion(s), live = !!lineTarget, hv = live && capHlVariant(s);
   // Auto-Fit nur für die echte Vorschau (lineTarget gesetzt) — Style-Thumbnails/Showcase haben eigene Größen.
@@ -4334,10 +4396,15 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   if (s.boxBg) {
     wCss += 'background:' + s.boxBg + ';padding:5px 18px;border-radius:' + (s.boxBr || '6px') + ';';
     // Weicher Schatten der Box wie im Export (drawCaptionsOnCtx: Blur 0.3·Schrift, Versatz 4 Export-px)
-    if (live && px) wCss += 'box-shadow:0 1.5px ' + (px * fsMul * 0.3).toFixed(1) + 'px rgba(0,0,0,.35);';
+    // Glas-Box: feiner Innenrand (boxBd) als inset-Schatten — verändert das Layout nicht; Export zeichnet ihn als Linie (capBoxPaint)
+    var bsh = [];
+    if (s.boxBd) bsh.push('inset 0 0 0 1px ' + s.boxBd);
+    if (live && px) bsh.push('0 1.5px ' + (px * fsMul * 0.3).toFixed(1) + 'px rgba(0,0,0,.35)');
+    if (bsh.length) wCss += 'box-shadow:' + bsh.join(',') + ';';
   }
   var hlBox = live && mode === 'highlight' && !!s.hlPillBg; // Highlight-Box als eigene, gleitende Fläche (.cap-hlbox)
-  if (hlBox) wCss += 'position:relative;z-index:0;';
+  var ulOn = live && !!s.ul, curOn = live && mode === 'type' && !!s.cur; // Unterstreichung (.cap-ul je Wort) · Typewriter-Cursor (.cap-cur)
+  if (hlBox || ulOn || curOn) wCss += 'position:relative;z-index:0;';
   // Platz je Wort für normale + aktive Variante (s. capHlVariant) — gleiche Messung wie wrapCaptionLines
   function slotW(i, isE) {
     var c = capMeasureCtx(), sz0 = px * fsMul * (isE ? esc : 1), w = words[i];
@@ -4422,10 +4489,29 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   }
   if (hlBox) built = '<span class="cap-hlbox" aria-hidden="true" style="position:absolute;left:0;top:0;width:0;height:0;opacity:0;background:'
     + s.hlPillBg + ';border-radius:5px;z-index:-1;pointer-events:none"></span>' + built;
+  if (ulOn) { // ein Strich je Wortspan (Reihenfolge = [data-oi]); Breite/Position setzt capDomMotion
+    var ulh = '';
+    for (var ui = 0; ui < words.length; ui++) ulh += '<span class="cap-ul" aria-hidden="true" style="position:absolute;left:0;top:0;width:0;height:0;opacity:0;background:' + s.ul + ';border-radius:99px;z-index:-1;pointer-events:none"></span>';
+    built = ulh + built;
+  }
+  if (curOn) built += '<span class="cap-cur" aria-hidden="true" style="position:absolute;left:0;top:0;width:0;height:0;opacity:0;background:' + s.cur + ';border-radius:1px;pointer-events:none"></span>';
   var rootAttr = live ? ' class="cap-root" data-fpx="' + ((px || 24) * fsMul).toFixed(3) + '"' : '';
   // Emoji der Caption: absolut über (Position „Top“: unter) der Caption-Box → verschiebt den Text nicht.
   // Pop-in per negativer animation-delay (Phase = Zeit seit Blockbeginn) → beim Scrubben/Neu-Rendern stabil.
-  if (ex && ex.emoji) {
+  if (ex && ex.emoji && s.emoSide) {
+    // Sticker-Emoji: gross NEBEN dem Text (rechts der Caption-Box, vertikal mittig), Mini-Bounce mit Kippen (capEmoSticker)
+    var Es = Math.round((px || 24) * EMO_REL_SIDE);
+    built += '<span class="cap-emo" aria-hidden="true" style="position:absolute;left:100%;top:50%;margin-left:' + (Es * EMO_SIDE_GAP).toFixed(2) + 'px;margin-top:' + (-Es / 2).toFixed(2)
+      + 'px;font-family:' + EMO_FONT + ';font-size:' + Es + 'px;line-height:1;text-align:center;font-weight:400;font-style:normal;'
+      + 'letter-spacing:0;word-spacing:0;text-transform:none;white-space:nowrap;text-shadow:0 ' + (Es * 0.04).toFixed(2) + 'px ' + (Es * 0.12).toFixed(2) + 'px rgba(0,0,0,.35);'
+      + 'pointer-events:none;transform-origin:50% 50%;animation:capEmoSticker ' + EMO_STICKER_DUR + 's linear both;animation-delay:'
+      + (-Math.max(0, ex.age || 0)).toFixed(3) + 's">' + escHtml(ex.emoji) + '</span>';
+    wCss += 'position:relative;';
+    if (hp) {
+      var cut2 = built.lastIndexOf('<span class="cap-emo"');
+      return '<span' + rootAttr + ' style="' + wCss + '"><span style="' + pCss + '">' + built.slice(0, cut2) + '</span>' + built.slice(cut2) + '</span>';
+    }
+  } else if (ex && ex.emoji) {
     var E = Math.round((px || 24) * EMO_REL), below = capPos === 'top';
     built += '<span class="cap-emo" aria-hidden="true" style="position:absolute;left:0;right:0;' + (below ? 'top:100%;margin-top:' : 'bottom:100%;margin-bottom:')
       + (E * EMO_GAP).toFixed(2) + 'px;font-family:' + EMO_FONT + ';font-size:' + E + 'px;line-height:1;text-align:center;font-weight:400;font-style:normal;'
@@ -4458,6 +4544,7 @@ var emSrc = null;      // 'llm' | 'local' | null — Herkunft der automatischen 
 var EMPH_SCALE = 1.12; // hervorgehobenes Wort ~12 % größer (One Word: s.emS)
 var EMO_REL = 1.35;    // Emoji-Größe relativ zur (angepassten) Caption-Schriftgröße
 var EMO_GAP = 0.12;    // Abstand Emoji ↔ Caption (Anteil der Emoji-Größe)
+var EMO_REL_SIDE = 1.3, EMO_SIDE_GAP = 0.1, EMO_STICKER_DUR = 0.4; // Sticker-Emoji (s.emoSide): Grösse relativ zur Caption, Abstand rechts (Anteil der Emoji-Grösse), Bounce-Dauer (s)
 var EMO_FONT = "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol',sans-serif"; // einfache Anführungszeichen: steht auch im style-Attribut
 var WFLAGS = ['kw', 'emo', 'emoU', 'zm', 'nb', 'nj']; // nb/nj = Handnähte (s. capSegmentRun): nb = Nutzer hat VOR diesem Wort geteilt, nj = Nutzer hat es mit dem Vorgänger verschmolzen
 (function() {
@@ -4511,7 +4598,8 @@ function emphLineH(s, k) {
 }
 function emMaskKey(m) { return m ? m.map(function(x){ return x ? 1 : 0; }).join('') : ''; }
 // Skalierung hervorgehobener Wörter je Style (One Word: etwas mehr, dort ist Grösse die einzige Betonung)
-function emphScale(s) { var v = s && +s.emS; return v >= 1 && v <= 1.5 ? v : EMPH_SCALE; }
+function emphScale(s) { var v = s && +s.emS; return v >= 1 && v <= EMS_MAX ? v : EMPH_SCALE; }
+var EMS_MAX = 2.2; // «Schlagwort gross»: Keyword bis 2,2× (vorher 1,5)
 // Farbe hervorgehobener (nicht aktiver) Wörter: eigene Style-Angabe (em, 'none' = nur Grösse) → Pill-Farbe →
 // Highlight-Farbe (wenn sie sich vom Text abhebt) → Gelb. null = Textfarbe behalten.
 function emphColor(s) {
@@ -4773,9 +4861,9 @@ function afterEmphChange(save) {
 
 // ── Schalter (Style-Tab) ──
 function persistEmph() { try { localStorage.setItem(EM_KEY, JSON.stringify({ kw: emKw, emoji: emEmoji, zoom: emZoom })); } catch (e) {} }
-function setEmphKw(on) { emKw = !!on; persistEmph(); afterEmphChange(); }
+function setEmphKw(on) { emKw = !!on; if (_presetPrevLayout) delete _presetPrevLayout.kw; persistEmph(); afterEmphChange(); }
 function setEmphEmoji(on) {
-  emEmoji = !!on; persistEmph(); afterEmphChange();
+  emEmoji = !!on; if (_presetPrevLayout) delete _presetPrevLayout.emoji; persistEmph(); afterEmphChange();
   // KI nicht erreichbar: der Schalter wirkt sonst «an», liefert aber nichts → direkt Rückmeldung am Schalter (Hinweis unter den Chips + Toast)
   if (emEmoji && emAiUnavailable() && captionBlocks.length) capToast('Emojis need the AI service — it isn’t reachable right now.');
 }
@@ -5374,8 +5462,33 @@ function emojiSprite(emo, px) {
   if (_emoSprites.size > 24) _emoSprites.delete(_emoSprites.keys().next().value);
   return res;
 }
+// Sticker-Emoji (s.emoSide): Mini-Bounce mit Kippen — dieselben Keyframes wie @keyframes capEmoSticker (linear), Dauer EMO_STICKER_DUR
+var EMO_STICKER_KF = [[0, { s: .3, r: -18, op: 0 }], [35, { s: 1.3, r: 10, op: 1 }], [60, { s: .92, r: -4, op: 1 }], [100, { s: 1, r: 0, op: 1 }]];
+function emojiStickerState(age) {
+  if (!(age >= 0)) return { s: .3, r: -18, op: 0 };
+  if (age >= EMO_STICKER_DUR) return { s: 1, r: 0, op: 1 };
+  var pct = age / EMO_STICKER_DUR * 100, i = 0;
+  while (i < EMO_STICKER_KF.length - 2 && pct > EMO_STICKER_KF[i + 1][0]) i++;
+  var lo = EMO_STICKER_KF[i], hi = EMO_STICKER_KF[i + 1], f = (pct - lo[0]) / (hi[0] - lo[0]);
+  return { s: lo[1].s + (hi[1].s - lo[1].s) * f, r: lo[1].r + (hi[1].r - lo[1].r) * f, op: lo[1].op + (hi[1].op - lo[1].op) * f };
+}
 // L: capLayout-Ergebnis · age: Sekunden seit Blockbeginn (Pop-in)
 function drawCapEmoji(ctx, emo, L, s, age, W) {
+  if (s.emoSide) { // Sticker: rechts neben der Caption-Box (Vorschau: left:100% + Abstand), vertikal mittig
+    var Es = Math.round(L.fitPx * EMO_REL_SIDE) * L.scale;
+    if (!(Es > 4)) return;
+    var sp2 = emojiSprite(emo, Es), widest = Math.max.apply(null, L.lineWs), padXs = s.boxBg ? 18 * L.scale : 0;
+    var ew = sp2.cv.width - 2 * sp2.m, left = W / 2 + widest / 2 + padXs + Es * EMO_SIDE_GAP, top2 = (L.boxT + L.boxB) / 2 - Es / 2;
+    var ss = emojiStickerState(age);
+    if (ss.op <= 0) return;
+    var ecx = left + ew / 2, ecy = top2 + Es / 2;
+    ctx.save();
+    ctx.globalAlpha *= ss.op;
+    ctx.translate(ecx, ecy); ctx.rotate(ss.r * Math.PI / 180); ctx.scale(ss.s, ss.s); ctx.translate(-ecx, -ecy);
+    ctx.drawImage(sp2.cv, left - sp2.m, top2 - sp2.m);
+    ctx.restore();
+    return;
+  }
   var px = Math.round(L.fitPx * EMO_REL) * L.scale; // wie die Vorschau: dort auf ganze CSS-px gerundet
   if (!(px > 4)) return;
   var spr = emojiSprite(emo, px), padB = s.boxBg ? 5 * L.scale : 0, gap = px * EMO_GAP, top;
@@ -5624,11 +5737,12 @@ function updateOverlay(t) {
     // einmal und animieren ihn per capDomMotion.
     var hlI = (b && capMotion(s) === 'highlight') ? wi : -1;
     var exm = b ? blockEmph(b) : null, emo = (b && emEmoji) ? blockEmoji(b) : '';
-    key = bi + ':' + hlI + ':' + activeId + ':' + fontSize + ':' + displayMode + ':' + (b ? b.text : '') + ':' + emMaskKey(exm) + ':' + emo + ':' + capPos;
+    var cyc = (b && s.hlCycle) ? capBlockBase(bi) : 0; // Farbwechsel über die ganze Spur
+    key = bi + ':' + hlI + ':' + activeId + ':' + fontSize + ':' + displayMode + ':' + (b ? b.text : '') + ':' + emMaskKey(exm) + ':' + emo + ':' + capPos + ':' + cyc;
     if (key !== _lastKey) {
       ov.innerHTML = b
         ? buildCap(b.words.map(function(w){ return displayWord(w.word); }), s, hlI, fontSize,
-                   b.words.map(function(w){ return w.start; }), CAPTION_LINES, { em: exm, emoji: emo, age: t - b.start })
+                   b.words.map(function(w){ return w.start; }), CAPTION_LINES, { em: exm, emoji: emo, age: t - b.start, gi: cyc })
         : '';
       ov._capM = null; // Messwerte (Wort-Spans/Box-Rechtecke) gehören zum alten DOM
       _lastKey = key; _lastBi = bi;
@@ -5665,6 +5779,24 @@ function capGlowLayers(s, oi, glow, px) {
   var c = s.hlPillBg || (s.hlg ? (s.hl || '#fff') : hlColorFor(s, oi));
   return [0.3, 0.65, 1.2].map(function(k) { return { x: 0, y: 0, blur: k * px * glow, color: c }; });
 }
+// Typewriter (DOM): Breite der ersten n Zeichen eines Wortspans (Canvas-Messung mit der Schrift des Worts, Buchstabenabstand) → pw[0..len].
+// Der Export misst dasselbe mit seinem Kontext (capTypePrefixW) — beide schneiden bei pw[n] + CAP_TYPE_M · Schrift ab.
+var CAP_TYPE_M = 0.1; // Zugabe rechts vom letzten sichtbaren Zeichen (em): Kontur/Schatten des Buchstabens bleiben ganz
+function capTypePw(s, sp, fpx, isE) {
+  var txt = sp.textContent || '', ch = Array.from(txt), c = capMeasureCtx(), f = capWordFace(s, false, isE, txt), fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;
+  c.font = capFaceFont(f, isE ? fpx * emphScale(s) : fpx);
+  if ('letterSpacing' in c) { var l = capLsPx(s, fpx / fsMul); c.letterSpacing = l ? l + 'px' : '0px'; }
+  var pw = [0];
+  for (var i = 1; i <= ch.length; i++) pw.push(c.measureText(ch.slice(0, i).join('')).width);
+  return pw;
+}
+function capTypeClip(sp, s, M, tp, isE) {
+  if (!(tp > 0) || tp >= 1) { capSetSt(sp, 'clipPath', ''); return; }
+  var pw = sp._pw || (sp._pw = capTypePw(s, sp, M.fpx, isE)), len = pw.length - 1, n = capTypeN(tp, len);
+  if (n >= len) { capSetSt(sp, 'clipPath', ''); return; }
+  capSetSt(sp, 'clipPath', 'inset(-1000px ' + Math.max(0, sp.offsetWidth - pw[n] - CAP_TYPE_M * M.fpx).toFixed(2) + 'px -1000px -1000px)');
+}
+function capTypePrefixW(ctx, txt, n) { return ctx.measureText(Array.from(txt).slice(0, n).join('')).width; }
 function capSetSt(el, k, v) { var c = el._capSt || (el._capSt = {}); if (c[k] !== v) { c[k] = v; el.style[k] = v; } }
 // rest = Standbild bei Pause: alle Übergänge (Pop, Reveal, Fill, Highlight-Farbe/-Box, Block-Ein-/Ausblenden) im
 // Endzustand, wie bei reduzierter Bewegung (Dauer 0) — sonst zeigte ein pausiertes Video am Wortanfang ein fast
@@ -5676,11 +5808,13 @@ function capDomMotion(ov, s, b, bi, wi, t, forced, rest) {
   if (!M) {
     var root = ov.querySelector ? ov.querySelector('.cap-root') : null;
     if (!root) return;
-    M = ov._capM = { root: root, fpx: parseFloat(root.getAttribute('data-fpx')) || fontSize,
+    M = ov._capM = { root: root, fpx: parseFloat(root.getAttribute('data-fpx')) || fontSize, single: (b.words || []).length === 1,
                      spans: Array.prototype.slice.call(root.querySelectorAll('[data-oi]')).map(function(sp){ sp._c0 = sp.style.color; sp._ts0 = sp.style.textShadow; return sp; }), // _c0/_ts0 = Farbe/Schatten aus buildCap
-                     boxes: Array.prototype.slice.call(root.querySelectorAll('.cap-hlbox')), rects: null };
+                     boxes: Array.prototype.slice.call(root.querySelectorAll('.cap-hlbox')), rects: null,
+                     uls: Array.prototype.slice.call(root.querySelectorAll('.cap-ul')), curs: Array.prototype.slice.call(root.querySelectorAll('.cap-cur')) };
   }
   var mode = capMotion(s), rm = capReduceMotion() || !!rest, em = blockEmph(b);
+  _capCycBase = s.hlCycle ? capBlockBase(bi) : 0;
   var bf = capBlockFx(bi, t, forced, rm);
   capSetSt(M.root, 'opacity', bf.op < 1 ? bf.op.toFixed(3) : '');
   var hkDy = (bf.dy > 1e-4 ? bf.dy * M.fpx : 0) + (ov._hkDy || 0); // + Ausweichen vor dem Hook-Titel (hookUpdate)
@@ -5689,9 +5823,10 @@ function capDomMotion(ov, s, b, bi, wi, t, forced, rest) {
   M.spans.forEach(function(sp) {
     var oi = +sp.getAttribute('data-oi');
     var f = fxs[oi] || (fxs[oi] = capWordFx(s, b, oi, wi, t, forced, rm));
-    var a = f.a, op = f.op * (a ? a.op : 1), dy = (f.dy + (a ? a.ty : 0)) * M.fpx, sc = a ? 1 + (a.sx - 1) * (sp._popA === s.anim ? sp._pop : (sp._popA = s.anim, sp._pop = capPopFactor(s.anim, sp.offsetWidth, M.fpx))) : 1; // ty/dy in em
+    var a = f.a, op = f.op * (a ? a.op : 1), dy = (f.dy + (a ? a.ty : 0)) * M.fpx, pf = a ? (sp._popA === s.anim ? sp._pop : (sp._popA = s.anim, sp._pop = capPopFactor(s.anim, M.single ? 0 : sp.offsetWidth, M.fpx))) : 1; // ty/dy in em; Ein-Wort-Block: kein Nachbar → voller Pop
+    var scx = a ? 1 + (a.sx - 1) * pf : 1, scy = a ? 1 + (a.sy - 1) * pf : 1; // Squash staucht x/y verschieden
     capSetSt(sp, 'opacity', op < 1 ? op.toFixed(3) : '');
-    capSetSt(sp, 'transform', (Math.abs(dy) > 1e-3 ? 'translateY(' + dy.toFixed(2) + 'px)' : '') + (Math.abs(sc - 1) > 1e-4 ? ' scale(' + sc.toFixed(4) + ')' : ''));
+    capSetSt(sp, 'transform', (Math.abs(dy) > 1e-3 ? 'translateY(' + dy.toFixed(2) + 'px)' : '') + (Math.abs(scx - 1) > 1e-4 || Math.abs(scy - 1) > 1e-4 ? ' scale(' + scx.toFixed(4) + (scx.toFixed(4) === scy.toFixed(4) ? '' : ',' + scy.toFixed(4)) + ')' : ''));
     // Glow = zusätzliche text-shadow-Schichten (unter denen des Styles) in der Highlight-Farbe; Export: dieselben Schichten im Zeichenplan
     var gl = capGlowLayers(s, oi, a ? a.glow : 0, M.fpx);
     capSetSt(sp, 'textShadow', gl.length ? (sp._ts0 && sp._ts0 !== 'none' ? sp._ts0 + ', ' : '') + gl.map(function(l){ return '0 0 ' + l.blur.toFixed(2) + 'px ' + l.color; }).join(', ') : (sp._ts0 || ''));
@@ -5702,7 +5837,32 @@ function capDomMotion(ov, s, b, bi, wi, t, forced, rest) {
       if (c0 && c1) col = capMixColor(c0, c1, f.hk);
     }
     capSetSt(sp, 'color', col || sp._c0 || '');
+    if (f.tp !== undefined) capTypeClip(sp, s, M, f.tp, !!(em && em[oi]));
   });
+  if (M.uls.length) { // Unterstreichung: Strich je Wortspan, Unterkante = Zeilenbox des Worts (wie im Export wo.y + capD)
+    var lhU = M.fpx * capLineH(s);
+    M.spans.forEach(function(sp, j) {
+      var el = M.uls[j]; if (!el) return;
+      var u = capUlFx(s, b, +sp.getAttribute('data-oi'), wi, t, forced, rm, em);
+      if (!u) { capSetSt(el, 'opacity', '0'); return; }
+      var r = capUlRect(s, sp.offsetLeft, sp.offsetTop + lhU, sp.offsetWidth, M.fpx, u.k);
+      capSetSt(el, 'left', r.x.toFixed(2) + 'px'); capSetSt(el, 'top', r.y.toFixed(2) + 'px');
+      capSetSt(el, 'width', r.w.toFixed(2) + 'px'); capSetSt(el, 'height', r.h.toFixed(2) + 'px');
+      capSetSt(el, 'opacity', u.op < 1 ? u.op.toFixed(3) : '1');
+    });
+  }
+  if (M.curs.length) { // Typewriter-Cursor am Ende des zuletzt getippten Teils des aktiven Worts
+    var cel = M.curs[0], cp = -1;
+    if (capCurOn(b, wi, t, rm)) M.spans.forEach(function(sp, j) { if (+sp.getAttribute('data-oi') === wi) cp = j; }); // letztes Teilstück des aktiven Worts
+    if (cp < 0) capSetSt(cel, 'opacity', '0');
+    else {
+      var csp = M.spans[cp], cpw = csp._pw || (csp._pw = capTypePw(s, csp, M.fpx, !!(em && em[wi])));
+      var cn = capTypeN((fxs[wi] || {}).tp, cpw.length - 1), clh = M.fpx * capLineH(s);
+      capSetSt(cel, 'left', (csp.offsetLeft + cpw[cn] + 0.04 * M.fpx).toFixed(2) + 'px'); capSetSt(cel, 'top', (csp.offsetTop + clh * 0.12).toFixed(2) + 'px');
+      capSetSt(cel, 'width', (0.07 * M.fpx).toFixed(2) + 'px'); capSetSt(cel, 'height', (clh * 0.76).toFixed(2) + 'px');
+      capSetSt(cel, 'opacity', '1');
+    }
+  }
   if (!M.boxes.length) return;
   // Highlight-Box: Rechtecke je Originalwort (Vorschau-px relativ zur Caption-Box), einmal je Aufbau gemessen
   if (!M.rects) {
@@ -7756,7 +7916,8 @@ var userTemplates = [];
 // Templates können aus fremden JSON-Dateien kommen → nur bekannte Style-Felder übernehmen und
 // Zeichen entfernen, mit denen man aus dem style="…"-Attribut (buildCap) ausbrechen könnte.
 var TPL_STYLE_KEYS = ['fl','font','fw','tt','ls','lh','fs','fi','tc','ts','hl','hls','anim','cstroke','thumbBg','hlPillBg','hlc',
-  'boxBg','boxBr','pill','tg','hlFont','hlItalic','hlg','hlUpper','circle','hlCycle','em','emS','motion','emFont','emItalic','emFw'];
+  'boxBg','boxBr','pill','tg','hlFont','hlItalic','hlg','hlUpper','circle','hlCycle','em','emS','motion','emFont','emItalic','emFw',
+  'boxBd','ul','ulMode','ulH','emoSide','cur']; // N-Looks: Glas-Rand · Unterstreichung (Farbe/Modus/Höhe) · Sticker-Emoji · Typewriter-Cursor
 function cleanCssVal(v) { return String(v).replace(/[<>"\\;{}]/g, '').replace(/url\s*\(|expression\s*\(/gi, '').slice(0, 600); }
 function sanitizeStyle(st) {
   var out = {};
@@ -7771,6 +7932,15 @@ function sanitizeStyle(st) {
       out[k] = p;
     }
   });
+  // Neue Felder (N-Looks) prüfen: Unsinn wird verworfen, nie ins Style-Attribut/den Canvas durchgereicht
+  var COL = /^(#[0-9a-f]{3,8}|[a-z]{3,20}|(rgb|hsl)a?\([0-9a-z.,%\s\/-]{1,60}\))$/i;
+  ['boxBd', 'ul', 'cur'].forEach(function(k) { if (out[k] !== undefined && !(typeof out[k] === 'string' && COL.test(out[k].trim()))) delete out[k]; });
+  if (out.ulMode !== undefined && out.ulMode !== 'active' && out.ulMode !== 'kw') delete out.ulMode;
+  if (out.ulH !== undefined && !(typeof out.ulH === 'number' && out.ulH >= 0.03 && out.ulH <= 0.5)) delete out.ulH;
+  if (out.emoSide !== undefined && typeof out.emoSide !== 'boolean') delete out.emoSide;
+  if (out.emS !== undefined && !(typeof out.emS === 'number' && out.emS >= 1 && out.emS <= 2.2)) delete out.emS; // = EMS_MAX
+  if (out.motion !== undefined && ['highlight', 'reveal', 'fill', 'none', 'type'].indexOf(out.motion) < 0) delete out.motion;
+  if (out.anim !== undefined && !(out.anim === 'none' || (typeof ANIM_KEYFRAMES === 'object' && Object.prototype.hasOwnProperty.call(ANIM_KEYFRAMES, out.anim)))) delete out.anim;
   return out;
 }
 function normalizeTemplate(t) {
@@ -8371,6 +8541,9 @@ async function syncTemplatesWithCloud(user) {
 var _presetPrevLayout = null;
 function applyPresetLayout(lay) {
   if (!_presetPrevLayout) _presetPrevLayout = { wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS };
+  // Bringt das Preset Emoji-/Schlagwort-Schalter mit, den vorherigen Stand fürs Zurückwechseln merken (Nutzer-Klick auf den Schalter vergisst ihn wieder)
+  if (typeof lay.emoji === 'boolean' && _presetPrevLayout.emoji === undefined) _presetPrevLayout.emoji = emEmoji;
+  if (typeof lay.kw === 'boolean' && _presetPrevLayout.kw === undefined) _presetPrevLayout.kw = emKw;
   applyTemplateSettings(lay);
 }
 function restorePresetLayout() {
@@ -8485,7 +8658,16 @@ function buildPicker() {
     hdr2.textContent = 'Presets';
     c.appendChild(hdr2);
   }
-  presets.forEach(function(s){ c.appendChild(makeStyleTile(s)); });
+  var moreShown = false;
+  presets.forEach(function(s) {
+    if (!moreShown && STYLE_MORE.indexOf(s.id) >= 0) { // schwächere Looks hinter den neuen/starken
+      moreShown = true;
+      var hdrM = document.createElement('div');
+      hdrM.className = 'stile-group more'; hdrM.textContent = 'More looks';
+      c.appendChild(hdrM);
+    }
+    c.appendChild(makeStyleTile(s));
+  });
   c.scrollTop = keepScroll;
   if (keepLeft) c.scrollLeft = keepLeft;
   var cnt = document.getElementById('tplCount');
@@ -9338,6 +9520,10 @@ function dropToStyle(o, now) {
   if (!st.thumbBg) st.thumbBg = CS_THUMB_BG;
   var lay = o.layout && typeof o.layout === 'object' ? o.layout : null;
   if (lay && lay.wpb >= 1 && lay.wpb <= 8 && lay.lines >= 1 && lay.lines <= 3) st.layout = { wpb: Math.floor(lay.wpb), lines: Math.floor(lay.lines) };
+  if (st.layout) { // optional: Emojis/Schlagwörter beim Wählen des Looks einschalten (z. B. Sticker-Emoji, Schlagwort gross)
+    if (typeof lay.emoji === 'boolean') st.layout.emoji = lay.emoji;
+    if (typeof lay.kw === 'boolean') st.layout.kw = lay.kw;
+  }
   var t = Date.parse(o.added);
   if (t && (now || Date.now()) - t < DROP_NEW_DAYS * 864e5) st.badge = 'New';
   st._drop = true;
@@ -9349,7 +9535,8 @@ function applyStyleDrops(list, now) {
   var add = [];
   list.slice(0, 12).forEach(function(o) { var st = dropToStyle(o, now); if (st && !add.some(function(x){ return x.id === st.id; })) add.push(st); });
   if (!add.length) return 0;
-  STYLES.unshift.apply(STYLES, add);
+  var at = 0; STYLES.forEach(function(x, i){ if (x.id === STYLE_FIRST) at = i + 1; }); // direkt hinter dem Standard-Look (Bold Pop)
+  STYLES.splice.apply(STYLES, [at, 0].concat(add));
   _dropIds = add.map(function(x){ return x.id; }).concat(_dropIds);
   return add.length;
 }
@@ -9444,7 +9631,8 @@ function renderLandChips() {
   var bid = landBrandId();
   var cur = resolveStyleId(landPick || bid || activeId);
   var tpls = landTemplates(bid);
-  var ids = _dropIds.slice(0, 2).concat(LAND_CHIPS).filter(function(id){ return STYLES.some(function(s){ return s.id === id; }); });
+  // Reihenfolge: Standard-Look (Bold Pop) zuerst, dann die neuesten Style Drops, dann die übrigen Chips (eigene Templates stehen in eigener Gruppe davor)
+  var ids = LAND_CHIPS.slice(0, 1).concat(_dropIds.slice(0, 2), LAND_CHIPS.slice(1)).filter(function(id){ return STYLES.some(function(s){ return s.id === id; }); });
   if (cur && ids.indexOf(cur) < 0 && STYLES.some(function(s){ return s.id === cur && !s._isTpl && s.id !== 'custom'; })) ids.unshift(cur);
   var addChip = function(id, isTpl) {
     var s = STYLES.find(function(x){ return x.id === id; });
@@ -13344,12 +13532,14 @@ var ANIM_KEYFRAMES = {
   flash:  [[0,{op:.35},'out'],[100,{op:1}]],                           // Fade in: .35 → 1, ease-out, nur ANIM_DURS.flash (0,12 s)
   glow:   [[0,{glow:0}],[30,{glow:1}],[100,{glow:0}]],                 // Glow: Leuchten in der Highlight-Farbe
   punch:  [[0,{sx:1.28,sy:1.28},'out'],[100,{sx:1,sy:1}]],             // Punch: 1.28 → 1 (ease-out)
-  wobble: [[0,{ty:.22,op:.5}],[100,{ty:0,op:1}]]                       // Alt-Name = Lift
+  wobble: [[0,{ty:.22,op:.5}],[100,{ty:0,op:1}]],                      // Alt-Name = Lift
+  overshoot: [[0,{sx:.6,sy:.6,op:.2},'out'],[45,{sx:1.18,sy:1.18,op:1}],[75,{sx:.97,sy:.97}],[100,{sx:1,sy:1}]], // Overshoot: .6 → 1.18 → .97 → 1 (federnd)
+  squash: [[0,{sx:1.35,sy:.7,ty:.06,op:.3},'out'],[30,{sx:.88,sy:1.22,ty:-.04,op:1}],[62,{sx:1.05,sy:.96,ty:0}],[100,{sx:1,sy:1,ty:0}]] // Squash: breit-flach → hoch-schmal → 1
 };
 var ANIM_DUR = 0.34;
 // Dauer je Animation (Standard ANIM_DUR). Fade in (flash) = Look „Tight“: Ein-Wort-Blöcke dauern oft nur 0,3 s — mit 0,34 s Fade von 0 stand das Wort fast
 // die ganze Zeit halbtransparent. Jetzt .35 → 1 in 0,12 s (ease-out). Vorschau (animState) und Export (drawCaptionsOnCtx) nutzen dieselbe Kurve.
-var ANIM_DURS = { flash: 0.12 };
+var ANIM_DURS = { flash: 0.12, overshoot: 0.3, squash: 0.32 };
 function animDur(anim) { return ANIM_DURS[anim] || ANIM_DUR; }
 // Pop/Punch skaliert das aktive Wort um seine Mitte. Bei langen Wörtern wuchs es dabei über die Hälfte des Wortabstands in die Nachbarn
 // («wieschnell», ~0,3 s lang) — das Layout steht fest und darf sich nicht verschieben. Darum wächst das Wort pro Seite höchstens
@@ -13578,8 +13768,11 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
   var bf = capBlockFx(bi, t, forced, false);
   if (!(bf.op > 0)) return;
   var fx = b.words.map(function(w, i){ return capWordFx(s, b, i, wi, t, forced, false); });
+  var emk0 = (s.ul || mode === 'type') ? blockEmph(b) : null;
+  var ulf = s.ul ? b.words.map(function(w, i){ return capUlFx(s, b, i, wi, t, forced, false, emk0); }) : null; // Unterstreichung je Originalwort
 
   var L0 = capLayout(ctx, b, bi, wi, s, W, H);
+  _capCycBase = s.hlCycle ? capBlockBase(bi) : 0; // nach capLayout (dessen DOM-Messung ruft buildCap und setzt die Basis zurück)
   var scale = L0.scale, fsS = L0.fsS, fn = L0.fn, fw = L0.fw, fi = L0.fi, lsPxS = L0.lsPxS, sp = L0.sp;
   var lines = L0.lines, lineWs = L0.lineWs, lh = L0.lh, y0 = L0.y0, capA = L0.capA, capD = L0.capD;
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
@@ -13587,7 +13780,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
   // Alles andere (Box, Akzentstrich, Wörter im Endzustand mit ihren Schatten/Glows) liegt in einer statischen
   // Ebene, die je (Layout, Endzustände) EINMAL in einen Offscreen-Canvas gemalt und pro Frame nur per drawImage
   // eingesetzt wird. Große Blur-Glows (Petal, Vivid) kosteten sonst pro Wort und Frame — Export bis 6× langsamer.
-  function isLive(i) { return (hlOn && i === wi) || !capFxSteady(fx[i], mode); }
+  function isLive(i) { return (hlOn && i === wi) || !capFxSteady(fx[i], mode) || !!(ulf && ulf[i] && (ulf[i].k < 1 || ulf[i].op < 1)); }
   ctx.save();
   if (bf.op < 1) ctx.globalAlpha *= bf.op;
   // Horizontaler Versatz (capHOff, % der Rahmenbreite) = Vorschau (capApplyH): eine Verschiebung für alles — Box, Wörter, Emoji, statische Ebene
@@ -13598,7 +13791,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
   var useLayer = !!(ctx.canvas && typeof document !== 'undefined' && document.createElement && ctx.canvas.width === W);
   if (useLayer) {
     var sig = [];
-    fx.forEach(function(f, i) { if (!isLive(i) && f.op > 0) sig.push(i + (f.hk ? 'h' : '') + (f.op < 1 ? 'd' : '')); });
+    fx.forEach(function(f, i) { if (!isLive(i) && f.op > 0) sig.push(i + (f.hk ? 'h' : '') + (f.op < 1 ? 'd' : '') + (ulf && ulf[i] ? 'u' : '')); });
     var lkey = _capLayoutCache.key + '|' + mode + '|' + sig.join(',') + '|' + (s.id || '');
     var lc = _capStaticLayer;
     if (!lc || lc.key !== lkey || lc.s !== s || lc.W !== W || lc.H !== H) {
@@ -13636,12 +13829,26 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
       var widest = Math.max.apply(null, lineWs);
       var padX = 18 * scale, padY = 5 * scale;
       var radius = parseFloat(s.boxBr || '6') * scale;
-      ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
-      ctx.fillStyle = s.boxBg;
-      ctx.beginPath();
       var bx = W/2 - widest/2 - padX, by = L0.boxT, bw = widest + padX*2, bh = L0.boxB - L0.boxT; // = .cap-root inkl. Padding (capLayout)
-      if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
-      ctx.fill(); ctx.restore();
+      var boxPath = function(x, y, w, h, r) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
+      var boxA = (cssColorToHexA(s.boxBg) || { a: 1 }).a;
+      if (boxA < 0.99 && typeof ctx.clip === 'function') {
+        // Durchscheinende Box (Glas, Subtitle): CSS zeichnet den Schatten NUR ausserhalb der Box, der Canvas auch darunter (→ dunklere Box).
+        // Darum Schatten in einer Auswahl «alles ausser der Box» zeichnen, die Fläche danach ohne Schatten.
+        ctx.save(); ctx.beginPath(); ctx.rect(-W, -H, 3 * W, 3 * H);
+        if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
+        ctx.clip('evenodd');
+        ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
+        ctx.fillStyle = s.boxBg; boxPath(bx, by, bw, bh, radius); ctx.fill(); ctx.restore();
+        ctx.save(); ctx.fillStyle = s.boxBg; boxPath(bx, by, bw, bh, radius); ctx.fill(); ctx.restore();
+      } else {
+        ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
+        ctx.fillStyle = s.boxBg; boxPath(bx, by, bw, bh, radius); ctx.fill(); ctx.restore();
+      }
+      if (s.boxBd) { // Innenrand 1 px (Vorschau-px) wie «inset 0 0 0 1px» im DOM
+        var bl = Math.max(1, scale);
+        ctx.save(); ctx.strokeStyle = s.boxBd; ctx.lineWidth = bl; boxPath(bx + bl / 2, by + bl / 2, bw - bl, bh - bl, Math.max(0, radius - bl / 2)); ctx.stroke(); ctx.restore();
+      }
     }
 
     // "evo"-Style: linker Akzentstrich (s.pill, im DOM eine umschließende Box mit border-left) — fehlte
@@ -13698,7 +13905,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
     }
     function activeWordSprite(ctx, wo, tx, tw, plan, isHL, isKw, gq) {
       // plan enthält schon die Glow-Schichten der Animation (in 1/16-Stufen gq quantisiert); Transformationen kommen beim Einsetzen dazu
-      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txtH + '|' + gq + '|' + ctx.font + '|' + lsPxS;
+      var key = _capLayoutCache.key + '|' + wi + '|' + wo.txtH + '|' + gq + '|' + ctx.font + '|' + lsPxS + '|' + _capCycBase;
       var hit = _wordSpriteCache.get(key);
       if (hit) return hit;
       var m = 6, fsW = wo.e ? fsS * L0.esc : fsS;
@@ -13726,7 +13933,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
         if ((mode2 === 'static' && live) || (mode2 === 'live' && !live)) return;
         var animSt = f.a, op = f.op * (animSt ? animSt.op : 1);
         if (animSt && (animSt.sx !== 1 || animSt.sy !== 1)) { // Pop: Wortabstand bleibt erhalten (s. capPopFactor)
-          var popF = capPopFactor(s.anim, wo.w, fsS);
+          var popF = capPopFactor(s.anim, b.words.length > 1 ? wo.w : 0, fsS); // Ein-Wort-Block: kein Nachbar → voller Pop (wie die Vorschau)
           if (popF < 1) animSt = { sx: 1 + (animSt.sx - 1) * popF, sy: 1 + (animSt.sy - 1) * popF, ty: animSt.ty, rot: animSt.rot, op: animSt.op, glow: animSt.glow };
         }
         if (!(op > 0)) return; // Reveal: noch nicht gesprochen (Platz bleibt reserviert)
@@ -13736,6 +13943,16 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
         var tx = x + (wo.w - tw) / 2; // im festen Wortplatz zentriert (DOM: min-width + text-align:center)
         var isKw = !isHL && !!wo.e; // hervorgehoben (KI/Nutzer/alte Keyword-Liste), s. blockEmph
         wordFont(isHL, wo.e, wo.t);
+
+        // Unterstreichung (Marker-Strich) hinter dem Wort: Unterkante der Wortbox = wo.y + capD (Vorschau: offsetTop + Zeilenhöhe)
+        var ulr = ulf && ulf[wo.idx];
+        if (ulr) {
+          var ur = capUlRect(s, wo.x, wo.y + capD, wo.w, fsS, ulr.k);
+          ctx.save(); ctx.shadowColor = 'transparent'; if (ulr.op < 1) ctx.globalAlpha *= ulr.op;
+          ctx.fillStyle = s.ul; ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(ur.x, ur.y, ur.w, ur.h, ur.h / 2); else ctx.rect(ur.x, ur.y, ur.w, ur.h);
+          ctx.fill(); ctx.restore();
+        }
 
         // Kringel ums aktive Wort (Sketch, wie Referenz)
         if (isHL && s.circle) {
@@ -13783,6 +14000,12 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
           return;
         }
         ctx.save();
+        if (f.tp !== undefined && f.tp > 0 && f.tp < 1 && typeof ctx.clip === 'function') { // Typewriter: nur die ersten n Zeichen (Clip rechts davon)
+          var tn = capTypeN(f.tp, Array.from(txt).length);
+          if (tn < Array.from(txt).length) {
+            ctx.beginPath(); ctx.rect(-4 * W, -4 * H, 4 * W + tx + capTypePrefixW(ctx, txt, tn) + CAP_TYPE_M * fsS, 8 * H); ctx.clip();
+          }
+        }
         var grpOp = op < 1 ? op : 1; // Deckkraft als Gruppe über Text + Schichten (s. drawTextGrouped; Verläufe fallen dort auf je-Aufruf zurück)
         if (animSt || dyPx) {
           var pvx = x + wo.w / 2, pvy = y - fsS * 0.32;
@@ -13803,6 +14026,19 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
         ctx.restore();
       });
     });
+    // Typewriter-Cursor (nur live): am Ende des zuletzt getippten Teils des aktiven Worts, Zeilenbox × 0,76 (Vorschau: .cap-cur)
+    if (mode2 !== 'static' && mode === 'type' && s.cur && fx[wi] && fx[wi].tp > 0 && capCurOn(b, wi, t, false)) {
+      var cwo = null;
+      lines.forEach(function(L) { L.forEach(function(wo) { if (wo.idx === wi) cwo = wo; }); });
+      if (cwo) {
+        wordFont(false, cwo.e, cwo.t);
+        var cn2 = capTypeN(fx[wi].tp, Array.from(cwo.txt).length), cx2 = cwo.x + (cwo.w - cwo.tw) / 2 + (cn2 > 0 ? capTypePrefixW(ctx, cwo.txt, cn2) : 0) + 0.04 * fsS;
+        var cbh = capA + capD;
+        ctx.save(); ctx.shadowColor = 'transparent'; ctx.fillStyle = s.cur;
+        ctx.fillRect(cx2, cwo.y - capA + cbh * 0.12, 0.07 * fsS, cbh * 0.76);
+        ctx.restore();
+      }
+    }
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   }
 }
