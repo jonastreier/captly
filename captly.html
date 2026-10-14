@@ -1100,6 +1100,89 @@ body.editor-open .lang-hint{display:none}
   .foot-cols{gap:26px}
 }
 @keyframes sheetUp{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+/* ═══ Paket N-Handy (Handy ≤ 640 px; Desktop bleibt unverändert) ═══════════════════════════════════════════════
+   1) Alle Tippflächen im Editor ≥ 44×44 px (Mass = getBoundingClientRect des Elements, keine Pseudo-Trefferzonen).
+   2) Captions-Tab: kompakter Kopf (Tipp 1 Zeile hoch, Video-Leiste/Suchen 44 px) + kleinere Vorschau (PH_CAP_PREV)
+      → mind. 4 Zeilen der Liste sichtbar (375×812), die Liste scrollt im Panel.
+   3) Die Desktop-Timeline erscheint nie ausserhalb des Timeline-Tabs (vorher lag sie nach dem Verkleinern eines
+      breit geladenen Fensters über dem Style-Panel). */
+@media (max-width:640px) {
+  #editor:not(.tl-mode) .tl-wrap{display:none!important}
+  /* Kopfzeile */
+  .btn-back.tb-back{min-width:44px;min-height:44px}
+  .tb-title{min-height:44px;min-width:44px}
+  .tb-icon{width:44px;height:44px}
+  .tb-export{min-height:44px;min-width:68px}
+  .tb-menu button,.tb-menu a,.tb-menu [role=menuitem]{min-height:44px}
+  /* Video-Leiste */
+  .pp-btn,.mute-btn,.sz-btn{width:44px;height:44px}
+  .prog-col{min-height:44px;justify-content:center}
+  .prev-col{padding:8px 12px 6px;gap:8px}
+  /* Captions-Tab: kompakter Kopf, Liste bekommt den Platz */
+  .ctrl-col .csect[data-tab="captions"]{padding-top:6px;padding-bottom:8px}
+  .tr-set{margin:0 0 4px}
+  .tr-set summary,.cs-adv summary,.es-opts summary,.fr-box summary{min-height:44px}
+  .fr-box{margin:0 0 4px}
+  .cap-editor{margin-top:0}
+  .coach{align-items:center;padding:0 0 0 12px;margin-bottom:4px;font-size:12px;line-height:1.35}
+  .coach > span{padding:5px 0}
+  .coach-x{width:44px;height:44px}
+  .cap-segs{gap:4px}
+  .cap-seg{min-height:44px;align-items:center}
+  .cap-seg-time{margin-top:0}
+  .cap-seg-ta{overflow-y:hidden} /* Höhe setzt die Zeile selbst (fitSegHeights); sonst blitzt am Rand ein Scrollbalken */
+  .seg-tools{flex-wrap:wrap;row-gap:2px}
+  .seg-tools .st-sep{flex-basis:100%;width:100%;height:0}
+  .seg-tools button{min-width:44px;height:44px}
+  .seg-emph button{min-height:44px;height:44px}
+  .seg-emph .se-emo{min-width:44px}
+  /* Style-Tab */
+  .cs-chip{min-height:44px}
+  .pos-btn,.fr-row .pos-btn{min-height:44px}
+  .pos-row.seg .pos-btn{min-height:44px}
+  .seg-emph button,.em-chip,.mc-auto,.em-retry{min-height:44px}
+  .em-retry{min-width:44px}
+  .lang-sel,.fr-row .lang-sel,.cs-sel,#tplName,#vocabInput,#kwInput{min-height:44px}
+  .sz-row,.fr-opt,.chk-row,.exp-chk,.cv-chk{min-height:44px}
+  .cs-hex,.cs-op input{min-height:44px}
+  .cs-chipcol{min-height:44px;padding:0 6px 0 0}
+  .cs-sw,.cs-chipcol .cs-sw{width:44px;height:44px;overflow:visible;border-radius:50%;background:none;box-shadow:none}
+  .cs-sw::before{inset:8px;border-radius:50%;background:linear-gradient(var(--sw,#fff),var(--sw,#fff)),repeating-conic-gradient(#c9ccd2 0 25%,#fff 0 50%) 0 0/10px 10px;box-shadow:0 0 0 1px rgba(16,24,28,.25)}
+  .cs-sw .cs-col,.cs-chipcol .cs-sw .cs-col,.cs-dot .cs-col{width:100%;height:100%}
+  .cs-sw.cs-dot:focus-within,.cs-chipcol:focus-within .cs-sw{box-shadow:none}
+  .cs-sw.cs-dot:focus-within::before,.cs-chipcol:focus-within .cs-sw::before{box-shadow:0 0 0 1px rgba(16,24,28,.25),0 0 0 3px rgba(124,58,237,.25)}
+  /* Schalter: Fläche 52×44, Optik unverändert 36×22 (gezeichnet per ::before/::after) */
+  .cs-panel input[type=checkbox].cs-switch{width:52px;height:44px;background:none;border-radius:0}
+  .cs-panel input[type=checkbox].cs-switch::before{content:'';position:absolute;left:8px;top:11px;width:36px;height:22px;border-radius:999px;background:var(--line3);transition:background .15s}
+  .cs-panel input[type=checkbox].cs-switch::after{top:13px;left:10px}
+  .cs-panel input[type=checkbox].cs-switch:checked{background:none}
+  .cs-panel input[type=checkbox].cs-switch:checked::before{background:var(--brand)}
+  /* Regler: Trefferfläche 44 px hoch, Spur bleibt 8 px */
+  .sz-row input[type=range]{height:44px;background:transparent}
+  .sz-row input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:999px;background:var(--line2)}
+  .sz-row input[type=range]::-webkit-slider-thumb{margin-top:-8px}
+  .sz-row input[type=range]::-moz-range-track{height:8px;border-radius:999px;background:var(--line2)}
+  .sz-row input[type=range]{min-width:96px}
+  @media (max-width:380px){.sz-row{flex-wrap:wrap}} /* 320 px: Outline (Regler + Farbe + Hex) bricht um statt den Regler auf 40 px zu quetschen */
+  .tpl-io a,.vocab-hint a{display:inline-flex;align-items:center;min-height:44px;padding:0 6px}
+  .tpl-io{gap:4px}
+  .tpl-menu button{min-height:44px}
+  .stile-menu-btn{width:44px;height:44px;top:-4px;right:-4px;background:none;box-shadow:none;line-height:44px}
+  .stile-menu-btn::before{content:'';position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 2px 6px rgba(0,0,0,.25);z-index:-1}
+  .stile-menu-btn::after{content:none}
+  .es-link{min-height:44px;min-width:44px}
+  .es-post-head{min-height:44px}
+  .es-x,.coach-x{width:44px;height:44px}
+  .ctrl-upload{min-height:47px;display:flex;align-items:center;justify-content:center} /* 47 = 44 + Rahmen: das unsichtbare Datei-Feld füllt die Innenfläche */
+  .tm-item,.tm-kb summary.tm-item{min-height:44px;box-sizing:border-box;padding-top:13px;padding-bottom:13px}
+  .seg-emph button{min-width:44px}
+  /* Haken: Fläche 44×44, Optik ~22 px (Box per ::before, Haken per ::after) */
+  #editor input[type=checkbox]:not(.cs-switch),.exp-sheet input[type=checkbox]:not(.cs-switch){-webkit-appearance:none;appearance:none;position:relative;flex:0 0 auto;width:44px;height:44px;margin:0 -11px;padding:0;border:0;background:none;cursor:pointer}
+  #editor input[type=checkbox]:not(.cs-switch)::before,.exp-sheet input[type=checkbox]:not(.cs-switch)::before{content:'';position:absolute;left:11px;top:11px;width:18px;height:18px;border:2px solid var(--line3);border-radius:6px;background:#fff;transition:background .15s,border-color .15s}
+  #editor input[type=checkbox]:not(.cs-switch):checked::before,.exp-sheet input[type=checkbox]:not(.cs-switch):checked::before{background:var(--brand);border-color:var(--brand)}
+  #editor input[type=checkbox]:not(.cs-switch):checked::after,.exp-sheet input[type=checkbox]:not(.cs-switch):checked::after{content:'';position:absolute;left:18px;top:15px;width:5px;height:10px;border:solid #fff;border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+  #editor input[type=checkbox]:not(.cs-switch):focus-visible::before,.exp-sheet input[type=checkbox]:not(.cs-switch):focus-visible::before{box-shadow:0 0 0 3px rgba(124,58,237,.3)}
+}
 /* Sehr schmale Handys: Preise + Sprache + Anmelden müssen in eine Zeile passen (FAQ bleibt im Footer/Seite erreichbar) */
 @media (max-width:360px){.land-nav-links{gap:10px;margin-left:8px}.land-nav-links a[href="#faq"]{display:none}.land-nav .nav-cta{padding-left:12px;padding-right:12px}}
 </style>
@@ -10132,6 +10215,7 @@ function setEdCompact(on) {
   var ed = document.getElementById('editor'); if (ed && ed.classList) ed.classList.toggle('ed-compact', on);
   if (vidReady) { layoutPreviewFrame(false); _lastKey = null; updateOverlay(); applyPos(); }
 }
+var PH_CAP_PREV = 0.43; // Handy, Captions-Tab: Anteil der Fensterhöhe für die Vorschau-Spalte (Style-Tab: 0.48)
 function layoutPreviewFrame(setFont) {
   var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
   var ar = vid.videoWidth / vid.videoHeight;
@@ -10148,13 +10232,13 @@ function layoutPreviewFrame(setFont) {
   var pcH = pcRect.height || 540;
   // Handy (außer Timeline-Modus): die Spalte wächst mit dem Video → feste Obergrenze statt gemessener Höhe
   // Beim Tippen in einer Zeile (Tastatur offen) kompakter, damit Zeile + Video gleichzeitig sichtbar bleiben.
-  if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * (_edCompact ? 0.34 : 0.48)); // 0.48 statt 0.52: Sheet ~35 px höher → Looks-Streifen + Customize-Chips + Beginn «Text» sichtbar
+  if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * (_edCompact ? 0.34 : (edTab === 'captions' ? PH_CAP_PREV : 0.48))); // Paket N-Handy: Captions-Tab kleinere Vorschau → mind. 4 Zeilen sichtbar // 0.48 statt 0.52: Sheet ~35 px höher → Looks-Streifen + Customize-Chips + Beginn «Text» sichtbar
   var warnEl = document.getElementById('vidWarn'), warnH = (warnEl && warnEl.style.display !== 'none' && warnEl.offsetHeight) ? warnEl.offsetHeight + 10 : 0; // Warnbox unter dem Video braucht Platz
   var maxH = Math.max(100, pcH - padY - ctrlH - 12 - tlReservedHeight() - warnH); // 12 = Abstand Rahmen↔Leiste
   var maxW = Math.min(720, Math.max(100, (pcRect.width || 360) - padX));
   var h = maxH, w = Math.round(h * ar);
   if (w > maxW) { w = maxW; h = Math.round(w / ar); }
-  var minW = (typeof tlShortScreen === 'function' && tlShortScreen()) ? 90 : 120; // Handy quer: lieber ein kleineres Video als abgeschnittene Ränder
+  var minW = (typeof tlShortScreen === 'function' && tlShortScreen()) ? 90 : ((typeof tlPhone === 'function' && tlPhone() && edTab === 'captions' && (window.innerHeight || 700) < 720) ? 96 : 120); // Handy quer: lieber ein kleineres Video als abgeschnittene Ränder
   if (w < minW) { w = minW; h = Math.round(w / ar); }
   // Schrift wächst/schrumpft mit dem Rahmen (Timeline auf/zu, Handy-Tabs, Fenstergrösse): der Export rechnet mit
   // fontSize / Rahmenbreite — ohne Mitskalieren hinge die Textgrösse im Video davon ab, welcher Tab offen war.
@@ -12672,6 +12756,7 @@ function switchTab(name) {
     if (b.setAttribute) b.setAttribute('aria-selected', on ? 'true' : 'false');
   });
   if (name === 'captions') fitSegHeights();
+  if (tlPhone() && name !== 'timeline' && !wasTl) tlRelayout(); // Paket N-Handy: Vorschau-Grösse je Tab (Captions kleiner, Style grösser)
   if (name === 'style') { pickerRevealActive(false, true); csNavSync(); styleHintMaybe(); } // Streifen war im verborgenen Tab nicht scrollbar → jetzt gewählte Kachel mittig
 }
 
@@ -15236,9 +15321,20 @@ function tlReset() {
   });
   // Handy ↔ Desktop (Drehen, Fenstergröße): Timeline-Modus und Tab nachziehen
   if (window.matchMedia) {
+    _tl.wasPhone = tlPhone();
     var onMode = function() {
       tlApplyMode();
       if (!tlPhone() && edTab === 'timeline') switchTab('captions');
+      // Paket N-Handy: Wechsel Desktop ↔ Handy (Fenster verkleinert/gedreht, Emulation) nach dem Laden — die offene
+      // Desktop-Timeline blieb sonst unter dem Handy-Panel stehen und überlagerte Style-/Captions-Tab. Handy = zu
+      // (ohne die Desktop-Wahl zu überschreiben), zurück auf Desktop = gemerkte Wahl.
+      var phNow = tlPhone();
+      if (phNow !== _tl.wasPhone) {
+        _tl.wasPhone = phNow;
+        if (phNow) { if (_tl.open && edTab !== 'timeline') tlSetOpen(false, false); }
+        else if (!tlShortScreen() && !_tl.open) { var pf = null; try { pf = localStorage.getItem(TL_OPEN_KEY); } catch (e) {} tlSetOpen(pf !== '0', false); }
+        if (typeof tlRelayout === 'function') tlRelayout();
+      }
       if (!tlPhone() && tlShortScreen() && _tl.open) { tlSetOpen(false, false); return; } // Drehung ins Querformat: Timeline einklappen
       tlRelayout();
     };
