@@ -328,6 +328,12 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 /* line-height:0: kein Strut der Body-Schrift unter/über der Caption-Box (sonst lag sie bei kleiner Schrift/Zeilenhöhe höher als im Export) */
 #capOverlay{position:absolute;left:0;right:0;z-index:10;text-align:center;padding:0 10px;bottom:12%;line-height:0;pointer-events:auto;cursor:grab;user-select:none;-webkit-user-select:none}
 #capOverlay{touch-action:none}
+/* Hook-Titel (N-KI): Box + Zeilen werden von hookUpdate() in Vorschau-px gesetzt; unter den Untertiteln (z-index 10), nie klickbar */
+#hookTitle{position:absolute;inset:0;z-index:9;pointer-events:none;display:none;overflow:hidden}
+#hookTitle .hk-box{position:absolute}
+#hookTitle .hk-ln{position:absolute;left:0;right:0;text-align:center;white-space:nowrap;overflow:visible;-webkit-font-smoothing:antialiased}
+.hk-row input[type=text]{flex:1;min-width:0;margin:0}
+.hk-row .em-retry{flex:0 0 auto}
 #capOverlay:active{cursor:grabbing}
 .cap-guide{position:absolute;display:none;pointer-events:none;z-index:11;background:rgba(196,181,253,.95);box-shadow:0 0 0 .5px rgba(0,0,0,.35)}
 #capGuideV{top:0;bottom:0;width:1px;margin-left:-.5px}
@@ -1549,6 +1555,7 @@ body.editor-open .lang-hint{display:none}
           <div class="proc-bar"><div class="proc-fill" id="procFill"></div></div>
         </div>
         <div id="capOverlay" onmousedown="capDragStart(event)" ontouchstart="capDragStart(event)" ondblclick="capOverlayDbl(event)" title="Drag to move · double-click to edit the text"></div>
+        <div id="hookTitle" aria-hidden="true"></div>
         <div id="capGuideV" class="cap-guide" aria-hidden="true"></div><div id="capGuideH" class="cap-guide" aria-hidden="true"></div>
         <div id="capInlineEd" class="cap-inline" style="display:none" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
           <textarea id="capInlineTa" rows="2" spellcheck="true" onkeydown="inlineKey(event)" onblur="inlineBlur()" aria-label="Edit caption text"></textarea>
@@ -1807,7 +1814,7 @@ body.editor-open .lang-hint{display:none}
             <div class="cs-sh">Emphasis <span>AI picks the key words</span></div>
             <div class="em-row">
               <button type="button" class="em-chip on" id="emKwBtn" onclick="setEmphKw(!emKw)" aria-pressed="true" title="AI picks the important words and highlights them in the style's accent colour — tap words in the Captions tab to change"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg>Highlight keywords</button>
-              <button type="button" class="em-chip" id="emEmoBtn" onclick="setEmphEmoji(!emEmoji)" aria-pressed="false" title="A fitting emoji on some captions — change or remove it per caption in the Captions tab"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg>Emojis</button>
+              <button type="button" class="em-chip on" id="emEmoBtn" onclick="setEmphEmoji(!emEmoji)" aria-pressed="true" title="A fitting emoji on some captions — change or remove it per caption in the Captions tab"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg>Emojis</button>
             </div>
             <div class="em-row">
               <span class="q-k" title="Smooth punch-in zooms on key moments (video only, never across a scene cut)">Auto zoom</span>
@@ -1819,6 +1826,23 @@ body.editor-open .lang-hint{display:none}
             </div>
             <p class="em-warn" id="emWarnRow" role="status" aria-live="polite" style="display:none"><span id="emWarn" style="display:none"></span> <button type="button" class="em-retry" id="emRetry" onclick="retryEnhance()" style="display:none">Try again</button></p>
             <p class="em-note" id="emNote" role="status" aria-live="polite" style="display:none"></p>
+          </div>
+          <!-- Hook-Titel: grosser Titel in den ersten Sekunden (Standard aus) -->
+          <div class="em-grp" id="hookGrp">
+            <div class="cs-sh">Hook title <span>Big title at the start</span></div>
+            <div class="em-row">
+              <button type="button" class="em-chip" id="hookBtn" onclick="setHookOn(!hookOn)" aria-pressed="false" title="A big title at the top of the first seconds — it stays inside the Reels/TikTok safe area and takes the look's font and accent colour"><svg class="ic" aria-hidden="true"><use href="#i-text"/></svg>Hook title</button>
+            </div>
+            <div class="em-row hk-row" id="hookRow" style="display:none">
+              <input type="text" id="hookTxt" class="lang-sel" maxlength="80" spellcheck="true" autocomplete="off" aria-label="Hook title text" placeholder="Title for the first seconds" oninput="onHookInput(this.value)">
+              <button type="button" class="em-retry" id="hookSug" onclick="suggestHook()" title="Use a new suggestion from your transcript">Suggest</button>
+            </div>
+            <div class="q-row sz-row" id="hookDurRow" style="display:none">
+              <span class="q-k">Shown for</span>
+              <input type="range" min="1" max="4" step="0.5" value="2" id="hookDur" oninput="onHookDur(this.value)" aria-label="How long the hook title is shown">
+              <span class="sz-val" id="hookDurDisp">2 s</span>
+            </div>
+            <p class="em-note" id="hookNote" role="status" aria-live="polite" style="display:none"></p>
           </div>
         </section>
 
@@ -4250,7 +4274,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
 //   w.zm   1 = Zoom-Moment (Punch-in) beginnt bei diesem Wort
 // Darstellung: Vorschau (buildCap) und Export (capLayout/drawCaptionsOnCtx) nutzen dieselben Helfer.
 var EM_KEY = 'capivo.emph';
-var emKw = true, emEmoji = false, emZoom = 'off'; // Schalter im Style-Tab (Default: Keywords an, Rest aus)
+var emKw = true, emEmoji = true, emZoom = 'off'; // Schalter im Style-Tab (Default: Keywords + Emojis an — N-KI: antwortet die KI nicht, zeigt der Schalter den Hinweis; Zoom aus)
 var emSrc = null;      // 'llm' | 'local' | null — Herkunft der automatischen Auswahl
 var EMPH_SCALE = 1.12; // hervorgehobenes Wort ~12 % größer (One Word: s.emS)
 var EMO_REL = 1.35;    // Emoji-Größe relativ zur (angepassten) Caption-Schriftgröße
@@ -4364,12 +4388,14 @@ function emEligible(w) {
   return n.length >= 3 && !emStopSet()[n];
 }
 // Je Caption höchstens ein Wort: Zahl > (Deutsch) längstes grossgeschriebenes Nomen > längstes Inhaltswort (≥ 5
-// Zeichen). Insgesamt max. ~30 % der Wörter. Zoom-Momente (für jede Sprache): zoomFill, dur = Videodauer (optional).
+// Zeichen). Jede Caption mit ≥ 3 Wörtern bekommt MINDESTENS ein Keyword (Paket N-KI: sonst blieb im Fallback ohne KI
+// vieles weiss) — dann auch das längste übrige Inhaltswort (≥ 3 Zeichen). Kürzere Captions (1–2 Wörter): nur starke
+// Treffer, zusammen mit allen übrigen max. ~30 % der Wörter. Zoom-Momente (für jede Sprache): zoomFill, dur = Videodauer (optional).
 function localEmphasis(blocks, lang, dur) {
   var de = /^de/.test(lang || '') || lang === 'german';
   var picks = [];
   (blocks || []).forEach(function(b, bi) {
-    var best = -1, bestScore = 0;
+    var best = -1, bestScore = 0, weak = -1, weakScore = 0;
     (b.words || []).forEach(function(w, i) {
       if (!emEligible(w.word)) return;
       var raw = String(w.word || '').replace(/^[^\p{L}\p{N}]+/u, ''), n = emNorm(w.word), sc = 0;
@@ -4378,13 +4404,19 @@ function localEmphasis(blocks, lang, dur) {
       else if (de && /^\p{Lu}/u.test(raw)) sc = 20 + n.length;
       else if (n.length >= 5) sc = 10 + n.length;
       if (sc > bestScore) { bestScore = sc; best = i; }
+      if (n.length > weakScore) { weakScore = n.length; weak = i; } // längstes Inhaltswort (Rückfall für Captions ab 3 Wörtern)
     });
-    if (best >= 0) picks.push({ b: bi, i: best, sc: bestScore });
+    var must = (b.words || []).length >= 3;
+    if (best < 0 && must && weak >= 0) { best = weak; bestScore = 1; }
+    if (best >= 0) picks.push({ b: bi, i: best, sc: bestScore, must: must });
   });
   var total = 0; (blocks || []).forEach(function(b){ total += (b.words || []).length; });
-  var max = Math.max(1, Math.floor(total * 0.3));
-  if (picks.length > max) picks = picks.slice().sort(function(a, c){ return c.sc - a.sc; }).slice(0, max)
-    .sort(function(a, c){ return a.b - c.b || a.i - c.i; });
+  var max = Math.max(1, Math.floor(total * 0.3)), opt = picks.filter(function(p){ return !p.must; });
+  if (picks.length > max) {
+    var room = Math.max(0, max - (picks.length - opt.length)), keep = {};
+    opt.slice().sort(function(a, c){ return c.sc - a.sc; }).slice(0, room).forEach(function(p){ keep[p.b + ':' + p.i] = 1; });
+    picks = picks.filter(function(p){ return p.must || keep[p.b + ':' + p.i]; });
+  }
   picks.forEach(function(p) {
     var w = blocks[p.b].words[p.i];
     if (w.kw !== 2 && w.kw !== -1) w.kw = 1;
@@ -4550,6 +4582,7 @@ async function runEnhance(force) {
   if (ok) { applyEnhanceResult(results, refs); zoomFill(captionBlocks, emLang(), emVidDur(), 12); emSrc = 'llm'; } // KI lässt grosse Lücken? dann ergänzen
   else { clearAutoFlags(captionBlocks); localEmphasis(captionBlocks, emLang(), emVidDur()); captionBlocks.forEach(syncSrcFlags); emSrc = 'local'; }
   afterEmphChange();
+  if (ok && hookOn && !hookAi) hookFetchAi(); // KI erreichbar → Titelvorschlag holen (optionales Feld hook)
   return emSrc;
 }
 function afterEmphChange(save) {
@@ -4604,6 +4637,297 @@ function syncEmphUI() {
     var txt = !captionBlocks.length ? '' : _enhancing ? 'AI is picking keywords…' : '';
     n.textContent = txt; n.style.display = txt ? '' : 'none';
   }
+}
+
+// ═══════════════════════════════════════
+// HOOK-TITEL (Paket N-KI) — grosser Titel in den ersten Sekunden, oben im Safe-Bereich der Reels-/TikTok-Oberfläche.
+// Layout in EINHEITEN DES VORSCHAU-RAHMENS (previewFrameW × previewFrameH), wie die Untertitel: der Export (drawHookTitle)
+// rechnet dasselbe Layout und skaliert mit W / previewFrameW → Umbruch, Box und Position stimmen mit der Vorschau überein.
+// Zeit = AUSGABEZEIT (nach Auto-Cut; _cuts im Export, in der Vorschau gibt es keine Schnitte). Stil leitet sich vom Look ab:
+// Schrift und Grossschreibung des Looks, fett, Box in der Akzentfarbe (coverEmColor), Schriftfarbe nach Kontrast.
+// Standard AUS: nur wer ihn einschaltet, bekommt ihn (Schalter + Dauer werden gemerkt, der Text gehört zum Video).
+// Textquelle: 1) eigener Text · 2) KI-Vorschlag (optionales Feld `hook` der Post-Antwort von /api/enhance) · 3) lokal: erster Satz, ≤ 6 Wörter.
+var HOOK_KEY = 'capivo.hook', HOOK_DUR_DEF = 2, HOOK_DUR_MIN = 1, HOOK_DUR_MAX = 4, HOOK_WORDS = 6, HOOK_CHARS = 80;
+var HOOK_FADE_IN = 0.22, HOOK_FADE_OUT = 0.22;
+var hookOn = false, hookText = '', hookDur = HOOK_DUR_DEF, hookAi = '', _hookBusy = false;
+(function() {
+  try {
+    var o = JSON.parse((typeof localStorage !== 'undefined' && localStorage.getItem(HOOK_KEY)) || 'null');
+    if (o && typeof o === 'object') {
+      if (typeof o.on === 'boolean') hookOn = o.on;
+      if (+o.dur >= HOOK_DUR_MIN && +o.dur <= HOOK_DUR_MAX) hookDur = +o.dur;
+    }
+  } catch (e) {}
+})();
+function persistHook() { try { localStorage.setItem(HOOK_KEY, JSON.stringify({ on: hookOn, dur: hookDur })); } catch (e) {} }
+function hookClampDur(v) { v = +v; return isFinite(v) ? Math.round(Math.max(HOOK_DUR_MIN, Math.min(HOOK_DUR_MAX, v)) * 10) / 10 : HOOK_DUR_DEF; }
+// Titeltext bereinigen: ein Zeile, ohne Schlusspunkt/-komma (Fragezeichen, Ausrufezeichen, … bleiben), optional auf maxWords gekürzt
+function hookClean(t, maxWords) {
+  t = String(t == null ? '' : t).replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (maxWords) {
+    var ws = t.split(' ');
+    if (ws.length > maxWords) {
+      // Bevorzugt an einem Komma/Doppelpunkt innerhalb der Grenze enden (ab 3 Wörtern), sonst hart kürzen
+      var cut = -1;
+      for (var i = 2; i < maxWords; i++) if (/[,;:–—]$/.test(ws[i])) { cut = i + 1; break; }
+      ws = ws.slice(0, cut > 0 ? cut : maxWords);
+      // Kein hängendes Füllwort am Ende («… deine Reels mehr»): Artikel/Konjunktionen/Präpositionen abschneiden, mind. 3 Wörter
+      while (ws.length > 3 && emStopSet()[emNorm(ws[ws.length - 1])]) ws.pop();
+      t = ws.join(' ');
+    }
+  }
+  t = t.replace(/[\s,;:–—-]+$/, '').replace(/\.+$/, '').trim();
+  if (t.length > HOOK_CHARS) t = t.slice(0, HOOK_CHARS).replace(/\s+\S*$/, '');
+  return t;
+}
+// Lokaler Vorschlag: erster Satz (bei < 3 Wörtern mit dem nächsten), höchstens HOOK_WORDS Wörter
+var _hookLocalCache = { key: '', val: '' };
+function hookLocalText(blocks) {
+  blocks = blocks || captionBlocks;
+  var parts = [];
+  for (var i = 0; i < blocks.length && i < 14; i++) parts.push((blocks[i].words || []).map(function(w){ return w.word; }).join(' '));
+  var all = parts.join(' ').replace(/\s+/g, ' ').trim();
+  if (_hookLocalCache.key === all) return _hookLocalCache.val;
+  var sents = all.match(/[^.!?…]+[.!?…]*/g) || [], out = '';
+  for (var k = 0; k < sents.length; k++) { out = (out + ' ' + sents[k]).trim(); if (out.split(' ').length >= 3) break; }
+  var val = hookClean(out, HOOK_WORDS);
+  _hookLocalCache = { key: all, val: val };
+  return val;
+}
+function hookAutoText() { return hookAi || hookLocalText(); }
+function hookTextNow() { return hookClean(hookText) || hookAutoText(); }
+// Stil aus dem Look: Familie/Gewicht/Grossschreibung, Box = Akzentfarbe, Schriftfarbe nach Helligkeit der Box
+function hookStyleOf(s) {
+  s = s || {};
+  var face = capWordFace(s, false, false), fam = face.fam;
+  var w = capNearestWeight(capFontWeights(fam), 900);
+  var bg = coverEmColor(s), h = bg && cssColorToHexA(bg), hex = h ? h.hex : '#FFD60A';
+  var r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  var lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  return { fam: fam, fw: String(w), bg: hex, ink: lum > 0.58 ? '#111111' : '#ffffff', up: s.tt === 'uppercase' };
+}
+function hookWrap(meas, font, words, maxW) {
+  var lines = [], cur = '', cw = 0, sp = meas(font, ' ');
+  words.forEach(function(wd) {
+    var ww = meas(font, wd);
+    if (cur && cw + sp + ww > maxW) { lines.push({ t: cur, w: cw }); cur = wd; cw = ww; }
+    else { cur = cur ? cur + ' ' + wd : wd; cw = cur === wd ? ww : cw + sp + ww; }
+  });
+  if (cur) lines.push({ t: cur, w: cw });
+  return lines;
+}
+// Baseline-Abstand der ersten Zeile von der Zeilenoberkante (DOM gemessen wie capDomVMetrics; ohne DOM: Modell aus der Canvas-Metrik)
+var _hookProbe = null;
+function hookBaseOff(font, f, lineH, meas) {
+  try {
+    if (typeof document !== 'undefined' && document.body && typeof document.body.appendChild === 'function' && typeof getComputedStyle === 'function') {
+      var host = _hookProbe;
+      if (!host || !host.isConnected) { host = document.createElement('div'); if (host.setAttribute) host.setAttribute('aria-hidden', 'true'); document.body.appendChild(host); _hookProbe = host; }
+      host.style.cssText = 'position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;white-space:nowrap;font:' + font + ';line-height:' + lineH + 'px;';
+      host.innerHTML = 'Hg<span style="display:inline-block;width:0;height:0;vertical-align:baseline"></span>';
+      var off = host.lastChild.getBoundingClientRect().top - host.getBoundingClientRect().top;
+      host.innerHTML = '';
+      if (isFinite(off) && off > 0) return off;
+    }
+  } catch (e) {}
+  var fm = capFontMetrics(capMeasureCtx(), f);
+  return (lineH - (fm.a + fm.d) * f) / 2 + fm.a * f;
+}
+// Layout in Vorschau-Einheiten (Wp × Hp). meas(font, text) → Breite. → null ohne Text.
+// Schrift ~6,6 % der Bezugsbreite (min(Wp, 0,8·Hp): bei 9:16/4:5 die Breite, bei 16:9/1:1 etwas kleiner), max. 3 Zeilen, Box höchstens
+// 75 % der Rahmenbreite (CAP_SAFE_W) bzw. 80 % der Bezugsbreite, Oberkante in der Safe-Zone (SAFE_ZONE.top + SAFE_PAD).
+function hookLayout(meas, s, text, Wp, Hp) {
+  text = hookClean(text);
+  if (!text || !(Wp > 0) || !(Hp > 0)) return null;
+  var st = hookStyleOf(s), words = (st.up ? text.toUpperCase() : text).split(' ');
+  var base = Math.min(Wp, 0.8 * Hp), maxBox = Math.min(Wp * CAP_SAFE_W, base * 0.8);
+  var k = 1, f = 0, font = '', lines = [], widest = 0, padX = 0, inner = 0;
+  for (var it = 0; it < 6; it++) {
+    f = base * 0.066 * k; padX = f * 0.55; inner = maxBox - 2 * padX;
+    font = st.fw + ' ' + f + 'px "' + st.fam + '", sans-serif';
+    lines = hookWrap(meas, font, words, inner);
+    if (lines.length > 1) { // ausgewogen umbrechen (keine Einzelwort-Waise): kleinste Breite, bei der es bei gleicher Zeilenzahl bleibt
+      var lo = Math.max.apply(null, words.map(function(wd){ return meas(font, wd); })), hi = inner, nL = lines.length;
+      for (var bi = 0; bi < 10 && hi - lo > 0.5; bi++) { var mid = (lo + hi) / 2; if (hookWrap(meas, font, words, mid).length <= nL) hi = mid; else lo = mid; }
+      lines = hookWrap(meas, font, words, hi);
+    }
+    widest = Math.max.apply(null, lines.map(function(L){ return L.w; }));
+    if (lines.length <= 3 && widest <= inner + 0.01) break;
+    k *= 0.9;
+  }
+  var lineH = f * 1.12, padY = f * 0.3, boxW = Math.min(maxBox, widest + 2 * padX), boxH = lines.length * lineH + 2 * padY;
+  return { f: f, font: font, fam: st.fam, bg: st.bg, ink: st.ink, lines: lines, lineH: lineH, padX: padX, padY: padY,
+           boxW: boxW, boxH: boxH, boxX: (Wp - boxW) / 2, boxY: Hp * (SAFE_ZONE.top + SAFE_PAD) / 100, radius: f * 0.3,
+           shDy: f * 0.1, shBlur: f * 0.45, bo: hookBaseOff(font, f, lineH, meas), Wp: Wp, Hp: Hp,
+           key: [text, Wp, Hp, font, st.bg, st.ink, st.up ? 1 : 0, _capFontGen].join('|') };
+}
+var _hookLayoutCache = { key: '', val: null };
+function hookLayoutNow(s, text) {
+  var Wp = previewFrameW(), Hp = previewFrameH(), st = hookStyleOf(s), c = _hookLayoutCache;
+  var key = [text, Wp, Hp, st.fam, st.fw, st.bg, st.ink, st.up ? 1 : 0, _capFontGen].join('|');
+  if (c.key === key) return c.val;
+  var ctx = capMeasureCtx(), val = hookLayout(function(font, str) { ctx.font = font; return ctx.measureText(str).width; }, s, text, Wp, Hp);
+  _hookLayoutCache = { key: key, val: val };
+  return val;
+}
+// Zeitverlauf: Ausgabezeit u (s) → { op, dy (in Schriftgrössen; negativ = über dem Ruheplatz) }. rest = Standbild bei Pause (Endzustand).
+function hookOutTime(t, cuts) { return cuts && cuts.length ? rebaseCutTime(t, cuts) : t; }
+function hookFx(u, rest) {
+  if (u === null || u === undefined || !(u >= 0) || !(u < hookDur)) return { op: 0, dy: 0 };
+  if (rest) return { op: 1, dy: 0 };
+  var e = function(x) { return 1 - Math.pow(1 - x, 3); };
+  var a = Math.min(1, u / HOOK_FADE_IN), b = Math.min(1, (hookDur - u) / HOOK_FADE_OUT);
+  return { op: e(Math.min(a, b)), dy: -(1 - e(a)) * 0.45 };
+}
+// Weicht ein Untertitel (Oberkante/Unterkante in Vorschau-Einheiten) dem Titel aus? → nötige Verschiebung nach unten (Vorschau-Einheiten)
+function hookDodgeNeed(L, capTop, capBot) {
+  if (!L || !isFinite(capTop) || !isFinite(capBot)) return 0;
+  var gap = L.f * 0.35, hb = L.boxY + L.boxH + gap;
+  if (capTop >= hb || capBot <= L.boxY - gap) return 0;
+  return Math.max(0, Math.min(hb - capTop, L.Hp - 4 - capBot));
+}
+// Vorschau (DOM): #hookTitle aufbauen/aktualisieren; setzt ov._hkDy (Ausweichen der Untertitel, px) für capDomMotion
+function hookUpdate(t, rest, s, ov) {
+  var el = document.getElementById('hookTitle');
+  if (!el) return;
+  var txt = hookOn ? hookTextNow() : '', fx = txt ? hookFx(hookOutTime(t, null), rest) : { op: 0, dy: 0 };
+  if (!(fx.op > 0)) {
+    if (el._on) { el.style.display = 'none'; el._on = false; }
+    if (ov) ov._hkDy = 0;
+    return;
+  }
+  var L = hookLayoutNow(s, txt);
+  if (!L) { el.style.display = 'none'; el._on = false; if (ov) ov._hkDy = 0; return; }
+  if (el._key !== L.key) {
+    el._key = L.key;
+    el.innerHTML = '<div class="hk-box" style="left:' + L.boxX.toFixed(2) + 'px;top:' + L.boxY.toFixed(2) + 'px;width:' + L.boxW.toFixed(2) + 'px;height:' + L.boxH.toFixed(2)
+      + 'px;border-radius:' + L.radius.toFixed(2) + 'px;background:' + L.bg + ';box-shadow:0 ' + L.shDy.toFixed(2) + 'px ' + L.shBlur.toFixed(2) + 'px rgba(0,0,0,.35)">'
+      + L.lines.map(function(ln, i) {
+          return '<div class="hk-ln" style="top:' + (L.padY + i * L.lineH).toFixed(3) + 'px;height:' + L.lineH.toFixed(3) + 'px;font:' + L.font.replace(/"/g, "'")
+            + ';line-height:' + L.lineH.toFixed(3) + 'px;color:' + L.ink + '">' + escHtml(ln.t) + '</div>';
+        }).join('') + '</div>';
+    el._st = {};
+  }
+  if (!el._on) { el.style.display = 'block'; el._on = true; }
+  capSetSt(el, 'opacity', fx.op < 1 ? fx.op.toFixed(3) : '');
+  capSetSt(el, 'transform', Math.abs(fx.dy) > 1e-4 ? 'translateY(' + (fx.dy * L.f).toFixed(2) + 'px)' : '');
+  // Untertitel-Box (Layoutposition, ohne Transform) gegen die Titel-Box prüfen
+  var dy = 0, root = ov && ov.querySelector ? ov.querySelector('.cap-root') : null;
+  if (root && isFinite(root.offsetTop) && isFinite(ov.offsetTop)) {
+    var top = ov.offsetTop + root.offsetTop;
+    dy = hookDodgeNeed(L, top, top + root.offsetHeight) * fx.op;
+  }
+  if (ov) ov._hkDy = dy;
+}
+// Export (Canvas): Titel zeichnen. cuts = Auto-Cut-Bereiche (Quellzeit), t = Quellzeit. Gibt den Zustand zurück (für das Ausweichen der Untertitel).
+function hookExportState(t, s, W, H, cuts) {
+  if (!hookOn) return null;
+  var txt = hookTextNow();
+  if (!txt) return null;
+  var fx = hookFx(hookOutTime(t, cuts), false);
+  if (!(fx.op > 0)) return null;
+  var L = hookLayoutNow(s, txt);
+  if (!L) return null;
+  var k = W / L.Wp, ky = H / L.Hp;
+  return { L: L, fx: fx, k: k, ky: ky };
+}
+var _hookBuf = null;
+function hookPaint(c, L, k, x, y) {
+  var w = L.boxW * k, h = L.boxH * k, r = L.radius * k;
+  c.save();
+  c.shadowColor = 'rgba(0,0,0,.35)'; c.shadowBlur = L.shBlur * k; c.shadowOffsetX = 0; c.shadowOffsetY = L.shDy * k;
+  c.fillStyle = L.bg; c.beginPath();
+  if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h);
+  c.fill();
+  c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetY = 0;
+  c.fillStyle = L.ink; c.textAlign = 'center'; c.textBaseline = 'alphabetic';
+  c.font = L.font.replace(/[\d.]+px/, (L.f * k) + 'px');
+  if ('letterSpacing' in c) c.letterSpacing = '0px';
+  L.lines.forEach(function(ln, i) { c.fillText(ln.t, x + w / 2, y + (L.padY + i * L.lineH + L.bo) * k); });
+  c.restore();
+}
+function drawHookTitle(ctx, t, s, W, H, cuts) {
+  if (!hookOn) return;
+  var st = hookExportState(t, caseStyle(s), W, H, cuts);
+  if (!st) return;
+  var L = st.L, k = st.k, x = L.boxX * k, y = L.boxY * st.ky + st.fx.dy * L.f * k;
+  if (st.fx.op >= 1 || !(ctx.canvas && typeof document !== 'undefined' && document.createElement)) { hookPaint(ctx, L, k, x, y); return; }
+  // Deckkraft < 1 gilt (wie im DOM) für Box + Text als Gruppe → erst in einen Puffer, dann mit Alpha einsetzen
+  var m = Math.ceil(L.shBlur * k * 1.6 + L.shDy * k + 4), bw = Math.ceil(L.boxW * k + 2 * m), bh = Math.ceil(L.boxH * k + 2 * m);
+  if (!_hookBuf) _hookBuf = document.createElement('canvas');
+  if (_hookBuf.width !== bw || _hookBuf.height !== bh) { _hookBuf.width = bw; _hookBuf.height = bh; }
+  var g = _hookBuf.getContext('2d');
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, bw, bh);
+  hookPaint(g, L, k, m, m);
+  ctx.save(); ctx.globalAlpha *= st.fx.op; ctx.drawImage(_hookBuf, x - m, y - m); ctx.restore();
+}
+// Untertitel weichen dem Titel aus (Export): Verschiebung nach unten in Export-px für die Untertitel-Box [boxT, boxB] (Export-px)
+function hookCapDodge(t, s, W, H, cuts, boxT, boxB) {
+  var st = hookExportState(t, s, W, H, cuts);
+  return st ? hookDodgeNeed(st.L, boxT / st.ky, boxB / st.ky) * st.fx.op * st.ky : 0;
+}
+// ── Schalter / Eingabe (Style-Tab) ──
+function hookReveal() {
+  // Pausiert ausserhalb der Titelzeit: an den Anfang springen, damit die Änderung sichtbar wird
+  var vid = document.getElementById('mainVid');
+  if (!hookOn || !hookTextNow() || !vidReady || !vid || !vid.paused) return;
+  if (!(vid.currentTime < hookDur)) { try { vid.currentTime = 0; } catch (e) {} }
+}
+function hookChanged(reveal) {
+  _lastKey = null;
+  try { updateOverlay(); } catch (e) {}
+  syncHookUI();
+  if (reveal) { hookReveal(); try { updateOverlay(); } catch (e2) {} }
+  scheduleAutosave();
+}
+function setHookOn(on) {
+  hookOn = !!on; persistHook();
+  if (hookOn && !hookAi && !aiOff()) hookFetchAi();
+  hookChanged(true);
+}
+function onHookInput(v) { hookText = String(v == null ? '' : v).slice(0, HOOK_CHARS); hookChanged(true); }
+function onHookDur(v) {
+  hookDur = hookClampDur(v); persistHook();
+  hookChanged(true);
+}
+function suggestHook() {
+  hookText = ''; hookAi = '';
+  var ti = document.getElementById('hookTxt'); if (ti) ti.value = '';
+  hookChanged(true);
+  if (!aiOff()) hookFetchAi(true);
+}
+// KI-Vorschlag: optionales Feld `hook` der Post-Antwort; fehlt es (alter Server, KI aus/nicht erreichbar) → es bleibt beim lokalen Vorschlag
+async function hookFetchAi(force) {
+  if (_hookBusy || !captionBlocks.length || aiOff() || (hookAi && !force) || emSrc === 'local') return '';
+  var ref = captionBlocks, res = '';
+  _hookBusy = true; syncHookUI();
+  try {
+    var j = await postEnhance({ lang: emLang(), want: ['post'], text: transcriptText().replace(/\s+/g, ' ').trim().slice(0, 11500) });
+    if (j && j.post && typeof j.post.hook === 'string') res = hookClean(j.post.hook);
+  } catch (e) { console.warn('Hook-Vorschlag übersprungen:', e && e.message || e); }
+  _hookBusy = false;
+  if (ref === captionBlocks && res) { hookAi = res; hookChanged(false); } else syncHookUI();
+  return res;
+}
+function syncHookUI() {
+  var b = document.getElementById('hookBtn');
+  if (b) { if (b.classList) b.classList.toggle('on', hookOn); if (b.setAttribute) b.setAttribute('aria-pressed', hookOn ? 'true' : 'false'); }
+  ['hookRow', 'hookDurRow', 'hookNote'].forEach(function(id) { var e = document.getElementById(id); if (e) e.style.display = hookOn ? (id === 'hookNote' ? (hookNoteText() ? '' : 'none') : '') : 'none'; });
+  var ti = document.getElementById('hookTxt');
+  if (ti) {
+    if (typeof document.activeElement === 'undefined' || document.activeElement !== ti) ti.value = hookText;
+    ti.placeholder = hookAutoText() || 'Title for the first seconds';
+  }
+  var sl = document.getElementById('hookDur'), d = document.getElementById('hookDurDisp');
+  if (sl && String(sl.value) !== String(hookDur)) sl.value = String(hookDur);
+  if (d) d.textContent = hookDur + ' s';
+  var n = document.getElementById('hookNote'); if (n) n.textContent = hookNoteText();
+}
+function hookNoteText() {
+  if (!hookOn || !captionBlocks.length) return '';
+  if (_hookBusy) return 'Asking the AI for a title…';
+  if (hookText.trim()) return '';
+  return hookAi ? 'AI suggestion — edit it freely.' : 'Suggestion from the start of your video — edit it freely.';
 }
 
 // ── Pro Wort / pro Caption (Captions-Tab) ──
@@ -5090,8 +5414,9 @@ function updateOverlay(t) {
   var ov  = document.getElementById('capOverlay');
   var vid = document.getElementById('mainVid');
   if (t === undefined) t = (vidReady && vid.currentTime) || 0;
+  var tHook = t; // Hook-Titel: Videozeit ohne Timing-Feinschliff
   t = t + timeOff; // Timing-Feinschliff
-  var key;
+  var key, hkDone = false;
 
   if (!captionBlocks.length) {
     // Keine Platzhalter-Caption („Captions appear here“) mehr — während der Transkription zeigt die
@@ -5133,9 +5458,11 @@ function updateOverlay(t) {
       }
       // Pausiert (weder Wiedergabe noch Demo noch Scrubben): Ruhezustand statt eingefrorener Halbanimation (s. capDomMotion)
       var rest = demoT === null && !playing && !capScrubbing();
+      hookUpdate(tHook, rest, s, ov); hkDone = true; // vor capDomMotion: setzt das Ausweichen der Untertitel (ov._hkDy)
       capDomMotion(ov, s, b, bi, wi, demoT !== null ? demoT : t, forced || demoT !== null, rest); // jedes Frame: Ein-/Ausblenden, Reveal/Fill, Farb-/Box-Übergänge
     }
   }
+  if (!hkDone) hookUpdate(tHook, !(vidReady && !vid.paused && !vid.ended) && !capScrubbing(), s, ov); // kein Untertitel-Block: nur der Titel
   document.getElementById('prevBg').style.background = vidReady ? 'transparent' : s.thumbBg; // mit Video nie schwarz hinterlegen (sonst Randlinie an der Rundung)
   applyPreviewZoom(t - timeOff); // Auto-Zoom: nur das Video (CSS-Transform), nie die Captions
   if (!vidReady || vid.paused) positionPlayIcon(); // nur im Pausenzustand sichtbar → kein Layout-Read pro Frame
@@ -5169,7 +5496,8 @@ function capDomMotion(ov, s, b, bi, wi, t, forced, rest) {
   var mode = capMotion(s), rm = capReduceMotion() || !!rest, em = blockEmph(b);
   var bf = capBlockFx(bi, t, forced, rm);
   capSetSt(M.root, 'opacity', bf.op < 1 ? bf.op.toFixed(3) : '');
-  capSetSt(M.root, 'transform', bf.dy > 1e-4 ? 'translateY(' + (bf.dy * M.fpx).toFixed(2) + 'px)' : '');
+  var hkDy = (bf.dy > 1e-4 ? bf.dy * M.fpx : 0) + (ov._hkDy || 0); // + Ausweichen vor dem Hook-Titel (hookUpdate)
+  capSetSt(M.root, 'transform', Math.abs(hkDy) > 1e-4 ? 'translateY(' + hkDy.toFixed(2) + 'px)' : '');
   var fxs = {};
   M.spans.forEach(function(sp) {
     var oi = +sp.getAttribute('data-oi');
@@ -7153,6 +7481,7 @@ function normalizeTemplate(t) {
   if (typeof lay.kw === 'boolean') layOut.kw = lay.kw;
   if (typeof lay.emoji === 'boolean') layOut.emoji = lay.emoji;
   if (['off', 'subtle', 'punchy'].indexOf(lay.zoom) >= 0) layOut.zoom = lay.zoom;
+  if (lay.hook && typeof lay.hook === 'object') layOut.hook = { on: lay.hook.on === true, dur: hookClampDur(lay.hook.dur) };
   // Zielformat (B1): nur wenn das Template eines kennt — alte Templates ohne Feld lassen das Format unangetastet (Original)
   if (lay.aspect !== undefined || lay.fill !== undefined || lay.fmt !== undefined) {
     var tf = normalizeExportFormat({ aspect: lay.aspect !== undefined ? lay.aspect : lay.fmt, fill: lay.fill, pan: lay.pan });
@@ -7240,6 +7569,7 @@ function currentLayout() {
   return { pos: capPos, voff: capVOff, hoff: capHOff, free: capFree, size: fontSize, sizeRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
            mode: displayMode, wpb: WORDS_PER_BLOCK, lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, case: capCase, punct: capNoPunct,
            kw: emKw, emoji: emEmoji, zoom: emZoom, // Emphasis-Schalter gehören zum Look (Brand-Kit)
+           hook: { on: hookOn, dur: hookDur }, // Hook-Titel: Schalter + Dauer reisen mit (der Text gehört zum Video)
            aspect: exportAspect, fill: exportFill, pan: { x: exportPan.x, y: exportPan.y } }; // Zielformat + Ausschnitt
 }
 function newTplId() { return 'tpl_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6); }
@@ -7615,6 +7945,10 @@ function applyTemplateSettings(t) {
     if (typeof t.emoji === 'boolean') emEmoji = t.emoji;
     if (['off', 'subtle', 'punchy'].indexOf(t.zoom) >= 0) emZoom = t.zoom;
     persistEmph(); _zoomPlanKey = null; syncEmphUI(); _lastKey = null; tlRequestDraw();
+  }
+  if (t.hook && typeof t.hook === 'object') { // Hook-Titel aus dem Template (Text bleibt der des Videos)
+    hookOn = t.hook.on === true; hookDur = hookClampDur(t.hook.dur); persistHook();
+    syncHookUI(); _lastKey = null;
   }
   if (t.mode) {
     displayMode = t.mode;
@@ -9051,6 +9385,7 @@ function projectPayload() {
            lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
            noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts,
            emph: { kw: emKw, emoji: emEmoji, zoom: emZoom, src: emSrc } };
+  if (hookOn || hookText) p.hook = { on: hookOn, text: hookText.slice(0, HOOK_CHARS), dur: hookDur, ai: hookAi.slice(0, HOOK_CHARS) }; // fehlt = aus
   if (exportAspect !== 'original') p.fmt = exportFormatState(); // Zielformat + Ausfüllart + Ausschnitt (Original = Standard, kein Eintrag)
   // Cover-Einstellungen (ohne Bild: eigene Fotos bleiben auf dem Gerät und werden nicht im Projekt gespeichert)
   if (coverState.title) p.cover = { t: coverState.t, dark: coverState.dark, grad: coverState.grad, title: coverState.title, kw: coverState.kw || [],
@@ -9135,6 +9470,12 @@ function applyProjectPayload(p) {
     emSrc = p.emph.src === 'llm' || p.emph.src === 'local' ? p.emph.src : null;
   } else if (p.blocks) emSrc = null;
   postCaption = (p.post && typeof p.post.caption === 'string') ? { caption: p.post.caption, hashtags: Array.isArray(p.post.hashtags) ? p.post.hashtags.map(String).slice(0, 10) : [], src: p.post.src === 'local' ? 'local' : 'llm' } : null;
+  // Hook-Titel: gespeicherte Werte des Projekts (kein Eintrag = aus); der gemerkte Schalter der Sitzung bleibt unberührt
+  if (p.hook && typeof p.hook === 'object') {
+    hookOn = p.hook.on === true; hookText = typeof p.hook.text === 'string' ? p.hook.text.slice(0, HOOK_CHARS) : '';
+    hookDur = hookClampDur(p.hook.dur); hookAi = typeof p.hook.ai === 'string' ? hookClean(p.hook.ai) : '';
+  } else { hookOn = false; hookText = ''; hookAi = ''; }
+  syncHookUI();
   coverRestore(p.cover);
   _zoomPlanKey = null; syncEmphUI(); syncPostUI();
   if (p.timeOff !== undefined) { timeOff = Math.max(-0.5, Math.min(0.5, +p.timeOff || 0)); syncTimeOffUI(); }
@@ -10004,7 +10345,7 @@ async function transcribeVideo(file) {
     }
     // Feinschliff im Hintergrund: Captions sind schon sichtbar/bearbeitbar; Korrekturen landen nur, solange
     // niemand etwas geändert hat (sonst still verworfen).
-    emSrc = null; postCaption = null; _zoomPlanKey = null; syncPostUI(); syncEmphUI();
+    emSrc = null; postCaption = null; hookText = ''; hookAi = ''; _zoomPlanKey = null; syncPostUI(); syncEmphUI(); syncHookUI(); // Hook-Titel: neuer Text je Video (Schalter + Dauer bleiben)
     postTranscribeAI(run, CODE_BY_LANG[usedLang] || lc || '', vocab);
     if (billingOn()) loadBilling(); // Restminuten nach dem Lauf aktualisieren
 
@@ -11047,7 +11388,8 @@ async function exportFastWebCodecs(file, o) {
         drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
           drawReframed(ctx, W, H, o.mode || 'original', function(c, w, h, fit, pan){ drawFastFrame(c, frame, w, h, rot, fit, pan); }, o.pan);
         });
-        drawCaptionsOnCtx(ctx, t, o.style, W, H, false);
+        drawCaptionsOnCtx(ctx, t, o.style, W, H, false, cuts);
+        drawHookTitle(ctx, t, o.style, W, H, cuts);
         drawWatermark(ctx, W, H, o.wmOn);
         var vf = new VideoFrame(canvas, { timestamp: outUs, duration: frame.duration || defDurUs, alpha: 'discard' });
         var key = outUs - lastKeyUs >= 2e6; // Keyframe alle 2 s
@@ -11821,7 +12163,8 @@ async function exportVideoWithCaptions() {
     drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
       drawReframed(ctx, W, H, geo.mode, function(c, w, h, fit, pan){ drawVideoFit(c, vid, w, h, fit, pan); }, geo.pan);
     });
-    drawCaptionsOnCtx(ctx, t, s, W, H, false);
+    drawCaptionsOnCtx(ctx, t, s, W, H, false, cutRegions);
+    drawHookTitle(ctx, t, s, W, H, cutRegions);
     drawWatermark(ctx, W, H, wmOn); // nur anonym (beim Export-Start festgelegt)
     requestAnimationFrame(drawLoop);
   }
@@ -12204,9 +12547,10 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   _capLayoutCache = { key: key, s: s, ctx: ctx, val: val };
   return val;
 }
-function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
+function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
   if (!captionBlocks.length) return;
   s = caseStyle(s); // gleiche Case-Regel wie die Vorschau (updateOverlay)
+  var tHook = t; // Hook-Titel: Quellzeit ohne Timing-Feinschliff (cuts = Auto-Cut-Bereiche → Ausgabezeit)
   t = t + timeOff; // Timing-Feinschliff
   var bi = currentBlockIdx(t), forced = false;
   if (bi < 0 && forceShow) { bi = nearestBlockIdx(t); forced = true; }
@@ -12234,6 +12578,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow) {
   var hxPct = capHOff ? capHClamp(capHOff, (Math.max.apply(null, lineWs) + (s.boxBg ? 36 * L0.scale : 0)) / W * 100) : 0;
   if (hxPct) ctx.translate(hxPct / 100 * W, 0);
   if (bf.dy) ctx.translate(0, bf.dy * fsS);
+  if (hookOn) { var hkDy = hookCapDodge(tHook, s, W, H, cuts, L0.boxT, L0.boxB); if (hkDy) ctx.translate(0, hkDy); } // weicht dem Hook-Titel aus (wie die Vorschau, hookUpdate)
   var useLayer = !!(ctx.canvas && typeof document !== 'undefined' && document.createElement && ctx.canvas.width === W);
   if (useLayer) {
     var sig = [];
@@ -13805,12 +14150,14 @@ function openEditor() {
   seedActiveStyle(); // Custom-Regler zeigen den gemerkten Style (sonst HTML-Defaults wie gelbes „Active“)
   syncMaxCharsUI();
   buildPicker(); renderWPills(); updateOverlay();
+  syncEmphUI(); syncHookUI(); // gemerkte Schalter (Keywords/Emojis/Hook-Titel) im Panel zeigen
   applyPos(); // gewählte Position beibehalten
 }
 function openEditorClean() {
   if (_autosaveTimer) autosaveNow();
   _autosaveKey = null; releaseLastExport();
   vidReady = false; currentFile = null; wordTimestamps = []; captionBlocks = []; captionsEdited = false; _trRun++; _vocabUsed = null; syncVocabApply();
+  hookText = ''; hookAi = ''; // Hook-Titel: Text gehört zum Video (Schalter + Dauer bleiben)
   var vid = document.getElementById('mainVid');
   if (vid.src && vid.src.startsWith('blob:')) URL.revokeObjectURL(vid.src);
   vid.src = ''; vid.style.display = 'none';

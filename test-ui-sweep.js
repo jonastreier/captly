@@ -152,6 +152,7 @@ function qaMain() {
       o['cfg.active'] = activeId; o['cfg.lines'] = CAPTION_LINES; o['cfg.wpb'] = WORDS_PER_BLOCK; o['cfg.maxChars'] = CAP_MAX_CHARS;
       o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.hoff'] = capHOff; o['cfg.free'] = capFree; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
       o['cfg.punct'] = capNoPunct ? 1 : 0; o['cfg.kw'] = emKw ? 1 : 0; o['cfg.emoji'] = emEmoji ? 1 : 0; o['cfg.zoom'] = emZoom; o['cfg.timeOff'] = timeOff;
+      o['cfg.hook'] = hookOn ? 1 : 0; o['cfg.hookDur'] = hookDur; o['cfg.hookText'] = hookText; // Hook-Titel (N-KI)
       o['cfg.blocks'] = captionBlocks.length;
       o['cfg.text'] = hash(captionBlocks.map(b => b.text).join('|'));
       o['cfg.timing'] = hash(captionBlocks.map(b => b.start.toFixed(2) + '-' + b.end.toFixed(2)).join('|'));
@@ -386,6 +387,10 @@ const CTL = [
   { id: 'emKwBtn', tab: 'style', op: 'click', sel: '#emKwBtn', values: [null], emph: true, changes: ['cfg.kw', 'dom.hash'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize'] },
   { id: 'emEmoBtn', tab: 'style', op: 'click', sel: '#emEmoBtn', values: [null], changes: ['cfg.emoji', 'dom.hash'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize'],
     setup: sc => sc.page.evaluate(() => { setBlockEmoji(__qa.curBi(), '🔥'); setEmphEmoji(false); }) },
+  // ── Style-Tab: Hook-Titel (N-KI) — Schalter, Text, Dauer; Standard aus ──
+  { id: 'hookBtn', tab: 'style', op: 'click', sel: '#hookBtn', values: [null], changes: ['cfg.hook'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize', 'cfg.blocks'] },
+  { id: 'hookTxt', tab: 'style', op: 'run', values: [null], run: async sc => { await sc.page.evaluate(() => setHookOn(true)); await sc.page.fill('#hookTxt', 'Mein Titel'); }, changes: ['cfg.hookText'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize', 'cfg.blocks'] },
+  { id: 'hookDur', tab: 'style', op: 'range', sel: '#hookDur', values: [1, 3.5], setup: sc => sc.page.evaluate(() => setHookOn(true)), changes: ['cfg.hookDur'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize', 'cfg.blocks'] },
   { id: 'emZoomRow', tab: 'style', op: 'click', values: ['#emZoomRow [data-z="subtle"]', '#emZoomRow [data-z="punchy"]'], changes: ['cfg.zoom', 'dom.vidTransform'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize', 'dom.lines'],
     setup: sc => sc.page.evaluate(() => { captionBlocks[__qa.curBi()].words[0].zm = 1; _zoomPlanKey = null; }), seek: { word: 0, dt: 1.0 } },
   // ── Style-Tab: Customize ──
