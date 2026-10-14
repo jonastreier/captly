@@ -854,6 +854,8 @@ body.editor-open .lang-hint{display:none}
 .es-link{border:none;background:none;padding:4px 2px;font:600 12.5px 'Inter',sans-serif;color:var(--brand-ink);cursor:pointer;border-radius:5px}
 .es-link:hover:not(:disabled){text-decoration:underline}
 .es-link:disabled{color:var(--faint);cursor:default}
+.es-subopts{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.es-subopts .exp-opt > span{min-width:84px}
 .es-opts{margin-top:10px}
 .es-opts summary{font-size:12.5px;font-weight:600;color:var(--ink2);cursor:pointer;list-style:none;user-select:none;padding:4px 0}
 .es-opts summary::-webkit-details-marker{display:none}
@@ -1485,6 +1487,13 @@ body.editor-open .lang-hint{display:none}
       <button type="button" class="es-link" id="btnTXT" onclick="exportTXT()" disabled title="Plain transcript as a .txt file">TXT</button><span aria-hidden="true">·</span>
       <button type="button" class="es-link" id="btnCopy" onclick="copyTranscript()" disabled title="Copy the transcript — e.g. for your post description">Copy text</button><span aria-hidden="true">·</span>
       <button type="button" class="es-link" id="btnCover" onclick="openCover()" disabled title="Make a cover image (thumbnail) for your Reel">Create cover</button>
+    </div>
+    <div class="es-subopts">
+      <label class="exp-opt" title="How the SRT / VTT file is cut into subtitles. Reel snippets = the short blocks you see in the video. Sentences = whole sentences (max. 7 s). 2 lines × 42 = the YouTube / LinkedIn standard."><span>Subtitle files</span>
+        <select id="expSrtMode" class="lang-sel" onchange="setSrtMode(this.value)" aria-label="Subtitle file segmentation">
+          <option value="snippets">Reel snippets</option><option value="sentences">Sentences</option><option value="twolines">2 lines × 42 chars</option>
+        </select></label>
+      <label class="exp-chk"><input type="checkbox" id="expSuffixChk" checked onchange="setFileSuffix(this.checked)"><span>Add “-gluephs” to file names</span></label>
     </div>
     <div id="expOptsWrap">
       <details class="es-opts" id="expOpts"><summary>Options</summary>
@@ -7458,13 +7467,101 @@ function showTplRename(m, id, btn) {
   if (inp.select) inp.select();
 }
 // ── Export/Import (für Nutzer ohne Konto, oder zum Teilen) ──
+// ── Eigene Schriften im Template-Export (Paket B4) ──
+// Nutzt ein exportiertes Template eine vom Nutzer hochgeladene Schrift (IndexedDB 'capivo-fonts'), wird sie als base64
+// mit Name + Format in die JSON-Datei gelegt (fonts: [{ name, format, size, data }]); der Import registriert sie wieder
+// (FontFace) und speichert sie wie einen normalen Upload. Limit je Schrift: 2 MB — grössere bleiben draussen (klare Meldung).
+// Alte Exporte ohne `fonts` bleiben importierbar. Eingebaute Schriften werden nie überschrieben.
+var TPL_FONT_MAX_BYTES = 2 * 1024 * 1024;
+function bytesToB64(u8) {
+  var s = '';
+  for (var i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  return btoa(s);
+}
+function b64ToBytes(b64) {
+  var s = atob(String(b64)), u = new Uint8Array(s.length);
+  for (var i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+  return u;
+}
+// Format an den ersten Bytes erkennen (dem Dateinamen/JSON traut niemand): woff2 | woff | otf | ttf | '' (unbekannt)
+function fontFormatOf(u8) {
+  if (!u8 || u8.length < 4) return '';
+  var t = String.fromCharCode(u8[0], u8[1], u8[2], u8[3]);
+  if (t === 'wOF2') return 'woff2';
+  if (t === 'wOFF') return 'woff';
+  if (t === 'OTTO') return 'otf';
+  if (t === 'true' || t === 'ttcf' || (u8[0] === 0 && u8[1] === 1 && u8[2] === 0 && u8[3] === 0)) return 'ttf';
+  return '';
+}
+// Namen aller Schriften, die ein Template nutzt (Text, aktives Wort, Betonung)
+function templateFontNames(t) {
+  var st = (t && t.style) || {}, out = [];
+  [st.fl, st.font, st.hlFont, st.emFont].forEach(function(f) {
+    var n = cleanFontName(f); if (n && out.indexOf(n) < 0) out.push(n);
+  });
+  return out;
+}
+// Reine Funktion: Export-Objekt bauen. userFonts = [{ name, buf(ArrayBuffer) }] aus dem Gerätespeicher.
+// → { data: JSON-Objekt, fonts: n eingebettet, skipped: [{ name, size, why }] }
+function buildTemplateExport(list, userFonts, nowIso) {
+  var used = [];
+  list.forEach(function(t){ templateFontNames(t).forEach(function(n){ if (used.indexOf(n) < 0) used.push(n); }); });
+  var fonts = [], skipped = [];
+  (userFonts || []).forEach(function(f) {
+    if (!f || used.indexOf(f.name) < 0) return;
+    var u8 = new Uint8Array(f.buf), fmt = fontFormatOf(u8);
+    if (u8.length > TPL_FONT_MAX_BYTES) { skipped.push({ name: f.name, size: u8.length, why: 'size' }); return; }
+    if (!fmt) { skipped.push({ name: f.name, size: u8.length, why: 'format' }); return; }
+    fonts.push({ name: f.name, format: fmt, size: u8.length, data: bytesToB64(u8) });
+  });
+  var data = { app: 'gluephs', kind: 'templates', v: 2, exportedAt: nowIso || new Date().toISOString(), templates: list };
+  if (fonts.length) data.fonts = fonts;
+  return { data: data, fonts: fonts.length, skipped: skipped };
+}
+function exportTemplatesMsg(n, r) {
+  var m = '✓ Exported ' + n + ' template' + (n === 1 ? '' : 's') + (r.fonts ? ' + ' + r.fonts + ' font' + (r.fonts === 1 ? '' : 's') : '');
+  if (r.skipped.length) {
+    m += ' — not included: ' + r.skipped.map(function(s) {
+      return '“' + s.name + '” (' + (s.why === 'size' ? (s.size / 1048576).toFixed(1) + ' MB, max. ' + (TPL_FONT_MAX_BYTES / 1048576) + ' MB' : 'unknown font format') + ')';
+    }).join(', ') + '. Send that font file along separately.';
+  }
+  return m;
+}
 function exportTemplates(e) {
   if (e && e.preventDefault) e.preventDefault();
   var list = liveTemplates();
   if (!list.length) { capToast('No templates yet — save one first.'); return; }
-  var json = JSON.stringify({ app: 'gluephs', kind: 'templates', v: 2, exportedAt: new Date().toISOString(), templates: list }, null, 2);
-  dlBlob(new Blob([json], { type: 'application/json' }), 'gluephs-templates.json');
-  capToast('✓ Exported ' + list.length + ' template' + (list.length === 1 ? '' : 's'));
+  var usesOwn = list.some(function(t){ return templateFontNames(t).some(function(n){ return _userFonts[n]; }); });
+  function finish(userFonts) {
+    var r = buildTemplateExport(list, userFonts);
+    dlBlob(new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' }), 'gluephs-templates.json');
+    capToast(exportTemplatesMsg(list.length, r));
+    return r;
+  }
+  if (!usesOwn) return finish([]); // wie bisher: sofort, ohne Datenbankzugriff
+  return fontDbOp('readonly', function(st){ return st.getAll(); }).then(finish, function(){ return finish([]); });
+}
+// Eingebettete Schriften eines Imports: prüfen (Name, Format an den Bytes, Grösse, Limit) und registrieren + speichern.
+// Gibt ein Promise { added, skipped, failed } zurück (nie reject).
+function importEmbeddedFonts(list) {
+  var res = { added: 0, skipped: 0, failed: 0 };
+  if (!Array.isArray(list) || !list.length || typeof FontFace === 'undefined') return Promise.resolve(res);
+  var jobs = [];
+  list.slice(0, USER_FONT_MAX).forEach(function(f) {
+    try {
+      var name = cleanFontName(f && f.name), u8 = f && typeof f.data === 'string' ? b64ToBytes(f.data) : null;
+      if (!name || !u8 || u8.length > TPL_FONT_MAX_BYTES || !fontFormatOf(u8)) { res.failed++; return; }
+      if (Object.prototype.hasOwnProperty.call(CAP_FONT_W, name) || _userFonts[name]) { res.skipped++; return; } // eingebaut/schon da → nie überschreiben
+      if (Object.keys(_userFonts).length + jobs.length >= USER_FONT_MAX) { res.failed++; return; }
+      jobs.push({ name: name, buf: u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength) });
+    } catch (e) { res.failed++; }
+  });
+  return Promise.all(jobs.map(function(j) {
+    return registerUserFont(j.name, j.buf.slice(0)).then(function() {
+      res.added++;
+      return fontDbOp('readwrite', function(st){ return st.put({ name: j.name, buf: j.buf }); }).catch(function(){}); // Speichern ist Zugabe
+    }, function(){ res.failed++; });
+  })).then(function(){ if (res.added) buildFontSelect(); return res; });
 }
 // Dateien mit app:'capivo' (alte Exporte) und app:'gluephs' werden gleichermassen akzeptiert; andere Herkunft → Fehler.
 // Gibt { imported, skipped, errors } zurück: imported = neu/aktueller/wiederhergestellt, skipped = lokal schon gleich oder neuer,
@@ -7488,6 +7585,8 @@ function importTemplatesFromText(text) {
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
   // über TPL_MAX hinaus fliegen die ältesten raus (pruneTemplates) → nur zählen, was wirklich da ist
   incoming.forEach(function(t){ if (userTemplates.some(function(x){ return x.id === t.id && !x.deleted; })) res.imported++; else res.errors++; });
+  // eingebettete eigene Schriften (B4): asynchron registrieren; res.fontsReady (nicht aufzählbar) löst mit { added, skipped, failed } auf
+  Object.defineProperty(res, 'fontsReady', { value: importEmbeddedFonts(!Array.isArray(data) && data && Array.isArray(data.fonts) ? data.fonts : []) });
   return res;
 }
 function importTemplateMessage(r) {
@@ -7500,9 +7599,12 @@ function importTemplates(input) {
   var f = input && input.files && input.files[0];
   if (!f) return;
   f.text().then(function(txt) {
-    var r = importTemplatesFromText(txt), msg = importTemplateMessage(r);
-    capToast((r.errors && !r.imported ? '' : '✓ ') + msg);
-    setTplStatus(msg, !!r.errors);
+    var r = importTemplatesFromText(txt);
+    return r.fontsReady.then(function(fr) {
+      var msg = importTemplateMessage(r) + (fr.added ? ' · ' + fr.added + ' font' + (fr.added === 1 ? '' : 's') + ' added' : '') + (fr.failed ? ' · ' + fr.failed + ' font' + (fr.failed === 1 ? '' : 's') + ' could not be added' : '');
+      capToast((r.errors && !r.imported ? '' : '✓ ') + msg);
+      setTplStatus(msg, !!r.errors || !!fr.failed);
+    });
   }).catch(function(err) {
     console.error('Template-Import fehlgeschlagen:', err);
     var msg = 'Could not read this file — please choose a Gluephs templates JSON.';
@@ -10586,20 +10688,161 @@ function copyTranscript(srcBtn) {
   else fallback();
   return txt;
 }
-function exportSRT() {
-  var out = captionBlocks.map(function(b, i) {
-    return (i+1) + '\n' + srtT(offT(b.start)) + ' --> ' + srtT(offT(b.end)) + '\n' + subtitleText(b.text);
-  }).join('\n\n');
-  dlText(out, exportBaseName() + '.srt');
+// ── Untertitel-Dateien (SRT/VTT): Segmentierung wählbar (Paket B3) ──
+// «snippets» = die Reel-Blöcke (Standard, wie bisher) · «sentences» = ganze Sätze, max. ~7 s je Cue ·
+// «twolines» = YouTube/LinkedIn-Norm: max. 2 Zeilen à 42 Zeichen, 1–7 s, Zeilenumbruch ausgewogen.
+// Alles reine Funktionen über captionBlocks (Handkorrekturen am Text zählen in jeder Variante).
+var SRT_MODES = ['snippets', 'sentences', 'twolines'], SRT_MODE_KEY = 'capivo.srtMode', FILE_SUFFIX_KEY = 'capivo.fileSuffix';
+var srtMode = 'snippets', fileSuffixOn = true;
+function loadSubOpts() {
+  try {
+    var m = localStorage.getItem(SRT_MODE_KEY); if (SRT_MODES.indexOf(m) >= 0) srtMode = m;
+    fileSuffixOn = localStorage.getItem(FILE_SUFFIX_KEY) !== '0';
+  } catch (e) {}
 }
+loadSubOpts();
+function setSrtMode(v) {
+  srtMode = SRT_MODES.indexOf(v) >= 0 ? v : 'snippets';
+  try { localStorage.setItem(SRT_MODE_KEY, srtMode); } catch (e) {}
+  syncSubOptsUI();
+}
+function setFileSuffix(on) {
+  fileSuffixOn = !!on;
+  try { localStorage.setItem(FILE_SUFFIX_KEY, fileSuffixOn ? '1' : '0'); } catch (e) {}
+  syncSubOptsUI();
+}
+function syncSubOptsUI() {
+  var s = document.getElementById('expSrtMode'); if (s) s.value = srtMode;
+  var c = document.getElementById('expSuffixChk'); if (c) c.checked = fileSuffixOn;
+}
+// Satzende: . ! ? … (auch vor schliessendem Anführungszeichen), ausser Abkürzungen („z. B.“, „Dr.“, Initialen)
+var SUB_ABBR = /^(z\.|d\.h\.|u\.a\.|z\.b\.|dr\.|prof\.|usw\.|bzw\.|ca\.|nr\.|etc\.|vs\.|mr\.|mrs\.|ms\.|st\.|inkl\.|ggf\.|evtl\.|sog\.|max\.|min\.)$/i;
+function subSentEnd(w) {
+  w = String(w);
+  if (!/[.!?…]["'“”»’)]*$/.test(w)) return false;
+  var core = w.replace(/["'“”»’)]+$/, '');
+  return !(SUB_ABBR.test(core) || /^\p{Lu}\.$/u.test(core));
+}
+function subSoftEnd(w) { return /[,;:–—]["'“”»’)]*$/.test(String(w)); }
+// Flache Wortliste mit Zeiten aus den Blöcken. Text = b.text (Handkorrekturen), Zeiten aus b.words, wenn deren Anzahl
+// passt, sonst gleichmässig über den Block verteilt. off = Timing-Feinschliff, caseFn = Gross-/Kleinschreibung.
+function subWordList(blocks, off, caseFn) {
+  var out = [], o = +off || 0, cf = caseFn || function(x){ return x; };
+  (blocks || []).forEach(function(b) {
+    var ws = String(b.text || '').split(/\s+/).filter(Boolean);
+    if (!ws.length) return;
+    var bw = b.words && b.words.length === ws.length ? b.words : null, dur = Math.max(0.1, (b.end - b.start) || 0.1);
+    ws.forEach(function(w, i) {
+      var s = bw ? bw[i].start : b.start + dur * i / ws.length, e = bw ? bw[i].end : b.start + dur * (i + 1) / ws.length;
+      if (!isFinite(s)) s = b.start || 0;
+      if (!isFinite(e) || e < s) e = s;
+      out.push({ w: cf(w), start: Math.max(0, s - o), end: Math.max(0, e - o) });
+    });
+  });
+  return out;
+}
+function subRunDur(run) { return run[run.length - 1].end - run[0].start; }
+// Zeilenumbruch auf höchstens 2 Zeilen à maxCh Zeichen, möglichst gleich lang (null = passt nicht)
+function subLines(ws, maxCh) {
+  var all = ws.join(' ');
+  if (all.length <= maxCh) return [all];
+  var best = null, bd = 1e9;
+  for (var i = 1; i < ws.length; i++) {
+    var a = ws.slice(0, i).join(' '), b = ws.slice(i).join(' ');
+    if (a.length > maxCh || b.length > maxCh) continue;
+    var d = Math.abs(a.length - b.length);
+    if (d < bd) { bd = d; best = [a, b]; }
+  }
+  return best;
+}
+// Zu langen Satz (> maxDur) an der besten Stelle teilen: ausgewogen, Komma/Pause bevorzugt (rekursiv)
+function subSplitLong(run, maxDur) {
+  if (run.length < 2 || subRunDur(run) <= maxDur) return [run];
+  var best = 0, bs = Infinity, n = run.length;
+  for (var i = 0; i < n - 1; i++) {
+    var l = run[i].end - run[0].start, r = run[n - 1].end - run[i + 1].start;
+    var sc = Math.abs(l - r) - (subSoftEnd(run[i].w) ? 1.5 : 0) - Math.min(1, Math.max(0, run[i + 1].start - run[i].end)) * 3;
+    if (sc < bs) { bs = sc; best = i; }
+  }
+  return subSplitLong(run.slice(0, best + 1), maxDur).concat(subSplitLong(run.slice(best + 1), maxDur));
+}
+function subSentences(words, o) {
+  var runs = [], cur = [];
+  words.forEach(function(it, k) {
+    var prev = words[k - 1];
+    if (prev && it.start - prev.end >= o.gap) { runs.push(cur); cur = []; }
+    cur.push(it);
+    if (subSentEnd(it.w)) { runs.push(cur); cur = []; }
+  });
+  if (cur.length) runs.push(cur);
+  var out = [];
+  runs.filter(function(r){ return r.length; }).forEach(function(r){ out = out.concat(subSplitLong(r, o.maxDur)); });
+  return out;
+}
+function subTwoLines(words, o) {
+  var runs = [], cur = [];
+  function fits(arr) { return !!subLines(arr.map(function(x){ return x.w; }), o.maxChars) && subRunDur(arr) <= o.maxDur; }
+  function flush() { if (cur.length) runs.push(cur); cur = []; }
+  words.forEach(function(it) {
+    var prev = cur[cur.length - 1];
+    if (prev) {
+      if (it.start - prev.end >= o.gap) flush();
+      else if (subSentEnd(prev.w) && subRunDur(cur) >= o.minDur) flush();
+      else if (!fits(cur.concat([it]))) {
+        // Platz voll: lieber an einem Komma in der hinteren Hälfte trennen als mitten im Satzteil
+        var tot = cur.map(function(x){ return x.w; }).join(' ').length, cut = -1, acc = 0;
+        for (var j = 0; j < cur.length - 1; j++) { acc += cur[j].w.length + 1; if (subSoftEnd(cur[j].w) && acc >= tot * 0.4) cut = j; }
+        if (cut >= 0) { var rest = cur.slice(cut + 1); cur = cur.slice(0, cut + 1); flush(); cur = rest; }
+        else flush();
+      }
+    }
+    cur.push(it);
+  });
+  flush();
+  // zu kurze Cues (< minDur) mit dem Nachbarn verschmelzen, wenn Zeilen/Dauer es erlauben
+  for (var i = 0; i < runs.length; i++) {
+    if (subRunDur(runs[i]) >= o.minDur) continue;
+    var p = runs[i - 1], n = runs[i + 1];
+    if (p && runs[i][0].start - p[p.length - 1].end < o.gap && fits(p.concat(runs[i]))) { runs[i - 1] = p.concat(runs[i]); runs.splice(i, 1); i--; }
+    else if (n && n[0].start - runs[i][runs[i].length - 1].end < o.gap && fits(runs[i].concat(n))) { runs[i] = runs[i].concat(n); runs.splice(i + 1, 1); i--; }
+  }
+  return runs;
+}
+// Hauptfunktion: Blöcke → Cues [{ start, end, text }] (Sekunden, Zeilenumbruch als \n im Text).
+// opts: off (Zeitversatz), caseFn, maxDur (7), minDur (1), maxChars (42), gap (0,8 Pause = Cue-Grenze)
+function subtitleCues(blocks, mode, opts) {
+  var o = { off: 0, caseFn: null, maxDur: 7, minDur: 1, maxChars: 42, gap: 0.8 };
+  Object.keys(opts || {}).forEach(function(k){ if (opts[k] !== undefined) o[k] = opts[k]; });
+  var cf = o.caseFn || function(x){ return x; };
+  if (mode !== 'sentences' && mode !== 'twolines') {
+    return (blocks || []).map(function(b) { return { start: Math.max(0, b.start - o.off), end: Math.max(0, b.end - o.off), text: cf(String(b.text)) }; });
+  }
+  var words = subWordList(blocks, o.off, cf);
+  var runs = mode === 'sentences' ? subSentences(words, o) : subTwoLines(words, o);
+  var cues = runs.map(function(r) {
+    var ws = r.map(function(x){ return x.w; });
+    var lines = mode === 'twolines' ? (subLines(ws, o.maxChars) || [ws.join(' ')]) : [ws.join(' ')];
+    return { start: r[0].start, end: r[r.length - 1].end, text: lines.join('\n') };
+  });
+  // Cues dürfen sich nicht überlappen; zu kurze Cues (twolines) bis minDur verlängern, soweit der Nachbar Platz lässt
+  for (var i = 0; i < cues.length; i++) {
+    var nx = cues[i + 1], c = cues[i];
+    if (mode === 'twolines' && c.end - c.start < o.minDur) c.end = c.start + o.minDur;
+    if (nx && c.end > nx.start) c.end = Math.max(c.start, nx.start);
+  }
+  return cues;
+}
+function srtFile(cues) {
+  return cues.map(function(c, i){ return (i + 1) + '\n' + srtT(c.start) + ' --> ' + srtT(c.end) + '\n' + c.text; }).join('\n\n');
+}
+function vttCues(cues) {
+  return cues.map(function(c, i){ return (i + 1) + '\n' + vttT(c.start) + ' --> ' + vttT(c.end) + '\n' + c.text; });
+}
+function currentSubCues() { return subtitleCues(captionBlocks, srtMode, { off: timeOff, caseFn: subtitleText }); }
+function exportSRT() { dlText(srtFile(currentSubCues()), exportBaseName() + '.srt'); }
 // Kopfzeile + genau EINE Leerzeile, dann die Cues durch Leerzeilen getrennt (ohne Cues: nur der Kopf)
 function vttFile(cues) { return 'WEBVTT\n\n' + cues.join('\n\n'); }
-function exportVTT() {
-  var cues = captionBlocks.map(function(b, i) {
-    return (i+1) + '\n' + vttT(offT(b.start)) + ' --> ' + vttT(offT(b.end)) + '\n' + subtitleText(b.text);
-  });
-  dlText(vttFile(cues), exportBaseName() + '.vtt');
-}
+function exportVTT() { dlText(vttFile(vttCues(currentSubCues())), exportBaseName() + '.vtt'); }
 function dlText(content, name) {
   var blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
   var url  = URL.createObjectURL(blob);
@@ -12821,6 +13064,7 @@ function openExportSheet() {
   closeMoreMenu();
   if (!isExporting && !_expTok) showExportMain();
   var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
+  syncSubOptsUI();
   syncExpSub(); updateAcctUI(); flushLead(); syncPostUI(); syncExportAgain();
   // E-Mail-Feld sofort zeigen (statt erst nach dem ersten Download-Klick) → Download ist danach EIN Klick.
   // Autofokus nur mit Maus/Trackpad — auf dem Handy würde die Tastatur das halbe Blatt verdecken.
@@ -12904,6 +13148,7 @@ function fileSlug(t) {
 // Basis für ALLE Exporte (MP4/WebM, SRT, VTT, TXT): „mein-reel-gluephs“, ohne Titel „gluephs-video“
 function exportBaseName() {
   var sl = fileSlug(typeof projTitle !== 'undefined' ? projTitle : '');
+  if (typeof fileSuffixOn !== 'undefined' && !fileSuffixOn) return sl || 'video'; // Option «Add -gluephs to file names» aus (B3)
   return sl ? sl + '-gluephs' : 'gluephs-video';
 }
 // Teilen-Blatt mit Datei (iOS „In Fotos sichern“, Android „Galerie“) nur auf Touch-Geräten anbieten
