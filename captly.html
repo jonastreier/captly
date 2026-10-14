@@ -310,6 +310,17 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .prev-frame.reframe-blur #mainVid{object-fit:contain!important;inset:0;width:100%;height:100%}
 .vid-warn{max-width:360px;width:100%;background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:9px;padding:8px 10px;font-size:12.5px;line-height:1.45}
 .exp-opts{display:flex;flex-direction:column;gap:6px;margin-bottom:9px}
+/* Ausgabeformat im Editor (N3): Format-Pille + «Als 9:16-Reel ausgeben?»-Hinweis über der Vorschau (im Fluss, überdeckt nichts) */
+.fmt-bar{width:100%;max-width:420px;display:flex;flex-direction:column;gap:8px;align-items:stretch;flex-shrink:0}
+.fmt-pill{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--ink2)}
+.fmt-pill select.lang-sel{width:auto;margin:0;padding:4px 10px;min-height:30px;border-radius:999px;font-size:12.5px;font-weight:600}
+.fmt-hint{background:var(--brand-soft);border:1px solid var(--brand-line);border-radius:12px;padding:8px 8px 8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+.fh-q{flex:1 1 150px;min-width:0;font:700 13px 'Inter',sans-serif;color:var(--brand-ink);line-height:1.3}
+.fh-btns{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.fh-btns button{min-height:32px;padding:0 12px;border:1px solid var(--brand-line);border-radius:999px;background:#fff;color:var(--brand-ink);font:600 12.5px 'Inter',sans-serif;cursor:pointer;white-space:nowrap}
+.fh-btns button.fh-keep{border-color:var(--line2);color:var(--ink2);background:transparent}
+.fh-x{width:30px;height:30px;border:none;border-radius:50%;background:none;color:var(--ink2);font-size:18px;line-height:1;cursor:pointer;margin-left:auto}
+@media (pointer:coarse){.fh-btns button{min-height:38px}.fh-x{width:38px;height:38px}.fmt-pill select.lang-sel{min-height:36px}}
 .exp-opt{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2)}
 .exp-opt > span{min-width:74px}
 .exp-opt .lang-sel{margin:0;flex:1;padding:6px 8px;font-size:12.5px}
@@ -1540,6 +1551,27 @@ body.editor-open .lang-hint{display:none}
   <div class="ed-body" id="edBody">
     <!-- Preview -->
     <div class="prev-col" id="prevCol">
+      <!-- Ausgabeformat im Editor (N3): eine Quelle der Wahrheit mit dem Export-Popup (exportAspect/exportFill, syncFormatRow) -->
+      <div class="fmt-bar" id="fmtBar" style="display:none">
+        <div class="fmt-hint" id="fmtHint" role="status" style="display:none">
+          <span class="fh-q" id="fhQ">Make this a 9:16 Reel?</span>
+          <span class="fh-btns">
+            <button type="button" id="fhCrop" onclick="fmtHintAnswer('crop')" title="Fill the 9:16 frame — the sides are cropped (drag the preview to choose the part)">Crop</button>
+            <button type="button" id="fhBlur" onclick="fmtHintAnswer('blur')" title="Show the whole video on a blurred background">Blur</button>
+            <button type="button" id="fhKeep" class="fh-keep" onclick="fmtHintAnswer('keep')" title="Keep the video as it is">Keep</button>
+          </span>
+          <button type="button" class="fh-x" id="fhClose" onclick="fmtHintAnswer('keep')" aria-label="Dismiss" title="Dismiss">&times;</button>
+        </div>
+        <div class="fmt-pill" id="fmtPill">
+          <label for="edFmt">Format</label>
+          <select id="edFmt" class="lang-sel" onchange="setExportFormat(this.value)" aria-label="Output format">
+            <option value="original">Original</option><option value="9:16">9:16 · Reels</option><option value="1:1">1:1 · Square</option><option value="4:5">4:5 · Feed</option><option value="16:9">16:9 · Wide</option>
+          </select>
+          <select id="edFill" class="lang-sel" onchange="setExportFill(this.value)" aria-label="Fill: crop or blurred background" style="display:none">
+            <option value="crop">Crop</option><option value="blur">Blur</option>
+          </select>
+        </div>
+      </div>
       <div class="prev-frame" id="prevFrame" onclick="if(vidReady && !capDragMoved && !panMoved)togglePlay()">
         <div id="prevBg"></div>
         <canvas id="prevBlurBg" width="36" height="64" aria-hidden="true"></canvas>
@@ -8016,6 +8048,40 @@ function clampPct(v) { return Math.max(0, Math.min(85, v)); }
 var SAFE_PAD = 1; // % Luft zur Safe-Zone-Kante
 function capTopPct(off) { return Math.round(Math.max(capFree ? 0 : SAFE_ZONE.top + SAFE_PAD, clampPct(10 - off)) * 100) / 100; }
 function capBottomPct(off) { return Math.round(Math.max(capFree ? 0 : SAFE_ZONE.bottom + SAFE_PAD, clampPct(12 + off)) * 100) / 100; }
+// Fill «blur» (N7): das scharfe Video liegt als Band mittig im Rahmen, darüber/darunter nur Unschärfe. Ein Untertitel auf der
+// Bandkante (halb auf Bild, halb auf Unschärfe) hat schlechten Kontrast → bei Preset-Position (nicht frei gezogen) liegt die Box
+// ganz in der Unschärfe-Zone (Preset «Bottom» → unter dem Band, «Top» → über dem Band; mit Abstand zur Kante UND innerhalb der
+// Safe-Zone) oder, wenn dort kein Platz ist, ganz im Band. Frei verschobene Untertitel (capFree) behalten ihre Position.
+// Vorschau (clampCapVertical) und Export (capLayout) rechnen mit denselben Funktionen.
+var CAP_BLUR_GAP = 0.015; // Mindestabstand Box ↔ Bandkante, Anteil der Rahmenhöhe
+// Bildband des Videos auf der Leinwand W×H (px) bei Fill «blur», sonst null (auch wenn das Band fast die ganze Höhe füllt)
+function capBlurBand(W, H, srcW, srcH) {
+  var vid = (srcW === undefined) ? document.getElementById('mainVid') : null;
+  if (vid) { srcW = vid.videoWidth; srcH = vid.videoHeight; }
+  if (!(W > 0 && H > 0 && srcW > 0 && srcH > 0) || exportReframeMode(srcW, srcH) !== 'blur') return null;
+  var a = EXPORT_ASPECTS[exportAspect];
+  if (!a || Math.abs(W / H / (a[0] / a[1]) - 1) > 0.03) return null; // Leinwand hat nicht das Ausgabeformat (z. B. Cover)
+  var bh = srcH * Math.min(W / srcW, H / srcH);
+  if (bh > H * 0.97) return null; // Pillarbox (Band füllt die Höhe): nichts zu vermeiden
+  var top = (H - bh) / 2;
+  return { top: top, bot: top + bh };
+}
+// Neue Box-Oberkante (px, Leinwandhöhe H) für eine Box der Höhe h, die bei t liegen würde. pos: 'top' | 'center' | 'bottom'.
+function capBlurTop(t, h, H, band, pos, free) {
+  if (!band || free || pos === 'center') return t;
+  var m = H * CAP_BLUR_GAP, lo = H * (SAFE_ZONE.top + SAFE_PAD) / 100, hi = H * (1 - (SAFE_ZONE.bottom + SAFE_PAD) / 100);
+  var bt = band.top, bb = band.bot;
+  if (t + h <= bt - m + 0.01 || t >= bb + m - 0.01) return t; // schon sauber in der Unschärfe (mit Abstand)
+  var zb0 = bb + m, zb1 = hi, za0 = lo, za1 = bt - m; // Zonen unter / über dem Band (Box-Ober-/Unterkante)
+  var cand = {
+    below: (zb1 - zb0 >= h) ? zb0 + (zb1 - zb0 - h) / 2 : null,
+    above: (za1 - za0 >= h) ? za0 + (za1 - za0 - h) / 2 : null,
+    inside: (bb - bt - 2 * m >= h) ? (pos === 'top' ? bt + m : bb - m - h) : null
+  };
+  var order = pos === 'top' ? ['above', 'inside', 'below'] : ['below', 'inside', 'above'];
+  for (var i = 0; i < order.length; i++) if (cand[order[i]] !== null) return cand[order[i]];
+  return Math.max(bt, Math.min(bb - h, t)); // nichts passt: wenigstens im Band halten
+}
 function applyPos() {
   var ov = document.getElementById('capOverlay');
   ov.style.top = ''; ov.style.bottom = ''; ov.style.transform = '';
@@ -8071,6 +8137,19 @@ function clampCapVertical() {
   var fr = frame.getBoundingClientRect(), r = child.getBoundingClientRect();
   if (!fr.height || !r.height) return;
   var z = zoomLevel || 1, pad = 4;
+  // Fill «blur» (N7): Box von der Bandkante weg in die Unschärfe-Zone (oder ganz ins Band) — gleiche Rechnung wie capLayout
+  if (!capFree && capPos !== 'center') {
+    var bBand = capBlurBand(fr.width / z, fr.height / z);
+    if (bBand) {
+      var bt0 = (r.top - fr.top) / z, bt1 = capBlurTop(bt0, r.height / z, fr.height / z, bBand, capPos, capFree);
+      if (Math.abs(bt1 - bt0) > 0.25) {
+        ov._capClamped = true; // beim nächsten Block wird applyPos() neu aufgerufen (Höhe kann sich ändern)
+        if (capPos === 'top') ov.style.top = ((parseFloat(getComputedStyle(ov).top) || 0) + (bt1 - bt0)) + 'px';
+        else ov.style.bottom = ((parseFloat(getComputedStyle(ov).bottom) || 0) - (bt1 - bt0)) + 'px';
+        r = child.getBoundingClientRect();
+      }
+    }
+  }
   var overTop = (fr.top - r.top) / z + pad, overBot = (r.bottom - fr.bottom) / z + pad;
   if (overTop <= 0 && overBot <= 0) return;
   ov._capClamped = true;
@@ -9181,6 +9260,7 @@ function projectPayload() {
            noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts,
            emph: { kw: emKw, emoji: emEmoji, zoom: emZoom, src: emSrc } };
   if (exportAspect !== 'original') p.fmt = exportFormatState(); // Zielformat + Ausfüllart + Ausschnitt (Original = Standard, kein Eintrag)
+  else if (fmtHintDone) p.fmtKeep = true; // N3: «Keep» gewählt → Hinweis bei diesem Video nicht erneut zeigen
   // Cover-Einstellungen (ohne Bild: eigene Fotos bleiben auf dem Gerät und werden nicht im Projekt gespeichert)
   if (coverState.title) p.cover = { t: coverState.t, dark: coverState.dark, grad: coverState.grad, title: coverState.title, kw: coverState.kw || [],
     style: coverState.style, size: coverState.size, pos: coverState.pos, guides: coverState.guides,
@@ -9239,6 +9319,7 @@ function applyProjectPayload(p) {
     captionBlocks.forEach(function(b) { (b.words || []).forEach(function(w) { wordTimestamps.push(w); }); });
   }
   if (p.style) { restoreSavedStyle(p); seedActiveStyle(); }
+  if (p.fmtKeep === true) fmtHintDone = true; // N3
   if (p.fmt !== undefined && p.fmt !== null) applyExportFormat(p.fmt); // alte/fremde Werte ('blur'/'crop') werden migriert
   if (typeof p.title === 'string' && p.title) setTitle(p.title);
   if (p.fontSize) {
@@ -10280,7 +10361,9 @@ function layoutPreviewFrame(setFont) {
   // Beim Tippen in einer Zeile (Tastatur offen) kompakter, damit Zeile + Video gleichzeitig sichtbar bleiben.
   if (typeof tlPhone === 'function' && tlPhone() && edTab !== 'timeline') pcH = Math.round((window.innerHeight || 700) * (_edCompact ? 0.34 : 0.48)); // 0.48 statt 0.52: Sheet ~35 px höher → Looks-Streifen + Customize-Chips + Beginn «Text» sichtbar
   var warnEl = document.getElementById('vidWarn'), warnH = (warnEl && warnEl.style.display !== 'none' && warnEl.offsetHeight) ? warnEl.offsetHeight + 10 : 0; // Warnbox unter dem Video braucht Platz
-  var maxH = Math.max(100, pcH - padY - ctrlH - 12 - tlReservedHeight() - warnH); // 12 = Abstand Rahmen↔Leiste
+  syncFormatRow(); // Format-Pille/-Hinweis zuerst auf den aktuellen Stand → ihre Höhe stimmt für die Rechnung
+  var fmtBarEl = document.getElementById('fmtBar'), fmtBarH = (fmtBarEl && fmtBarEl.style.display !== 'none' && fmtBarEl.offsetHeight) ? fmtBarEl.offsetHeight + 10 : 0; // N3: Leiste über der Vorschau
+  var maxH = Math.max(100, pcH - padY - ctrlH - 12 - tlReservedHeight() - warnH - fmtBarH); // 12 = Abstand Rahmen↔Leiste
   var maxW = Math.min(720, Math.max(100, (pcRect.width || 360) - padX));
   var h = maxH, w = Math.round(h * ar);
   if (w > maxW) { w = maxW; h = Math.round(w / ar); }
@@ -10323,6 +10406,7 @@ function loadVideo(file) {
   if (_expTok) cancelExport(); // läuft noch ein Export des alten Videos: abbrechen
   releaseLastExport(); showExportMain(); // neues Video → alte Export-Datei freigeben
   currentFile   = file;
+  fmtHintDone = false; fmtHintArmed = false; // N3: «Als 9:16-Reel?» gilt pro Video
   wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1; captionsEdited = false;
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
   _cutRun++; sceneCuts = []; // Szenenschnitte gehören zum Video
@@ -10365,6 +10449,7 @@ function loadVideo(file) {
     updateOverlay();
     captureTileFrame(url, vid.duration); // Style-Kacheln mit echtem Standbild
     var restored = restoreOrTranscribe(file, vid.duration);
+    fmtHintArm(); // N3: Querformat/Quadrat ohne Format aus Template/Projekt → Hinweis «Make this a 9:16 Reel?»
     // Kein Bild (HEVC ohne Decoder / reine Audiodatei)? Transkription läuft trotzdem (Ton), Video-Export aus.
     var runFile = file;
     checkVideoPlayable(vid, file).then(function(st) { if (currentFile === runFile) applyPlayability(st); });
@@ -11734,6 +11819,43 @@ function panDbl(e) {
   f.addEventListener('touchstart', panDragStart, { passive: true });
   f.addEventListener('dblclick', panDbl);
 })();
+// ── Ausgabeformat im Editor (N3) ───────────────────────────────────────────
+// Format-Pille (#edFmt/#edFill) über der Vorschau + Hinweis «Make this a 9:16 Reel?» bei Querformat/Quadrat. Beides liest/schreibt
+// dieselben Variablen wie das Export-Popup (exportAspect/exportFill) — syncFormatRow() hält alle Auswahlfelder gleich.
+// fmtHintDone = pro Video erledigt (Keep/✕/Crop/Blur gewählt oder ein Template/Projekt setzt schon ein Format) → kein erneuter Hinweis;
+// wird mit dem Projekt gespeichert (p.fmtKeep). fmtHintArmed = Hinweis steht (nur solange das Format «Original» bleibt).
+var fmtHintArmed = false, fmtHintDone = false;
+// Hinweis sinnvoll? Quelle quer oder quadratisch (Seitenverhältnis ≥ 0,97), noch kein Zielformat, nicht abgelehnt
+function fmtHintApplies(srcW, srcH, fmt, dismissed) {
+  if (dismissed || !(srcW > 0 && srcH > 0)) return false;
+  if (normalizeExportFormat(fmt).aspect !== 'original') return false;
+  return srcW / srcH >= 0.97;
+}
+// am Ende von onloadedmetadata (nach Template/Autosave-Wiederherstellung) und bei Format-Änderungen
+function fmtHintArm() {
+  var vid = document.getElementById('mainVid');
+  var want = !!(vid && fmtHintApplies(vid.videoWidth, vid.videoHeight, exportFormatState(), fmtHintDone));
+  if (want === fmtHintArmed) return;
+  fmtHintArmed = want;
+  syncFormatRow();
+  if (vidReady) tlRelayout(); // der Hinweis nimmt Platz: Vorschau neu einpassen (überdeckt nichts)
+}
+// choice: 'crop' | 'blur' (→ 9:16 mit dieser Ausfüllart, Vorschau springt sofort) | 'keep' (Original behalten, pro Video)
+function fmtHintAnswer(choice) {
+  fmtHintDone = true; fmtHintArmed = false;
+  if (choice === 'crop' || choice === 'blur') setExportFormat({ aspect: '9:16', fill: choice }); // applyExportFormat → syncFormatRow + Relayout
+  else { syncFormatRow(); if (vidReady) tlRelayout(); }
+  scheduleAutosave();
+}
+function syncFormatBar(loaded, mode) {
+  var bar = document.getElementById('fmtBar'); if (!bar) return;
+  if (exportAspect !== 'original') { fmtHintArmed = false; fmtHintDone = true; } // Format gesetzt (Auswahl/Template/Projekt) → Frage erledigt
+  var hint = document.getElementById('fmtHint');
+  if (hint) hint.style.display = loaded && fmtHintArmed ? '' : 'none';
+  var sel = document.getElementById('edFmt'); if (sel && sel.value !== exportAspect) sel.value = exportAspect;
+  var fs = document.getElementById('edFill'); if (fs) { if (fs.value !== exportFill) fs.value = exportFill; fs.style.display = loaded && mode !== 'original' ? '' : 'none'; }
+  bar.style.display = loaded ? '' : 'none';
+}
 // Format-Zeile (Optionen im Export-Blatt): Auswahl zeigen, Ausfüllart nur wenn nötig, Hinweis zum Schwenken
 function syncFormatRow() {
   var vid = document.getElementById('mainVid'), row = document.getElementById('fmtRow');
@@ -11745,6 +11867,7 @@ function syncFormatRow() {
   var g = previewCropGeom(), pr = document.getElementById('panRow');
   if (pr) pr.style.display = g && (g.slackX > 1 || g.slackY > 1) ? '' : 'none';
   var rb = document.getElementById('panReset'); if (rb) rb.disabled = !(exportPan.x || exportPan.y);
+  syncFormatBar(loaded, mode);
   var nt = document.getElementById('fmtNote');
   if (nt) {
     var same = loaded && exportAspect !== 'original' && mode === 'original';
@@ -12371,7 +12494,7 @@ function capDomVMetrics(words, s, px, lineTarget, em) {
 // capHlVariant), die Highlight-Box belegt keine Breite → das Layout eines Blocks ändert sich nie während er läuft.
 function capLayout(ctx, b, bi, wi, s, W, H) {
   var emk = blockEmph(b), esc = emphScale(s);
-  var key = [bi, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, capFree ? 1 : 0, previewFrameW(), previewFrameH(),
+  var bandK = capBlurBand(W, H), key = [bi, s.id, W, H, fontSize, CAPTION_LINES, capPos, capVOff, capFree ? 1 : 0, previewFrameW(), previewFrameH(), bandK ? Math.round(bandK.top) + ':' + Math.round(bandK.bot) : '-',
              _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length, capHyphLang(), emMaskKey(emk), esc, capMotion(s)].join('|');
   var c = _capLayoutCache;
   if (c.key === key && c.s === s && c.ctx === ctx) return c.val;
@@ -12456,6 +12579,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   if (capPos === 'top') boxT = H * (capTopPct(off) / 100) + offTop;
   else if (capPos === 'center') boxT = centerTop(off);
   else boxT = H * (1 - capBottomPct(off) / 100) - offBot - boxH;
+  boxT = capBlurTop(boxT, boxH, H, capBlurBand(W, H), capPos, capFree); // Fill «blur» (N7): nicht auf der Bandkante, s. capBlurBand
   // Wie clampCapVertical() in der Vorschau: Box komplett im Bild halten (4 px Luft); in der Mitte opfert die Vorschau
   // zuerst die Feinjustierung (Padding weg → echte Mitte). Danach als letzter Ausweg verschieben (oben hat Vorrang).
   var padYc = 4 * scale;
