@@ -66,6 +66,8 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 @keyframes captly-wobble{0%{transform:translateY(.22em);opacity:.5}100%{transform:translateY(0);opacity:1}}
 @keyframes captly-overshoot{0%{transform:scale(.6);opacity:.2;animation-timing-function:cubic-bezier(.33,1,.68,1)}45%{transform:scale(1.18);opacity:1}75%{transform:scale(.97)}100%{transform:scale(1)}}
 @keyframes captly-squash{0%{transform:translateY(.06em) scale(1.35,.7);opacity:.3;animation-timing-function:cubic-bezier(.33,1,.68,1)}30%{transform:translateY(-.04em) scale(.88,1.22);opacity:1}62%{transform:scale(1.05,.96)}100%{transform:translateY(0) scale(1,1)}}
+.cap-gw{position:relative}
+.cap-gw::after{content:attr(data-t);position:absolute;left:0;right:0;top:0;text-align:inherit;white-space:nowrap;background:var(--cg);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;text-shadow:none;pointer-events:none}
 @keyframes capWordIn{from{opacity:0;transform:translateY(.25em)}to{opacity:1;transform:translateY(0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -4452,29 +4454,36 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     var isEm = em ? !!em[oi] : isKeywordWord(srcWords[oi]); // ohne ex (Kacheln/Showcase): nur die alte Keyword-Liste
     var isKw = !isHL && isEm;
     var wt   = capWordFace(s, isHL, false).up ? words[i].toUpperCase() : words[i];
-    var ws   = 'display:inline-block;';
+    var ws   = 'display:inline-block;', gr = null, sh = 'none';
     if (isHL) {
       if (s.hlFont)   ws += 'font-family:' + s.hlFont + ',sans-serif;';
       if (s.hlItalic) ws += 'font-style:italic;';
       if (s.circle)   ws += 'border:2.5px solid ' + (s.hl || '#fff') + ';border-radius:50%;padding:.02em .3em;';
-      if (s.hlg)                    ws += 'background:' + s.hlg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+      if (s.hlg)                    gr = s.hlg;
       else if (s.hlPillBg && live)  ws += 'color:' + (s.hlc || '#fff') + ';'; // Box = eigene Fläche dahinter (kein Padding → kein Verschieben)
       else if (s.hlPillBg)          ws += 'background:' + s.hlPillBg + ';padding:2px 9px;border-radius:5px;color:' + (s.hlc || '#fff') + ';-webkit-text-fill-color:' + (s.hlc || '#fff') + ';';
       else                          ws += 'color:' + hlColorFor(s, oi) + ';';
-      ws += 'text-shadow:' + (s.hls || 'none') + ';';
+      sh = s.hls || 'none';
       if (!live && s.anim && s.anim !== 'none') ws += 'animation:captly-' + s.anim + ' ' + animDur(s.anim) + 's ease both;';
     } else if (isKw) {
       // Hervorgehoben (nicht aktiv): Akzentfarbe des Styles (emphColor), sonst Textfarbe; Schatten s. emphShadowIsHl
-      if (s.hlg)      ws += 'background:' + s.hlg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+      if (s.hlg)      gr = s.hlg;
       else if (ec)    ws += 'color:' + ec + ';';
-      else if (s.tg)  ws += 'background:' + s.tg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+      else if (s.tg)  gr = s.tg;
       else            ws += 'color:' + (s.tc || '#fff') + ';';
-      ws += 'text-shadow:' + ((emphShadowIsHl(s) ? s.hls : s.ts) || 'none') + ';';
+      sh = (emphShadowIsHl(s) ? s.hls : s.ts) || 'none';
     } else {
-      if (s.tg) ws += 'background:' + s.tg + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+      if (s.tg) gr = s.tg;
       else      ws += 'color:' + (s.tc || '#fff') + ';';
-      ws += 'text-shadow:' + (s.ts || 'none') + ';';
+      sh = s.ts || 'none';
     }
+    // Verlaufstext (background-clip:text, Füllung transparent): ein text-shadow auf demselben Element scheint durch die transparente Füllung
+    // und deckt den Verlauf ab (Wort schwarz). Darum Schatten am Wort (Text transparent → nur Schatten), den Verlauf als ::after-Kopie
+    // darüber (.cap-gw, data-t) — wie der Export: erst Schattenschichten, dann die Füllung.
+    var gwAttr = '';
+    if (gr && sh && sh !== 'none') { ws += 'color:transparent;-webkit-text-fill-color:transparent;--cg:' + gr + ';'; gwAttr = ' class="cap-gw" data-t="' + escHtml(wt) + '"'; }
+    else if (gr) ws += 'background:' + gr + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+    ws += 'text-shadow:' + sh + ';';
     // Größer (wie capLayout im Export: Schrift × emphScale). Zeilenhöhe so gewählt, dass die Box des größeren
     // Worts (grundlinienbündig) oben nicht über die Nachbarn ragt → Zeilenabstand/Position bleiben exakt wie im Export.
     // Typografische Betonung der ruhigen Styles: eigene Schrift/Kursiv/Gewicht (emFont/emItalic/emFw).
@@ -4499,14 +4508,14 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
       ck += ' data-wi="' + oi + '" onclick="event.stopPropagation();capOverlayClickWord(event,' + oi + ',' + Number(seekTimes[oi]).toFixed(3) + ')"';
       ws += 'cursor:pointer;';
     }
-    return '<span' + ck + ' style="' + ws + '">' + wt + '</span>';
+    return '<span' + gwAttr + ck + ' style="' + ws + '">' + wt + '</span>';
   }
   var built;
   if (lineTarget && words.length > 1) {
     var groups = wrapCaptionLines(words, s, hlIdx, px || 24, lineTarget, orig, em);
     built = groups.map(function(idxs) {
       var line = idxs.map(function(i, k){ return (k ? ' ' : '') + wordHtml(i); }).join('');
-      return '<span style="display:block;white-space:nowrap">' + line + '</span>';
+      return '<span style="display:block;white-space:nowrap' + (mode === 'type' ? ';text-align:left' : '') + '">' + line + '</span>'; // Typewriter: Zeilen linksbündig (s. capLayout typeLeft)
     }).join('');
   } else {
     built = '';
@@ -4716,6 +4725,69 @@ function localEmphasis(blocks, lang, dur) {
   zoomFill(blocks, lang, dur, ZOOM_MAXGAP);
   return picks.length;
 }
+// ── Lokaler Emoji-Fallback (ohne KI): kleine Stichwort-Tabelle DE/EN, nur klare Treffer ──
+// [Emoji, Gewicht 3 stark … 1 schwach, 'Wörter (exakt, ohne Akzente/Gross-Klein) und Stämme mit * am Ende']. Alle Emojis stehen auch in der Emoji-Suche (EMO_CATS, emojiSearch).
+var LOCAL_EMO = [
+  ['🔥', 3, 'feuer* fire heiss hot'], ['💰', 3, 'geld money cash umsatz revenue profit gewinn verdien* earn* einnahmen'],
+  ['❤️', 3, 'herz* heart* liebe* love*'], ['😂', 3, 'lachen lacht gelacht lol haha hahaha funny witzig lustig'],
+  ['🎯', 3, 'ziel* goal* target* fokus focus'], ['🏆', 3, 'erfolg* success* sieg siege sieger win winner gewinner champion meister'],
+  ['⚠️', 3, 'warnung warning achtung vorsicht careful caution gefahr danger'], ['❌', 2, 'fehler mistake* mistakes'],
+  ['💡', 3, 'tipp* tip tips idee* idea* trick* hack hacks lifehack lifehacks'], ['🚀', 3, 'rakete rocket launch startup'],
+  ['📈', 3, 'wachstum growth wachsen grow reichweite'], ['⏰', 2, 'zeit time uhr clock minute* minuten sekunde* sekunden stunde* stunden deadline'],
+  ['🎬', 2, 'video* reel* film* clip clips kino'], ['👀', 2, 'views view'], ['💬', 2, 'untertitel subtitle* subtitles caption* captions kommentar* comment* comments'],
+  ['📱', 2, 'handy* phone* smartphone telefon*'], ['💪', 2, 'stark* strong kraft power muskel*'], ['🏋️', 2, 'training workout fitness gym'],
+  ['🥳', 2, 'party feier* celebrate geburtstag birthday glueckwunsch congrats'], ['❓', 2, 'frage* question*'], ['🙏', 2, 'danke thanks thank'],
+  ['👋', 2, 'hallo hello hey tschuess bye'], ['🔒', 2, 'passwort password sicherheit security privat private'], ['🔑', 1, 'schluessel key'],
+  ['🌲', 2, 'wald forst forest'], ['🆕', 2, 'neu new'], ['🍀', 2, 'glueck luck lucky'], ['💥', 2, 'boom knall explosion'],
+  ['⚡', 2, 'blitz energie energy strom quick'], ['✨', 1, 'magie magic magisch'], ['🌍', 1, 'welt world'], ['📸', 2, 'foto* photo* kamera camera'],
+  ['🎵', 2, 'musik music song* lied'], ['📚', 1, 'lernen learn* buch book* kurs'], ['📅', 1, 'kalender calendar termin* montag dienstag mittwoch donnerstag freitag samstag sonntag monday tuesday wednesday thursday friday saturday sunday'],
+  ['💻', 1, 'laptop computer rechner'], ['🔔', 1, 'benachrichtigung* notification* glocke'], ['🛒', 1, 'einkauf* shop* kaufen buy'], ['☕', 1, 'kaffee coffee'],
+  ['✈️', 1, 'reise* travel* flug flight'], ['🏖️', 1, 'urlaub holiday vacation strand'], ['🏠', 1, 'haus home zuhause'], ['🚗', 1, 'auto car']
+];
+var _localEmoIdx = null;
+function localEmoLookup(word) {
+  if (!_localEmoIdx) {
+    _localEmoIdx = { exact: {}, stems: [] };
+    LOCAL_EMO.forEach(function(r) {
+      r[2].split(/\s+/).forEach(function(t) {
+        if (!t) return;
+        var star = t.charAt(t.length - 1) === '*', k = emoNorm(star ? t.slice(0, -1) : t).replace(/[^a-z0-9]+/g, ''); // gleiche Normalisierung wie das Suchwort (ü → u, ue → u …)
+        if (star) _localEmoIdx.stems.push({ s: k, e: r[0], w: r[1] }); else _localEmoIdx.exact[k] = { e: r[0], w: r[1] };
+      });
+    });
+  }
+  var n = emoNorm(word).replace(/[^a-z0-9]+/g, '');
+  if (n.length < 2) return null;
+  var hit = _localEmoIdx.exact[n];
+  if (hit) return hit;
+  for (var i = 0; i < _localEmoIdx.stems.length; i++) if (n.indexOf(_localEmoIdx.stems[i].s) === 0) return _localEmoIdx.stems[i];
+  return null;
+}
+// Höchstens ein Emoji je Block, nur bei klarem Stichwort, höchstens etwa jeder dritte Block (≥ 2 Blöcke Abstand, kein gleiches Emoji
+// kurz hintereinander). KI-Auswahl hat Vorrang: es werden nur Blöcke ohne Emoji (KI oder Nutzer) ergänzt. → Anzahl gesetzter Emojis.
+function localEmojis(blocks) {
+  blocks = blocks || [];
+  var cands = [];
+  blocks.forEach(function(b, bi) {
+    if (!b || !b.words || blockEmoji(b) || b.words.some(function(w){ return w.emoU; })) return;
+    var best = null;
+    b.words.forEach(function(w, wi) {
+      if (!w || w.kw === -1) return;
+      var h = localEmoLookup(w.word);
+      if (h && EMO_PICK.indexOf(h.e) >= 0 && (!best || h.w > best.w)) best = { b: bi, wi: wi, e: h.e, w: h.w };
+    });
+    if (best) cands.push(best);
+  });
+  var max = Math.max(1, Math.floor(blocks.length / 3)), picked = [];
+  cands.sort(function(a, c) { return c.w - a.w || a.b - c.b; });
+  cands.forEach(function(c) {
+    if (picked.length >= max) return;
+    if (picked.some(function(p) { return Math.abs(p.b - c.b) < 3 || (p.e === c.e && Math.abs(p.b - c.b) < 9); })) return;
+    picked.push(c);
+  });
+  picked.forEach(function(p) { blocks[p.b].words[p.wi].emo = p.e; });
+  return picked.length;
+}
 // Zoom-Moment-Kandidat: Zahl > Name/Grossgeschriebenes (Deutsch: Nomen) mitten im Satz > längstes Inhaltswort. 0 = ungeeignet.
 // prev = Wort davor (ein Satzanfang zählt im Englischen nicht als Name).
 function zoomScore(w, prev, de) {
@@ -4846,7 +4918,7 @@ async function runEnhance(force) {
   if (!ENH_AUTO && !force) return null;
   var run = ++_enRun, blocks = captionBlocks;
   if (!blocks.length) return null;
-  if (aiOff()) { clearAutoFlags(blocks); localEmphasis(blocks, emLang(), emVidDur()); blocks.forEach(syncSrcFlags); emSrc = 'local'; afterEmphChange(); return emSrc; }
+  if (aiOff()) { clearAutoFlags(blocks); localEmphasis(blocks, emLang(), emVidDur()); localEmojis(blocks); blocks.forEach(syncSrcFlags); emSrc = 'local'; afterEmphChange(); return emSrc; }
   var segs = [], refs = [];
   blocks.forEach(function(b, i) {
     refs.push(b.words.map(emWordRef));
@@ -4872,7 +4944,7 @@ async function runEnhance(force) {
   if (run !== _enRun) return null;
   _enhancing = false;
   if (ok) { applyEnhanceResult(results, refs); zoomFill(captionBlocks, emLang(), emVidDur(), 12); emSrc = 'llm'; } // KI lässt grosse Lücken? dann ergänzen
-  else { clearAutoFlags(captionBlocks); localEmphasis(captionBlocks, emLang(), emVidDur()); captionBlocks.forEach(syncSrcFlags); emSrc = 'local'; }
+  else { clearAutoFlags(captionBlocks); localEmphasis(captionBlocks, emLang(), emVidDur()); localEmojis(captionBlocks); captionBlocks.forEach(syncSrcFlags); emSrc = 'local'; }
   afterEmphChange();
   if (ok && hookOn && !hookAi) hookFetchAi(); // KI erreichbar → Titelvorschlag holen (optionales Feld hook)
   return emSrc;
@@ -4890,7 +4962,7 @@ function setEmphKw(on) { emKw = !!on; if (_presetPrevLayout) delete _presetPrevL
 function setEmphEmoji(on) {
   emEmoji = !!on; if (_presetPrevLayout) delete _presetPrevLayout.emoji; persistEmph(); afterEmphChange();
   // KI nicht erreichbar: der Schalter wirkt sonst «an», liefert aber nichts → direkt Rückmeldung am Schalter (Hinweis unter den Chips + Toast)
-  if (emEmoji && emAiUnavailable() && captionBlocks.length) capToast('Emojis need the AI service — it isn’t reachable right now.');
+  if (emEmoji && emAiUnavailable() && captionBlocks.length) capToast('Simple emoji picks for now — AI picks when available.');
 }
 // KI-Anreicherung nicht verfügbar: Server/enhance antwortet nicht (emSrc 'local') bzw. KI in den Einstellungen aus.
 function emAiUnavailable() { return emSrc === 'local' || aiOff(); }
@@ -4917,7 +4989,7 @@ function syncEmphUI() {
   }
   var wn = document.getElementById('emWarn');
   if (wn) {
-    var wtxt = warnEmo ? (aiOff() ? 'Emojis need AI, which is switched off (Settings).' : 'Emojis need the AI service, which isn’t reachable right now — none will appear.')
+    var wtxt = warnEmo ? (aiOff() ? 'AI is switched off (Settings) — simple emoji picks only.' : 'Simple emoji picks – AI picks when available (AI service not reachable right now).')
       : warnKw ? (aiOff() ? 'AI is switched off — using simple keyword detection.' : 'AI picks unavailable — using simple keyword detection.') : '';
     wn.textContent = wtxt;
     wn.style.display = wtxt ? '' : 'none';
@@ -13495,11 +13567,19 @@ function drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw) {
 // dagegen mehrfach überlagern (Halo dunkler als in der Vorschau — Einblenden bei Tight/Reveal, gedimmte Wörter bei Fill/Soft).
 // Darum: Wort samt Schichten in einen Puffer zeichnen und den Puffer mit Deckkraft einsetzen (Koordinaten bleiben identisch).
 var _grpBuf = null;
+// shMul kann eine Zahl (gleichmässige Skalierung) oder {x, y, b} sein (Squash: sx ≠ sy). Canvas-Schatten-Offsets liegen im Geräteraum, die
+// Transformation skaliert sie nicht → je Achse selbst skalieren (sonst steht der Drop-Schatten unter dem gestauchten Wort als «Geisterbild» heraus).
+function capShK(shMul) {
+  if (shMul && typeof shMul === 'object') return { x: shMul.x > 0 ? shMul.x : 1, y: shMul.y > 0 ? shMul.y : 1, b: shMul.b > 0 ? shMul.b : 1 };
+  var k = shMul > 0 ? shMul : 1; return { x: k, y: k, b: k };
+}
 function drawTextGrouped(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul, alpha) {
   var passes = plan.rest.length + (plan.ring && plan.ring.w > 0 ? 1 : 0) + 1;
   var ok = alpha < 1 && passes >= 3 && typeof document !== 'undefined' && ctx.canvas && typeof ctx.fillStyle === 'string' && ctx.drawImage && typeof ctx.setTransform === 'function';
   if (!ok) { ctx.save(); ctx.globalAlpha *= alpha; drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul); ctx.restore(); return; }
-  var k = shMul > 0 ? shMul : 1, m = 4;
+  // Der Puffer wird erst beim Einsetzen mit der Animations-Transformation skaliert (Schatten inklusive) → darin gilt shMul = 1
+  // (sonst wurden Schatten-Offsets doppelt skaliert: bei Squash mit Deckkraft < 1 stand der Drop-Schatten als Geisterbild unter/über der Kontur).
+  var k = 1, m = 4;
   plan.rest.forEach(function(l) { m = Math.max(m, l.blur * scale * k * 1.6 + (Math.abs(l.x) + Math.abs(l.y)) * scale * k + 4); });
   if (plan.ring) m = Math.max(m, plan.ring.w * scale * 2 + 4);
   m = Math.ceil(m);
@@ -13512,7 +13592,7 @@ function drawTextGrouped(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul
   if ('letterSpacing' in g && 'letterSpacing' in ctx) g.letterSpacing = ctx.letterSpacing;
   g.textAlign = ctx.textAlign; g.textBaseline = ctx.textBaseline; g.fillStyle = ctx.fillStyle;
   g.translate(-ox, -oy); // gleiche Koordinaten wie auf dem Hauptkontext
-  drawTextWithPlan(g, text, x, y, plan, scale, strokeDiv, fsS, tw, shMul);
+  drawTextWithPlan(g, text, x, y, plan, scale, strokeDiv, fsS, tw, 1);
   g.setTransform(1, 0, 0, 1, 0, 0);
   ctx.save(); ctx.globalAlpha *= alpha; ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
   ctx.drawImage(c, 0, 0, bw, bh, ox, oy, bw, bh);
@@ -13526,9 +13606,9 @@ function drawTextWithPlan(ctx, text, x, y, plan, scale, strokeDiv, fsS, tw, shMu
     for (var i = plan.rest.length - 1; i >= 0; i--) {
       var l = plan.rest[i];
       if (lowRes && l.blur * scale >= 16) { drawBigBlurLayer(ctx, text, x, y, l, scale, fsS, tw); continue; }
-      var ks = scale * (shMul > 0 ? shMul : 1);
-      ctx.shadowOffsetX = l.x * ks; ctx.shadowOffsetY = l.y * ks;
-      ctx.shadowBlur = l.blur * ks; ctx.shadowColor = l.color;
+      var kk = capShK(shMul);
+      ctx.shadowOffsetX = l.x * scale * kk.x; ctx.shadowOffsetY = l.y * scale * kk.y;
+      ctx.shadowBlur = l.blur * scale * kk.b; ctx.shadowColor = l.color;
       ctx.fillText(text, x, y);
     }
     ctx.restore();
@@ -13775,8 +13855,11 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
   // Feste Position jedes Wortplatzes (x = linke Kante, y = Grundlinie) — gilt für den ganzen Block
+  // Typewriter: alle Zeilen linksbündig zur breitesten (fertigen) Zeile — sonst steht die kurze, fertig getippte Zeile zentriert über
+  // der erst teilweise sichtbaren, linksbündig wirkenden Folgezeile («Zeilen springen»). Breite der fertigen Zeile bleibt reserviert.
+  var typeLeft = capMotion(s) === 'type', widestL = Math.max.apply(null, lineWs);
   lines.forEach(function(L, li) {
-    var x = W/2 - lineWs[li]/2;
+    var x = typeLeft ? W/2 - widestL/2 : W/2 - lineWs[li]/2;
     L.forEach(function(wo) { wo.x = x; wo.y = boxT + baseRel[li]; wo.li = li; x += wo.w + sp; });
   });
 
@@ -14055,6 +14138,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
         // Ring-Kontur (outlineShadow/Standard: 8–24 Schichten) wird als EIN strokeText gezeichnet statt
         // als eine fillText-Schicht pro Ring-Punkt — optisch gleich, ~7× weniger Zeichenaufrufe pro Wort.
         var animK = animSt ? Math.max(animSt.sx || 1, animSt.sy || 1) : 1;
+        if (animSt && Math.abs((animSt.sx || 1) - (animSt.sy || 1)) > 0.002) animK = { x: animSt.sx || 1, y: animSt.sy || 1, b: ((animSt.sx || 1) + (animSt.sy || 1)) / 2 }; // Squash: Schatten-Offsets je Achse
         if (grpOp < 1) drawTextGrouped(ctx, txt, tx, y, plan, scale, 1, wo.e ? fsS * L0.esc : fsS, tw, animK, grpOp);
         else drawTextWithPlan(ctx, txt, tx, y, plan, scale, 1, wo.e ? fsS * L0.esc : fsS, tw, animK);
         ctx.restore();
