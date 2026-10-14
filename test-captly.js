@@ -159,6 +159,7 @@ mergeCutRegions:mergeCutRegions,allCutRegionsOf:allCutRegionsOf,allCutRegions:al
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 resetGrpBuf:function(){_grpBuf=null;},localEmojis:localEmojis,localEmoLookup:localEmoLookup,LOCAL_EMO:LOCAL_EMO,drawTextWithPlan:drawTextWithPlan,capShK:capShK,
+capOutK:capOutK,capScaleShadowStr:capScaleShadowStr,CAP_SH_REF:CAP_SH_REF,
 capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -1030,7 +1031,7 @@ ok(T.audioTruncated(16000 * 600, 600) === false && T.audioTruncated(16000 * 1200
   ok(bad.length === 0, 'Wortabstand im Export immer >= 0.8 Leerzeichen: ' + bad.join('; '));
   // Konturierte Styles bekommen 2×Kontur extra Abstand — in Vorschau (word-spacing) und Export gleich
   const hz = T.STYLES.find(x => x.id === 'hormozi'), lift = T.STYLES.find(x => x.id === 'lift');
-  ok(T.buildCap(['der', 'weide'], hz, 0, 22, null, 1).includes('word-spacing:6px') && !T.buildCap(['der', 'weide'], lift, 0, 22, null, 1).includes('word-spacing'),
+  ok(T.buildCap(['der', 'weide'], hz, 0, 22, null, 1).includes('word-spacing:' + (6 * T.capOutK()) + 'px') && !T.buildCap(['der', 'weide'], lift, 0, 22, null, 1).includes('word-spacing'),
      'Vorschau: word-spacing nur fuer konturierte Styles');
   ok(!T.buildCap(['der', 'weide'], hz, 0, 9, null).includes('word-spacing'), 'Style-Thumbnails unveraendert');
   // Kontur skaliert in der Punch-Animation nicht mit (Breite bleibt <= Basisbreite)
@@ -3788,7 +3789,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(/class="cap-root"/.test(hv) && /data-oi="1"/.test(hv) && !/animation:captly/.test(hv), 'Vorschau Reveal: Wort-Spans mit data-oi, keine CSS-Animation');
       const hb = T.buildCap(['eins', 'zwei'], bk, 1, 22, [1, 1.5], 2, { em: null });
       ok(/class="cap-hlbox"/.test(hb) && !/padding:2px 9px/.test(hb) && /word-spacing:/.test(hb), 'Vorschau Box: eigene Flaeche, kein Padding am Wort, extra Wortabstand');
-      ok(T.capWordGap(bk) === 4 + T.CAP_PILL_GAP && T.capWordGap(rv) === 0, 'Box-Styles: Wortabstand + Box-Gap');
+      ok(Math.abs(T.capWordGap(bk) - (4 * T.capOutK() + T.CAP_PILL_GAP)) < 1e-9 && T.capWordGap(rv) === 0, 'Box-Styles: Wortabstand + Box-Gap');
       const hz2 = T.buildCap(['eins', 'zwei'], hz, 1, 22, [1, 1.5], 2, { em: null });
       ok(!/animation:captly/.test(hz2), 'Vorschau Highlight: Pop zeitbasiert statt CSS-Animation');
       const ed = T.buildCap(['eins', 'zwei'], ST('editorial'), 1, 22, [1, 1.5], 2, { em: null });
@@ -6227,6 +6228,26 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       T.setWpbState(prevWpb); T.setMaxCharsState(prevMc || 40);
       T.setLines({ dataset: { lines: '2' }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
     }
+  }
+
+  // ── Runde 2 Schatten-Skalierung: Kontur/Schatten schriftrelativ (ein Faktor capOutK), Vorschau = Export ──
+  {
+    const near = (a, b) => Math.abs(a - b) < 1e-6;
+    ok(near(T.capOutK(28), 1) && near(T.capOutK(14), 0.5) && near(T.capOutK(56), 2) && T.CAP_SH_REF === 28, 'capOutK: Schrift-px / Referenz 28 (28 → 1, 14 → 0.5)');
+    ok(T.capScaleShadowStr('none', 0.5) === 'none' && T.capScaleShadowStr('0 0 4px #fff', 1) === '0 0 4px #fff', 'capScaleShadowStr: none und k = 1 bleiben unveraendert');
+    ok(T.capScaleShadowStr('-3px 0 0 #000,0 2px 8px rgba(0,0,0,.4)', 0.5) === '-1.5px 0px 0px #000, 0px 1px 4px rgba(0,0,0,.4)', 'capScaleShadowStr: x/y/blur skaliert, Farbe (auch rgba mit Kommas) unangetastet: ' + T.capScaleShadowStr('-3px 0 0 #000,0 2px 8px rgba(0,0,0,.4)', 0.5));
+    const hz = T.STYLES.find(x => x.id === 'hormozi'), base = T.capShadowPlan(hz.ts), half = T.capShadowPlan(hz.ts, 0.5), dbl = T.capShadowPlan(hz.ts, 2);
+    ok(base.ring && near(half.ring.w, base.ring.w * 0.5) && near(dbl.ring.w, base.ring.w * 2) && half.ring.color === base.ring.color, 'capShadowPlan(k): Ring-Kontur skaliert linear');
+    ok(half.rest.length === base.rest.length && half.rest.every((l, i) => near(l.x, base.rest[i].x * 0.5) && near(l.y, base.rest[i].y * 0.5) && near(l.blur, base.rest[i].blur * 0.5)), 'capShadowPlan(k): uebrige Schichten (x/y/blur) skaliert');
+    ok(T.capShadowPlan(hz.ts, 1) === base && T.capShadowPlan(hz.ts, 0.5) === half && T.capShadowPlan(hz.ts).ring.w === base.ring.w, 'capShadowPlan: k = 1 = Original, skalierte Plaene gecacht, Original nicht veraendert');
+    // Verhaeltnis Kontur / Schrift in Vorschau (DOM) und Export (Plan × scale / fsS) ist unabhaengig von der Rahmenbreite
+    const ratio = (px, frameW, W) => { const k = T.capOutK(px), scale = W / frameW, fsS = px * scale; return { exp: T.capShadowPlan(hz.ts, k).ring.w * scale / fsS, dom: (+/([\d.]+)px/.exec(T.capScaleShadowStr('-3px 0 0 #000', k))[1]) / px }; };
+    const rn = ratio(10, 125, 1080), rd = ratio(26, 329, 1080);
+    ok(near(rn.exp, rd.exp) && Math.abs(rn.dom - rd.dom) < 0.01 && Math.abs(rn.dom - rn.exp * 3 / base.ring.w) < 0.01, 'Kontur/Schrift: schmale und breite Vorschau gleich, DOM = Export (' + rn.exp.toFixed(3) + ' / ' + rd.exp.toFixed(3) + ')');
+    // Vorschau-HTML: live (lineTarget) schriftrelativ, Kacheln/Showcase (ohne lineTarget) mit festen px
+    const live = T.buildCap(['der', 'weide'], hz, 0, 22, null, 1), tile = T.buildCap(['der', 'weide'], hz, 0, 9, null);
+    ok(live.includes(T.capScaleShadowStr(hz.ts, T.capOutK()).split(',')[0].trim()) && tile.includes(hz.ts.split(',')[0].trim().replace(/\s+/g, ' ')), 'buildCap: live skaliert, Kacheln unveraendert');
+    ok(near(T.capWordGap(hz, true), 2 * base.ring.w) && near(T.capWordGap(hz), 2 * base.ring.w * T.capOutK()), 'capWordGap: Ring-Zugabe skaliert mit der Kontur (raw = Cover-Export, eigene Skala)');
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

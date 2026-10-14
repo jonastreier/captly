@@ -4223,6 +4223,36 @@ function hlColorFor(s, idx) {
   if (s.hlCycle && s.hlCycle.length) return s.hlCycle[Math.abs((idx || 0) + _capCycBase) % s.hlCycle.length];
   return s.hl || '#fff';
 }
+// Kontur-/Schatten-Skalierung (Vorschau = Export, alle Looks): die px-Werte der Styles (text-shadow, Ring-Kontur, Box-Schatten-Versatz)
+// sind für eine Schrift von CAP_SH_REF px gemeint (wie coverLs/Cover-Export: base / 28). Ein EINZIGER Faktor k = Schrift-px / CAP_SH_REF
+// macht sie schriftrelativ: Vorschau (buildCap) UND Export (capLayout/paint) multiplizieren mit demselben k — vorher blieben sie feste
+// Vorschau-px, die Schrift wuchs aber mit dem Rahmen → in schmaler Vorschau (Schrift ~10 px) war die Kontur bis ~3× zu dick, auch im Export.
+var CAP_SH_REF = 28;
+function capOutK(px) { var v = px > 0 ? px : fontSize; return (v > 0 ? v : CAP_SH_REF) / CAP_SH_REF; }
+// text-shadow-String mit k skalierten Längen (x y [blur]); Farben/Schlüsselwörter bleiben
+function capScaleShadowStr(str, k) {
+  if (!str || str === 'none' || !(k > 0) || Math.abs(k - 1) < 1e-4) return str;
+  var parts = [], depth = 0, cur = '';
+  for (var i = 0; i < str.length; i++) {
+    var c = str[i];
+    if (c === '(') depth++; else if (c === ')') depth--;
+    if (c === ',' && depth === 0) { parts.push(cur); cur = ''; } else cur += c;
+  }
+  parts.push(cur);
+  return parts.map(function(p) {
+    var toks = [], d = 0, t = '';
+    p = p.trim();
+    for (var j = 0; j < p.length; j++) {
+      var ch = p[j];
+      if (ch === '(') d++; else if (ch === ')') d--;
+      if (/\s/.test(ch) && d === 0) { if (t) { toks.push(t); t = ''; } } else t += ch;
+    }
+    if (t) toks.push(t);
+    return toks.map(function(tk) {
+      return /^-?(\d+\.?\d*|\.\d+)(px)?$/i.test(tk) ? (Math.round(parseFloat(tk) * k * 100) / 100) + 'px' : tk;
+    }).join(' ');
+  }).join(', ');
+}
 // Konturierte Styles (Ring-Kontur der Breite w): die Kontur wächst w px in jede Richtung, also um 2w in
 // jeden Wortzwischenraum hinein — bei fetten Caps (Bold Pop) blieb vom Leerzeichen kaum etwas,
 // in der Punch-Animation (aktives Wort ×1,22) verschwand es ganz („DERWEIDE.“). Zusätzlicher
@@ -4230,9 +4260,9 @@ function hlColorFor(s, idx) {
 // Highlight-Box (hlPillBg) liegt NICHT mehr als Padding im Layout (das verschob beim Wandern der Box die
 // Nachbarwörter), sondern als eigene Fläche hinter dem Wort, die CAP_PILL_PAD_X in den Wortzwischenraum ragt
 // → dafür bekommen Box-Styles CAP_PILL_GAP extra Wortabstand (Vorschau, Umbruch, Auto-Fit, Export gleich).
-function capWordGap(s) {
+function capWordGap(s, raw) {
   var p = capShadowPlan(s && s.ts);
-  return (p.ring && p.ring.w > 0 ? 2 * p.ring.w : 0) + ((s && s.hlPillBg && capMotion(s) === 'highlight') ? CAP_PILL_GAP : 0);
+  return (p.ring && p.ring.w > 0 ? 2 * p.ring.w * (raw ? 1 : capOutK()) : 0) + ((s && s.hlPillBg && capMotion(s) === 'highlight') ? CAP_PILL_GAP : 0);
 }
 // Zeilenhöhe (Vielfaches der Schriftgröße) — Standard 1.3; eigene Styles: „Line height“ 0.9–1.8
 // Buchstabenabstand eines Styles in px (Vorschau-Einheiten). Neben px gilt auch em (z. B. '-.04em' = enger Satz):
@@ -4463,7 +4493,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     // Glas-Box: feiner Innenrand (boxBd) als inset-Schatten — verändert das Layout nicht; Export zeichnet ihn als Linie (capBoxPaint)
     var bsh = [];
     if (s.boxBd) bsh.push('inset 0 0 0 1px ' + s.boxBd);
-    if (live && px) bsh.push('0 1.5px ' + (px * fsMul * 0.3).toFixed(1) + 'px rgba(0,0,0,.35)');
+    if (live && px) bsh.push('0 ' + (1.5 * capOutK()).toFixed(2) + 'px ' + (px * fsMul * 0.3).toFixed(1) + 'px rgba(0,0,0,.35)');
     if (bsh.length) wCss += 'box-shadow:' + bsh.join(',') + ';';
   }
   var hlBox = live && mode === 'highlight' && !!s.hlPillBg; // Highlight-Box als eigene, gleitende Fläche (.cap-hlbox)
@@ -4520,7 +4550,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     var gwAttr = '';
     if (gr && sh && sh !== 'none') { ws += 'color:transparent;-webkit-text-fill-color:transparent;--cg:' + gr + ';'; gwAttr = ' class="cap-gw" data-t="' + escHtml(wt) + '"'; }
     else if (gr) ws += 'background:' + gr + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
-    ws += 'text-shadow:' + sh + ';';
+    ws += 'text-shadow:' + (live && px ? capScaleShadowStr(sh, capOutK()) : sh) + ';'; // Vorschau: schriftrelativ (capOutK), Kacheln/Showcase: feste px
     // Größer (wie capLayout im Export: Schrift × emphScale). Zeilenhöhe so gewählt, dass die Box des größeren
     // Worts (grundlinienbündig) oben nicht über die Nachbarn ragt → Zeilenabstand/Position bleiben exakt wie im Export.
     // Typografische Betonung der ruhigen Styles: eigene Schrift/Kursiv/Gewicht (emFont/emItalic/emFw).
@@ -13701,8 +13731,18 @@ function parseTextShadows(str) {
 }
 // text-shadow → Zeichenplan (gecacht je String): Ring-Kontur separat, übrige Schichten in CSS-Reihenfolge.
 var _shadowPlanCache = {};
-function capShadowPlan(str) {
+function capShadowPlan(str, k) {
   str = str || 'none';
+  if (k > 0 && Math.abs(k - 1) > 1e-4) { // skalierte Kopie (capOutK), gecacht je String + Faktor
+    var kk = str + '\u0001' + k.toFixed(4), hk = _shadowPlanCache[kk];
+    if (hk) return hk;
+    var b0 = capShadowPlan(str);
+    hk = { ring: b0.ring ? { w: b0.ring.w * k, color: b0.ring.color } : null,
+           rest: b0.rest.map(function(l) { return { x: l.x * k, y: l.y * k, blur: l.blur * k, color: l.color }; }) };
+    if (Object.keys(_shadowPlanCache).length > 200) _shadowPlanCache = {};
+    _shadowPlanCache[kk] = hk;
+    return hk;
+  }
   var hit = _shadowPlanCache[str];
   if (hit) return hit;
   var sp = splitShadows(str);
@@ -14123,7 +14163,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
       if (fs !== curFont) { ctx.font = fs; curFont = fs; }
       if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
     }
-    var shTs = capShadowPlan(s.ts), shHl = capShadowPlan(s.hls);
+    var kOut = capOutK(), shTs = capShadowPlan(s.ts, kOut), shHl = capShadowPlan(s.hls, kOut); // schriftrelative Kontur/Schatten wie die Vorschau (capOutK)
     // boxBg-Padding/-Radius sind im DOM (buildCap: "padding:5px 18px", s.boxBr) feste px-Werte, die bei
     // der Vorschaubreite (previewFrameW) gemeint sind — mit `scale` (== W/previewFrameW, dieselbe Umrechnung
     // wie fsS) 1:1 in den Export übertragen, statt (wie zuvor) willkürlich an fsS gekoppelt und boxBr zu ignorieren.
@@ -14140,11 +14180,11 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
         ctx.save(); ctx.beginPath(); ctx.rect(-W, -H, 3 * W, 3 * H);
         if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, radius); else ctx.rect(bx, by, bw, bh);
         ctx.clip('evenodd');
-        ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
+        ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 1.5 * scale * kOut;
         ctx.fillStyle = s.boxBg; boxPath(bx, by, bw, bh, radius); ctx.fill(); ctx.restore();
         ctx.save(); ctx.fillStyle = s.boxBg; boxPath(bx, by, bw, bh, radius); ctx.fill(); ctx.restore();
       } else {
-        ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 4;
+        ctx.save(); ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = fsS * 0.3; ctx.shadowOffsetY = 1.5 * scale * kOut;
         ctx.fillStyle = s.boxBg; boxPath(bx, by, bw, bh, radius); ctx.fill(); ctx.restore();
       }
       if (s.boxBd) { // Innenrand 1 px (Vorschau-px) wie «inset 0 0 0 1px» im DOM
@@ -14959,7 +14999,7 @@ function coverDrawTitle(ctx, W, H, st, s) {
       return ctx.measureText(up ? w.toUpperCase() : w).width;
     });
     ctx.font = capFaceFont(capWordFace(s, false, false), base);
-    var space = ctx.measureText(' ').width + capWordGap(s) * base / 28; // measureText enthält den Buchstabenabstand schon
+    var space = ctx.measureText(' ').width + capWordGap(s, true) * base / 28; // measureText enthält den Buchstabenabstand schon
     lines = coverWrap(wid, maxW, space);
     var lineH = base * lh * 1.02, blockH = lines.length * lineH;
     if (blockH <= region.h && lines.every(function(L){ var tw = 0; L.forEach(function(i, k){ tw += wid[i] + (k ? space : 0); }); return tw <= maxW + 0.5; })) {
