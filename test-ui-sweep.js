@@ -418,7 +418,7 @@ const CTL = [
   { id: 'csBoxR', tab: 'style', custom: true, pre: sc => sc.page.selectOption('#csBox', 'box'), op: 'range', sel: '#csBoxR', values: [0, 30], changes: ['style.boxBr', 'dom.root.borderRadius'], styleOnly: ['boxBg', 'boxBr'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
   { id: 'csHlType', tab: 'style', custom: true, op: 'select', sel: '#csHlType', values: ['pill'], changes: ['style.hlPillBg'], styleOnly: HL_FIELDS, inv: inv('dom.lines', 'cfg.blocks').concat('dom.span0.fontSize') },
   { id: 'csMotion', tab: 'style', custom: true, op: 'select', sel: '#csMotion', values: ['reveal', 'fill', 'none'], changes: ['style.motion', 'dom.hash'], styleOnly: ['motion'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
-  { id: 'csAnim', tab: 'style', custom: true, op: 'select', sel: '#csAnim', values: ['scale', 'punch', 'bounce', 'flash', 'glow'], changes: ['style.anim', 'dom.act.*'], styleOnly: ['anim'], inv: LAYOUT_INV.concat('dom.span0.fontSize'),
+  { id: 'csAnim', tab: 'style', custom: true, op: 'select', sel: '#csAnim', values: ['scale', 'punch', 'bounce', 'flash', 'glow', 'overshoot', 'squash'], changes: ['style.anim', 'dom.act.*'], styleOnly: ['anim'], inv: LAYOUT_INV.concat('dom.span0.fontSize'),
     pre: sc => sc.page.selectOption('#csAnim', 'none'), seek: { word: 1, dt: 0.08, scrub: true }, reseek: true, wait: 1100 },
   // ── Style-Tab: Customize › Timing & text ──
   { id: 'toSlider', tab: 'style', custom: false, op: 'range', sel: '#toSlider', values: [-0.3, 0.3], changes: ['cfg.timeOff'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], customize: true },
@@ -682,7 +682,7 @@ SECTIONS.hyg = async (browser, prof) => {
 
 // ═══════════ Abschnitt anim: Wort-Animation bei Wortstart + 0.08 s sichtbar ═══════════
 // Aktiver Span: Transformation (Pop/Punch/Lift), Deckkraft (Fade in) bzw. Filter/Schatten (Glow) muss sich gegenüber «None» ändern.
-const ANIMS = [['scale', 'Pop', true], ['punch', 'Punch', true], ['bounce', 'Lift', true], ['flash', 'Fade in', false], ['glow', 'Glow', false]];
+const ANIMS = [['scale', 'Pop', true], ['punch', 'Punch', true], ['bounce', 'Lift', true], ['flash', 'Fade in', false], ['glow', 'Glow', false], ['overshoot', 'Overshoot', true], ['squash', 'Squash', true]];
 SECTIONS.anim = async (browser, prof) => {
   const sc = await newScenario(browser, prof);
   const p = sc.page;

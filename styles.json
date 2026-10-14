@@ -46,7 +46,6 @@
    "fw": "400",
    "tt": "uppercase",
    "fs": ".8em",
-   "lh": 1,
    "motion": "reveal",
    "thumbBg": "linear-gradient(160deg,#1a1606,#0a0803)",
    "tc": "#ffffff",
