@@ -133,6 +133,7 @@ capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidRead
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
+subtitleCues:subtitleCues,srtFile:srtFile,vttCues:vttCues,subLines:subLines,setSrtMode:setSrtMode,getSrtMode:function(){return srtMode;},setFileSuffix:setFileSuffix,getFileSuffix:function(){return fileSuffixOn;},loadSubOpts:loadSubOpts,buildTemplateExport:buildTemplateExport,fontFormatOf:fontFormatOf,bytesToB64:bytesToB64,b64ToBytes:b64ToBytes,importEmbeddedFonts:importEmbeddedFonts,getUserFontsMap:function(){return _userFonts;},TPL_FONT_MAX_BYTES:TPL_FONT_MAX_BYTES,templateFontNames:templateFontNames,exportTemplatesMsg:exportTemplatesMsg,
 exportBlobOk:exportBlobOk,exportPlaybackTooShort:exportPlaybackTooShort,exportSizeLabel:exportSizeLabel,syncExpSub:syncExpSub,vttFile:vttFile,newExportToken:newExportToken,cancelExport:cancelExport,exportAborted:exportAborted,exportFailed:exportFailed,releaseLastExport:releaseLastExport,exportChangedSinceLast:exportChangedSinceLast,syncExportAgain:syncExportAgain,exportSignature:exportSignature,setExportRes:function(v){exportRes=v;},getExportRes:function(){return exportRes;},confirmRetranscribe:confirmRetranscribe,rtAnswer:rtAnswer,rtOpen:rtOpen,hideCapToast:hideCapToast,renderBilling:renderBilling,setReTranscribing:setReTranscribing,getCapPos:function(){return capPos;},downloadLastExport:downloadLastExport,getLastExportBlob:function(){return _lastExportBlob;},getExpTok:function(){return _expTok;},showExportMain:showExportMain,videoErrIsDamage:videoErrIsDamage,MSG_EXPORT_DAMAGED:MSG_EXPORT_DAMAGED,confirmLeaveExport:confirmLeaveExport,leaveWarningNeeded:leaveWarningNeeded,hasUnsavedWork:hasUnsavedWork,
 zoomFill:zoomFill,zoomPlan:zoomPlan,zoomFeedback:zoomFeedback,zoomDemoStart:zoomDemoStart,getZoomDemo:function(){return _zoomDemo;},clearZoomDemo:function(){_zoomDemo=null;},
 applyPreviewZoom:applyPreviewZoom,setEmphZoom:setEmphZoom,
@@ -4856,6 +4857,201 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(!T.liveTemplates().some(t => t.id === 'tpl_delta') && tpls().find(t => t.id === 'tpl_delta').deleted === true, 'Speichern: eigener Grabstein gewinnt gegen älteren Stand im Speicher');
       delete global.localStorage; delete global.prompt; delete global.confirm;
       T.setUserTemplates([]); T.selectStyle('hormozi');
+    }
+  }
+
+  // ═══════════════ Paket B3-B4: SRT/VTT-Segmentierung, Dateiname-Suffix, Template-Export mit eigener Schrift ═══════════════
+  {
+    const fixDir = path.join(__dirname, 'scripts', 'creator-test', 'fixtures');
+    const fixture = n => JSON.parse(fs.readFileSync(path.join(fixDir, n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end }));
+    const toSec = t => { const m = /^(\d\d):(\d\d):(\d\d)[,.](\d{3})$/.exec(t); return m ? (+m[1] * 3600 + +m[2] * 60 + +m[3] + +m[4] / 1000) : NaN; };
+    // Datei parsen (SRT oder VTT) und prüfen: Nummerierung, Zeitformat, keine Überlappung, max. Zeichen/Zeile
+    const parseCues = (txt, vtt) => {
+      const body = vtt ? txt.replace(/^WEBVTT\n\n/, '') : txt;
+      return body.split('\n\n').filter(Boolean).map(b => { const l = b.split('\n'); const m = /^(\S+) --> (\S+)$/.exec(l[1] || ''); return { n: l[0], a: m ? m[1] : '', b: m ? m[2] : '', lines: l.slice(2) }; });
+    };
+    const checkFile = (label, txt, vtt, o) => {
+      const cs = parseCues(txt, vtt); let prev = 0, bad = '';
+      cs.forEach((c, i) => {
+        const a = toSec(c.a), b = toSec(c.b);
+        if (c.n !== String(i + 1)) bad = bad || 'Nummer ' + c.n;
+        if (!(vtt ? /^\d\d:\d\d:\d\d\.\d{3}$/ : /^\d\d:\d\d:\d\d,\d{3}$/).test(c.a) || !(vtt ? /^\d\d:\d\d:\d\d\.\d{3}$/ : /^\d\d:\d\d:\d\d,\d{3}$/).test(c.b)) bad = bad || 'Zeitformat ' + c.a + ' ' + c.b;
+        if (!(b > a)) bad = bad || 'Ende vor Start #' + (i + 1);
+        if (a < prev - 1e-9) bad = bad || 'Überlappung #' + (i + 1);
+        if (!c.lines.length || c.lines.some(l => !l.trim())) bad = bad || 'leere Zeile #' + (i + 1);
+        if (o && o.maxLines && c.lines.length > o.maxLines) bad = bad || '> ' + o.maxLines + ' Zeilen #' + (i + 1);
+        if (o && o.maxChars && c.lines.some(l => l.length > o.maxChars && l.indexOf(' ') >= 0)) bad = bad || '> ' + o.maxChars + ' Zeichen #' + (i + 1);
+        if (o && o.maxDur && b - a > o.maxDur + 1e-6) bad = bad || 'Dauer ' + (b - a).toFixed(2) + ' #' + (i + 1);
+        if (o && o.minDur && b - a < o.minDur - 1e-6 && i < cs.length - 1) bad = bad || 'zu kurz ' + (b - a).toFixed(2) + ' #' + (i + 1);
+        prev = b;
+      });
+      ok(cs.length > 0 && !bad, label + ': ' + (bad || cs.length + ' Cues gültig'));
+      return cs;
+    };
+    T.setTimeOffState(0); T.setCaseState('asis'); T.setMaxCharsState(40);
+    const fx = {};
+    ['v1-reel-de', 'v2-podcast-de-16x9', 'v3-hook-en'].forEach(n => { fx[n] = fixture(n); });
+    // ── Pure Funktionen: drei Segmentierungen je Testvideo ──
+    Object.keys(fx).forEach(n => {
+      const blocks = T.buildCaptionBlocks(fx[n], []);
+      const snip = T.subtitleCues(blocks, 'snippets', {});
+      ok(snip.length === blocks.length && snip.every((c, i) => c.start === blocks[i].start && c.end === blocks[i].end && c.text === blocks[i].text), n + ': snippets = Blöcke 1:1 (wie bisher)');
+      const sen = T.subtitleCues(blocks, 'sentences', {});
+      const two = T.subtitleCues(blocks, 'twolines', {});
+      const allW = fx[n].map(w => w.word).join(' ');
+      ok(sen.map(c => c.text).join(' ') === allW && two.map(c => c.text.replace(/\n/g, ' ')).join(' ') === allW, n + ': kein Wort verloren/doppelt (sentences + twolines)');
+      const sentEnds = fx[n].filter(w => /[.!?…]$/.test(w.word)).length;
+      ok(sen.length >= sentEnds && sen.every(c => c.end - c.start <= 7 + 1e-6), n + ': sentences — mind. ' + sentEnds + ' Sätze, jeder ≤ 7 s (' + sen.length + ' Cues)');
+      checkFile(n + ' SRT snippets', T.srtFile(snip), false, {});
+      checkFile(n + ' SRT sentences', T.srtFile(sen), false, { maxDur: 7 });
+      const f2 = checkFile(n + ' SRT 2×42', T.srtFile(two), false, { maxLines: 2, maxChars: 42, maxDur: 7, minDur: 1 });
+      checkFile(n + ' VTT 2×42', 'WEBVTT\n\n' + T.vttCues(two).join('\n\n'), true, { maxLines: 2, maxChars: 42, maxDur: 7, minDur: 1 });
+      ok(f2.every(c => c.lines.length < 2 || Math.abs(c.lines[0].length - c.lines[1].length) <= 20), n + ': 2×42 Zeilen ausgewogen (Längenunterschied ≤ 20)');
+      ok(T.vttCues(two)[0].split('\n')[1].indexOf('.') > 0 && T.vttCues(two)[0].split('\n')[1].indexOf(',') < 0, n + ': VTT-Zeit mit Punkt');
+    });
+    // Inhalt v2: Sätze exakt (Satzende . trennt, „Verkauf keine Stunden, verkauf Ergebnisse.“ bleibt zusammen)
+    {
+      const b2 = T.buildCaptionBlocks(fx['v2-podcast-de-16x9'], []);
+      const sen = T.subtitleCues(b2, 'sentences', {});
+      ok(sen[0].text === 'Willkommen zurück bei Klartext Business.' && sen.some(c => /^Ihr wichtigster Tipp: Verkauf keine Stunden, verkauf Ergebnisse\.$/.test(c.text)), 'v2 sentences: Satzgrenzen an . — ' + sen.slice(0, 3).map(c => c.text).join(' | '));
+      const two = T.subtitleCues(b2, 'twolines', {});
+      ok(two.every(c => !/\n$/.test(c.text)) && two.some(c => c.text.indexOf('\n') > 0), 'v2 2×42: lange Sätze auf 2 Zeilen umbrochen');
+    }
+    // Lange Sätze (> 7 s) werden an Komma/Pause geteilt
+    {
+      const longW = []; let t = 0;
+      'Das ist ein sehr langer Satz, der viel zu lange dauert, weil wir absichtlich langsam sprechen und danach noch mehr erzählen, bis er endlich zu Ende geht.'.split(' ').forEach(w => { longW.push({ word: w, start: t, end: t + 0.55 }); t += 0.6; });
+      const bl = T.buildCaptionBlocks(longW, []);
+      const sen = T.subtitleCues(bl, 'sentences', {});
+      ok(sen.length >= 2 && sen.every(c => c.end - c.start <= 7 + 1e-6) && /,$/.test(sen[0].text), 'sentences: Satz von ' + (t).toFixed(0) + ' s wird an Komma geteilt ≤ 7 s — ' + sen.map(c => c.text.length).join('/'));
+      const two = T.subtitleCues(bl, 'twolines', {});
+      checkFile('Langsatz 2×42', T.srtFile(two), false, { maxLines: 2, maxChars: 42, maxDur: 7, minDur: 1 });
+    }
+    // Abkürzungen („z. B.“, „Dr.“) beenden keinen Satz
+    {
+      const aw = 'Wir sparen z. B. Zeit. Dr. Meier lacht. Genau.'.split(' ').map((w, i) => ({ word: w, start: i * 0.3, end: i * 0.3 + 0.25 }));
+      const sen = T.subtitleCues(T.buildCaptionBlocks(aw, []), 'sentences', {}).map(c => c.text);
+      ok(sen.length === 3 && sen[0] === 'Wir sparen z. B. Zeit.' && sen[1] === 'Dr. Meier lacht.', 'sentences: Abkürzungen z. B./Dr. trennen nicht — ' + JSON.stringify(sen));
+    }
+    // Pause ≥ 0,8 s trennt auch ohne Satzzeichen; kurze Cues (< 1 s) werden zusammengelegt/verlängert
+    {
+      const pw = [{ word: 'Hallo', start: 0, end: 0.3 }, { word: 'Welt', start: 0.35, end: 0.6 }, { word: 'und', start: 2, end: 2.2 }, { word: 'tschüss', start: 2.25, end: 2.6 }];
+      const sen = T.subtitleCues(T.buildCaptionBlocks(pw, []), 'sentences', {});
+      ok(sen.length === 2 && sen[0].text === 'Hallo Welt', 'sentences: Pause ≥ 0,8 s trennt');
+      const two = T.subtitleCues(T.buildCaptionBlocks(pw, []), 'twolines', {});
+      ok(two.length === 2 && two[0].end - two[0].start >= 1 - 1e-6, '2×42: Cue < 1 s wird auf 1 s verlängert (Nachbar hat Platz)');
+    }
+    // Zeilenumbruch: ausgewogen, nie > 42, einzelnes Riesenwort bleibt ganz
+    {
+      const l = T.subLines('Das ist ein Satz mit genau der richtigen Länge für zwei Zeilen hier'.split(' '), 42);
+      ok(l && l.length === 2 && l.every(x => x.length <= 42) && Math.abs(l[0].length - l[1].length) <= 8, 'subLines: ausgewogen — ' + JSON.stringify(l));
+      ok(T.subLines(['kurz', 'text'], 42).length === 1 && T.subLines('a'.repeat(30).split('').map(() => 'wortwort'), 42) === null, 'subLines: 1 Zeile wenn passt, null wenn nicht in 2×42');
+    }
+    // Handkorrekturen am Text werden in allen Varianten übernommen
+    {
+      const blocks = T.buildCaptionBlocks(fx['v2-podcast-de-16x9'], []);
+      const b0 = blocks.find(b => /Klartext/.test(b.text)); b0.text = b0.text.replace('Klartext', 'KLARTEXT-FIX');
+      b0.words = b0.words.map((w, i) => (i === 0 ? w : w)); // Timings bleiben
+      ['snippets', 'sentences', 'twolines'].forEach(m => {
+        const cues = T.subtitleCues(blocks, m, {});
+        ok(cues.some(c => c.text.indexOf('KLARTEXT-FIX') >= 0), 'Handkorrektur im Text übernommen: ' + m);
+      });
+      // Text mit anderer Wortanzahl als b.words (Einfügung): Zeiten gleichmässig verteilt, Reihenfolge/Monotonie bleibt
+      blocks[1].text = 'EINS ZWEI DREI VIER FÜNF SECHS SIEBEN';
+      const cues = T.subtitleCues(blocks, 'twolines', {});
+      let mono = true; cues.forEach((c, i) => { if (i && c.start < cues[i - 1].end - 1e-9) mono = false; });
+      ok(mono && cues.some(c => c.text.indexOf('EINS') >= 0) && cues.some(c => /SIEBEN/.test(c.text)), 'Handkorrektur mit anderer Wortzahl: Cues monoton, Text vollständig');
+      // Case-Option + Zeitversatz laufen mit
+      const up = T.subtitleCues(blocks, 'sentences', { caseFn: x => x.toUpperCase(), off: 0.1 });
+      ok(up[0].text === up[0].text.toUpperCase() && Math.abs(up[0].start - Math.max(0, blocks[0].words[0].start - 0.1)) < 1e-9, 'sentences: Gross-/Kleinschreibung und Timing-Versatz');
+    }
+    // ── Export-Funktionen: Auswahl wirkt, Auswahl wird gemerkt ──
+    {
+      const store = {};
+      global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+      const blocks = T.buildCaptionBlocks(fx['v2-podcast-de-16x9'], []);
+      T.setCaptionBlocksForTest(blocks); T.setTitle('Mein Reel');
+      ok(T.getSrtMode() === 'snippets', 'Standard: Reel snippets');
+      T.exportSRT(); const snipTxt = global.LASTBLOB.content;
+      T.setSrtMode('twolines'); ok(store['capivo.srtMode'] === 'twolines', 'Wahl in localStorage[capivo.srtMode] gemerkt');
+      T.exportSRT(); const twoTxt = global.LASTBLOB.content;
+      ok(snipTxt !== twoTxt && /\n.{1,42}\n.{1,42}\n\n/.test(twoTxt), 'exportSRT folgt der Wahl (2 Zeilen)');
+      T.setSrtMode('sentences'); T.exportVTT(); const vtt = global.LASTBLOB.content;
+      ok(/^WEBVTT\n\n1\n00:00:00\.339 --> /.test(vtt) && checkFile('exportVTT sentences', vtt, true, { maxDur: 7 }).length > 0, 'exportVTT folgt der Wahl (Sätze, gültig)');
+      T.setSrtMode('quatsch'); ok(T.getSrtMode() === 'snippets', 'unbekannte Variante → snippets');
+      T.setSrtMode('twolines'); T.loadSubOpts(); ok(T.getSrtMode() === 'twolines', 'loadSubOpts liest die gemerkte Wahl');
+      // Dateiname-Suffix: an (Standard) / aus, gilt für MP4, SRT, VTT, TXT (alle über exportBaseName)
+      ok(T.getFileSuffix() === true && T.exportBaseName() === 'mein-reel-gluephs', 'Suffix an: mein-reel-gluephs');
+      global.CLICKS.length = 0; T.exportSRT(); T.exportVTT(); T.exportTXT();
+      ok(global.CLICKS.slice(-3).map(c => c.download).join(',') === 'mein-reel-gluephs.srt,mein-reel-gluephs.vtt,mein-reel-gluephs.txt', 'Dateinamen mit Suffix: ' + global.CLICKS.slice(-3).map(c => c.download));
+      T.setFileSuffix(false); ok(store['capivo.fileSuffix'] === '0', 'Suffix-Wahl in localStorage[capivo.fileSuffix]');
+      global.CLICKS.length = 0; T.exportSRT(); T.exportVTT(); T.exportTXT();
+      ok(global.CLICKS.slice(-3).map(c => c.download).join(',') === 'mein-reel.srt,mein-reel.vtt,mein-reel.txt' && T.exportBaseName() === 'mein-reel', 'Suffix aus: mein-reel.srt/.vtt/.txt (MP4 nutzt dieselbe Basis)');
+      T.setTitle(''); ok(T.exportBaseName() === 'video', 'Suffix aus + ohne Titel: video');
+      T.setFileSuffix(true); T.setTitle(''); ok(T.exportBaseName() === 'gluephs-video', 'Suffix an + ohne Titel: gluephs-video');
+      T.setSrtMode('snippets'); T.setTitle('');
+      delete global.localStorage;
+    }
+    // ── B4: Template-Export mit eigener Schrift (Fake-Schrift, Roundtrip) ──
+    {
+      const fakeFont = (tag, size) => { const u = new Uint8Array(size); u.set([0x4f, 0x54, 0x54, 0x4f]); for (let i = 4; i < size; i++) u[i] = (i * 7 + tag) & 255; return u; };
+      const faceLog = [];
+      global.FontFace = function (name, buf) { this.family = name; this.buf = buf; this.load = () => { faceLog.push(name); return Promise.resolve(this); }; };
+      const addOld = document.fonts.add; document.fonts.add = () => {};
+      const own = fakeFont(3, 5000);
+      ok(T.fontFormatOf(own) === 'otf' && T.fontFormatOf(new Uint8Array([0, 1, 0, 0, 9])) === 'ttf' && T.fontFormatOf(new Uint8Array([0x77, 0x4f, 0x46, 0x32])) === 'woff2' && T.fontFormatOf(new Uint8Array([0x77, 0x4f, 0x46, 0x46])) === 'woff' && T.fontFormatOf(new Uint8Array([1, 2, 3, 4])) === '', 'fontFormatOf: otf/ttf/woff/woff2/unbekannt an den Bytes');
+      ok(T.b64ToBytes(T.bytesToB64(own)).every((b, i) => b === own[i]) && T.b64ToBytes(T.bytesToB64(own)).length === 5000, 'base64-Roundtrip ohne Verlust');
+      const tplA = { id: 'tpl_fontA', name: 'Mit Schrift', style: { fl: 'Marken Sans', font: "'Marken Sans'", fw: '700', tc: '#fff', hl: '#fa0', anim: 'none' }, layout: {}, createdAt: 1, updatedAt: 100 };
+      const tplB = { id: 'tpl_plain', name: 'Ohne', style: { fl: 'Anton', font: "'Anton'", tc: '#fff', hl: '#fa0', anim: 'none' }, layout: {}, createdAt: 2, updatedAt: 100 };
+      const tplC = { id: 'tpl_emfont', name: 'Betonung', style: { fl: 'Anton', emFont: "'Marken Sans'", tc: '#fff', hl: '#fa0', anim: 'none' }, layout: {}, createdAt: 3, updatedAt: 100 };
+      ok(T.templateFontNames(tplA).join() === 'Marken Sans' && T.templateFontNames(tplC).join() === 'Anton,Marken Sans', 'templateFontNames: Text-, Betonungs-Schrift');
+      let r = T.buildTemplateExport([tplB], [{ name: 'Marken Sans', buf: own.buffer }]);
+      ok(r.fonts === 0 && !('fonts' in r.data) && r.skipped.length === 0, 'Export ohne eigene Schrift: kein fonts-Feld (Format wie bisher)');
+      r = T.buildTemplateExport([tplA, tplB, tplC], [{ name: 'Marken Sans', buf: own.buffer }, { name: 'Unbenutzt', buf: fakeFont(1, 100).buffer }], '2026-10-14T00:00:00Z');
+      ok(r.fonts === 1 && r.data.fonts.length === 1 && r.data.fonts[0].name === 'Marken Sans' && r.data.fonts[0].format === 'otf' && r.data.fonts[0].size === 5000 && typeof r.data.fonts[0].data === 'string', 'Export: nur genutzte Schrift, einmal, mit Name/Format/base64');
+      ok(r.data.app === 'gluephs' && r.data.templates.length === 3, 'Export: app:gluephs, Templates unverändert');
+      // Limit
+      const big = fakeFont(5, T.TPL_FONT_MAX_BYTES + 1);
+      r = T.buildTemplateExport([tplA], [{ name: 'Marken Sans', buf: big.buffer }]);
+      const msg = T.exportTemplatesMsg(1, r);
+      ok(r.fonts === 0 && r.skipped.length === 1 && r.skipped[0].why === 'size' && /“Marken Sans” \(2\.0 MB, max\. 2 MB\)/.test(msg) && /not included/.test(msg), 'Grössenlimit: Schrift draussen + klare Meldung — ' + msg);
+      ok(T.exportTemplatesMsg(2, T.buildTemplateExport([tplA, tplC], [{ name: 'Marken Sans', buf: own.buffer }])) === '✓ Exported 2 templates + 1 font', 'Erfolgsmeldung mit Schrift');
+      ok(T.buildTemplateExport([tplA], [{ name: 'Marken Sans', buf: new Uint8Array([1, 2, 3, 4, 5]).buffer }]).skipped[0].why === 'format', 'Unbekanntes Format wird nicht eingebettet');
+      // Roundtrip: Export-JSON → (Gerät „leer“) → Import registriert Schrift wieder
+      const json = JSON.stringify(T.buildTemplateExport([tplA, tplB], [{ name: 'Marken Sans', buf: own.buffer }]).data);
+      T.setUserTemplates([]); const fm = T.getUserFontsMap(); Object.keys(fm).forEach(k => delete fm[k]);
+      const imp = T.importTemplatesFromText(json);
+      ok(imp.imported === 2 && imp.errors === 0 && T.importTemplateMessage(imp) === 'Imported 2 templates', 'Import: Templates wie bisher');
+      const fr = await imp.fontsReady;
+      ok(fr.added === 1 && fr.failed === 0 && fm['Marken Sans'] === true && faceLog.indexOf('Marken Sans') >= 0, 'Import: Schrift registriert (FontFace) — ' + JSON.stringify(fr));
+      ok(T.liveTemplates().find(t => t.id === 'tpl_fontA').style.fl === 'Marken Sans', 'Template zeigt wieder auf die eigene Schrift');
+      // Zweiter Import: Schrift schon da → übersprungen, kein Duplikat
+      const fr2 = await T.importTemplatesFromText(json).fontsReady;
+      ok(fr2.added === 0 && fr2.skipped === 1, 'Zweiter Import: Schrift schon vorhanden → übersprungen');
+      // Alter Export ohne fonts, Array-Format, Müll
+      const oldImp = T.importTemplatesFromText(JSON.stringify({ app: 'capivo', templates: [tplB] }));
+      ok((await oldImp.fontsReady).added === 0 && T.importTemplatesFromText(JSON.stringify([tplB])).imported === 0, 'Alter Export (ohne fonts) importierbar');
+      // Sicherheit: eingebaute Schrift nie überschreiben, kaputte/zu grosse/falsche Einträge zählen als failed
+      const evil = { app: 'gluephs', templates: [], fonts: [
+        { name: 'Poppins', format: 'otf', data: T.bytesToB64(own) },
+        { name: 'Falsch', format: 'ttf', data: T.bytesToB64(new Uint8Array([9, 9, 9, 9, 9])) },
+        { name: 'Riesig', format: 'otf', data: T.bytesToB64(big) },
+        { name: '<script>', format: 'otf', data: T.bytesToB64(own) },
+        { name: 'Kaputt', data: '%%%' }, null ] };
+      faceLog.length = 0;
+      const fe = await T.importTemplatesFromText(JSON.stringify(evil)).fontsReady;
+      ok(fe.added === 0 && fe.skipped === 1 && fe.failed === 4 && faceLog.length === 0 && !fm.Poppins && !fm.Falsch && !fm.Riesig, 'Import: Built-in (Poppins) nicht überschrieben, Müll abgewiesen — ' + JSON.stringify(fe));
+      // Limit der Schrift-Anzahl (USER_FONT_MAX = 5)
+      Object.keys(fm).forEach(k => delete fm[k]);
+      const many = { app: 'gluephs', templates: [], fonts: [1, 2, 3, 4, 5, 6, 7].map(i => ({ name: 'Eigen ' + i, format: 'otf', data: T.bytesToB64(fakeFont(i, 300)) })) };
+      const fmn = await T.importTemplatesFromText(JSON.stringify(many)).fontsReady;
+      ok(fmn.added === 5 && Object.keys(fm).length === 5, 'Import: höchstens 5 eigene Schriften — ' + JSON.stringify(fmn));
+      // exportTemplates ohne Datenbank (Node): Schrift im Gerät markiert, aber kein IndexedDB → Export klappt trotzdem (ohne Schrift)
+      T.setUserTemplates([T.normalizeTemplate(tplA)]); fm['Marken Sans'] = true;
+      await T.exportTemplates();
+      ok(JSON.parse(global.LASTBLOB.content).templates.length === 1, 'exportTemplates mit Gerätschrift, aber ohne Datenbank: kein Absturz');
+      Object.keys(fm).forEach(k => delete fm[k]); T.setUserTemplates([]);
+      delete global.FontFace; document.fonts.add = addOld;
     }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
