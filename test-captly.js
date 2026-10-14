@@ -133,6 +133,8 @@ capWordFace:capWordFace,capHlVariant:capHlVariant,emphLineH:emphLineH,CAP_MOT:CA
 capDomMotion:capDomMotion,applyTemplateSettings:applyTemplateSettings,setVidReady:function(v){vidReady=v;},
 capBlurBand:capBlurBand,capBlurTop:capBlurTop,fmtHintApplies:fmtHintApplies,fmtHintAnswer:fmtHintAnswer,fmtHintArm:fmtHintArm,syncFormatBar:syncFormatBar,getFmtHint:function(){return {armed:fmtHintArmed,done:fmtHintDone};},setFmtHint:function(a,d){fmtHintArmed=a;fmtHintDone=d;},setProgDrag:function(v){_progDrag=v;},
 csSegPick:csSegPick,syncCsSegs:syncCsSegs,
+setWpbState:function(v){WORDS_PER_BLOCK=v;},getWpbState:function(){return WORDS_PER_BLOCK;},segCutState:segCutState,segCutStateOf:segCutStateOf,segRestoreCut:segRestoreCut,syncSegCutMarks:syncSegCutMarks,startFreshSession:startFreshSession,tplHookChecked:tplHookChecked,setTplHookChk:setTplHookChk,tplHasHook:tplHasHook,removeTemplateHook:removeTemplateHook,syncSafeZoneDefault:syncSafeZoneDefault,getSafeZone:function(){return {on:showSafeZone,user:szUserChoice};},HOOK_WORDS:HOOK_WORDS,getHookWords:function(){return HOOK_WORDS;},getZoomState:function(){return emZoom;},
+setSzUser:function(v){szUserChoice=v;showSafeZone=v===null?false:v;},
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
 subtitleCues:subtitleCues,srtFile:srtFile,vttCues:vttCues,subLines:subLines,setSrtMode:setSrtMode,getSrtMode:function(){return srtMode;},setFileSuffix:setFileSuffix,getFileSuffix:function(){return fileSuffixOn;},loadSubOpts:loadSubOpts,buildTemplateExport:buildTemplateExport,fontFormatOf:fontFormatOf,bytesToB64:bytesToB64,b64ToBytes:b64ToBytes,importEmbeddedFonts:importEmbeddedFonts,getUserFontsMap:function(){return _userFonts;},TPL_FONT_MAX_BYTES:TPL_FONT_MAX_BYTES,templateFontNames:templateFontNames,exportTemplatesMsg:exportTemplatesMsg,
@@ -156,6 +158,7 @@ segFrameSnap:segFrameSnap,segDragTarget:segDragTarget,segDragApply:segDragApply,
 mergeCutRegions:mergeCutRegions,allCutRegionsOf:allCutRegionsOf,allCutRegions:allCutRegions,srcToOut:srcToOut,outToSrc:outToSrc,cuesToOutput:cuesToOutput,setTrim:setTrim,cutOutRange:cutOutRange,restoreCut:restoreCut,getTrim:function(){return {i:trimIn,o:trimOut,c:manualCuts};},currentSubCues:currentSubCues,previewSkipCuts:previewSkipCuts,tlCutRange:tlCutRange,tlCutOut:tlCutOut,tlSetMark:tlSetMark,tlSelectCut:tlSelectCut,tlRestoreSel:tlRestoreSel,trimSnapshot:trimSnapshot,trimResetState:trimResetState,tlTrimHit:tlTrimHit,setTlSel:function(i){tlSel=i;},
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
+resetGrpBuf:function(){_grpBuf=null;},localEmojis:localEmojis,localEmoLookup:localEmoLookup,LOCAL_EMO:LOCAL_EMO,drawTextWithPlan:drawTextWithPlan,capShK:capShK,
 capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -306,7 +309,7 @@ ok(b0.words.length === 5 && b0.words[4].end <= b0.end + 0.001, 'resplit ok');
   T.onWpbChangeT(2);
   const all = T.getBlocks().flatMap(b => b.words);
   ok(all[0].word === 'Korrigiert' && all[0].start === t0, 'Regroup behaelt Edit + Timing (' + firstWord + ' → Korrigiert)');
-  ok(T.getBlocks().every(b => b.words.length <= 2) && T.getBlocks()[0].text.startsWith('Korrigiert'), 'Regroup mit neuer Blockgroesse');
+  ok(T.getBlocks().every(b => b.words.length <= 3) && T.getBlocks()[0].text.startsWith('Korrigiert'), 'Regroup mit neuer Blockgroesse (wpb 2: Ausnahme 3 Wörter statt Einzelwort, Runde 2 P13)');
   ok(T.getBlocks()[0].srcWords[0].word === 'Korrigiert', 'Regroup: srcWords = aktueller Stand');
   T.onWpbChangeT(4);
 }
@@ -466,7 +469,7 @@ T.setMe('anon', '');
   const nav = htmlContent.slice(htmlContent.indexOf('<nav class="land-nav-links">'), htmlContent.indexOf('</nav>', htmlContent.indexOf('<nav class="land-nav-links">')));
   ok(/<a href="#pricing">/.test(nav) && /<a href="#faq">/.test(nav) && /class="nav-lang"/.test(nav) && !/nl-opt" href="#pricing"|nl-opt" href="#faq"/.test(nav), 'A6: Preise, FAQ und Sprache sind auch mobil in der Nav');
   ok(/\.land-nav-links \.nl-opt\{display:none\}/.test(htmlContent) && !/\.land-nav-links\{display:none\}/.test(htmlContent), 'A6: mobil nur die Nebenlinks ausgeblendet, die Nav bleibt');
-  ok(/<a class="hero-price" href="#pricing">[^<]*\$7\.99/.test(htmlContent), 'A6: Preis-Anker im Hero');
+  ok(/<div class="hero-free"><a href="#pricing">[\s\S]{0,120}Free during the beta<\/a>[\s\S]{0,160}No watermark[\s\S]{0,160}No signup/.test(htmlContent), 'A6 + Gratis-Push: Preis-Anker im Hero («Free during the beta» → #pricing) + No watermark + No signup');
 }
 
 // 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
@@ -4053,7 +4056,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(fs.existsSync(de.file) && fs.readFileSync(de.file, 'utf8') === de.html, 'i18n de: captly.de.html aktuell (sonst: node scripts/build-i18n.js)');
     ok(/<html lang="de">/.test(de.html) && /hreflang="de" href="https:\/\/[^"]+\/de"/.test(de.html), 'i18n de: lang + hreflang gesetzt');
     const ldFaq = JSON.parse(de.html.match(/<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/g)[1].replace(/^<script[^>]*>\n|\n<\/script>$/g, ''));
-    ok(ldFaq['@type'] === 'FAQPage' && ldFaq.mainEntity.length === 10 && /kostenlos/.test(ldFaq.mainEntity[0].name), 'i18n de: FAQ-Strukturdaten aus den deutschen FAQ');
+    ok(ldFaq['@type'] === 'FAQPage' && ldFaq.mainEntity.length === 12 && /kostenlos/.test(ldFaq.mainEntity[0].name) && ldFaq.mainEntity.some(q => /Konto/.test(q.name)), 'i18n de: FAQ-Strukturdaten aus den deutschen FAQ');
     const ldApp = JSON.parse(de.html.match(/<script type="application\/ld\+json">\n([\s\S]*?)\n<\/script>/)[1]);
     const deNode = (ldApp['@graph'] || []).find(n => n['@type'] === 'SoftwareApplication');
     ok(deNode && deNode.inLanguage === 'de' && /\/de$/.test(deNode.url) && ldApp['@graph'].some(n => n['@type'] === 'Organization') && ldApp['@graph'].some(n => n['@type'] === 'WebSite'),
@@ -4760,7 +4763,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const blk = { text: 'Das ist ein Test', start: 0, end: 1, words: ['Das', 'ist', 'ein', 'Test'].map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
       T.setState([blk], blk.words, 'karaoke');
       T.setEmphState(true, true, 'off'); T.setEmSrc('local'); T.syncEmphUI();
-      ok(E('emWarn').style.display === '' && /Emojis need the AI service/.test(E('emWarn').textContent) && E('emWarnRow').style.display === '' && E('emRetry').style.display === '', 'KI aus/nicht erreichbar + Emojis an → Hinweis am Schalter samt «Try again»: ' + E('emWarn').textContent);
+      ok(E('emWarn').style.display === '' && /simple emoji picks/i.test(E('emWarn').textContent) && E('emWarnRow').style.display === '' && E('emRetry').style.display === '', 'KI aus/nicht erreichbar + Emojis an → Hinweis am Schalter samt «Try again»: ' + E('emWarn').textContent);
       ok(E('emEmoBtn').classList.contains('unavail'), 'Emoji-Schalter als «nicht verfügbar» markiert');
       T.setEmphState(true, false, 'off'); T.syncEmphUI();
       ok(!E('emEmoBtn').classList.contains('unavail') && /simple keyword detection/.test(E('emWarn').textContent), 'Emojis aus: nur Keyword-Hinweis, kein Emoji-Warnzeichen');
@@ -4770,7 +4773,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(E('emWarnRow').style.display === 'none' && !E('emEmoBtn').classList.contains('unavail') && T.emAiUnavailable() === false, 'KI erreichbar (llm): kein Hinweis');
       const toastTxt = () => (document.body.children.filter(c => c.id === 'capToast').pop() || {}).textContent;
       T.setEmSrc('local'); T.setEmphEmoji(true);
-      ok(/AI service/.test(toastTxt()), 'Emoji-Schalter an ohne KI → Toast: ' + toastTxt());
+      ok(/Simple emoji picks/.test(toastTxt()), 'Emoji-Schalter an ohne KI → Toast: ' + toastTxt());
       T.setEmSrc(null); T.setEmphState(false, false, 'off'); T.setState([], [], 'karaoke');
       // Keyword-Farbe ≠ Farbe des aktiven Worts in allen Presets (wo eine Farb-Betonung existiert)
       const presetIds = [...script.slice(script.indexOf('var STYLES = ['), script.indexOf('\n];', script.indexOf('var STYLES = [')) ).matchAll(/\{id:'([a-z0-9]+)'/g)].map(m => m[1]); // eingebaute Presets (Tests legen weitere Styles an)
@@ -5503,9 +5506,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const mix = T.STYLES.find(s => s.id === 'mix'), tight = T.STYLES.find(s => s.id === 'tight');
 
     // ── KI-Standard: Keywords + Emojis an, Hinweis bleibt am Schalter ──
-    ok(/var emKw = true, emEmoji = true, emZoom = 'off';/.test(script), 'N-KI: Standard (ohne gemerkte Wahl): Keywords + Emojis an, Zoom aus');
+    ok(/var emKw = true, emEmoji = true, emZoom = 'subtle';/.test(script), 'N-KI: Standard (ohne gemerkte Wahl): Keywords + Emojis an, Auto-Zoom Subtle (Runde 2: P8)');
     ok(/id="emKwBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /id="emEmoBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /class="em-chip on" id="emEmoBtn"/.test(htmlContent), 'N-KI: Markup der beiden Schalter zeigt «an»');
-    ok(/emSrc === 'local' \|\| aiOff\(\)/.test(script) && /Emojis need the AI service, which isn’t reachable right now/.test(script) && /AI picks unavailable — using simple keyword detection/.test(script), 'N-KI: Hinweis am Schalter bleibt, wenn die KI nicht antwortet');
+    ok(/emSrc === 'local' \|\| aiOff\(\)/.test(script) && /Simple emoji picks – AI picks when available/.test(script) && /AI picks unavailable — using simple keyword detection/.test(script), 'N-KI: Hinweis am Schalter bleibt, wenn die KI nicht antwortet');
     // Fallback (lokale Heuristik): jede Caption ab 3 Wörtern bekommt ≥ 1 sichtbares Keyword
     {
       const lines = ['Das ist ein guter Test', 'Wir sind so froh', 'und dann kam es', 'Ich bin Landwirt heute', 'Hallo zusammen', 'Heute zeigen wir drei Tricks', 'es ist so', 'Der Hof liegt im Tal', 'a b c', 'Das war Dienstag früh'];
@@ -5533,7 +5536,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(T.hookClean('  Drei  Tricks,\n damit… ') === 'Drei Tricks, damit…', 'Hook-Text: Leerraum bereinigt (' + T.hookClean('  Drei  Tricks,\n damit… ') + ')');
     ok(T.hookClean('Warum das so ist.') === 'Warum das so ist' && T.hookClean('Wirklich?') === 'Wirklich?' && T.hookClean('Krass!') === 'Krass!', 'Hook-Text: Schlusspunkt weg, ? und ! bleiben');
     ok(T.hookClean('eins zwei drei vier fünf sechs sieben acht', 6) === 'eins zwei drei vier fünf sechs', 'Hook-Text: auf 6 Wörter gekürzt');
-    ok(T.hookClean('Drei Tricks, damit deine Reels mehr Views bekommen', 6) === 'Drei Tricks, damit deine Reels', 'Hook-Text: kein hängendes Füllwort am Ende (' + T.hookClean('Drei Tricks, damit deine Reels mehr Views bekommen', 6) + ')');
+    ok(T.hookClean('Drei Tricks damit deine Reels mehr Views bekommen', 6) === 'Drei Tricks damit deine Reels', 'Hook-Text: kein hängendes Füllwort am Ende (' + T.hookClean('Drei Tricks damit deine Reels mehr Views bekommen', 6) + ')');
     ok(T.hookClean('x'.repeat(200)).length <= 80, 'Hook-Text: höchstens 80 Zeichen');
     {
       const hb = [mkBlk('Ja.', 0), mkBlk('Heute zeige ich euch drei Tricks für mehr Reichweite.', 1), mkBlk('Zweiter Satz.', 5)];
@@ -5966,6 +5969,264 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // DE-Editor-HTML: Beispiele sichtbar, EN-Rest nur bewusst
     const edHtml = de.html.slice(de.html.indexOf('<!-- EDITOR -->'), de.html.indexOf('<script>\n', de.html.indexOf('<!-- EDITOR -->')));
     ok(/>\s*Untertitel\s*</.test(edHtml) && /aria-label="Rückgängig"|title="Letzte Änderung rückgängig/.test(edHtml) && />\s*Zurück\s*</.test(edHtml) && !/>\s*Back\s*</.test(edHtml) && !/>\s*Cut out\s*</.test(edHtml), 'i18n Editor: DE-HTML enthält deutsche Tabs/Knöpfe, keine englischen Standardknöpfe');
+  }
+
+  // ── Runde 2 Looks (Creator-Retest 14.10., Abschnitt 6 Punkte 1–4, 10) ──
+  {
+    const near = (a, b, e = 1e-6) => Math.abs(a - b) <= e;
+    const sfile = JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8')), sds = sfile.map(o => T.dropToStyle(o, Date.parse('2026-10-20')));
+    const g = id => sds[sfile.findIndex(o => o.id === id)] || T.STYLES.find(x => x.id === id); // Looks aus styles.json (wie in N-Looks)
+    // 1) Gradient Karaoke: Verlaufswort ohne text-shadow auf dem background-clip-Element (der Schatten deckte den Verlauf ab → schwarzes Wort)
+    {
+      const gk = g('gradkaraoke'), h = T.buildCap(['ab', 'cd'], gk, 0, 22, null);
+      const act = h.split('<span ').filter(x => /data-oi|class="cap-gw"/.test(x)).find(x => /--cg:linear-gradient/.test(x)) || '';
+      ok(/class="cap-gw"/.test(act) && /data-t="ab"/.test(act) && /--cg:linear-gradient\(90deg,#FDE047/.test(act) && /text-shadow:[^;]*rgba\(251,113,133/.test(act), 'Gradient Karaoke: aktives Wort = Schatten am Wort + Verlauf als ::after-Kopie (.cap-gw)');
+      ok(!/background-clip:text[^"]*text-shadow|text-shadow[^"]*background-clip:text/.test(act) && /color:transparent/.test(act), 'Gradient Karaoke: kein text-shadow zusammen mit background-clip:text auf demselben Element');
+      ok(/\.cap-gw::after\{[^}]*content:attr\(data-t\)[^}]*background:var\(--cg\)[^}]*background-clip:text/.test(htmlContent), 'CSS: .cap-gw::after zeichnet den Verlauf über dem Schatten');
+      const tg = Object.assign({}, g('hormozi'), { tg: 'linear-gradient(90deg,#f00,#00f)', ts: 'none' }), ht = T.buildCap(['ab'], tg, -1, 22, null);
+      ok(/background:linear-gradient\(90deg,#f00,#00f\);-webkit-background-clip:text/.test(ht) && !/cap-gw/.test(ht), 'Textverlauf ohne Schatten: weiter direkt per background-clip');
+      const tg2 = Object.assign({}, tg, { ts: '0 2px 6px rgba(0,0,0,.6)' }), ht2 = T.buildCap(['ab'], tg2, -1, 22, null);
+      ok(/class="cap-gw"/.test(ht2) && /--cg:linear-gradient\(90deg,#f00,#00f\)/.test(ht2) && /text-shadow:0 2px 6px/.test(ht2), 'Textverlauf (tg) mit Schatten: gleiche Trennung Schatten/Verlauf');
+    }
+    // 2) Glass Box: Kontrast Text/Box ≥ 4,5 : 1 auf hellem (255) und dunklem (0) Untergrund (Box über Hintergrund gemischt)
+    {
+      const gb = g('glassbox'), lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+      const Lm = a => 0.2126 * lin(a[0]) + 0.7152 * lin(a[1]) + 0.0722 * lin(a[2]);
+      const bx = T.cssColorToHexA(gb.boxBg), tx = T.cssColorToHexA(gb.tc), hx = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+      const rat = bg => { const comp = hx(bx.hex).map(c => bx.a * c + (1 - bx.a) * bg), txt = hx(tx.hex).map((c, i) => tx.a * c + (1 - tx.a) * comp[i]); return (Lm(txt) + 0.05) / (Lm(comp) + 0.05); };
+      const worst = Math.min(rat(255), rat(200), rat(128), rat(0));
+      ok(bx.a >= 0.5 && worst >= 4.5, 'Glass Box: Kontrast Text/Box ≥ 4,5 : 1 (schlechtester Fall, Untergrund weiss: ' + rat(255).toFixed(2) + ', schwarz: ' + rat(0).toFixed(2) + ')');
+      ok(/rgba\(255,255,255,/.test(gb.boxBd) && /rgba\(0,0,0,/.test(gb.ts), 'Glass Box: feiner heller Rand + Textschatten');
+    }
+    // 3) Squash Pop: Canvas-Schatten-Offsets je Achse skalieren (sonst steht der Drop-Schatten als Geisterbild aus der gestauchten Kontur)
+    {
+      const sq = g('squashpop'), sqPlan = T.capShadowPlan(sq.ts), softDrop = sqPlan.rest.find(l => l.y === 4);
+      ok(!!softDrop && softDrop.blur >= 6 && sqPlan.ring && sqPlan.ring.w === 3, 'Squash Pop: Drop-Schatten weich (Blur ' + (softDrop && softDrop.blur) + ') statt harter Kopie, die bei kleiner Vorschau als Geisterbild unter der Kontur steht');
+      const plan = T.capShadowPlan(sq.ts.replace(/,0 4px 10px rgba\(0,0,0,\.4\)$/, ',0 4px 0 rgba(0,0,0,.8)')), dropRef = plan.rest.find(l => l.y === 4); // harte Kopie wie vor Runde 2: Offsets müssen trotzdem stimmen
+      ok(!!dropRef && plan.ring && plan.ring.w === 3, 'Testaufbau: Squash Pop = Ring 3 px + Drop-Schatten 0 4px');
+      const rec = (shMul, sc) => { const offs = []; const c = { canvas: null, shadowOffsetX: 0, shadowOffsetY: 0, shadowBlur: 0, shadowColor: '', lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000', fillStyle: '#fff', globalAlpha: 1,
+        save() {}, restore() {}, fillText() { offs.push([this.shadowOffsetX, this.shadowOffsetY, this.shadowBlur]); }, strokeText() {} };
+        T.drawTextWithPlan(c, 'ab', 0, 0, plan, sc, 1, 60, 120, shMul); return offs.find(o => o[1] !== 0 || o[0] !== 0) || offs[0]; };
+      const sqOff = rec({ x: 1.35, y: 0.7, b: 1.025 }, 3);
+      ok(near(sqOff[1], 4 * 3 * 0.7) && near(sqOff[0], 0) && near(sqOff[2], 0), 'Squash (sx 1,35 / sy 0,7): Drop-Schatten vertikal × sy = 8,4 px statt × max(sx, sy) (' + sqOff[1].toFixed(2) + ')');
+      const uni = rec(1.28, 3);
+      ok(near(uni[1], 4 * 3 * 1.28), 'Gleichmässige Animation (Punch 1,28): Offset wie bisher × k (' + uni[1].toFixed(2) + ')');
+      ok(T.capShK(1.5).x === 1.5 && T.capShK(undefined).y === 1 && T.capShK({ x: 2, y: 0.5, b: 1 }).y === 0.5, 'capShK: Zahl oder {x, y, b}');
+      // Gruppen-Puffer (Deckkraft < 1 beim Einblenden): Schatten dort ohne shMul, weil der Puffer erst beim Einsetzen mit der Animation skaliert wird
+      T.resetGrpBuf(); const bufOffs = []; const origCreate = document.createElement;
+      const mkB = () => ({ canvas: { width: 0, height: 0 }, shadowOffsetX: 0, shadowOffsetY: 0, shadowBlur: 0, shadowColor: '', lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000', fillStyle: '#fff', globalAlpha: 1, textAlign: 'left', textBaseline: 'alphabetic', font: '', letterSpacing: '0px',
+        save() {}, restore() {}, translate() {}, setTransform() {}, clearRect() {}, drawImage() {}, strokeText() {}, fillText() { bufOffs.push(this.shadowOffsetY); } });
+      document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); const cv = { width: 0, height: 0 }; const cx = mkB(); cx.canvas = cv; cv.getContext = () => cx; return cv; };
+      const main = mkB(); main.canvas = { width: 1080, height: 1920 };
+      T.drawTextGrouped(main, 'ab', 100, 200, plan, 3, 1, 60, 120, { x: 1.35, y: 0.7, b: 1.02 }, 0.5);
+      document.createElement = origCreate;
+      ok(bufOffs.length >= 1 && bufOffs.some(o => near(o, 12)) && !bufOffs.some(o => near(o, 12 * 0.7) || near(o, 12 * 1.35)), 'Gruppen-Puffer: Schatten-Offset unskaliert (12 px) — keine doppelte Skalierung mit der Squash-Transformation');
+    }
+    // 4) Emojis ohne KI: lokale Stichwort-Tabelle, ≤ 1 je 3 Blöcke, nur klare Treffer, KI/Nutzer haben Vorrang
+    {
+      const mkB = (txt, t0) => { const words = txt.split(' ').map((w, i) => ({ word: w, start: +(t0 + i * 0.3).toFixed(2), end: +(t0 + i * 0.3 + 0.28).toFixed(2) })); return { text: txt, start: t0, end: t0 + words.length * 0.3, words }; };
+      const mkAll = txts => txts.map((t, i) => mkB(t, i * 2));
+      const v1 = mkAll(['Drei Tricks,', 'damit deine Reels', 'mehr Views bekommen.', 'Erstens: Die ersten', 'zwei Sekunden', 'entscheiden alles.', 'Zweitens: Untertitel,', 'weil fast alle', 'ohne Ton schauen.', 'Drittens: Poste regelmässig,', 'am besten jeden Dienstag', 'um achtzehn Uhr.', 'Speicher dir das Video,', 'sonst vergisst du es!']);
+      const n1 = T.localEmojis(v1), e1 = v1.map((b, i) => [i, T.blockEmoji(b)]).filter(x => x[1]);
+      ok(n1 === e1.length && n1 >= 2 && n1 <= Math.floor(v1.length / 3), 'v1 (DE, ' + v1.length + ' Blöcke): ' + n1 + ' Emojis (max ' + Math.floor(v1.length / 3) + '): ' + e1.map(x => x[0] + T.blockEmoji(v1[x[0]])).join(' '));
+      ok(e1.every((x, k) => k === 0 || x[0] - e1[k - 1][0] >= 3) && e1.every(x => T.EMO_PICK.indexOf(x[1]) >= 0), 'Emojis: mindestens 3 Blöcke Abstand, alle in der Emoji-Auswahl');
+      const want = { 0: '💡', 4: '⏰', 12: '🎬' }; // Tricks → Idee/Tipp, Sekunden → Zeit, Video → Clapper
+      ok(e1.every(x => want[x[0]] === x[1] || [11, 10, 6, 2, 1].includes(x[0])) && e1.some(x => x[0] === 0 && x[1] === '💡'), 'v1: Treffer passen zum Inhalt (Tricks → 💡): ' + JSON.stringify(e1));
+      const v3 = mkAll(['Stop scrolling.', 'This one setting', 'doubled my watch time.', 'Here is how', 'you can do it', 'on your next video']);
+      const n3 = T.localEmojis(v3), e3 = v3.map((b, i) => [i, T.blockEmoji(b)]).filter(x => x[1]);
+      ok(n3 >= 1 && n3 <= 2 && e3.every(x => x[1] === '⏰' || x[1] === '🎬'), 'v3 (EN): ' + n3 + ' Emojis, passend: ' + JSON.stringify(e3));
+      const none = mkAll(['Das ist ein Test', 'und noch einer hier', 'mit ganz normalen Worten']);
+      ok(T.localEmojis(none) === 0 && none.every(b => !T.blockEmoji(b)), 'Kein klares Stichwort → kein Emoji');
+      ok(T.localEmoLookup('Feuer,') && T.localEmoLookup('Feuer,').e === '🔥' && T.localEmoLookup('Geld') .e === '💰' && T.localEmoLookup('Glück!').e === '🍀' && T.localEmoLookup('Idee').e === '💡' && T.localEmoLookup('Hackschnitzel') === null && T.localEmoLookup('fast') === null && T.localEmoLookup('Lachs') === null, 'Tabelle: Umlaute/Satzzeichen normalisiert, Fehltreffer (Hackschnitzel, fast, Lachs) ausgeschlossen');
+      ok(T.LOCAL_EMO.every(r => T.EMO_PICK.indexOf(r[0]) >= 0), 'Jedes Emoji der lokalen Tabelle steht in der Emoji-Suche/Auswahl');
+      // KI-/Nutzer-Emojis haben Vorrang
+      const pri = mkAll(['Drei Tricks,', 'damit deine Reels', 'mehr Views bekommen.', 'Das Geld', 'weil das Feuer', 'und Zeit']);
+      pri[0].words[0].emo = '🤖'; pri[3].words[1].emo = '🧪'; pri[3].words[1].emoU = true;
+      T.localEmojis(pri);
+      ok(T.blockEmoji(pri[0]) === '🤖' && T.blockEmoji(pri[3]) === '🧪' && pri.filter(b => T.blockEmoji(b)).length <= 2 + Math.floor(pri.length / 3), 'Vorhandene KI-/Nutzer-Emojis bleiben unangetastet');
+      ok(T.localEmojis([mkB('Tipp des Tages', 0)]) === 1 && T.localEmojis([]) === 0, 'Einzelner Block: höchstens ein Emoji; leere Liste: 0');
+      ok(/localEmojis\(captionBlocks\)/.test(script) && /localEmojis\(blocks\)/.test(script), 'runEnhance: lokaler Emoji-Fallback in beiden Ohne-KI-Pfaden');
+    }
+    // 10) Typewriter: alle Zeilen linksbündig zur breitesten Zeile (Breite der fertigen Zeile bleibt reserviert), Vorschau = Export
+    {
+      const tw = g('typewriter'), b = { text: 'damit deine Reels', start: 0, end: 2, words: ['damit', 'deine', 'Reels'].map((w, i) => ({ word: w, start: i * 0.6, end: i * 0.6 + 0.55 })) };
+      T.setLinesState(2);
+      const mk = () => document.createElement('canvas').getContext('2d');
+      const L = T.capLayout(mk(), b, 0, 1, tw, 1080, 1920), xs = L.lines.map(Ln => Ln[0].x), widest = Math.max.apply(null, L.lineWs);
+      ok(L.lines.length === 2 && near(xs[0], xs[1]) && near(xs[0], 540 - widest / 2) && L.lineWs[0] < L.lineWs[1], 'Typewriter: beide Zeilen beginnen am selben x, die breiteste ist mittig (' + xs.map(x => x.toFixed(1)).join(' / ') + ')');
+      const hm = Object.assign({}, g('hormozi')), Lh = T.capLayout(mk(), b, 0, 1, hm, 1080, 1920);
+      ok(Lh.lines.length < 2 || Lh.lines[0][0].x > Lh.lines[1][0].x || near(Lh.lines[0][0].x, Lh.lines[1][0].x), 'Andere Looks bleiben zentriert (kürzere Zeile weiter rechts)');
+      const dom = T.buildCap(['damit', 'deine', 'Reels'], tw, 1, 22, [0, 0.6, 1.2], 2);
+      ok((dom.match(/display:block;white-space:nowrap;text-align:left/g) || []).length === 2 && !/text-align:left/.test(T.buildCap(['damit', 'deine', 'Reels'], g('hormozi'), 1, 22, [0, 0.6, 1.2], 2)), 'Typewriter-DOM: Zeilen text-align:left (nur dieser Look)');
+    }
+  }
+
+  // ═══════════════ Runde 2 Misc: P5 Template+Hook · P8 Defaults · P9 Hook-Vorschlag · P11 ausgeschnittene Zeile · P12 Neustart · P13 Waisen bei wpb 2 ═══════════════
+  {
+    const E = id => document.getElementById(id);
+    const fixDirR2 = path.join(__dirname, 'scripts', 'creator-test', 'fixtures');
+    const fixR2 = n => JSON.parse(fs.readFileSync(path.join(fixDirR2, n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end }));
+    const store = {};
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    global.confirm = () => true;
+
+    // ── P5: Template speichert Hook nur mit ausdrücklichem Häkchen «Include hook title» ──
+    {
+      T.setUserTemplates([]); T.loadTemplates();
+      ok(/id="tplHook"[^>]*type="checkbox"|type="checkbox"[^>]*id="tplHook"/.test(htmlContent) && /id="tplHookTop"/.test(htmlContent) && (htmlContent.match(/Include hook title/g) || []).length >= 2, 'R2-P5: Häkchen «Include hook title» im Speichern-Bereich und in der Inline-Leiste');
+      ok(!/id="tplHook(Top)?"[^>]*\bchecked\b/.test(htmlContent), 'R2-P5: Häkchen standardmässig aus');
+      T.setHookState(true, 'Titel', 3, '');
+      T.selectStyle('classic'); E('tplName').value = 'R2 ohne Haken'; T.saveTemplate();
+      const a = T.getUserTemplates().find(t => t.name === 'R2 ohne Haken');
+      ok(a && a.layout.hook && a.layout.hook.on === false && a.layout.hook.dur === 3, 'R2-P5: Hook an, aber ohne Häkchen → Template speichert Dauer, aber «aus» (' + JSON.stringify(a && a.layout.hook) + ')');
+      T.setTplHookChk(true); ok(T.tplHookChecked() === true, 'R2-P5: Häkchen lesbar');
+      E('tplName').value = 'R2 mit Haken'; T.saveTemplate();
+      const b = T.getUserTemplates().find(t => t.name === 'R2 mit Haken');
+      ok(b && b.layout.hook.on === true && b.layout.hook.dur === 3 && T.tplHasHook(b) && !T.tplHasHook(a), 'R2-P5: mit Häkchen → Hook «an» im Template');
+      ok(T.tplHookChecked() === false, 'R2-P5: Häkchen nach dem Speichern wieder aus (kein Dauerzustand)');
+      // Anwenden: ohne Haken schaltet das Template den Hook nie an
+      T.setHookState(false, 'bleibt', 2, '');
+      T.applyTemplateSettings(a.layout);
+      ok(T.getHookState().on === false && T.getHookState().dur === 3 && T.getHookState().text === 'bleibt', 'R2-P5: Template ohne Haken lässt den Hook aus (Dauer wird übernommen, Text bleibt)');
+      T.applyTemplateSettings(b.layout);
+      ok(T.getHookState().on === true, 'R2-P5: Template mit Haken schaltet den Hook an');
+      // Bestehendes Template mit Hook an (alte Speicherung) bleibt wirksam und wird im Menü als «Hook on» gekennzeichnet
+      const legacy = T.normalizeTemplate({ id: 'tpl_legacy', name: 'Alt', style: { fl: 'Inter', font: "'Inter'", fw: '800', tc: '#fff', hl: '#fa0', anim: 'none' }, layout: { hook: { on: true, dur: 2 } } });
+      T.getUserTemplates().push(legacy);
+      T.setHookState(false, '', 2, ''); T.applyTemplateSettings(legacy.layout);
+      ok(T.getHookState().on === true, 'R2-P5: altes Template mit Hook an → beim Anwenden bleibt der Hook an');
+      const btn = { getBoundingClientRect: () => ({ left: 100, top: 10, bottom: 30, right: 120 }) };
+      T.openTplMenu(legacy.id, btn); let m = T.getTplMenu();
+      ok(m && /Hook on/.test(m.children[0].textContent) && m.children.map(x => x.textContent).indexOf('Remove hook title') > 0, 'R2-P5: Template-Menü kennzeichnet «Hook on» und bietet «Remove hook title» (' + (m && m.children.map(x => x.textContent).join('|')) + ')');
+      T.closeTplMenu(); T.openTplMenu(a.id, btn); m = T.getTplMenu();
+      ok(m && !m.children.some(x => /Hook on/.test(x.textContent)), 'R2-P5: Template ohne Hook → keine Kennzeichnung');
+      T.closeTplMenu();
+      T.removeTemplateHook(legacy.id);
+      ok(!T.tplHasHook(legacy), 'R2-P5: «Remove hook title» schaltet den Hook im Template ab');
+      T.setUserTemplates([]); T.setHookState(false, '', 2, '');
+    }
+
+    // ── P8: Defaults für neue Nutzer (Auto-Zoom Subtle, Safe-Zone bei 9:16); gespeicherte Wahl bleibt ──
+    {
+      ok(/emZoom = 'subtle'/.test(script) && /if \(\['off', 'subtle', 'punchy'\]\.indexOf\(o\.zoom\) >= 0\) emZoom = o\.zoom;/.test(script), 'R2-P8: Auto-Zoom «Subtle» ab Werk, gespeicherte Wahl (o.zoom) überstimmt');
+      T.setSzUser(null);
+      T.syncSafeZoneDefault(9 / 16);
+      ok(T.getSafeZone().on === true && T.getSafeZone().user === null, 'R2-P8: ohne gespeicherte Wahl → Hilfslinien bei 9:16 an');
+      T.syncSafeZoneDefault(16 / 9);
+      ok(T.getSafeZone().on === false, 'R2-P8: 16:9 → Standard aus');
+      T.syncSafeZoneDefault(4 / 5); ok(T.getSafeZone().on === false, 'R2-P8: 4:5 → Standard aus');
+      T.setSzUser(false); T.syncSafeZoneDefault(9 / 16);
+      ok(T.getSafeZone().on === false, 'R2-P8: gespeicherte Wahl «aus» bleibt auch bei 9:16');
+      T.setSzUser(true); T.syncSafeZoneDefault(16 / 9);
+      ok(T.getSafeZone().on === true, 'R2-P8: gespeicherte Wahl «an» bleibt auch bei 16:9');
+      T.setSzUser(null);
+      ok(/localStorage\.getItem\(SZ_KEY\)/.test(script) && /localStorage\.setItem\(SZ_KEY, showSafeZone \? '1' : '0'\)/.test(script), 'R2-P8: Nutzerwahl wird gemerkt (try/catch)');
+      const expSrc = (script.match(/async function exportVideoWithCaptions[\s\S]*?\n}\n/) || [''])[0] + (script.match(/function drawCaptionsOnCtx[\s\S]*?\n}\n/) || [''])[0];
+      ok(expSrc.length > 500 && !/showSafeZone|safeZoneOverlay|safeZoneRect/.test(expSrc), 'R2-P8: Safe-Zone ist reine Anzeige — Export/Canvas-Zeichnen kennen sie nicht');
+    }
+
+    // ── P9: Hook-Vorschlag = ganzer erster Satz (≤ 8 Wörter), sonst am Komma/Doppelpunkt kürzen ──
+    {
+      const blocksOf = ws => T.buildCaptionBlocks(ws, []);
+      ok(T.getHookWords() === 8, 'R2-P9: HOOK_WORDS = 8');
+      const h1 = T.hookLocalText(blocksOf(fixR2('v1-reel-de'))), h2 = T.hookLocalText(blocksOf(fixR2('v2-podcast-de-16x9'))), h3 = T.hookLocalText(blocksOf(fixR2('v3-hook-en')));
+      ok(h1 === 'Drei Tricks, damit deine Reels mehr Views bekommen', 'R2-P9: v1 → ganzer erster Satz (' + h1 + ')');
+      ok(h2 === 'Willkommen zurück bei Klartext Business', 'R2-P9: v2 → ganzer erster Satz (' + h2 + ')');
+      ok(h3 === 'Stop scrolling', 'R2-P9: v3 → kurzer erster Satz bleibt allein (' + h3 + ')');
+      const mk = txt => txt.split(' ').map((w, i) => ({ word: w, start: i * .3, end: i * .3 + .25 }));
+      const blk = txt => [{ start: 0, end: 9, text: txt, words: mk(txt) }];
+      const c1 = T.hookLocalText(blk('Heute zeige ich dir, wie du in drei Schritten viel mehr Views bekommst.'));
+      ok(c1 === 'Heute zeige ich dir', 'R2-P9: langer Satz mit Komma → am Komma gekürzt, Teilsatz bleibt vollständig (' + c1 + ')');
+      const c2 = T.hookLocalText(blk('Ich erkläre dir jetzt ganz genau warum deine Videos so wenig Aufrufe bekommen.'));
+      ok(c2.split(' ').length <= 8 && /^Ich erkläre dir/.test(c2) && !/(^| )(deine|so|und|der|die|das|ein|mit|für)$/i.test(c2), 'R2-P9: langer Satz ohne Komma → erste Wörter ohne hängendes Füllwort (' + c2 + ')');
+      const c3 = T.hookLocalText(blk('Achtung. Dieses Video ändert alles für dich.'));
+      ok(c3 === 'Dieses Video ändert alles für dich', 'R2-P9: Ein-Wort-Satz am Anfang wird übersprungen (' + c3 + ')');
+      const c4 = T.hookLocalText(blk('Warte. Das hier ist wichtig. Hör gut zu.'));
+      ok(c4 === 'Das hier ist wichtig', 'R2-P9: Ein-Wort-Satz übersprungen, nächster ganzer Satz bleibt allein (' + c4 + ')');
+      ok(T.hookClean('Alpha, beta gamma delta epsilon zeta eta theta iota', 8) === 'Alpha, beta gamma delta epsilon zeta eta theta', 'R2-P9: Komma nach dem 1. Wort wird nicht zum Abschneiden genutzt (hart auf 8 Wörter)');
+      ok(T.hookClean('Drei Tricks, damit deine Reels mehr Views bekommen heute', 8) === 'Drei Tricks', 'R2-P9: hookClean kürzt am Komma, wenn der Teil davor ≥ 2 Wörter hat');
+    }
+
+    // ── P11: ausgeschnittene Zeilen in der Liste markieren (Restore) ──
+    {
+      const blocks = [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5]].map(([a, b], i) => ({ start: a, end: b, text: 'w' + i, words: [{ word: 'w' + i, start: a, end: b }] }));
+      const S = (b, manual, tIn, tOut, auto) => T.segCutState(b, 10, tIn || 0, tOut === undefined ? null : tOut, manual || [], auto || []);
+      ok(S(blocks[1], [{ start: 0.9, end: 2.1 }]).full === true && S(blocks[1], [{ start: 0.9, end: 2.1 }]).manual.join() === '0', 'R2-P11: Block ganz im Schnitt → full');
+      const part = S(blocks[2], [{ start: 2.5, end: 3.5 }]);
+      ok(part.part === true && part.full === false, 'R2-P11: Block halb im Schnitt → part');
+      ok(S(blocks[0], [], 1.2).full === true && S(blocks[0], [], 1.2).trimIn === true, 'R2-P11: Trim-Anfang schneidet Zeile weg (full, trimIn)');
+      ok(S(blocks[4], [], 0, 4.2).part === true && S(blocks[4], [], 0, 3.9).full === true && S(blocks[4], [], 0, 3.9).trimOut === true, 'R2-P11: Trim-Ende: teils/ganz');
+      ok(S(blocks[3], [{ start: 7, end: 8 }]).full === false && S(blocks[3], [{ start: 7, end: 8 }]).part === false, 'R2-P11: unberührte Zeile bleibt normal');
+      ok(S(blocks[2], [], 0, null, [{ start: 2, end: 3 }]).full === true && S(blocks[2], [], 0, null, [{ start: 2, end: 3 }]).auto === true, 'R2-P11: Auto-Cut wird erkannt (ohne Restore)');
+      // DOM: Klassen, Schere + Restore, Hinweis; Restore holt die Zeile zurück
+      const mkRow = () => { const cls = new Set(); return { classList: { toggle: (c, f) => { f ? cls.add(c) : cls.delete(c); }, add: c => cls.add(c), remove: c => cls.delete(c), contains: c => cls.has(c), _s: cls }, _bar: null, children: [],
+        querySelector(sel) { return sel === '.seg-cutbar' ? this._bar : (sel === '.seg-tools' ? {} : null); }, insertBefore(bar) { this._bar = bar; bar.parentNode = this; }, removeChild(bar) { if (this._bar === bar) this._bar = null; } }; };
+      const rows = blocks.map((b, i) => { const r = mkRow(); document.getElementById('seg' + i); els['seg' + i] = r; return r; });
+      T.setCaptionBlocksForTest(blocks); document.getElementById('capSegs');
+      document.getElementById('mainVid').duration = 10;
+      T.setTrim(0, null);
+      T.cutOutRange(1, 2); T.cutOutRange(2.5, 3.5);
+      ok(rows[1].classList._s.has('cut') && !rows[1].classList._s.has('cut-part') && rows[1]._bar && /Cut out/.test(rows[1]._bar.children[1].textContent) && rows[1]._bar.children[2] && rows[1]._bar.children[2].textContent === 'Restore', 'R2-P11: ganz ausgeschnittene Zeile: abgeblendet (cut), Schere + «Restore» in der Zeile');
+      ok(rows[2].classList._s.has('cut-part') && !rows[2].classList._s.has('cut') && rows[2]._bar && /Partly cut out/.test(rows[2]._bar.children[1].textContent) && !rows[2]._bar.children[2], 'R2-P11: teilweise geschnittene Zeile: Hinweis «Partly cut out», kein Restore');
+      ok(!rows[0].classList._s.has('cut') && !rows[0]._bar && !rows[4].classList._s.has('cut'), 'R2-P11: übrige Zeilen unverändert');
+      rows[1]._bar.children[2].onclick({ stopPropagation() {} });
+      ok(T.getTrim().c.length === 1 && !rows[1].classList._s.has('cut') && !rows[1]._bar, 'R2-P11: Restore in der Zeile holt den Schnitt zurück (ein Schnitt bleibt, Hinweis weg)');
+      T.setTrim(1.5, null); T.setTrim(0, null);
+      T.setCaptionBlocksForTest([]); for (let i = 0; i < 5; i++) delete els['seg' + i];
+    }
+
+    // ── P12: Wiederherstellung + «Start fresh» ──
+    {
+      const wR = fixR2('v3-hook-en');
+      T.setState(T.buildCaptionBlocks(wR, []), wR, 'karaoke');
+      T.setAutosaveKey('r2-clip.mp4|4321|190'); T.setHookState(true, 'Alter Titel', 2, ''); T.setCaptionsEdited(true);
+      ok(T.autosaveNow() === true, 'R2-P12: Setup — Autosave geschrieben');
+      T.setState([], []); T.setCaptionsEdited(false); T.setAutosaveKey(null); T.setHookState(false, '', 2, '');
+      document.getElementById('capToast').children = [];
+      const restored = T.restoreOrTranscribe({ name: 'r2-clip.mp4', size: 4321 }, 19.04);
+      ok(restored === true && T.getBlocks().length > 0 && T.getHookState().text === 'Alter Titel', 'R2-P12: gleiches Video erneut → Sitzung wird wiederhergestellt (inkl. Hook-Text)');
+      const tc = document.getElementById('capToast'); // Stub: capToastAction hängt den Knopf an das registrierte Element
+      const tbtn = tc.children.find(c => c.textContent === 'Start fresh');
+      ok(!!tbtn && typeof tbtn.onclick === 'function' && /capToastAction\(_t\('Restored your last session'\), _t\('Start fresh'\)/.test(script), 'R2-P12: Toast «Restored your last session» hat den Knopf «Start fresh»');
+      T.setCurrentFile({ name: 'r2-clip.mp4', size: 4321, type: 'video/mp4' });
+      T.setTrim(1, null);
+      const run0 = T.getTrRun();
+      ok(T.startFreshSession() === true, 'R2-P12: Start fresh läuft');
+      ok(T.getBlocks().length === 0 && T.getHookState().text === '' && T.getHookState().ai === '' && T.getTrim().i === 0 && T.getTrim().c.length === 0 && T.getCaptionsEdited() === false, 'R2-P12: Start fresh setzt Captions, Trim/Schnitte und Hook-Text dieses Videos zurück');
+      ok(T.getTrRun() > run0, 'R2-P12: Start fresh startet eine neue Transkription (alter Lauf entwertet)');
+      T.setCurrentFile(null); T.setAutosaveKey(null); T.setExporting(false);
+    }
+
+    // ── P13: Waisen bei 2-Wort-Looks (wpb 2): Einzelwort nur bei Ein-Wort-Satz oder wenn Limits es erzwingen ──
+    {
+      const lines1 = { dataset: { lines: '1' }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } };
+      const prevWpb = T.getWpbState(), prevMc = T.getMaxChars();
+      T.setWpbState(2); T.setLines(lines1);
+      const stats = {};
+      for (const per of [18, 24]) {
+        T.setMaxCharsState(per);
+        stats[per] = {};
+        for (const n of ['v1-reel-de', 'v2-podcast-de-16x9', 'v3-hook-en']) {
+          const bl = T.buildCaptionBlocks(fixR2(n), []);
+          const single = bl.filter(b => b.words.length === 1).map(b => b.text), over = bl.filter(b => b.words.length > 3).length;
+          // Alle Wörter erhalten, nie mehr als 3 Wörter je Block
+          ok(bl.map(b => b.text).join(' ') === fixR2(n).map(w => w.word).join(' ') && over === 0, 'R2-P13: ' + n + ' per ' + per + ': kein Wort verloren, ≤ 3 Wörter je Block');
+          stats[per][n] = single;
+        }
+      }
+      ok(stats[24]['v1-reel-de'].length === 0 && stats[24]['v2-podcast-de-16x9'].length === 0 && stats[24]['v3-hook-en'].length === 0, 'R2-P13: wpb 2, 24 Zeichen: keine Einzelwort-Blöcke (vorher 4: Erstens:/Business./time./them.) — ' + JSON.stringify(stats[24]));
+      ok(stats[18]['v1-reel-de'].length + stats[18]['v2-podcast-de-16x9'].length + stats[18]['v3-hook-en'].length <= 4, 'R2-P13: wpb 2, 18 Zeichen: höchstens 4 Einzelwörter, nur durch das Zeichenlimit erzwungen (vorher 10) — ' + JSON.stringify(stats[18]));
+      // Ganze Ein-Wort-Sätze bleiben bewusst allein
+      const w1 = ['Ja.', 'Das', 'ist', 'wirklich', 'so', 'gut', 'gemacht.', 'Stopp.'].map((w, i) => ({ word: w, start: i * .4, end: i * .4 + .3 }));
+      T.setMaxCharsState(30);
+      const b1 = T.buildCaptionBlocks(w1, []).map(b => b.text);
+      ok(b1[0] === 'Ja.' && b1[b1.length - 1] === 'Stopp.', 'R2-P13: echte Ein-Wort-Sätze («Ja.», «Stopp.») bleiben allein (' + b1.join(' | ') + ')');
+      // wpb 3 und 1 unverändert
+      T.setWpbState(3); T.setMaxCharsState(40);
+      ok(T.buildCaptionBlocks(fixR2('v1-reel-de'), []).every(b => b.words.length <= 3), 'R2-P13: wpb 3 bleibt hart bei ≤ 3 Wörtern');
+      T.setWpbState(prevWpb); T.setMaxCharsState(prevMc || 40);
+      T.setLines({ dataset: { lines: '2' }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
+    }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
