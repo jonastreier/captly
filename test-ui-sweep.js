@@ -488,6 +488,7 @@ CTL.push(
   { id: 'edFmt', tab: 'style', op: 'select', sel: '#edFmt', values: ['1:1', '16:9'], changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'edFill', tab: 'style', op: 'select', sel: '#edFill', values: ['blur'], pre: async sc => { await sc.page.evaluate(() => { setExportFormat('1:1'); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'autoCutChk', tab: 'style', op: 'check', sel: '#autoCutChk', values: [null], pre: OPEN_EXPOPTS, changes: ['cfg.autoCut'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
+  { id: 'autoCutEd', tab: 'captions', op: 'check', sel: '#autoCutEd', values: [null], changes: ['cfg.autoCut'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 }, // Auto-Cut-Schalter im Captions-Tab (gleicher Zustand wie #autoCutChk)
   { id: 'expSkipChk', tab: 'style', op: 'check', sel: '#expSkipChk', values: [null], pre: OPEN_EXPORT, changes: ['cfg.expSkip'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'gateNews', tab: 'style', op: 'check', sel: '#gateNews', values: [null], pre: OPEN_EXPORT, noopOk: 'reines Formularfeld — wirkt erst beim Download (test-e2e prüft den Lead-Eintrag)', inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'btnSRT', tab: 'style', op: 'click', sel: '#btnSRT', values: [null], pre: OPEN_EXPORT, download: { re: /\.srt$/, has: '-->' }, inv: ['cfg.blocks', 'cfg.text'], lines: 0 },

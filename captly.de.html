@@ -582,6 +582,10 @@ input.lang-sel{cursor:text}
 .cap-editor{display:none;margin-top:7px}
 .kb-help{display:inline-block;margin-left:2px}
 .fr-box{margin:2px 0 6px}
+.cut-row{margin:2px 0 6px;font-weight:600}
+.cut-save{margin-left:auto;font-weight:700;font-variant-numeric:tabular-nums;color:var(--brand-ink);white-space:nowrap}
+.cut-save.off{font-weight:500;color:var(--muted)}
+.cut-save:empty{display:none}
 .hint-touch{display:none}
 @media (pointer:coarse){.hint-touch{display:inline}.hint-desk,.kb-help,.cap-inline-row span{display:none}.cap-inline-row button{flex:1;min-height:40px;font-size:14px}}
 .fr-box summary{font-size:12px;font-weight:600;color:var(--brand);cursor:pointer;list-style:none;user-select:none;padding:3px 0}
@@ -1484,10 +1488,10 @@ body.editor-open .lang-hint{display:none}
       </div>
       <div class="es-done-row">
         <button type="button" class="pos-btn" id="expRmWm" onclick="closeExportSheet();showUpgrade()">Upgrade to remove the watermark</button>
-        <button type="button" class="pos-btn" id="expAgain" style="display:none" onclick="exportAgain()" title="Render a new video with your current captions and style (takes as long as the first export)">Export with your changes</button>
+        <button type="button" class="pos-btn" id="expAgain" style="display:none" onclick="exportAgain()" title="Render a new video with your current captions and style (takes as long as the first export)">Export with changes</button>
         <button type="button" class="pos-btn" id="expDlFile" onclick="downloadLastExport()" title="Save the same file again — no new rendering">Download again</button>
       </div>
-      <p class="es-done-hint" id="expChangedHint" style="display:none">You edited captions or style after the last export.</p>
+      <p class="es-done-hint" id="expChangedHint" style="display:none">Something changed after the last export — the saved file does not include it.</p>
       <div class="es-done-links">
         <button type="button" class="es-link" id="expCopyPost" onclick="copyTranscript(this)">Copy full transcript</button>
       </div>
@@ -1528,7 +1532,7 @@ body.editor-open .lang-hint{display:none}
           <p class="exp-note" id="fmtNote" style="display:none"></p>
           <label class="exp-chk">
             <input type="checkbox" id="autoCutChk" onchange="onAutoCutChange(this.checked)">
-            <span>Cut silences &amp; filler words (“um”, “äh”…)</span>
+            <span>Cut silences &amp; filler words (“um”, “äh”…)</span><b class="cut-save off" id="cutSaveExp"></b>
           </label>
         </div>
       </details>
@@ -1720,6 +1724,10 @@ body.editor-open .lang-hint{display:none}
             <span class="hint-touch"><b>Tip:</b> tap a line to fix a word. Below the selected line you can highlight words or add an emoji.</span>
             <button type="button" class="coach-x" onclick="dismissCoach('coachEdit')" aria-label="Dismiss tip"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button>
           </div>
+          <!-- Auto-Cut: gleicher Schalter wie im Export-Blatt (autoCutSilence = EINE Quelle der Wahrheit), zeigt die gesparte Zeit -->
+          <label class="chk-row cut-row" id="cutRow" title="Skips pauses and filler words (“um”, “äh”…) in the exported video. The captions stay as they are.">
+            <input type="checkbox" id="autoCutEd" onchange="onAutoCutChange(this.checked)"><span>Cut silences &amp; filler words</span><b class="cut-save off" id="cutSave" aria-live="polite"></b>
+          </label>
           <!-- Find & replace direkt über der Liste (vorher versteckt unter „Video & language“) -->
           <details class="fr-box" id="frBox" ontoggle="if(this.open){var f=document.getElementById('frFind');if(f&&f.focus)f.focus()}"><summary><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> Find &amp; replace</summary>
             <div class="fr-row">
@@ -6289,6 +6297,7 @@ async function mergeBlockWithPrevious(idx, ta) {
 // hunderten Blöcken blockiert das den Main-Thread spürbar (Chrome zeigt "Seite reagiert nicht").
 async function renderSegments() {
   var c = document.getElementById('capSegs');
+  syncAutoCutUI(); // Wörter geändert → gesparte Zeit neu
   tlRequestDraw(); // Blockstruktur hat sich geändert → Timeline im nächsten Frame neu
   if (!c) return;
   var frag = document.createDocumentFragment();
@@ -10411,6 +10420,7 @@ function loadVideo(file) {
   wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1; captionsEdited = false;
   _trRun++; // laufende Transkription des alten Videos sofort entwerten (auch falls das neue nicht lädt)
   _cutRun++; sceneCuts = []; // Szenenschnitte gehören zum Video
+  autoCutSilence = false; syncAutoCutUI(); // Auto-Cut gilt pro Video: ein neues Video startet mit voller Länge (nie ungefragt gekürzt)
   videoPlayable = true; showVideoWarn('');
   resetUndo(); collapseTrSettings(true);
   openEditor();
@@ -10442,7 +10452,7 @@ function loadVideo(file) {
     document.getElementById('prevBg').style.background    = 'transparent';
     document.getElementById('vidCtrls').style.display     = 'flex';
     document.getElementById('uploadLabel').innerHTML       = icon('upload') + ' Replace video';
-    vidReady = true;
+    vidReady = true; syncAutoCutUI(); // Dauer bekannt → gesparte Zeit inkl. Stille am Ende
     // Gesamtdauer sofort zeigen, nicht erst beim ersten timeupdate (sonst steht bis zum Abspielen "0:00 / 0:00")
     document.getElementById('timeLbl').textContent = fmtS(0) + ' / ' + fmtS(vid.duration);
     showPlayOverlay(true);
@@ -10997,7 +11007,8 @@ function webmToMp4Trim(durSec) {
   return (durSec > 0 && isFinite(durSec)) ? ['-t', durSec.toFixed(3), '-shortest'] : ['-shortest'];
 }
 // durSec (optional): Zieldauer — Bild UND Ton werden darauf gekürzt (A/V enden gemeinsam, ≈ Quelldauer)
-async function webmToMp4(blob, onProgress, durSec, tok) {
+// maxBps (optional): Bitraten-Deckel (exportBitrate) — CRF 23 allein ergäbe bei ultrafast deutlich mehr als die Quelle
+async function webmToMp4(blob, onProgress, durSec, tok, maxBps) {
   var g = await getFFmpeg();
   var ff = g.ff;
   if (tok) {
@@ -11017,9 +11028,9 @@ async function webmToMp4(blob, onProgress, durSec, tok) {
   // CFR ist zudem für Instagram/iOS-Fotos die unproblematischste Variante.
   await ff.exec(['-i', 'in.webm'].concat(webmToMp4Trim(durSec)).concat([
     '-fps_mode', 'cfr', '-r', '30',
-    '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p',
+    '-c:v', 'libx264', '-preset', 'ultrafast', '-pix_fmt', 'yuv420p'].concat(maxBps > 0 ? ['-maxrate', Math.round(maxBps) + '', '-bufsize', Math.round(maxBps * 2) + ''] : []).concat([
     '-c:a', 'aac', '-b:a', '128k',
-    '-movflags', '+faststart', 'out.mp4']));
+    '-movflags', '+faststart', 'out.mp4'])));
   var data = await ff.readFile('out.mp4');
   try { ff.off && ff.off('progress'); } catch(e) {}
   return new Blob([data.buffer], { type: 'video/mp4' });
@@ -11038,7 +11049,34 @@ var FILLER_WORDS = new Set([
   'euh','ben','heu',                                                   // fr
   'ehm','tipo',                                                        // it/pt overlap
 ]);
-function onAutoCutChange(v) { autoCutSilence = !!v; }
+// EINE Quelle der Wahrheit für den Auto-Cut: Schalter im Captions-Tab (#autoCutEd) und im Export-Blatt (#autoCutChk) zeigen
+// beide autoCutSilence; beide Export-Pfade holen die Schnittfenster hier. Pro Video zurückgesetzt (loadVideo/openEditorClean).
+function autoCutRegions() {
+  var vid = document.getElementById('mainVid'), dur = vid && vid.duration > 0 && isFinite(vid.duration) ? vid.duration : 0;
+  return wordTimestamps.length ? computeCutRegions(wordTimestamps, dur ? { totalDur: dur } : {}) : [];
+}
+function exportCutRegions() { return autoCutSilence ? autoCutRegions() : []; }
+function cutSavedSeconds(regions) { return (regions || []).reduce(function(a, r) { return a + Math.max(0, r.end - r.start); }, 0); }
+// „−4.8 s“ (an) bzw. „4.8 s possible“ (aus); ohne Treffer leer / „nothing to cut“
+function cutSavedLabel(sec, on) {
+  if (!(sec >= 0.05)) return on ? 'nothing to cut' : '';
+  var t = sec.toFixed(1) + ' s';
+  return on ? '−' + t : t + ' possible';
+}
+function syncAutoCutUI() {
+  var on = !!autoCutSilence, sec = cutSavedSeconds(autoCutRegions()), lbl = cutSavedLabel(sec, on);
+  ['autoCutEd', 'autoCutChk'].forEach(function(id) { var c = document.getElementById(id); if (c) c.checked = on; });
+  ['cutSave', 'cutSaveExp'].forEach(function(id) {
+    var el = document.getElementById(id); if (!el) return;
+    el.textContent = lbl;
+    if (el.classList) el.classList.toggle('off', !on || !(sec >= 0.05));
+  });
+  return sec;
+}
+function onAutoCutChange(v) {
+  autoCutSilence = !!v; syncAutoCutUI();
+  syncExportAgainIfOpen(); // Option nach dem Export geändert → „Export with changes“
+}
 // Baut aus den wortgenauen Timestamps eine Liste von [start,end]-Zeitfenstern, die beim Export
 // übersprungen werden (Stille-Lücken zwischen Wörtern + reine Füllwort-Interjektionen). `pad`
 // bleibt an jeder Schnittkante als Puffer stehen, damit Wortanfänge/-enden nicht angeschnitten
@@ -11327,6 +11365,8 @@ async function exportFastWebCodecs(file, o) {
   var W = o.W - (o.W % 2), H = o.H - (o.H % 2); // H.264 (4:2:0) braucht gerade Maße
   var fps = vT.samples_duration ? vT.nb_samples / (vT.samples_duration / vT.timescale) : 30;
   if (!(fps >= 1 && fps <= 240)) fps = 30;
+  fps = snapFrameRate(fps);
+  var srcBps = vT.bitrate > 0 ? vT.bitrate : (o.srcBps > 0 ? o.srcBps : 0); // Quell-Videobitrate → Export-Bitrate (exportBitrate)
 
   // ── Ton: AAC 1:1 kopieren ──
   var aT = null, aCfg = null, aOff = 0, aEnd = Infinity;
@@ -11349,7 +11389,7 @@ async function exportFastWebCodecs(file, o) {
   // ── Encoder wählen ──
   var enc = null, cands = fastExportVideoCodecs(W, H, fps);
   for (var ci = 0; ci < cands.length && !enc; ci++) {
-    var ecfg = { codec: cands[ci].codec, width: W, height: H, bitrate: exportBitrate(W, H, fps), framerate: fps, latencyMode: 'quality' };
+    var ecfg = { codec: cands[ci].codec, width: W, height: H, bitrate: exportBitrate(W, H, fps, srcBps, pW, pH), framerate: fps, latencyMode: 'quality' };
     if (cands[ci].mux === 'avc') ecfg.avc = { format: 'avc' }; // Längen-präfixiert + avcC in den Metadaten (MP4)
     try {
       var es = await VideoEncoder.isConfigSupported(ecfg);
@@ -11372,7 +11412,7 @@ async function exportFastWebCodecs(file, o) {
   function setFail(e) { if (!fail) fail = e instanceof Error ? e : new Error(String(e && e.message || e)); }
   var cuts = o.cutRegions || [];
   var defDurUs = Math.round(1e6 / fps);
-  var lastOutUs = -1, lastKeyUs = -Infinity, framesIn = 0, framesDone = 0, framesEnc = 0, vChunks = 0, aChunks = 0;
+  var cfr = createCfrPlanner(fps), lastKeyUs = -Infinity, framesIn = 0, framesDone = 0, framesEnc = 0, vChunks = 0, aChunks = 0;
 
   var encoder = new VideoEncoder({
     output: function(chunk, meta) { try { muxer.addVideoChunk(chunk, meta); vChunks++; } catch (e) { setFail(e); } },
@@ -11397,18 +11437,22 @@ async function exportFastWebCodecs(file, o) {
         if (t < 0) t = 0;
         var outT = rebaseCutTime(t, cuts);
         if (outT === null) return; // Auto-Cut: Frame liegt in Stille/Füllwort
-        var outUs = Math.round(outT * 1e6);
-        if (outUs <= lastOutUs) return;
+        // Konstante Bildrate (createCfrPlanner): Auto-Cut verschiebt sonst jeden Frame um einen krummen Bruchteil → variable Bildrate
+        var plan = cfr(outT);
+        if (!plan.length) return;
         drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
           drawReframed(ctx, W, H, o.mode || 'original', function(c, w, h, fit, pan){ drawFastFrame(c, frame, w, h, rot, fit, pan); }, o.pan);
         });
         drawCaptionsOnCtx(ctx, t, o.style, W, H, false);
         drawWatermark(ctx, W, H, o.wmOn);
-        var vf = new VideoFrame(canvas, { timestamp: outUs, duration: frame.duration || defDurUs, alpha: 'discard' });
-        var key = outUs - lastKeyUs >= 2e6; // Keyframe alle 2 s
-        if (key) lastKeyUs = outUs;
-        try { encoder.encode(vf, { keyFrame: key }); } finally { vf.close(); }
-        lastOutUs = outUs; framesEnc++;
+        for (var pi = 0; pi < plan.length; pi++) {
+          var outUs = cfrFrameTimeUs(plan[pi], fps);
+          var vf = new VideoFrame(canvas, { timestamp: outUs, duration: defDurUs, alpha: 'discard' });
+          var key = outUs - lastKeyUs >= 2e6; // Keyframe alle 2 s
+          if (key) lastKeyUs = outUs;
+          try { encoder.encode(vf, { keyFrame: key }); } finally { vf.close(); }
+          framesEnc++;
+        }
       } catch (e) { setFail(e); }
       finally { frame.close(); }
     },
@@ -11484,7 +11528,7 @@ async function exportFastWebCodecs(file, o) {
     muxer.finalize();
     if (o.onProgress) o.onProgress(1);
     console.info('[export] WebCodecs: ' + framesEnc + '/' + vTotal + ' Frames kodiert (' + enc.cfg.codec + ', '
-                 + W + 'x' + H + (rot ? ', rot ' + rot : '') + '), ' + aChunks + ' AAC-Pakete kopiert'
+                 + W + 'x' + H + ' @ ' + fps.toFixed(2) + ' fps CFR, ' + (enc.cfg.bitrate / 1e6).toFixed(2) + ' Mbit/s' + (srcBps ? ' (Quelle ' + (srcBps / 1e6).toFixed(2) + ')' : '') + (rot ? ', rot ' + rot : '') + '), ' + aChunks + ' AAC-Pakete kopiert'
                  + (cuts.length ? ', ' + cuts.length + ' Auto-Cuts' : ''));
     return new Blob([target.buffer], { type: 'video/mp4' });
   } finally {
@@ -11531,7 +11575,7 @@ async function tryFastExport(vid, tok) {
   if (!fastExportSupported() || !isFastExportSource(currentFile)) return false;
   var recBar = document.getElementById('recBar'), recMsg = document.getElementById('recMsg');
   var recProg = document.getElementById('recProg'), ctrls = document.getElementById('vidCtrls');
-  var cutRegions = (autoCutSilence && wordTimestamps.length) ? computeCutRegions(wordTimestamps, { totalDur: vid.duration }) : [];
+  var cutRegions = wordTimestamps.length ? exportCutRegions() : [];
   var cutTotalSec = cutRegions.reduce(function(a, r){ return a + (r.end - r.start); }, 0);
   isExporting = true;
   if (ctrls) ctrls.classList.add('exporting');
@@ -11546,6 +11590,7 @@ async function tryFastExport(vid, tok) {
       style: STYLES.find(function(x){ return x.id === activeId; }),
       wmOn: wmF, // Anmeldestatus JETZT — gilt für das ganze Video (wie im Echtzeit-Pfad)
       cutRegions: cutRegions,
+      srcBps: estimateSourceBitrate(currentFile.size, vid.duration), // Fallback, falls mp4box keine Spur-Bitrate liefert
       isCancelled: function() { return !!(tok && tok.cancelled); },
       onProgress: function(p) {
         recBar.style.width = Math.round(p * 100) + '%';
@@ -11632,8 +11677,46 @@ function outputAspect(srcW, srcH) {
   var m = exportReframeMode(srcW, srcH), a = EXPORT_ASPECTS[exportAspect];
   return (m !== 'original' && a) ? a[0] / a[1] : srcW / srcH;
 }
-function exportBitrate(W, H, fps) { return Math.round(Math.max(2e6, Math.min(12e6, 0.07 * W * H * (fps || 30)))); }
-function exportGeometry(srcW, srcH, fps, res, fmt) {
+function exportBitrate(W, H, fps, srcBps, srcW, srcH) {
+  var cap = Math.round(Math.max(2e6, Math.min(12e6, 0.07 * W * H * (fps || 30)))); // Obergrenze: Formel von früher (~0,07 Bit/Pixel/Frame, 2–12 Mbit/s)
+  if (!(srcBps > 0)) return cap;
+  // Quelle bekannt: Ziel ≈ Quell-Videobitrate × 1,2, bei Reframe/Skalierung proportional zur Pixelzahl; nie unter 2 Mbit/s, nie über der Obergrenze
+  var pr = (srcW > 0 && srcH > 0 && W > 0 && H > 0) ? (W * H) / (srcW * srcH) : 1;
+  return Math.round(Math.max(2e6, Math.min(cap, srcBps * 1.2 * pr)));
+}
+// Videobitrate der Quelle (Bit/s) aus Dateigrösse und Dauer — der Ton (~128 kbit/s) wird abgezogen; 0 = unbekannt.
+function estimateSourceBitrate(sizeBytes, durSec) {
+  if (!(sizeBytes > 0 && durSec > 0)) return 0;
+  var tot = sizeBytes * 8 / durSec;
+  return Math.round(Math.max(tot * 0.5, tot - 128000));
+}
+// Bildrate der Quelle auf übliche Werte einrasten (29,97 / 30 / 59,94 …): ein leicht krummer Messwert würde sonst
+// als krumme Bildrate in die Datei wandern.
+function snapFrameRate(fps) {
+  var std = [24000 / 1001, 24, 25, 30000 / 1001, 30, 48, 50, 60000 / 1001, 60];
+  var best = fps, bd = 0.0006; // 29,97 und 30 liegen 0,1 % auseinander → nur der nächste Wert, enge Toleranz
+  for (var i = 0; i < std.length; i++) { var d = Math.abs(fps - std[i]) / std[i]; if (d < bd) { bd = d; best = std[i]; } }
+  return best;
+}
+// Konstante Bildrate (CFR) für den Schnellexport: Ausgabe-Frameindex = Runden(re-basierte Zeit × fps). Pro Quellframe liefert der
+// Planer die Indizes, die mit DIESEM Bild zu kodieren sind: [] = weglassen (Index schon vergeben, z. B. VFR-Quelle),
+// [i] = normal, [i-1, i] = eine kleine Lücke (Auto-Cut verschiebt Frames um einen krummen Bruchteil) mit dem Bild füllen.
+// Lücken über maxFill Frames sind echte Lücken in der Quelle → nicht füllen. Rundung statt Aufsummieren: Versatz zur exakt
+// geschnittenen Zeit bleibt ≤ ½ Frame (auch nach vielen Schnitten).
+function cfrFrameIndex(outSec, fps) { return Math.round(outSec * fps); }
+function cfrFrameTimeUs(idx, fps) { return Math.round(idx * 1e6 / fps); }
+function createCfrPlanner(fps, maxFill) {
+  var last = -1, mf = maxFill > 0 ? maxFill : 3;
+  return function(outSec) {
+    var idx = cfrFrameIndex(outSec, fps);
+    if (idx <= last) return [];
+    var from = (last < 0 || idx - last > mf) ? idx : last + 1, out = [];
+    for (var i = from; i <= idx; i++) out.push(i);
+    last = idx;
+    return out;
+  };
+}
+function exportGeometry(srcW, srcH, fps, res, fmt, srcBps) {
   res = res || exportRes;
   var f = fmt === undefined ? exportFormatState() : normalizeExportFormat(fmt);
   srcW = srcW || 1080; srcH = srcH || 1920;
@@ -11649,7 +11732,7 @@ function exportGeometry(srcW, srcH, fps, res, fmt) {
     w = Math.round(w * k); h = Math.round(h * k);
   }
   w -= w % 2; h -= h % 2; // H.264 (4:2:0) braucht gerade Maße
-  return { W: w, H: h, mode: mode, aspect: f.aspect, pan: mode === 'crop' ? f.pan : { x: 0, y: 0 }, bitrate: exportBitrate(w, h, fps || 30) };
+  return { W: w, H: h, mode: mode, aspect: f.aspect, pan: mode === 'crop' ? f.pan : { x: 0, y: 0 }, bitrate: exportBitrate(w, h, fps || 30, srcBps, srcW, srcH) };
 }
 // Bildausschnitt bei «crop»: der Teil der Quelle (srcW×srcH), der die Leinwand W×H füllt. pan −1…1 je Achse
 // (−1 = links/oben bündig, 0 = Mitte, 1 = rechts/unten bündig); nur die beschnittene Achse hat Spielraum.
@@ -11958,26 +12041,33 @@ function exportSignature() {
   try {
     var p = projectPayload();
     ['title', 'fontRel', 'cover', 'post', 'speech'].forEach(function(k) { delete p[k]; });
-    p.res = exportRes; p.fmt = exportFormatState();
+    p.res = exportRes; p.fmt = exportFormatState(); p.autoCut = !!autoCutSilence;
     return JSON.stringify(p);
   } catch (e) { return null; }
 }
 function exportChangedSinceLast() {
   return !!(_lastExportBlob && _lastExportSig != null && exportSignature() !== _lastExportSig);
 }
-// Fertig-Ansicht: nur „Download again“; erst bei Änderungen kommt „Export with your changes“ (primär) + Hinweis
+// Fertig-Ansicht: „Download again“ nur, solange sich seit dem Export nichts geändert hat (Untertitel, Style, Format, Füllung,
+// Auflösung, Auto-Cut …); danach ist „Export with changes“ der Hauptknopf + Hinweis. Die Optionen bleiben nach dem Export offen
+// änderbar — Dialog schliessen/neu öffnen ist nie nötig.
 function syncExportAgain() {
   var ch = exportChangedSinceLast();
   var ag = document.getElementById('expAgain'), dl = document.getElementById('expDlFile'), ht = document.getElementById('expChangedHint');
   if (ag) { ag.style.display = ch ? '' : 'none'; if (ag.classList) ag.classList.toggle('on', ch); }
-  if (dl) dl.textContent = ch ? 'Download previous version' : 'Download again';
+  if (dl) { dl.style.display = ch ? 'none' : ''; dl.textContent = 'Download again'; }
   if (ht) ht.style.display = ch ? '' : 'none';
+  syncLastExportUI(); // Export-Ansicht: „Last export … Download again“ weg + Hauptknopf „Export with changes“
   return ch;
 }
+function syncExportAgainIfOpen() { if (_lastExportBlob && typeof exportSheetOpen === 'function' && exportSheetOpen()) syncExportAgain(); }
 function syncLastExportUI() {
   var el = document.getElementById('expLast'), nm = document.getElementById('expLastName');
   if (nm) nm.textContent = _lastDlName;
-  if (el) el.style.display = (_lastExportBlob && !isExporting && !_expTok) ? '' : 'none';
+  var ch = !!_lastExportBlob && exportChangedSinceLast();
+  if (el) el.style.display = (_lastExportBlob && !isExporting && !_expTok && !ch) ? '' : 'none'; // „Download again“ nur ohne Änderung seit dem Export
+  var b = document.getElementById('btnVideo'), lbl = b && b.querySelector ? b.querySelector('.exp-btn-label') : null;
+  if (lbl && !(b.classList && b.classList.contains('busy'))) lbl.textContent = ch ? 'Export with changes' : 'Download video';
 }
 // Fortschritt direkt AM Export-Button (Handy: die Fortschrittsleiste darunter liegt oft außerhalb des
 // sichtbaren Bereichs) — Button währenddessen gesperrt. text = null → zurücksetzen.
@@ -12004,7 +12094,7 @@ function exportBtnState(text) {
     if (b.style && b.style.removeProperty) b.style.removeProperty('--p');
     b.disabled = !videoPlayable || !captionBlocks.length;
     b.removeAttribute && b.removeAttribute('aria-busy');
-    if (lbl) lbl.textContent = 'Download video';
+    if (lbl) lbl.textContent = (_lastExportBlob && exportChangedSinceLast()) ? 'Export with changes' : 'Download video';
   }
 }
 async function exportVideoWithCaptions() {
@@ -12044,7 +12134,7 @@ async function exportVideoWithCaptions() {
 
   if (!window.MediaRecorder) { resetExportUI(tok); alert('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); return; }
 
-  var geo = exportGeometry(vid.videoWidth, vid.videoHeight, 30);
+  var geo = exportGeometry(vid.videoWidth, vid.videoHeight, 30, undefined, undefined, currentFile ? estimateSourceBitrate(currentFile.size, vid.duration) : 0);
   if (_blurBgCanvas) _blurBgCanvas.width = 0; // Blur-Hintergrund des vorigen Exports nicht wiederverwenden
   var W = geo.W, H = geo.H;
   var s = STYLES.find(function(x){ return x.id === activeId; });
@@ -12107,7 +12197,7 @@ async function exportVideoWithCaptions() {
           recBar.style.width = Math.round(p * 100) + '%';
           recMsg.textContent = 'Creating MP4… ' + Math.round(p * 100) + '%';
           exportBtnState('Creating MP4 ' + Math.round(p * 100) + '%…');
-        }, vid.duration - cutTotalSec, tok); // Bild und Ton exakt auf die Ausgabedauer kürzen
+        }, vid.duration - cutTotalSec, tok, geo.bitrate); // Bild und Ton exakt auf die Ausgabedauer kürzen; Bitrate gedeckelt
         if (!exportBlobOk(mp4)) throw new Error('leeres MP4 (' + (mp4 && mp4.size) + ' B)');
         outBlob = mp4; outName = exportBaseName() + '.mp4';
       } catch (e) {
@@ -12137,7 +12227,7 @@ async function exportVideoWithCaptions() {
   var vidCtrlsEl = document.getElementById('vidCtrls');
   if (vidCtrlsEl) vidCtrlsEl.classList.add('exporting');
 
-  var cutRegions = (autoCutSilence && wordTimestamps.length) ? computeCutRegions(wordTimestamps, { totalDur: vid.duration }) : [];
+  var cutRegions = wordTimestamps.length ? exportCutRegions() : [];
   var cutIdx = 0;
   var cutTotalSec = cutRegions.reduce(function(a, r){ return a + (r.end - r.start); }, 0);
 
@@ -13250,6 +13340,7 @@ function syncExpSub() {
     var show = dup ? '1080' : exportRes;
     if (r.value !== show) r.value = show; // gemerkte Wahl anzeigen
   }
+  syncExportAgainIfOpen(); // Auflösung/Format/Füllung nach dem Export geändert → „Export with changes“
 }
 function topExport() {
   if (isExporting || _expTok) { openExportSheet(); return; } // läuft ein Export: Knopf zeigt Fortschritt → Blatt mit „Cancel“
@@ -13296,8 +13387,8 @@ function exportDone(wmOn) {
   if (an && an.classList) an.classList.toggle('hi', !share); // mit Teilen: „Caption another video“ sekundär
   var ow = document.getElementById('expOptsWrap'), nt = document.getElementById('expNote');
   if (nt) nt.style.display = 'none';
-  // SRT/VTT/TXT, „Copy text“ und Cover liegen außerhalb von expMain/expDone und bleiben sichtbar
-  if (m) m.style.display = 'none'; if (ow) ow.style.display = 'none'; if (d) d.style.display = '';
+  // SRT/VTT/TXT, „Copy text“, Cover und die Optionen liegen außerhalb von expMain/expDone und bleiben sichtbar
+  if (m) m.style.display = 'none'; if (ow) ow.style.display = ''; if (d) d.style.display = ''; // Optionen bleiben änderbar (→ syncExportAgain)
   if (!exportSheetOpen()) capToast('✓ Saved — ' + _lastDlName);
   statExport();
 }
@@ -14212,6 +14303,7 @@ function openEditorClean() {
   if (_autosaveTimer) autosaveNow();
   _autosaveKey = null; releaseLastExport();
   vidReady = false; currentFile = null; wordTimestamps = []; captionBlocks = []; captionsEdited = false; _trRun++; _vocabUsed = null; syncVocabApply();
+  autoCutSilence = false; syncAutoCutUI();
   var vid = document.getElementById('mainVid');
   if (vid.src && vid.src.startsWith('blob:')) URL.revokeObjectURL(vid.src);
   vid.src = ''; vid.style.display = 'none';
