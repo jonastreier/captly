@@ -53,6 +53,15 @@ module.exports = {
      '<span class="hint-desk"><b>Tipp:</b> Zeile anklicken, um ein Wort zu korrigieren — <b>Enter</b> teilt sie, <b>⌫</b> am Anfang verbindet. Unter der gewählten Zeile kannst du Wörter hervorheben oder ein Emoji hinzufügen.</span>'],
     ['<span class="hint-touch"><b>Tip:</b> tap a line to fix a word. Below the selected line you can highlight words or add an emoji.</span>',
      '<span class="hint-touch"><b>Tipp:</b> Zeile antippen, um ein Wort zu korrigieren. Unter der gewählten Zeile kannst du Wörter hervorheben oder ein Emoji hinzufügen.</span>'],
+    // Handy-Aktionsleiste unter der Timeline: nur ca. 6 Zeichen pro Knopf → kurze deutsche Wörter (Tooltips bleiben ausführlich)
+    ['<use href="#i-split"/></svg><span>Split</span></button>', '<use href="#i-split"/></svg><span>Teilen</span></button>'],
+    ['<use href="#i-edit"/></svg><span>Edit text</span></button>', '<use href="#i-edit"/></svg><span>Text</span></button>'],
+    ['<use href="#i-check"/></svg><span>Select</span></button>', '<use href="#i-check"/></svg><span>Wählen</span></button>'],
+    ['<use href="#i-trash"/></svg><span>Delete</span></button>', '<use href="#i-trash"/></svg><span>Entf.</span></button>'],
+    ['<use href="#i-magnet"/></svg><span>Snap</span></button>', '<use href="#i-magnet"/></svg><span>Raster</span></button>'],
+    ['<use href="#i-gap"/></svg><span>Close gaps</span></button>', '<use href="#i-gap"/></svg><span>Lücken</span></button>'],
+    ['<use href="#i-cut"/></svg><span>Cut out</span></button>', '<use href="#i-cut"/></svg><span>Cut</span></button>'],
+    ['<use href="#i-restore"/></svg><span>Restore</span></button>', '<use href="#i-restore"/></svg><span>Zurück</span></button>'],
     // Rechtliches: deutsche Datenschutzseite, wie auf der Landing
     ['<a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="terms.html" target="_blank" rel="noopener">Terms</a> · <a href="impressum.html"',
      '<a href="datenschutz.html" target="_blank" rel="noopener">Datenschutz</a> · <a href="terms.html" target="_blank" rel="noopener">Nutzungsbedingungen</a> · <a href="impressum.html"'],
