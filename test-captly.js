@@ -144,6 +144,7 @@ setActiveId:function(i){activeId=i;},lookSnapshot:lookSnapshot,lookUndoRun:lookU
 parseHexInput:parseHexInput,csHexCommit:csHexCommit,csOpCommit:csOpCommit,csColorCss:csColorCss,csSyncColors:csSyncColors,getCsAlpha:function(){return _csAlpha;},
 onTemplatesStorage:onTemplatesStorage,undoDeleteTemplate:undoDeleteTemplate,importTemplateMessage:importTemplateMessage,persistTemplates:persistTemplates,
 emojiSearch:emojiSearch,EMO_CATS:EMO_CATS,EMO_PICK:EMO_PICK,emAiUnavailable:emAiUnavailable,setEmSrc:function(v){emSrc=v;},syncEmphUI:syncEmphUI,setEmphEmoji:setEmphEmoji,setCaptionBlocksForTest:function(b){captionBlocks=b;},
+autoCutRegions:autoCutRegions,exportCutRegions:exportCutRegions,cutSavedSeconds:cutSavedSeconds,cutSavedLabel:cutSavedLabel,syncAutoCutUI:syncAutoCutUI,onAutoCutChange:onAutoCutChange,getAutoCut:function(){return autoCutSilence;},estimateSourceBitrate:estimateSourceBitrate,snapFrameRate:snapFrameRate,createCfrPlanner:createCfrPlanner,cfrFrameTimeUs:cfrFrameTimeUs,syncExportAgainIfOpen:syncExportAgainIfOpen,exportSignature:exportSignature,setExportFill:setExportFill,setExportFormat:setExportFormat,setExportResUI:setExportRes,
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -3070,9 +3071,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       T.setTitle(t0);
       const b0 = T.getBlocks()[0], txt0 = b0.text;
       b0.text = txt0 + ' neu'; T.syncExportAgain();
-      ok(T.exportChangedSinceLast() === true && ag.style.display === '' && /id="expAgain"[^>]*>Export with your changes</.test(htmlContent) && ag.classList.contains('on') && ht.style.display === '' && dl.textContent === 'Download previous version', 'Untertitel geändert: „Export with your changes“ primär + Hinweis, Download wird „previous version“');
+      ok(T.exportChangedSinceLast() === true && ag.style.display === '' && /id="expAgain"[^>]*>Export with changes</.test(htmlContent) && ag.classList.contains('on') && ht.style.display === '' && dl.style.display === 'none', 'Untertitel geändert: „Export with changes“ primär + Hinweis, „Download again“ weg');
       b0.text = txt0; T.syncExportAgain();
-      ok(T.exportChangedSinceLast() === false && ag.style.display === 'none' && dl.textContent === 'Download again', 'Änderung rückgängig → wieder nur „Download again“');
+      ok(T.exportChangedSinceLast() === false && ag.style.display === 'none' && dl.style.display === '' && dl.textContent === 'Download again', 'Änderung rückgängig → wieder nur „Download again“');
       const v0 = T.getActiveId(); T.selectStyle(v0 === 'minimal' ? 'tight' : 'minimal');
       ok(T.exportChangedSinceLast() === true, 'Style gewechselt → geändert'); T.selectStyle(v0);
       ok(T.exportChangedSinceLast() === false, 'Style zurück → ungeändert');
@@ -4856,6 +4857,96 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(!T.liveTemplates().some(t => t.id === 'tpl_delta') && tpls().find(t => t.id === 'tpl_delta').deleted === true, 'Speichern: eigener Grabstein gewinnt gegen älteren Stand im Speicher');
       delete global.localStorage; delete global.prompt; delete global.confirm;
       T.setUserTemplates([]); T.selectStyle('hormozi');
+    }
+  }
+
+  // ═══ Paket N-Export: Auto-Cut pro Video + sichtbar, Bitrate/Framerate, Export-Dialog nach dem Download ═══
+  {
+    const E = id => document.getElementById(id);
+    // N2: Auto-Cut — eine Quelle der Wahrheit, sichtbar mit gesparter Zeit, pro Video zurückgesetzt
+    ok(/id="autoCutEd"[^>]*onchange="onAutoCutChange\(this\.checked\)"/.test(htmlContent) && /id="cutSave"/.test(htmlContent) && /id="autoCutChk"[^>]*onchange="onAutoCutChange\(this\.checked\)"/.test(htmlContent), 'N2: Auto-Cut-Schalter im Captions-Tab UND im Export-Blatt, beide über onAutoCutChange');
+    ok(htmlContent.indexOf('id="autoCutEd"') > htmlContent.indexOf('id="capEditor"') && htmlContent.indexOf('id="autoCutEd"') < htmlContent.indexOf('id="capSegs"'), 'N2: Schalter liegt im Caption-Editor (Captions-Tab), über der Zeilenliste');
+    const lvSrc = script.slice(script.indexOf('function loadVideo('), script.indexOf('function loadVideo(') + 2500);
+    ok(/autoCutSilence\s*=\s*false;\s*syncAutoCutUI\(\)/.test(lvSrc), 'N2: loadVideo setzt Auto-Cut für das neue Video auf aus');
+    ok(/function openEditorClean\(\)[\s\S]{0,700}autoCutSilence\s*=\s*false/.test(script), 'N2: openEditorClean (Zurück zur Startseite) setzt Auto-Cut ebenfalls zurück');
+    ok((script.match(/computeCutRegions\(/g) || []).length === 2 && (script.match(/exportCutRegions\(\)/g) || []).length >= 3, 'N2: computeCutRegions nur in der gemeinsamen Quelle (autoCutRegions + Definition); beide Export-Pfade nutzen exportCutRegions()');
+    const nw = [['Hallo', 0.0, 0.4], ['das', 0.5, 0.8], ['ist', 0.85, 1.1], ['ähm', 1.2, 1.5], ['ein', 3.0, 3.3], ['Test', 3.4, 3.8]].map(a => ({ word: a[0], start: a[1], end: a[2] }));
+    T.setWordsState(nw); T.onAutoCutChange(false);
+    const regs = T.autoCutRegions(), saved = T.cutSavedSeconds(regs);
+    ok(regs.length >= 2 && saved > 1.5 && T.getAutoCut() === false && T.exportCutRegions().length === 0, 'N2: aus → Export hat keine Schnittfenster (volle Länge), ' + regs.length + ' Fenster möglich, ' + saved.toFixed(2) + ' s');
+    ok(E('autoCutEd').checked === false && E('autoCutChk').checked === false && /possible$/.test(E('cutSave').textContent) && E('cutSave').classList.contains('off'), 'N2: aus → beide Häkchen leer, Anzeige «x s possible» gedämpft: ' + E('cutSave').textContent);
+    T.onAutoCutChange(true);
+    ok(T.getAutoCut() === true && E('autoCutEd').checked === true && E('autoCutChk').checked === true && E('cutSave').textContent === '−' + saved.toFixed(1) + ' s' && E('cutSaveExp').textContent === E('cutSave').textContent && !E('cutSave').classList.contains('off'), 'N2: an → beide Häkchen an, Anzeige «' + E('cutSave').textContent + '» in Editor und Export-Blatt');
+    ok(T.exportCutRegions().length === regs.length && Math.abs(T.cutSavedSeconds(T.exportCutRegions()) - saved) < 1e-9, 'N2: angezeigte Zeit = Summe der Fenster, die der Export wirklich überspringt');
+    const vd0 = E('mainVid').duration; E('mainVid').duration = 0.8;
+    T.setWordsState([{ word: 'a', start: 0, end: 0.3 }, { word: 'b', start: 0.35, end: 0.7 }]);
+    ok(T.cutSavedLabel(T.cutSavedSeconds(T.autoCutRegions()), true) === 'nothing to cut' && T.cutSavedLabel(0, false) === '', 'N2: nichts zu schneiden → «nothing to cut» (an) bzw. leer (aus)');
+    E('mainVid').duration = vd0;
+    T.setWordsState(nw); T.syncAutoCutUI();
+    T.openEditorClean();
+    ok(T.getAutoCut() === false && E('autoCutEd').checked === false && E('autoCutChk').checked === false, 'N2: neues Video / Startseite → Auto-Cut aus, beide Häkchen leer (Handy-Sheet auch)');
+    T.setWordsState([]);
+
+    // N9: Bitrate an die Quelle koppeln
+    ok(T.exportBitrate(1080, 1920, 30) === Math.round(0.07 * 1080 * 1920 * 30), 'N9: ohne Quellbitrate unverändert (alte Formel)');
+    ok(T.exportBitrate(1080, 1920, 30, 2.1e6, 1080, 1920) === Math.round(2.1e6 * 1.2), 'N9: Quelle 2,1 Mbit/s, gleiche Grösse → Quelle × 1,2 = ' + T.exportBitrate(1080, 1920, 30, 2.1e6, 1080, 1920));
+    ok(T.exportBitrate(1080, 1920, 30, 0.4e6, 1080, 1920) === 2e6, 'N9: sehr kleine Quelle → Minimum 2 Mbit/s');
+    ok(T.exportBitrate(1080, 1920, 30, 40e6, 2160, 3840) === Math.round(0.07 * 1080 * 1920 * 30) && T.exportBitrate(1920, 1080, 30, 40e6, 3840, 2160) <= 12e6, 'N9: grosse Quelle → Obergrenze wie bisher (nie mehr als die Formel)');
+    {
+      const a = T.exportBitrate(1080, 1920, 30, 1.3e6, 1280, 720); // 16:9 → 9:16 Reframe: ×2,25 Pixel
+      ok(a === Math.round(Math.max(2e6, Math.min(0.07 * 1080 * 1920 * 30, 1.3e6 * 1.2 * (1080 * 1920) / (1280 * 720)))) && a > 2e6, 'N9: Reframe/Upscale proportional zur Pixelzahl (' + a + ')');
+      const g = T.exportGeometry(1080, 1920, 30, '1080', 'original', 2.1e6);
+      ok(g.bitrate === Math.round(2.1e6 * 1.2) && T.exportGeometry(1080, 1920, 30, '1080', 'original').bitrate === Math.round(0.07 * 1080 * 1920 * 30), 'N9: exportGeometry reicht die Quellbitrate durch (v1: ' + g.bitrate + ' statt ' + Math.round(0.07 * 1080 * 1920 * 30) + ' bit/s)');
+    }
+    ok(Math.abs(T.estimateSourceBitrate(5.6e6, 20.5) - (5.6e6 * 8 / 20.5 - 128000)) < 2 && T.estimateSourceBitrate(0, 10) === 0 && T.estimateSourceBitrate(1e6, 0) === 0, 'N9: Quellbitrate aus Grösse/Dauer (Ton abgezogen), unbekannt = 0');
+    ok(T.snapFrameRate(30) === 30 && Math.abs(T.snapFrameRate(29.9701) - 30000 / 1001) < 1e-9 && T.snapFrameRate(29.9) === 29.9 && T.snapFrameRate(60.0003) === 60 && T.snapFrameRate(24.0) === 24, 'N9: Bildrate rastet auf 24/25/29,97/30/60 ein, krumme Werte bleiben');
+    ok(/webmToMp4\(blob, onProgress, durSec, tok, maxBps\)/.test(script) && /'-maxrate'/.test(script) && /tok, geo\.bitrate\)/.test(script), 'N9: Echtzeit-Pfad: ffmpeg-Umkodierung bekommt die Bitrate als Deckel');
+    // N9: konstante Bildrate bei Auto-Cut — Planer wie im Schnellexport (30 fps Quelle, Schnitte an krummen Stellen)
+    {
+      const cuts = [{ start: 1.234, end: 2.987 }, { start: 5.0123, end: 5.9 }, { start: 8.31, end: 9.4444 }];
+      const fps = 30, plan = T.createCfrPlanner(fps), idxs = [];
+      let removed = 0; for (const c of cuts) removed += c.end - c.start;
+      const rebase = t => { let r = 0; for (const c of cuts) { if (t < c.start) break; if (t < c.end) return null; r += c.end - c.start; } return t - r; };
+      for (let n = 0; n < 12 * fps; n++) { const o = rebase(n / fps); if (o === null) continue; plan(o).forEach(i => idxs.push(i)); }
+      const strict = idxs.every((v, i) => i === 0 || v === idxs[i - 1] + 1);
+      const ts = idxs.map(i => T.cfrFrameTimeUs(i, fps)), dts = ts.slice(1).map((v, i) => v - ts[i]);
+      ok(strict && Math.max(...dts) - Math.min(...dts) <= 1, 'N9: Auto-Cut → lückenlose Frame-Indizes, Zeitstempel-Abstand konstant (' + Math.min(...dts) + '–' + Math.max(...dts) + ' µs)');
+      const expectEnd = 12 - removed, actualEnd = (idxs[idxs.length - 1] + 1) / fps;
+      ok(Math.abs(actualEnd - expectEnd) <= 1.5 / fps, 'N9: keine Drift gegen die exakt geschnittene Zeit: Ausgabe ' + actualEnd.toFixed(3) + ' s, erwartet ' + expectEnd.toFixed(3) + ' s');
+      const p3 = T.createCfrPlanner(30, 3);
+      ok(JSON.stringify([p3(0), p3(1 / 30), p3(1 / 30 + 0.001), p3(4 / 30)]) === '[[0],[1],[],[2,3,4]]' && JSON.stringify(T.createCfrPlanner(30, 3)(5)) === '[150]', 'N9: Planer: doppelte Zeit weglassen, kleine Lücke mit letztem Bild füllen, erster Frame ohne Rückfüllen');
+      const p4 = T.createCfrPlanner(30, 3); p4(0); ok(JSON.stringify(p4(1)) === '[30]', 'N9: grosse Lücke (echte Lücke in der Quelle) wird nicht gefüllt');
+    }
+    ok(/fps = snapFrameRate\(fps\)/.test(script) && /var cfr = createCfrPlanner\(fps\)/.test(script) && /cfrFrameTimeUs\(plan\[pi\], fps\)/.test(script) && !/lastOutUs/.test(script), 'N9: Schnellexport kodiert mit Planer-Zeitstempeln (CFR), alter Zeitstempel-Weg entfernt');
+
+    // N10: Export-Dialog nach dem Download — Optionen bleiben änderbar, „Download again“ nur ohne Änderung
+    {
+      const sheet = E('expSheet'); sheet.style.display = 'block';
+      T.setState([{ start: 0, end: 1, text: 'Hallo Welt', words: [{ word: 'Hallo', start: 0, end: .5 }, { word: 'Welt', start: .5, end: 1 }] }], [], 'words');
+      const ag = E('expAgain'), dl = E('expDlFile'), ht = E('expChangedHint'), ow = E('expOptsWrap');
+      T.releaseLastExport();
+      const blobN = new Blob(['x'], { type: 'video/mp4' });
+      T.dlBlob(blobN, 'n-gluephs.mp4'); T.exportDone(false);
+      ok(ow.style.display === '' && E('expDone').style.display === '' && E('expMain').style.display === 'none', 'N10: nach dem Export bleiben die Optionen (expOptsWrap) sichtbar');
+      ok(ag.style.display === 'none' && dl.style.display === '' && dl.textContent === 'Download again' && ht.style.display === 'none', 'N10: direkt nach dem Export: «Download again», kein «Export with changes» (Last-export-Zeile sichtbar: ' + (E('expLast').style.display === '') + ')');
+      T.setExportResUI('orig');
+      ok(ag.style.display === '' && ag.classList.contains('on') && dl.style.display === 'none' && ht.style.display === '' && /id="expAgain"[^>]*>Export with changes</.test(htmlContent), 'N10: Auflösung geändert → «Export with changes» (Hauptknopf), «Download again» weg — ohne Dialog neu zu öffnen');
+      ok(E('expLast').style.display === 'none' && /\(_lastExportBlob && exportChangedSinceLast\(\)\) \? 'Export with changes' : 'Download video'/.test(script) && /ch \? 'Export with changes' : 'Download video'/.test(script), 'N10: Export-Ansicht: «Last export … Download again» weg, Hauptknopf heisst «Export with changes»');
+      T.setExportResUI('1080');
+      ok(ag.style.display === 'none' && dl.style.display === '' , 'N10: Änderung zurück → wieder «Download again»');
+      T.onAutoCutChange(true);
+      ok(ag.style.display === '' && dl.style.display === 'none', 'N10: Auto-Cut nach dem Export angehakt → «Export with changes»');
+      T.onAutoCutChange(false);
+      ok(ag.style.display === 'none' && dl.style.display === '', 'N10: Auto-Cut zurück → «Download again»');
+      const f0 = JSON.stringify([T.exportSignature()]);
+      T.setExportFormat('1:1');
+      ok(ag.style.display === '' && dl.style.display === 'none' && JSON.stringify([T.exportSignature()]) !== f0, 'N10: Format geändert → «Export with changes»');
+      T.setExportFill('blur'); ok(ag.style.display === '' && dl.style.display === 'none', 'N10: Füllung geändert → weiter «Export with changes»');
+      T.setExportFormat('original'); T.setExportFill('crop');
+      ok(ag.style.display === 'none' && dl.style.display === '', 'N10: Format/Füllung zurück → «Download again»');
+      // Ohne geöffnetes Blatt / ohne Export bleibt der Aufruf wirkungslos
+      sheet.style.display = 'none'; T.setExportResUI('orig'); ok(ag.style.display === 'none', 'N10: Blatt zu → keine Aktualisierung nötig'); T.setExportResUI('1080');
+      sheet.style.display = 'block'; T.releaseLastExport(); T.onAutoCutChange(false);
     }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');

@@ -507,14 +507,14 @@ if (require.main !== module) return;
         ok(!!d2 && d2.suggestedFilename() === dl.suggestedFilename(), '«Download again»: Datei wird erneut gespeichert (' + (d2 ? d2.suggestedFilename() : '–') + ')');
         if (d2) ok(Buffer.compare(fs.readFileSync(await d2.path()), fs.readFileSync(fp)) === 0, '«Download again»: byte-identisch zur ersten Datei');
         ok(await page.evaluate(() => window.__renders === 0 && !isExporting && _expTok === null), '«Download again» löst keinen Neu-Render aus (Zähler 0)');
-        // Untertitel ändern → «Export with your changes» erscheint (primär) mit Hinweis, «Download again» wird «Download previous version»
+        // Untertitel ändern → «Export with changes» erscheint (primär) mit Hinweis, «Download again» verschwindet
         await page.evaluate(() => { captionBlocks[0].text += ' x'; syncExportAgain(); });
-        ok(await page.isVisible('#expAgain') && /Export with your changes/.test(await page.textContent('#expAgain')) && await page.isVisible('#expChangedHint') && /previous version/.test(await page.textContent('#expDlFile')), 'Nach einer Änderung: «Export with your changes» + Hinweis, «Download previous version»');
-        // Export with your changes → rendert neu; Abbrechen mitten im Rendern: kein Download, Zustand zurück
+        ok(await page.isVisible('#expAgain') && /Export with changes/.test(await page.textContent('#expAgain')) && await page.isVisible('#expChangedHint') && !(await page.isVisible('#expDlFile')), 'Nach einer Änderung: «Export with changes» + Hinweis, «Download again» weg');
+        // Export with changes → rendert neu; Abbrechen mitten im Rendern: kein Download, Zustand zurück
         let extra = 0; const cnt = () => { extra++; }; page.on('download', cnt);
         await page.click('#expAgain');
         await page.waitForFunction(() => isExporting === true, null, { timeout: 15000 }).catch(() => {});
-        ok(await page.evaluate(() => window.__renders === 1 && isExporting), '«Export with your changes» rendert neu (Zähler 1)');
+        ok(await page.evaluate(() => window.__renders === 1 && isExporting), '«Export with changes» rendert neu (Zähler 1)');
         await page.waitForTimeout(1500);
         ok(await page.isVisible('#expCancel') && /Exporting|Preparing/.test(await page.textContent('#tbExport')) && await page.isEnabled('#tbExport'), 'Während des Exports: «Cancel» sichtbar, Top-Knopf zeigt Fortschritt und bleibt klickbar');
         await shot('05c-cancel-visible');
