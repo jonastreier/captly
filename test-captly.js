@@ -137,6 +137,7 @@ setWpbState:function(v){WORDS_PER_BLOCK=v;},getWpbState:function(){return WORDS_
 setSzUser:function(v){szUserChoice=v;showSafeZone=v===null?false:v;},
 coverDrawTitle:coverDrawTitle,coverMaxW:coverMaxW,coverAlignX:coverAlignX,coverSnap:coverSnap,coverHitWord:coverHitWord,coverClampOff:coverClampOff,coverCleanWo:coverCleanWo,coverOnTitle:coverOnTitle,coverSet:coverSet,coverResetPos:coverResetPos,coverMoved:coverMoved,
 coverEmColor:coverEmColor,
+capPairWrap:capPairWrap,capLinesEff:capLinesEff,capFillAlpha:capFillAlpha,
 subtitleCues:subtitleCues,srtFile:srtFile,vttCues:vttCues,subLines:subLines,setSrtMode:setSrtMode,getSrtMode:function(){return srtMode;},setFileSuffix:setFileSuffix,getFileSuffix:function(){return fileSuffixOn;},loadSubOpts:loadSubOpts,buildTemplateExport:buildTemplateExport,fontFormatOf:fontFormatOf,bytesToB64:bytesToB64,b64ToBytes:b64ToBytes,importEmbeddedFonts:importEmbeddedFonts,getUserFontsMap:function(){return _userFonts;},TPL_FONT_MAX_BYTES:TPL_FONT_MAX_BYTES,templateFontNames:templateFontNames,exportTemplatesMsg:exportTemplatesMsg,
 
 hookLayout:hookLayout,hookFx:hookFx,hookClean:hookClean,hookLocalText:hookLocalText,hookStyleOf:hookStyleOf,hookDodgeNeed:hookDodgeNeed,hookTextNow:hookTextNow,hookOutTime:hookOutTime,drawHookTitle:drawHookTitle,hookCapDodge:hookCapDodge,setHookState:function(o,t,d,a){hookOn=o;hookText=t||'';hookDur=d||2;hookAi=a||'';},getHookState:function(){return {on:hookOn,text:hookText,dur:hookDur,ai:hookAi};},setHookOn:setHookOn,onHookInput:onHookInput,onHookDur:onHookDur,hookFetchAi:hookFetchAi,syncHookUI:syncHookUI,hookClampDur:hookClampDur,projectPayload:projectPayload,HOOK_KEY:HOOK_KEY,
@@ -5160,15 +5161,16 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const near = (a, b, e) => Math.abs(a - b) <= (e === undefined ? 0.5 : e);
     const H = 1920, band = { top: 656.25, bot: 1263.75 }, gap = H * 0.015, lo = H * (11.46 + 1) / 100, hi = H * (1 - (23.44 + 1) / 100);
-    // 1) capBlurTop (reine Funktion): bevorzugt in die Unschärfe-Zone (mit Abstand + Safe-Zone), sonst ganz ins Band; Frei/Mitte/kein Band unverändert
+    // 1) capBlurTop (reine Funktion): Runde 3 — passt die Box ins Band, sitzt sie dort (unten/oben bündig mit Abstand), sonst Unschärfe-Zone/Band; Frei/Mitte/kein Band unverändert
     let t = T.capBlurTop(1200, 100, H, band, 'bottom', false);
-    ok(t >= band.bot + gap - 0.01 && t + 100 <= hi + 0.01, 'N7: Preset unten, Box auf der Bandkante → ganz UNTER das Band (Abstand ≥ ' + gap.toFixed(0) + ' px, innerhalb Safe-Zone): ' + t.toFixed(1));
-    ok(near(t - (band.bot + gap), (hi - band.bot - gap - 100) / 2, 0.5), 'N7: Box mittig in der unteren Unschärfe-Zone');
+    ok(near(t, band.bot - gap - 100, 0.01), 'N7/R3: Preset unten, Box auf der Bandkante → ganz IM Band, unten bündig mit Abstand: ' + t.toFixed(1));
+    ok(near(T.capBlurTop(1300, 100, H, band, 'bottom', false), band.bot - gap - 100, 0.01), 'R3: Box schon in der Unschärfe unter dem Band, passt aber ins Band → trotzdem ins Band');
     t = T.capBlurTop(1200, 300, H, band, 'bottom', false);
-    ok(t >= band.top + gap - 0.01 && t + 300 <= band.bot - gap + 0.01, 'N7: zu hoch für die Zone unten → ganz IM Band, unten bündig mit Abstand: ' + t.toFixed(1));
+    ok(t >= band.top + gap - 0.01 && t + 300 <= band.bot - gap + 0.01, 'N7: auch hohe Box → ganz IM Band, unten bündig mit Abstand: ' + t.toFixed(1));
     t = T.capBlurTop(620, 100, H, band, 'top', false);
-    ok(t >= lo - 0.01 && t + 100 <= band.top - gap + 0.01, 'N7: Preset oben, Box auf der oberen Bandkante → ganz ÜBER das Band, innerhalb Safe-Zone: ' + t.toFixed(1));
-    ok(T.capBlurTop(1300, 100, H, band, 'bottom', false) === 1300 && T.capBlurTop(300, 100, H, band, 'top', false) === 300, 'N7: Box schon sauber in der Unschärfe → unverändert');
+    ok(near(t, band.top + gap, 0.01), 'R3: Preset oben → ganz IM Band, oben bündig mit Abstand: ' + t.toFixed(1));
+    t = T.capBlurTop(1300, 700, H, band, 'bottom', false);
+    ok(t === 1300, 'N7: zu hoch fürs Band, aber schon sauber in der Unschärfe → unverändert');
     ok(T.capBlurTop(1200, 100, H, band, 'bottom', true) === 1200, 'N7: frei verschoben (capFree) → Position des Nutzers gilt');
     ok(T.capBlurTop(900, 100, H, band, 'center', false) === 900 && T.capBlurTop(1200, 100, H, null, 'bottom', false) === 1200, 'N7: Mitte / kein Band → unverändert');
     t = T.capBlurTop(900, 700, H, band, 'bottom', false);
@@ -5199,8 +5201,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       for (const ln of [1, 2, 3]) {
         T.setLines({ dataset: { lines: String(ln) } });
         const L = lay(), edgeClear = L.boxB <= bd.top - g + 0.5 || L.boxT >= bd.bot + g - 0.5 || (L.boxT >= bd.top + g - 0.5 && L.boxB <= bd.bot - g + 0.5);
-        const below = L.boxT >= bd.bot + g - 0.5 && L.boxB <= safeB + 0.5, inBand = L.boxT >= bd.top && L.boxB <= bd.bot - g + 0.5;
-        ok(edgeClear && (below || inBand), 'N7 Export ' + ln + ' Zeile(n): Box ' + L.boxT.toFixed(0) + '…' + L.boxB.toFixed(0) + ' px liegt ganz unter dem Band (' + bd.bot.toFixed(0) + ', Safe ' + safeB.toFixed(0) + ') oder ganz im Band');
+        const inBand = L.boxT >= bd.top && L.boxB <= bd.bot - g + 0.5;
+        ok(edgeClear && inBand, 'N7/R3 Export ' + ln + ' Zeile(n): Box ' + L.boxT.toFixed(0) + '…' + L.boxB.toFixed(0) + ' px liegt ganz im Band (' + bd.top.toFixed(0) + '…' + bd.bot.toFixed(0) + ')');
       }
       // Position oben: nie auf der oberen Kante
       T.setPosState('top'); T.setVOffState(20); T.setLines({ dataset: { lines: '2' } });
@@ -6248,6 +6250,111 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const live = T.buildCap(['der', 'weide'], hz, 0, 22, null, 1), tile = T.buildCap(['der', 'weide'], hz, 0, 9, null);
     ok(live.includes(T.capScaleShadowStr(hz.ts, T.capOutK()).split(',')[0].trim()) && tile.includes(hz.ts.split(',')[0].trim().replace(/\s+/g, ' ')), 'buildCap: live skaliert, Kacheln unveraendert');
     ok(near(T.capWordGap(hz, true), 2 * base.ring.w) && near(T.capWordGap(hz), 2 * base.ring.w * T.capOutK()), 'capWordGap: Ring-Zugabe skaliert mit der Kontur (raw = Cover-Export, eigene Skala)');
+  }
+
+  // ═══════════════ Runde 3 Layout: Blur-Einzeiler im Band · Paar-Umbruch bei 2-Wort-Looks · halbtransparente Textfarbe (Gradient Karaoke) ═══════════════
+  {
+    const near = (a, b, e) => Math.abs(a - b) <= (e === undefined ? 0.5 : e);
+    const fixDirR3 = path.join(__dirname, 'scripts', 'creator-test', 'fixtures');
+    const fixR3 = n => JSON.parse(fs.readFileSync(path.join(fixDirR3, n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end }));
+    const mkCtx = () => ({ font: '', letterSpacing: '0px', measureText(str) { const m = /([\d.]+)px/.exec(this.font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+      roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},
+      fillRect() {}, clip() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } });
+    const previewFW = 220;
+    const lines1 = { dataset: { lines: '1' }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } };
+    const linesN = n => ({ dataset: { lines: String(n) }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
+
+    // 1) Blur 16:9 → 9:16: JEDER Block (1, 2, 3 Zeilen) liegt im scharfen Band, gleiche Ankerlinie (unten bzw. oben)
+    {
+      const vid = document.getElementById('mainVid'), o = [vid.videoWidth, vid.videoHeight];
+      vid.videoWidth = 1920; vid.videoHeight = 1080;
+      const sty = T.STYLES.find(x => x.id === 'hormozi');
+      T.setExportFormatState({ aspect: '9:16', fill: 'blur' });
+      const bd = T.capBlurBand(1080, 1920), g = 1920 * 0.015;
+      const mk = n => { const ws = ['Das', 'ist', 'ein', 'Test', 'mit', 'Text'].slice(0, n), b = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.1, end: i * 0.1 + 0.1 })) }; return b; };
+      T.setFreeState(false); T.setHOffState(0);
+      for (const pos of ['bottom', 'top']) for (const voff of [20, 0, 40]) {
+        T.setPosState(pos); T.setVOffState(voff);
+        const bots = [], tops = [];
+        for (const ln of [1, 2, 3]) {
+          const blk = mk(ln === 1 ? 1 : ln === 2 ? 4 : 6); T.setState([blk], blk.words, 'karaoke'); T.setLines(linesN(ln));
+          const L = T.capLayout(mkCtx(), blk, 0, 0, sty, 1080, 1920);
+          ok(L.boxT >= bd.top - 0.5 && L.boxB <= bd.bot - (ln < 3 ? g : 0) + 0.5, 'R3 Blur ' + pos + ' voff ' + voff + ', ' + ln + ' Zeile(n): Box ' + L.boxT.toFixed(0) + '…' + L.boxB.toFixed(0) + ' liegt im Band ' + bd.top.toFixed(0) + '…' + bd.bot.toFixed(0) + ' (Unterkante ' + (L.boxB / 1920).toFixed(3) + ' ≤ ' + (bd.bot / 1920).toFixed(3) + ')');
+          if (ln < 3) { bots.push(L.boxB); tops.push(L.boxT); } // 3 Zeilen (mit der Test-Schrift höher als das Band): nur «im Band»
+        }
+        const anchor = pos === 'bottom' ? bots : tops;
+        ok(Math.max(...anchor) - Math.min(...anchor) < 4, 'R3 Blur ' + pos + ' voff ' + voff + ': Einzeiler und Zweizeiler teilen die Ankerlinie (Streuung ' + (Math.max(...anchor) - Math.min(...anchor)).toFixed(1) + ' px)');
+      }
+      // reine Funktion: Einzeiler (h 60) und Zweizeiler (h 120) an verschiedenen Ausgangspositionen → gleiche Unterkante
+      const bb = { top: 656.25, bot: 1263.75 };
+      const e1 = T.capBlurTop(1380, 60, 1920, bb, 'bottom', false) + 60, e2 = T.capBlurTop(1330, 120, 1920, bb, 'bottom', false) + 120;
+      ok(near(e1, e2, 0.01) && e1 <= bb.bot, 'R3: capBlurTop Einzeiler (unter dem Band gestartet) und Zweizeiler enden auf derselben Unterkante ' + e1.toFixed(1));
+      // Crop: kein Band, Position unverändert gegenüber der Standardlogik (kein Eingriff)
+      T.setExportFormatState({ aspect: '9:16', fill: 'crop' });
+      ok(T.capBlurBand(1080, 1920) === null && T.capBlurTop(1380, 60, 1920, null, 'bottom', false) === 1380, 'R3: Crop-Format ohne Band: capBlurTop greift nicht ein');
+      T.setPosState('bottom'); T.setVOffState(20);
+      for (const ln of [1, 2]) { const blk = mk(ln === 1 ? 1 : 4); T.setState([blk], blk.words, 'karaoke'); T.setLines(linesN(ln)); const L = T.capLayout(mkCtx(), blk, 0, 0, sty, 1080, 1920); ok(L.boxB <= 1920 * (1 - 24.44 / 100) + 0.5 && L.boxT >= 0, 'R3 Crop ' + ln + ' Zeile(n): Box ' + L.boxT.toFixed(0) + '…' + L.boxB.toFixed(0) + ' unverändert innerhalb Safe-Zone'); }
+      T.setExportFormatState('original'); T.setPosState('bottom'); T.setVOffState(20); T.setFreeState(false); T.setLines(linesN(2));
+      vid.videoWidth = o[0]; vid.videoHeight = o[1];
+    }
+
+    // 2) Paar-Umbruch: layout.wrap (Color Pop, Squash Pop, Sticker Emoji) → bei wpb ≥ 2 und 1 Zeile 2 Zeilen erlaubt, Einzelwort-Anteil < 20 %
+    {
+      const file = JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8'));
+      T.applyStyleDrops(file, Date.now());
+      const looks = ['colorpop', 'squashpop', 'stickeremoji'], prevWpb = T.getWpbState(), prevMc = T.getMaxChars(), prevId = T.getActiveId(), prevLines = T.getLines();
+      T.setFontSizeState(Math.round(previewFW * 0.08)); // Standardgrösse des Editors (setFont: 8 % der Rahmenbreite)
+      ok(looks.every(id => { const e = file.find(o => o.id === id); return e && e.layout && e.layout.wrap === true; }), 'R3: styles.json: Color Pop, Squash Pop, Sticker Emoji tragen layout.wrap');
+      ok(looks.every(id => { const st = T.STYLES.find(x => x.id === id); return st && st.layout && st.layout.wrap === true; }), 'R3: dropToStyle übernimmt layout.wrap');
+      T.setMaxCharsState(0);
+      // Zähler: ohne Umbruch (wrap aus) gegen mit Umbruch, v1/v2/v3
+      const share = (id, n) => { const bl = T.buildCaptionBlocks(fixR3(n), []); return { n: bl.length, one: bl.filter(b => b.words.length === 1).length, words: bl.map(b => b.text).join(' ') }; };
+      for (const id of looks) {
+        const st = T.STYLES.find(x => x.id === id);
+        T.setActiveId(id); T.setWpbState(2); T.setLines(lines1);
+        ok(T.capPairWrap() === true && T.capLinesEff(1) === 2 && T.capLinesEff(2) === 2 && T.capLinesEff(undefined) === undefined, 'R3 ' + id + ': Paar-Umbruch aktiv (wpb 2, 1 Zeile): effektiv 2 Zeilen');
+        const lim = T.capBlockLimit(); ok(lim && lim.lines === 2 && lim.per >= T.capAutoChars(), 'R3 ' + id + ': Limit ' + JSON.stringify(lim) + ' (Auto ' + T.capAutoChars() + ')');
+        let tot = 0, tot1 = 0, totOff = 0, tot1Off = 0;
+        for (const n of ['v1-reel-de', 'v2-podcast-de-16x9', 'v3-hook-en']) {
+          const a = share(id, n); tot += a.n; tot1 += a.one;
+          ok(a.words === fixR3(n).map(w => w.word).join(' '), 'R3 ' + id + ' ' + n + ': kein Wort verloren');
+          st.layout.wrap = false; const b = share(id, n); st.layout.wrap = true; totOff += b.n; tot1Off += b.one;
+          console.log('  info R3 ' + id + ' ' + n + ': Einzelwort-Blöcke ' + b.one + '/' + b.n + ' → ' + a.one + '/' + a.n + ' per ' + JSON.stringify(T.capBlockLimit()) + ' ' + (process.env.R3DBG ? T.buildCaptionBlocks(fixR3(n), []).map(x => x.words.length + ':' + x.text).join(' | ') : ''));
+        }
+        ok(tot1 / tot < 0.2 && tot1 <= tot1Off, 'R3 ' + id + ': Einzelwort-Anteil ' + Math.round(100 * tot1 / tot) + ' % (ohne Umbruch ' + Math.round(100 * tot1Off / totOff) + ' %) < 20 %');
+      }
+      // andere Looks / explizite 2 Zeilen / wpb 1: unverändert
+      T.setActiveId('hormozi'); T.setWpbState(4); T.setLines(linesN(2));
+      ok(T.capPairWrap() === false && T.capLinesEff(1) === 1, 'R3: Look ohne layout.wrap: kein Paar-Umbruch');
+      T.setActiveId('colorpop'); T.setWpbState(1); T.setLines(lines1);
+      ok(T.capPairWrap() === false, 'R3: wpb 1 → kein Paar-Umbruch'); T.setWpbState(2); T.setLines(linesN(2));
+      ok(T.capPairWrap() === false, 'R3: Nutzer wählt 2 Zeilen → normales Verhalten (kein Sonderweg)');
+      // capDistributeLines: Paar in eine Zeile, wenn es passt; sonst 2 Zeilen
+      T.setLines(lines1);
+      const inf = (...w) => w.map((x, i) => ({ i, w: x, t: 'w' + i, hy: false }));
+      const fit = T.capDistributeLines(inf(90, 100), 1, 6, 300), wide = T.capDistributeLines(inf(180, 160), 1, 6, 300);
+      ok(fit.length === 1 && wide.length === 2, 'R3: Paar passt in die Zeile → 1 Zeile (' + fit.length + '), sonst 2 Zeilen (' + wide.length + ')');
+      T.setActiveId(prevId); T.setWpbState(prevWpb); T.setMaxCharsState(prevMc); T.setLines(linesN(prevLines));
+    }
+
+    // 3) Halbtransparente Textfarbe (Gradient Karaoke tc .5): Schicht-Schatten ohne Glyphe, Glyphe nur einmal mit Alpha → kein gestapeltes Alpha
+    {
+      ok(T.capFillAlpha({ fillStyle: 'rgba(255, 255, 255, 0.5)' }) === 0.5 && T.capFillAlpha({ fillStyle: '#fff' }) === 1 && T.capFillAlpha({ fillStyle: {} }) === 1, 'R3: capFillAlpha liest das Alpha der Füllung (Verlauf/undurchsichtig = 1)');
+      const gk = T.STYLES.find(x => x.id === 'gradkaraoke'), plan = T.capShadowPlan(gk.ts);
+      const rec = fill => { const calls = []; const c = { canvas: null, shadowOffsetX: 0, shadowOffsetY: 0, shadowBlur: 0, shadowColor: '', lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000', fillStyle: fill, globalAlpha: 1,
+        _st: [], save() { this._st.push(this.fillStyle); }, restore() { this.fillStyle = this._st.pop(); }, fillText(t, x, y) { calls.push({ fs: this.fillStyle, x, ox: this.shadowOffsetX, col: this.shadowColor }); }, strokeText() {} };
+        T.drawTextWithPlan(c, 'zwei', 100, 50, plan, 2, 1, 60, 120, 1); return calls; };
+      const half = rec('rgba(255, 255, 255, 0.5)'), solid = rec('#fff');
+      const glyphDraws = half.filter(c => c.ox === 0 && c.col === 'transparent');
+      ok(plan.rest.length >= 2 && glyphDraws.length === 1 && /0\.5/.test(glyphDraws[0].fs), 'R3 Gradient Karaoke: Glyphe nur EINMAL mit Alpha 0,5 gezeichnet (' + glyphDraws.length + '), Schatten-Schichten: ' + (half.length - glyphDraws.length));
+      ok(half.filter(c => c.ox !== 0).every(c => c.fs === '#000' && c.x < 0) && half.length === plan.rest.length + 1, 'R3 Gradient Karaoke: Schatten-Schichten mit undurchsichtiger Füllung, Glyphe ausserhalb (nur der Schatten kommt zurück)');
+      ok(solid.length === plan.rest.length + 1 && solid.every(c => c.fs === '#fff' && c.x === 100), 'R3: undurchsichtige Textfarbe: Verhalten wie zuvor (Schicht-Zeichnungen mit der Füllung am Wortort)');
+      // Transformation (Pop-Animation): Versatz der Glyphe wird mit der Matrix verrechnet
+      const c2 = { canvas: null, shadowOffsetX: 0, shadowOffsetY: 0, shadowBlur: 0, shadowColor: '', lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000', fillStyle: 'rgba(255,255,255,.5)', globalAlpha: 1,
+        save() {}, restore() {}, getTransform() { return { a: 1.2, b: 0 }; }, strokeText() {}, fillText(t, x) { if (this.shadowOffsetX) this.o = (this.o || []).concat([[x * 1.2 + this.shadowOffsetX]]); } };
+      T.drawTextWithPlan(c2, 'zwei', 100, 50, plan, 2, 1, 60, 120, 1);
+      ok(c2.o && c2.o.every(v => near(v[0], 100 * 1.2 + plan.rest[0].x * 2, 12)), 'R3: Schatten landet unter Skalierung 1,2 am Wortort (Glyph-Versatz × Matrix)');
+    }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

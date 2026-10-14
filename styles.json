@@ -6,7 +6,8 @@
   "photo": "prismpro",
   "layout": {
    "wpb": 2,
-   "lines": 1
+   "lines": 1,
+   "wrap": true
   },
   "style": {
    "fl": "Montserrat",
@@ -90,6 +91,7 @@
   "layout": {
    "wpb": 2,
    "lines": 1,
+   "wrap": true,
    "emoji": true
   },
   "style": {
@@ -196,7 +198,8 @@
   "photo": "sketch",
   "layout": {
    "wpb": 2,
-   "lines": 1
+   "lines": 1,
+   "wrap": true
   },
   "style": {
    "fl": "Lilita One",
