@@ -6406,7 +6406,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     // 3) Sticker Emoji gross: Faktor 1,6–2 der gezeichneten Schrift, Vorschau (buildCap) = Export (drawCapEmoji) — gleiche Konstante
     {
-      const st = T.dropToStyle(JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8')).find(o => o.id === 'stickeremoji'), Date.parse('2026-10-20')), fsEm = parseFloat(st.fs) || 1; // fs '1.2em'
+      const st = T.dropToStyle(JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8')).find(o => o.id === 'stickeremoji'), Date.parse('2026-10-20')) || T.STYLES.find(x => x.id === 'stickeremoji'), fsEm = parseFloat(st.fs) || 1; // fs '1.2em'
       const rel = T.EMO_REL_SIDE / fsEm;
       ok(rel >= 1.6 && rel <= 2.0, 'R3-Sticker: Emoji = ' + rel.toFixed(2) + ' × gezeichnete Schrift (EMO_REL_SIDE ' + T.EMO_REL_SIDE + ' / fs ' + fsEm + ')');
       const hs = T.buildCap(['ab', 'cd'], st, 0, 25, [0, 0.5], 2, { emoji: '🔥', age: 1 });
