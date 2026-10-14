@@ -4387,7 +4387,7 @@ var EMPH_SCALE = 1.12; // hervorgehobenes Wort ~12 % größer (One Word: s.emS)
 var EMO_REL = 1.35;    // Emoji-Größe relativ zur (angepassten) Caption-Schriftgröße
 var EMO_GAP = 0.12;    // Abstand Emoji ↔ Caption (Anteil der Emoji-Größe)
 var EMO_FONT = "'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji','Segoe UI Symbol',sans-serif"; // einfache Anführungszeichen: steht auch im style-Attribut
-var WFLAGS = ['kw', 'emo', 'emoU', 'zm'];
+var WFLAGS = ['kw', 'emo', 'emoU', 'zm', 'nb', 'nj']; // nb/nj = Handnähte (s. capSegmentRun): nb = Nutzer hat VOR diesem Wort geteilt, nj = Nutzer hat es mit dem Vorgänger verschmolzen
 (function() {
   try {
     var o = JSON.parse((typeof localStorage !== 'undefined' && localStorage.getItem(EM_KEY)) || 'null');
@@ -5379,7 +5379,7 @@ function startCapLoop() {
 // ═══════════════════════════════════════
 // CAPTION BLOCKS
 // ═══════════════════════════════════════
-// Blöcke à max. WORDS_PER_BLOCK Wörter — bricht zusätzlich bei Sprechpausen (>0.8s) und Satzenden
+// Blöcke à max. WORDS_PER_BLOCK Wörter — bricht zusätzlich bei Sprechpausen (> CAP_PAUSE_SPLIT = 0.35 s) und Satzenden (capSegmentWords)
 // ═══════════════════════════════════════
 // SCENE CUTS — harte Schnitte im hochgeladenen Video erkennen (im Hintergrund)
 // ═══════════════════════════════════════
@@ -6064,12 +6064,16 @@ function closeCaptionGaps(blocks, cuts, maxGap, bridgeCuts) {
   }
   return n;
 }
-// ── Caption-Segmentierung innerhalb eines Satzstücks (ohne Pause > 0,8 s, Satzende, Schnitt) ──
+// ── Caption-Segmentierung innerhalb eines Satzstücks (ohne Pause > CAP_PAUSE_SPLIT, Satzende, Schnitt, Handnaht) ──
 // Statt gierig aufzufüllen („fressen nur Gras und | Heu.“): optimale Aufteilung per DP mit möglichst wenigen
 // Captions (max. maxWords Wörter, Zeichenlimit lim), ausgewogen (5 Wörter bei 4 → 3+2 statt 4+1, keine
 // Einzelwort-Waisen) und an guten Stellen (nach Komma, vor „und/aber/dass“, an kleinen Pausen; nie nach
 // Artikel/Präposition, nie zwischen Zahl und Einheit). Rückgabe: Liste von [von, bis).
-var CAP_SEG_BLOCK = 5, CAP_SEG_ORPHAN = 4, CAP_COORD = ' und oder sowie and or et ou e o y ';
+// CAP_SEG_ORPHAN: Ein-Wort-Caption bei wpb ≥ 2 — so teuer, dass jede Aufteilung ohne Waise gewinnt (auch mit einem Block mehr).
+// CAP_SEG_KEEP: Naht, die der Nutzer per Hand verschmolzen hat (Wort-Flag nj) — nur bei Wort-/Zeichenlimit wieder trennen.
+// CAP_PAUSE_SPLIT: Sprechpause (s), ab der ein neuer Block beginnt; CAP_PAUSE_LONG: Pause, über die nie eine Waise gebrückt wird.
+var CAP_SEG_BLOCK = 5, CAP_SEG_ORPHAN = 40, CAP_SEG_KEEP = 10, CAP_PAUSE_SPLIT = 0.35, CAP_PAUSE_LONG = 0.8;
+var CAP_COORD = ' und oder sowie and or et ou e o y ';
 function capSegmentRun(ws, lens, maxWords, lim) {
   var n = ws.length, i, j, b;
   if (n <= 1) return [[0, n]];
@@ -6083,6 +6087,8 @@ function capSegmentRun(ws, lens, maxWords, lim) {
   for (j = 1; j < n; j++) {
     var gap = (ws[j].start || 0) - (ws[j - 1].end || ws[j - 1].start || 0);
     cut[j] = capBreakCost(toks[j - 1], toks[j], toks[j - 2], lang, 'block') - (gap > 0.15 ? Math.min(2, gap * 3) : 0);
+    if (/:["“”„«»‚‘’')\]]*$/.test(String(ws[j - 1].word || ''))) cut[j] -= 1.5;  // „Erstens: | …“: Doppelpunkt bei Aufzählungen ist eine gute Naht
+    if (ws[j].nj) cut[j] += CAP_SEG_KEEP;                                         // vom Nutzer verschmolzen → zusammenlassen
     // kurze Aufzählung am Satzende zusammenhalten: „… | Gras und Heu.“ statt „… Gras | und Heu.“
     if (j + 2 === n && CAP_COORD.indexOf(' ' + toks[j].low + ' ') >= 0) cut[j] += 3;
   }
@@ -6090,7 +6096,7 @@ function capSegmentRun(ws, lens, maxWords, lim) {
   for (j = 1; j <= n; j++) { minB[j] = Infinity; for (i = Math.max(0, j - maxWords); i < j; i++) if (ok(i, j) && minB[i] + 1 < minB[j]) minB[j] = minB[i] + 1; }
   if (!isFinite(minB[n])) return null;
   var bestAll = null, bestCost = Infinity;
-  for (var k = minB[n]; k <= Math.min(n, minB[n] + 1); k++) {
+  for (var k = minB[n]; k <= Math.min(n, minB[n] + 2); k++) {
     var avg = n / k, dp = [], from = [];
     for (b = 0; b <= k; b++) { dp.push([]); from.push([]); for (j = 0; j <= n; j++) dp[b][j] = Infinity; }
     dp[0][0] = 0;
@@ -6188,35 +6194,90 @@ function enforceMinBlockDuration(blocks, cuts, charLim) {
   }
   return out;
 }
+// ── Satz- und pausenbewusste Block-Bildung (rein: Wortliste rein, Wortlisten raus — testbar ohne DOM) ──
+// 1) harte Grenzen → Satzstücke („runs“): Sprechpause > CAP_PAUSE_SPLIT, Satzende (. ! ? …), Szenenschnitt, vom Nutzer
+//    gesetzte Naht (Wort-Flag nb). Ein vom Nutzer verschmolzenes Wort (nj) hebt Pause/Satzende auf, nie einen Schnitt.
+// 2) je Satzstück optimale Aufteilung (capSegmentRun: Wortzahl, Zeichenlimit, Balance, Umbruchregeln, keine Waisen)
+// 3) Waisen, die nur durch eine harte Grenze entstanden sind („Zweitens:“ allein, „Uhr.“ nach Pause), werden an den
+//    Nachbarn gehängt (capFixOrphans) — außer sie stehen allein zwischen zwei langen Pausen/Schnitten/Handnähten
+//    oder sind ein ganzer Ein-Wort-Satz („Ja.“ zwischen zwei Satzenden) oder vom Nutzer per Hand abgeteilt (Handnaht).
+function capSentEnd(word) { return /[.!?…]["“”„«»‚‘’')\]]*$/.test(String(word || '')); }
+function capPauseBetween(a, b) { return (b.start || 0) - (a.end || a.start || 0); }
+// Darf zwischen Wort a (Ende eines Blocks) und b (Anfang des nächsten) eine Waise überbrückt werden?
+function capCanBridge(a, b, cuts) {
+  if (!a || !b || b.nb) return false;
+  if (capPauseBetween(a, b) > CAP_PAUSE_LONG) return false;
+  return !(cuts && cuts.length && cutBetween(cuts, wordMid(a), wordMid(b)) !== null);
+}
+function capFixOrphans(chunks, maxWords, lim, cuts) {
+  if (!(maxWords > 1)) return chunks;              // Looks mit bewusst einem Wort pro Block: keine Waisen im Sinne dieser Regel
+  var out = chunks.slice();
+  function lens(ws) { return ws.map(function(w){ return capCharLen(w.word); }); }
+  function tryJoin(side, i) {                      // side -1: an den Vorgänger, +1: an den Nachfolger → true, wenn umgebaut
+    var o = out[i], nb = out[i + side];
+    var union = side < 0 ? nb.concat(o) : o.concat(nb);
+    var lo = side < 0 ? i - 1 : i, parts;
+    if (union.length <= maxWords && capWordsFit(union, lim)) parts = [union];
+    else {
+      var segs = capSegmentRun(union, lens(union), maxWords, lim);
+      if (!segs || segs.length < 2 || segs.some(function(r){ return r[1] - r[0] < 2; })) return false;
+      parts = segs.map(function(r){ return union.slice(r[0], r[1]); });
+    }
+    out.splice.apply(out, [lo, 2].concat(parts));
+    return true;
+  }
+  for (var i = 0; i < out.length; i++) {
+    if (out[i].length !== 1) continue;
+    var w = out[i][0], p = out[i - 1], n = out[i + 1];
+    if (capSentEnd(w.word) && (!p || capSentEnd(p[p.length - 1].word))) continue; // ganzer Ein-Wort-Satz („Ja.“, „Stopp.“): bewusst allein
+    if (w.nb || (n && n[0].nb)) continue;                                          // Nutzer hat dieses Wort per Hand abgeteilt: so lassen
+    var canP = !!p && !w.nb && capCanBridge(p[p.length - 1], w, cuts);
+    var canN = !!n && capCanBridge(w, n[0], cuts);
+    if (!canP && !canN) continue;                  // allein zwischen langen Pausen/Schnitten/Handnähten: bleibt
+    var order = [];
+    if (canP && canN) {
+      var gp = capPauseBetween(p[p.length - 1], w), gn = capPauseBetween(w, n[0]);
+      var toPrev = Math.abs(gp - gn) > 0.12 ? gp < gn
+                 : n[0].nj ? false : w.nj ? true
+                 : capSentEnd(w.word) ? true : capSentEnd(p[p.length - 1].word) ? false : true;
+      order = toPrev ? [-1, 1] : [1, -1];
+    } else order = [canP ? -1 : 1];
+    for (var k = 0; k < order.length; k++) {
+      if (tryJoin(order[k], i)) { i = Math.max(-1, i - 2); break; }
+    }
+  }
+  return out;
+}
+// wts: Wörter {word,start,end[,nb,nj]}; cuts: sortierte Szenenschnitte (s). Rückgabe: Liste von Wortlisten.
+function capSegmentWords(wts, maxWords, lim, cuts) {
+  cuts = cuts || [];
+  var chunks = [], run = [];
+  function flushRun() {
+    if (!run.length) return;
+    var lens = run.map(function(w){ return capCharLen(w.word); });
+    var segs = capSegmentRun(run, lens, maxWords, lim);
+    if (segs) segs.forEach(function(r){ chunks.push(run.slice(r[0], r[1])); });
+    else run.forEach(function(w){ chunks.push([w]); });
+    run = [];
+  }
+  (wts || []).forEach(function(w, k) {
+    var prev = wts[k - 1];
+    if (prev) {
+      var cutHere = cuts.length && cutBetween(cuts, wordMid(prev), wordMid(w)) !== null;
+      if (cutHere || w.nb || (!w.nj && (capPauseBetween(prev, w) > CAP_PAUSE_SPLIT || capSentEnd(prev.word)))) flushRun();
+    }
+    run.push(w);
+  });
+  flushRun();
+  return capFixOrphans(chunks, maxWords, lim, cuts);
+}
 function buildCaptionBlocks(wts, cuts) {
   if (cuts === undefined) cuts = activeCuts();
   cuts = (cuts || []).filter(function(c){ return isFinite(c); }).sort(function(a, b){ return a - b; });
   var lim = capBlockLimit();
   // Leere Wörter (z. B. nach Text-Edits) erzeugen sonst leere/unsichtbare Blöcke in der Timeline
   wts = (wts || []).filter(function(w){ return w && String(w.word || '').trim(); });
-  var blocks = [], chunks = [];
-  // 1) harte Grenzen: Pause > 0,8 s, Satzende, Szenenschnitt → Satzstücke („runs“)
-  // 2) je Satzstück optimale Aufteilung (capSegmentRun: Wortzahl, Zeichenlimit, Balance, Umbruch-Regeln) —
-  //    Zeichenlimit: Block früher schließen statt Schrift schrumpfen
-  var run = [];
-  function flushRun() {
-    if (!run.length) return;
-    var lens = run.map(function(w){ return capCharLen(w.word); });
-    var segs = capSegmentRun(run, lens, WORDS_PER_BLOCK, lim);
-    if (segs) segs.forEach(function(r){ chunks.push(run.slice(r[0], r[1])); });
-    else run.forEach(function(w){ chunks.push([w]); });
-    run = [];
-  }
-  wts.forEach(function(w, k) {
-    var prev = wts[k - 1];
-    if (prev) {
-      var gap = w.start - (prev.end || prev.start);
-      if (gap > 0.8 || /[.!?…]$/.test(prev.word)
-          || (cuts.length && cutBetween(cuts, wordMid(prev), wordMid(w)) !== null)) flushRun(); // Szenenschnitt
-    }
-    run.push(w);
-  });
-  flushRun();
+  var blocks = [], chunks = capSegmentWords(wts, WORDS_PER_BLOCK, lim, cuts);
   chunks.forEach(function(chunk) {
     var start = chunk[0].start || 0;
     var end   = chunk[chunk.length - 1].end;
@@ -6331,6 +6392,7 @@ async function splitBlockAtCursor(idx, ta) {
   pushUndo();
   var wordsA = b.words.slice(0, n);
   var wordsB = b.words.slice(n);
+  wordsB[0].nb = true; delete wordsB[0].nj; // Handnaht: bleibt bei Look-/Wörter-pro-Block-Wechsel stehen (capSegmentWords)
   var blockA = { words: wordsA, start: wordsA[0].start || b.start, end: wordsA[wordsA.length - 1].end || b.end,
                  text: wordsA.map(function(w){ return w.word; }).join(' ') };
   var blockB = { words: wordsB, start: wordsB[0].start || b.start, end: wordsB[wordsB.length - 1].end || b.end,
@@ -6356,6 +6418,7 @@ async function mergeBlockWithPrevious(idx, ta) {
   if (!prevBlock || !curBlock) return;
   pushUndo();
   var cursorPos   = prevBlock.text.length + 1; // Naht zwischen altem Vorgänger-Text und eingefügtem Leerzeichen
+  if (curBlock.words && curBlock.words[0]) { delete curBlock.words[0].nb; curBlock.words[0].nj = true; } // Handverschmelzung: bleibt zusammen (capSegmentWords)
   var mergedBlock = { words: prevBlock.words.concat(curBlock.words), start: prevBlock.start, end: curBlock.end,
                        text: prevBlock.text + ' ' + curBlock.text };
   mergedBlock.srcWords = copyTimedWords(mergedBlock.words);
@@ -14956,6 +15019,7 @@ function tlSplitAt(idx, t) {
   if (n <= 0 || n >= b.words.length) return false;
   pushUndo();
   var wa = b.words.slice(0, n), wb = b.words.slice(n);
+  wb[0].nb = true; delete wb[0].nj; // Handnaht: bleibt bei Look-/Wörter-pro-Block-Wechsel stehen (capSegmentWords)
   var ts = tlR3(Math.max(wa[n - 1].end, Math.min(wb[0].start, t)));
   var A = { words: wa, start: b.start, end: Math.max(ts, wa[n - 1].end), text: wa.map(function(w){ return w.word; }).join(' ') };
   var B = { words: wb, start: Math.min(ts, wb[0].start), end: b.end, text: wb.map(function(w){ return w.word; }).join(' ') };
