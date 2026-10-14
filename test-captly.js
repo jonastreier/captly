@@ -156,6 +156,7 @@ segFrameSnap:segFrameSnap,segDragTarget:segDragTarget,segDragApply:segDragApply,
 mergeCutRegions:mergeCutRegions,allCutRegionsOf:allCutRegionsOf,allCutRegions:allCutRegions,srcToOut:srcToOut,outToSrc:outToSrc,cuesToOutput:cuesToOutput,setTrim:setTrim,cutOutRange:cutOutRange,restoreCut:restoreCut,getTrim:function(){return {i:trimIn,o:trimOut,c:manualCuts};},currentSubCues:currentSubCues,previewSkipCuts:previewSkipCuts,tlCutRange:tlCutRange,tlCutOut:tlCutOut,tlSetMark:tlSetMark,tlSelectCut:tlSelectCut,tlRestoreSel:tlRestoreSel,trimSnapshot:trimSnapshot,trimResetState:trimResetState,tlTrimHit:tlTrimHit,setTlSel:function(i){tlSel=i;},
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
+resetGrpBuf:function(){_grpBuf=null;},localEmojis:localEmojis,localEmoLookup:localEmoLookup,LOCAL_EMO:LOCAL_EMO,drawTextWithPlan:drawTextWithPlan,capShK:capShK,
 capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -4760,7 +4761,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const blk = { text: 'Das ist ein Test', start: 0, end: 1, words: ['Das', 'ist', 'ein', 'Test'].map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
       T.setState([blk], blk.words, 'karaoke');
       T.setEmphState(true, true, 'off'); T.setEmSrc('local'); T.syncEmphUI();
-      ok(E('emWarn').style.display === '' && /Emojis need the AI service/.test(E('emWarn').textContent) && E('emWarnRow').style.display === '' && E('emRetry').style.display === '', 'KI aus/nicht erreichbar + Emojis an → Hinweis am Schalter samt «Try again»: ' + E('emWarn').textContent);
+      ok(E('emWarn').style.display === '' && /simple emoji picks/i.test(E('emWarn').textContent) && E('emWarnRow').style.display === '' && E('emRetry').style.display === '', 'KI aus/nicht erreichbar + Emojis an → Hinweis am Schalter samt «Try again»: ' + E('emWarn').textContent);
       ok(E('emEmoBtn').classList.contains('unavail'), 'Emoji-Schalter als «nicht verfügbar» markiert');
       T.setEmphState(true, false, 'off'); T.syncEmphUI();
       ok(!E('emEmoBtn').classList.contains('unavail') && /simple keyword detection/.test(E('emWarn').textContent), 'Emojis aus: nur Keyword-Hinweis, kein Emoji-Warnzeichen');
@@ -4770,7 +4771,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(E('emWarnRow').style.display === 'none' && !E('emEmoBtn').classList.contains('unavail') && T.emAiUnavailable() === false, 'KI erreichbar (llm): kein Hinweis');
       const toastTxt = () => (document.body.children.filter(c => c.id === 'capToast').pop() || {}).textContent;
       T.setEmSrc('local'); T.setEmphEmoji(true);
-      ok(/AI service/.test(toastTxt()), 'Emoji-Schalter an ohne KI → Toast: ' + toastTxt());
+      ok(/Simple emoji picks/.test(toastTxt()), 'Emoji-Schalter an ohne KI → Toast: ' + toastTxt());
       T.setEmSrc(null); T.setEmphState(false, false, 'off'); T.setState([], [], 'karaoke');
       // Keyword-Farbe ≠ Farbe des aktiven Worts in allen Presets (wo eine Farb-Betonung existiert)
       const presetIds = [...script.slice(script.indexOf('var STYLES = ['), script.indexOf('\n];', script.indexOf('var STYLES = [')) ).matchAll(/\{id:'([a-z0-9]+)'/g)].map(m => m[1]); // eingebaute Presets (Tests legen weitere Styles an)
@@ -5505,7 +5506,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // ── KI-Standard: Keywords + Emojis an, Hinweis bleibt am Schalter ──
     ok(/var emKw = true, emEmoji = true, emZoom = 'off';/.test(script), 'N-KI: Standard (ohne gemerkte Wahl): Keywords + Emojis an, Zoom aus');
     ok(/id="emKwBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /id="emEmoBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /class="em-chip on" id="emEmoBtn"/.test(htmlContent), 'N-KI: Markup der beiden Schalter zeigt «an»');
-    ok(/emSrc === 'local' \|\| aiOff\(\)/.test(script) && /Emojis need the AI service, which isn’t reachable right now/.test(script) && /AI picks unavailable — using simple keyword detection/.test(script), 'N-KI: Hinweis am Schalter bleibt, wenn die KI nicht antwortet');
+    ok(/emSrc === 'local' \|\| aiOff\(\)/.test(script) && /Simple emoji picks – AI picks when available/.test(script) && /AI picks unavailable — using simple keyword detection/.test(script), 'N-KI: Hinweis am Schalter bleibt, wenn die KI nicht antwortet');
     // Fallback (lokale Heuristik): jede Caption ab 3 Wörtern bekommt ≥ 1 sichtbares Keyword
     {
       const lines = ['Das ist ein guter Test', 'Wir sind so froh', 'und dann kam es', 'Ich bin Landwirt heute', 'Hallo zusammen', 'Heute zeigen wir drei Tricks', 'es ist so', 'Der Hof liegt im Tal', 'a b c', 'Das war Dienstag früh'];
@@ -5930,6 +5931,96 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(/^Stop scrolling\.?$/i.test(h1), 'Hook lokal: kurzer erster Satz bleibt allein (kein abgeschnittener Folgesatz) — ' + h1);
     const h2 = T.hookLocalText(blk('Hey. Drei Tricks. Für mehr Views heute.'));
     ok(!/Für mehr Views heute/.test(h2) || h2.split(' ').length <= 6, 'Hook lokal: Folgesatz nur, wenn er ganz in 6 Wörter passt — ' + h2);
+  }
+
+  // ── Runde 2 Looks (Creator-Retest 14.10., Abschnitt 6 Punkte 1–4, 10) ──
+  {
+    const near = (a, b, e = 1e-6) => Math.abs(a - b) <= e;
+    const sfile = JSON.parse(fs.readFileSync(path.join(__dirname, 'styles.json'), 'utf8')), sds = sfile.map(o => T.dropToStyle(o, Date.parse('2026-10-20')));
+    const g = id => sds[sfile.findIndex(o => o.id === id)] || T.STYLES.find(x => x.id === id); // Looks aus styles.json (wie in N-Looks)
+    // 1) Gradient Karaoke: Verlaufswort ohne text-shadow auf dem background-clip-Element (der Schatten deckte den Verlauf ab → schwarzes Wort)
+    {
+      const gk = g('gradkaraoke'), h = T.buildCap(['ab', 'cd'], gk, 0, 22, null);
+      const act = h.split('<span ').filter(x => /data-oi|class="cap-gw"/.test(x)).find(x => /--cg:linear-gradient/.test(x)) || '';
+      ok(/class="cap-gw"/.test(act) && /data-t="ab"/.test(act) && /--cg:linear-gradient\(90deg,#FDE047/.test(act) && /text-shadow:[^;]*rgba\(251,113,133/.test(act), 'Gradient Karaoke: aktives Wort = Schatten am Wort + Verlauf als ::after-Kopie (.cap-gw)');
+      ok(!/background-clip:text[^"]*text-shadow|text-shadow[^"]*background-clip:text/.test(act) && /color:transparent/.test(act), 'Gradient Karaoke: kein text-shadow zusammen mit background-clip:text auf demselben Element');
+      ok(/\.cap-gw::after\{[^}]*content:attr\(data-t\)[^}]*background:var\(--cg\)[^}]*background-clip:text/.test(htmlContent), 'CSS: .cap-gw::after zeichnet den Verlauf über dem Schatten');
+      const tg = Object.assign({}, g('hormozi'), { tg: 'linear-gradient(90deg,#f00,#00f)', ts: 'none' }), ht = T.buildCap(['ab'], tg, -1, 22, null);
+      ok(/background:linear-gradient\(90deg,#f00,#00f\);-webkit-background-clip:text/.test(ht) && !/cap-gw/.test(ht), 'Textverlauf ohne Schatten: weiter direkt per background-clip');
+      const tg2 = Object.assign({}, tg, { ts: '0 2px 6px rgba(0,0,0,.6)' }), ht2 = T.buildCap(['ab'], tg2, -1, 22, null);
+      ok(/class="cap-gw"/.test(ht2) && /--cg:linear-gradient\(90deg,#f00,#00f\)/.test(ht2) && /text-shadow:0 2px 6px/.test(ht2), 'Textverlauf (tg) mit Schatten: gleiche Trennung Schatten/Verlauf');
+    }
+    // 2) Glass Box: Kontrast Text/Box ≥ 4,5 : 1 auf hellem (255) und dunklem (0) Untergrund (Box über Hintergrund gemischt)
+    {
+      const gb = g('glassbox'), lin = c => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+      const Lm = a => 0.2126 * lin(a[0]) + 0.7152 * lin(a[1]) + 0.0722 * lin(a[2]);
+      const bx = T.cssColorToHexA(gb.boxBg), tx = T.cssColorToHexA(gb.tc), hx = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+      const rat = bg => { const comp = hx(bx.hex).map(c => bx.a * c + (1 - bx.a) * bg), txt = hx(tx.hex).map((c, i) => tx.a * c + (1 - tx.a) * comp[i]); return (Lm(txt) + 0.05) / (Lm(comp) + 0.05); };
+      const worst = Math.min(rat(255), rat(200), rat(128), rat(0));
+      ok(bx.a >= 0.5 && worst >= 4.5, 'Glass Box: Kontrast Text/Box ≥ 4,5 : 1 (schlechtester Fall, Untergrund weiss: ' + rat(255).toFixed(2) + ', schwarz: ' + rat(0).toFixed(2) + ')');
+      ok(/rgba\(255,255,255,/.test(gb.boxBd) && /rgba\(0,0,0,/.test(gb.ts), 'Glass Box: feiner heller Rand + Textschatten');
+    }
+    // 3) Squash Pop: Canvas-Schatten-Offsets je Achse skalieren (sonst steht der Drop-Schatten als Geisterbild aus der gestauchten Kontur)
+    {
+      const sq = g('squashpop'), sqPlan = T.capShadowPlan(sq.ts), softDrop = sqPlan.rest.find(l => l.y === 4);
+      ok(!!softDrop && softDrop.blur >= 6 && sqPlan.ring && sqPlan.ring.w === 3, 'Squash Pop: Drop-Schatten weich (Blur ' + (softDrop && softDrop.blur) + ') statt harter Kopie, die bei kleiner Vorschau als Geisterbild unter der Kontur steht');
+      const plan = T.capShadowPlan(sq.ts.replace(/,0 4px 10px rgba\(0,0,0,\.4\)$/, ',0 4px 0 rgba(0,0,0,.8)')), dropRef = plan.rest.find(l => l.y === 4); // harte Kopie wie vor Runde 2: Offsets müssen trotzdem stimmen
+      ok(!!dropRef && plan.ring && plan.ring.w === 3, 'Testaufbau: Squash Pop = Ring 3 px + Drop-Schatten 0 4px');
+      const rec = (shMul, sc) => { const offs = []; const c = { canvas: null, shadowOffsetX: 0, shadowOffsetY: 0, shadowBlur: 0, shadowColor: '', lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000', fillStyle: '#fff', globalAlpha: 1,
+        save() {}, restore() {}, fillText() { offs.push([this.shadowOffsetX, this.shadowOffsetY, this.shadowBlur]); }, strokeText() {} };
+        T.drawTextWithPlan(c, 'ab', 0, 0, plan, sc, 1, 60, 120, shMul); return offs.find(o => o[1] !== 0 || o[0] !== 0) || offs[0]; };
+      const sqOff = rec({ x: 1.35, y: 0.7, b: 1.025 }, 3);
+      ok(near(sqOff[1], 4 * 3 * 0.7) && near(sqOff[0], 0) && near(sqOff[2], 0), 'Squash (sx 1,35 / sy 0,7): Drop-Schatten vertikal × sy = 8,4 px statt × max(sx, sy) (' + sqOff[1].toFixed(2) + ')');
+      const uni = rec(1.28, 3);
+      ok(near(uni[1], 4 * 3 * 1.28), 'Gleichmässige Animation (Punch 1,28): Offset wie bisher × k (' + uni[1].toFixed(2) + ')');
+      ok(T.capShK(1.5).x === 1.5 && T.capShK(undefined).y === 1 && T.capShK({ x: 2, y: 0.5, b: 1 }).y === 0.5, 'capShK: Zahl oder {x, y, b}');
+      // Gruppen-Puffer (Deckkraft < 1 beim Einblenden): Schatten dort ohne shMul, weil der Puffer erst beim Einsetzen mit der Animation skaliert wird
+      T.resetGrpBuf(); const bufOffs = []; const origCreate = document.createElement;
+      const mkB = () => ({ canvas: { width: 0, height: 0 }, shadowOffsetX: 0, shadowOffsetY: 0, shadowBlur: 0, shadowColor: '', lineWidth: 1, lineJoin: 'miter', miterLimit: 10, strokeStyle: '#000', fillStyle: '#fff', globalAlpha: 1, textAlign: 'left', textBaseline: 'alphabetic', font: '', letterSpacing: '0px',
+        save() {}, restore() {}, translate() {}, setTransform() {}, clearRect() {}, drawImage() {}, strokeText() {}, fillText() { bufOffs.push(this.shadowOffsetY); } });
+      document.createElement = (t) => { if (t !== 'canvas') return origCreate(t); const cv = { width: 0, height: 0 }; const cx = mkB(); cx.canvas = cv; cv.getContext = () => cx; return cv; };
+      const main = mkB(); main.canvas = { width: 1080, height: 1920 };
+      T.drawTextGrouped(main, 'ab', 100, 200, plan, 3, 1, 60, 120, { x: 1.35, y: 0.7, b: 1.02 }, 0.5);
+      document.createElement = origCreate;
+      ok(bufOffs.length >= 1 && bufOffs.some(o => near(o, 12)) && !bufOffs.some(o => near(o, 12 * 0.7) || near(o, 12 * 1.35)), 'Gruppen-Puffer: Schatten-Offset unskaliert (12 px) — keine doppelte Skalierung mit der Squash-Transformation');
+    }
+    // 4) Emojis ohne KI: lokale Stichwort-Tabelle, ≤ 1 je 3 Blöcke, nur klare Treffer, KI/Nutzer haben Vorrang
+    {
+      const mkB = (txt, t0) => { const words = txt.split(' ').map((w, i) => ({ word: w, start: +(t0 + i * 0.3).toFixed(2), end: +(t0 + i * 0.3 + 0.28).toFixed(2) })); return { text: txt, start: t0, end: t0 + words.length * 0.3, words }; };
+      const mkAll = txts => txts.map((t, i) => mkB(t, i * 2));
+      const v1 = mkAll(['Drei Tricks,', 'damit deine Reels', 'mehr Views bekommen.', 'Erstens: Die ersten', 'zwei Sekunden', 'entscheiden alles.', 'Zweitens: Untertitel,', 'weil fast alle', 'ohne Ton schauen.', 'Drittens: Poste regelmässig,', 'am besten jeden Dienstag', 'um achtzehn Uhr.', 'Speicher dir das Video,', 'sonst vergisst du es!']);
+      const n1 = T.localEmojis(v1), e1 = v1.map((b, i) => [i, T.blockEmoji(b)]).filter(x => x[1]);
+      ok(n1 === e1.length && n1 >= 2 && n1 <= Math.floor(v1.length / 3), 'v1 (DE, ' + v1.length + ' Blöcke): ' + n1 + ' Emojis (max ' + Math.floor(v1.length / 3) + '): ' + e1.map(x => x[0] + T.blockEmoji(v1[x[0]])).join(' '));
+      ok(e1.every((x, k) => k === 0 || x[0] - e1[k - 1][0] >= 3) && e1.every(x => T.EMO_PICK.indexOf(x[1]) >= 0), 'Emojis: mindestens 3 Blöcke Abstand, alle in der Emoji-Auswahl');
+      const want = { 0: '💡', 4: '⏰', 12: '🎬' }; // Tricks → Idee/Tipp, Sekunden → Zeit, Video → Clapper
+      ok(e1.every(x => want[x[0]] === x[1] || [11, 10, 6, 2, 1].includes(x[0])) && e1.some(x => x[0] === 0 && x[1] === '💡'), 'v1: Treffer passen zum Inhalt (Tricks → 💡): ' + JSON.stringify(e1));
+      const v3 = mkAll(['Stop scrolling.', 'This one setting', 'doubled my watch time.', 'Here is how', 'you can do it', 'on your next video']);
+      const n3 = T.localEmojis(v3), e3 = v3.map((b, i) => [i, T.blockEmoji(b)]).filter(x => x[1]);
+      ok(n3 >= 1 && n3 <= 2 && e3.every(x => x[1] === '⏰' || x[1] === '🎬'), 'v3 (EN): ' + n3 + ' Emojis, passend: ' + JSON.stringify(e3));
+      const none = mkAll(['Das ist ein Test', 'und noch einer hier', 'mit ganz normalen Worten']);
+      ok(T.localEmojis(none) === 0 && none.every(b => !T.blockEmoji(b)), 'Kein klares Stichwort → kein Emoji');
+      ok(T.localEmoLookup('Feuer,') && T.localEmoLookup('Feuer,').e === '🔥' && T.localEmoLookup('Geld') .e === '💰' && T.localEmoLookup('Glück!').e === '🍀' && T.localEmoLookup('Idee').e === '💡' && T.localEmoLookup('Hackschnitzel') === null && T.localEmoLookup('fast') === null && T.localEmoLookup('Lachs') === null, 'Tabelle: Umlaute/Satzzeichen normalisiert, Fehltreffer (Hackschnitzel, fast, Lachs) ausgeschlossen');
+      ok(T.LOCAL_EMO.every(r => T.EMO_PICK.indexOf(r[0]) >= 0), 'Jedes Emoji der lokalen Tabelle steht in der Emoji-Suche/Auswahl');
+      // KI-/Nutzer-Emojis haben Vorrang
+      const pri = mkAll(['Drei Tricks,', 'damit deine Reels', 'mehr Views bekommen.', 'Das Geld', 'weil das Feuer', 'und Zeit']);
+      pri[0].words[0].emo = '🤖'; pri[3].words[1].emo = '🧪'; pri[3].words[1].emoU = true;
+      T.localEmojis(pri);
+      ok(T.blockEmoji(pri[0]) === '🤖' && T.blockEmoji(pri[3]) === '🧪' && pri.filter(b => T.blockEmoji(b)).length <= 2 + Math.floor(pri.length / 3), 'Vorhandene KI-/Nutzer-Emojis bleiben unangetastet');
+      ok(T.localEmojis([mkB('Tipp des Tages', 0)]) === 1 && T.localEmojis([]) === 0, 'Einzelner Block: höchstens ein Emoji; leere Liste: 0');
+      ok(/localEmojis\(captionBlocks\)/.test(script) && /localEmojis\(blocks\)/.test(script), 'runEnhance: lokaler Emoji-Fallback in beiden Ohne-KI-Pfaden');
+    }
+    // 10) Typewriter: alle Zeilen linksbündig zur breitesten Zeile (Breite der fertigen Zeile bleibt reserviert), Vorschau = Export
+    {
+      const tw = g('typewriter'), b = { text: 'damit deine Reels', start: 0, end: 2, words: ['damit', 'deine', 'Reels'].map((w, i) => ({ word: w, start: i * 0.6, end: i * 0.6 + 0.55 })) };
+      T.setLinesState(2);
+      const mk = () => document.createElement('canvas').getContext('2d');
+      const L = T.capLayout(mk(), b, 0, 1, tw, 1080, 1920), xs = L.lines.map(Ln => Ln[0].x), widest = Math.max.apply(null, L.lineWs);
+      ok(L.lines.length === 2 && near(xs[0], xs[1]) && near(xs[0], 540 - widest / 2) && L.lineWs[0] < L.lineWs[1], 'Typewriter: beide Zeilen beginnen am selben x, die breiteste ist mittig (' + xs.map(x => x.toFixed(1)).join(' / ') + ')');
+      const hm = Object.assign({}, g('hormozi')), Lh = T.capLayout(mk(), b, 0, 1, hm, 1080, 1920);
+      ok(Lh.lines.length < 2 || Lh.lines[0][0].x > Lh.lines[1][0].x || near(Lh.lines[0][0].x, Lh.lines[1][0].x), 'Andere Looks bleiben zentriert (kürzere Zeile weiter rechts)');
+      const dom = T.buildCap(['damit', 'deine', 'Reels'], tw, 1, 22, [0, 0.6, 1.2], 2);
+      ok((dom.match(/display:block;white-space:nowrap;text-align:left/g) || []).length === 2 && !/text-align:left/.test(T.buildCap(['damit', 'deine', 'Reels'], g('hormozi'), 1, 22, [0, 0.6, 1.2], 2)), 'Typewriter-DOM: Zeilen text-align:left (nur dieser Look)');
+    }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
