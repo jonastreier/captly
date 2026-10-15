@@ -346,7 +346,8 @@ if (require.main !== module) return;
         let R = await rangeOf();
         ok(R && R.a === 0 && R.b - R.a === 2, 'Timeline Desktop: Rahmen über drei Blöcke → tlRange b−a = 2 (' + JSON.stringify(R) + ')');
         // Klick (< 3 px) auf leere Fläche: abwählen wie bisher
-        await page.mouse.click(I.l + 4, yWave);
+        // (x = 24 statt 4: ganz links liegt seit B5 die Trim-Griffe des Videos (tlTrimHit, ca. 0–13 px) — ein Klick dort startet ein Trimmen, kein Abwählen)
+        await page.mouse.click(I.l + 24, yWave);
         ok((await rangeOf()) === null, 'Timeline Desktop: Klick auf leere Fläche hebt die Auswahl auf');
         // Rahmen über die letzten drei Blöcke, dann gemeinsam um +0,5 s verschieben
         const i0 = nbT - 3;
@@ -395,7 +396,7 @@ if (require.main !== module) return;
         await page.evaluate(() => { tlView = tlClampView({ start: 0, pps: tlView.pps }, tlDur(), _tl.cv.clientWidth); tlRequestDraw(); });
         await page.waitForTimeout(150);
         I = await tlInfo();
-        await page.mouse.move(I.l + 6, yWave);
+        await page.mouse.move(I.l + 24, yWave); // links neben der Trim-Griffe (s. o.)
         await page.mouse.down();
         await page.mouse.move(I.l + I.w - 8, yWave, { steps: 8 });
         await page.waitForTimeout(700); // am Rand verharren → scrollt weiter
@@ -526,7 +527,11 @@ if (require.main !== module) return;
         ok(extra === 0, 'Abbrechen: kein Download (' + extra + ')');
         ok(afterCancel.tok === null && !afterCancel.exp && afterCancel.blob === null && afterCancel.btn && afterCancel.label === 'Download video' && afterCancel.tb === 'Export' && !afterCancel.tbBusy && afterCancel.main !== 'none' && !afterCancel.ctrl, 'Abbrechen: Zustand zurück (' + JSON.stringify(afterCancel) + ')');
         ok(/cancelled/i.test(afterCancel.toast), 'Abbrechen: Meldung «cancelled»');
-        if (!prof.mobile) {
+        // Umgebung: System-Chrome (mit H.264) nimmt MP4 direkt auf (recorderMimeIsSafeMp4) → es gibt keine Umkodierung, «Creating MP4» erscheint nie.
+        // Nur das Playwright-Chromium (WebM-Aufnahme) durchläuft ffmpeg.wasm; dort wird der Abbruch währenddessen geprüft.
+        const nativeMp4 = await page.evaluate(() => /mp4/i.test(pickRecorderMime(m => MediaRecorder.isTypeSupported(m), true)));
+        if (nativeMp4) console.log('  skip Umkodierung (ffmpeg.wasm): Browser nimmt MP4 direkt auf (System-Chrome mit H.264)');
+        if (!prof.mobile && !nativeMp4) {
           // zweiter Abbruch erst während der Umkodierung (ffmpeg.wasm): Worker wird beendet, nichts wird gespeichert
           await page.click('#btnVideo');
           const conv = await page.waitForFunction(() => /Creating MP4/.test(document.getElementById('recMsg').textContent), null, { timeout: 90000 }).then(() => true, () => false);
@@ -563,7 +568,9 @@ if (require.main !== module) return;
       spawnSync('ffmpeg', ['-y', '-loglevel', 'error', '-ss', ssK, '-i', VIDEO, '-frames:v', '1', srcFr]);
       ok(fs.existsSync(mpFr) && fs.existsSync(srcFr), 'MP4-/Quell-Frame bei ' + tK.toFixed(3) + ' s extrahiert');
       const wm1 = fs.existsSync(mpFr) && fs.existsSync(srcFr) ? await wmPixels(page, mpFr, srcFr) : -1;
-      ok(wm1 >= 0 && wm1 < 20, 'Export 1 (Beta, E-Mail übersprungen): Frame OHNE Wasserzeichen (' + wm1 + ' abweichende Pixel unten rechts)');
+      // Schwelle 100 statt 20: Der System-Chrome nimmt H.264 direkt auf (Echtzeit-Encoder, Chroma-Rauschen an den Farbbalken-Kanten des Testbilds) → auf dem Handy 31–55 Rauschpixel;
+      // das echte Wasserzeichen (Export 2, unten) liefert 530–600 → klar getrennt.
+      ok(wm1 >= 0 && wm1 < 100, 'Export 1 (Beta, E-Mail übersprungen): Frame OHNE Wasserzeichen (' + wm1 + ' abweichende Pixel unten rechts)');
       ok(state.leads.length === 0, 'Export 1: ohne E-Mail kein Lead gesendet');
       ok(state.videoKeys.length > 0 && state.videoKeys.every(k => /^[0-9a-f]{16}$/.test(k)), 'Transkription sendet nur einen Hash als X-Video-Key (' + state.videoKeys[0] + ')');
       if (fs.existsSync(mpFr) && fs.existsSync(srcFr)) {
@@ -946,7 +953,8 @@ if (require.main !== module) return;
       await p2.evaluate(() => switchTab('style')); await p2.waitForTimeout(800);
       let bad = [];
       for (let i = 0; i < 3; i++) {
-        const loc = p2.locator('#stylePicker .stile').nth(i);
+        // Kachel = Vorschaubild + weisse Namenszeile (.stile-info); die gewählte Kachel (.on) hat von Design wegen einen 2-px-Rand in Markenfarbe am unteren Rand → nur nicht gewählte Kacheln prüfen
+        const loc = p2.locator('#stylePicker .stile:not(.on)').nth(i);
         if (!(await loc.count()) || !(await loc.isVisible())) continue;
         const st = await edgeStats(p2, loc);
         if (!edgeOk(st)) bad.push(i + ':' + Math.round(st.bottom) + '/' + Math.round(st.ref));
