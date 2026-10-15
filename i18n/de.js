@@ -111,8 +111,8 @@ module.exports = {
     ['alt="Step 1: upload a vertical video as MP4, MOV or WebM"', 'alt="Schritt 1: Hochformat-Video als MP4, MOV oder WebM hochladen"'],
     ['MP4, MOV or WebM · up to 10 at once', 'MP4, MOV oder WebM · bis zu 10 gleichzeitig'],
     ['MP4, MOV or WebM', 'MP4, MOV oder WebM'],
-    ['Your video stays on your device — only the audio is sent for transcription. No account; we ask for your email only before the download.',
-     'Dein Video bleibt auf deinem Gerät – nur die Tonspur wird zur Transkription gesendet. Kein Konto nötig; nach deiner E-Mail fragen wir erst vor dem Download.'],
+    ['Your video stays on your device — only the audio is sent for transcription. No account needed; your email before the download is optional.',
+     'Dein Video bleibt auf deinem Gerät – nur die Tonspur wird zur Transkription gesendet. Kein Konto nötig; deine E-Mail vor dem Download ist freiwillig.'],
     // Showcase
     ['One video. 30+ caption styles.', 'Ein Video. 30+ Untertitel-Styles.'],
     ['From bold karaoke captions to calm subtitles. Tap a style to see it on a sample video.', 'Von knalligen Karaoke-Untertiteln bis zu ruhigen Untertiteln. Tippe auf einen Style und sieh ihn an einem Beispielvideo.'],
