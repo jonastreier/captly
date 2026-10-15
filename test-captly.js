@@ -167,7 +167,7 @@ capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurO
 queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueClipOpened:queueClipOpened,hookLogoRect:hookLogoRect,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
 queueZipEntries:queueZipEntries,zipFolderName:zipFolderName,queueTplInfo:queueTplInfo,queueStyleOptions:queueStyleOptions,btnVideoText:btnVideoText,syncGateBatchUI:syncGateBatchUI,setGateResume:function(f){_gateResume=f;},getSessionSaved:function(){return _sessionSaved;},
 crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen,
-capLogoDodge:capLogoDodge,capDodgeTotal:capDodgeTotal,capDodgePlan:capDodgePlan,capLogoShiftX:capLogoShiftX,hookExportState:hookExportState,hookLayoutNow:hookLayoutNow,brandLogoRectFor:brandLogoRectFor,
+capLogoDodge:capLogoDodge,capDodgeTotal:capDodgeTotal,capDodgePlan:capDodgePlan,capLayoutCacheKey:function(){return _capLayoutCache.key;},capLayoutRaw:capLayout,capMeasureCtxRaw:capMeasureCtx,capLogoMode:capLogoMode,capLogoDecision:capLogoDecision,capLogoShiftX:capLogoShiftX,hookExportState:hookExportState,hookLayoutNow:hookLayoutNow,brandLogoRectFor:brandLogoRectFor,
 queueResumeCount:queueResumeCount,queueResumeMsg:queueResumeMsg,QUEUE_RESUME_DAYS:QUEUE_RESUME_DAYS};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -7154,7 +7154,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const r1 = T.brandLogoRectFor(b, 1080, 1920, true), r2 = T.brandLogoRect(1080, 1920, b.logo, 'tiktok', true);
       ok(JSON.stringify(r1) === JSON.stringify(r2) && T.brandLogoRectFor(null, 1080, 1920, false) === null && T.brandLogoRectFor({}, 1080, 1920, false) === null, 'R5 Logo: brandLogoRectFor = brandLogoRect (Export) bzw. null ohne Logo');
       ok(/brandLogoRectFor\(o\.brand, W, H, o\.wmOn\)/.test(script) && /brandLogoRectFor\(brandX, W, H, wmOn\)/.test(script) && /brandLogoRectFor\(brandP, W, H, wmPng\)/.test(script), 'R5 Logo: Fast-Export, Echtzeit-Export und PNG-Export reichen das Logo-Rechteck an drawCaptionsOnCtx');
-      ok((script.match(/capDodgePlan\(/g) || []).length === 3 && (script.match(/capDodgeTotal\(/g) || []).length === 2 && /capPreviewDodge\(ov, L, fx\.op\)/.test(script), 'R5 Logo: Vorschau und Export rechnen über capDodgePlan → capDodgeTotal (kein zweites Formel-Duplikat)');
+      ok((script.match(/capDodgePlan\(/g) || []).length === 3 && (script.match(/capDodgeTotal\(/g) || []).length === 2 && /capPreviewDodge\(ov, L, fx\.op, s\)/.test(script), 'R5 Logo: Vorschau und Export rechnen über capDodgePlan → capDodgeTotal (kein zweites Formel-Duplikat)');
     }
   }
 
@@ -7343,67 +7343,97 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
   }
 
-  // ═══ R5 Dodge: seitliches Ausweichen vor dem Logo · Hook-Titel nimmt das Kit des Export-Schnappschusses ═══
+  // ═══ R5 Dodge: seitliches Ausweichen (ein Modus pro Clip) · Hook-Titel nimmt das Kit des Export-Schnappschusses ═══
   {
     const ov = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
     const cap = (W, top, h, wFrac) => ({ x: W * (1 - wFrac) / 2, y: top, w: W * wFrac, h });
     const kit = (pos, over) => Object.assign({ w: 300, h: 300, size: 16, margin: 4, pos }, over);
-    const plan = (c, W, H, lg, need) => T.capDodgePlan(c.y, c.y + c.h, c.x, c.x + c.w, W, H, lg, need || null);
+    const rectsOf = caps => caps.map(c => ({ top: c.y, bot: c.y + c.h, l: c.x, r: c.x + c.w }));
+    const plan = (c, W, H, lg, dec, need) => T.capDodgePlan(c.y, c.y + c.h, c.x, c.x + c.w, W, H, lg, need || null, dec);
     const moved = (c, p) => ({ x: c.x + p.dx, y: c.y + p.dy, w: c.w, h: c.h });
     let nSide = 0, nVert = 0;
-    // 1) Matrix: 9:16 / 16:9 / 1:1 × vier Ecken × Top/Mitte/Unten × Blockbreite: nie Überlapp mit dem Logo, im Bild, Seite nur wenn kleiner
+    // 1) Matrix: 9:16 / 16:9 / 1:1 × vier Ecken × Top/Mitte/Unten, ein «Clip» = Blöcke verschiedener Breite. Ein Modus für ALLE Blöcke:
+    //    alle berührenden Blöcke mit identischem Versatz (seitlich) oder alle senkrecht wie bisher; nie Überlapp, immer im Bild
     for (const [W, H] of [[270, 480], [480, 270], [360, 360]]) {
       for (const pos of ['tr', 'tl', 'br', 'bl']) {
         const lg = T.brandLogoRect(W, H, kit(pos), 'reels', false);
         for (const capPos of ['top', 'middle', 'bottom']) {
-          for (const wf of [0.35, 0.524, 0.75]) {
+          for (const widths of [[0.3, 0.4, 0.5], [0.35, 0.524, 0.75]]) {
             const h = H * 0.12, top = capPos === 'top' ? H * 0.125 : capPos === 'bottom' ? H * 0.75 : H / 2 - h / 2;
-            const c = cap(W, top, h, wf), p = plan(c, W, H, lg), full = T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, lg, null), mv = moved(c, p);
-            const tag = 'R5 Dodge ' + W + 'x' + H + ' ' + pos + ' ' + capPos + ' w' + wf;
-            const gp = H * 0.01, hit = ov(c, { x: lg.x - gp, y: lg.y - gp, w: lg.w + 2 * gp, h: lg.h + 2 * gp });
-            if (!hit) { ok(p.dx === 0 && p.dy === 0, tag + ': kein Konflikt → Geometrie unverändert'); continue; }
-            ok(!ov(mv, lg), tag + ': nach dem Ausweichen kein Überlapp (dx ' + p.dx.toFixed(1) + ', dy ' + p.dy.toFixed(1) + ')');
-            ok(mv.x >= 0 && mv.x + mv.w <= W + 1e-9, tag + ': Box bleibt seitlich im Bild');
-            if (p.dx !== 0) {
+            const caps = widths.map(w => cap(W, top, h, w)), dec = T.capLogoMode(rectsOf(caps), W, H, lg);
+            const tag = 'R5 Dodge ' + W + 'x' + H + ' ' + pos + ' ' + capPos + ' w' + widths.join('/');
+            const gp = H * 0.01, plans = caps.map(c => ({ c, p: plan(c, W, H, lg, dec), hit: ov(c, { x: lg.x - gp, y: lg.y - gp, w: lg.w + 2 * gp, h: lg.h + 2 * gp }),
+              full: T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, lg, null) }));
+            const hits = plans.filter(q => q.hit);
+            if (!hits.length) { ok(plans.every(q => q.p.dx === 0 && q.p.dy === 0) && dec.mode === 'vert', tag + ': kein Konflikt → Geometrie unverändert'); continue; }
+            ok(hits.every(q => !ov(moved(q.c, q.p), lg)), tag + ': kein Überlapp nach dem Ausweichen (' + dec.mode + ')');
+            ok(hits.every(q => q.p.dx >= -q.c.x && q.p.dx <= W - q.c.x - q.c.w + 1e-9), tag + ': Boxen bleiben seitlich im Bild');
+            if (dec.mode === 'side') {
               nSide++;
-              ok(p.dy === 0 && Math.abs(p.dx) / W < 0.75 * Math.abs(full) / H && Math.abs(p.dx) <= 0.2 * W + 1e-9, tag + ': seitlich nur wenn deutlich kleiner als senkrecht (' + (Math.abs(p.dx) / W * 100).toFixed(1) + ' % B vs. ' + (Math.abs(full) / H * 100).toFixed(1) + ' % H)');
-              ok(pos[1] === 'r' ? p.dx < 0 : p.dx > 0, tag + ': weicht vom Logo weg');
-            } else { nVert++; ok(p.dy === full, tag + ': sonst exakt das bisherige senkrechte Ausweichen (' + full.toFixed(1) + ')'); }
+              ok(hits.every(q => q.p.dx === hits[0].p.dx && q.p.dx !== 0 && q.p.dy === 0), tag + ': ALLE berührenden Blöcke seitlich mit EINEM gemeinsamen Versatz (' + (hits[0].p.dx / W * 100).toFixed(1) + ' % B)');
+              ok(hits.every(q => Math.abs(hits[0].p.dx) / W < 0.75 * Math.abs(q.full) / H + 1e-9) && Math.abs(dec.dxFrac) <= 0.2 + 1e-9, tag + ': seitlich nur wenn deutlich kleiner als senkrecht');
+              ok(pos[1] === 'r' ? hits[0].p.dx < 0 : hits[0].p.dx > 0, tag + ': weicht vom Logo weg');
+            } else {
+              nVert++;
+              ok(hits.every(q => q.p.dx === 0 && q.p.dy === q.full), tag + ': ALLE senkrecht wie bisher (' + hits.map(q => q.full.toFixed(0)).join('/') + ')');
+            }
           }
         }
       }
     }
-    ok(nSide >= 5 && nVert >= 5, 'R5 Dodge: Matrix deckt beide Wege ab (seitlich ' + nSide + ', senkrecht ' + nVert + ')');
-    // 2) Befund Creator-Runde 5: 16:9, Logo unten rechts, Position unten, grosse Schrift → vorher ~26 % der Höhe nach oben
+    ok(nSide >= 3 && nVert >= 5, 'R5 Dodge: Matrix deckt beide Modi ab (seitlich ' + nSide + ', senkrecht ' + nVert + ')');
+    // 2) Befund Creator-Runde 5: 16:9, Logo unten rechts, Position unten, grosse Schrift → vorher ~26 % der Höhe nach oben; schmale Blöcke → seitlich
     {
-      const W = 480, H = 270, lg = T.brandLogoRect(W, H, kit('br', { size: 18 }), 'reels', false), c = cap(W, H * 0.69, H * 0.2, 0.58);
-      const full = T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, lg, null), p = plan(c, W, H, lg);
-      ok(full < -H * 0.1, 'R5 Dodge Befund: bisher springt der Block senkrecht (' + (full / H * 100).toFixed(1) + ' % der Höhe)');
-      ok(p.dy === 0 && p.dx < 0 && !ov(moved(c, p), lg), 'R5 Dodge Befund: jetzt nur ' + (-p.dx / W * 100).toFixed(1) + ' % der Breite nach links, Höhe unverändert');
+      const W = 480, H = 270, lg = T.brandLogoRect(W, H, kit('br', { size: 18 }), 'reels', false), caps = [0.4, 0.5, 0.58].map(w => cap(W, H * 0.69, H * 0.2, w));
+      const dec = T.capLogoMode(rectsOf(caps), W, H, lg), full = T.capDodgeTotal(caps[2].y, caps[2].y + caps[2].h, caps[2].x, caps[2].x + caps[2].w, H, lg, null);
+      ok(full < -H * 0.1 && dec.mode === 'side', 'R5 Dodge Befund: bisher senkrecht ' + (full / H * 100).toFixed(1) + ' % der Höhe → jetzt Modus «' + dec.mode + '»');
+      const ps = caps.map(c => plan(c, W, H, lg, dec));
+      ok(ps.every(p => p.dy === 0 && p.dx === ps[2].dx && p.dx < 0) && caps.every((c, i) => !ov(moved(c, ps[i]), lg)), 'R5 Dodge Befund: alle drei Blöcke gleich ' + (-ps[2].dx / W * 100).toFixed(1) + ' % der Breite nach links, Höhe unverändert');
+      // Ein breiter Block passt nicht seitlich → ALLE senkrecht (auch die schmalen, die allein seitlich gingen)
+      const wide = cap(W, H * 0.69, H * 0.2, 0.75), decW = T.capLogoMode(rectsOf(caps.concat([wide])), W, H, lg);
+      const allV = caps.concat([wide]).map(c => plan(c, W, H, lg, decW));
+      ok(decW.mode === 'vert' && allV.every((p, i) => p.dx === 0 && p.dy === T.capDodgeTotal(caps.concat([wide])[i].y, caps.concat([wide])[i].y + caps.concat([wide])[i].h, caps.concat([wide])[i].x, caps.concat([wide])[i].x + caps.concat([wide])[i].w, H, lg, null)),
+         'R5 Dodge: ein breiter Block passt seitlich nicht → ALLE Blöcke senkrecht wie bisher');
+      ok(T.capLogoMode(rectsOf(caps), W, H, null).mode === 'vert' && T.capLogoMode([], W, H, lg).mode === 'vert', 'R5 Dodge: ohne Logo/ohne Blöcke → «vert», nichts zu tun');
     }
-    // 3) Seitlich reicht nicht: Block füllt die Breite (75 %), Logo gross → senkrecht wie bisher; Logo genau mittig → senkrecht
+    // 3) Logo genau mittig / links-rechts gemischt → senkrecht; nach rechts nie über die Safe-Zone-Kante (Icon-Spalte)
     {
-      const W = 480, H = 270, lg = T.brandLogoRect(W, H, kit('br', { size: 30 }), 'reels', false), c = cap(W, H * 0.69, H * 0.2, 0.75);
-      const p = plan(c, W, H, lg), full = T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, lg, null);
-      ok(p.dx === 0 && p.dy === full && full < 0, 'R5 Dodge: reicht seitlich nicht (Rand/20-%-Grenze) → senkrecht wie bisher');
-      const mid = { x: W / 2 - 20, y: H * 0.7, w: 40, h: 30 };
-      ok(T.capLogoShiftX(c.x, c.x + c.w, W, H, mid) === null, 'R5 Dodge: Logo mittig → seitlich nicht lösbar');
-      // links: Block rechts verschieben darf nicht in die rechte Safe-Zone-Spalte (Reels: 12,5 %)
+      const W = 480, H = 270, c = cap(W, H * 0.69, H * 0.2, 0.5), mid = { x: W / 2 - 20, y: H * 0.7, w: 40, h: 30 };
+      ok(T.capLogoShiftX(c.x, c.x + c.w, W, H, mid) === null && T.capLogoMode(rectsOf([c]), W, H, mid).mode === 'vert', 'R5 Dodge: Logo mittig → seitlich nicht lösbar');
       const lgL = T.brandLogoRect(W, H, kit('bl', { size: 18 }), 'reels', false), cw = cap(W, H * 0.69, H * 0.2, 0.75);
-      ok(T.capLogoShiftX(cw.x, cw.x + cw.w, W, H, lgL) === null, 'R5 Dodge: nach rechts nie über die Safe-Zone-Kante (Icon-Spalte)');
+      ok(T.capLogoShiftX(cw.x, cw.x + cw.w, W, H, lgL) === null, 'R5 Dodge: nach rechts nie über die Safe-Zone-Kante');
     }
-    // 4) Ohne Logo oder ohne Konflikt: identisch zu capDodgeTotal; mit Hook-Titel gilt der Hook-Dodge unverändert
+    // 4) Ohne Logo oder ohne Konflikt: identisch zu capDodgeTotal; mit Hook-Titel bleibt dessen Verschiebung
     {
-      const W = 270, H = 480, c = cap(W, H * 0.125, H * 0.118, 0.524), need = (a, b) => (a < 100 ? 37 : 0);
-      ok(JSON.stringify(plan(c, W, H, null)) === '{"dx":0,"dy":0}' && plan(c, W, H, null, need).dy === T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, null, need), 'R5 Dodge: ohne Logo exakt wie vorher');
-      const far = T.brandLogoRect(W, H, kit('bl'), 'reels', false);
-      ok(plan(c, W, H, far, need).dy === T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, far, need) && plan(c, W, H, far, need).dx === 0, 'R5 Dodge: Logo weit weg → nur Hook-Dodge');
-      const lg = T.brandLogoRect(W, H, kit('tr'), 'reels', false), p = plan(c, W, H, lg, need), mv = moved(c, p);
-      ok(p.dy >= 37 - 1e-9 && !ov(mv, lg), 'R5 Dodge: mit Hook-Titel bleibt dessen Verschiebung erhalten (dy ' + p.dy.toFixed(1) + ', dx ' + p.dx.toFixed(1) + ')');
+      const W = 270, H = 480, c = cap(W, H * 0.125, H * 0.118, 0.3), need = (a, b) => (a < 100 ? 37 : 0);
+      ok(JSON.stringify(plan(c, W, H, null, null)) === '{"dx":0,"dy":0}' && plan(c, W, H, null, null, need).dy === T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, null, need), 'R5 Dodge: ohne Logo exakt wie vorher');
+      const far = T.brandLogoRect(W, H, kit('bl'), 'reels', false), decF = T.capLogoMode(rectsOf([c]), W, H, far);
+      ok(plan(c, W, H, far, decF, need).dy === T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, far, need) && plan(c, W, H, far, decF, need).dx === 0, 'R5 Dodge: Logo weit weg → nur Hook-Dodge');
+      const lg = T.brandLogoRect(W, H, kit('tr'), 'reels', false), dec = T.capLogoMode(rectsOf([c]), W, H, lg), p = plan(c, W, H, lg, dec, need);
+      ok(p.dy >= 37 - 1e-9 && !ov(moved(c, p), lg), 'R5 Dodge: mit Hook-Titel bleibt dessen Verschiebung erhalten (dy ' + p.dy.toFixed(1) + ', dx ' + p.dx.toFixed(1) + ', ' + dec.mode + ')');
     }
-    // 5) Vorschau = Export: ein Code, Verschiebung als translate (Export) bzw. translate(x,y) (Vorschau)
-    ok(/ctx\.translate\(dg\.dx, dg\.dy\)/.test(script) && /'translate\(' \+ lgDx\.toFixed\(2\) \+ 'px,'/.test(script) && /ov\._lgDx = pl\.dx/.test(script), 'R5 Dodge: Vorschau (translate x,y) und Export (ctx.translate) setzen denselben Plan um');
-    // 6) Hook-Titel liest im Export das Kit des Schnappschusses, nie brandLive
+    // 5) Echte Blöcke: die Entscheidung kommt aus dem Canvas-Layout ALLER Blöcke, ist gecacht, gilt für alle Blöcke gleich und stellt den Layout-Cache des Frames nicht um
+    {
+      const E = id => document.getElementById(id), fr = E('prevFrame'); fr.style.width = '605px'; fr.style.height = '340px';
+      const mkBlk = (txt, t0) => { const ws = txt.split(' ').map((w, i) => ({ word: w, start: t0 + i * 0.3, end: t0 + i * 0.3 + 0.28 })); return { text: txt, start: t0, end: t0 + ws.length * 0.3, words: ws }; };
+      const st = T.STYLES.find(x => x.id === 'tight'), prevPos = T.getCapPos ? T.getCapPos() : null;
+      const lgP = T.brandLogoRect(605, 340, kit('br', { size: 12 }), 'reels', false);
+      T.setState([mkBlk('Hallo du', 0), mkBlk('Drei Tricks für mehr', 1), mkBlk('Hallo da', 2)], [], 'karaoke');
+      const d1 = T.capLogoDecision(st, lgP), d2 = T.capLogoDecision(st, lgP);
+      ok(d1 && d1 === d2, 'R5 Dodge: capLogoDecision ist gecacht (gleiches Objekt)');
+      ok(T.capLogoDecision(st, null) === null, 'R5 Dodge: ohne Logo keine Entscheidung');
+      T.capLayoutRaw(T.capMeasureCtxRaw(), T.getBlocks ? T.getBlocks()[0] : null, 0, -1, st, 605, 340);
+      const lay = T.capLayoutCacheKey();
+      T.capLogoDecision(st, T.brandLogoRect(605, 340, kit('br', { size: 13 }), 'reels', false));
+      ok(!!lay && T.capLayoutCacheKey() === lay, 'R5 Dodge: Analyse lässt den Layout-Cache des laufenden Frames unangetastet');
+      T.setState([mkBlk('Hallo du', 0), mkBlk('Drei Tricks für mehr Views bei jedem Reel den du machst', 1), mkBlk('Hallo da', 2)], [], 'karaoke');
+      const d3 = T.capLogoDecision(st, lgP);
+      ok(d3 !== d1, 'R5 Dodge: andere Blöcke → neue Entscheidung (Cache-Schlüssel enthält die Texte)');
+      fr.style.width = ''; fr.style.height = '';
+    }
+    // 6) Vorschau und Export rechnen über denselben Plan/Entscheidung (Quelltext)
+    ok(/ctx\.translate\(dg\.dx, dg\.dy\)/.test(script) && /'translate\(' \+ lgDx\.toFixed\(2\) \+ 'px,'/.test(script) && /ov\._lgDx = pl\.dx/.test(script) && (script.match(/capLogoDecision\(/g) || []).length === 3, 'R5 Dodge: Vorschau (translate x,y) und Export (ctx.translate) setzen denselben Plan um, beide fragen capLogoDecision');
+    // 7) Hook-Titel liest im Export das Kit des Schnappschusses, nie brandLive
     {
       const E = id => document.getElementById(id), fr = E('prevFrame'); fr.style.width = '270px'; fr.style.height = '480px';
       const tight = T.STYLES.find(x => x.id === 'tight'), PNG1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
