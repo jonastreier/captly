@@ -1,6 +1,6 @@
 # Prüft die LIVE-Seite (Erreichbarkeit, Zertifikat, Seiten, API-Konfiguration, gesperrte Dateien, SPF/DMARC/MX)
-# und sagt bei Fehlern, was zu tun ist. Läuft automatisch nach jedem erfolgreichen Deploy
-# oder von Hand: Actions → Live-Check → Run workflow.
+# und sagt bei Fehlern, was zu tun ist. Läuft automatisch nach jedem erfolgreichen Deploy, täglich um 06:17 UTC
+# (fällt die Seite aus, mailt GitHub den Fehlschlag) oder von Hand: Actions → Live-Check → Run workflow.
 name: Live-Check
 on:
   workflow_dispatch:
@@ -11,9 +11,11 @@ on:
   workflow_run:
     workflows: [Deploy]
     types: [completed]
+  schedule:
+    - cron: '17 6 * * *'
 jobs:
   check:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
