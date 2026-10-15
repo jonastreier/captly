@@ -394,6 +394,23 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 @keyframes szWarnPulse{0%,100%{border-color:#ef4444}50%{border-color:#fca5a5}}
 #safeZoneWarn{position:absolute;top:6px;left:6px;right:6px;background:rgba(239,68,68,.94);color:#fff;font-size:12px;font-weight:700;text-align:center;padding:5px 7px;border-radius:6px;display:none;line-height:1.35;box-shadow:0 4px 14px rgba(0,0,0,.35);z-index:16}
 #safeZoneWarn.show{display:block}
+/* BRAND KIT (C5): Logo-Vorschau im Rahmen + Einstellungs-Bereich beim Template */
+#brandLogoOv{position:absolute;z-index:11;pointer-events:none;display:none;-webkit-user-drag:none;user-select:none;object-fit:fill}
+.bk-box{margin-top:8px;border:1px solid var(--line2);border-radius:10px;background:var(--fill2)}
+.bk-box>summary{cursor:pointer;padding:8px 10px;font-size:13px;font-weight:700;color:var(--ink);list-style:none;display:flex;align-items:center;gap:6px}
+.bk-box>summary::-webkit-details-marker{display:none}
+.bk-box>summary::before{content:'\25B8';font-size:11px;color:var(--muted);transition:transform .15s}
+.bk-box[open]>summary::before{transform:rotate(90deg)}
+.bk-body{padding:2px 10px 10px;display:flex;flex-direction:column;gap:8px}
+.bk-body .q-row{margin:0;gap:8px;flex-wrap:wrap}
+.bk-thumb{flex:0 0 auto;width:40px;height:40px;border-radius:8px;border:1px dashed var(--line2);background:#fff center/contain no-repeat}
+.bk-thumb.has{border-style:solid}
+.bk-pos .pos-btn{padding:6px 10px;min-width:38px}
+.bk-cols{flex:1 1 0;min-width:0;display:flex;gap:8px}
+.bk-clear{flex:0 0 100%;text-align:left;background:none;border:none;color:var(--brand);font:600 12px 'Inter',sans-serif;cursor:pointer;padding:2px 0}
+.bk-sw-off .cs-sw{opacity:.55}
+.stile-logo{position:absolute;left:6px;bottom:6px;z-index:3;max-width:34%;max-height:26%;object-fit:contain;border-radius:3px;background:rgba(255,255,255,.85);padding:1px;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+.stile-kit{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.02em;color:var(--brand-ink);background:var(--brand-soft);border-radius:4px;padding:0 4px;margin-left:3px;vertical-align:1px}
 
 /* CONTROL COL */
 .ctrl-col{width:380px;flex-shrink:0;background:#fff;border-left:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(0,0,0,.12) transparent}
@@ -1774,6 +1791,7 @@ body.editor-open .lang-hint{display:none}
         </div>
         <div id="capOverlay" onmousedown="capDragStart(event)" ontouchstart="capDragStart(event)" ondblclick="capOverlayDbl(event)" title="Ziehen zum Verschieben · Doppelklick zum Bearbeiten des Texts"></div>
         <div id="hookTitle" aria-hidden="true"></div>
+        <img id="brandLogoOv" alt="" draggable="false">
         <div id="capGuideV" class="cap-guide" aria-hidden="true"></div><div id="capGuideH" class="cap-guide" aria-hidden="true"></div>
         <div id="capInlineEd" class="cap-inline" style="display:none" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
           <textarea id="capInlineTa" rows="2" spellcheck="true" onkeydown="inlineKey(event)" onblur="inlineBlur()" aria-label="Untertitel-Text bearbeiten"></textarea>
@@ -2194,6 +2212,59 @@ body.editor-open .lang-hint{display:none}
             <button class="pos-btn" id="tplSaveBtn" type="button" style="flex:0 0 auto;padding:6px 12px" onclick="saveTemplate()" title="Aktuellen Style + Position + Grösse + Modus als benanntes Template speichern">Speichern</button>
           </div>
           <label class="tpl-inl-hook" title="Standardmässig aus: das Template schaltet den Hook-Titel dann bei einem neuen Video nie ein"><input type="checkbox" id="tplHook" onchange="syncTplHookChk(this)"> Hook-Titel einschliessen</label>
+          <details class="bk-box" id="bkBox">
+            <summary>Brand-Kit <span class="cs-sub" id="bkState"></span></summary>
+            <div class="bk-body">
+              <p class="cs-note" style="margin:0">Wird mit dem Template gespeichert: Logo, Farben, Schrift und Safe Zone für einen Kunden. Verwende nur Logos, die dir gehören oder die du nutzen darfst.</p>
+              <div class="q-row">
+                <span class="q-k">Logo</span>
+                <span class="bk-thumb" id="bkThumb" aria-hidden="true"></span>
+                <button type="button" class="pos-btn" id="bkUpBtn" onclick="document.getElementById('bkFile').click()">Hochladen</button>
+                <button type="button" class="pos-btn" id="bkRmBtn" onclick="brandRemoveLogo()" style="display:none">Entfernen</button>
+                <input type="file" id="bkFile" accept="image/png,image/jpeg,image/webp" style="display:none" onchange="brandLogoPicked(this)">
+              </div>
+              <div id="bkLogoOpts" style="display:none;flex-direction:column;gap:8px">
+                <div class="q-row">
+                  <span class="q-k">Ecke</span>
+                  <div class="pos-row seg bk-pos" id="bkPos" role="group" aria-label="Logo-Ecke">
+                    <button type="button" class="pos-btn" data-p="tl" aria-pressed="false" onclick="brandSet('pos','tl')" title="Oben links">&#8598;</button>
+                    <button type="button" class="pos-btn" data-p="tr" aria-pressed="false" onclick="brandSet('pos','tr')" title="Oben rechts">&#8599;</button>
+                    <button type="button" class="pos-btn" data-p="bl" aria-pressed="false" onclick="brandSet('pos','bl')" title="Unten links">&#8601;</button>
+                    <button type="button" class="pos-btn" data-p="br" aria-pressed="false" onclick="brandSet('pos','br')" title="Unten rechts">&#8600;</button>
+                  </div>
+                </div>
+                <div class="q-row sz-row"><span class="q-k">Grösse</span>
+                  <input type="range" min="5" max="30" step="1" value="15" id="bkSize" oninput="brandSet('size',this.value)" aria-label="Logo-Grösse in Prozent der Videobreite">
+                  <span class="sz-val" id="bkSizeV">15%</span></div>
+                <div class="q-row sz-row"><span class="q-k">Deckkraft</span>
+                  <input type="range" min="20" max="100" step="5" value="100" id="bkOp" oninput="brandSet('opacity',this.value)" aria-label="Logo-Deckkraft">
+                  <span class="sz-val" id="bkOpV">100%</span></div>
+                <div class="q-row sz-row"><span class="q-k">Abstand</span>
+                  <input type="range" min="1" max="10" step="1" value="4" id="bkMargin" oninput="brandSet('margin',this.value)" aria-label="Logo-Abstand in Prozent der Videobreite">
+                  <span class="sz-val" id="bkMarginV">4%</span></div>
+              </div>
+              <div class="q-row" id="bkCols">
+                <span class="q-k">Farben</span>
+                <div class="bk-cols">
+                <div class="cs-chipcol" id="bkTextCol" title="Kit-Textfarbe">
+                  <span class="cs-sw" id="bkTextDot"><input type="color" id="bkText" class="cs-col" value="#ffffff" aria-label="Kit-Textfarbe" oninput="brandColor('text',this.value)"></span>
+                  <span class="cs-cl">Text</span>
+                </div>
+                <div class="cs-chipcol" id="bkHlCol" title="Kit-Akzentfarbe (aktives Wort)">
+                  <span class="cs-sw" id="bkHlDot"><input type="color" id="bkHl" class="cs-col" value="#ffffff" aria-label="Kit-Akzentfarbe" oninput="brandColor('highlight',this.value)"></span>
+                  <span class="cs-cl">Akzent</span>
+                </div>
+                </div>
+                <button type="button" class="bk-clear" id="bkColClr" onclick="brandClearColors()" style="display:none">Farben des Looks verwenden</button>
+              </div>
+              <div class="q-row"><span class="q-k">Schrift</span>
+                <select id="bkFont" class="lang-sel cs-sel" onchange="brandFont(this.value)" aria-label="Kit-Schrift"><option value="">Vom Look</option></select></div>
+              <div class="q-row"><span class="q-k">Safe Zone</span>
+                <select id="bkSafe" class="lang-sel cs-sel" onchange="brandSet('safe',this.value)" aria-label="Safe-Zone-Vorgabe" title="Wo Untertitel und Logo frei von der App-Oberfläche bleiben">
+                  <option value="reels">Reels (Standard)</option><option value="tiktok">TikTok</option><option value="shorts">YouTube Shorts</option><option value="off">Aus</option></select></div>
+              <div class="tpl-status" id="bkMsg" role="status" aria-live="polite"></div>
+            </div>
+          </details>
           <div class="tpl-status" id="tplStatus" role="status" aria-live="polite"></div>
           <div class="tpl-io">
             <span id="tplEditing" style="display:none"></span>
@@ -2294,7 +2365,7 @@ body.editor-open .lang-hint{display:none}
 // unverändert zurück; scripts/build-i18n.js ersetzt die nächste Zeile für captly.de.html durch das Wörterbuch
 // {EN: DE} aus i18n/de-ui.js. Nur sichtbare Texte wrappen — nie IDs, CSS-Klassen, Look-IDs oder Storage-Schlüssel.
 // ═══════════════════════════════════════
-var UI_DICT = {"English":"Englisch","Spanish":"Spanisch","German":"Deutsch","French":"Französisch","Portuguese":"Portugiesisch","Italian":"Italienisch","Dutch":"Niederländisch","Polish":"Polnisch","Turkish":"Türkisch","Russian":"Russisch","Ukrainian":"Ukrainisch","Japanese":"Japanisch","Korean":"Koreanisch","Chinese":"Chinesisch","Arabic":"Arabisch","Hindi":"Hindi","Detecting speech… window {0}/{1}":"Erkenne Sprache… Abschnitt {0}/{1}","Preparing captions (first time only)…":"Untertitel werden vorbereitet (nur beim ersten Mal)…","Transcription server is not available and the offline engine could not be loaded — check your connection and try again.":"Der Transkriptions-Server ist nicht erreichbar und die Offline-Engine konnte nicht geladen werden — prüf deine Verbindung und versuch es nochmals.","Simple emoji picks for now — AI picks when available.":"Vorerst einfache Emoji-Auswahl — die KI-Auswahl folgt, sobald sie verfügbar ist.","AI is switched off (Settings) — simple emoji picks only.":"Die KI ist ausgeschaltet (Einstellungen) — nur einfache Emoji-Auswahl.","Simple emoji picks – AI picks when available (AI service not reachable right now).":"Einfache Emoji-Auswahl – KI-Auswahl, sobald verfügbar (KI-Dienst gerade nicht erreichbar).","AI is switched off — using simple keyword detection.":"Die KI ist ausgeschaltet — es wird die einfache Schlüsselwort-Erkennung verwendet.","AI picks unavailable — using simple keyword detection.":"KI-Auswahl nicht verfügbar — es wird die einfache Schlüsselwort-Erkennung verwendet.","AI is picking keywords…":"KI wählt Schlüsselwörter…","Title for the first seconds":"Titel für die ersten Sekunden","Asking the AI for a title…":"Frage die KI nach einem Titel…","AI suggestion — edit it freely.":"KI-Vorschlag — ändere ihn frei.","Suggestion from the start of your video — edit it freely.":"Vorschlag vom Anfang deines Videos — ändere ihn frei.","Keyword highlighting turned on":"Schlüsselwörter werden hervorgehoben","Emojis turned on":"Emojis eingeschaltet","Reactions":"Reaktionen","Gestures":"Gesten","Objects":"Objekte","Nature":"Natur","Food":"Essen","Symbols":"Symbole","Change or remove the emoji":"Emoji ändern oder entfernen","Add an emoji to this caption":"Emoji zu diesem Untertitel hinzufügen","Caption emoji":"Untertitel-Emoji","Highlight":"Hervorheben","Tap a word to highlight it":"Wort antippen, um es hervorzuheben","No emoji found — try another word.":"Kein Emoji gefunden — versuch ein anderes Wort.","Search emoji (e.g. fire, Feuer, money)":"Emoji suchen (z. B. fire, Feuer, money)","Search emoji":"Emoji suchen","Emoji categories":"Emoji-Kategorien","No emoji":"Kein Emoji","Auto zoom is on — it starts once your captions are ready":"Auto-Zoom ist an — er startet, sobald deine Untertitel fertig sind","Auto zoom is on — the AI is still picking the key moments…":"Auto-Zoom ist an — die KI wählt noch die wichtigen Momente…","No zoom moments found — zooms start on key words and numbers":"Keine Zoom-Momente gefunden — Zooms setzen bei Schlüsselwörtern und Zahlen ein","Auto zoom: 1 moment":"Auto-Zoom: 1 Moment","Auto zoom: {0} moments":"Auto-Zoom: {0} Momente"," · Preview animation off (reduce motion) — the export includes the zoom":" · Vorschau-Animation aus (Bewegung reduzieren) — der Export enthält den Zoom","Writing…":"Schreibe…","Write":"Schreiben","AI unavailable — simple version from your transcript.":"KI nicht verfügbar — einfache Version aus deinem Transkript.","Copied ✓":"Kopiert ✓","Select & copy":"Markieren & kopieren","Preparing… {0}%":"Vorbereiten… {0}%","Restored — Ctrl/⌘+Z to undo":"Wiederhergestellt — Rückgängig mit Ctrl/⌘+Z","Cut out — not in the video":"Ausgeschnitten — nicht im Video","Removed by Auto-cut — not in the video":"Vom Auto-Cut entfernt — nicht im Video","Partly cut out — only some words stay in the video":"Teilweise ausgeschnitten — nur einige Wörter bleiben im Video","Restore":"Wiederherstellen","Put this caption back into the video":"Diesen Untertitel wieder ins Video setzen","Start":"Start","Start 0.1 s earlier":"Start 0.1 s früher","Drag left/right to move the start (1 px = 0.01 s)":"Nach links/rechts ziehen, um den Start zu verschieben (1 px = 0.01 s)","Start 0.1 s later":"Start 0.1 s später","End":"Ende","End 0.1 s earlier":"Ende 0.1 s früher","Drag left/right to move the end (1 px = 0.01 s)":"Nach links/rechts ziehen, um das Ende zu verschieben (1 px = 0.01 s)","End 0.1 s later":"Ende 0.1 s später","Delete this caption (Ctrl/⌘+Z to undo)":"Diesen Untertitel löschen (Rückgängig mit Ctrl/⌘+Z)","Delete caption":"Untertitel löschen","Fix all":"Alle korrigieren","✓ Fixed {0}× — Ctrl/⌘+Z to undo":"✓ {0}× korrigiert — Rückgängig mit Ctrl/⌘+Z","Bold & clean":"Fett & klar","Impact & display":"Plakativ","Handwritten":"Handschrift","Serif":"Serif","Retro & mono":"Retro & Mono","My fonts (on this device)":"Meine Schriften (auf diesem Gerät)","＋ Upload your own font…":"＋ Eigene Schrift hochladen…","Regular":"Normal","Semi":"Halbfett","Bold":"Fett","Extra":"Extrafett","Black":"Black","This font has only one weight":"Diese Schrift hat nur einen Schnitt","Font weight":"Schriftschnitt","Please choose a .ttf, .otf, .woff or .woff2 file":"Bitte wähl eine .ttf-, .otf-, .woff- oder .woff2-Datei","That font file is too large (max. 3 MB)":"Diese Schriftdatei ist zu gross (max. 3 MB)","You can keep up to {0} own fonts — remove one first":"Du kannst bis zu {0} eigene Schriften behalten — entferne zuerst eine","✓ “{0}” added — stays on this device":"✓ «{0}» hinzugefügt — bleibt auf diesem Gerät","Couldn’t read that font file":"Diese Schriftdatei konnte nicht gelesen werden","Pill":"Pille","Pill color behind the active (spoken) word":"Farbe der Pille hinter dem aktiven (gesprochenen) Wort","Color of the active (spoken) word":"Farbe des aktiven (gesprochenen) Worts","Word pop works with Animation: Highlight.":"Wort-Pop funktioniert mit Animation: Hervorheben.","Preview is still (system setting “reduce motion”) — the export includes the animation.":"Die Vorschau steht still (Systemeinstellung «Bewegung reduzieren») — der Export enthält die Animation.","Keywords: same font as text":"Schlüsselwörter: gleiche Schrift wie der Text","Keywords: {0}":"Schlüsselwörter: {0}","My style":"Mein Style","Templates updated from another tab":"Templates aus einem anderen Tab aktualisiert","Editing “{0}”":"«{0}» wird bearbeitet","Update":"Aktualisieren","💾 Save":"💾 Speichern","Overwrite this template with the current style + layout":"Dieses Template mit dem aktuellen Style + Layout überschreiben","Save the current style + position + size + mode as a named template":"Aktuellen Style + Position + Grösse + Modus als benanntes Template speichern","Enter a name":"Namen eingeben","Give your template a name first.":"Gib deinem Template zuerst einen Namen.","A template named “{0}” already exists. Overwrite it with the current style?":"Ein Template namens «{0}» gibt es schon. Mit dem aktuellen Style überschreiben?","Not saved — choose another name to keep both.":"Nicht gespeichert — wähl einen anderen Namen, um beide zu behalten.","✓ Updated “{0}” — find it under My templates":"✓ «{0}» aktualisiert — du findest es unter «Meine Templates»","✓ Saved as “{0}” — find it under My templates":"✓ Als «{0}» gespeichert — du findest es unter «Meine Templates»"," (synced to your account)":" (mit deinem Konto synchronisiert)"," (saved in this browser)":" (in diesem Browser gespeichert)",". ★ It’s now your default look for every new video (change via ⋯).":". ★ Es ist jetzt dein Standard-Look für jedes neue Video (änderbar über ⋯).","✓ Updated “{0}”":"✓ «{0}» aktualisiert","✓ Saved as “{0}”":"✓ Als «{0}» gespeichert","Use for every new video":"Für jedes neue Video verwenden","★ “{0}” will be used for every new video":"★ «{0}» wird für jedes neue Video verwendet"," · ★ default for every new video":" · ★ Standard für jedes neue Video","No template · {0}":"Kein Template · {0}","Not saved.":"Nicht gespeichert.","✓ Renamed to “{0}”":"✓ Umbenannt in «{0}»","{0} copy":"{0} Kopie","✓ Duplicated as “{0}”":"✓ Dupliziert als «{0}»","Deleted “{0}”":"«{0}» gelöscht","Undo":"Rückgängig","✓ Restored “{0}”":"✓ «{0}» wiederhergestellt","Editing “{0}”: change the style below, then click Update.":"«{0}» wird bearbeitet: Style unten ändern, dann auf «Aktualisieren» klicken.","Hook title removed from “{0}”":"Hook-Titel aus «{0}» entfernt","☆ Stop using as default":"☆ Nicht mehr als Standard verwenden","★ Use for every new video":"★ Für jedes neue Video verwenden","Edit":"Bearbeiten","Rename":"Umbenennen","Duplicate":"Duplizieren","Delete":"Löschen","✓ Hook on ({0} s)":"✓ Hook an ({0} s)","This template switches the hook title on for every video you apply it to":"Dieses Template schaltet bei jedem Video, auf das du es anwendest, den Hook-Titel ein","Remove hook title":"Hook-Titel entfernen","Template name":"Template-Name","Save":"Speichern","Cancel":"Abbrechen"," — not included: ":" — nicht enthalten: ","{0} MB, max. {1} MB":"{0} MB, max. {1} MB","unknown font format":"unbekanntes Schriftformat",". Send that font file along separately.":". Schick diese Schriftdatei separat mit.","No templates yet — save one first.":"Noch keine Templates — speichere zuerst eines.","{0} skipped (already up to date)":"{0} übersprungen (schon aktuell)","{0} failed":"{0} fehlgeschlagen","Could not read this file — please choose a Gluephs templates JSON.":"Diese Datei konnte nicht gelesen werden — bitte wähl eine Gluephs-Templates-JSON.","My templates":"Meine Templates","{0} saved":"{0} gespeichert","Like your custom look?":"Gefällt dir dein eigener Look?","Save it as a template":"Speichere ihn als Template","to reuse it.":"und nutze ihn wieder.","Presets":"Vorlagen","More looks":"Weitere Looks","unsaved":"nicht gespeichert","★ default":"★ Standard","Hook on":"Hook an","Your template “{0}”":"Dein Template «{0}»","Template options":"Template-Optionen","Options for template {0}":"Optionen für Template {0}","Your current custom style (not saved yet)":"Dein aktueller eigener Style (noch nicht gespeichert)","Caption size {0}: {1} % of the frame height (≈ {2} px on a 1080-px-wide export, before the look’s own size factor). Same value in preview and export.":"Untertitel-Grösse {0}: {1} % der Bildhöhe (≈ {2} px bei einem 1080 px breiten Export, vor dem eigenen Grössenfaktor des Looks). Gleicher Wert in Vorschau und Export.","Auto · {0}":"Auto · {0}","Auto":"Auto","Loading sample…":"Beispiel wird geladen…","Try a sample video":"Beispielvideo ausprobieren","Try a sample":"Beispiel testen","New":"Neu","Trending":"Trend","So":"So","good":"gut","+{0} more in the editor":"+{0} weitere im Editor","Sign-in is temporarily unavailable — please try again later.":"Die Anmeldung ist vorübergehend nicht verfügbar — versuch es später nochmals.","Something went wrong.":"Etwas ist schiefgelaufen.","Accounts are not set up on this deployment yet.":"Konten sind in dieser Version noch nicht eingerichtet.","Code sent — check your inbox.":"Code gesendet — schau in dein Postfach.","Enter your email to get a free login code — your video then exports without the watermark.":"Gib deine E-Mail ein, um einen kostenlosen Login-Code zu erhalten — dein Video wird dann ohne Wasserzeichen exportiert.","Sign in":"Anmelden","— Load project —":"— Projekt laden —","Please cancel your {0} plan first (Manage billing). Once it has ended you can delete the account here, or email contact@gluephs.com.":"Bitte kündige zuerst deinen {0}-Plan (Abo verwalten). Sobald er abgelaufen ist, kannst du das Konto hier löschen — oder schreib an contact@gluephs.com.","Delete your account {0} and all saved projects and templates? This cannot be undone.":"Konto {0} und alle gespeicherten Projekte und Templates löschen? Das lässt sich nicht rückgängig machen.","Sign-in service is unavailable right now. Please try again later.":"Der Anmeldedienst ist gerade nicht verfügbar. Bitte versuch es später nochmals.","Could not delete the account: {0}":"Das Konto konnte nicht gelöscht werden: {0}","Your account and saved projects were deleted":"Dein Konto und deine gespeicherten Projekte wurden gelöscht","Account · {0}":"Konto · {0}"," · signed in":" · angemeldet","Upgrade to remove it":"Upgrade, um es zu entfernen","Captions in seconds · free, no download — works on any device":"Untertitel in Sekunden · gratis, ohne Download — auf jedem Gerät","⚡ Signed in · your projects are saved to the cloud":"⚡ Angemeldet · deine Projekte werden in der Cloud gespeichert","Guest":"Gast","Free":"Gratis","Today's guest minutes are used up. Sign in free for {0} minutes a month.":"Die Gast-Minuten für heute sind aufgebraucht. Melde dich gratis an für {0} Minuten im Monat.","You've used your free minutes for this month. Upgrade for more minutes, or come back next month.":"Du hast deine Gratis-Minuten für diesen Monat aufgebraucht. Upgrade für mehr Minuten — oder komm nächsten Monat wieder.","You've used all minutes of your plan this month. They reset next month.":"Du hast alle Minuten deines Plans für diesen Monat verbraucht. Sie werden nächsten Monat zurückgesetzt.","{0} min left":"noch {0} Min."," · {0} plan · {1} of {2} min left this month":" · {0}-Plan · noch {1} von {2} Min. in diesem Monat","Creator · {0} min/month":"Creator · {0} Min./Monat","Creator · 300 min/mo · $7.99 (≈ CHF 6.50 / € 7) — coming soon":"Creator · 300 Min./Monat · 7.99 $ (≈ CHF 6.50 / € 7) — bald verfügbar","Pro · {0} min/month":"Pro · {0} Min./Monat","Pro · 1200 min/mo · $14.99 (≈ CHF 12 / € 14) — coming soon":"Pro · 1200 Min./Monat · 14.99 $ (≈ CHF 12 / € 14) — bald verfügbar","Price shown in your local currency at checkout":"Der Preis wird an der Kasse in deiner Landeswährung angezeigt","Paid plans are coming soon":"Bezahlte Pläne kommen bald","Paid plans are coming soon — everything is free while Gluephs is in beta.":"Bezahlte Pläne kommen bald — in der Beta von Gluephs ist alles gratis.","Sign in first, then pick a plan.":"Melde dich zuerst an und wähl dann einen Plan.","Checkout is not available yet — please try again later.":"Der Checkout ist noch nicht verfügbar — bitte versuch es später nochmals.","Opening checkout…":"Checkout wird geöffnet…","Could not load the payment window. Please check your connection and try again.":"Das Zahlungsfenster konnte nicht geladen werden. Prüf deine Verbindung und versuch es nochmals.","Checkout could not start. Please try again.":"Der Checkout konnte nicht gestartet werden. Bitte versuch es nochmals.","Thank you! Activating your plan…":"Danke! Dein Plan wird aktiviert…","Your {0} plan is active.":"Dein {0}-Plan ist aktiv.","Payment received — your plan will show up in a minute. Reload if it doesn't.":"Zahlung erhalten — dein Plan erscheint in einer Minute. Lade die Seite neu, falls nicht.","Opening…":"Wird geöffnet…","Could not open the billing portal. Please try again.":"Das Abo-Portal konnte nicht geöffnet werden. Bitte versuch es nochmals.","Untitled":"Ohne Titel","Could not save the project: {0}":"Das Projekt konnte nicht gespeichert werden: {0}","✓ Saved to your account":"✓ In deinem Konto gespeichert","Project loaded — add the video again for preview & export.":"Projekt geladen — füg das Video nochmals hinzu für Vorschau & Export.","Restored your last session":"Deine letzte Sitzung wurde wiederhergestellt","Re-transcribe":"Neu transkribieren","Start fresh":"Neu starten","Saved style":"Gespeicherter Style","That doesn't look like a valid email address — fix it, or tap Skip.":"Das sieht nicht nach einer gültigen E-Mail-Adresse aus — korrigiere sie oder tippe auf «Überspringen».","Re-transcribing… {0}%":"Transkribiere neu… {0}%","Transcribing… {0}%":"Transkribiere… {0}%","Re-transcribing… 0%":"Transkribiere neu… 0%","Your captions update when it finishes":"Deine Untertitel werden danach aktualisiert","Transcribing… 0%":"Transkribiere… 0%","Loading video":"Video wird geladen","The transcription service took too long.":"Der Transkriptions-Dienst hat zu lange gebraucht.","Network problem — check your connection.":"Netzwerkproblem — prüf deine Verbindung."," Please try again.":" Bitte versuch es nochmals.","Free-tier limit reached — please try again in ~{0} min.":"Gratis-Limit erreicht — bitte versuch es in ca. {0} Min. nochmals.","Free-tier limit reached (too many requests) — wait a minute and try again.":"Gratis-Limit erreicht (zu viele Anfragen) — warte eine Minute und versuch es nochmals.","Please log in (top right) to transcribe videos.":"Bitte melde dich an (oben rechts), um Videos zu transkribieren.","Invalid API key — check the server config (config.php).":"Ungültiger API-Schlüssel — prüf die Server-Konfiguration (config.php).","Audio too large for the server — please trim the video.":"Audio zu gross für den Server — bitte kürze das Video.","Transcription service is busy right now — please try again.":"Der Transkriptions-Dienst ist gerade ausgelastet — bitte versuch es nochmals.","Transcription error {0}":"Transkriptionsfehler {0}",". Please try again.":". Bitte versuch es nochmals.","Transcribing":"Transkribiere","{0} (part {1}/{2})…":"{0} (Teil {1}/{2})…","{0} ({1}/{2} parts done)…":"{0} ({1}/{2} Teile fertig)…","Could not read the audio. Please use MP4, MOV or WebM.":"Das Audio konnte nicht gelesen werden. Bitte nimm MP4, MOV oder WebM.","This file looks damaged or incomplete — the audio can't be read. Try re-saving it from your Photos app or another file.":"Diese Datei sieht beschädigt oder unvollständig aus — das Audio lässt sich nicht lesen. Speichere sie nochmals aus deiner Fotos-App oder nimm eine andere Datei.","Extracting audio…":"Audio wird extrahiert…","Preparing transcription…":"Transkription wird vorbereitet…","Finding speech…":"Sprache wird gesucht…","Transcribing (backup model)…":"Transkribiere (Ersatzmodell)…","Auto-detect uncertain — trying {0}…":"Automatische Erkennung unsicher — versuche {0}…","Server unavailable — running locally (one-time model download)…":"Server nicht erreichbar — läuft lokal (einmaliger Modell-Download)…","{0} words":"{0} Wörter"," · → English":" · → Englisch"," · only the first {0} min were transcribed":" · nur die ersten {0} Min. wurden transkribiert"," · quality uncertain — pick the spoken language under “Video &amp; language”":" · Qualität unsicher — wähl die gesprochene Sprache unter «Video &amp; Sprache»","Captions ready — fix any word, then Export.":"Untertitel fertig — korrigiere Wörter, dann exportiere.","Error: {0}":"Fehler: {0}"," Your previous captions are kept.":" Deine bisherigen Untertitel bleiben erhalten.","Turn on “Translate to English” again to retry.":"Schalte «Untertitel ins Englische übersetzen» nochmals ein, um es erneut zu versuchen.","Turn off “Translate to English” again to retry.":"Schalte «Untertitel ins Englische übersetzen» nochmals aus, um es erneut zu versuchen.","Pick the language again to retry.":"Wähl die Sprache nochmals, um es erneut zu versuchen.","This video uses HEVC (iPhone \"High Efficiency\"), which this browser can't play. Open Gluephs in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.":"Dieses Video nutzt HEVC (iPhone «Hohe Effizienz»), das dieser Browser nicht abspielen kann. Öffne Gluephs in Safari oder Chrome auf Mac/iPhone oder stell die iPhone-Kamera auf Formate → Maximale Kompatibilität.","This file has no video track.":"Diese Datei hat keine Videospur.","This browser can't play this H.264 video — open Gluephs in Chrome, Safari or Edge.":"Dieser Browser kann dieses H.264-Video nicht abspielen — öffne Gluephs in Chrome, Safari oder Edge.","This browser can't play this video format. Try Chrome, Safari or Edge, or convert the video to MP4 (H.264).":"Dieser Browser kann dieses Videoformat nicht abspielen. Probier Chrome, Safari oder Edge oder wandle das Video in MP4 (H.264) um."," Captions, SRT and TXT still work — video export needs a picture.":" Untertitel, SRT und TXT funktionieren weiterhin — für den Video-Export braucht es ein Bild.","This browser can't play HEVC video":"Dieser Browser kann kein HEVC-Video abspielen","This browser can't play this H.264 video":"Dieser Browser kann dieses H.264-Video nicht abspielen","This browser can't play this video format":"Dieser Browser kann dieses Videoformat nicht abspielen","No video track":"Keine Videospur","Video can't be played":"Video lässt sich nicht abspielen","That's not a video file. Please choose an MP4, MOV or WebM.":"Das ist keine Videodatei. Bitte wähl eine MP4-, MOV- oder WebM-Datei.","Replace video":"Video ersetzen","This file looks damaged or incomplete. Try re-saving it from your Photos app, or choose another file.":"Diese Datei sieht beschädigt oder unvollständig aus. Speichere sie nochmals aus deiner Fotos-App oder wähl eine andere Datei.","Couldn't load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone's Photos app, then upload it again.":"Dieses Video konnte nicht geladen werden. Probier eine andere Datei (MP4, MOV oder WebM) — oder speichere es nochmals aus der Fotos-App deines Handys und lade es erneut hoch.","This video file looks damaged or incomplete, so it can't be played. Tap “Upload video” to choose another file.":"Diese Videodatei sieht beschädigt oder unvollständig aus und lässt sich nicht abspielen. Tippe auf «Video hochladen», um eine andere Datei zu wählen.","This video couldn't be opened in this browser. Tap “Upload video” to try another file.":"Dieses Video liess sich in diesem Browser nicht öffnen. Tippe auf «Video hochladen», um eine andere Datei zu probieren.","Pause":"Pause","Play":"Abspielen","Unmute":"Ton an","Mute":"Stumm","Captions in sync with the audio":"Untertitel laufen synchron zum Ton","Captions {0} s earlier":"Untertitel {0} s früher","Captions {0} s later":"Untertitel {0} s später","Replace all ({0})":"Alle ersetzen ({0})","✓ Copied":"✓ Kopiert","Copy failed":"Kopieren fehlgeschlagen","nothing to cut":"nichts zu schneiden","{0} possible":"{0} möglich","Select a longer range to cut out":"Wähl einen längeren Bereich zum Ausschneiden","Keep at least {0} s of video":"Lass mindestens {0} s Video stehen","Cut out {0} – {1} — Ctrl/⌘+Z to undo":"{0} – {1} ausgeschnitten — Rückgängig mit Ctrl/⌘+Z","Output {0} s (−{1} s)":"Ausgabe {0} s (−{1} s)","Rendering video…":"Video wird gerendert…"," · ✂️ cutting {0}s":" · ✂️ schneide {0}s","Rendering {0}%…":"Rendern {0}%…","Checking video…":"Prüfe Video…","Your video already has this shape — nothing to fill.":"Dein Video hat schon diese Form — es gibt nichts zu füllen.","Export failed — the video file seems damaged. Try re-saving it from your Photos app or another file.":"Export fehlgeschlagen — die Videodatei scheint beschädigt zu sein. Speichere sie nochmals aus deiner Fotos-App oder nimm eine andere Datei.","Export cancelled — nothing was downloaded.":"Export abgebrochen — es wurde nichts heruntergeladen.","Cancelling…":"Breche ab…","An export is still running. Leave and cancel it?":"Ein Export läuft noch. Verlassen und abbrechen?","Download again":"Nochmals herunterladen","Export with changes":"Mit Änderungen exportieren","Download video":"Video herunterladen","Preparing {0}%…":"Vorbereiten {0}%…","Please upload a video first.":"Bitte lade zuerst ein Video hoch.","Preparing…":"Vorbereiten…","Your browser does not support video export. Please use Chrome, Firefox or Safari.":"Dein Browser unterstützt keinen Video-Export. Bitte nimm Chrome, Firefox oder Safari.","Creating MP4 (one-time ~15 MB converter download)…":"MP4 wird erstellt (einmaliger Konverter-Download, ca. 15 MB)…","Creating MP4… {0}%":"MP4 wird erstellt… {0}%","Creating MP4 {0}%…":"MP4 wird erstellt {0}%…","MP4 conversion failed (maybe offline) — saving as WebM instead. ":"Die MP4-Umwandlung ist fehlgeschlagen (vielleicht offline) — die Datei wird stattdessen als WebM gespeichert. ","Tip: exporting in Chrome or Safari gives you an Instagram-ready MP4 directly.":"Tipp: Ein Export in Chrome oder Safari liefert direkt ein Instagram-taugliches MP4.","Rendering video (no audio track found)…":"Video wird gerendert (keine Tonspur gefunden)…","this changes everything":"das ändert alles","wait for it":"warte ab","the secret nobody tells you":"das Geheimnis, das dir keiner sagt","let me show you how":"ich zeig dir wie","watch this till the end":"schau bis zum Ende","you need to know this":"das musst du wissen","here is the truth":"hier ist die Wahrheit","nobody talks about this":"darüber redet keiner","save this for later":"speicher das für später","it gets better":"es wird noch besser","this is your sign":"das ist dein Zeichen","stop scrolling right now":"hör sofort auf zu scrollen","i wish i knew this":"hätte ich das früher gewusst","the results speak":"die Resultate sprechen","trust the process":"vertrau dem Prozess","level up today":"steig heute auf","one simple trick":"ein einfacher Trick","before and after":"vorher und nachher","game changer":"Gamechanger","do this instead":"mach das stattdessen","Preparing":"Vorbereiten","Exporting":"Exportiere","Export":"Export"," · no watermark":" · ohne Wasserzeichen","original size":"Originalgrösse","original size ({0})":"Originalgrösse ({0})","{0} (source size)":"{0} (Originalgrösse)","{0} (recommended)":"{0} (empfohlen)","Source size · {0}":"Originalgrösse · {0}","Original":"Original","✓ Saved — {0}":"✓ Gespeichert — {0}","Profile grid 3:4":"Profilraster 3:4","Reels / TikTok safe area":"Reels-/TikTok-Safe-Zone","No frame available for this video here — upload an image instead.":"Hier ist für dieses Video kein Bild verfügbar — lade stattdessen ein Bild hoch.","Title is outside the safe area — shorten it or make it smaller.":"Der Titel liegt ausserhalb der Safe Zone — kürze ihn oder mach ihn kleiner.","Your image":"Dein Bild","Please choose an image (JPG, PNG, WebP)":"Bitte wähl ein Bild (JPG, PNG, WebP)","That image is too large (max. 25 MB)":"Das Bild ist zu gross (max. 25 MB)","Couldn’t read that image":"Das Bild konnte nicht gelesen werden","No background — upload an image first":"Kein Hintergrund — lade zuerst ein Bild hoch","Couldn’t create the image":"Das Bild konnte nicht erstellt werden","✓ Cover saved — {0}":"✓ Cover gespeichert — {0}","That file is no longer available — export again.":"Diese Datei ist nicht mehr verfügbar — exportiere nochmals.","✓ Saved again — {0}":"✓ Nochmals gespeichert — {0}","Saved":"Gespeichert","Saving…":"Speichere…","Auto language":"Automatische Sprache","{0} (detected)":"{0} (erkannt)"," · → EN":" · → EN","↶ Undone":"↶ Rückgängig gemacht","↷ Redone":"↷ Wiederholt","Caption deleted — Ctrl/⌘+Z to undo":"Untertitel gelöscht — Rückgängig mit Ctrl/⌘+Z","✓ Caption updated":"✓ Untertitel aktualisiert","“{0}” is no longer your default":"«{0}» ist nicht mehr dein Standard","Upload a video to generate captions":"Lade ein Video hoch, um Untertitel zu erstellen","{0} captions deleted — Ctrl/⌘+Z to undo":"{0} Untertitel gelöscht — Rückgängig mit Ctrl/⌘+Z","Select captions, or set In/Out with I and O, then Cut out (X)":"Wähl Untertitel oder setze In/Out mit I und O und schneide dann aus (X)","This caption is already as short as it can be":"Dieser Untertitel ist schon so kurz wie möglich","The previous caption ends here — shorten it first":"Der vorherige Untertitel endet hier — kürze ihn zuerst","The next caption starts here — shorten it first":"Der nächste Untertitel beginnt hier — kürze ihn zuerst","Already at the start of the video":"Schon am Anfang des Videos","Already at the end of the video":"Schon am Ende des Videos","Stops at a scene cut — turn off Snap to go past it":"Hält an einem Szenenschnitt an — schalte «Einrasten» aus, um darüber hinauszugehen","Move the playhead onto a caption to split it":"Setz den Abspielkopf auf einen Untertitel, um ihn zu teilen","Move the playhead between two words to split":"Setz den Abspielkopf zwischen zwei Wörter, um zu teilen","Split into two captions":"In zwei Untertitel teilen","Tap a caption to select it · drag its edges to trim · hold to move it":"Untertitel antippen zum Wählen · Ränder ziehen zum Kürzen · gedrückt halten zum Verschieben","Drag to move · drag edges to trim · drag over captions to select several":"Ziehen zum Verschieben · Ränder ziehen zum Kürzen · über Untertitel ziehen, um mehrere zu wählen","{0} captions selected · hold one to move them · Delete removes them":"{0} Untertitel gewählt · einen gedrückt halten, um sie zu verschieben · Delete löscht sie","Tap the last caption of the range":"Letzten Untertitel des Bereichs antippen","Swipe across captions to select them, or tap the first and the last":"Über Untertitel wischen oder den ersten und den letzten antippen"," · hold to move · drag the edges to trim":" · gedrückt halten zum Verschieben · Ränder ziehen zum Kürzen","Cut {0} – {1} selected · Restore brings it back":"Schnitt {0} – {1} gewählt · «Wiederherstellen» holt ihn zurück"," · tap a hatched cut to restore it":" · schraffierten Schnitt antippen zum Wiederherstellen","Tap a caption to adjust it · swipe to scrub · pinch to zoom":"Untertitel antippen zum Anpassen · wischen zum Spulen · Pinch zum Zoomen","Scene cut":"Szenenschnitt","Playhead":"Abspielkopf","Caption":"Untertitel","Speech":"Sprache","Word":"Wort","The timeline appears once the video has loaded":"Die Timeline erscheint, sobald das Video geladen ist","Click or drag to seek":"Klicken oder ziehen zum Spulen","Drag to trim the start of the video (everything before it is cut)":"Ziehen, um den Anfang des Videos zu kürzen (alles davor wird abgeschnitten)","Drag to trim the end of the video (everything after it is cut)":"Ziehen, um das Ende des Videos zu kürzen (alles danach wird abgeschnitten)","Cut-out range — click to select it, then Restore":"Ausgeschnittener Bereich — anklicken und dann «Wiederherstellen»","Bring this cut back":"Diesen Schnitt zurückholen","(empty caption)":"(leerer Untertitel)","Drag to move · drag edges to trim · double-click to edit":"Ziehen zum Verschieben · Ränder ziehen zum Kürzen · Doppelklick zum Bearbeiten","Drag to select several captions (Shift adds) · scroll or middle-drag to pan · Ctrl/⌘+wheel to zoom · click to seek":"Ziehen, um mehrere Untertitel zu wählen (Shift fügt hinzu) · scrollen oder mit mittlerer Maustaste ziehen zum Verschieben · Ctrl/⌘+Mausrad zum Zoomen · klicken zum Spulen","Hide timeline":"Timeline ausblenden","Show timeline":"Timeline anzeigen","No gaps to close":"Keine Lücken zum Schliessen"," · removed {0} empty":" · {0} leere entfernt"," — Ctrl/⌘+Z to undo":" — Rückgängig mit Ctrl/⌘+Z","Change “{1}” → “{2}” in 1 more place?":"«{1}» → «{2}» an 1 weiteren Stelle ändern?","Change “{1}” → “{2}” in {0} more places?":"«{1}» → «{2}» an {0} weiteren Stellen ändern?","✓ Exported 1 template":"✓ 1 Template exportiert","✓ Exported {0} templates":"✓ {0} Templates exportiert","1 font":"1 Schrift","{0} fonts":"{0} Schriften","Imported 1 template":"1 Template importiert","Imported {0} templates":"{0} Templates importiert","1 font added":"1 Schrift hinzugefügt","{0} fonts added":"{0} Schriften hinzugefügt","1 font could not be added":"1 Schrift konnte nicht hinzugefügt werden","{0} fonts could not be added":"{0} Schriften konnten nicht hinzugefügt werden","You've used your 1 free video without watermark today — this one carries a small watermark. {1}, or come back tomorrow.":"Du hast dein 1 Gratis-Video ohne Wasserzeichen für heute verbraucht — dieses trägt ein kleines Wasserzeichen. {1} — oder komm morgen wieder.","You've used your {0} free videos without watermark today — this one carries a small watermark. {1}, or come back tomorrow.":"Du hast deine {0} Gratis-Videos ohne Wasserzeichen für heute verbraucht — dieses trägt ein kleines Wasserzeichen. {1} — oder komm morgen wieder.","Closed 1 gap":"1 Lücke geschlossen","Closed {0} gaps":"{0} Lücken geschlossen"};
+var UI_DICT = {"English":"Englisch","Spanish":"Spanisch","German":"Deutsch","French":"Französisch","Portuguese":"Portugiesisch","Italian":"Italienisch","Dutch":"Niederländisch","Polish":"Polnisch","Turkish":"Türkisch","Russian":"Russisch","Ukrainian":"Ukrainisch","Japanese":"Japanisch","Korean":"Koreanisch","Chinese":"Chinesisch","Arabic":"Arabisch","Hindi":"Hindi","Detecting speech… window {0}/{1}":"Erkenne Sprache… Abschnitt {0}/{1}","Preparing captions (first time only)…":"Untertitel werden vorbereitet (nur beim ersten Mal)…","Transcription server is not available and the offline engine could not be loaded — check your connection and try again.":"Der Transkriptions-Server ist nicht erreichbar und die Offline-Engine konnte nicht geladen werden — prüf deine Verbindung und versuch es nochmals.","Simple emoji picks for now — AI picks when available.":"Vorerst einfache Emoji-Auswahl — die KI-Auswahl folgt, sobald sie verfügbar ist.","AI is switched off (Settings) — simple emoji picks only.":"Die KI ist ausgeschaltet (Einstellungen) — nur einfache Emoji-Auswahl.","Simple emoji picks – AI picks when available (AI service not reachable right now).":"Einfache Emoji-Auswahl – KI-Auswahl, sobald verfügbar (KI-Dienst gerade nicht erreichbar).","AI is switched off — using simple keyword detection.":"Die KI ist ausgeschaltet — es wird die einfache Schlüsselwort-Erkennung verwendet.","AI picks unavailable — using simple keyword detection.":"KI-Auswahl nicht verfügbar — es wird die einfache Schlüsselwort-Erkennung verwendet.","AI is picking keywords…":"KI wählt Schlüsselwörter…","Title for the first seconds":"Titel für die ersten Sekunden","Asking the AI for a title…":"Frage die KI nach einem Titel…","AI suggestion — edit it freely.":"KI-Vorschlag — ändere ihn frei.","Suggestion from the start of your video — edit it freely.":"Vorschlag vom Anfang deines Videos — ändere ihn frei.","Keyword highlighting turned on":"Schlüsselwörter werden hervorgehoben","Emojis turned on":"Emojis eingeschaltet","Reactions":"Reaktionen","Gestures":"Gesten","Objects":"Objekte","Nature":"Natur","Food":"Essen","Symbols":"Symbole","Change or remove the emoji":"Emoji ändern oder entfernen","Add an emoji to this caption":"Emoji zu diesem Untertitel hinzufügen","Caption emoji":"Untertitel-Emoji","Highlight":"Hervorheben","Tap a word to highlight it":"Wort antippen, um es hervorzuheben","No emoji found — try another word.":"Kein Emoji gefunden — versuch ein anderes Wort.","Search emoji (e.g. fire, Feuer, money)":"Emoji suchen (z. B. fire, Feuer, money)","Search emoji":"Emoji suchen","Emoji categories":"Emoji-Kategorien","No emoji":"Kein Emoji","Auto zoom is on — it starts once your captions are ready":"Auto-Zoom ist an — er startet, sobald deine Untertitel fertig sind","Auto zoom is on — the AI is still picking the key moments…":"Auto-Zoom ist an — die KI wählt noch die wichtigen Momente…","No zoom moments found — zooms start on key words and numbers":"Keine Zoom-Momente gefunden — Zooms setzen bei Schlüsselwörtern und Zahlen ein","Auto zoom: 1 moment":"Auto-Zoom: 1 Moment","Auto zoom: {0} moments":"Auto-Zoom: {0} Momente"," · Preview animation off (reduce motion) — the export includes the zoom":" · Vorschau-Animation aus (Bewegung reduzieren) — der Export enthält den Zoom","Writing…":"Schreibe…","Write":"Schreiben","AI unavailable — simple version from your transcript.":"KI nicht verfügbar — einfache Version aus deinem Transkript.","Copied ✓":"Kopiert ✓","Select & copy":"Markieren & kopieren","Preparing… {0}%":"Vorbereiten… {0}%","Restored — Ctrl/⌘+Z to undo":"Wiederhergestellt — Rückgängig mit Ctrl/⌘+Z","Cut out — not in the video":"Ausgeschnitten — nicht im Video","Removed by Auto-cut — not in the video":"Vom Auto-Cut entfernt — nicht im Video","Partly cut out — only some words stay in the video":"Teilweise ausgeschnitten — nur einige Wörter bleiben im Video","Restore":"Wiederherstellen","Put this caption back into the video":"Diesen Untertitel wieder ins Video setzen","Start":"Start","Start 0.1 s earlier":"Start 0.1 s früher","Drag left/right to move the start (1 px = 0.01 s)":"Nach links/rechts ziehen, um den Start zu verschieben (1 px = 0.01 s)","Start 0.1 s later":"Start 0.1 s später","End":"Ende","End 0.1 s earlier":"Ende 0.1 s früher","Drag left/right to move the end (1 px = 0.01 s)":"Nach links/rechts ziehen, um das Ende zu verschieben (1 px = 0.01 s)","End 0.1 s later":"Ende 0.1 s später","Delete this caption (Ctrl/⌘+Z to undo)":"Diesen Untertitel löschen (Rückgängig mit Ctrl/⌘+Z)","Delete caption":"Untertitel löschen","Fix all":"Alle korrigieren","✓ Fixed {0}× — Ctrl/⌘+Z to undo":"✓ {0}× korrigiert — Rückgängig mit Ctrl/⌘+Z","Bold & clean":"Fett & klar","Impact & display":"Plakativ","Handwritten":"Handschrift","Serif":"Serif","Retro & mono":"Retro & Mono","My fonts (on this device)":"Meine Schriften (auf diesem Gerät)","＋ Upload your own font…":"＋ Eigene Schrift hochladen…","Regular":"Normal","Semi":"Halbfett","Bold":"Fett","Extra":"Extrafett","Black":"Black","This font has only one weight":"Diese Schrift hat nur einen Schnitt","Font weight":"Schriftschnitt","Please choose a .ttf, .otf, .woff or .woff2 file":"Bitte wähl eine .ttf-, .otf-, .woff- oder .woff2-Datei","That font file is too large (max. 3 MB)":"Diese Schriftdatei ist zu gross (max. 3 MB)","You can keep up to {0} own fonts — remove one first":"Du kannst bis zu {0} eigene Schriften behalten — entferne zuerst eine","✓ “{0}” added — stays on this device":"✓ «{0}» hinzugefügt — bleibt auf diesem Gerät","Couldn’t read that font file":"Diese Schriftdatei konnte nicht gelesen werden","Pill":"Pille","Pill color behind the active (spoken) word":"Farbe der Pille hinter dem aktiven (gesprochenen) Wort","Color of the active (spoken) word":"Farbe des aktiven (gesprochenen) Worts","Word pop works with Animation: Highlight.":"Wort-Pop funktioniert mit Animation: Hervorheben.","Preview is still (system setting “reduce motion”) — the export includes the animation.":"Die Vorschau steht still (Systemeinstellung «Bewegung reduzieren») — der Export enthält die Animation.","Keywords: same font as text":"Schlüsselwörter: gleiche Schrift wie der Text","Keywords: {0}":"Schlüsselwörter: {0}","My style":"Mein Style","✓ Logo added — it is saved with the template.":"✓ Logo hinzugefügt — es wird mit dem Template gespeichert.","Please choose a PNG, JPEG or WebP image (SVG is not supported).":"Bitte ein PNG-, JPEG- oder WebP-Bild wählen (SVG wird nicht unterstützt).","This image is too large — please use a smaller file.":"Dieses Bild ist zu gross — bitte eine kleinere Datei verwenden.","Could not read this image.":"Dieses Bild konnte nicht gelesen werden.","active":"aktiv","Replace":"Ersetzen","Upload":"Hochladen","From the look":"Vom Look","This kit’s logo is stored on another device only — upload it again here.":"Das Logo dieses Kits liegt nur auf einem anderen Gerät — lade es hier erneut hoch.","This logo is too large to sync to your account — it stays on this device only.":"Dieses Logo ist zu gross für die Synchronisierung mit deinem Konto — es bleibt nur auf diesem Gerät.","Templates updated from another tab":"Templates aus einem anderen Tab aktualisiert","Editing “{0}”":"«{0}» wird bearbeitet","Update":"Aktualisieren","💾 Save":"💾 Speichern","Overwrite this template with the current style + layout":"Dieses Template mit dem aktuellen Style + Layout überschreiben","Save the current style + position + size + mode as a named template":"Aktuellen Style + Position + Grösse + Modus als benanntes Template speichern","Brand kit removed from “{0}”":"Brand-Kit aus «{0}» entfernt","Enter a name":"Namen eingeben","Give your template a name first.":"Gib deinem Template zuerst einen Namen.","A template named “{0}” already exists. Overwrite it with the current style?":"Ein Template namens «{0}» gibt es schon. Mit dem aktuellen Style überschreiben?","Not saved — choose another name to keep both.":"Nicht gespeichert — wähl einen anderen Namen, um beide zu behalten.","✓ Updated “{0}” — find it under My templates":"✓ «{0}» aktualisiert — du findest es unter «Meine Templates»","✓ Saved as “{0}” — find it under My templates":"✓ Als «{0}» gespeichert — du findest es unter «Meine Templates»"," (synced to your account)":" (mit deinem Konto synchronisiert)"," (saved in this browser)":" (in diesem Browser gespeichert)",". ★ It’s now your default look for every new video (change via ⋯).":". ★ Es ist jetzt dein Standard-Look für jedes neue Video (änderbar über ⋯).","✓ Updated “{0}”":"✓ «{0}» aktualisiert","✓ Saved as “{0}”":"✓ Als «{0}» gespeichert","Use for every new video":"Für jedes neue Video verwenden","★ “{0}” will be used for every new video":"★ «{0}» wird für jedes neue Video verwendet"," · ★ default for every new video":" · ★ Standard für jedes neue Video","No template · {0}":"Kein Template · {0}","Not saved.":"Nicht gespeichert.","✓ Renamed to “{0}”":"✓ Umbenannt in «{0}»","{0} copy":"{0} Kopie","✓ Duplicated as “{0}”":"✓ Dupliziert als «{0}»","Deleted “{0}”":"«{0}» gelöscht","Undo":"Rückgängig","✓ Restored “{0}”":"✓ «{0}» wiederhergestellt","Editing “{0}”: change the style below, then click Update.":"«{0}» wird bearbeitet: Style unten ändern, dann auf «Aktualisieren» klicken.","Hook title removed from “{0}”":"Hook-Titel aus «{0}» entfernt","☆ Stop using as default":"☆ Nicht mehr als Standard verwenden","★ Use for every new video":"★ Für jedes neue Video verwenden","Edit":"Bearbeiten","Rename":"Umbenennen","Duplicate":"Duplizieren","Delete":"Löschen","✓ Hook on ({0} s)":"✓ Hook an ({0} s)","This template switches the hook title on for every video you apply it to":"Dieses Template schaltet bei jedem Video, auf das du es anwendest, den Hook-Titel ein","Remove hook title":"Hook-Titel entfernen","◈ Brand kit":"◈ Brand-Kit","Logo":"Logo","Remove brand kit":"Brand-Kit entfernen","Template name":"Template-Name","Save":"Speichern","Cancel":"Abbrechen"," — not included: ":" — nicht enthalten: ","{0} MB, max. {1} MB":"{0} MB, max. {1} MB","unknown font format":"unbekanntes Schriftformat",". Send that font file along separately.":". Schick diese Schriftdatei separat mit.","No templates yet — save one first.":"Noch keine Templates — speichere zuerst eines.","{0} skipped (already up to date)":"{0} übersprungen (schon aktuell)","{0} failed":"{0} fehlgeschlagen","Could not read this file — please choose a Gluephs templates JSON.":"Diese Datei konnte nicht gelesen werden — bitte wähl eine Gluephs-Templates-JSON.","Not enough browser storage — the logo of “{0}” could not be kept.":"Zu wenig Browser-Speicher — das Logo von «{0}» konnte nicht behalten werden.","My templates":"Meine Templates","{0} saved":"{0} gespeichert","Like your custom look?":"Gefällt dir dein eigener Look?","Save it as a template":"Speichere ihn als Template","to reuse it.":"und nutze ihn wieder.","Presets":"Vorlagen","More looks":"Weitere Looks","unsaved":"nicht gespeichert","★ default":"★ Standard","Hook on":"Hook an","Brand kit":"Brand-Kit","Your template “{0}”":"Dein Template «{0}»","Template options":"Template-Optionen","Options for template {0}":"Optionen für Template {0}","Your current custom style (not saved yet)":"Dein aktueller eigener Style (noch nicht gespeichert)","Caption size {0}: {1} % of the frame height (≈ {2} px on a 1080-px-wide export, before the look’s own size factor). Same value in preview and export.":"Untertitel-Grösse {0}: {1} % der Bildhöhe (≈ {2} px bei einem 1080 px breiten Export, vor dem eigenen Grössenfaktor des Looks). Gleicher Wert in Vorschau und Export.","Auto · {0}":"Auto · {0}","Auto":"Auto","Loading sample…":"Beispiel wird geladen…","Try a sample video":"Beispielvideo ausprobieren","Try a sample":"Beispiel testen","New":"Neu","Trending":"Trend","So":"So","good":"gut","+{0} more in the editor":"+{0} weitere im Editor","Sign-in is temporarily unavailable — please try again later.":"Die Anmeldung ist vorübergehend nicht verfügbar — versuch es später nochmals.","Something went wrong.":"Etwas ist schiefgelaufen.","Accounts are not set up on this deployment yet.":"Konten sind in dieser Version noch nicht eingerichtet.","Code sent — check your inbox.":"Code gesendet — schau in dein Postfach.","Enter your email to get a free login code — your video then exports without the watermark.":"Gib deine E-Mail ein, um einen kostenlosen Login-Code zu erhalten — dein Video wird dann ohne Wasserzeichen exportiert.","Sign in":"Anmelden","— Load project —":"— Projekt laden —","Please cancel your {0} plan first (Manage billing). Once it has ended you can delete the account here, or email contact@gluephs.com.":"Bitte kündige zuerst deinen {0}-Plan (Abo verwalten). Sobald er abgelaufen ist, kannst du das Konto hier löschen — oder schreib an contact@gluephs.com.","Delete your account {0} and all saved projects and templates? This cannot be undone.":"Konto {0} und alle gespeicherten Projekte und Templates löschen? Das lässt sich nicht rückgängig machen.","Sign-in service is unavailable right now. Please try again later.":"Der Anmeldedienst ist gerade nicht verfügbar. Bitte versuch es später nochmals.","Could not delete the account: {0}":"Das Konto konnte nicht gelöscht werden: {0}","Your account and saved projects were deleted":"Dein Konto und deine gespeicherten Projekte wurden gelöscht","Account · {0}":"Konto · {0}"," · signed in":" · angemeldet","Upgrade to remove it":"Upgrade, um es zu entfernen","Captions in seconds · free, no download — works on any device":"Untertitel in Sekunden · gratis, ohne Download — auf jedem Gerät","⚡ Signed in · your projects are saved to the cloud":"⚡ Angemeldet · deine Projekte werden in der Cloud gespeichert","Guest":"Gast","Free":"Gratis","Today's guest minutes are used up. Sign in free for {0} minutes a month.":"Die Gast-Minuten für heute sind aufgebraucht. Melde dich gratis an für {0} Minuten im Monat.","You've used your free minutes for this month. Upgrade for more minutes, or come back next month.":"Du hast deine Gratis-Minuten für diesen Monat aufgebraucht. Upgrade für mehr Minuten — oder komm nächsten Monat wieder.","You've used all minutes of your plan this month. They reset next month.":"Du hast alle Minuten deines Plans für diesen Monat verbraucht. Sie werden nächsten Monat zurückgesetzt.","{0} min left":"noch {0} Min."," · {0} plan · {1} of {2} min left this month":" · {0}-Plan · noch {1} von {2} Min. in diesem Monat","Creator · {0} min/month":"Creator · {0} Min./Monat","Creator · 300 min/mo · $7.99 (≈ CHF 6.50 / € 7) — coming soon":"Creator · 300 Min./Monat · 7.99 $ (≈ CHF 6.50 / € 7) — bald verfügbar","Pro · {0} min/month":"Pro · {0} Min./Monat","Pro · 1200 min/mo · $14.99 (≈ CHF 12 / € 14) — coming soon":"Pro · 1200 Min./Monat · 14.99 $ (≈ CHF 12 / € 14) — bald verfügbar","Price shown in your local currency at checkout":"Der Preis wird an der Kasse in deiner Landeswährung angezeigt","Paid plans are coming soon":"Bezahlte Pläne kommen bald","Paid plans are coming soon — everything is free while Gluephs is in beta.":"Bezahlte Pläne kommen bald — in der Beta von Gluephs ist alles gratis.","Sign in first, then pick a plan.":"Melde dich zuerst an und wähl dann einen Plan.","Checkout is not available yet — please try again later.":"Der Checkout ist noch nicht verfügbar — bitte versuch es später nochmals.","Opening checkout…":"Checkout wird geöffnet…","Could not load the payment window. Please check your connection and try again.":"Das Zahlungsfenster konnte nicht geladen werden. Prüf deine Verbindung und versuch es nochmals.","Checkout could not start. Please try again.":"Der Checkout konnte nicht gestartet werden. Bitte versuch es nochmals.","Thank you! Activating your plan…":"Danke! Dein Plan wird aktiviert…","Your {0} plan is active.":"Dein {0}-Plan ist aktiv.","Payment received — your plan will show up in a minute. Reload if it doesn't.":"Zahlung erhalten — dein Plan erscheint in einer Minute. Lade die Seite neu, falls nicht.","Opening…":"Wird geöffnet…","Could not open the billing portal. Please try again.":"Das Abo-Portal konnte nicht geöffnet werden. Bitte versuch es nochmals.","Untitled":"Ohne Titel","Could not save the project: {0}":"Das Projekt konnte nicht gespeichert werden: {0}","✓ Saved to your account":"✓ In deinem Konto gespeichert","Project loaded — add the video again for preview & export.":"Projekt geladen — füg das Video nochmals hinzu für Vorschau & Export.","Restored your last session":"Deine letzte Sitzung wurde wiederhergestellt","Re-transcribe":"Neu transkribieren","Start fresh":"Neu starten","Saved style":"Gespeicherter Style","That doesn't look like a valid email address — fix it, or tap Skip.":"Das sieht nicht nach einer gültigen E-Mail-Adresse aus — korrigiere sie oder tippe auf «Überspringen».","Re-transcribing… {0}%":"Transkribiere neu… {0}%","Transcribing… {0}%":"Transkribiere… {0}%","Re-transcribing… 0%":"Transkribiere neu… 0%","Your captions update when it finishes":"Deine Untertitel werden danach aktualisiert","Transcribing… 0%":"Transkribiere… 0%","Loading video":"Video wird geladen","The transcription service took too long.":"Der Transkriptions-Dienst hat zu lange gebraucht.","Network problem — check your connection.":"Netzwerkproblem — prüf deine Verbindung."," Please try again.":" Bitte versuch es nochmals.","Free-tier limit reached — please try again in ~{0} min.":"Gratis-Limit erreicht — bitte versuch es in ca. {0} Min. nochmals.","Free-tier limit reached (too many requests) — wait a minute and try again.":"Gratis-Limit erreicht (zu viele Anfragen) — warte eine Minute und versuch es nochmals.","Please log in (top right) to transcribe videos.":"Bitte melde dich an (oben rechts), um Videos zu transkribieren.","Invalid API key — check the server config (config.php).":"Ungültiger API-Schlüssel — prüf die Server-Konfiguration (config.php).","Audio too large for the server — please trim the video.":"Audio zu gross für den Server — bitte kürze das Video.","Transcription service is busy right now — please try again.":"Der Transkriptions-Dienst ist gerade ausgelastet — bitte versuch es nochmals.","Transcription error {0}":"Transkriptionsfehler {0}",". Please try again.":". Bitte versuch es nochmals.","Transcribing":"Transkribiere","{0} (part {1}/{2})…":"{0} (Teil {1}/{2})…","{0} ({1}/{2} parts done)…":"{0} ({1}/{2} Teile fertig)…","Could not read the audio. Please use MP4, MOV or WebM.":"Das Audio konnte nicht gelesen werden. Bitte nimm MP4, MOV oder WebM.","This file looks damaged or incomplete — the audio can't be read. Try re-saving it from your Photos app or another file.":"Diese Datei sieht beschädigt oder unvollständig aus — das Audio lässt sich nicht lesen. Speichere sie nochmals aus deiner Fotos-App oder nimm eine andere Datei.","Extracting audio…":"Audio wird extrahiert…","Preparing transcription…":"Transkription wird vorbereitet…","Finding speech…":"Sprache wird gesucht…","Transcribing (backup model)…":"Transkribiere (Ersatzmodell)…","Auto-detect uncertain — trying {0}…":"Automatische Erkennung unsicher — versuche {0}…","Server unavailable — running locally (one-time model download)…":"Server nicht erreichbar — läuft lokal (einmaliger Modell-Download)…","{0} words":"{0} Wörter"," · → English":" · → Englisch"," · only the first {0} min were transcribed":" · nur die ersten {0} Min. wurden transkribiert"," · quality uncertain — pick the spoken language under “Video &amp; language”":" · Qualität unsicher — wähl die gesprochene Sprache unter «Video &amp; Sprache»","Captions ready — fix any word, then Export.":"Untertitel fertig — korrigiere Wörter, dann exportiere.","Error: {0}":"Fehler: {0}"," Your previous captions are kept.":" Deine bisherigen Untertitel bleiben erhalten.","Turn on “Translate to English” again to retry.":"Schalte «Untertitel ins Englische übersetzen» nochmals ein, um es erneut zu versuchen.","Turn off “Translate to English” again to retry.":"Schalte «Untertitel ins Englische übersetzen» nochmals aus, um es erneut zu versuchen.","Pick the language again to retry.":"Wähl die Sprache nochmals, um es erneut zu versuchen.","This video uses HEVC (iPhone \"High Efficiency\"), which this browser can't play. Open Gluephs in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.":"Dieses Video nutzt HEVC (iPhone «Hohe Effizienz»), das dieser Browser nicht abspielen kann. Öffne Gluephs in Safari oder Chrome auf Mac/iPhone oder stell die iPhone-Kamera auf Formate → Maximale Kompatibilität.","This file has no video track.":"Diese Datei hat keine Videospur.","This browser can't play this H.264 video — open Gluephs in Chrome, Safari or Edge.":"Dieser Browser kann dieses H.264-Video nicht abspielen — öffne Gluephs in Chrome, Safari oder Edge.","This browser can't play this video format. Try Chrome, Safari or Edge, or convert the video to MP4 (H.264).":"Dieser Browser kann dieses Videoformat nicht abspielen. Probier Chrome, Safari oder Edge oder wandle das Video in MP4 (H.264) um."," Captions, SRT and TXT still work — video export needs a picture.":" Untertitel, SRT und TXT funktionieren weiterhin — für den Video-Export braucht es ein Bild.","This browser can't play HEVC video":"Dieser Browser kann kein HEVC-Video abspielen","This browser can't play this H.264 video":"Dieser Browser kann dieses H.264-Video nicht abspielen","This browser can't play this video format":"Dieser Browser kann dieses Videoformat nicht abspielen","No video track":"Keine Videospur","Video can't be played":"Video lässt sich nicht abspielen","That's not a video file. Please choose an MP4, MOV or WebM.":"Das ist keine Videodatei. Bitte wähl eine MP4-, MOV- oder WebM-Datei.","Replace video":"Video ersetzen","This file looks damaged or incomplete. Try re-saving it from your Photos app, or choose another file.":"Diese Datei sieht beschädigt oder unvollständig aus. Speichere sie nochmals aus deiner Fotos-App oder wähl eine andere Datei.","Couldn't load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone's Photos app, then upload it again.":"Dieses Video konnte nicht geladen werden. Probier eine andere Datei (MP4, MOV oder WebM) — oder speichere es nochmals aus der Fotos-App deines Handys und lade es erneut hoch.","This video file looks damaged or incomplete, so it can't be played. Tap “Upload video” to choose another file.":"Diese Videodatei sieht beschädigt oder unvollständig aus und lässt sich nicht abspielen. Tippe auf «Video hochladen», um eine andere Datei zu wählen.","This video couldn't be opened in this browser. Tap “Upload video” to try another file.":"Dieses Video liess sich in diesem Browser nicht öffnen. Tippe auf «Video hochladen», um eine andere Datei zu probieren.","Pause":"Pause","Play":"Abspielen","Unmute":"Ton an","Mute":"Stumm","Captions in sync with the audio":"Untertitel laufen synchron zum Ton","Captions {0} s earlier":"Untertitel {0} s früher","Captions {0} s later":"Untertitel {0} s später","Replace all ({0})":"Alle ersetzen ({0})","✓ Copied":"✓ Kopiert","Copy failed":"Kopieren fehlgeschlagen","nothing to cut":"nichts zu schneiden","{0} possible":"{0} möglich","Select a longer range to cut out":"Wähl einen längeren Bereich zum Ausschneiden","Keep at least {0} s of video":"Lass mindestens {0} s Video stehen","Cut out {0} – {1} — Ctrl/⌘+Z to undo":"{0} – {1} ausgeschnitten — Rückgängig mit Ctrl/⌘+Z","Output {0} s (−{1} s)":"Ausgabe {0} s (−{1} s)","Rendering video…":"Video wird gerendert…"," · ✂️ cutting {0}s":" · ✂️ schneide {0}s","Rendering {0}%…":"Rendern {0}%…","Checking video…":"Prüfe Video…","Your video already has this shape — nothing to fill.":"Dein Video hat schon diese Form — es gibt nichts zu füllen.","Export failed — the video file seems damaged. Try re-saving it from your Photos app or another file.":"Export fehlgeschlagen — die Videodatei scheint beschädigt zu sein. Speichere sie nochmals aus deiner Fotos-App oder nimm eine andere Datei.","Export cancelled — nothing was downloaded.":"Export abgebrochen — es wurde nichts heruntergeladen.","Cancelling…":"Breche ab…","An export is still running. Leave and cancel it?":"Ein Export läuft noch. Verlassen und abbrechen?","Download again":"Nochmals herunterladen","Export with changes":"Mit Änderungen exportieren","Download video":"Video herunterladen","Preparing {0}%…":"Vorbereiten {0}%…","Please upload a video first.":"Bitte lade zuerst ein Video hoch.","Preparing…":"Vorbereiten…","Your browser does not support video export. Please use Chrome, Firefox or Safari.":"Dein Browser unterstützt keinen Video-Export. Bitte nimm Chrome, Firefox oder Safari.","Creating MP4 (one-time ~15 MB converter download)…":"MP4 wird erstellt (einmaliger Konverter-Download, ca. 15 MB)…","Creating MP4… {0}%":"MP4 wird erstellt… {0}%","Creating MP4 {0}%…":"MP4 wird erstellt {0}%…","MP4 conversion failed (maybe offline) — saving as WebM instead. ":"Die MP4-Umwandlung ist fehlgeschlagen (vielleicht offline) — die Datei wird stattdessen als WebM gespeichert. ","Tip: exporting in Chrome or Safari gives you an Instagram-ready MP4 directly.":"Tipp: Ein Export in Chrome oder Safari liefert direkt ein Instagram-taugliches MP4.","Rendering video (no audio track found)…":"Video wird gerendert (keine Tonspur gefunden)…","this changes everything":"das ändert alles","wait for it":"warte ab","the secret nobody tells you":"das Geheimnis, das dir keiner sagt","let me show you how":"ich zeig dir wie","watch this till the end":"schau bis zum Ende","you need to know this":"das musst du wissen","here is the truth":"hier ist die Wahrheit","nobody talks about this":"darüber redet keiner","save this for later":"speicher das für später","it gets better":"es wird noch besser","this is your sign":"das ist dein Zeichen","stop scrolling right now":"hör sofort auf zu scrollen","i wish i knew this":"hätte ich das früher gewusst","the results speak":"die Resultate sprechen","trust the process":"vertrau dem Prozess","level up today":"steig heute auf","one simple trick":"ein einfacher Trick","before and after":"vorher und nachher","game changer":"Gamechanger","do this instead":"mach das stattdessen","Preparing":"Vorbereiten","Exporting":"Exportiere","Export":"Export"," · no watermark":" · ohne Wasserzeichen","original size":"Originalgrösse","original size ({0})":"Originalgrösse ({0})","{0} (source size)":"{0} (Originalgrösse)","{0} (recommended)":"{0} (empfohlen)","Source size · {0}":"Originalgrösse · {0}","Original":"Original","✓ Saved — {0}":"✓ Gespeichert — {0}","Profile grid 3:4":"Profilraster 3:4","Reels / TikTok safe area":"Reels-/TikTok-Safe-Zone","No frame available for this video here — upload an image instead.":"Hier ist für dieses Video kein Bild verfügbar — lade stattdessen ein Bild hoch.","Title is outside the safe area — shorten it or make it smaller.":"Der Titel liegt ausserhalb der Safe Zone — kürze ihn oder mach ihn kleiner.","Your image":"Dein Bild","Please choose an image (JPG, PNG, WebP)":"Bitte wähl ein Bild (JPG, PNG, WebP)","That image is too large (max. 25 MB)":"Das Bild ist zu gross (max. 25 MB)","Couldn’t read that image":"Das Bild konnte nicht gelesen werden","No background — upload an image first":"Kein Hintergrund — lade zuerst ein Bild hoch","Couldn’t create the image":"Das Bild konnte nicht erstellt werden","✓ Cover saved — {0}":"✓ Cover gespeichert — {0}","That file is no longer available — export again.":"Diese Datei ist nicht mehr verfügbar — exportiere nochmals.","✓ Saved again — {0}":"✓ Nochmals gespeichert — {0}","Saved":"Gespeichert","Saving…":"Speichere…","Auto language":"Automatische Sprache","{0} (detected)":"{0} (erkannt)"," · → EN":" · → EN","↶ Undone":"↶ Rückgängig gemacht","↷ Redone":"↷ Wiederholt","Caption deleted — Ctrl/⌘+Z to undo":"Untertitel gelöscht — Rückgängig mit Ctrl/⌘+Z","✓ Caption updated":"✓ Untertitel aktualisiert","“{0}” is no longer your default":"«{0}» ist nicht mehr dein Standard","Upload a video to generate captions":"Lade ein Video hoch, um Untertitel zu erstellen","{0} captions deleted — Ctrl/⌘+Z to undo":"{0} Untertitel gelöscht — Rückgängig mit Ctrl/⌘+Z","Select captions, or set In/Out with I and O, then Cut out (X)":"Wähl Untertitel oder setze In/Out mit I und O und schneide dann aus (X)","This caption is already as short as it can be":"Dieser Untertitel ist schon so kurz wie möglich","The previous caption ends here — shorten it first":"Der vorherige Untertitel endet hier — kürze ihn zuerst","The next caption starts here — shorten it first":"Der nächste Untertitel beginnt hier — kürze ihn zuerst","Already at the start of the video":"Schon am Anfang des Videos","Already at the end of the video":"Schon am Ende des Videos","Stops at a scene cut — turn off Snap to go past it":"Hält an einem Szenenschnitt an — schalte «Einrasten» aus, um darüber hinauszugehen","Move the playhead onto a caption to split it":"Setz den Abspielkopf auf einen Untertitel, um ihn zu teilen","Move the playhead between two words to split":"Setz den Abspielkopf zwischen zwei Wörter, um zu teilen","Split into two captions":"In zwei Untertitel teilen","Tap a caption to select it · drag its edges to trim · hold to move it":"Untertitel antippen zum Wählen · Ränder ziehen zum Kürzen · gedrückt halten zum Verschieben","Drag to move · drag edges to trim · drag over captions to select several":"Ziehen zum Verschieben · Ränder ziehen zum Kürzen · über Untertitel ziehen, um mehrere zu wählen","{0} captions selected · hold one to move them · Delete removes them":"{0} Untertitel gewählt · einen gedrückt halten, um sie zu verschieben · Delete löscht sie","Tap the last caption of the range":"Letzten Untertitel des Bereichs antippen","Swipe across captions to select them, or tap the first and the last":"Über Untertitel wischen oder den ersten und den letzten antippen"," · hold to move · drag the edges to trim":" · gedrückt halten zum Verschieben · Ränder ziehen zum Kürzen","Cut {0} – {1} selected · Restore brings it back":"Schnitt {0} – {1} gewählt · «Wiederherstellen» holt ihn zurück"," · tap a hatched cut to restore it":" · schraffierten Schnitt antippen zum Wiederherstellen","Tap a caption to adjust it · swipe to scrub · pinch to zoom":"Untertitel antippen zum Anpassen · wischen zum Spulen · Pinch zum Zoomen","Scene cut":"Szenenschnitt","Playhead":"Abspielkopf","Caption":"Untertitel","Speech":"Sprache","Word":"Wort","The timeline appears once the video has loaded":"Die Timeline erscheint, sobald das Video geladen ist","Click or drag to seek":"Klicken oder ziehen zum Spulen","Drag to trim the start of the video (everything before it is cut)":"Ziehen, um den Anfang des Videos zu kürzen (alles davor wird abgeschnitten)","Drag to trim the end of the video (everything after it is cut)":"Ziehen, um das Ende des Videos zu kürzen (alles danach wird abgeschnitten)","Cut-out range — click to select it, then Restore":"Ausgeschnittener Bereich — anklicken und dann «Wiederherstellen»","Bring this cut back":"Diesen Schnitt zurückholen","(empty caption)":"(leerer Untertitel)","Drag to move · drag edges to trim · double-click to edit":"Ziehen zum Verschieben · Ränder ziehen zum Kürzen · Doppelklick zum Bearbeiten","Drag to select several captions (Shift adds) · scroll or middle-drag to pan · Ctrl/⌘+wheel to zoom · click to seek":"Ziehen, um mehrere Untertitel zu wählen (Shift fügt hinzu) · scrollen oder mit mittlerer Maustaste ziehen zum Verschieben · Ctrl/⌘+Mausrad zum Zoomen · klicken zum Spulen","Hide timeline":"Timeline ausblenden","Show timeline":"Timeline anzeigen","No gaps to close":"Keine Lücken zum Schliessen"," · removed {0} empty":" · {0} leere entfernt"," — Ctrl/⌘+Z to undo":" — Rückgängig mit Ctrl/⌘+Z","Change “{1}” → “{2}” in 1 more place?":"«{1}» → «{2}» an 1 weiteren Stelle ändern?","Change “{1}” → “{2}” in {0} more places?":"«{1}» → «{2}» an {0} weiteren Stellen ändern?","✓ Exported 1 template":"✓ 1 Template exportiert","✓ Exported {0} templates":"✓ {0} Templates exportiert","1 font":"1 Schrift","{0} fonts":"{0} Schriften","Imported 1 template":"1 Template importiert","Imported {0} templates":"{0} Templates importiert","1 logo skipped (not PNG/JPEG/WebP or too large)":"1 Logo übersprungen (kein PNG/JPEG/WebP oder zu gross)","{0} logos skipped (not PNG/JPEG/WebP or too large)":"{0} Logos übersprungen (kein PNG/JPEG/WebP oder zu gross)","1 font added":"1 Schrift hinzugefügt","{0} fonts added":"{0} Schriften hinzugefügt","1 font could not be added":"1 Schrift konnte nicht hinzugefügt werden","{0} fonts could not be added":"{0} Schriften konnten nicht hinzugefügt werden","You've used your 1 free video without watermark today — this one carries a small watermark. {1}, or come back tomorrow.":"Du hast dein 1 Gratis-Video ohne Wasserzeichen für heute verbraucht — dieses trägt ein kleines Wasserzeichen. {1} — oder komm morgen wieder.","You've used your {0} free videos without watermark today — this one carries a small watermark. {1}, or come back tomorrow.":"Du hast deine {0} Gratis-Videos ohne Wasserzeichen für heute verbraucht — dieses trägt ein kleines Wasserzeichen. {1} — oder komm morgen wieder.","Closed 1 gap":"1 Lücke geschlossen","Closed {0} gaps":"{0} Lücken geschlossen"};
 function _t(s) {
   var r = UI_DICT && Object.prototype.hasOwnProperty.call(UI_DICT, s) ? UI_DICT[s] : s, a = arguments;
   return a.length < 2 ? r : String(r).replace(/\{(\d)\}/g, function(m, i) { return +i + 1 < a.length ? a[+i + 1] : m; });
@@ -7654,6 +7725,8 @@ function selectStyle(id, fromEditor) {
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === id); });
   pickerRevealActive(true, false); // Handy-Streifen: angeschnittene/versteckte Kachel scrollt ins Bild
   var s = STYLES.find(function(x){ return x.id === id; });
+  // Brand-Kit (C5): gehört zur gewählten Vorlage (Logo, Safe-Zone, Kit-Farben); Regler-Änderungen am Entwurf behalten es
+  if (!fromEditor && !(id === 'custom' && prevId === 'custom')) brandSetLive(s && s._brand ? s._brand : null);
   if (s && !fromEditor) seedCustomFields(s);         // „Eigener Style" startet vom gewählten Style/Template (auch von Custom selbst)
   if (s) { ensureCapFont(styleFontName(s)); ensureStyleFaces(s); } // nicht vorgeladene Schrift/Schnitte (Template, Betonung) nachladen
   // Erster Regler-Eingriff: die Custom-Kachel (oben in „My templates“) im Picker sichtbar machen — sonst
@@ -7731,7 +7804,7 @@ var CS_THUMB_BG = 'linear-gradient(160deg,#0a0a0c,#141416)';
 var _csBase = null, _csDirty = {}, _csEditingTpl = null;
 function cloneStyle(st) {
   var o = JSON.parse(JSON.stringify(st || {}));
-  delete o._tpl; delete o._isTpl; delete o._tplId;
+  delete o._tpl; delete o._isTpl; delete o._tplId; delete o._brand;
   return o;
 }
 // Kontur als text-shadow-Ring (so rendern Vorschau UND Canvas-Export Konturen bereits: fillTextWithShadow).
@@ -8137,7 +8210,7 @@ function csSeedEmFields(st) {
   names.forEach(function(n){ var o = document.createElement('option'); o.value = n; o.textContent = _t('Keywords: {0}', n); ef.appendChild(o); });
   ef.value = cur;
 }
-function seedActiveStyle() { var st = STYLES.find(function(x){ return x.id === activeId; }); if (st) seedCustomFields(st); }
+function seedActiveStyle() { var st = STYLES.find(function(x){ return x.id === activeId; }); if (st) { seedCustomFields(st); brandSetLive(st._brand || null); } } // Kit der Vorlage mit übernehmen (Projekt-/Autosave-Restore, Editor öffnen)
 function seedCustomFields(st) {
   if (!st) return;
   _csBase = cloneStyle(st); _csDirty = {};
@@ -8318,6 +8391,277 @@ function sanitizeStyle(st) {
   if (out.anim !== undefined && !(out.anim === 'none' || (typeof ANIM_KEYFRAMES === 'object' && Object.prototype.hasOwnProperty.call(ANIM_KEYFRAMES, out.anim)))) delete out.anim;
   return out;
 }
+// ═══════════════════════════════════════
+// BRAND KIT (C5): Erweiterung eines Templates (kein zweites Objektsystem) — template.brand =
+//   { colors: {text, highlight}, font, logo: {data, w, h, pos, size, opacity, margin}, safe }
+// Alles optional; alte Templates ohne `brand` bleiben unverändert gültig. Fremde JSON-Dateien werden wie Styles bereinigt
+// (sanitizeBrand): Farben nur #rgb/#rrggbb, Logo nur data:image/png|jpeg|webp (nie SVG: Skripte), Grössenlimit.
+// ═══════════════════════════════════════
+var BRAND_POS = ['tl', 'tr', 'bl', 'br'];
+var BRAND_SAFE_KEYS = ['reels', 'tiktok', 'shorts', 'off'];
+var BRAND_LOGO_B64_MAX = 400000;      // ≈ 300 KB Binärdaten (Base64 ist 4/3 so lang)
+var BRAND_LOGO_EDGE = 512;            // längste Kante nach dem Verkleinern beim Hochladen
+var BRAND_LOGO_SRC_MAX = 8 * 1048576; // Quelldatei beim Hochladen
+var BRAND_MAGIC = { png: 'iVBORw0KGgo', jpeg: '/9j/', webp: 'UklGR' }; // Base64-Anfang der echten Dateisignatur
+var TPL_CLOUD_MAX = 900000;           // Zeichen: darüber bleiben Logos nur lokal (Cloud-Zeile bleibt klein)
+var brandLive = null;                 // Kit der aktiven Vorlage (bzw. des Entwurfs) — Quelle für Vorschau + Export
+var _tplCloudStripIds = [];           // Templates, deren Logo nicht in die Cloud passte
+function brandHex(v) {
+  var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(v == null ? '' : v).trim());
+  if (!m) return '';
+  var h = m[1].toLowerCase();
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  return '#' + h;
+}
+function brandNum(v, lo, hi, d) { v = +v; if (!isFinite(v)) return d; return Math.round(Math.max(lo, Math.min(hi, v)) * 100) / 100; }
+function brandLogoOk(s) {
+  if (typeof s !== 'string' || s.length > BRAND_LOGO_B64_MAX + 40) return false;
+  var m = /^data:image\/(png|jpeg|webp);base64,([A-Za-z0-9+\/]+={0,2})$/.exec(s);
+  return !!m && m[2].length >= 16 && m[2].length <= BRAND_LOGO_B64_MAX && m[2].indexOf(BRAND_MAGIC[m[1]]) === 0;
+}
+function sanitizeBrand(b) {
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return null;
+  var out = {};
+  var c = (b.colors && typeof b.colors === 'object') ? b.colors : null, oc = {};
+  if (c) { var tx = brandHex(c.text), hi = brandHex(c.highlight); if (tx) oc.text = tx; if (hi) oc.highlight = hi; }
+  if (oc.text || oc.highlight) out.colors = oc;
+  var f = cleanFontName(b.font); if (f) out.font = f;
+  var lg = (b.logo && typeof b.logo === 'object') ? b.logo : null;
+  if (lg && brandLogoOk(lg.data)) {
+    var w = Math.round(+lg.w), h = Math.round(+lg.h);
+    if (w >= 1 && w <= 4096 && h >= 1 && h <= 4096) {
+      out.logo = { data: lg.data, w: w, h: h, pos: BRAND_POS.indexOf(lg.pos) >= 0 ? lg.pos : 'tl',
+        size: brandNum(lg.size, 5, 30, 15), opacity: brandNum(lg.opacity, 0.2, 1, 1), margin: brandNum(lg.margin, 1, 10, 4) };
+    }
+  }
+  if (!out.logo && b.logoLocal === true) out.logoLocal = true; // Cloud-Zeile: das Bild liegt nur auf dem Gerät, das es hochgeladen hat
+  if (BRAND_SAFE_KEYS.indexOf(b.safe) >= 0) out.safe = b.safe;
+  return Object.keys(out).length ? out : null;
+}
+// Kit-Farben/Schrift über den Look legen (Ergebnis wird als Style der Vorlage benutzt). Verläufe/Farbwechsel werden durch die
+// Kit-Farbe ersetzt (einfarbig); der Glow des aktiven Worts übernimmt die neue Farbe; bei Pill-Looks wird die Pill eingefärbt
+// und die Schrift darauf passend (hell/dunkel) gewählt.
+function applyBrandToStyle(st, b) {
+  if (!st || !b) return st;
+  var c = b.colors || {};
+  if (c.text) { st.tc = c.text; delete st.tg; }
+  if (c.highlight) {
+    var old = st.hlPillBg || st.hl;
+    if (st.hlPillBg) { st.hlPillBg = c.highlight; st.hlc = contrastText(c.highlight); }
+    else { st.hl = c.highlight; delete st.hlg; delete st.hlCycle; }
+    if (old && typeof st.hls === 'string' && old !== c.highlight && st.hls.indexOf(old) >= 0) st.hls = st.hls.split(old).join(c.highlight);
+  }
+  if (b.font) { st.fl = b.font; st.font = "'" + b.font + "'"; delete st.hlFont; }
+  return st;
+}
+// Logo-Rechteck in Pixeln (x, y, w, h) für einen Rahmen W × H — EINE Funktion für Vorschau (in %) und beide Exportwege.
+// Ecke + Rand beziehen sich auf die Safe-Zone des Kits (Standard Reels): das Logo liegt immer innerhalb der sicheren Fläche.
+// Mit aktivem Gluephs-Wasserzeichen (unten rechts) rutscht ein unteres Logo darüber, statt es zu überdecken.
+function brandWmRect(W, H) { // Fläche von drawWatermark (gleiche Formeln: fsW = 2,2 % der Höhe)
+  var f = H * 0.022;
+  return { x0: W - f - 5.2 * f, x1: W - f, y0: H - f * 1.96, y1: H - f * 0.74, gap: f * 0.6 };
+}
+function brandLogoRect(W, H, logo, safeKey, wmOn) {
+  if (!logo || !(W > 0) || !(H > 0) || !(logo.w > 0) || !(logo.h > 0)) return null;
+  var z = SAFE_ZONE_PRESETS[safeKey] || SAFE_ZONE_PRESETS.reels;
+  var w = W * logo.size / 100, h = w * logo.h / logo.w;
+  var hMax = H * 0.3; if (h > hMax) { w *= hMax / h; h = hMax; } // sehr hohe Logos nie über 30 % der Höhe
+  var m = W * logo.margin / 100;
+  var L = W * z.left / 100, R = W * (1 - z.right / 100), T = H * z.top / 100, B = H * (1 - z.bottom / 100);
+  var x = logo.pos.charAt(1) === 'l' ? L + m : R - m - w;
+  var y = logo.pos.charAt(0) === 't' ? T + m : B - m - h;
+  if (wmOn) {
+    var wm = brandWmRect(W, H), g = wm.gap;
+    if (x < wm.x1 + g && x + w > wm.x0 - g && y < wm.y1 + g && y + h > wm.y0 - g) y = Math.max(0, wm.y0 - g - h);
+  }
+  return { x: x, y: y, w: w, h: h };
+}
+var _brandImgs = {};
+function brandImgKey(d) { return d.length + ':' + d.slice(40, 90) + d.slice(-40); }
+// Logo-Bild dekodieren (einmal je Bild) — vor dem Export abwarten, damit die Zeichenschleife synchron bleibt. Löst nie mit Fehler auf.
+function brandLogoReady(b) {
+  var lg = b && b.logo;
+  if (!lg || typeof Image === 'undefined') return Promise.resolve(null);
+  var k = brandImgKey(lg.data);
+  if (_brandImgs[k]) return _brandImgs[k].p;
+  var im = new Image(), e = { img: im, ok: false };
+  e.p = new Promise(function(res) {
+    var t = setTimeout(function(){ res(e); }, 4000);
+    im.onload = function(){ e.ok = true; clearTimeout(t); res(e); };
+    im.onerror = function(){ clearTimeout(t); delete _brandImgs[k]; res(e); };
+  });
+  _brandImgs[k] = e;
+  im.src = lg.data;
+  return e.p;
+}
+function brandSnapshot() { return brandLive ? JSON.parse(JSON.stringify(brandLive)) : null; }
+function drawBrandLogo(ctx, W, H, b, wmOn) {
+  var lg = b && b.logo;
+  if (!lg) return;
+  var e = _brandImgs[brandImgKey(lg.data)];
+  if (!e || !e.ok) return;
+  var r = brandLogoRect(W, H, lg, b.safe || 'reels', !!wmOn);
+  if (!r) return;
+  ctx.save(); ctx.globalAlpha = lg.opacity; ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(e.img, r.x, r.y, r.w, r.h); ctx.restore();
+}
+function brandSig() { // für „seit dem Export geändert?“ — ohne die Bilddaten
+  var b = brandLive; if (!b) return '';
+  var c = JSON.parse(JSON.stringify(b));
+  if (c.logo) { c.logo.data = c.logo.data.length + ':' + brandImgKey(c.logo.data); }
+  return JSON.stringify(c);
+}
+// Hochgeladenes Logo → Canvas (längste Kante ≤ 512 px) → PNG (Transparenz bleibt) bzw. JPEG; zu gross → WebP/kleiner. Wirft 'type'/'big'/'read'.
+function brandEncodeLogo(src, sw, sh, mime) {
+  if (!(sw > 0 && sh > 0)) throw new Error('read');
+  var edge = BRAND_LOGO_EDGE;
+  for (var attempt = 0; attempt < 5; attempt++) {
+    var sc = Math.min(1, edge / Math.max(sw, sh)), w = Math.max(1, Math.round(sw * sc)), h = Math.max(1, Math.round(sh * sc));
+    var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    var cx = cv.getContext('2d'); cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high'; cx.drawImage(src, 0, 0, w, h);
+    var tries = mime === 'image/jpeg' ? [['image/jpeg', 0.9], ['image/jpeg', 0.7]] : [['image/png'], ['image/webp', 0.9], ['image/webp', 0.7]];
+    for (var i = 0; i < tries.length; i++) {
+      var d = cv.toDataURL(tries[i][0], tries[i][1]);
+      if (d.indexOf('data:' + tries[i][0] + ';') === 0 && brandLogoOk(d)) return { data: d, w: w, h: h };
+    }
+    edge = Math.round(edge * 0.7);
+  }
+  throw new Error('big');
+}
+function brandLogoFromFile(file) {
+  return new Promise(function(resolve, reject) {
+    if (!file || !/^image\/(png|jpeg|webp)$/.test(file.type || '')) return reject(new Error('type'));
+    if (file.size > BRAND_LOGO_SRC_MAX) return reject(new Error('big'));
+    var url = URL.createObjectURL(file), im = new Image();
+    im.onload = function() { URL.revokeObjectURL(url); try { resolve(brandEncodeLogo(im, im.naturalWidth, im.naturalHeight, file.type)); } catch (e) { reject(e); } };
+    im.onerror = function() { URL.revokeObjectURL(url); reject(new Error('read')); };
+    im.src = url;
+  });
+}
+function brandEnsure() { if (!brandLive) brandLive = {}; return brandLive; }
+function brandIsEmpty(b) { return !b || (!b.colors && !b.font && !b.logo && !b.logoLocal && (!b.safe || b.safe === 'reels')); }
+function brandMsg(msg, warn) {
+  var el = document.getElementById('bkMsg'); if (!el) return;
+  el.textContent = msg || ''; if (el.classList) el.classList.toggle('warn', !!warn);
+}
+function brandLogoPicked(input) {
+  var f = input && input.files && input.files[0];
+  if (!f) return Promise.resolve(false);
+  return brandLogoFromFile(f).then(function(r) {
+    var b = brandEnsure(), old = b.logo || {};
+    b.logo = { data: r.data, w: r.w, h: r.h, pos: old.pos || 'tl', size: old.size || 15, opacity: old.opacity || 1, margin: old.margin || 4 };
+    delete b.logoLocal;
+    brandChanged();
+    brandMsg(_t('✓ Logo added — it is saved with the template.'));
+    return true;
+  }, function(err) {
+    var why = err && err.message;
+    brandMsg(why === 'type' ? _t('Please choose a PNG, JPEG or WebP image (SVG is not supported).')
+      : why === 'big' ? _t('This image is too large — please use a smaller file.') : _t('Could not read this image.'), true);
+    return false;
+  }).then(function(v) { try { input.value = ''; } catch (e) {} return v; });
+}
+function brandRemoveLogo() {
+  if (brandLive) { delete brandLive.logo; delete brandLive.logoLocal; }
+  brandChanged(); brandMsg('');
+}
+function brandSet(k, v) {
+  var b = brandEnsure();
+  if (k === 'safe') { if (BRAND_SAFE_KEYS.indexOf(v) < 0) return; b.safe = v; safePresetSet(v); }
+  else if (b.logo) {
+    if (k === 'pos') { if (BRAND_POS.indexOf(v) < 0) return; b.logo.pos = v; }
+    else if (k === 'size') b.logo.size = brandNum(v, 5, 30, 15);
+    else if (k === 'opacity') b.logo.opacity = brandNum(+v / 100, 0.2, 1, 1);
+    else if (k === 'margin') b.logo.margin = brandNum(v, 1, 10, 4);
+  }
+  brandChanged();
+}
+// Kit-Farben laufen über die Customize-Felder (gleiche Wege wie die Farbregler → Vorschau, Undo, Speichern wie gewohnt)
+function brandColor(which, hex) {
+  hex = brandHex(hex); if (!hex) return;
+  var b = brandEnsure(); b.colors = b.colors || {}; b.colors[which] = hex;
+  var id = which === 'text' ? 'csText' : 'csHl';
+  csSeedColor(id, { hex: hex, a: 1 }, hex); csSyncColors();
+  applyCustomStyle(which === 'text' ? 'text' : 'hlc');
+  brandChanged();
+}
+function brandClearColors() { if (brandLive) delete brandLive.colors; brandChanged(); }
+function brandFont(v) {
+  var b = brandEnsure(), f = cleanFontName(v);
+  if (f) { b.font = f; onFontPick({ value: f }); } else delete b.font;
+  brandChanged();
+}
+function brandChanged() { brandSyncUI(); brandUpdateOverlay(); }
+function brandSetLive(b) {
+  brandLive = b ? JSON.parse(JSON.stringify(b)) : null;
+  safePresetSet((brandLive && brandLive.safe) || 'reels');
+  brandSyncUI(); brandUpdateOverlay();
+}
+// Kit für die Vorlage, die gerade gespeichert wird (null = kein Kit; „nur Reels“ ohne sonstigen Inhalt zählt als kein Kit)
+function brandForSave() {
+  var b = sanitizeBrand(brandLive);
+  return brandIsEmpty(b) ? null : b;
+}
+function brandUpdateOverlay() {
+  var img = document.getElementById('brandLogoOv');
+  if (!img) return;
+  var lg = brandLive && brandLive.logo;
+  if (!lg) { img.style.display = 'none'; return; }
+  var W = previewFrameW(), H = previewFrameH();
+  var r = brandLogoRect(W, H, lg, brandLive.safe || 'reels', needsWatermark());
+  if (!r) { img.style.display = 'none'; return; }
+  var k = brandImgKey(lg.data);
+  if (img._bk !== k) { img._bk = k; img.src = lg.data; }
+  img.style.left = (r.x / W * 100) + '%'; img.style.top = (r.y / H * 100) + '%';
+  img.style.width = (r.w / W * 100) + '%'; img.style.height = (r.h / H * 100) + '%';
+  img.style.opacity = lg.opacity; img.style.display = 'block';
+}
+var _bkFontKey = '';
+function brandSyncUI() {
+  var g = function(id) { return document.getElementById(id); };
+  var b = brandLive, lg = b && b.logo, has = !brandIsEmpty(b);
+  var st = g('bkState'); if (st) st.textContent = has ? ('· ' + _t('active')) : '';
+  var th = g('bkThumb'); if (th) { th.style.backgroundImage = lg ? 'url("' + lg.data + '")' : ''; if (th.classList) th.classList.toggle('has', !!lg); }
+  var rm = g('bkRmBtn'); if (rm) rm.style.display = lg ? '' : 'none';
+  var up = g('bkUpBtn'); if (up) up.textContent = lg ? _t('Replace') : _t('Upload');
+  var op = g('bkLogoOpts'); if (op) op.style.display = lg ? 'flex' : 'none';
+  if (lg) {
+    var set = function(id, v, lbl) { var e = g(id); if (e) e.value = v; var l = g(lbl); if (l) l.textContent = Math.round(v) + '%'; };
+    set('bkSize', lg.size, 'bkSizeV'); set('bkOp', lg.opacity * 100, 'bkOpV'); set('bkMargin', lg.margin, 'bkMarginV');
+    var pb = g('bkPos'); if (pb && pb.querySelectorAll) pb.querySelectorAll('button').forEach(function(x) {
+      var on = x.dataset.p === lg.pos; if (x.classList) x.classList.toggle('on', on); if (x.setAttribute) x.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+  // Farben: gesetzte Kit-Farbe bzw. die des Looks (gedimmt, solange das Kit keine vorgibt)
+  var cur = STYLES.find(function(x) { return x.id === activeId; }) || {};
+  var cols = (b && b.colors) || {};
+  [['bkText', 'bkTextDot', 'bkTextCol', cols.text, cssColorToHex(cur.tc || cur.tg, '#ffffff')],
+   ['bkHl', 'bkHlDot', 'bkHlCol', cols.highlight, cssColorToHex(cur.hlPillBg || cur.hl || cur.hlg, '#ffffff')]].forEach(function(r) {
+    var inp = g(r[0]), dot = g(r[1]), col = g(r[2]), v = r[3] || r[4];
+    if (inp) inp.value = v;
+    if (dot && dot.style && dot.style.setProperty) dot.style.setProperty('--sw', v);
+    if (col && col.classList) col.classList.toggle('bk-sw-off', !r[3]);
+  });
+  var cc = g('bkColClr'); if (cc) cc.style.display = (cols.text || cols.highlight) ? '' : 'none';
+  var sf = g('bkSafe'); if (sf) sf.value = (b && b.safe) || 'reels';
+  var fs = g('bkFont');
+  if (fs && fs.appendChild) {
+    var key = Object.keys(_userFonts).join('|');
+    if (_bkFontKey !== key || !fs.children || fs.children.length < 2) { // Liste einmal aus den Schriftgruppen aufbauen (+ eigene Schriften)
+      _bkFontKey = key; fs.innerHTML = '';
+      var o0 = document.createElement('option'); o0.value = ''; o0.textContent = _t('From the look'); fs.appendChild(o0);
+      CAP_FONT_GROUPS.forEach(function(gr) {
+        var og = document.createElement('optgroup'); og.label = gr[0];
+        gr[1].forEach(function(f) { var o = document.createElement('option'); o.textContent = o.value = f.split('|')[0]; og.appendChild(o); });
+        fs.appendChild(og);
+      });
+      Object.keys(_userFonts).forEach(function(f) { var o = document.createElement('option'); o.textContent = o.value = f; fs.appendChild(o); });
+    }
+    fs.value = (b && b.font) || '';
+  }
+  if (b && b.logoLocal && !lg) brandMsg(_t('This kit’s logo is stored on another device only — upload it again here.'), true);
+  else if (_csEditingTpl && lg && _tplCloudStripIds.indexOf(_csEditingTpl) >= 0) brandMsg(_t('This logo is too large to sync to your account — it stays on this device only.'), true);
+}
 function normalizeTemplate(t) {
   if (!t || typeof t !== 'object' || !t.id) return null;
   var tid = String(t.id).replace(/[^\w-]/g, '').slice(0, 60);
@@ -8359,14 +8703,21 @@ function normalizeTemplate(t) {
     var tf = normalizeExportFormat({ aspect: lay.aspect !== undefined ? lay.aspect : lay.fmt, fill: lay.fill, pan: lay.pan });
     layOut.aspect = tf.aspect; layOut.fill = tf.fill; layOut.pan = tf.pan;
   }
-  return { id: tid, name: String(t.name || 'Template').slice(0, 60), style: st, layout: layOut,
+  var out = { id: tid, name: String(t.name || 'Template').slice(0, 60), style: st, layout: layOut,
            createdAt: +t.createdAt || ts0, updatedAt: ts0 };
+  var br = sanitizeBrand(t.brand); // Brand-Kit (C5): optional, nur Bekanntes übernehmen
+  if (br) out.brand = br;
+  return out;
 }
 function liveTemplates() { return userTemplates.filter(function(t){ return !t.deleted; }); }
 function styleFromTemplate(t) {
   var st = cloneStyle(t.style);
   st.id = t.id; st.name = t.name; st.badge = '⭐';
   st._tpl = t.layout || {}; st._isTpl = true;
+  if (t.brand) { // Brand-Kit: Farben/Schrift über den Look; das Kit selbst nicht aufzählbar (keine Logo-Daten in JSON.stringify(style))
+    applyBrandToStyle(st, t.brand);
+    Object.defineProperty(st, '_brand', { value: JSON.parse(JSON.stringify(t.brand)), enumerable: false, configurable: true, writable: true });
+  }
   return st;
 }
 function rebuildTemplateStyles() {
@@ -8387,7 +8738,8 @@ function persistTemplates(skipCloud) {
     if (Array.isArray(cur) && cur.length) userTemplates = mergeTemplates(userTemplates, cur);
   } catch (e) {}
   pruneTemplates();
-  try { localStorage.setItem(TPL_KEY, JSON.stringify(userTemplates)); } catch (e) {}
+  try { localStorage.setItem(TPL_KEY, JSON.stringify(userTemplates)); }
+  catch (e) { brandQuotaFallback(); }
   if (!skipCloud) scheduleTemplateCloudPush();
 }
 // storage-Event (anderer Tab hat die Templates geändert): Stand mergen statt überschreiben, Picker neu aufbauen.
@@ -8427,9 +8779,15 @@ function pruneTemplates() {
 // Union nach id, neueres updatedAt gewinnt (gilt auch für Grabsteine)
 function mergeTemplates(a, b) {
   var map = {};
+  var logos = {}; // Kit-Logos, die nur auf einem Gerät liegen (Cloud-Zeile ohne Bild) dürfen nie durch die Cloud-Version verloren gehen
   (a || []).concat(b || []).map(normalizeTemplate).filter(Boolean).forEach(function(t) {
+    if (t.brand && t.brand.logo) logos[t.id] = t.brand.logo;
     var cur = map[t.id];
     if (!cur || (t.updatedAt || 0) > (cur.updatedAt || 0)) map[t.id] = t;
+  });
+  Object.keys(map).forEach(function(k) {
+    var w = map[k];
+    if (w.brand && w.brand.logoLocal && !w.brand.logo && logos[k]) { w.brand.logo = logos[k]; delete w.brand.logoLocal; }
   });
   return Object.keys(map).map(function(k){ return map[k]; })
     .sort(function(x, y){ return (x.createdAt || 0) - (y.createdAt || 0); });
@@ -8466,6 +8824,15 @@ function setTplStatus(msg, warn) {
 function tplHookChecked() { var a = csEl('tplHook'), b = csEl('tplHookTop'); return !!((a && a.checked) || (b && b.checked)); }
 function setTplHookChk(v) { ['tplHook', 'tplHookTop'].forEach(function(id){ var e = csEl(id); if (e) e.checked = !!v; }); }
 function syncTplHookChk(el) { setTplHookChk(el && el.checked); }
+function tplHasBrand(id) { var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; }); return !!(t && t.brand); }
+function removeTemplateBrand(id) {
+  var t = userTemplates.find(function(x){ return x.id === id && !x.deleted; });
+  if (!t || !t.brand) return;
+  delete t.brand; t.updatedAt = Date.now();
+  persistTemplates(); rebuildTemplateStyles(); buildPicker();
+  if (activeId === id) selectStyle(id);
+  capToast(_t('Brand kit removed from “{0}”', t.name));
+}
 function tplHasHook(t) { return !!(t && t.layout && t.layout.hook && t.layout.hook.on === true); }
 function saveTemplate() {
   flushCustomStyle(); // eine gerade gezogene, noch gedrosselte Regler-Änderung gehört mit ins Template
@@ -8487,13 +8854,15 @@ function saveTemplate() {
     target = same; name = same.name; // Überschreiben behält den bestehenden Namen (nur Groß-/Kleinschreibung getippt)
   }
   var src = STYLES.find(function(x){ return x.id === activeId; }) || STYLES[0];
-  var st = sanitizeStyle(cloneStyle(src));
+  var br = brandForSave(); // Brand-Kit (C5) — null = Vorlage ohne Kit
+  var st = applyBrandToStyle(sanitizeStyle(cloneStyle(src)), br);
   var now = Date.now(), t;
   // Hook-Titel gehört nur dann ins Template, wenn der Nutzer das Häkchen «Include hook title» ausdrücklich setzt (Standard aus):
   // Dauer reist immer mit (Stil leitet sich vom Look ab), «an» nur mit Häkchen.
   var lay = currentLayout(); lay.hook = { on: tplHookChecked(), dur: hookDur };
   if (target) { t = target; t.name = name; t.style = st; t.layout = lay; t.updatedAt = now; }
   else { t = { id: newTplId(), name: name, style: st, layout: lay, createdAt: now, updatedAt: now }; userTemplates.push(t); }
+  if (br) t.brand = br; else delete t.brand;
   // Der ungespeicherte Custom-Entwurf IST jetzt das Template → Kachel entfernen, sonst stehen zwei gleiche
   // Kacheln nebeneinander und man weiß nicht, welche gespeichert ist.
   if (activeId === 'custom') {
@@ -8530,7 +8899,7 @@ function syncTplSwitch() {
   var bid = brandTplId(), cur = STYLES.find(function(x){ return x.id === activeId; });
   var html = '';
   if (!cur || !cur._isTpl) html += '<option value="" disabled selected>' + _t('No template · {0}', escHtml(cur ? (cur.id === 'custom' ? 'Custom' : cur.name) : '')) + '</option>';
-  tpls.forEach(function(t) { html += '<option value="' + escHtml(t.id) + '"' + (t.id === activeId ? ' selected' : '') + '>' + (t.id === bid ? '★ ' : '') + escHtml(t.name) + '</option>'; });
+  tpls.forEach(function(t) { html += '<option value="' + escHtml(t.id) + '"' + (t.id === activeId ? ' selected' : '') + '>' + (t.id === bid ? '★ ' : '') + (tplHasBrand(t.id) ? '◈ ' : '') + escHtml(t.name) + '</option>'; });
   sel.innerHTML = html;
   if (cur && cur._isTpl) sel.value = cur.id;
 }
@@ -8584,6 +8953,7 @@ function duplicateTemplate(id) {
   var now = Date.now();
   var c = { id: newTplId(), name: _t('{0} copy', t.name).slice(0, 60), style: cloneStyle(t.style),
             layout: JSON.parse(JSON.stringify(t.layout || {})), createdAt: now, updatedAt: now };
+  if (t.brand) c.brand = JSON.parse(JSON.stringify(t.brand));
   userTemplates.push(c);
   persistTemplates(); rebuildTemplateStyles(); buildPicker();
   capToast(_t('✓ Duplicated as “{0}”', c.name));
@@ -8675,6 +9045,12 @@ function openTplMenu(id, btn) {
     m.appendChild(info);
     items.splice(1, 0, [_t('Remove hook title'), removeTemplateHook]);
   }
+  if (tplNow && tplNow.brand) { // Kit sichtbar + abschaltbar (ohne das Template zu löschen)
+    var kinfo = document.createElement('div');
+    kinfo.className = 'tpl-menu-info'; kinfo.textContent = _t('◈ Brand kit') + (tplNow.brand.logo ? ' · ' + _t('Logo') : '') + (tplNow.brand.safe && tplNow.brand.safe !== 'reels' ? ' · ' + tplNow.brand.safe : '');
+    m.appendChild(kinfo);
+    items.splice(1, 0, [_t('Remove brand kit'), removeTemplateBrand]);
+  }
   items.forEach(function(it) {
     var b = document.createElement('button');
     b.type = 'button'; b.textContent = it[0];
@@ -8754,7 +9130,7 @@ function fontFormatOf(u8) {
 // Namen aller Schriften, die ein Template nutzt (Text, aktives Wort, Betonung)
 function templateFontNames(t) {
   var st = (t && t.style) || {}, out = [];
-  [st.fl, st.font, st.hlFont, st.emFont].forEach(function(f) {
+  [st.fl, st.font, st.hlFont, st.emFont, t && t.brand && t.brand.font].forEach(function(f) {
     var n = cleanFontName(f); if (n && out.indexOf(n) < 0) out.push(n);
   });
   return out;
@@ -8834,6 +9210,7 @@ function importTemplatesFromText(text) {
   arr.forEach(function(raw) {
     var t = normalizeTemplate(raw);
     if (!t || t.deleted) { res.errors++; return; }
+    if (raw && raw.brand && raw.brand.logo && !(t.brand && t.brand.logo)) res.logosDropped = (res.logosDropped || 0) + 1; // Logo abgelehnt (Format/Grösse)
     var cur = userTemplates.find(function(x){ return x.id === t.id; });
     if (cur && cur.deleted) t.updatedAt = Math.max(now, (cur.updatedAt || 0) + 1);
     else if (cur && (cur.updatedAt || 0) >= (t.updatedAt || 0)) { res.skipped++; return; }
@@ -8851,6 +9228,7 @@ function importTemplateMessage(r) {
   var n = r.imported, parts = [_tn(n, 'Imported 1 template', 'Imported {0} templates', n)];
   if (r.skipped) parts.push(_t('{0} skipped (already up to date)', r.skipped));
   if (r.errors) parts.push(_t('{0} failed', r.errors));
+  if (r.logosDropped) parts.push(_tn(r.logosDropped, '1 logo skipped (not PNG/JPEG/WebP or too large)', '{0} logos skipped (not PNG/JPEG/WebP or too large)', r.logosDropped));
   return parts.join(' · ');
 }
 function importTemplates(input) {
@@ -8875,7 +9253,37 @@ function importTemplates(input) {
 // Projekt-Dropdown wird sie ausgeblendet. Ohne Unique-Constraint auf title → immer die neueste Zeile
 // benutzen und evtl. Dubletten (zwei Tabs gleichzeitig) beim nächsten Schreiben aufräumen.
 var _tplPushTimer = null, _tplRowId = null;
-function templatesForCloud() { pruneTemplates(); return userTemplates.slice(); }
+// Zu grosse Logo-Summe (> TPL_CLOUD_MAX Zeichen): die grössten Logos bleiben nur lokal (Cloud-Zeile bekommt logoLocal statt Bild)
+function templatesForCloud() {
+  pruneTemplates();
+  var list = userTemplates.slice(), size = JSON.stringify(list).length;
+  _tplCloudStripIds = [];
+  if (size > TPL_CLOUD_MAX) {
+    list.map(function(t, i) { return { i: i, n: (t.brand && t.brand.logo) ? t.brand.logo.data.length : 0 }; })
+      .filter(function(x) { return x.n > 0; }).sort(function(x, y) { return y.n - x.n; })
+      .forEach(function(x) {
+        if (size <= TPL_CLOUD_MAX) return;
+        var t = list[x.i], br = JSON.parse(JSON.stringify(t.brand));
+        delete br.logo; br.logoLocal = true;
+        list[x.i] = Object.assign({}, t, { brand: br });
+        _tplCloudStripIds.push(t.id); size -= x.n;
+      });
+  }
+  return list;
+}
+// Kein Platz mehr im Browser-Speicher (localStorage ~5 MB): grösste Logos aus dem Speicher nehmen, bis es passt
+function brandQuotaFallback() {
+  var dropped = [];
+  for (var n = 0; n < 60; n++) {
+    var big = null;
+    liveTemplates().forEach(function(t) { if (t.brand && t.brand.logo && (!big || t.brand.logo.data.length > big.brand.logo.data.length)) big = t; });
+    if (!big) break;
+    delete big.brand.logo; big.brand.logoLocal = true; dropped.push(big.name);
+    try { localStorage.setItem(TPL_KEY, JSON.stringify(userTemplates)); break; } catch (e) {}
+  }
+  if (dropped.length) capToast(_t('Not enough browser storage — the logo of “{0}” could not be kept.', dropped.join('”, “')));
+  return dropped.length;
+}
 function scheduleTemplateCloudPush() {
   if (!meEmail) return;
   clearTimeout(_tplPushTimer);
@@ -9284,6 +9692,8 @@ function makeStyleTile(s) {
     // (eigener Entwurf / Standard-Template) bleibt als zweite Zeile.
     var sub = s.id === 'custom' ? _t('unsaved') : (s._isTpl && s.id === brandTplId() ? _t('★ default') : '');
     if (s._isTpl && tplHasHook(userTemplates.find(function(x){ return x.id === s.id && !x.deleted; }))) sub = (sub ? sub + ' · ' : '') + _t('Hook on');
+    if (s._brand) sub = (sub ? sub + ' · ' : '') + _t('Brand kit');
+    if (s._brand && s._brand.logo) { var lgi = document.createElement('img'); lgi.className = 'stile-logo'; lgi.alt = ''; lgi.src = s._brand.logo.data; thumb.appendChild(lgi); }
     info.innerHTML = '<div class="stile-name">' + escHtml(s.id === 'custom' ? 'Custom' : s.name) + badge + '</div>' + (sub ? '<div class="stile-font">' + escHtml(sub) + '</div>' : '');
     tile.appendChild(info);
     if (s._isTpl) {
@@ -9431,7 +9841,32 @@ function clampCapVertical() {
 // SAFE ZONE (Instagram-Reels-Standard, 1080x1920-Referenz)
 // oben: 220px Suchleiste/Header, rechts: 135px Icon-Leiste, unten: 450px Profil/Caption/Musik
 // ═══════════════════════════════════════
-var SAFE_ZONE = { top: 11.46, right: 12.5, bottom: 23.44, left: 0 }; // % von Vorschau-Breite/-Höhe
+var SAFE_ZONE = { top: 11.46, right: 12.5, bottom: 23.44, left: 0 }; // % von Vorschau-Breite/-Höhe (= Preset «reels», der Standard)
+// Safe-Zone-Presets je Plattform (C5, Brand-Kit): Anteile des 1080×1920-Bezugsrahmens, die die App-Oberfläche überdeckt.
+//  reels  = bisherige Werte (oben 220 px Leiste, rechts 135 px Icon-Spalte, unten 450 px Profil/Beschreibung).
+//  tiktok = Richtwerte der öffentlichen TikTok-Anzeigenvorgaben: oben ≈ 130 px (Suche/Tabs), unten ≈ 484 px (Konto, Beschreibung,
+//           Musikzeile), rechts ≈ 140 px (Icon-Spalte), links ≈ 60 px → 6,77 / 12,96 / 25,21 / 5,56 %.
+//  shorts = Richtwerte der YouTube-Shorts-Oberfläche: oben ≈ 110 px, unten ≈ 380 px (Kanal, Titel, Abo), rechts ≈ 120 px → 5,73 / 11,11 / 19,79 %.
+//  off    = keine Oberfläche berücksichtigt (nur der Bildrand).
+// Die Oberflächen ändern sich laufend — es sind Näherungen, die Zone ist eine Hilfe, keine Garantie.
+var SAFE_ZONE_PRESETS = {
+  reels:  { top: 11.46, right: 12.5,  bottom: 23.44, left: 0 },
+  tiktok: { top: 6.77,  right: 12.96, bottom: 25.21, left: 5.56 },
+  shorts: { top: 5.73,  right: 11.11, bottom: 19.79, left: 0 },
+  off:    { top: 0,     right: 0,     bottom: 0,     left: 0 }
+};
+var _safeKey = 'reels';
+// Preset setzen (die Konstante SAFE_ZONE wird an Ort und Stelle geändert, alle Leser sehen es sofort). Gibt true zurück, wenn sich etwas ändert.
+function safePresetSet(key) {
+  key = Object.prototype.hasOwnProperty.call(SAFE_ZONE_PRESETS, key) ? key : 'reels';
+  if (_safeKey === key) return false;
+  _safeKey = key;
+  var p = SAFE_ZONE_PRESETS[key];
+  ['top', 'right', 'bottom', 'left'].forEach(function(k) { SAFE_ZONE[k] = p[k]; });
+  _lastKey = null;
+  try { applyPos(); updateOverlay(); applySafeZone(); } catch (e) {}
+  return true;
+}
 function toggleSafeZone() {
   showSafeZone = !showSafeZone;
   szUserChoice = showSafeZone; try { localStorage.setItem(SZ_KEY, showSafeZone ? '1' : '0'); } catch (e) {} // Nutzerwahl merken (überstimmt den 9:16-Standard)
@@ -11736,6 +12171,7 @@ function layoutPreviewFrame(setFont) {
   }
   frame.style.width  = w + 'px';
   frame.style.height = h + 'px';
+  brandUpdateOverlay(); // Logo-Vorschau folgt dem Rahmen (Seitenverhältnis)
   if (setFont) {
     fontSize = Math.round(w * 0.08 * 100) / 100; // R3: reines Verhältnis zur Rahmenbreite, KEIN Pixel-Minimum (sonst 90-px-Pane: 10 px = 11 % statt 8 %, Export-Schrift +40 %)
     var szSliderEl = document.getElementById('szSlider');
@@ -12959,6 +13395,7 @@ async function exportFastWebCodecs(file, o) {
         });
         drawCaptionsOnCtx(ctx, t, o.style, W, H, false, cuts);
         drawHookTitle(ctx, t, o.style, W, H, cuts);
+        drawBrandLogo(ctx, W, H, o.brand, o.wmOn); // Brand-Kit-Logo (gleiche Rechteck-Funktion wie die Vorschau)
         drawWatermark(ctx, W, H, o.wmOn);
         for (var pi = 0; pi < plan.length; pi++) {
           var outUs = cfrFrameTimeUs(plan[pi], fps);
@@ -13104,6 +13541,7 @@ async function tryFastExport(vid, tok) {
       W: geoF.W, H: geoF.H, srcW: vid.videoWidth, srcH: vid.videoHeight, mode: geoF.mode, pan: geoF.pan,
       style: STYLES.find(function(x){ return x.id === activeId; }),
       wmOn: wmF, // Anmeldestatus JETZT — gilt für das ganze Video (wie im Echtzeit-Pfad)
+      brand: brandSnapshot(), // Brand-Kit (Logo + Safe-Zone) beim Start festgehalten
       cutRegions: cutRegions,
       srcBps: estimateSourceBitrate(currentFile.size, vid.duration), // Fallback, falls mp4box keine Spur-Bitrate liefert
       isCancelled: function() { return !!(tok && tok.cancelled); },
@@ -13556,7 +13994,7 @@ function exportSignature() {
   try {
     var p = projectPayload();
     ['title', 'fontRel', 'cover', 'post', 'speech', 'fmtKeep'].forEach(function(k) { delete p[k]; }); // fmtKeep = nur UI-Zustand des Format-Hinweises
-    p.res = exportRes; p.fmt = exportFormatState(); p.autoCut = !!autoCutSilence;
+    p.res = exportRes; p.fmt = exportFormatState(); p.autoCut = !!autoCutSilence; p.brand = brandSig();
     return JSON.stringify(p);
   } catch (e) { return null; }
 }
@@ -13640,6 +14078,7 @@ async function exportVideoWithCaptions() {
   await ensureStyleFaces(caseStyle(STYLES.find(function(x){ return x.id === activeId; }))); // Betonungs-/Highlight-Schnitte
   await document.fonts.ready; // Fonts müssen geladen sein, sonst rendert der Canvas Fallback-Schrift
   await capHyphReady(capHyphLang(), 4000); // Trennmuster wie in der Vorschau (sonst Fallback-Trennung im Video)
+  await brandLogoReady(brandLive); // Brand-Kit-Logo dekodieren, bevor die (synchrone) Zeichenschleife läuft
   if (tok.cancelled) { exportAborted(tok); return; }
 
   // Schneller Weg (WebCodecs, Sekunden statt Echtzeit). Bei jedem Problem → false → Echtzeit-Pfad unten.
@@ -13739,6 +14178,7 @@ async function exportVideoWithCaptions() {
   // weil sie an vid.currentTime/vid.ended hängt und ein pausiertes Video nie das Ende erreicht.
   isExporting = true;
   var wmOn = needsWatermark(); // Anmeldestatus JETZT (nicht beim Video-Laden) — gilt für das ganze Video
+  var brandX = brandSnapshot(); // Brand-Kit beim Start festgehalten (Logo-Bild ist oben schon dekodiert)
   var vidCtrlsEl = document.getElementById('vidCtrls');
   if (vidCtrlsEl) vidCtrlsEl.classList.add('exporting');
 
@@ -13821,6 +14261,7 @@ async function exportVideoWithCaptions() {
     });
     drawCaptionsOnCtx(ctx, t, s, W, H, false, cutRegions);
     drawHookTitle(ctx, t, s, W, H, cutRegions);
+    drawBrandLogo(ctx, W, H, brandX, wmOn);
     drawWatermark(ctx, W, H, wmOn); // nur anonym (beim Export-Start festgelegt)
     requestAnimationFrame(drawLoop);
   }
@@ -14547,6 +14988,7 @@ async function exportPNG() {
   var s   = STYLES.find(function(x){ return x.id === activeId; });
   var vid = document.getElementById('mainVid');
   await ensureStyleFaces(caseStyle(s));
+  var brandP = brandSnapshot(); await brandLogoReady(brandP);
   document.fonts.ready.then(function() {
     var W = 1080, H = 1920;
     var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
@@ -14556,6 +14998,7 @@ async function exportPNG() {
       drawZoomedVideo(ctx, W, H, vid.currentTime || 0, function() { ctx.drawImage(vid, (W-vw*sc)/2, (H-vh*sc)/2, vw*sc, vh*sc); });
     } else { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0,0,W,H); }
     drawCaptionsOnCtx(ctx, vidReady ? vid.currentTime : 0, s, W, H, true);
+    drawBrandLogo(ctx, W, H, brandP, wmPng);
     drawWatermark(ctx, W, H, wmPng);
     var a = document.createElement('a');
     a.download = 'gluephs-' + s.id + '.png';
@@ -15674,7 +16117,7 @@ function restoreLook(L) {
   if (customChanged && L.cs && !replacePickerTile(L.cs)) buildPicker();
   document.querySelectorAll('.stile').forEach(function(t){ t.classList.toggle('on', t.dataset.id === activeId); });
   var cur = STYLES.find(function(x){ return x.id === activeId; });
-  if (cur) { seedCustomFields(cur); _csBase = L.base ? L.base : _csBase; _csDirty = L.dirty || {}; syncCsUi(); }
+  if (cur) { seedCustomFields(cur); _csBase = L.base ? L.base : _csBase; _csDirty = L.dirty || {}; syncCsUi(); if (cur.id !== 'custom') brandSetLive(cur._brand || null); }
   if ((L.editing || null) !== (_csEditingTpl || null)) setTplEditing(L.editing || null);
   // Layout/Größe/Position
   capPos = L.pos; capVOff = L.voff; capHOff = L.hoff; capFree = !!L.free;

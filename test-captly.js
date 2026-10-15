@@ -161,6 +161,7 @@ openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,ex
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 resetGrpBuf:function(){_grpBuf=null;},localEmojis:localEmojis,localEmoLookup:localEmoLookup,LOCAL_EMO:LOCAL_EMO,drawTextWithPlan:drawTextWithPlan,capShK:capShK,
 capOutK:capOutK,capScaleShadowStr:capScaleShadowStr,CAP_SH_REF:CAP_SH_REF,
+brandHex:brandHex,sanitizeBrand:sanitizeBrand,applyBrandToStyle:applyBrandToStyle,brandLogoRect:brandLogoRect,brandWmRect:brandWmRect,brandLogoOk:brandLogoOk,SAFE_ZONE_PRESETS:SAFE_ZONE_PRESETS,SAFE_ZONE:SAFE_ZONE,safePresetSet:safePresetSet,getSafeKey:function(){return _safeKey;},brandSetLive:brandSetLive,getBrandLive:function(){return brandLive;},brandForSave:brandForSave,brandSet:brandSet,brandColor:brandColor,brandLogoPicked:brandLogoPicked,brandEncodeLogo:brandEncodeLogo,templatesForCloud:templatesForCloud,setUserTemplates:function(v){userTemplates=v;},rebuildTemplateStyles:rebuildTemplateStyles,drawBrandLogo:drawBrandLogo,tplHasBrand:tplHasBrand,removeTemplateBrand:removeTemplateBrand,brandSyncUI:brandSyncUI,seedActiveStyle:seedActiveStyle,drawWatermark:drawWatermark,TPL_CLOUD_MAX:TPL_CLOUD_MAX,getBrandImgs:function(){return _brandImgs;},brandImgKey:brandImgKey,brandClearColors:brandClearColors,brandRemoveLogo:brandRemoveLogo,
 hookVariants:hookVariants,hookVariantList:hookVariantList,hookNextVariant:hookNextVariant,hookDupOfCaptions:hookDupOfCaptions,EMO_REL_SIDE:EMO_REL_SIDE,EMO_LOCAL_SEC:EMO_LOCAL_SEC,EMO_LOCAL_GAP:EMO_LOCAL_GAP,EMO_LOCAL_SAME:EMO_LOCAL_SAME,capToastAction:capToastAction,
 capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR};`;
 const T = new Function(script + tail)();
@@ -6488,6 +6489,258 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     frameEl.style.width = prevW; frameEl.style.height = prevH; T.setFontSizeState(prevFs);
     T.setActiveId(prevId); T.setWpbState(prevWpb); T.setMaxCharsState(prevMc); T.setLines({ dataset: { lines: String(prevLines) }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
+  }
+
+  // ═══════════════ C5 Brand-Kit: Template-Erweiterung (Logo, Farben, Schrift, Safe-Zone-Vorgabe) ═══════════════
+  {
+    const PNG1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const mkLogo = (o) => Object.assign({ data: PNG1, w: 512, h: 256, pos: 'tl', size: 20, opacity: 0.9, margin: 4 }, o || {});
+    const store = {};
+    const prevLS = global.localStorage;
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    const E = id => document.getElementById(id);
+    const near = (a, b, e) => Math.abs(a - b) <= e;
+    T.setUserTemplates([]); T.rebuildTemplateStyles(); T.brandSetLive(null);
+
+    // 1) Sanitizing: Farben nur #rgb/#rrggbb, Logo nur echte PNG/JPEG/WebP-Data-URLs ≤ Limit, kein SVG/JS
+    ok(T.brandHex('#ABC') === '#aabbcc' && T.brandHex(' #112233 ') === '#112233', 'C5 brandHex: #rgb/#rrggbb, klein geschrieben');
+    ok(['red', '#12', '#12345', '#gggggg', 'rgb(1,2,3)', 'red;background:url(//x)', '#fff;x', '', null, undefined, 5].every(v => T.brandHex(v) === ''), 'C5 brandHex: böse/ungültige Farben abgelehnt');
+    const evil = T.sanitizeBrand({ colors: { text: 'red;background:url(//x)', highlight: '#FA0' }, font: "Inter'\"><img src=x onerror=alert(1)>", safe: 'evil', onload: 'x', __proto__: { polluted: 1 },
+      logo: { data: 'data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+', w: 10, h: 10 } });
+    ok(evil && evil.colors && evil.colors.text === undefined && evil.colors.highlight === '#ffaa00', 'C5 sanitize: böse Textfarbe fällt weg, gültige Akzentfarbe bleibt');
+    ok(!evil.logo && !evil.safe && evil.onload === undefined && !/[<>"']/.test(evil.font || ''), 'C5 sanitize: SVG-Logo, unbekannte Safe-Zone und Fremdfelder entfernt, Schrift bereinigt');
+    ok(({}).polluted === undefined, 'C5 sanitize: kein Prototype-Pollution');
+    const badLogos = ['data:image/svg+xml;base64,' + 'PHN2Zz4='.repeat(5), 'javascript:alert(1)', 'data:text/html;base64,PGgxPg==PGgxPg==', 'data:image/png;base64,' + Buffer.from('<svg onload=alert(1)></svg>').toString('base64'),
+      'data:image/png;base64,' + 'iVBORw0KGgo' + 'A'.repeat(400001), 'data:image/png;base64,iVBORw0KGgo!!!!!!!!!!!', 'data:image/gif;base64,R0lGODlhAQABAAAAACw=R0lGODlhAQABAAAAACw=', 'https://x.test/logo.png', 5, null, {}];
+    ok(badLogos.every(d => T.sanitizeBrand({ logo: mkLogo({ data: d }) }) === null), 'C5 sanitize: SVG / javascript: / text/html / falsche Signatur / zu gross / fremder Typ → kein Logo');
+    ok(T.brandLogoOk(PNG1) && T.brandLogoOk('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ') && T.brandLogoOk('data:image/webp;base64,UklGRhoAAABXRUJQVlA4'), 'C5 brandLogoOk: PNG/JPEG/WebP mit passender Signatur erlaubt');
+    ok(!T.brandLogoOk('data:image/png;base64,/9j/4AAQSkZJRgABAQ'), 'C5 brandLogoOk: JPEG-Bytes als PNG getarnt abgelehnt');
+    const lim = T.sanitizeBrand({ logo: mkLogo({ pos: 'zz', size: 99, opacity: 0, margin: 50 }) }).logo;
+    ok(lim.pos === 'tl' && lim.size === 30 && lim.opacity === 0.2 && lim.margin === 10, 'C5 sanitize: Position/Grösse 5–30/Deckkraft 0,2–1/Rand werden begrenzt: ' + JSON.stringify([lim.pos, lim.size, lim.opacity, lim.margin]));
+    ok(T.sanitizeBrand({ logo: mkLogo({ size: 1 }) }).logo.size === 5 && T.sanitizeBrand({ logo: mkLogo({ opacity: 7 }) }).logo.opacity === 1, 'C5 sanitize: Grenzen unten/oben');
+    ok(T.sanitizeBrand({ logo: mkLogo({ w: 0 }) }) === null && T.sanitizeBrand({ logo: mkLogo({ h: 99999 }) }) === null && T.sanitizeBrand({ logo: mkLogo({ w: 'x' }) }) === null, 'C5 sanitize: ungültige Logo-Masse → Logo verworfen');
+    ok(T.sanitizeBrand(null) === null && T.sanitizeBrand([1]) === null && T.sanitizeBrand('x') === null && T.sanitizeBrand({}) === null, 'C5 sanitize: kein Objekt / leer → null');
+    ok(T.sanitizeBrand({ safe: 'tiktok' }).safe === 'tiktok' && T.sanitizeBrand({ logoLocal: true }).logoLocal === true && T.sanitizeBrand({ logo: mkLogo(), logoLocal: true }).logoLocal === undefined, 'C5 sanitize: Safe-Zone, logoLocal (nur ohne Bild)');
+    // zu grosses Logo (> 300 KB Binär = 400 000 Base64-Zeichen)
+    const BIG = 'data:image/png;base64,iVBORw0KGgo' + 'A'.repeat(399989);
+    ok(T.brandLogoOk(BIG) && !T.brandLogoOk(BIG + 'AAAAAAAAAAAA'), 'C5 Logo-Limit: 400 000 Base64-Zeichen (≈ 300 KB) erlaubt, darüber nicht');
+
+    // 2) Abwärtskompatibilität: Template ohne `brand` bleibt unverändert gültig
+    {
+      const old = { id: 'tpl_1700000000001', name: 'Alt', style: { fl: 'Inter', tc: '#ffffff', hl: '#ff0000' }, layout: { pos: 'top', size: 30 }, createdAt: 1, updatedAt: 2 };
+      const n = T.normalizeTemplate(JSON.parse(JSON.stringify(old)));
+      ok(n && n.brand === undefined && !('brand' in n) && n.style.hl === '#ff0000' && n.layout.pos === 'top', 'C5 alt: Template ohne brand bleibt ohne brand');
+      T.setUserTemplates([n]); T.rebuildTemplateStyles();
+      const st = T.STYLES.find(x => x.id === n.id);
+      ok(st && st._brand === undefined && st.hl === '#ff0000' && st.tc === '#ffffff', 'C5 alt: Look unverändert (keine Kit-Farben)');
+      T.selectStyle(n.id);
+      ok(T.getBrandLive() === null && T.getSafeKey() === 'reels' && T.SAFE_ZONE.bottom === 23.44, 'C5 alt: kein Kit, Safe-Zone bleibt Reels');
+      ok(!T.tplHasBrand(n.id), 'C5 alt: tplHasBrand false');
+      T.setUserTemplates([]); T.rebuildTemplateStyles();
+    }
+
+    // 3) Farb-/Schrift-Override beim Anwenden (inkl. Verläufe, Pill, Glow)
+    {
+      const kit = { colors: { text: '#112233', highlight: '#ff8800' }, font: 'Anton' };
+      const a = T.applyBrandToStyle({ tc: '#fff', hl: '#facc15', hls: '0 0 14px #facc15, 0 2px 4px #000', fl: 'Inter', font: "'Inter'", hlFont: "'Inter'" }, kit);
+      ok(a.tc === '#112233' && a.hl === '#ff8800' && /0 0 14px #ff8800/.test(a.hls) && /0 2px 4px #000/.test(a.hls) && a.fl === 'Anton' && a.font === "'Anton'" && a.hlFont === undefined, 'C5 Override: Textfarbe, Akzent (inkl. Glow), Schrift');
+      const g = T.applyBrandToStyle({ tg: 'linear-gradient(90deg,#f00,#00f)', tc: '#fff', hlg: 'linear-gradient(#f00,#0f0)', hlCycle: ['#f00', '#0f0'], hl: '#f00' }, kit);
+      ok(g.tg === undefined && g.tc === '#112233' && g.hlg === undefined && g.hlCycle === undefined && g.hl === '#ff8800', 'C5 Override: Verläufe/Farbwechsel werden einfarbig durch die Kit-Farbe ersetzt');
+      const pl = T.applyBrandToStyle({ hlPillBg: '#22c55e', hlc: '#06240f', hls: '0 0 10px #22c55e', hl: '#fff' }, { colors: { highlight: '#fde047' } });
+      ok(pl.hlPillBg === '#fde047' && pl.hlc === '#111' && pl.hls === '0 0 10px #fde047', 'C5 Override: Pill-Looks färben die Pill, Schrift darauf kontrastreich');
+      const only = T.applyBrandToStyle({ tc: '#fff', hl: '#f00' }, { font: 'Oswald' });
+      ok(only.tc === '#fff' && only.hl === '#f00' && only.fl === 'Oswald', 'C5 Override: nur Schrift gesetzt → Farben bleiben');
+      ok(T.applyBrandToStyle({ tc: '#abc' }, null).tc === '#abc', 'C5 Override: ohne Kit unverändert');
+      // Über das Template: STYLES-Eintrag trägt Kit-Farben; Kit ist nicht aufzählbar (keine Logo-Daten in JSON.stringify(style))
+      const t = T.normalizeTemplate({ id: 'tpl_kitA', name: 'Kit A', style: { fl: 'Inter', tc: '#ffffff', hl: '#facc15' }, brand: { colors: { text: '#001122', highlight: '#33aa55' }, logo: mkLogo(), safe: 'tiktok' } });
+      T.setUserTemplates([t]); T.rebuildTemplateStyles();
+      const st = T.STYLES.find(x => x.id === 'tpl_kitA');
+      ok(st.tc === '#001122' && st.hl === '#33aa55' && st._brand && st._brand.logo.w === 512 && !/iVBOR/.test(JSON.stringify(st)), 'C5 Template: Look trägt Kit-Farben; _brand nicht in JSON.stringify(style)');
+      ok(!('_brand' in T.cloneStyle(st)) && !('brand' in T.cloneStyle(st)), 'C5 cloneStyle gibt das Kit nicht an Custom/Vorlagen-Styles weiter');
+      T.setUserTemplates([]); T.rebuildTemplateStyles();
+    }
+
+    // 4) Safe-Zone-Presets: Reels = heutige Werte, Kit setzt das Preset beim Anwenden, Rückkehr zu Reels
+    {
+      const P = T.SAFE_ZONE_PRESETS;
+      ok(P.reels.top === 11.46 && P.reels.right === 12.5 && P.reels.bottom === 23.44 && P.reels.left === 0, 'C5 Safe: Preset «reels» = bisherige Werte');
+      ok(JSON.stringify(T.SAFE_ZONE) === JSON.stringify(P.reels) && T.getSafeKey() === 'reels', 'C5 Safe: Standard ist Reels');
+      ok(['reels', 'tiktok', 'shorts', 'off'].every(k => P[k] && ['top', 'right', 'bottom', 'left'].every(f => typeof P[k][f] === 'number' && P[k][f] >= 0) && P[k].top + P[k].bottom < 50 && P[k].left + P[k].right < 30), 'C5 Safe: alle Presets vollständig und plausibel');
+      ok(near(P.tiktok.top, 130 / 19.2, 0.05) && near(P.tiktok.bottom, 484 / 19.2, 0.05) && near(P.tiktok.right, 140 / 10.8, 0.05) && near(P.shorts.bottom, 380 / 19.2, 0.05), 'C5 Safe: TikTok/Shorts entsprechen den dokumentierten px-Werten (1080×1920)');
+      const baseTop = T.capTopPct(0), baseBot = T.capBottomPct(0);
+      T.brandSetLive({ safe: 'tiktok' });
+      ok(T.getSafeKey() === 'tiktok' && T.SAFE_ZONE.bottom === P.tiktok.bottom && T.SAFE_ZONE.top === P.tiktok.top && T.SAFE_ZONE.left === P.tiktok.left, 'C5 Safe: Kit setzt TikTok-Preset');
+      ok(T.capBottomPct(-40) === Math.round((P.tiktok.bottom + 1) * 100) / 100 && T.capTopPct(60) === Math.round((P.tiktok.top + 1) * 100) / 100, 'C5 Safe: Caption-Mindestabstände folgen dem Preset (Vorschau = Export nutzen dieselben Werte)');
+      T.brandSetLive({ safe: 'shorts' }); ok(T.SAFE_ZONE.bottom === P.shorts.bottom && T.getSafeKey() === 'shorts', 'C5 Safe: Shorts');
+      T.brandSetLive({ safe: 'off' }); ok(T.SAFE_ZONE.top === 0 && T.SAFE_ZONE.bottom === 0 && T.SAFE_ZONE.right === 0, 'C5 Safe: Aus');
+      T.brandSetLive(null);
+      ok(JSON.stringify(T.SAFE_ZONE) === JSON.stringify(P.reels) && T.getSafeKey() === 'reels' && T.capTopPct(0) === baseTop && T.capBottomPct(0) === baseBot, 'C5 Safe: ohne Kit zurück auf Reels (Werte wie vor dem Kit)');
+      ok(T.safePresetSet('gibts-nicht') === false && T.getSafeKey() === 'reels', 'C5 Safe: unbekanntes Preset → Reels, keine Änderung');
+    }
+
+    // 5) Logo-Rechteck: Ecke/Grösse bei 9:16 und 16:9, innerhalb der Safe-Zone, Wasserzeichen-Ausweichen, Vorschau = Export
+    {
+      const P = T.SAFE_ZONE_PRESETS, lg = mkLogo(); // 512×256, 20 % der Breite, Rand 4 %
+      const inside = (r, W, H, z) => r.x >= W * z.left / 100 - 1e-6 && r.x + r.w <= W * (1 - z.right / 100) + 1e-6 && r.y >= H * z.top / 100 - 1e-6 && r.y + r.h <= H * (1 - z.bottom / 100) + 1e-6;
+      for (const [W, H, tag] of [[1080, 1920, '9:16'], [1920, 1080, '16:9'], [1080, 1080, '1:1']]) {
+        for (const key of ['reels', 'tiktok', 'shorts', 'off']) {
+          for (const pos of ['tl', 'tr', 'bl', 'br']) {
+            const r = T.brandLogoRect(W, H, mkLogo({ pos }), key, false);
+            ok(inside(r, W, H, P[key]), 'C5 Logo ' + tag + ' ' + key + ' ' + pos + ': innerhalb der Safe-Zone ' + JSON.stringify(r));
+            ok(near(r.w, W * 0.2, 1e-6) && near(r.h, W * 0.1, 1e-6), 'C5 Logo ' + tag + ' ' + key + ' ' + pos + ': Breite 20 % der Videobreite, Seitenverhältnis 2:1');
+          }
+        }
+      }
+      const tl = T.brandLogoRect(1080, 1920, mkLogo({ pos: 'tl' }), 'reels', false);
+      ok(near(tl.x, 43.2, 1e-6) && near(tl.y, 1920 * 0.1146 + 43.2, 1e-6), 'C5 Logo 9:16 oben links: Rand 4 % ab Safe-Zone: x=' + tl.x.toFixed(1) + ' y=' + tl.y.toFixed(1));
+      const br = T.brandLogoRect(1080, 1920, mkLogo({ pos: 'br' }), 'reels', false);
+      ok(near(br.x + br.w, 1080 * 0.875 - 43.2, 1e-6) && near(br.y + br.h, 1920 * (1 - 0.2344) - 43.2, 1e-6), 'C5 Logo 9:16 unten rechts: oberhalb der Profilzeile, links von der Icon-Spalte');
+      const off = T.brandLogoRect(1080, 1920, mkLogo({ pos: 'tr' }), 'off', false);
+      ok(near(off.x + off.w, 1080 - 43.2, 1e-6) && near(off.y, 43.2, 1e-6), 'C5 Logo ohne Safe-Zone: nur Rand zum Bildrand');
+      const hi = T.brandLogoRect(1080, 1920, mkLogo({ w: 10, h: 1000, size: 30 }), 'off', false);
+      ok(hi.h <= 1920 * 0.3 + 1e-6, 'C5 Logo: sehr hohes Logo wird auf 30 % der Höhe begrenzt');
+      // Wasserzeichen: drawWatermark-Fläche (Referenz über einen Aufzeichnungs-Kontext) und Logo kollidieren nie
+      const rec = []; const ctxW = { font: '', measureText(t) { const m = /([\d.]+)px/.exec(this.font); return { width: t.length * (m ? +m[1] : 16) * 0.6 }; }, save() {}, restore() {}, fillText(t, x, y) { rec.push({ t, x, y }); }, fillRect(x, y, w, h) { rec.push({ rect: [x, y, w, h] }); } };
+      T.drawWatermark(ctxW, 1080, 1920, true);
+      const wr = rec.find(r => r.rect).rect, wm = T.brandWmRect(1080, 1920);
+      ok(wr[0] >= wm.x0 && wr[0] + wr[2] <= wm.x1 + 1 && wr[1] >= wm.y0 - 1 && wr[1] + wr[3] <= wm.y1 + 1, 'C5 Wasserzeichen-Fläche (brandWmRect) deckt das gezeichnete Gluephs-Zeichen ab: ' + wr.map(Math.round) + ' ⊂ ' + [wm.x0, wm.y0, wm.x1, wm.y1].map(Math.round));
+      for (const [W, H] of [[1080, 1920], [1920, 1080]]) {
+        for (const key of ['reels', 'off']) {
+          const r = T.brandLogoRect(W, H, mkLogo({ pos: 'br', size: 30 }), key, true), w2 = T.brandWmRect(W, H);
+          const hit = r.x < w2.x1 && r.x + r.w > w2.x0 && r.y < w2.y1 && r.y + r.h > w2.y0;
+          ok(!hit, 'C5 Logo ' + W + '×' + H + ' ' + key + ' unten rechts kollidiert nicht mit dem Gluephs-Zeichen');
+          if (key === 'reels') ok(inside(r, W, H, P.reels), 'C5 Logo ' + W + '×' + H + ' mit Zeichen bleibt in der Safe-Zone');
+        }
+      }
+      // Vorschau (270×480 px) = Export (1080×1920 px): gleiche Anteile
+      for (const wmOn of [false, true]) for (const pos of ['tl', 'tr', 'bl', 'br']) {
+        const a = T.brandLogoRect(270, 480, mkLogo({ pos }), 'tiktok', wmOn), b = T.brandLogoRect(1080, 1920, mkLogo({ pos }), 'tiktok', wmOn);
+        ok(near(a.x / 270, b.x / 1080, 0.001) && near(a.y / 480, b.y / 1920, 0.001) && near(a.w / 270, b.w / 1080, 1e-9), 'C5 Vorschau = Export (Anteile) ' + pos + (wmOn ? ' mit Zeichen' : ''));
+      }
+      // drawBrandLogo zeichnet exakt dieses Rechteck mit der Deckkraft des Kits
+      const calls = []; const ctxD = { save() {}, restore() {}, drawImage(...a) { calls.push(a); } };
+      const kit = { logo: mkLogo({ pos: 'bl', opacity: 0.6 }), safe: 'shorts' };
+      T.drawBrandLogo(ctxD, 1080, 1920, kit, false);
+      ok(calls.length === 0, 'C5 drawBrandLogo: Bild noch nicht dekodiert → nichts gezeichnet, kein Fehler');
+      T.getBrandImgs()[T.brandImgKey(kit.logo.data)] = { img: { tag: 'img' }, ok: true };
+      T.drawBrandLogo(ctxD, 1080, 1920, kit, false);
+      const rr = T.brandLogoRect(1080, 1920, kit.logo, 'shorts', false);
+      ok(calls.length === 1 && calls[0][0].tag === 'img' && near(calls[0][1], rr.x, 1e-9) && near(calls[0][2], rr.y, 1e-9) && near(calls[0][3], rr.w, 1e-9) && near(calls[0][4], rr.h, 1e-9) && ctxD.globalAlpha === 0.6, 'C5 drawBrandLogo: Rechteck + Deckkraft wie brandLogoRect');
+      T.drawBrandLogo(ctxD, 1080, 1920, null, false); T.drawBrandLogo(ctxD, 1080, 1920, { safe: 'tiktok' }, false);
+      ok(calls.length === 1, 'C5 drawBrandLogo: ohne Kit/Logo nichts gezeichnet');
+    }
+
+    // 6) Speichern → Anwenden → Export/Import-Rundreise mit Logo; Kit nur zusammen mit Template
+    {
+      T.setUserTemplates([]); T.rebuildTemplateStyles();
+      T.selectStyle('hormozi');
+      T.brandSetLive({ logo: mkLogo({ pos: 'br' }), colors: { text: '#102030', highlight: '#aa00ff' }, safe: 'shorts' });
+      E('tplName').value = 'Kunde A';
+      T.saveTemplate();
+      let a = T.getUserTemplates().find(t => t.name === 'Kunde A');
+      ok(a && a.brand && a.brand.logo.pos === 'br' && a.brand.safe === 'shorts' && a.brand.colors.highlight === '#aa00ff', 'C5 saveTemplate: Kit wird mit dem Template gespeichert');
+      ok(a.style.tc === '#102030' && a.style.hl === '#aa00ff', 'C5 saveTemplate: Kit-Farben stecken im gespeicherten Look');
+      ok(JSON.parse(store.capivo_templates).find(t => t.id === a.id).brand.logo.data === PNG1, 'C5 Speicher: Schlüssel bleibt capivo_templates, Logo liegt im Template');
+      // Anwenden: anderes Template → Kit weg + Reels; zurück → Kit, Safe-Zone Shorts
+      T.selectStyle('classic');
+      ok(T.getBrandLive() === null && T.getSafeKey() === 'reels', 'C5 Anwenden: Look ohne Kit → kein Logo, Safe-Zone Reels');
+      T.selectStyle(a.id);
+      ok(T.getBrandLive() && T.getBrandLive().logo.pos === 'br' && T.getSafeKey() === 'shorts' && T.SAFE_ZONE.bottom === T.SAFE_ZONE_PRESETS.shorts.bottom, 'C5 Anwenden: Template mit Kit → Logo + Safe-Zone Shorts');
+      // Editor öffnen / Projekt wiederherstellen setzen activeId direkt → seedActiveStyle übernimmt das Kit der Vorlage
+      T.selectStyle('classic'); T.setActiveId(a.id); T.seedActiveStyle();
+      ok(T.getBrandLive() && T.getBrandLive().logo && T.getSafeKey() === 'shorts', 'C5 Editor öffnen: Standard-Vorlage mit Kit bringt Logo + Safe-Zone mit (seedActiveStyle)');
+      T.selectStyle('classic'); T.setActiveId('classic'); T.seedActiveStyle();
+      ok(T.getBrandLive() === null && T.getSafeKey() === 'reels', 'C5 Editor öffnen: Look ohne Kit → Reels, kein Logo');
+      T.selectStyle(a.id);
+      // Kit ohne Inhalt (nur Reels) erzeugt kein Kit
+      T.selectStyle('hormozi'); T.brandSetLive({ safe: 'reels' }); E('tplName').value = 'Ohne Kit'; T.saveTemplate();
+      ok(!T.getUserTemplates().find(t => t.name === 'Ohne Kit').brand, 'C5 saveTemplate: nur «Reels» ohne sonstigen Inhalt → kein brand-Feld');
+      // Export → Import
+      const list = T.getUserTemplates().filter(t => !t.deleted);
+      const ex = T.buildTemplateExport(list, []);
+      const json = JSON.stringify(ex.data);
+      ok(JSON.parse(json).templates.find(t => t.name === 'Kunde A').brand.logo.data === PNG1, 'C5 Export: Kit inkl. Logo steckt in der Datei');
+      const before = JSON.stringify(T.getUserTemplates().find(t => t.name === 'Kunde A').brand);
+      T.setUserTemplates([]); T.rebuildTemplateStyles();
+      const res = T.importTemplatesFromText(json);
+      const b2 = T.getUserTemplates().find(t => t.name === 'Kunde A');
+      ok(res.imported === 2 && !res.logosDropped && b2 && JSON.stringify(b2.brand) === before, 'C5 Rundreise: Kit nach Export → Import identisch');
+      ok(T.STYLES.find(x => x.id === b2.id)._brand.logo.data === PNG1, 'C5 Rundreise: importierte Vorlage trägt das Logo');
+      // Import validiert: SVG/JS/zu gross → Template kommt an, Logo nicht; Meldung
+      const doc = JSON.stringify({ app: 'gluephs', kind: 'templates', v: 2, templates: [
+        { id: 'tpl_bad1', name: 'Böse 1', style: { fl: 'Inter' }, brand: { logo: mkLogo({ data: 'data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+PC9zdmc+' }), colors: { text: 'red;x' } } },
+        { id: 'tpl_bad2', name: 'Böse 2', style: { fl: 'Inter' }, brand: { logo: mkLogo({ data: BIG + 'AAAAAAAAAAAA' }), safe: 'tiktok' } }] });
+      const r2 = T.importTemplatesFromText(doc);
+      const b1 = T.getUserTemplates().find(t => t.name === 'Böse 1'), bb2 = T.getUserTemplates().find(t => t.name === 'Böse 2');
+      ok(r2.imported === 2 && r2.logosDropped === 2 && !b1.brand && bb2.brand.safe === 'tiktok' && !bb2.brand.logo, 'C5 Import: abgelehnte Logos gezählt, Template + gültige Teile bleiben: ' + JSON.stringify(r2));
+      ok(/2 logos skipped/.test(T.importTemplateMessage(r2)), 'C5 Import-Meldung nennt übersprungene Logos: ' + T.importTemplateMessage(r2));
+      // Duplizieren behält das Kit, «Kit entfernen» löscht es
+      T.duplicateTemplate(b2.id);
+      const dupl = T.getUserTemplates().find(t => t.name === 'Kunde A copy');
+      ok(dupl && dupl.brand && dupl.brand.logo.data === PNG1, 'C5 Duplizieren: Kit wird mitkopiert');
+      T.removeTemplateBrand(dupl.id);
+      ok(!T.getUserTemplates().find(t => t.id === dupl.id).brand && T.getUserTemplates().find(t => t.id === b2.id).brand, 'C5 Kit entfernen: nur bei dieser Vorlage');
+      // Eigene Schrift im Kit reist im Export mit
+      ok(T.templateFontNames && T.templateFontNames({ style: { fl: 'Inter' }, brand: { font: 'MeineSchrift' } }).indexOf('MeineSchrift') >= 0, 'C5 Export: Kit-Schrift zählt zu den mitzuliefernden Schriften');
+    }
+
+    // 7) Cloud: Logo-Summe begrenzen (Logos bleiben lokal), Merge verliert das lokale Logo nicht
+    {
+      const mk = (i, size) => ({ id: 'tpl_big' + i, name: 'Gross ' + i, style: { fl: 'Inter', tc: '#fff', hl: '#f00' }, createdAt: 10 + i, updatedAt: 10 + i,
+        brand: { logo: mkLogo({ data: 'data:image/png;base64,iVBORw0KGgo' + 'A'.repeat(size) }) } });
+      T.setUserTemplates([mk(1, 300000), mk(2, 390000), mk(3, 380000)].map(T.normalizeTemplate));
+      const all = JSON.stringify(T.getUserTemplates()).length;
+      ok(all > T.TPL_CLOUD_MAX, 'C5 Cloud-Test-Aufbau: Summe über dem Limit (' + all + ')');
+      const cl = T.templatesForCloud();
+      const size = JSON.stringify(cl).length;
+      ok(size <= T.TPL_CLOUD_MAX, 'C5 Cloud: Zeile bleibt unter dem Limit (' + size + ' ≤ ' + T.TPL_CLOUD_MAX + ')');
+      const stripped = cl.filter(t => t.brand && t.brand.logoLocal && !t.brand.logo);
+      ok(stripped.length >= 1 && stripped.some(t => t.id === 'tpl_big2') && T.getUserTemplates().every(t => t.brand.logo), 'C5 Cloud: grösstes Logo nur lokal (logoLocal), lokale Daten unverändert');
+      const remote = JSON.parse(JSON.stringify(stripped)).map(t => Object.assign(t, { updatedAt: 999 }));
+      const merged = T.mergeTemplates(T.getUserTemplates(), remote);
+      const m2 = merged.find(t => t.id === 'tpl_big2');
+      ok(m2.updatedAt === 999 && m2.brand.logo && !m2.brand.logoLocal, 'C5 Cloud: neuere Cloud-Version ohne Bild verdrängt das lokale Logo nicht');
+      const small = [T.normalizeTemplate({ id: 'tpl_s', name: 's', style: { fl: 'Inter' }, brand: { logo: mkLogo() } })];
+      T.setUserTemplates(small);
+      ok(T.templatesForCloud()[0].brand.logo && !T.templatesForCloud()[0].brand.logoLocal, 'C5 Cloud: kleine Logos werden mit synchronisiert');
+    }
+
+    // 8) Browser-Speicher voll: grösstes Logo wird fallengelassen statt alle Templates zu verlieren
+    {
+      const mk = (i, size) => T.normalizeTemplate({ id: 'tpl_q' + i, name: 'Q' + i, style: { fl: 'Inter' }, createdAt: i, updatedAt: i, brand: { logo: mkLogo({ data: 'data:image/png;base64,iVBORw0KGgo' + 'A'.repeat(size) }) } });
+      for (const k of Object.keys(store)) delete store[k];
+      T.setUserTemplates([mk(1, 200000), mk(2, 350000)]);
+      const real = global.localStorage;
+      global.localStorage = { getItem: k => real.getItem(k), removeItem: k => real.removeItem(k), setItem: (k, v) => { if (String(v).length > 420000) throw new Error('QuotaExceededError'); real.setItem(k, v); } };
+      T.persistTemplates(true);
+      const kept = JSON.parse(real.getItem('capivo_templates'));
+      ok(kept.length === 2 && kept.find(t => t.id === 'tpl_q1').brand.logo && !kept.find(t => t.id === 'tpl_q2').brand.logo && kept.find(t => t.id === 'tpl_q2').brand.logoLocal, 'C5 Speicher voll: nur das grösste Logo fällt weg, beide Templates bleiben');
+      global.localStorage = real;
+    }
+
+    // 9) Panel: Hochladen verlangt echte Bildtypen; Regler ändern das Kit
+    {
+      T.setUserTemplates([]); T.rebuildTemplateStyles(); T.selectStyle('classic'); T.brandSetLive(null);
+      const r1 = await T.brandLogoPicked({ files: [{ type: 'image/svg+xml', size: 100 }], value: 'x' });
+      ok(r1 === false && T.getBrandLive() === null && /SVG/.test(E('bkMsg').textContent), 'C5 Upload: SVG wird abgelehnt (Meldung im Panel)');
+      const r2 = await T.brandLogoPicked({ files: [{ type: 'image/png', size: 99 * 1048576 }], value: 'x' });
+      ok(r2 === false && T.getBrandLive() === null, 'C5 Upload: riesige Datei wird abgelehnt');
+      T.brandSetLive({ logo: mkLogo() });
+      T.brandSet('pos', 'br'); T.brandSet('size', '99'); T.brandSet('opacity', '50'); T.brandSet('margin', '0'); T.brandSet('pos', 'xx');
+      const l = T.getBrandLive().logo;
+      ok(l.pos === 'br' && l.size === 30 && l.opacity === 0.5 && l.margin === 1, 'C5 Panel: Ecke/Grösse/Deckkraft/Rand werden begrenzt übernommen');
+      T.brandSet('safe', 'tiktok'); ok(T.getBrandLive().safe === 'tiktok' && T.getSafeKey() === 'tiktok', 'C5 Panel: Safe-Zone-Wahl wirkt sofort');
+      T.brandSet('safe', 'quatsch'); ok(T.getBrandLive().safe === 'tiktok', 'C5 Panel: ungültige Safe-Zone ignoriert');
+      ok(E('bkRmBtn').style.display === '' && E('bkLogoOpts').style.display === 'flex' && E('bkSafe').value === 'tiktok' && E('bkSize').value === 30, 'C5 Panel: Oberfläche folgt dem Kit');
+      T.brandRemoveLogo();
+      ok(!T.getBrandLive().logo && E('bkLogoOpts').style.display === 'none' && E('bkRmBtn').style.display === 'none', 'C5 Panel: Logo entfernen blendet die Logo-Regler aus');
+      T.selectStyle('hormozi'); // anderer Look → Entwurf-Kit weg, Safe-Zone Reels
+      ok(T.getBrandLive() === null && T.getSafeKey() === 'reels', 'C5 Panel: Kit gehört zum Look — Wechsel auf einen Preset räumt es weg');
+      T.brandSetLive(null);
+    }
+    T.setUserTemplates([]); T.rebuildTemplateStyles(); T.selectStyle('classic'); T.brandSetLive(null);
+    global.localStorage = prevLS;
+    if (prevLS === undefined) delete global.localStorage;
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
