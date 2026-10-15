@@ -8991,9 +8991,10 @@ function saveTemplate() {
     var ci = STYLES.findIndex(function(x){ return x.id === 'custom'; });
     if (ci >= 0) STYLES.splice(ci, 1);
   }
-  // Brand-Kit: das erste Template wird automatisch Standard für neue Videos (einmal einrichten, immer da)
+  // Das erste Template OHNE Brand-Kit wird automatisch Standard für neue Videos (einmal einrichten, immer da) — mit Hinweis-Toast und «Not as default».
+  // Ein Template MIT Kit (Logo/Marke eines Kunden) wird nie still Standard: sonst landet das Kunden-Logo auf jedem neuen Video. Standard wird es nur per ausdrücklicher Wahl.
   var madeBrand = false;
-  if (!brandTplId() || !liveTemplates().some(function(x){ return x.id === brandTplId(); })) { setBrandTpl(t.id); madeBrand = true; }
+  if (!t.brand && (!brandTplId() || !liveTemplates().some(function(x){ return x.id === brandTplId(); }))) { setBrandTpl(t.id); madeBrand = true; }
   persistTemplates();
   rebuildTemplateStyles();
   nameEl.value = '';
@@ -9007,7 +9008,9 @@ function saveTemplate() {
   // Toast mit Option: nicht Standard → «Use for every new video» gleich im Toast anbieten (sonst nur ⋯-Menü an der Kachel)
   if (!madeBrand && brandTplId() !== t.id) {
     capToastAction(target ? _t('✓ Updated “{0}”', t.name) : _t('✓ Saved as “{0}”', t.name), _t('Use for every new video'), function() { setBrandTpl(t.id); buildPicker(); capToast(_t('★ “{0}” will be used for every new video', t.name)); });
-  } else capToast((target ? _t('✓ Updated “{0}”', t.name) : _t('✓ Saved as “{0}”', t.name)) + (madeBrand ? _t(' · ★ default for every new video') : ''));
+  } else if (madeBrand) {
+    capToastAction((target ? _t('✓ Updated “{0}”', t.name) : _t('✓ Saved as “{0}”', t.name)) + _t(' · ★ default for every new video'), _t('Not as default'), function() { setBrandTpl(''); buildPicker(); capToast(_t('“{0}” is no longer your default', t.name)); });
+  } else capToast(target ? _t('✓ Updated “{0}”', t.name) : _t('✓ Saved as “{0}”', t.name));
   scrollPickerTo(t.id, true, true);
   return t;
 }
@@ -10984,11 +10987,13 @@ function autosaveProtectSet() {
   _q.clips.forEach(function(c) { if (c.key) p[c.key] = true; });
   return p;
 }
+var _sessionSaved = {}; // Autosave-Schlüssel, die diese Seitensitzung selbst geschrieben hat
 function autosaveNow() {
   clearTimeout(_autosaveTimer); _autosaveTimer = null;
   if (!_autosaveKey || !captionBlocks.length) { setSaveInd(''); return false; }
   var data = autosaveData();
   var entry = { key: _autosaveKey, savedAt: Date.now(), data: data };
+  _sessionSaved[_autosaveKey] = true; // in DIESER Sitzung geschrieben → kein «Restored your last session» (s. restoreOrTranscribe)
   var protect = autosaveProtectSet();
   var list = autosaveTrim([entry].concat(readAutosaves().filter(function(e){ return e.key !== _autosaveKey; })), protect, AUTOSAVE_MAX);
   // Quota voll: zuerst die ältesten ungeschützten Videos opfern, dann die ältesten geschützten, zuletzt nur den aktuellen Stand
@@ -11058,12 +11063,16 @@ function restoreOrTranscribe(file, dur, snap) {
     }
   }
   if (billingOn()) loadBilling(); // Marken-Status gilt pro Video (X-Video-Key)
-  if (saved && restoreAutosave(saved)) { trNotify('restored'); return true; }
+  // «Letzte Sitzung wiederhergestellt» nur, wenn der Stand aus einer FRÜHEREN Sitzung kommt: ein Schnappschuss der Warteschlange oder
+  // (in der Warteschlange) ein Autosave, den diese Seitensitzung selbst geschrieben hat, ist der Clip von eben (Rückkehr zum Startclip).
+  var sameSession = !!snap || (!!_q.clips.length && !!_sessionSaved[_autosaveKey]);
+  if (saved && restoreAutosave(saved, { session: sameSession })) { trNotify('restored'); return true; }
   transcribeVideo(file);
   return false;
 }
-function restoreAutosave(entry) {
+function restoreAutosave(entry, opts) {
   var d = entry && entry.data;
+  var sameSession = !!(opts && opts.session);
   if (!d || !Array.isArray(d.blocks) || !d.blocks.length) return false;
   _trRun++; // evtl. laufende Transkription entwerten
   applyProjectPayload(d);
@@ -11073,11 +11082,12 @@ function restoreAutosave(entry) {
   _vocabUsed = (d.meta && typeof d.meta.vocab === 'string') ? d.meta.vocab : cleanVocab(vocabText);
   syncVocabApply();
   document.getElementById('retryWrap').style.display = 'none';
-  setTStatus('✅', _t('Restored your last session') + ' · <a href="#" onclick="retranscribeFromStatus(event)" '
-    + 'style="color:#7c3aed;font-weight:600;text-decoration:none">' + _t('Re-transcribe') + '</a>', false, false);
+  var trLink = ' · <a href="#" onclick="retranscribeFromStatus(event)" style="color:#7c3aed;font-weight:600;text-decoration:none">' + _t('Re-transcribe') + '</a>';
+  var nWords = Array.isArray(d.words) ? d.words.length : 0, lg = d.meta && d.meta.lang ? langLabel(d.meta.lang) : '';
+  setTStatus('✅', sameSession ? (lg ? lg + ' · ' : '') + _t('{0} words', nWords) + trLink : _t('Restored your last session') + trLink, false, false);
   if (setProcessing(false)) switchTab('captions'); // nichts zu transkribieren → direkt zum Text
   // Dasselbe Video nochmal hochgeladen: Wiederherstellung bleibt, aber mit Ausweg «Start fresh» (alte Texte/Schnitte/Hook-Text weg)
-  if (!_q.clips.length) capToastAction(_t('Restored your last session'), _t('Start fresh'), function() { startFreshSession(); }); // in der Warteschlange wechselt man ständig zwischen Clips: kein Hinweis
+  if (!_q.clips.length && !sameSession) capToastAction(_t('Restored your last session'), _t('Start fresh'), function() { startFreshSession(); }); // in der Warteschlange wechselt man ständig zwischen Clips: kein Hinweis
   return true;
 }
 // Dieses Video von vorn: Untertitel, Trim/Schnitte und Hook-Text zurücksetzen, neu transkribieren (die frische Transkription ersetzt die Sitzung)
@@ -14128,7 +14138,24 @@ function syncLastExportUI() {
   var ch = !!_lastExportBlob && exportChangedSinceLast();
   if (el) el.style.display = (_lastExportBlob && !isExporting && !_expTok && !ch) ? '' : 'none'; // „Download again“ nur ohne Änderung seit dem Export
   var b = document.getElementById('btnVideo'), lbl = b && b.querySelector ? b.querySelector('.exp-btn-label') : null;
-  if (lbl && !(b.classList && b.classList.contains('busy'))) lbl.textContent = ch ? _t('Export with changes') : _t('Download video');
+  if (lbl && !(b.classList && b.classList.contains('busy'))) lbl.textContent = btnVideoText();
+}
+// Beschriftung des Hauptknopfs im Export-Blatt: Einzelexport («Download video» / «Export with changes») oder — wenn «Alle exportieren»
+// auf die E-Mail-Abfrage wartet (_gateResume) — «Export all clips». Dasselbe für «Skip — …» und die Unterzeile (syncGateBatchUI).
+function btnVideoText() {
+  if (_gateResume) return _t('Export all clips');
+  return (_lastExportBlob && exportChangedSinceLast()) ? _t('Export with changes') : _t('Download video');
+}
+function syncGateBatchUI() {
+  var batch = !!_gateResume;
+  var sk = document.getElementById('gateSkip'); if (sk) sk.textContent = batch ? _t('Skip — export all') : _t('Skip — download now');
+  var b = document.getElementById('btnVideo'), lbl = b && b.querySelector ? b.querySelector('.exp-btn-label') : null;
+  if (lbl && !(b.classList && b.classList.contains('busy'))) lbl.textContent = btnVideoText();
+  if (batch) {
+    var n = _q.clips.filter(queueExportable).length, sub = document.getElementById('btnVideoSub');
+    if (sub) sub.textContent = _tn(n, '{0} clip · MP4 · no watermark', '{0} clips · MP4 · no watermark', n);
+    if (b && !(b.classList && b.classList.contains('busy'))) b.disabled = false; // der geöffnete Clip kann gerade transkribieren — der Durchgang prüft selbst
+  } else syncExpSub();
 }
 // Fortschritt direkt AM Export-Button (Handy: die Fortschrittsleiste darunter liegt oft außerhalb des
 // sichtbaren Bereichs) — Button währenddessen gesperrt. text = null → zurücksetzen.
@@ -14156,7 +14183,7 @@ function exportBtnState(text) {
     if (b.style && b.style.removeProperty) b.style.removeProperty('--p');
     b.disabled = !videoPlayable || !captionBlocks.length;
     b.removeAttribute && b.removeAttribute('aria-busy');
-    if (lbl) lbl.textContent = (_lastExportBlob && exportChangedSinceLast()) ? _t('Export with changes') : _t('Download video');
+    if (lbl) lbl.textContent = btnVideoText();
   }
 }
 // opts (nur Warteschlange «Alle exportieren»): { sink(blob, name, wmOn), onSettle(state, msg), onProgress(text) }.
@@ -14169,7 +14196,7 @@ async function exportVideoWithCaptions(opts) {
   if (isExporting || _expTok) { if (opts && opts.onSettle) opts.onSettle('error', _t('Another export is still running.')); return; } // Doppelklick/Enter während eines laufenden Exports
   if (_q.exp && !opts) { capToast(_t('Wait until the export of all clips is finished — or cancel it in the Clips list.')); return; }
   if (!opts && !passEmailGate()) return; // Beta: erst E-Mail, dann Download (ohne Wasserzeichen)
-  if (!opts && _gateResume) { var resume = _gateResume; _gateResume = null; closeExportSheet(); resume(); return; } // Warteschlange wartete auf die E-Mail → Durchgang starten
+  if (!opts && _gateResume) { var resume = _gateResume; _gateResume = null; syncGateBatchUI(); closeExportSheet(); resume(); return; } // Warteschlange wartete auf die E-Mail → Durchgang starten
   var tok = newExportToken(); // ab hier abbrechbar (auch während „Preparing“)
   tok.opts = opts || null;
   releaseLastExport(); // neuer Export beginnt → die vorige Datei freigeben (Speicher)
@@ -15470,7 +15497,7 @@ function openExportSheet() {
   if (!isExporting && !_expTok) showExportMain();
   var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
   syncSubOptsUI();
-  syncExpSub(); updateAcctUI(); flushLead(); syncPostUI(); syncExportAgain();
+  syncExpSub(); updateAcctUI(); flushLead(); syncPostUI(); syncExportAgain(); syncGateBatchUI();
   // E-Mail-Feld sofort zeigen (statt erst nach dem ersten Download-Klick) → Download ist danach EIN Klick.
   // Autofokus nur mit Maus/Trackpad — auf dem Handy würde die Tastatur das halbe Blatt verdecken.
   var g = document.getElementById('expGate'), needGate = gateNeeded();
@@ -15488,7 +15515,9 @@ function pointerFine() {
 }
 var _gateResume = null; // «Alle exportieren» wartet auf die E-Mail-Abfrage → nach dem Gate startet der Durchgang (s. exportVideoWithCaptions)
 function closeExportSheet() {
+  var wasBatch = !!_gateResume;
   _gateResume = null;
+  if (wasBatch) syncGateBatchUI();
   var sh = document.getElementById('expSheet');
   if (sh) sh.style.display = 'none';
   var tb = document.getElementById('tbExport'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'false');
@@ -16913,7 +16942,7 @@ async function queueExportOne(c, exp) {
   });
   if (res.state === 'ok' && got && exportBlobOk(got.blob)) {
     var srt = ''; try { srt = srtFile(currentSubCues()); } catch (e) {}
-    c.result = { blob: got.blob, name: got.name, srt: srt, stale: false };
+    c.result = { blob: got.blob, name: got.name, srt: srt, stale: false, tpl: queueTplInfo(c.styleId) };
     c.status = 'exported'; c.pct = 100; c.err = ''; c.errKind = '';
     try { statExport(); } catch (e2) {}
     queueRender();
@@ -16927,7 +16956,7 @@ function queueNoteSingleExport() {
   var c = queueActiveClip();
   if (!c || c.file !== currentFile || !_lastExportBlob) return;
   var srt = ''; try { srt = srtFile(currentSubCues()); } catch (e) {}
-  c.result = { blob: _lastExportBlob, name: _lastDlName, srt: srt, stale: false };
+  c.result = { blob: _lastExportBlob, name: _lastDlName, srt: srt, stale: false, tpl: queueTplInfo(activeId !== 'custom' ? activeId : c.styleId) };
   c.status = 'exported'; c.err = ''; c.errKind = '';
   queueRender();
 }
@@ -16947,18 +16976,45 @@ function queueDownloadSrt(id) {
   var c = queueClip(id);
   if (c && c.result && c.result.srt) dlText(c.result.srt, c.result.name.replace(/\.[^.]+$/, '') + '.srt');
 }
+// Template, mit dem ein Clip gerendert wurde: { key: Template-ID, label: Template-Name } — Look/«Custom»/gelöschtes Template → key ''
+function queueTplInfo(styleId) {
+  var st = styleId && STYLES.find(function(x) { return x.id === styleId; });
+  return st && st._isTpl ? { key: String(st.id), label: String(st.name || '') } : { key: '', label: '' };
+}
+// Ordnername im ZIP: dateinamen-sicher (keine \ / : * ? " < > | oder Steuerzeichen, kein führender/abschliessender Punkt/Leerraum), je Name eindeutig
+function zipFolderName(name, used) {
+  var base = String(name || '').replace(/[\\\/:*?"<>|\u0000-\u001f]+/g, '-').replace(/^[\s.\-]+/, '').replace(/[\s.]+$/, '').trim().slice(0, 80) || 'folder';
+  var cand = base, n = 1;
+  while (used[cand.toLowerCase()]) { n++; cand = base + ' (' + n + ')'; }
+  used[cand.toLowerCase()] = true;
+  return cand;
+}
+// ZIP-Einträge aus den exportierten Clips: items = [{ name, blob, srt, tpl:{key,label} }]. Haben die Clips mehr als EIN unterschiedliches
+// Template (key), liegen die Dateien in je einem Ordner pro Template (SRT daneben); Clips ohne Template im Ordner «No template».
+// Bei nur einem Template bleibt das ZIP flach. Dateinamen sind je Ordner eindeutig.
+function queueZipEntries(items, srtOn) {
+  var keys = {}, nKeys = 0;
+  items.forEach(function(it) { var k = it.tpl && it.tpl.key || ''; if (!keys[k]) { keys[k] = 1; nKeys++; } });
+  var folders = {}, fUsed = {}, used = {}, entries = [];
+  items.forEach(function(it) {
+    var k = it.tpl && it.tpl.key || '', dir = '';
+    if (nKeys > 1) {
+      if (!(k in folders)) folders[k] = zipFolderName(k ? it.tpl.label : _t('No template'), fUsed);
+      dir = folders[k] + '/';
+    }
+    var u = used[dir] || (used[dir] = {}), nm = zipUniqueName(it.name, u);
+    entries.push({ name: dir + nm, data: it.blob, size: it.blob.size });
+    if (srtOn && it.srt) {
+      var bytes = zipUtf8(it.srt);
+      entries.push({ name: dir + zipUniqueName(nm.replace(/\.[^.\/]+$/, '') + '.srt', u), data: bytes, size: bytes.length });
+    }
+  });
+  return entries;
+}
 async function queueDownloadZip() {
   var items = _q.clips.filter(function(c) { return c.result && c.result.blob; });
   if (!items.length) return;
-  var used = {}, entries = [], enc = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
-  items.forEach(function(c) {
-    var nm = zipUniqueName(c.result.name, used);
-    entries.push({ name: nm, data: c.result.blob, size: c.result.blob.size });
-    if (_q.srt && c.result.srt && enc) {
-      var bytes = enc.encode(c.result.srt);
-      entries.push({ name: zipUniqueName(nm.replace(/\.[^.\/]+$/, '') + '.srt', used), data: bytes, size: bytes.length });
-    }
-  });
+  var entries = queueZipEntries(items.map(function(c) { return { name: c.result.name, blob: c.result.blob, srt: c.result.srt, tpl: c.result.tpl }; }), _q.srt);
   var btn = document.getElementById('qZipBtn');
   if (btn) btn.disabled = true;
   try {
@@ -17090,7 +17146,7 @@ function queueStyleOptions(sel) {
   var bid = resolveStyleId(brandTplId()), tp = '', lk = '';
   STYLES.forEach(function(s) {
     if (s.id === 'custom' && sel !== 'custom') return;
-    var nm = escHtml((s.id === 'custom' ? _t('Custom (edited)') : s.name) + (s.id === bid ? ' ★' : ''));
+    var nm = escHtml((s._isTpl && tplHasBrand(s.id) ? '◈ ' : '') + (s.id === 'custom' ? _t('Custom (edited)') : s.name) + (s.id === bid ? ' ★' : '')); // ◈ = Template mit Brand-Kit (wie in der Template-Leiste)
     var o = '<option value="' + escHtml(s.id) + '"' + (s.id === sel ? ' selected' : '') + '>' + nm + '</option>';
     if (s._isTpl) tp += o; else lk += o;
   });
