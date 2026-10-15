@@ -856,6 +856,8 @@ module.exports = {
   "Pause after this clip": "Nach diesem Clip pausieren",
   "Each with its own template, one after another": "Jeder mit seinem Template, einer nach dem anderen",
   "Include SRT files": "SRT-Dateien dazulegen",
+  "{0} clip edited last time — pick the same file again to continue": "{0} Clip zuletzt bearbeitet — wähle dieselbe Datei erneut, um weiterzumachen",
+  "{0} clips edited last time — pick the same files again to continue": "{0} Clips zuletzt bearbeitet — wähle dieselben Dateien erneut, um weiterzumachen",
   "{0} clip transcribed — pick a template per clip, then export all.": "{0} Clip transkribiert — wähle pro Clip ein Template und exportiere dann alle.",
   "{0} clips transcribed — pick a template per clip, then export all.": "{0} Clips transkribiert — wähle pro Clip ein Template und exportiere dann alle.",
   "{0} clip exported, {1} failed.": "{0} Clip exportiert, {1} fehlgeschlagen.",
