@@ -4605,7 +4605,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     var groups = wrapCaptionLines(words, s, hlIdx, px || 24, lineTarget, orig, em);
     built = groups.map(function(idxs) {
       var line = idxs.map(function(i, k){ return (k ? ' ' : '') + wordHtml(i); }).join('');
-      return '<span style="display:block;white-space:nowrap' + (mode === 'type' ? ';text-align:left' : '') + '">' + line + '</span>'; // Typewriter: Zeilen linksbündig (s. capLayout typeLeft)
+      return '<span style="display:block;white-space:nowrap">' + line + '</span>'; // Typewriter: Zeilen mittig, die sichtbare Teilzeile sitzt mittig (capTypeCenter)
     }).join('');
   } else {
     built = '';
@@ -6061,6 +6061,33 @@ function capTypeClip(sp, s, M, tp, isE) {
   if (n >= len) { capSetSt(sp, 'clipPath', ''); return; }
   capSetSt(sp, 'clipPath', 'inset(-1000px ' + Math.max(0, sp.offsetWidth - pw[n] - CAP_TYPE_M * M.fpx).toFixed(2) + 'px -1000px -1000px)');
 }
+// Typewriter (R3): Der Text wächst von der Mitte aus — die SICHTBARE Teilzeile (fertige Wörter + getippte Zeichen des laufenden Worts) sitzt mittig,
+// die Endbreite bleibt reserviert (Umbruch/Box stehen fest). Je Zeile werden alle Wörter um (Endbreite − sichtbare Breite) / 2 nach rechts gesetzt
+// (position:relative; left). Natürliche Geometrie einmal je Aufbau, vor der ersten Verschiebung. Export: gleiche Rechnung (typeDx in drawCaptionsOnCtx).
+function capTypeCenter(M, s, fxs, em) {
+  if (!M.tl) {
+    var gs = [], par = [];
+    M.spans.forEach(function(sp) {
+      var k = par.indexOf(sp.parentNode);
+      if (k < 0) { k = par.length; par.push(sp.parentNode); gs.push([]); }
+      gs[k].push({ sp: sp, l: sp.offsetLeft, r: sp.offsetLeft + sp.offsetWidth });
+    });
+    M.tl = gs;
+  }
+  M.tl.forEach(function(g) {
+    var l0 = g[0].l, lw = g[g.length - 1].r - l0, ve = l0, any = false;
+    g.forEach(function(it) {
+      var oi = +it.sp.getAttribute('data-oi'), tp = (fxs[oi] || {}).tp;
+      if (!(tp > 0)) return;
+      any = true;
+      var r = it.r;
+      if (tp < 1) { var pw = it.sp._pw || (it.sp._pw = capTypePw(s, it.sp, M.fpx, !!(em && em[oi]))); r = it.l + pw[capTypeN(tp, pw.length - 1)]; }
+      if (r > ve) ve = r;
+    });
+    var dx = any ? Math.max(0, lw - (ve - l0)) / 2 : 0;
+    g.forEach(function(it) { capSetSt(it.sp, 'position', dx ? 'relative' : ''); capSetSt(it.sp, 'left', dx ? dx.toFixed(2) + 'px' : ''); });
+  });
+}
 function capTypePrefixW(ctx, txt, n) { return ctx.measureText(Array.from(txt).slice(0, n).join('')).width; }
 function capSetSt(el, k, v) { var c = el._capSt || (el._capSt = {}); if (c[k] !== v) { c[k] = v; el.style[k] = v; } }
 // rest = Standbild bei Pause: alle Übergänge (Pop, Reveal, Fill, Highlight-Farbe/-Box, Block-Ein-/Ausblenden) im
@@ -6104,6 +6131,7 @@ function capDomMotion(ov, s, b, bi, wi, t, forced, rest) {
     capSetSt(sp, 'color', col || sp._c0 || '');
     if (f.tp !== undefined) capTypeClip(sp, s, M, f.tp, !!(em && em[oi]));
   });
+  if (mode === 'type') capTypeCenter(M, s, fxs, em);
   if (M.uls.length) { // Unterstreichung: Strich je Wortspan, Unterkante = Zeilenbox des Worts (wie im Export wo.y + capD)
     var lhU = M.fpx * capLineH(s);
     M.spans.forEach(function(sp, j) {
@@ -14229,11 +14257,10 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
 
   var lineWs = lines.map(function(L){ return L.reduce(function(a, w, i){ return a + w.w + (i ? sp : 0); }, 0); });
   // Feste Position jedes Wortplatzes (x = linke Kante, y = Grundlinie) — gilt für den ganzen Block
-  // Typewriter: alle Zeilen linksbündig zur breitesten (fertigen) Zeile — sonst steht die kurze, fertig getippte Zeile zentriert über
-  // der erst teilweise sichtbaren, linksbündig wirkenden Folgezeile («Zeilen springen»). Breite der fertigen Zeile bleibt reserviert.
-  var typeLeft = capMotion(s) === 'type', widestL = Math.max.apply(null, lineWs);
+  // Typewriter: jede Zeile in ihrer Endbreite mittig (reserviert); die sichtbare Teilzeile wird beim Zeichnen mittig gerückt (typeDx in
+  // drawCaptionsOnCtx = capTypeCenter der Vorschau) — der Text wächst von der Mitte aus.
   lines.forEach(function(L, li) {
-    var x = typeLeft ? W/2 - widestL/2 : W/2 - lineWs[li]/2;
+    var x = W/2 - lineWs[li]/2;
     L.forEach(function(wo) { wo.x = x; wo.y = boxT + baseRel[li]; wo.li = li; x += wo.w + sp; });
   });
 
@@ -14279,11 +14306,31 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
   if (hxPct) ctx.translate(hxPct / 100 * W, 0);
   if (bf.dy) ctx.translate(0, bf.dy * fsS);
   if (hookOn) { var hkDy = hookCapDodge(tHook, s, W, H, cuts, L0.boxT, L0.boxB); if (hkDy) ctx.translate(0, hkDy); } // weicht dem Hook-Titel aus (wie die Vorschau, hookUpdate)
+  // Typewriter (R3): sichtbare Teilzeile je Zeile mittig — Versatz nach rechts = (Endbreite − sichtbare Breite) / 2 (Vorschau: capTypeCenter)
+  var typeDx = null;
+  if (mode === 'type') {
+    typeDx = lines.map(function(L, li) {
+      var xl = L.length ? L[0].x : 0, ve = xl, any = false;
+      L.forEach(function(wo) {
+        var tp = (fx[wo.idx] || {}).tp;
+        if (!(tp > 0)) return;
+        any = true;
+        var r = wo.x + wo.w;
+        if (tp < 1) {
+          ctx.font = capFaceFont(capWordFace(s, false, wo.e, wo.t), wo.e ? fsS * L0.esc : fsS);
+          if ('letterSpacing' in ctx) ctx.letterSpacing = lsPxS ? (lsPxS + 'px') : '0px';
+          r = wo.x + (wo.w - wo.tw) / 2 + capTypePrefixW(ctx, wo.txt, capTypeN(tp, Array.from(wo.txt).length));
+        }
+        if (r > ve) ve = r;
+      });
+      return any ? Math.max(0, lineWs[li] - (ve - xl)) / 2 : 0;
+    });
+  }
   var useLayer = !!(ctx.canvas && typeof document !== 'undefined' && document.createElement && ctx.canvas.width === W);
   if (useLayer) {
     var sig = [];
     fx.forEach(function(f, i) { if (!isLive(i) && f.op > 0) sig.push(i + (f.hk ? 'h' : '') + (f.op < 1 ? 'd' : '') + (ulf && ulf[i] ? 'u' : '')); });
-    var lkey = _capLayoutCache.key + '|' + mode + '|' + sig.join(',') + '|' + (s.id || '');
+    var lkey = _capLayoutCache.key + '|' + mode + '|' + sig.join(',') + '|' + (s.id || '') + (typeDx ? '|d' + typeDx.map(function(v){ return Math.round(v * 100); }).join(',') : '');
     var lc = _capStaticLayer;
     if (!lc || lc.key !== lkey || lc.s !== s || lc.W !== W || lc.H !== H) {
       if (lc && lc.s !== s) _wordSpriteCache.clear(); // anderes Style-Objekt (z. B. geänderter Custom-Style) → Sprites verwerfen
@@ -14427,7 +14474,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
           if (popF < 1) animSt = { sx: 1 + (animSt.sx - 1) * popF, sy: 1 + (animSt.sy - 1) * popF, ty: animSt.ty, rot: animSt.rot, op: animSt.op, glow: animSt.glow };
         }
         if (!(op > 0)) return; // Reveal: noch nicht gesprochen (Platz bleibt reserviert)
-        var x = wo.x, y = wo.y;
+        var x = wo.x + (typeDx ? typeDx[wo.li] || 0 : 0), y = wo.y;
         var isHL = hlOn && wo.idx === wi;
         var txt = isHL ? wo.txtH : wo.txt, tw = isHL ? wo.twH : wo.tw;
         var tx = x + (wo.w - tw) / 2; // im festen Wortplatz zentriert (DOM: min-width + text-align:center)
@@ -14437,7 +14484,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
         // Unterstreichung (Marker-Strich) hinter dem Wort: Unterkante der Wortbox = wo.y + capD (Vorschau: offsetTop + Zeilenhöhe)
         var ulr = ulf && ulf[wo.idx];
         if (ulr) {
-          var ur = capUlRect(s, wo.x, wo.y + capD, wo.w, fsS, ulr.k);
+          var ur = capUlRect(s, x, wo.y + capD, wo.w, fsS, ulr.k);
           ctx.save(); ctx.shadowColor = 'transparent'; if (ulr.op < 1) ctx.globalAlpha *= ulr.op;
           ctx.fillStyle = s.ul; ctx.beginPath();
           if (ctx.roundRect) ctx.roundRect(ur.x, ur.y, ur.w, ur.h, ur.h / 2); else ctx.rect(ur.x, ur.y, ur.w, ur.h);
@@ -14523,7 +14570,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
       lines.forEach(function(L) { L.forEach(function(wo) { if (wo.idx === wi) cwo = wo; }); });
       if (cwo) {
         wordFont(false, cwo.e, cwo.t);
-        var cn2 = capTypeN(fx[wi].tp, Array.from(cwo.txt).length), cx2 = cwo.x + (cwo.w - cwo.tw) / 2 + (cn2 > 0 ? capTypePrefixW(ctx, cwo.txt, cn2) : 0) + 0.04 * fsS;
+        var cn2 = capTypeN(fx[wi].tp, Array.from(cwo.txt).length), cx2 = cwo.x + (typeDx ? typeDx[cwo.li] || 0 : 0) + (cwo.w - cwo.tw) / 2 + (cn2 > 0 ? capTypePrefixW(ctx, cwo.txt, cn2) : 0) + 0.04 * fsS;
         var cbh = capA + capD;
         ctx.save(); ctx.shadowColor = 'transparent'; ctx.fillStyle = s.cur;
         ctx.fillRect(cx2, cwo.y - capA + cbh * 0.12, 0.07 * fsS, cbh * 0.76);

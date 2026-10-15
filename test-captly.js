@@ -6051,17 +6051,17 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(T.localEmojis([mkB('Tipp des Tages', 0)]) === 1 && T.localEmojis([]) === 0, 'Einzelner Block: höchstens ein Emoji; leere Liste: 0');
       ok(/localEmojis\(captionBlocks\)/.test(script) && /localEmojis\(blocks\)/.test(script), 'runEnhance: lokaler Emoji-Fallback in beiden Ohne-KI-Pfaden');
     }
-    // 10) Typewriter: alle Zeilen linksbündig zur breitesten Zeile (Breite der fertigen Zeile bleibt reserviert), Vorschau = Export
+    // 10) Typewriter (R3-Rest): jede Zeile in der Endbreite mittig (reserviert), die sichtbare Teilzeile wird mittig gerückt (Block «Typewriter mittig» am Ende)
     {
       const tw = g('typewriter'), b = { text: 'damit deine Reels', start: 0, end: 2, words: ['damit', 'deine', 'Reels'].map((w, i) => ({ word: w, start: i * 0.6, end: i * 0.6 + 0.55 })) };
       T.setLinesState(2);
       const mk = () => document.createElement('canvas').getContext('2d');
       const L = T.capLayout(mk(), b, 0, 1, tw, 1080, 1920), xs = L.lines.map(Ln => Ln[0].x), widest = Math.max.apply(null, L.lineWs);
-      ok(L.lines.length === 2 && near(xs[0], xs[1]) && near(xs[0], 540 - widest / 2) && L.lineWs[0] < L.lineWs[1], 'Typewriter: beide Zeilen beginnen am selben x, die breiteste ist mittig (' + xs.map(x => x.toFixed(1)).join(' / ') + ')');
+      ok(L.lines.length === 2 && xs.every((x, i) => near(x, 540 - L.lineWs[i] / 2)) && L.lineWs[0] < L.lineWs[1], 'Typewriter: jede Zeile in ihrer Endbreite mittig (' + xs.map(x => x.toFixed(1)).join(' / ') + ')');
       const hm = Object.assign({}, g('hormozi')), Lh = T.capLayout(mk(), b, 0, 1, hm, 1080, 1920);
       ok(Lh.lines.length < 2 || Lh.lines[0][0].x > Lh.lines[1][0].x || near(Lh.lines[0][0].x, Lh.lines[1][0].x), 'Andere Looks bleiben zentriert (kürzere Zeile weiter rechts)');
       const dom = T.buildCap(['damit', 'deine', 'Reels'], tw, 1, 22, [0, 0.6, 1.2], 2);
-      ok((dom.match(/display:block;white-space:nowrap;text-align:left/g) || []).length === 2 && !/text-align:left/.test(T.buildCap(['damit', 'deine', 'Reels'], g('hormozi'), 1, 22, [0, 0.6, 1.2], 2)), 'Typewriter-DOM: Zeilen text-align:left (nur dieser Look)');
+      ok((dom.match(/display:block;white-space:nowrap">/g) || []).length === 2 && !/text-align:left/.test(dom), 'Typewriter-DOM: Zeilen zentriert (kein text-align:left mehr)');
     }
   }
 
@@ -6488,6 +6488,109 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     frameEl.style.width = prevW; frameEl.style.height = prevH; T.setFontSizeState(prevFs);
     T.setActiveId(prevId); T.setWpbState(prevWpb); T.setMaxCharsState(prevMc); T.setLines({ dataset: { lines: String(prevLines) }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
+  }
+  // ═══════════════ Runde 3 Rest: Box-/Pill-Polster und Emoji fensterunabhängig · Typewriter wächst von der Mitte ═══════════════
+  {
+    const near = (a, b, e) => Math.abs(a - b) <= (e === undefined ? 0.5 : e);
+    const frameEl = document.getElementById('prevFrame');
+    const prevW = frameEl.style.width, prevH = frameEl.style.height, prevFs = T.getFontSize();
+    const setFrame = w => { frameEl.style.width = w + 'px'; frameEl.style.height = Math.round(w * 16 / 9) + 'px'; T.setFontSizeState(Math.round(w * 0.08 * 100) / 100); };
+    const mkCtx = () => ({ font: '', letterSpacing: '0px', measureText(str) { const m = /([\d.]+)px/.exec(this.font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+      roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},
+      fillRect() {}, clip() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } });
+    const fixR = n => JSON.parse(fs.readFileSync(path.join(__dirname, 'scripts', 'creator-test', 'fixtures', n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end }));
+    const prevId = T.getActiveId(), prevWpb = T.getWpbState(), prevMc = T.getMaxChars(), prevLines = T.getLines();
+    const mkLines = n => ({ dataset: { lines: String(n) }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
+    T.setMaxCharsState(0);
+    const widths = [90, 125, 220, 385, 720];
+    // 1) Box-/Pill-Polster: schriftrelativ (Referenz CAP_SH_REF = 28 px) — Verhältnis zur Schrift in jeder Fensterbreite gleich
+    {
+      const gb = T.STYLES.find(x => x.id === 'glassbox'), pk = T.STYLES.find(x => x.id === 'boxkara');
+      ok(gb && gb.boxBg && pk && pk.hlPillBg && T.capMotion(pk) === 'highlight', 'R3-Rest: Glass Box (Box) und Highlight Box (Pill) vorhanden');
+      const rel = {};
+      for (const w of widths) {
+        setFrame(w);
+        const fsz = T.getFontSize(), html = T.buildCap(['Drei', 'Tricks,'], gb, 1, fsz, [0, 0.5], 2);
+        const m = /padding:([\d.]+)px ([\d.]+)px;border-radius:([\d.]+)px/.exec(html);
+        rel[w] = { padY: +m[1] / fsz, padX: +m[2] / fsz, rad: +m[3] / fsz, maxW: T.capFitMaxW(gb) / fsz, maxWp: T.capFitMaxW(pk) / fsz, gap: T.capWordGap(pk) / fsz, pillPad: T.CAP_PILL_PAD_X * T.capOutK() / fsz };
+      }
+      const keys = Object.keys(rel[90]);
+      ok(widths.every(w => keys.every(k => near(rel[w][k], rel[90][k], 0.003))), 'R3-Rest: Box-Polster/-Radius, Safe-Zone-Abzug, Pill-Abstand und -Polster bei Rahmen ' + widths.join('/') + ' px gleich im Verhältnis zur Schrift (Polster X ' + rel[90].padX.toFixed(3) + ' · Schrift ' + (rel[90].padX * 28).toFixed(1) + ' px bei 28 px)');
+      ok(near(rel[90].padX, 18 / 28, 0.003) && near(rel[90].padY, 5 / 28, 0.003), 'R3-Rest: 18/5 px gelten für 28 px Schrift (Glass Box)');
+    }
+    // 2) Umbruch (Export-Layout, 1080×1920) und Vorschau-Zeilenverteilung: gleich bei Rahmen 90 … 720 px — Box-Look und Highlight-Pill-Look
+    for (const id of ['glassbox', 'boxkara', 'tiktok']) {
+      const st = T.STYLES.find(x => x.id === id); if (!st) continue;
+      T.setActiveId(id); T.setWpbState(st.layout ? st.layout.wpb : 4); T.setLines(mkLines(st.layout ? st.layout.lines : 2));
+      const sig = {}, fixB = {}; // Blöcke einmal bauen (Segmentierung je Fensterbreite prüft der Block davor) — hier nur Umbruch/Skalierung
+      setFrame(385); ['v1-reel-de', 'v2-podcast-de-16x9'].forEach(f => { fixB[f] = T.buildCaptionBlocks(fixR(f), []); });
+      for (const w of widths) {
+        setFrame(w);
+        const out = [];
+        for (const f of ['v1-reel-de', 'v2-podcast-de-16x9']) {
+          const bl = fixB[f];
+          T.setState(bl, fixR(f), 'karaoke');
+          bl.forEach((b, bi) => { const L = T.capLayout(mkCtx(), b, bi, 0, st, 1080, 1920); out.push(L.lines.map(Ln => Ln.map(wo => wo.t).join(' ')).join('/') + '@' + Math.round(L.fsS * 10 / 1) / 10); });
+        }
+        sig[w] = out.join('|');
+      }
+      const base = sig[90].split('|'), bad = [];
+      for (const w of widths) { const cur = sig[w].split('|'); cur.forEach((c, i) => { if (c.split('@')[0] !== base[i].split('@')[0]) bad.push(w + ':' + c.split('@')[0] + ' ≠ ' + base[i].split('@')[0]); }); }
+      ok(bad.length === 0 && base.length > 20, 'R3-Rest ' + id + ': Zeilenumbruch aller ' + base.length + ' Blöcke bei Rahmen ' + widths.join('/') + ' px identisch' + (bad.length ? ' — ' + bad.slice(0, 3).join('; ') : ''));
+    }
+    // 3) Export-Polster in Referenz-px: Boxbreite / Videobreite bei 90 und 385 px Rahmen gleich (capLayout inkl. Safe-Zone-Breite)
+    {
+      const gb = T.STYLES.find(x => x.id === 'glassbox'); T.setActiveId('glassbox'); T.setWpbState(2); T.setLines(mkLines(2));
+      const ws = ['Drei', 'Tricks,'], blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+      T.setState([blk], blk.words, 'karaoke');
+      const r = {};
+      for (const w of [90, 385]) { setFrame(w); const L = T.capLayout(mkCtx(), blk, 0, 0, gb, 1080, 1920); r[w] = (Math.max.apply(null, L.lineWs) + 36 * L.scale * T.capOutK()) / 1080; }
+      ok(near(r[90], r[385], 0.002), 'R3-Rest: sichtbare Boxbreite / Videobreite bei 90 px (' + r[90].toFixed(4) + ') = 385 px (' + r[385].toFixed(4) + ')');
+    }
+    // 4) Sticker-/Emoji-Grösse: kein Runden auf ganze CSS-px — Verhältnis Emoji / Rahmenbreite in jeder Fensterbreite gleich
+    {
+      const st = T.STYLES.find(x => x.id === 'stickeremoji'), gb = T.STYLES.find(x => x.id === 'glassbox'), rr = {};
+      for (const w of [90, 125, 220, 333, 385, 720]) {
+        setFrame(w);
+        const f1 = T.buildCap(['ab', 'cd'], st, 0, T.getFontSize(), [0, 0.5], 2, { emoji: '🔥', age: 1 }), f2 = T.buildCap(['ab', 'cd'], gb, 0, T.getFontSize(), [0, 0.5], 2, { emoji: '🔥', age: 1 });
+        const px = h => +/font-size:([\d.]+)px;line-height:1;text-align:center/.exec(h.slice(h.indexOf('cap-emo')))[1];
+        rr[w] = { sticker: px(f1) / w, normal: px(f2) / w };
+      }
+      const ws = Object.keys(rr);
+      ok(ws.every(w => near(rr[w].sticker, rr[ws[0]].sticker, 0.0003) && near(rr[w].normal, rr[ws[0]].normal, 0.0003)), 'R3-Rest: Emoji/Rahmenbreite bei 6 Rahmenbreiten gleich (Sticker ' + rr[ws[0]].sticker.toFixed(4) + ' · normal ' + rr[ws[0]].normal.toFixed(4) + ', Schwankung ' + (100 * Math.max.apply(null, ws.map(w => Math.abs(rr[w].sticker / rr[ws[0]].sticker - 1)))).toFixed(2) + ' %)');
+      ok(!/Math\.round\(\(px \|\| 24\) \* EMO_REL\)|Math\.round\(L\.fitPx \* EMO_REL\)/.test(script), 'R3-Rest: Emoji-Grösse in Vorschau und Export nicht mehr gerundet');
+    }
+    // 5) Typewriter: die sichtbare Teilzeile sitzt mittig (früh / Mitte / Ende), jede Zeile für sich — Export-Zeichnung mit Aufzeichnungs-Kontext
+    {
+      const ty = T.STYLES.find(x => x.id === 'typewriter'); T.setActiveId('typewriter'); T.setWpbState(4);
+      const mkRec = () => { const st = [], c = { _font: '', letterSpacing: '0px', calls: [], clipR: null, lastRect: null, lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: 'transparent', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none', textAlign: 'left', textBaseline: 'alphabetic',
+        get font() { return this._font; }, set font(v) { this._font = v; },
+        measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 + (parseFloat(this.letterSpacing) || 0) * (str || '').length }; },
+        fillText(t, x, y) { const m = /([\d.]+)px/.exec(this._font); this.calls.push({ t, x, y, px: +m[1], w: this.measureText(t).width, clipR: this.clipR }); }, strokeText() {},
+        rect(x, y, w, h) { this.lastRect = { x, w }; }, clip() { this.clipR = this.lastRect.x + this.lastRect.w; },
+        save() { st.push(this.clipR); }, restore() { this.clipR = st.length ? st.pop() : null; },
+        translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, roundRect() {}, ellipse() {}, fillRect() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } }; return c; };
+      const ws = ['Drei', 'Tricks', 'damit', 'deine', 'Reels', 'laufen'].map((w, i) => ({ word: w, start: 1 + i * 0.6, end: 1 + i * 0.6 + 0.55 }));
+      const tyN = Object.assign({}, ty, { cur: '' }); // Cursor würde die sichtbare Breite verfälschen
+      for (const lines of [1, 2]) {
+        T.setLines(mkLines(lines)); setFrame(385);
+        const bl = [{ text: ws.map(w => w.word).join(' '), start: 1, end: 5, words: ws }];
+        T.setState(bl, ws, 'karaoke');
+        const devs = [];
+        for (const t of [1.1, 1.45, 2.3, 3.4, 4.9]) {
+          const c = mkRec(); T.drawCaptionsOnCtx(c, t, tyN, 1080, 1920, false);
+          const rows = {};
+          c.calls.forEach(k => { const key = Math.round(k.y); const R = k.clipR !== null ? Math.min(k.x + k.w, k.clipR - 0.1 * k.px) : k.x + k.w; const r = rows[key] || (rows[key] = { l: Infinity, r: -Infinity }); r.l = Math.min(r.l, k.x); r.r = Math.max(r.r, R); });
+          Object.values(rows).forEach(r => devs.push({ t, d: (r.l + r.r) / 2 - 540 }));
+        }
+        ok(devs.length >= 5 && devs.every(x => Math.abs(x.d) < 1.5), 'R3-Rest Typewriter (' + lines + ' Zeile' + (lines > 1 ? 'n' : '') + '): sichtbare Teilzeile mittig in Export-Frames früh/Mitte/Ende, Abweichung ≤ ' + Math.max.apply(null, devs.map(x => Math.abs(x.d))).toFixed(2) + ' px von 540 (' + devs.length + ' Zeilen-Frames)');
+      }
+      ok(/capTypeCenter\(M, s, fxs, em\)/.test(script) && /typeDx\[wo\.li\]/.test(script) && !/typeLeft/.test(script), 'R3-Rest Typewriter: Vorschau (capTypeCenter) und Export (typeDx) rücken dieselbe Teilzeile');
+    }
+    // 6) suggestHook ist entfernt (nirgends aufgerufen)
+    ok(!/suggestHook/.test(script) && !/suggestHook/.test(htmlContent), 'R3-Rest: ungenutzte Funktion suggestHook entfernt');
+    frameEl.style.width = prevW; frameEl.style.height = prevH; T.setFontSizeState(prevFs);
+    T.setActiveId(prevId); T.setWpbState(prevWpb); T.setMaxCharsState(prevMc); T.setLines(mkLines(prevLines));
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
