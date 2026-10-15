@@ -4988,10 +4988,10 @@ function localEmoLookup(word) {
   for (var i = 0; i < _localEmoIdx.stems.length; i++) if (n.indexOf(_localEmoIdx.stems[i].s) === 0) return _localEmoIdx.stems[i];
   return null;
 }
-// Höchstens ein Emoji je Block, nur bei klarem Stichwort; Ziel etwa eines je EMO_LOCAL_SEC Sekunden (R3: vorher ≈ 3 in 20 s, v3 nur 2),
+// Höchstens ein Emoji je Block, nur bei klarem Stichwort; Ziel etwa eines je EMO_LOCAL_SEC Sekunden (R5: 4,5 s, vorher 6,5 s ≈ 3 in 20 s; R3: vorher 2–3),
 // gleichmässig über die Zeit verteilt (erst das stärkste je Zeitfenster), ≥ 2 Blöcke und ≥ EMO_LOCAL_GAP s Abstand, dasselbe Emoji frühestens
 // nach EMO_LOCAL_SAME s wieder. KI-Auswahl hat Vorrang: es werden nur Blöcke ohne Emoji (KI oder Nutzer) ergänzt. → Anzahl gesetzter Emojis.
-var EMO_LOCAL_SEC = 6.5, EMO_LOCAL_GAP = 3, EMO_LOCAL_SAME = 8; // Ziel-Abstand (s) · Mindestabstand (s) · dasselbe Motiv frühestens nach (s) wieder
+var EMO_LOCAL_SEC = 4.5, EMO_LOCAL_GAP = 2, EMO_LOCAL_SAME = 8; // Ziel-Abstand (s) · Mindestabstand (s) · dasselbe Motiv frühestens nach (s) wieder
 function localEmojis(blocks) {
   blocks = blocks || [];
   var cands = [], t0 = Infinity, t1 = 0;
@@ -13700,9 +13700,12 @@ function outputAspect(srcW, srcH) {
 function exportBitrate(W, H, fps, srcBps, srcW, srcH) {
   var cap = Math.round(Math.max(2e6, Math.min(12e6, 0.07 * W * H * (fps || 30)))); // Obergrenze: Formel von früher (~0,07 Bit/Pixel/Frame, 2–12 Mbit/s)
   if (!(srcBps > 0)) return cap;
-  // Quelle bekannt: Ziel ≈ Quell-Videobitrate × 1,2, bei Reframe/Skalierung proportional zur Pixelzahl; nie unter 2 Mbit/s, nie über der Obergrenze
+  // Quelle bekannt: Ziel ≈ Quell-Videobitrate × 1,2, bei Reframe/Skalierung proportional zur Pixelzahl, nie über der Obergrenze.
+  // Untergrenze nur noch auflösungsabhängig (0,02 Bit/Pixel/Frame, mind. 0,5 Mbit/s; 1080×1920@30 ≈ 1,24 Mbit/s): schützt
+  // Quellen mit extrem knapper Bitrate vor Klötzchen, hebt eine schlanke Quelle (z. B. 1,25 Mbit/s) aber nicht mehr auf 2 Mbit/s an (war ≈ 1,5× Dateigrösse).
   var pr = (srcW > 0 && srcH > 0 && W > 0 && H > 0) ? (W * H) / (srcW * srcH) : 1;
-  return Math.round(Math.max(2e6, Math.min(cap, srcBps * 1.2 * pr)));
+  var floor = Math.max(0.5e6, 0.02 * W * H * (fps || 30));
+  return Math.round(Math.min(cap, Math.max(floor, srcBps * 1.2 * pr)));
 }
 // Videobitrate der Quelle (Bit/s) aus Dateigrösse und Dauer — der Ton (~128 kbit/s) wird abgezogen; 0 = unbekannt.
 function estimateSourceBitrate(sizeBytes, durSec) {

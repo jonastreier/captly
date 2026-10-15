@@ -5283,11 +5283,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // N9: Bitrate an die Quelle koppeln
     ok(T.exportBitrate(1080, 1920, 30) === Math.round(0.07 * 1080 * 1920 * 30), 'N9: ohne Quellbitrate unverändert (alte Formel)');
     ok(T.exportBitrate(1080, 1920, 30, 2.1e6, 1080, 1920) === Math.round(2.1e6 * 1.2), 'N9: Quelle 2,1 Mbit/s, gleiche Grösse → Quelle × 1,2 = ' + T.exportBitrate(1080, 1920, 30, 2.1e6, 1080, 1920));
-    ok(T.exportBitrate(1080, 1920, 30, 0.4e6, 1080, 1920) === 2e6, 'N9: sehr kleine Quelle → Minimum 2 Mbit/s');
+    ok(T.exportBitrate(1080, 1920, 30, 0.4e6, 1080, 1920) === Math.round(0.02 * 1080 * 1920 * 30), 'N9: sehr kleine Quelle → Untergrenze 0,02 bpp (R5; vorher fix 2 Mbit/s)');
     ok(T.exportBitrate(1080, 1920, 30, 40e6, 2160, 3840) === Math.round(0.07 * 1080 * 1920 * 30) && T.exportBitrate(1920, 1080, 30, 40e6, 3840, 2160) <= 12e6, 'N9: grosse Quelle → Obergrenze wie bisher (nie mehr als die Formel)');
     {
       const a = T.exportBitrate(1080, 1920, 30, 1.3e6, 1280, 720); // 16:9 → 9:16 Reframe: ×2,25 Pixel
-      ok(a === Math.round(Math.max(2e6, Math.min(0.07 * 1080 * 1920 * 30, 1.3e6 * 1.2 * (1080 * 1920) / (1280 * 720)))) && a > 2e6, 'N9: Reframe/Upscale proportional zur Pixelzahl (' + a + ')');
+      ok(a === Math.round(Math.max(0.02 * 1080 * 1920 * 30, Math.min(0.07 * 1080 * 1920 * 30, 1.3e6 * 1.2 * (1080 * 1920) / (1280 * 720)))) && a > 2e6, 'N9: Reframe/Upscale proportional zur Pixelzahl (' + a + ')');
       const g = T.exportGeometry(1080, 1920, 30, '1080', 'original', 2.1e6);
       ok(g.bitrate === Math.round(2.1e6 * 1.2) && T.exportGeometry(1080, 1920, 30, '1080', 'original').bitrate === Math.round(0.07 * 1080 * 1920 * 30), 'N9: exportGeometry reicht die Quellbitrate durch (v1: ' + g.bitrate + ' statt ' + Math.round(0.07 * 1080 * 1920 * 30) + ' bit/s)');
     }
@@ -6395,7 +6395,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       for (const [nm, n, minN] of [['v1', 'v1-reel-de', 3], ['v2', 'v2-podcast-de-16x9', 4], ['v3', 'v3-hook-en', 3]]) {
         const bl = blk3(n), k = T.localEmojis(bl), list = bl.map((b, i) => ({ i, t: b.words[0].start, e: T.blockEmoji(b) })).filter(x => x.e);
         const dur = bl[bl.length - 1].words[bl[bl.length - 1].words.length - 1].end - bl[0].words[0].start, per = dur / list.length;
-        ok(k === list.length && k >= minN && per >= 5 && per <= 8.5, 'R3-Emoji ' + nm + ': ' + k + ' Emojis in ' + dur.toFixed(1) + ' s (≈ 1 je ' + per.toFixed(1) + ' s): ' + list.map(x => x.i + T.blockEmoji(bl[x.i])).join(' '));
+        ok(k === list.length && k >= minN && per >= 4 && per <= 8.5, 'R3-Emoji ' + nm + ': ' + k + ' Emojis in ' + dur.toFixed(1) + ' s (≈ 1 je ' + per.toFixed(1) + ' s): ' + list.map(x => x.i + T.blockEmoji(bl[x.i])).join(' '));
         ok(list.every((x, j) => j === 0 || (x.i - list[j - 1].i >= 2 && x.t - list[j - 1].t >= T.EMO_LOCAL_GAP - 1e-9)) && list.every((x, j) => list.every((y, m) => m >= j || x.e !== y.e || x.t - y.t >= T.EMO_LOCAL_SAME)), 'R3-Emoji ' + nm + ': ≥ 2 Blöcke / ≥ 3 s Abstand, dasselbe Motiv frühestens nach 8 s wieder');
       }
       const L = w => (T.localEmoLookup(w) || {}).e;
@@ -7069,6 +7069,39 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     // 4) Nach «Alle exportieren» steht das ZIP vor «Alle exportieren» (Handy: sonst unter dem Falz)
     ok(/var allDone = nDone > 0 &&/.test(script) && /a \+= allDone \? zipHtml \+ expHtml \+ trHtml : expHtml \+ trHtml \+ zipHtml;/.test(script), 'R4 Clips-Blatt: alles exportiert → ZIP zuerst, «alle exportieren» zweitrangig');
+  }
+  // ═══════════════ R5 Export: Bitrate folgt der Quelle (Untergrenze auflösungsabhängig) · Emoji-Fallback dichter ═══════════════
+  {
+    const px = 1080 * 1920 * 30, cap = Math.round(0.07 * px);
+    // 1) v1-Wahrheit (ffprobe): Video 1 246 150 bit/s, Ton 119 597 bit/s, Datei 3 480 132 B in 20,333 s. Vorher: fixe Untergrenze 2 Mbit/s → 2,12 Mbit/s gesamt ≈ 1,55 × Quelle
+    const srcV = 1246150, srcA = 119597, srcSize = 3480132, srcDur = 20.333333, srcTotal = srcSize * 8 / srcDur;
+    const est = T.estimateSourceBitrate(srcSize, srcDur), b1 = T.exportBitrate(1080, 1920, 30, est, 1080, 1920);
+    ok(Math.abs(est - srcV) / srcV < 0.03, 'R5 Bitrate: Schätzung aus Grösse/Dauer trifft die echte Video-Bitrate von v1 (' + est + ' statt ' + srcV + ')');
+    ok(b1 === Math.round(est * 1.2), 'R5 Bitrate: v1 → Quelle × 1,2 (' + b1 + '), nicht mehr auf 2 Mbit/s angehoben');
+    const ratio = (b1 + srcA) * srcDur / 8 / srcSize;
+    ok(ratio >= 1.0 && ratio <= 1.25, 'R5 Bitrate: erwartete v1-Ausgabe (Video + kopierter Ton) = ' + ratio.toFixed(2) + ' × Quelldatei (vorher ' + ((2e6 + srcA) * srcDur / 8 / srcSize).toFixed(2) + ')');
+    // 2) Untergrenze: 0,02 bit/Pixel/Frame, mind. 0,5 Mbit/s; Obergrenze unverändert
+    ok(T.exportBitrate(1080, 1920, 30, 0.3e6, 1080, 1920) === Math.round(0.02 * px) && Math.round(0.02 * px) > 1.2e6 && Math.round(0.02 * px) < 1.3e6, 'R5 Bitrate: 1080×1920 hat Untergrenze ≈ 1,24 Mbit/s');
+    ok(T.exportBitrate(640, 360, 30, 0.1e6, 640, 360) === 0.5e6 && T.exportBitrate(1280, 720, 30, 0.1e6, 1280, 720) === Math.round(0.02 * 1280 * 720 * 30), 'R5 Bitrate: kleine Auflösung → Untergrenze skaliert mit (0,5 Mbit/s absolut, 720p ≈ 0,55)');
+    for (const [src, label] of [[8e6, '8'], [12e6, '12'], [20e6, '20']]) {
+      ok(T.exportBitrate(1080, 1920, 30, src, 1080, 1920) === cap, 'R5 Bitrate: Handyquelle ' + label + ' Mbit/s 1080p → Obergrenze 0,07 bpp wie bisher (' + cap + ')');
+    }
+    ok(T.exportBitrate(1080, 1920, 30, 3e6, 1080, 1920) === 3.6e6, 'R5 Bitrate: mittlere Quelle 3 Mbit/s → × 1,2');
+    let mono = true, prev = 0;
+    for (let sb = 1e5; sb <= 3e7; sb *= 1.3) { const v = T.exportBitrate(1080, 1920, 30, sb, 1080, 1920); if (v < prev || v > cap) mono = false; prev = v; }
+    ok(mono, 'R5 Bitrate: monoton in der Quellbitrate, nie über der Obergrenze');
+    ok(T.exportBitrate(1080, 1920, 30) === cap && T.exportBitrate(320, 240, 30) === 2e6, 'R5 Bitrate: Quelle unbekannt → alte Formel unverändert');
+    ok(T.exportBitrate(1080, 1920, 30, srcV, 1080, 1920) === T.exportGeometry(1080, 1920, 30, '1080', 'original', srcV).bitrate, 'R5 Bitrate: exportGeometry (MediaRecorder-Weg) und exportBitrate (WebCodecs-Weg) liefern dasselbe');
+    ok(/bitrate: exportBitrate\(W, H, fps, srcBps, pW, pH\)/.test(script) && /videoBitsPerSecond: geo\.bitrate/.test(script) && /estimateSourceBitrate\(currentFile\.size, vid\.duration\)/.test(script), 'R5 Bitrate: beide Exportwege (WebCodecs, MediaRecorder) beziehen die Quellbitrate ein');
+    // 3) Emoji-Fallback: etwa +1 je 20 s gegenüber R3 (v1 3 → 4, v2 4 → 5, v3 3 → 4), nie in direkt aufeinanderfolgenden Blöcken
+    const fixDir5 = path.join(__dirname, 'scripts', 'creator-test', 'fixtures');
+    const blk5 = n => T.buildCaptionBlocks(JSON.parse(fs.readFileSync(path.join(fixDir5, n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end })), []);
+    for (const [nm, n, before] of [['v1', 'v1-reel-de', 3], ['v2', 'v2-podcast-de-16x9', 4], ['v3', 'v3-hook-en', 3]]) {
+      const bl = blk5(n), k = T.localEmojis(bl), list = bl.map((b, i) => ({ i, e: T.blockEmoji(b) })).filter(x => x.e);
+      ok(k === list.length && k >= before + 1, 'R5-Emoji ' + nm + ': ' + k + ' statt ' + before + ' Emojis: ' + list.map(x => x.i + x.e).join(' '));
+      ok(list.every((x, j) => j === 0 || x.i - list[j - 1].i >= 2), 'R5-Emoji ' + nm + ': nie zwei Emojis in direkt aufeinanderfolgenden Blöcken');
+    }
+    ok(T.EMO_LOCAL_SEC <= 5 && T.EMO_LOCAL_GAP <= 2.5, 'R5-Emoji: Ziel-Abstand ≈ 5 s oder weniger');
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
