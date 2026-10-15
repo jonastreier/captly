@@ -35,6 +35,57 @@ ok(r.status === 1 && /SMTP_PORT/.test(r.stdout) && /FTP_DIR.*endet nicht mit \//
 r = run('scripts/check-secrets.js', [], Object.assign({}, FULL, { GROQ_API_KEY: '  ' }));
 ok(r.status === 1 && /✗ GROQ_API_KEY/.test(r.stdout), 'check-secrets: leerer Wert zählt als fehlend');
 
+// ── .htaccess: Apache-Rewrite nachspielen (per-dir, interner Rewrite → Regeln laufen erneut mit
+// REDIRECT_STATUS=200). Fängt Endlosschleifen wie /de ↔ captly.de.html ab, die live 15.10. passiert sind.
+{
+  const ht = fs.readFileSync(path.join(__dirname, '.htaccess'), 'utf8');
+  const rules = []; let conds = [];
+  for (const raw of ht.split('\n')) {
+    const l = raw.trim(); let m;
+    if ((m = l.match(/^RewriteCond\s+(\S+)\s+(\S+)(?:\s+\[([^\]]*)\])?/))) conds.push({ v: m[1], p: m[2], nc: /NC/.test(m[3] || '') });
+    else if ((m = l.match(/^RewriteRule\s+(\S+)\s+(\S+)(?:\s+\[([^\]]*)\])?/))) { rules.push({ re: new RegExp(m[1]), to: m[2], flags: m[3] || '', conds }); conds = []; }
+  }
+  const env = rs => ({ '%{HTTPS}': 'on', '%{HTTP:X-Forwarded-Proto}': 'https', '%{HTTP_HOST}': 'gluephs.com', '%{ENV:REDIRECT_STATUS}': rs });
+  const condOk = (c, rs) => {
+    const val = env(rs)[c.v] ?? ''; let p = c.p, neg = false;
+    if (p[0] === '!') { neg = true; p = p.slice(1); }
+    const hit = p[0] === '=' ? val === p.slice(1) : new RegExp(p, c.nc ? 'i' : '').test(val);
+    return neg ? !hit : hit;
+  };
+  const pass1 = (p, rs) => {
+    for (const r of rules) {
+      const m = p.match(r.re); if (!m || !r.conds.every(c => condOk(c, rs))) continue;
+      const st = (r.flags.match(/R=(\d+)/) || [])[1];
+      if (r.to === '-') return st ? { status: +st } : null;
+      const to = r.to.replace(/\$(\d)/g, (_, i) => m[+i] || '').split('?')[0];
+      if (st) return { redirect: to.replace(/^\/+/, '') };
+      return { internal: to };
+    }
+    return null;
+  };
+  const req = p => { // → {serve}|{redirect}|{status}|{loop}
+    let rs = '';
+    for (let i = 0; i < 10; i++) {
+      if (p === '') { p = 'captly.html'; rs = '200'; continue; } // DirectoryIndex
+      const r = pass1(p, rs);
+      if (r && r.internal !== undefined && r.internal !== p) { p = r.internal; rs = '200'; continue; }
+      return r && (r.redirect !== undefined || r.status) ? r : { serve: p };
+    }
+    return { loop: true };
+  };
+  const follow = p => { const seen = []; for (let i = 0; i < 6; i++) { const r = req(p); if (r.redirect === undefined) return Object.assign(r, { hops: i }); if (seen.includes(r.redirect)) return { loop: true }; seen.push(p); p = r.redirect; } return { loop: true }; };
+  const expect = { '': 'captly.html', 'de': 'captly.de.html', 'de/': 'captly.de.html', 'captly.html': 'captly.html', 'index.html': 'captly.html',
+    'captly.de.html': 'captly.de.html', 'contact': 'contact.php', 'kontakt': 'contact.php', 'api/transcribe': 'transcribe.php', 'api/lead/': 'lead.php' };
+  for (const pg of ['impressum', 'datenschutz', 'privacy', 'terms', 'licenses']) { expect[pg] = pg + '.html'; expect[pg + '.html'] = pg + '.html'; }
+  for (const [p, want] of Object.entries(expect)) {
+    const r = follow(p);
+    ok(!r.loop && r.serve === want, `.htaccess: /${p} → ${want} (bekommen: ${JSON.stringify(r)})`);
+    ok(fs.existsSync(path.join(__dirname, want)), `.htaccess: Ziel ${want} fehlt im Repo`);
+  }
+  ok(follow('de').hops === 0 && follow('impressum').hops === 0, '.htaccess: schöne URLs liefern direkt aus (keine Weiterleitung)');
+  ok(follow('docs/START-HIER.md').status === 404 && follow('scripts/build-dist.js').status === 404, '.htaccess: interne Ordner → 404');
+}
+
 (async () => {
   if (spawnSync('php', ['-v']).status !== 0) { console.log('php nicht gefunden – Live-Check-Test übersprungen'); return done(); }
   // ── 2) live-check.js gegen php -S ──
