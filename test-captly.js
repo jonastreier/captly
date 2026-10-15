@@ -149,20 +149,23 @@ videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateS
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
 capSizeInfo:capSizeInfo,syncSzDisp:syncSzDisp,segSeek:segSeek,previewFrameW:previewFrameW,previewFrameH:previewFrameH,
 capNoItalic:capNoItalic,capPopFactor:capPopFactor,setCsBase:function(b){_csBase=b;},drawTextGrouped:drawTextGrouped,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
-setActiveId:function(i){activeId=i;},lookSnapshot:lookSnapshot,lookUndoRun:lookUndoRun,lookUndoEnd:lookUndoEnd,tlHandleKey:tlHandleKey,tlGlobalKey:tlGlobalKey,capNoHyphen:capNoHyphen,landBrandId:landBrandId,setCsDirtyGet:function(){return _csDirty;},setHOff:function(v){capHOff=v;},setFree:function(v){capFree=v;},
+setActiveId:function(i){activeId=i;},lookSnapshot:lookSnapshot,lookUndoRun:lookUndoRun,lookUndoEnd:lookUndoEnd,tlHandleKey:tlHandleKey,tlGlobalKey:tlGlobalKey,capNoHyphen:capNoHyphen,setCsDirtyGet:function(){return _csDirty;},setHOff:function(v){capHOff=v;},setFree:function(v){capFree=v;},
 parseHexInput:parseHexInput,csHexCommit:csHexCommit,csOpCommit:csOpCommit,csColorCss:csColorCss,csSyncColors:csSyncColors,getCsAlpha:function(){return _csAlpha;},
 onTemplatesStorage:onTemplatesStorage,undoDeleteTemplate:undoDeleteTemplate,importTemplateMessage:importTemplateMessage,persistTemplates:persistTemplates,
 emojiSearch:emojiSearch,EMO_CATS:EMO_CATS,EMO_PICK:EMO_PICK,emAiUnavailable:emAiUnavailable,setEmSrc:function(v){emSrc=v;},syncEmphUI:syncEmphUI,setEmphEmoji:setEmphEmoji,setCaptionBlocksForTest:function(b){captionBlocks=b;},
 autoCutRegions:autoCutRegions,exportCutRegions:exportCutRegions,cutSavedSeconds:cutSavedSeconds,cutSavedLabel:cutSavedLabel,syncAutoCutUI:syncAutoCutUI,onAutoCutChange:onAutoCutChange,getAutoCut:function(){return autoCutSilence;},estimateSourceBitrate:estimateSourceBitrate,snapFrameRate:snapFrameRate,createCfrPlanner:createCfrPlanner,cfrFrameTimeUs:cfrFrameTimeUs,syncExportAgainIfOpen:syncExportAgainIfOpen,exportSignature:exportSignature,setExportFill:setExportFill,setExportFormat:setExportFormat,setExportResUI:setExportRes,
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
-segFrameSnap:segFrameSnap,segDragTarget:segDragTarget,segDragApply:segDragApply,fmtT2:fmtT2,landTemplates:landTemplates,landPickLabel:landPickLabel,getBlocksB2:function(){return captionBlocks;},
+segFrameSnap:segFrameSnap,segDragTarget:segDragTarget,segDragApply:segDragApply,fmtT2:fmtT2,landTemplates:landTemplates,getBlocksB2:function(){return captionBlocks;},
 mergeCutRegions:mergeCutRegions,allCutRegionsOf:allCutRegionsOf,allCutRegions:allCutRegions,srcToOut:srcToOut,outToSrc:outToSrc,cuesToOutput:cuesToOutput,setTrim:setTrim,cutOutRange:cutOutRange,restoreCut:restoreCut,getTrim:function(){return {i:trimIn,o:trimOut,c:manualCuts};},currentSubCues:currentSubCues,previewSkipCuts:previewSkipCuts,tlCutRange:tlCutRange,tlCutOut:tlCutOut,tlSetMark:tlSetMark,tlSelectCut:tlSelectCut,tlRestoreSel:tlRestoreSel,trimSnapshot:trimSnapshot,trimResetState:trimResetState,tlTrimHit:tlTrimHit,setTlSel:function(i){tlSel=i;},
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 resetGrpBuf:function(){_grpBuf=null;},localEmojis:localEmojis,localEmoLookup:localEmoLookup,LOCAL_EMO:LOCAL_EMO,drawTextWithPlan:drawTextWithPlan,capShK:capShK,
 capOutK:capOutK,capScaleShadowStr:capScaleShadowStr,CAP_SH_REF:CAP_SH_REF,
+brandHex:brandHex,sanitizeBrand:sanitizeBrand,applyBrandToStyle:applyBrandToStyle,brandLogoRect:brandLogoRect,brandWmRect:brandWmRect,brandLogoOk:brandLogoOk,SAFE_ZONE_PRESETS:SAFE_ZONE_PRESETS,SAFE_ZONE:SAFE_ZONE,safePresetSet:safePresetSet,getSafeKey:function(){return _safeKey;},brandSetLive:brandSetLive,getBrandLive:function(){return brandLive;},brandForSave:brandForSave,brandSet:brandSet,brandColor:brandColor,brandLogoPicked:brandLogoPicked,brandEncodeLogo:brandEncodeLogo,templatesForCloud:templatesForCloud,setUserTemplates:function(v){userTemplates=v;},rebuildTemplateStyles:rebuildTemplateStyles,drawBrandLogo:drawBrandLogo,tplHasBrand:tplHasBrand,removeTemplateBrand:removeTemplateBrand,brandSyncUI:brandSyncUI,seedActiveStyle:seedActiveStyle,drawWatermark:drawWatermark,TPL_CLOUD_MAX:TPL_CLOUD_MAX,getBrandImgs:function(){return _brandImgs;},brandImgKey:brandImgKey,brandClearColors:brandClearColors,brandRemoveLogo:brandRemoveLogo,
 hookVariants:hookVariants,hookVariantList:hookVariantList,hookNextVariant:hookNextVariant,hookDupOfCaptions:hookDupOfCaptions,EMO_REL_SIDE:EMO_REL_SIDE,EMO_LOCAL_SEC:EMO_LOCAL_SEC,EMO_LOCAL_GAP:EMO_LOCAL_GAP,EMO_LOCAL_SAME:EMO_LOCAL_SAME,capToastAction:capToastAction,
-capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR};`;
+capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR,
+queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueClipOpened:queueClipOpened,hookLogoRect:hookLogoRect,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
+crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -3791,7 +3794,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(/class="cap-root"/.test(hv) && /data-oi="1"/.test(hv) && !/animation:captly/.test(hv), 'Vorschau Reveal: Wort-Spans mit data-oi, keine CSS-Animation');
       const hb = T.buildCap(['eins', 'zwei'], bk, 1, 22, [1, 1.5], 2, { em: null });
       ok(/class="cap-hlbox"/.test(hb) && !/padding:2px 9px/.test(hb) && /word-spacing:/.test(hb), 'Vorschau Box: eigene Flaeche, kein Padding am Wort, extra Wortabstand');
-      ok(Math.abs(T.capWordGap(bk) - (4 * T.capOutK() + T.CAP_PILL_GAP)) < 1e-9 && T.capWordGap(rv) === 0, 'Box-Styles: Wortabstand + Box-Gap');
+      ok(Math.abs(T.capWordGap(bk) - ((4 + T.CAP_PILL_GAP) * T.capOutK())) < 1e-9 && T.capWordGap(rv) === 0, 'Box-Styles: Wortabstand + Box-Gap');
       const hz2 = T.buildCap(['eins', 'zwei'], hz, 1, 22, [1, 1.5], 2, { em: null });
       ok(!/animation:captly/.test(hz2), 'Vorschau Highlight: Pop zeitbasiert statt CSS-Animation');
       const ed = T.buildCap(['eins', 'zwei'], ST('editorial'), 1, 22, [1, 1.5], 2, { em: null });
@@ -4439,7 +4442,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const stub = () => ({ _font: '', letterSpacing: '0px', calls: [], rects: [], lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
       get font() { return this._font; }, set font(v) { this._font = v; },
-      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: str === ' ' ? (m ? +m[1] : 16) * 0.2 : (str || '').length * (m ? +m[1] : 16) * 0.58 }; },
+      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * ((m ? +m[1] : 16) * 0.55 + (parseFloat(this.letterSpacing) || 0)) }; }, // = Mess-Stub oben (Auto-Fit und capLayout müssen gleich messen)
       fillText() {}, strokeText() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {} });
     const sets = { Standardsatz: 'Heute zeigen wir dir wie schnell das wirklich geht'.split(' '),
                    Kompositum: 'Die Donaudampfschifffahrtsgesellschaft ist Geschwindigkeitsbegrenzung Rindfleischverarbeitungsbetriebe'.split(' ') };
@@ -4455,7 +4458,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
           const bl = T.getBlocks ? T.getBlocks() : null; if (!bl || !bl[bi]) break;
           const L = T.capLayout(stub(), bl[bi], bi, 0, st, W, 1920);
           const wMax = Math.max.apply(null, L.lineWs);
-          const vis = wMax + (st.boxBg ? 36 * L.scale : 0) + ((st.hlPillBg && T.capMotion(st) === 'highlight') ? 2 * T.CAP_PILL_PAD_X * L.scale : 0);
+          const vis = wMax + (st.boxBg ? 36 * L.scale * T.capOutK() : 0) + ((st.hlPillBg && T.capMotion(st) === 'highlight') ? 2 * T.CAP_PILL_PAD_X * L.scale * T.capOutK() : 0);
           const l = (W - vis) / 2 / W * 100, r = 100 - l;
           if (r > 87.5 + 0.1 || l < 12.5 - 0.1) bad.push(nm + '/' + st.id + '#' + bi + ' ' + l.toFixed(1) + '–' + r.toFixed(1) + '%');
         }
@@ -4698,9 +4701,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(store['capivo.style'] === 'hormozi' && T.brandTplId() === gym.id, 'A1: zuletzt gewähltes Preset ändert das Standard-Template nicht');
       T.selectStyle('classic'); T.applyBrandOnOpen();
       ok(T.getActiveId() === gym.id, 'A1: neues Video: Standard-Template schlägt capivo.style: ' + T.getActiveId());
-      ok(T.landBrandId() === gym.id, 'A1: Startseite zeigt das Standard-Template als gewählt');
       T.toggleBrandTpl(gym.id); T.selectStyle('hormozi'); T.applyBrandOnOpen();
-      ok(T.getActiveId() === 'hormozi' && T.landBrandId() === '', 'A1: ohne Standard-Template gilt das zuletzt gewählte Preset');
+      ok(T.getActiveId() === 'hormozi', 'A1: ohne Standard-Template gilt das zuletzt gewählte Preset');
       T.setUserTemplates([]); T.loadTemplates(); T.selectStyle('hormozi');
       global.localStorage = prevLS; if (!prevLS) delete global.localStorage;
     }
@@ -4894,7 +4896,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
         try { return new Function(script + ';return activeId;')(); } finally { delete global.localStorage; }
       };
       ok(runWith({}) === 'hormozi' && runWith({ 'capivo.style': 'tight' }) === 'tight' && runWith({ 'capivo.style': 'mix' }) === 'mix', 'N1: ohne gespeicherte Wahl Bold Pop, gespeicherte Wahl (Tight/Mix) bleibt');
-      ok(/var LAND_CHIPS = \['hormozi',/.test(src), 'N1: Landing-Chips: Standard-Look steht vorn (renderLandChips markiert ihn über activeId als gewählt)');
+      ok(!/id="landChips"/.test(src) && !/function renderLandChips/.test(src) && !/\.hc-chip\{/.test(src), 'Landing ohne Style-Chips über dem Upload (die Looks zeigt die Showcase darunter)');
     }
     // Tight: Fade in nur 0,12 s, ease-out, Start > 0 — nur flash; kurze Wörter nie halbtransparent
     {
@@ -5366,13 +5368,18 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const om = htmlContent.slice(htmlContent.indexOf('var onMode = function()'), htmlContent.indexOf('var onMode = function()') + 1800);
     ok(/_tl\.wasPhone\s*=\s*tlPhone\(\)/.test(htmlContent) && /phNow !== _tl\.wasPhone/.test(om) && /if \(phNow\) \{ if \(_tl\.open && edTab !== 'timeline'\) tlSetOpen\(false, false\); \}/.test(om) && /localStorage\.getItem\(TL_OPEN_KEY\)/.test(om), 'N-Handy: Modus-Wechsel Desktop↔Handy schliesst/öffnet die Timeline (gemerkte Wahl bleibt)');
     ok(/tlSetOpen\(tlPhone\(\) \|\| tlShortScreen\(\) \? false : pref !== '0', false\)/.test(htmlContent), 'N-Handy: Start am Handy = Timeline zu, Desktop = gemerkte Wahl (TL_OPEN_KEY)');
-    // Zeilenbudget: ≥ 4 Zeilen im Captions-Tab bei 375×812 (Kopf: Tipp 44 + Video&Sprache 44 + Suchen 44 + Abstände)
+    // Zeilenbudget (R3-Rest): ≥ 5 Zeilen im Captions-Tab bei 375×812 UND Vorschau ≥ 160 px breit (Kopf: Video&Sprache + Suche in EINER Zeile 44, Cut-Zeile 44, Abstände;
+    // Format-Pille im Captions-Tab ausgeblendet; der einmalige Tipp 46 kommt dazu, bis er weggeklickt ist)
     const pcap = +(/^var PH_CAP_PREV = ([0-9.]+);/m.exec(htmlContent) || [])[1];
     ok(pcap >= 0.3 && pcap <= 0.48, 'N-Handy: Vorschau-Anteil im Captions-Tab kleiner als im Style-Tab (0,48): ' + pcap);
     ok(/\(edTab === 'captions' \? PH_CAP_PREV : 0\.48\)/.test(htmlContent) && /if \(tlPhone\(\) && name !== 'timeline' && !wasTl\) tlRelayout\(\)/.test(htmlContent), 'N-Handy: Vorschau-Grösse folgt dem Tab (switchTab → tlRelayout)');
-    const H = 812, topbar = 52, tabs = 65, header = 6 + 44 + 4 + 44 + 4 + 44 + 4, rowPitch = 44 + 4;
+    const H = 812, topbar = 52, tabs = 65, header = 4 + 44 + 4 + 44 + 4, rowPitch = 44 + 4;
     const free = H - topbar - Math.round(H * pcap) - tabs;
-    ok(free >= header + 4 * rowPitch, 'N-Handy: 375×812 — Platz für Kopf + 4 Zeilen: ' + free + ' ≥ ' + (header + 4 * rowPitch));
+    ok(free >= header + 5 * rowPitch - 4, 'N-Handy: 375×812 — Platz für Kopf + 5 Zeilen: ' + free + ' ≥ ' + (header + 5 * rowPitch - 4));
+    const prevW = Math.round((Math.round(H * pcap) - 8 - 54 - 6) * 9 / 16);
+    ok(prevW >= 160, 'N-Handy: 375×812 — Vorschau im Captions-Tab ' + prevW + ' px breit (≥ 160; vorher 125)');
+    ok(/#editor:not\(\.ed-style\):not\(\.tl-mode\) \.fmt-pill\{display:none\}/.test(css) && /\.cap-editor\[style\*="block"\]\{display:contents!important\}/.test(css) && /\.cap-editor\[style\*="block"\] > \.fr-box\{order:2;flex:0 0 44px/.test(css), 'N-Handy: Format-Pille nur im Captions-Tab weg; «Find & replace» als 44-px-Symbol in der Zeile von «Video & language»');
+    ok(/gapV = parseFloat\(pcs\.rowGap\)/.test(htmlContent) && /ctrlH - gapV - tlReservedHeight\(\)/.test(htmlContent), 'N-Handy: Vorschau-Höhe rechnet mit dem echten Abstand (Handy 6 px, Desktop 12 px)');
     ok(/\.cap-seg\{min-height:44px;align-items:center\}/.test(css) && /\.cap-seg-ta\{overflow-y:hidden\}/.test(css), 'N-Handy: Zeilen 44 px hoch, kein Scrollbalken im Textfeld');
     // Kein horizontales Scrollen: Zeilen der Kopfzeile schrumpfen (Titel), Schalter/Regler brechen bei 320 px um
     ok(/@media \(max-width:380px\)\{\.sz-row\{flex-wrap:wrap\}\}/.test(css) && /\.tb-title\{min-height:44px;min-width:44px\}/.test(css), 'N-Handy: 320 px — Regler-Zeilen umbrechen, Titel bleibt ≥ 44 px');
@@ -5672,13 +5679,6 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   // ═════════════════════════════════════════════════════════════════
   {
     const E = id => document.getElementById(id);
-    // B2: Landing — eigene Templates als Gruppe vor den Looks, Standard zuerst + markiert
-    const rl = htmlContent.slice(htmlContent.indexOf('function renderLandChips()'), htmlContent.indexOf('function pickLandStyle('));
-    ok(/addGrp\(LT\.myTpl\);[\s\S]*tpls\.forEach[\s\S]*addGrp\(LT\.looks\);[\s\S]*ids\.forEach/.test(rl), 'B2: Landing-Chips: «My templates» vor «Looks»');
-    ok(/id === bid \? '<span class="hc-dflt">/.test(rl) && /if \(tpls\.length\)/.test(rl), 'B2: Standard-Template mit Abzeichen; ohne Templates keine Gruppen (Landing wie vorher)');
-    ok(/s\.id === cur && !s\._isTpl/.test(rl), 'B2: gewähltes Template wird nicht zusätzlich als Look vorangestellt');
-    ok(/\.hc-chip\{min-height:44px\}/.test(htmlContent) && /\.hc-chips\{display:flex;gap:8px;overflow-x:auto/.test(htmlContent), 'B2: Chips ≥ 44 px, Reihe horizontal scrollbar');
-    ok(/myTpl: 'My templates'/.test(htmlContent) && /myTpl: 'Meine Templates'/.test(htmlContent), 'B2: Landing-Texte EN + DE');
     {
       const store = {}; const prevLS = global.localStorage;
       global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
@@ -5692,8 +5692,6 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       T.toggleBrandTpl(A.id); T.toggleBrandTpl(B.id);
       order = T.landTemplates(T.brandTplId()).map(x => x.name);
       ok(order[0] === 'Kunde B', 'B2: neuer Standard rückt nach vorn: ' + order.join(','));
-      const lbl = T.landPickLabel(T.STYLES.find(x => x.id === B.id), B.id);
-      ok(/^★ Kunde B/.test(lbl) && T.landPickLabel(T.STYLES.find(x => x.id === 'hormozi'), B.id).indexOf('★') < 0, 'B2: Beschriftung markiert nur das Standard-Template: ' + lbl);
       // Template-Wahl auf der Landing → neues Video: Format/Fill aus dem Template (B1), schlägt das Standard-Template
       const A2 = T.getUserTemplates().find(t => t.name === 'Kunde A'), B2 = T.getUserTemplates().find(t => t.name === 'Kunde B');
       B2.layout = Object.assign({}, B2.layout, { aspect: '1:1', fill: 'blur' }); A2.layout = Object.assign({}, A2.layout, { aspect: '16:9', fill: 'crop' }); A2.updatedAt = B2.updatedAt = Date.now() + 5000; T.persistTemplates(); T.loadTemplates();
@@ -6051,17 +6049,17 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(T.localEmojis([mkB('Tipp des Tages', 0)]) === 1 && T.localEmojis([]) === 0, 'Einzelner Block: höchstens ein Emoji; leere Liste: 0');
       ok(/localEmojis\(captionBlocks\)/.test(script) && /localEmojis\(blocks\)/.test(script), 'runEnhance: lokaler Emoji-Fallback in beiden Ohne-KI-Pfaden');
     }
-    // 10) Typewriter: alle Zeilen linksbündig zur breitesten Zeile (Breite der fertigen Zeile bleibt reserviert), Vorschau = Export
+    // 10) Typewriter (R3-Rest): jede Zeile in der Endbreite mittig (reserviert), die sichtbare Teilzeile wird mittig gerückt (Block «Typewriter mittig» am Ende)
     {
       const tw = g('typewriter'), b = { text: 'damit deine Reels', start: 0, end: 2, words: ['damit', 'deine', 'Reels'].map((w, i) => ({ word: w, start: i * 0.6, end: i * 0.6 + 0.55 })) };
       T.setLinesState(2);
       const mk = () => document.createElement('canvas').getContext('2d');
       const L = T.capLayout(mk(), b, 0, 1, tw, 1080, 1920), xs = L.lines.map(Ln => Ln[0].x), widest = Math.max.apply(null, L.lineWs);
-      ok(L.lines.length === 2 && near(xs[0], xs[1]) && near(xs[0], 540 - widest / 2) && L.lineWs[0] < L.lineWs[1], 'Typewriter: beide Zeilen beginnen am selben x, die breiteste ist mittig (' + xs.map(x => x.toFixed(1)).join(' / ') + ')');
+      ok(L.lines.length === 2 && xs.every((x, i) => near(x, 540 - L.lineWs[i] / 2)) && L.lineWs[0] < L.lineWs[1], 'Typewriter: jede Zeile in ihrer Endbreite mittig (' + xs.map(x => x.toFixed(1)).join(' / ') + ')');
       const hm = Object.assign({}, g('hormozi')), Lh = T.capLayout(mk(), b, 0, 1, hm, 1080, 1920);
       ok(Lh.lines.length < 2 || Lh.lines[0][0].x > Lh.lines[1][0].x || near(Lh.lines[0][0].x, Lh.lines[1][0].x), 'Andere Looks bleiben zentriert (kürzere Zeile weiter rechts)');
       const dom = T.buildCap(['damit', 'deine', 'Reels'], tw, 1, 22, [0, 0.6, 1.2], 2);
-      ok((dom.match(/display:block;white-space:nowrap;text-align:left/g) || []).length === 2 && !/text-align:left/.test(T.buildCap(['damit', 'deine', 'Reels'], g('hormozi'), 1, 22, [0, 0.6, 1.2], 2)), 'Typewriter-DOM: Zeilen text-align:left (nur dieser Look)');
+      ok((dom.match(/display:block;white-space:nowrap">/g) || []).length === 2 && !/text-align:left/.test(dom), 'Typewriter-DOM: Zeilen zentriert (kein text-align:left mehr)');
     }
   }
 
@@ -6411,9 +6409,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const rel = T.EMO_REL_SIDE / fsEm;
       ok(rel >= 1.6 && rel <= 2.0, 'R3-Sticker: Emoji = ' + rel.toFixed(2) + ' × gezeichnete Schrift (EMO_REL_SIDE ' + T.EMO_REL_SIDE + ' / fs ' + fsEm + ')');
       const hs = T.buildCap(['ab', 'cd'], st, 0, 25, [0, 0.5], 2, { emoji: '🔥', age: 1 });
-      const fpx = +/font-size:(\d+)px;line-height:1;text-align:center/.exec(hs.slice(hs.indexOf('cap-emo')))[1];
-      ok(fpx === Math.round(25 * T.EMO_REL_SIDE) && fpx / (25 * fsEm) >= 1.6, 'R3-Sticker: Vorschau-DOM Emoji ' + fpx + ' px bei Basisschrift 25 px (' + (fpx / (25 * fsEm)).toFixed(2) + ' × gezeichnete Schrift)');
-      ok(/var Es = Math\.round\(\(px \|\| 24\) \* EMO_REL_SIDE\)/.test(script) && /var Es = Math\.round\(L\.fitPx \* EMO_REL_SIDE\) \* L\.scale/.test(script), 'R3-Sticker: Vorschau und Export-Zeichnung rechnen mit derselben Konstante EMO_REL_SIDE');
+      const fpx = +/font-size:([\d.]+)px;line-height:1;text-align:center/.exec(hs.slice(hs.indexOf('cap-emo')))[1];
+      ok(Math.abs(fpx - 25 * T.EMO_REL_SIDE) < 0.01 && fpx / (25 * fsEm) >= 1.6, 'R3-Sticker: Vorschau-DOM Emoji ' + fpx + ' px bei Basisschrift 25 px (' + (fpx / (25 * fsEm)).toFixed(2) + ' × gezeichnete Schrift)');
+      ok(/var Es = \(px \|\| 24\) \* EMO_REL_SIDE/.test(script) && /var Es = L\.fitPx \* EMO_REL_SIDE \* L\.scale/.test(script), 'R3-Sticker: Vorschau und Export-Zeichnung rechnen mit derselben Konstante EMO_REL_SIDE');
     }
     // 4) Handy-Captions-Tab / Timeline-Leiste: Kurzwörter, kompakter Format-Hinweis
     {
@@ -6488,6 +6486,589 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     frameEl.style.width = prevW; frameEl.style.height = prevH; T.setFontSizeState(prevFs);
     T.setActiveId(prevId); T.setWpbState(prevWpb); T.setMaxCharsState(prevMc); T.setLines({ dataset: { lines: String(prevLines) }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
+  }
+
+  // ═══════════════ C5 Brand-Kit: Template-Erweiterung (Logo, Farben, Schrift, Safe-Zone-Vorgabe) ═══════════════
+  {
+    const PNG1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const mkLogo = (o) => Object.assign({ data: PNG1, w: 512, h: 256, pos: 'tl', size: 20, opacity: 0.9, margin: 4 }, o || {});
+    const store = {};
+    const prevLS = global.localStorage;
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    const E = id => document.getElementById(id);
+    const near = (a, b, e) => Math.abs(a - b) <= e;
+    T.setUserTemplates([]); T.rebuildTemplateStyles(); T.brandSetLive(null);
+
+    // 1) Sanitizing: Farben nur #rgb/#rrggbb, Logo nur echte PNG/JPEG/WebP-Data-URLs ≤ Limit, kein SVG/JS
+    ok(T.brandHex('#ABC') === '#aabbcc' && T.brandHex(' #112233 ') === '#112233', 'C5 brandHex: #rgb/#rrggbb, klein geschrieben');
+    ok(['red', '#12', '#12345', '#gggggg', 'rgb(1,2,3)', 'red;background:url(//x)', '#fff;x', '', null, undefined, 5].every(v => T.brandHex(v) === ''), 'C5 brandHex: böse/ungültige Farben abgelehnt');
+    const evil = T.sanitizeBrand({ colors: { text: 'red;background:url(//x)', highlight: '#FA0' }, font: "Inter'\"><img src=x onerror=alert(1)>", safe: 'evil', onload: 'x', __proto__: { polluted: 1 },
+      logo: { data: 'data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+', w: 10, h: 10 } });
+    ok(evil && evil.colors && evil.colors.text === undefined && evil.colors.highlight === '#ffaa00', 'C5 sanitize: böse Textfarbe fällt weg, gültige Akzentfarbe bleibt');
+    ok(!evil.logo && !evil.safe && evil.onload === undefined && !/[<>"']/.test(evil.font || ''), 'C5 sanitize: SVG-Logo, unbekannte Safe-Zone und Fremdfelder entfernt, Schrift bereinigt');
+    ok(({}).polluted === undefined, 'C5 sanitize: kein Prototype-Pollution');
+    const badLogos = ['data:image/svg+xml;base64,' + 'PHN2Zz4='.repeat(5), 'javascript:alert(1)', 'data:text/html;base64,PGgxPg==PGgxPg==', 'data:image/png;base64,' + Buffer.from('<svg onload=alert(1)></svg>').toString('base64'),
+      'data:image/png;base64,' + 'iVBORw0KGgo' + 'A'.repeat(400001), 'data:image/png;base64,iVBORw0KGgo!!!!!!!!!!!', 'data:image/gif;base64,R0lGODlhAQABAAAAACw=R0lGODlhAQABAAAAACw=', 'https://x.test/logo.png', 5, null, {}];
+    ok(badLogos.every(d => T.sanitizeBrand({ logo: mkLogo({ data: d }) }) === null), 'C5 sanitize: SVG / javascript: / text/html / falsche Signatur / zu gross / fremder Typ → kein Logo');
+    ok(T.brandLogoOk(PNG1) && T.brandLogoOk('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQ') && T.brandLogoOk('data:image/webp;base64,UklGRhoAAABXRUJQVlA4'), 'C5 brandLogoOk: PNG/JPEG/WebP mit passender Signatur erlaubt');
+    ok(!T.brandLogoOk('data:image/png;base64,/9j/4AAQSkZJRgABAQ'), 'C5 brandLogoOk: JPEG-Bytes als PNG getarnt abgelehnt');
+    const lim = T.sanitizeBrand({ logo: mkLogo({ pos: 'zz', size: 99, opacity: 0, margin: 50 }) }).logo;
+    ok(lim.pos === 'tl' && lim.size === 30 && lim.opacity === 0.2 && lim.margin === 10, 'C5 sanitize: Position/Grösse 5–30/Deckkraft 0,2–1/Rand werden begrenzt: ' + JSON.stringify([lim.pos, lim.size, lim.opacity, lim.margin]));
+    ok(T.sanitizeBrand({ logo: mkLogo({ size: 1 }) }).logo.size === 5 && T.sanitizeBrand({ logo: mkLogo({ opacity: 7 }) }).logo.opacity === 1, 'C5 sanitize: Grenzen unten/oben');
+    ok(T.sanitizeBrand({ logo: mkLogo({ w: 0 }) }) === null && T.sanitizeBrand({ logo: mkLogo({ h: 99999 }) }) === null && T.sanitizeBrand({ logo: mkLogo({ w: 'x' }) }) === null, 'C5 sanitize: ungültige Logo-Masse → Logo verworfen');
+    ok(T.sanitizeBrand(null) === null && T.sanitizeBrand([1]) === null && T.sanitizeBrand('x') === null && T.sanitizeBrand({}) === null, 'C5 sanitize: kein Objekt / leer → null');
+    ok(T.sanitizeBrand({ safe: 'tiktok' }).safe === 'tiktok' && T.sanitizeBrand({ logoLocal: true }).logoLocal === true && T.sanitizeBrand({ logo: mkLogo(), logoLocal: true }).logoLocal === undefined, 'C5 sanitize: Safe-Zone, logoLocal (nur ohne Bild)');
+    // zu grosses Logo (> 300 KB Binär = 400 000 Base64-Zeichen)
+    const BIG = 'data:image/png;base64,iVBORw0KGgo' + 'A'.repeat(399989);
+    ok(T.brandLogoOk(BIG) && !T.brandLogoOk(BIG + 'AAAAAAAAAAAA'), 'C5 Logo-Limit: 400 000 Base64-Zeichen (≈ 300 KB) erlaubt, darüber nicht');
+
+    // 2) Abwärtskompatibilität: Template ohne `brand` bleibt unverändert gültig
+    {
+      const old = { id: 'tpl_1700000000001', name: 'Alt', style: { fl: 'Inter', tc: '#ffffff', hl: '#ff0000' }, layout: { pos: 'top', size: 30 }, createdAt: 1, updatedAt: 2 };
+      const n = T.normalizeTemplate(JSON.parse(JSON.stringify(old)));
+      ok(n && n.brand === undefined && !('brand' in n) && n.style.hl === '#ff0000' && n.layout.pos === 'top', 'C5 alt: Template ohne brand bleibt ohne brand');
+      T.setUserTemplates([n]); T.rebuildTemplateStyles();
+      const st = T.STYLES.find(x => x.id === n.id);
+      ok(st && st._brand === undefined && st.hl === '#ff0000' && st.tc === '#ffffff', 'C5 alt: Look unverändert (keine Kit-Farben)');
+      T.selectStyle(n.id);
+      ok(T.getBrandLive() === null && T.getSafeKey() === 'reels' && T.SAFE_ZONE.bottom === 23.44, 'C5 alt: kein Kit, Safe-Zone bleibt Reels');
+      ok(!T.tplHasBrand(n.id), 'C5 alt: tplHasBrand false');
+      T.setUserTemplates([]); T.rebuildTemplateStyles();
+    }
+
+    // 3) Farb-/Schrift-Override beim Anwenden (inkl. Verläufe, Pill, Glow)
+    {
+      const kit = { colors: { text: '#112233', highlight: '#ff8800' }, font: 'Anton' };
+      const a = T.applyBrandToStyle({ tc: '#fff', hl: '#facc15', hls: '0 0 14px #facc15, 0 2px 4px #000', fl: 'Inter', font: "'Inter'", hlFont: "'Inter'" }, kit);
+      ok(a.tc === '#112233' && a.hl === '#ff8800' && /0 0 14px #ff8800/.test(a.hls) && /0 2px 4px #000/.test(a.hls) && a.fl === 'Anton' && a.font === "'Anton'" && a.hlFont === undefined, 'C5 Override: Textfarbe, Akzent (inkl. Glow), Schrift');
+      const g = T.applyBrandToStyle({ tg: 'linear-gradient(90deg,#f00,#00f)', tc: '#fff', hlg: 'linear-gradient(#f00,#0f0)', hlCycle: ['#f00', '#0f0'], hl: '#f00' }, kit);
+      ok(g.tg === undefined && g.tc === '#112233' && g.hlg === undefined && g.hlCycle === undefined && g.hl === '#ff8800', 'C5 Override: Verläufe/Farbwechsel werden einfarbig durch die Kit-Farbe ersetzt');
+      const pl = T.applyBrandToStyle({ hlPillBg: '#22c55e', hlc: '#06240f', hls: '0 0 10px #22c55e', hl: '#fff' }, { colors: { highlight: '#fde047' } });
+      ok(pl.hlPillBg === '#fde047' && pl.hlc === '#111' && pl.hls === '0 0 10px #fde047', 'C5 Override: Pill-Looks färben die Pill, Schrift darauf kontrastreich');
+      const only = T.applyBrandToStyle({ tc: '#fff', hl: '#f00' }, { font: 'Oswald' });
+      ok(only.tc === '#fff' && only.hl === '#f00' && only.fl === 'Oswald', 'C5 Override: nur Schrift gesetzt → Farben bleiben');
+      ok(T.applyBrandToStyle({ tc: '#abc' }, null).tc === '#abc', 'C5 Override: ohne Kit unverändert');
+      // Über das Template: STYLES-Eintrag trägt Kit-Farben; Kit ist nicht aufzählbar (keine Logo-Daten in JSON.stringify(style))
+      const t = T.normalizeTemplate({ id: 'tpl_kitA', name: 'Kit A', style: { fl: 'Inter', tc: '#ffffff', hl: '#facc15' }, brand: { colors: { text: '#001122', highlight: '#33aa55' }, logo: mkLogo(), safe: 'tiktok' } });
+      T.setUserTemplates([t]); T.rebuildTemplateStyles();
+      const st = T.STYLES.find(x => x.id === 'tpl_kitA');
+      ok(st.tc === '#001122' && st.hl === '#33aa55' && st._brand && st._brand.logo.w === 512 && !/iVBOR/.test(JSON.stringify(st)), 'C5 Template: Look trägt Kit-Farben; _brand nicht in JSON.stringify(style)');
+      ok(!('_brand' in T.cloneStyle(st)) && !('brand' in T.cloneStyle(st)), 'C5 cloneStyle gibt das Kit nicht an Custom/Vorlagen-Styles weiter');
+      T.setUserTemplates([]); T.rebuildTemplateStyles();
+    }
+
+    // 4) Safe-Zone-Presets: Reels = heutige Werte, Kit setzt das Preset beim Anwenden, Rückkehr zu Reels
+    {
+      const P = T.SAFE_ZONE_PRESETS;
+      ok(P.reels.top === 11.46 && P.reels.right === 12.5 && P.reels.bottom === 23.44 && P.reels.left === 0, 'C5 Safe: Preset «reels» = bisherige Werte');
+      ok(JSON.stringify(T.SAFE_ZONE) === JSON.stringify(P.reels) && T.getSafeKey() === 'reels', 'C5 Safe: Standard ist Reels');
+      ok(['reels', 'tiktok', 'shorts', 'off'].every(k => P[k] && ['top', 'right', 'bottom', 'left'].every(f => typeof P[k][f] === 'number' && P[k][f] >= 0) && P[k].top + P[k].bottom < 50 && P[k].left + P[k].right < 30), 'C5 Safe: alle Presets vollständig und plausibel');
+      ok(near(P.tiktok.top, 130 / 19.2, 0.05) && near(P.tiktok.bottom, 484 / 19.2, 0.05) && near(P.tiktok.right, 140 / 10.8, 0.05) && near(P.shorts.bottom, 380 / 19.2, 0.05), 'C5 Safe: TikTok/Shorts entsprechen den dokumentierten px-Werten (1080×1920)');
+      const baseTop = T.capTopPct(0), baseBot = T.capBottomPct(0);
+      T.brandSetLive({ safe: 'tiktok' });
+      ok(T.getSafeKey() === 'tiktok' && T.SAFE_ZONE.bottom === P.tiktok.bottom && T.SAFE_ZONE.top === P.tiktok.top && T.SAFE_ZONE.left === P.tiktok.left, 'C5 Safe: Kit setzt TikTok-Preset');
+      ok(T.capBottomPct(-40) === Math.round((P.tiktok.bottom + 1) * 100) / 100 && T.capTopPct(60) === Math.round((P.tiktok.top + 1) * 100) / 100, 'C5 Safe: Caption-Mindestabstände folgen dem Preset (Vorschau = Export nutzen dieselben Werte)');
+      T.brandSetLive({ safe: 'shorts' }); ok(T.SAFE_ZONE.bottom === P.shorts.bottom && T.getSafeKey() === 'shorts', 'C5 Safe: Shorts');
+      T.brandSetLive({ safe: 'off' }); ok(T.SAFE_ZONE.top === 0 && T.SAFE_ZONE.bottom === 0 && T.SAFE_ZONE.right === 0, 'C5 Safe: Aus');
+      T.brandSetLive(null);
+      ok(JSON.stringify(T.SAFE_ZONE) === JSON.stringify(P.reels) && T.getSafeKey() === 'reels' && T.capTopPct(0) === baseTop && T.capBottomPct(0) === baseBot, 'C5 Safe: ohne Kit zurück auf Reels (Werte wie vor dem Kit)');
+      ok(T.safePresetSet('gibts-nicht') === false && T.getSafeKey() === 'reels', 'C5 Safe: unbekanntes Preset → Reels, keine Änderung');
+    }
+
+    // 5) Logo-Rechteck: Ecke/Grösse bei 9:16 und 16:9, innerhalb der Safe-Zone, Wasserzeichen-Ausweichen, Vorschau = Export
+    {
+      const P = T.SAFE_ZONE_PRESETS, lg = mkLogo(); // 512×256, 20 % der Breite, Rand 4 %
+      const inside = (r, W, H, z) => r.x >= W * z.left / 100 - 1e-6 && r.x + r.w <= W * (1 - z.right / 100) + 1e-6 && r.y >= H * z.top / 100 - 1e-6 && r.y + r.h <= H * (1 - z.bottom / 100) + 1e-6;
+      for (const [W, H, tag] of [[1080, 1920, '9:16'], [1920, 1080, '16:9'], [1080, 1080, '1:1']]) {
+        for (const key of ['reels', 'tiktok', 'shorts', 'off']) {
+          for (const pos of ['tl', 'tr', 'bl', 'br']) {
+            const r = T.brandLogoRect(W, H, mkLogo({ pos }), key, false);
+            ok(inside(r, W, H, P[key]), 'C5 Logo ' + tag + ' ' + key + ' ' + pos + ': innerhalb der Safe-Zone ' + JSON.stringify(r));
+            ok(near(r.w, W * 0.2, 1e-6) && near(r.h, W * 0.1, 1e-6), 'C5 Logo ' + tag + ' ' + key + ' ' + pos + ': Breite 20 % der Videobreite, Seitenverhältnis 2:1');
+          }
+        }
+      }
+      const tl = T.brandLogoRect(1080, 1920, mkLogo({ pos: 'tl' }), 'reels', false);
+      ok(near(tl.x, 43.2, 1e-6) && near(tl.y, 1920 * 0.1146 + 43.2, 1e-6), 'C5 Logo 9:16 oben links: Rand 4 % ab Safe-Zone: x=' + tl.x.toFixed(1) + ' y=' + tl.y.toFixed(1));
+      const br = T.brandLogoRect(1080, 1920, mkLogo({ pos: 'br' }), 'reels', false);
+      ok(near(br.x + br.w, 1080 * 0.875 - 43.2, 1e-6) && near(br.y + br.h, 1920 * (1 - 0.2344) - 43.2, 1e-6), 'C5 Logo 9:16 unten rechts: oberhalb der Profilzeile, links von der Icon-Spalte');
+      const off = T.brandLogoRect(1080, 1920, mkLogo({ pos: 'tr' }), 'off', false);
+      ok(near(off.x + off.w, 1080 - 43.2, 1e-6) && near(off.y, 43.2, 1e-6), 'C5 Logo ohne Safe-Zone: nur Rand zum Bildrand');
+      const hi = T.brandLogoRect(1080, 1920, mkLogo({ w: 10, h: 1000, size: 30 }), 'off', false);
+      ok(hi.h <= 1920 * 0.3 + 1e-6, 'C5 Logo: sehr hohes Logo wird auf 30 % der Höhe begrenzt');
+      // Wasserzeichen: drawWatermark-Fläche (Referenz über einen Aufzeichnungs-Kontext) und Logo kollidieren nie
+      const rec = []; const ctxW = { font: '', measureText(t) { const m = /([\d.]+)px/.exec(this.font); return { width: t.length * (m ? +m[1] : 16) * 0.6 }; }, save() {}, restore() {}, fillText(t, x, y) { rec.push({ t, x, y }); }, fillRect(x, y, w, h) { rec.push({ rect: [x, y, w, h] }); } };
+      T.drawWatermark(ctxW, 1080, 1920, true);
+      const wr = rec.find(r => r.rect).rect, wm = T.brandWmRect(1080, 1920);
+      ok(wr[0] >= wm.x0 && wr[0] + wr[2] <= wm.x1 + 1 && wr[1] >= wm.y0 - 1 && wr[1] + wr[3] <= wm.y1 + 1, 'C5 Wasserzeichen-Fläche (brandWmRect) deckt das gezeichnete Gluephs-Zeichen ab: ' + wr.map(Math.round) + ' ⊂ ' + [wm.x0, wm.y0, wm.x1, wm.y1].map(Math.round));
+      for (const [W, H] of [[1080, 1920], [1920, 1080]]) {
+        for (const key of ['reels', 'off']) {
+          const r = T.brandLogoRect(W, H, mkLogo({ pos: 'br', size: 30 }), key, true), w2 = T.brandWmRect(W, H);
+          const hit = r.x < w2.x1 && r.x + r.w > w2.x0 && r.y < w2.y1 && r.y + r.h > w2.y0;
+          ok(!hit, 'C5 Logo ' + W + '×' + H + ' ' + key + ' unten rechts kollidiert nicht mit dem Gluephs-Zeichen');
+          if (key === 'reels') ok(inside(r, W, H, P.reels), 'C5 Logo ' + W + '×' + H + ' mit Zeichen bleibt in der Safe-Zone');
+        }
+      }
+      // Vorschau (270×480 px) = Export (1080×1920 px): gleiche Anteile
+      for (const wmOn of [false, true]) for (const pos of ['tl', 'tr', 'bl', 'br']) {
+        const a = T.brandLogoRect(270, 480, mkLogo({ pos }), 'tiktok', wmOn), b = T.brandLogoRect(1080, 1920, mkLogo({ pos }), 'tiktok', wmOn);
+        ok(near(a.x / 270, b.x / 1080, 0.001) && near(a.y / 480, b.y / 1920, 0.001) && near(a.w / 270, b.w / 1080, 1e-9), 'C5 Vorschau = Export (Anteile) ' + pos + (wmOn ? ' mit Zeichen' : ''));
+      }
+      // drawBrandLogo zeichnet exakt dieses Rechteck mit der Deckkraft des Kits
+      const calls = []; const ctxD = { save() {}, restore() {}, drawImage(...a) { calls.push(a); } };
+      const kit = { logo: mkLogo({ pos: 'bl', opacity: 0.6 }), safe: 'shorts' };
+      T.drawBrandLogo(ctxD, 1080, 1920, kit, false);
+      ok(calls.length === 0, 'C5 drawBrandLogo: Bild noch nicht dekodiert → nichts gezeichnet, kein Fehler');
+      T.getBrandImgs()[T.brandImgKey(kit.logo.data)] = { img: { tag: 'img' }, ok: true };
+      T.drawBrandLogo(ctxD, 1080, 1920, kit, false);
+      const rr = T.brandLogoRect(1080, 1920, kit.logo, 'shorts', false);
+      ok(calls.length === 1 && calls[0][0].tag === 'img' && near(calls[0][1], rr.x, 1e-9) && near(calls[0][2], rr.y, 1e-9) && near(calls[0][3], rr.w, 1e-9) && near(calls[0][4], rr.h, 1e-9) && ctxD.globalAlpha === 0.6, 'C5 drawBrandLogo: Rechteck + Deckkraft wie brandLogoRect');
+      T.drawBrandLogo(ctxD, 1080, 1920, null, false); T.drawBrandLogo(ctxD, 1080, 1920, { safe: 'tiktok' }, false);
+      ok(calls.length === 1, 'C5 drawBrandLogo: ohne Kit/Logo nichts gezeichnet');
+    }
+
+    // 6) Speichern → Anwenden → Export/Import-Rundreise mit Logo; Kit nur zusammen mit Template
+    {
+      T.setUserTemplates([]); T.rebuildTemplateStyles();
+      T.selectStyle('hormozi');
+      T.brandSetLive({ logo: mkLogo({ pos: 'br' }), colors: { text: '#102030', highlight: '#aa00ff' }, safe: 'shorts' });
+      E('tplName').value = 'Kunde A';
+      T.saveTemplate();
+      let a = T.getUserTemplates().find(t => t.name === 'Kunde A');
+      ok(a && a.brand && a.brand.logo.pos === 'br' && a.brand.safe === 'shorts' && a.brand.colors.highlight === '#aa00ff', 'C5 saveTemplate: Kit wird mit dem Template gespeichert');
+      ok(a.style.tc === '#102030' && a.style.hl === '#aa00ff', 'C5 saveTemplate: Kit-Farben stecken im gespeicherten Look');
+      ok(JSON.parse(store.capivo_templates).find(t => t.id === a.id).brand.logo.data === PNG1, 'C5 Speicher: Schlüssel bleibt capivo_templates, Logo liegt im Template');
+      // Anwenden: anderes Template → Kit weg + Reels; zurück → Kit, Safe-Zone Shorts
+      T.selectStyle('classic');
+      ok(T.getBrandLive() === null && T.getSafeKey() === 'reels', 'C5 Anwenden: Look ohne Kit → kein Logo, Safe-Zone Reels');
+      T.selectStyle(a.id);
+      ok(T.getBrandLive() && T.getBrandLive().logo.pos === 'br' && T.getSafeKey() === 'shorts' && T.SAFE_ZONE.bottom === T.SAFE_ZONE_PRESETS.shorts.bottom, 'C5 Anwenden: Template mit Kit → Logo + Safe-Zone Shorts');
+      // Editor öffnen / Projekt wiederherstellen setzen activeId direkt → seedActiveStyle übernimmt das Kit der Vorlage
+      T.selectStyle('classic'); T.setActiveId(a.id); T.seedActiveStyle();
+      ok(T.getBrandLive() && T.getBrandLive().logo && T.getSafeKey() === 'shorts', 'C5 Editor öffnen: Standard-Vorlage mit Kit bringt Logo + Safe-Zone mit (seedActiveStyle)');
+      T.selectStyle('classic'); T.setActiveId('classic'); T.seedActiveStyle();
+      ok(T.getBrandLive() === null && T.getSafeKey() === 'reels', 'C5 Editor öffnen: Look ohne Kit → Reels, kein Logo');
+      T.selectStyle(a.id);
+      // Kit ohne Inhalt (nur Reels) erzeugt kein Kit
+      T.selectStyle('hormozi'); T.brandSetLive({ safe: 'reels' }); E('tplName').value = 'Ohne Kit'; T.saveTemplate();
+      ok(!T.getUserTemplates().find(t => t.name === 'Ohne Kit').brand, 'C5 saveTemplate: nur «Reels» ohne sonstigen Inhalt → kein brand-Feld');
+      // Export → Import
+      const list = T.getUserTemplates().filter(t => !t.deleted);
+      const ex = T.buildTemplateExport(list, []);
+      const json = JSON.stringify(ex.data);
+      ok(JSON.parse(json).templates.find(t => t.name === 'Kunde A').brand.logo.data === PNG1, 'C5 Export: Kit inkl. Logo steckt in der Datei');
+      const before = JSON.stringify(T.getUserTemplates().find(t => t.name === 'Kunde A').brand);
+      T.setUserTemplates([]); T.rebuildTemplateStyles();
+      const res = T.importTemplatesFromText(json);
+      const b2 = T.getUserTemplates().find(t => t.name === 'Kunde A');
+      ok(res.imported === 2 && !res.logosDropped && b2 && JSON.stringify(b2.brand) === before, 'C5 Rundreise: Kit nach Export → Import identisch');
+      ok(T.STYLES.find(x => x.id === b2.id)._brand.logo.data === PNG1, 'C5 Rundreise: importierte Vorlage trägt das Logo');
+      // Import validiert: SVG/JS/zu gross → Template kommt an, Logo nicht; Meldung
+      const doc = JSON.stringify({ app: 'gluephs', kind: 'templates', v: 2, templates: [
+        { id: 'tpl_bad1', name: 'Böse 1', style: { fl: 'Inter' }, brand: { logo: mkLogo({ data: 'data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+PC9zdmc+' }), colors: { text: 'red;x' } } },
+        { id: 'tpl_bad2', name: 'Böse 2', style: { fl: 'Inter' }, brand: { logo: mkLogo({ data: BIG + 'AAAAAAAAAAAA' }), safe: 'tiktok' } }] });
+      const r2 = T.importTemplatesFromText(doc);
+      const b1 = T.getUserTemplates().find(t => t.name === 'Böse 1'), bb2 = T.getUserTemplates().find(t => t.name === 'Böse 2');
+      ok(r2.imported === 2 && r2.logosDropped === 2 && !b1.brand && bb2.brand.safe === 'tiktok' && !bb2.brand.logo, 'C5 Import: abgelehnte Logos gezählt, Template + gültige Teile bleiben: ' + JSON.stringify(r2));
+      ok(/2 logos skipped/.test(T.importTemplateMessage(r2)), 'C5 Import-Meldung nennt übersprungene Logos: ' + T.importTemplateMessage(r2));
+      // Duplizieren behält das Kit, «Kit entfernen» löscht es
+      T.duplicateTemplate(b2.id);
+      const dupl = T.getUserTemplates().find(t => t.name === 'Kunde A copy');
+      ok(dupl && dupl.brand && dupl.brand.logo.data === PNG1, 'C5 Duplizieren: Kit wird mitkopiert');
+      T.removeTemplateBrand(dupl.id);
+      ok(!T.getUserTemplates().find(t => t.id === dupl.id).brand && T.getUserTemplates().find(t => t.id === b2.id).brand, 'C5 Kit entfernen: nur bei dieser Vorlage');
+      // Eigene Schrift im Kit reist im Export mit
+      ok(T.templateFontNames && T.templateFontNames({ style: { fl: 'Inter' }, brand: { font: 'MeineSchrift' } }).indexOf('MeineSchrift') >= 0, 'C5 Export: Kit-Schrift zählt zu den mitzuliefernden Schriften');
+    }
+
+    // 7) Cloud: Logo-Summe begrenzen (Logos bleiben lokal), Merge verliert das lokale Logo nicht
+    {
+      const mk = (i, size) => ({ id: 'tpl_big' + i, name: 'Gross ' + i, style: { fl: 'Inter', tc: '#fff', hl: '#f00' }, createdAt: 10 + i, updatedAt: 10 + i,
+        brand: { logo: mkLogo({ data: 'data:image/png;base64,iVBORw0KGgo' + 'A'.repeat(size) }) } });
+      T.setUserTemplates([mk(1, 300000), mk(2, 390000), mk(3, 380000)].map(T.normalizeTemplate));
+      const all = JSON.stringify(T.getUserTemplates()).length;
+      ok(all > T.TPL_CLOUD_MAX, 'C5 Cloud-Test-Aufbau: Summe über dem Limit (' + all + ')');
+      const cl = T.templatesForCloud();
+      const size = JSON.stringify(cl).length;
+      ok(size <= T.TPL_CLOUD_MAX, 'C5 Cloud: Zeile bleibt unter dem Limit (' + size + ' ≤ ' + T.TPL_CLOUD_MAX + ')');
+      const stripped = cl.filter(t => t.brand && t.brand.logoLocal && !t.brand.logo);
+      ok(stripped.length >= 1 && stripped.some(t => t.id === 'tpl_big2') && T.getUserTemplates().every(t => t.brand.logo), 'C5 Cloud: grösstes Logo nur lokal (logoLocal), lokale Daten unverändert');
+      const remote = JSON.parse(JSON.stringify(stripped)).map(t => Object.assign(t, { updatedAt: 999 }));
+      const merged = T.mergeTemplates(T.getUserTemplates(), remote);
+      const m2 = merged.find(t => t.id === 'tpl_big2');
+      ok(m2.updatedAt === 999 && m2.brand.logo && !m2.brand.logoLocal, 'C5 Cloud: neuere Cloud-Version ohne Bild verdrängt das lokale Logo nicht');
+      const small = [T.normalizeTemplate({ id: 'tpl_s', name: 's', style: { fl: 'Inter' }, brand: { logo: mkLogo() } })];
+      T.setUserTemplates(small);
+      ok(T.templatesForCloud()[0].brand.logo && !T.templatesForCloud()[0].brand.logoLocal, 'C5 Cloud: kleine Logos werden mit synchronisiert');
+    }
+
+    // 8) Browser-Speicher voll: grösstes Logo wird fallengelassen statt alle Templates zu verlieren
+    {
+      const mk = (i, size) => T.normalizeTemplate({ id: 'tpl_q' + i, name: 'Q' + i, style: { fl: 'Inter' }, createdAt: i, updatedAt: i, brand: { logo: mkLogo({ data: 'data:image/png;base64,iVBORw0KGgo' + 'A'.repeat(size) }) } });
+      for (const k of Object.keys(store)) delete store[k];
+      T.setUserTemplates([mk(1, 200000), mk(2, 350000)]);
+      const real = global.localStorage;
+      global.localStorage = { getItem: k => real.getItem(k), removeItem: k => real.removeItem(k), setItem: (k, v) => { if (String(v).length > 420000) throw new Error('QuotaExceededError'); real.setItem(k, v); } };
+      T.persistTemplates(true);
+      const kept = JSON.parse(real.getItem('capivo_templates'));
+      ok(kept.length === 2 && kept.find(t => t.id === 'tpl_q1').brand.logo && !kept.find(t => t.id === 'tpl_q2').brand.logo && kept.find(t => t.id === 'tpl_q2').brand.logoLocal, 'C5 Speicher voll: nur das grösste Logo fällt weg, beide Templates bleiben');
+      global.localStorage = real;
+    }
+
+    // 9) Panel: Hochladen verlangt echte Bildtypen; Regler ändern das Kit
+    {
+      T.setUserTemplates([]); T.rebuildTemplateStyles(); T.selectStyle('classic'); T.brandSetLive(null);
+      const r1 = await T.brandLogoPicked({ files: [{ type: 'image/svg+xml', size: 100 }], value: 'x' });
+      ok(r1 === false && T.getBrandLive() === null && /SVG/.test(E('bkMsg').textContent), 'C5 Upload: SVG wird abgelehnt (Meldung im Panel)');
+      const r2 = await T.brandLogoPicked({ files: [{ type: 'image/png', size: 99 * 1048576 }], value: 'x' });
+      ok(r2 === false && T.getBrandLive() === null, 'C5 Upload: riesige Datei wird abgelehnt');
+      T.brandSetLive({ logo: mkLogo() });
+      T.brandSet('pos', 'br'); T.brandSet('size', '99'); T.brandSet('opacity', '50'); T.brandSet('margin', '0'); T.brandSet('pos', 'xx');
+      const l = T.getBrandLive().logo;
+      ok(l.pos === 'br' && l.size === 30 && l.opacity === 0.5 && l.margin === 1, 'C5 Panel: Ecke/Grösse/Deckkraft/Rand werden begrenzt übernommen');
+      T.brandSet('safe', 'tiktok'); ok(T.getBrandLive().safe === 'tiktok' && T.getSafeKey() === 'tiktok', 'C5 Panel: Safe-Zone-Wahl wirkt sofort');
+      T.brandSet('safe', 'quatsch'); ok(T.getBrandLive().safe === 'tiktok', 'C5 Panel: ungültige Safe-Zone ignoriert');
+      ok(E('bkRmBtn').style.display === '' && E('bkLogoOpts').style.display === 'flex' && E('bkSafe').value === 'tiktok' && E('bkSize').value === 30, 'C5 Panel: Oberfläche folgt dem Kit');
+      T.brandRemoveLogo();
+      ok(!T.getBrandLive().logo && E('bkLogoOpts').style.display === 'none' && E('bkRmBtn').style.display === 'none', 'C5 Panel: Logo entfernen blendet die Logo-Regler aus');
+      T.selectStyle('hormozi'); // anderer Look → Entwurf-Kit weg, Safe-Zone Reels
+      ok(T.getBrandLive() === null && T.getSafeKey() === 'reels', 'C5 Panel: Kit gehört zum Look — Wechsel auf einen Preset räumt es weg');
+      T.brandSetLive(null);
+    }
+    T.setUserTemplates([]); T.rebuildTemplateStyles(); T.selectStyle('classic'); T.brandSetLive(null);
+    global.localStorage = prevLS;
+    if (prevLS === undefined) delete global.localStorage;
+  }
+
+  // ═══════════════ C1 Batch/Queue: Warteschlange, ZIP-Schreiber, Autosave für alle Clips ═══════════════
+  {
+    const { spawnSync } = require('child_process'), os = require('os');
+    const mkFile = (n, size, type) => ({ name: n, size: size === undefined ? 1000 + n.length : size, type: type === undefined ? 'video/mp4' : type, lastModified: 1700000000000 });
+    const Q = T.getQ();
+    const toastTxt = () => { const l = document.body.children.filter(c => c.id === 'capToast'); return l.length ? l[l.length - 1].textContent || '' : ''; };
+    // 1) Dateien aufnehmen: Limit 10, Nicht-Videos, Duplikate
+    ok(T.QUEUE_MAX === 10, 'C1: Limit ist 10 Clips pro Durchgang');
+    const files12 = Array.from({ length: 12 }, (_, i) => mkFile('clip' + i + '.mp4', 5000 + i));
+    let plan = T.queuePlanAdd([], files12, T.QUEUE_MAX);
+    ok(plan.accepted.length === 10 && plan.skipped.length === 2 && plan.skipped.every(x => x.reason === 'limit') && plan.skipped[0].name === 'clip10.mp4', 'C1: 12 Dateien → 10 angenommen (Reihenfolge bleibt), 2 über dem Limit gemeldet');
+    plan = T.queuePlanAdd([], [mkFile('a.mp4'), mkFile('notes.txt', 10, 'text/plain'), mkFile('a.mp4'), mkFile('b.mov', 77, 'video/quicktime'), mkFile('ohne-typ', 5, '')], 10);
+    ok(plan.accepted.map(f => f.name).join() === 'a.mp4,b.mov' && plan.skipped.map(x => x.name + ':' + x.reason).join() === 'notes.txt:notvideo,a.mp4:duplicate,ohne-typ:notvideo', 'C1: Nicht-Videos und Duplikate (Name|Grösse|Datum) werden mit Grund übersprungen: ' + JSON.stringify(plan.skipped));
+    ok(T.queuePlanAdd([], [mkFile('a.mp4', 5), mkFile('a.mp4', 6)], 10).accepted.length === 2, 'C1: gleicher Name, andere Grösse = kein Duplikat');
+    const have = [T.queueNewClip(mkFile('x.mp4'), 'hormozi', 'c1')];
+    plan = T.queuePlanAdd(have, [mkFile('x.mp4'), mkFile('y.mp4')], 10);
+    ok(plan.accepted.length === 1 && plan.accepted[0].name === 'y.mp4' && plan.skipped[0].reason === 'duplicate', 'C1: Duplikat gegen bereits vorhandene Clips');
+    const nine = Array.from({ length: 9 }, (_, i) => T.queueNewClip(mkFile('n' + i + '.mp4', 1 + i), 'hormozi', 'c' + i));
+    plan = T.queuePlanAdd(nine, [mkFile('p.mp4', 1), mkFile('q.mp4', 2)], 10);
+    ok(plan.accepted.length === 1 && plan.skipped.length === 1 && plan.skipped[0].reason === 'limit', 'C1: Limit gilt für die Gesamtzahl (9 + 2 → 1 angenommen)');
+    const msg = T.queueSkipMsg([{ name: 'a.txt', reason: 'notvideo' }, { name: 'b.mp4', reason: 'duplicate' }, { name: 'c.mp4', reason: 'limit' }, { name: 'd.mp4', reason: 'limit' }, { name: 'e.mp4', reason: 'limit' }]);
+    ok(/Not a video: a\.txt/.test(msg) && /Already in the list: b\.mp4/.test(msg) && /Limit is 10 clips per batch — not added: c\.mp4, d\.mp4 \+1/.test(msg), 'C1: Meldung nennt Grund und Dateien: ' + msg);
+    // 2) Statusübergänge
+    const ns = T.queueNextStatus;
+    ok(ns('queued', 'start') === 'transcribing' && ns('transcribing', 'transcribed') === 'ready' && ns('transcribing', 'failed') === 'error' && ns('error', 'start') === 'transcribing', 'C1-Status: in Warteschlange → transkribiere → transkribiert / Fehler (Wiederholen möglich)');
+    ok(ns('ready', 'edit') === 'edited' && ns('edited', 'edit') === 'edited' && ns('queued', 'edit') === 'queued' && ns('transcribing', 'edit') === 'transcribing', 'C1-Status: Bearbeiten nur nach «transkribiert»/«exportiert»');
+    ok(ns('ready', 'exportStart') === 'exporting' && ns('edited', 'exportStart') === 'exporting' && ns('exporting', 'exportOk') === 'exported' && ns('exporting', 'exportFail') === 'error' && ns('queued', 'exportStart') === 'queued', 'C1-Status: Export nur von transkribierten Clips, Ergebnis exportiert/Fehler');
+    ok(ns('exported', 'edit') === 'edited' && ns('exported', 'transcribed') === 'edited' && ns('transcribing', 'stop') === 'queued' && ns('ready', 'stop') === 'ready', 'C1-Status: Änderung nach Export → bearbeitet; Abbruch während Transkription → wieder in Warteschlange');
+    const mk = (st, kind) => { const c = T.queueNewClip(mkFile('s.mp4'), 'x', 'c9'); c.status = st; c.errKind = kind || ''; return c; };
+    ok(['ready', 'edited', 'exported'].every(st => T.queueExportable(mk(st))) && !T.queueExportable(mk('queued')) && !T.queueExportable(mk('transcribing')) && !T.queueExportable(mk('error', 'transcribe')) && T.queueExportable(mk('error', 'export')), 'C1: exportierbar sind transkribierte Clips (und Export-Fehler zum Wiederholen), nie wartende/fehlgeschlagene Transkriptionen');
+    const cnt = T.queueCounts([mk('ready'), mk('ready'), mk('queued'), mk('error')]);
+    ok(cnt.total === 4 && cnt.ready === 2 && cnt.queued === 1 && cnt.error === 1 && cnt.exported === 0, 'C1: Zähler je Status');
+    ok(['queued', 'transcribing', 'ready', 'edited', 'exporting', 'exported', 'error'].every(st => T.queueStatusLabel(st) && T.queueStatusLabel(st) !== st), 'C1: jeder Status hat eine Beschriftung');
+    // 3) Template-Standard: gewählter Chip → Default-Template → aktueller Look
+    const exists = id => ['tplA', 'colorpop', 'hormozi'].includes(id);
+    ok(T.queueDefaultStyleId('', 'tplA', exists, 'hormozi') === 'tplA', 'C1-Template: Default-Template (★) ist der Standard für neue Clips');
+    ok(T.queueDefaultStyleId('', '', exists, 'colorpop') === 'colorpop', 'C1-Template: ohne Default-Template gilt der aktuelle Look');
+    ok(T.queueDefaultStyleId('', 'tplGone', exists, 'hormozi') === 'hormozi', 'C1-Template: gelöschtes Default-Template → aktueller Look');
+    ok(T.queueDefaultStyleId('colorpop', 'tplA', exists, 'hormozi') === 'colorpop', 'C1-Template: auf der Startseite bewusst gewählter Chip schlägt das Default-Template');
+    // 4) queueIngest: Limit/Duplikate (ohne den Transkriptions-Durchgang zu starten)
+    Q.pass = { stop: true, taken: true };
+    document.getElementById('qSheet').style.display = 'none';
+    T.queueIngest(files12, 'new');
+    ok(Q.clips.length === 10 && Q.clips.every(c => c.status === 'queued' && c.styleId), 'C1: queueIngest nimmt 10 von 12 Dateien an, alle «in Warteschlange» mit Look');
+    ok(/Limit is 10 clips per batch — not added: clip10\.mp4, clip11\.mp4/.test(toastTxt()), 'C1: Limit-Meldung als Toast: ' + toastTxt());
+    T.queueIngest([mkFile('clip3.mp4', 5003), mkFile('neu.mp4')], 'add');
+    ok(Q.clips.length === 10 && /Limit is 10/.test(toastTxt()), 'C1: bei vollem Limit kommt nichts dazu');
+    T.queueRemove(Q.clips[0].id);
+    T.queueIngest([mkFile('clip3.mp4', 5003), mkFile('neu.mp4')], 'add');
+    ok(Q.clips.length === 10 && Q.clips[9].name === 'neu.mp4' && /Already in the list: clip3\.mp4/.test(toastTxt()), 'C1: Platz frei → Neues kommt dazu, Duplikat wird gemeldet');
+    Q.clips[1].status = 'exported'; Q.clips[1].result = { blob: {}, name: 'x.mp4', srt: '', stale: false }; Q.activeId = Q.clips[1].id; T.setCurrentFile(Q.clips[1].file);
+    T.queueMarkEdited(); ok(Q.clips[1].status === 'edited' && Q.clips[1].result.stale === true, 'C1: Textänderung am geöffneten Clip → «bearbeitet», Export gilt als veraltet');
+    T.queueSetStyle(Q.clips[2].id, 'colorpop'); ok(Q.clips[2].styleId === 'colorpop', 'C1: Look pro Clip wählbar (ohne den Clip zu laden)');
+    T.queueReset(); Q.pass = null; T.setCurrentFile(null);
+    ok(Q.clips.length === 0 && Q.activeId === null, 'C1: queueReset leert die Warteschlange');
+
+    // 5) Autosave: alle Clips der Warteschlange bleiben erhalten (vorher LRU mit 5 Plätzen)
+    const L = n => Array.from({ length: n }, (_, i) => ({ key: 'k' + i, data: {} })); // neu → alt
+    let tr = T.autosaveTrim(L(8), {}, 5);
+    ok(tr.length === 5 && tr[0].key === 'k0' && tr[4].key === 'k4', 'C1-Autosave: ohne Warteschlange wie bisher die 5 jüngsten');
+    const prot = {}; for (let i = 3; i < 13; i++) prot['k' + i] = true;
+    tr = T.autosaveTrim(L(14), prot, 5);
+    ok(['k3', 'k4', 'k5', 'k6', 'k7', 'k8', 'k9', 'k10', 'k11', 'k12'].every(k => tr.some(e => e.key === k)) && tr[0].key === 'k0', 'C1-Autosave: alle 10 geschützten Clips bleiben, auch wenn sie älter als Platz 5 sind');
+    ok(tr.filter(e => !prot[e.key]).length <= 5, 'C1-Autosave: ungeschützte Videos weiter auf 5 begrenzt (' + tr.length + ' Einträge)');
+    {
+      const store2 = {}; let quota = 'none';
+      global.localStorage = { getItem: k => (k in store2 ? store2[k] : null), removeItem: k => { delete store2[k]; },
+        setItem: (k, v) => { if (quota === 'multi' && JSON.parse(v).length > 3) { const e = new Error('Quota'); e.name = 'QuotaExceededError'; throw e; } store2[k] = String(v); } };
+      const wtsQ = [{ word: 'Hallo', start: 0, end: 0.4 }, { word: 'Welt', start: 0.5, end: 0.9 }];
+      T.setState(T.buildCaptionBlocks(wtsQ), wtsQ, 'karaoke');
+      store2[T.AUTOSAVE_KEY] = JSON.stringify([]);
+      for (let i = 0; i < 10; i++) { Q.clips.push(T.queueNewClip(mkFile('q' + i + '.mp4', 10 + i), 'hormozi', 'c' + i)); Q.clips[i].key = 'q' + i + '.mp4|' + (10 + i) + '|100'; T.setAutosaveKey(Q.clips[i].key); T.autosaveNow(); }
+      for (let i = 0; i < 3; i++) { T.setAutosaveKey('fremd' + i + '|1|1'); T.autosaveNow(); }
+      let keys = T.readAutosaves().map(e => e.key);
+      ok(Q.clips.every(c => keys.includes(c.key)), 'C1-Autosave: nach 10 Clips + 3 fremden Videos sind alle 10 Clip-Stände noch da (' + keys.length + ' Einträge)');
+      quota = 'multi'; T.setAutosaveKey('quota|1|1');
+      ok(T.autosaveNow() === true, 'C1-Autosave: Quota voll → trotzdem gespeichert');
+      keys = T.readAutosaves().map(e => e.key);
+      ok(keys.length <= 3 && keys[0] === 'quota|1|1', 'C1-Autosave: Quota voll → ältere Einträge fallen weg, aktueller Stand bleibt (' + keys.length + ' Einträge)');
+      delete global.localStorage; T.queueReset(); Q.pass = null; T.setAutosaveKey(null); T.setState([], []);
+    }
+
+    // 6) CRC-32 und ZIP-Schreiber (STORE)
+    ok(T.crc32Update(0, Buffer.from('123456789')) === 0xCBF43926, 'C1-ZIP: CRC-32("123456789") = 0xCBF43926');
+    ok(T.crc32Update(0, Buffer.alloc(0)) === 0 && T.crc32Update(0, Buffer.from('a')) === 0xE8B7BE43, 'C1-ZIP: CRC-32 leer = 0, "a" = 0xE8B7BE43');
+    ok(T.crc32Update(T.crc32Update(0, Buffer.from('12345')), Buffer.from('6789')) === 0xCBF43926, 'C1-ZIP: CRC-32 lässt sich in Teilen fortsetzen');
+    {
+      const big = Buffer.alloc(9 * 1024 * 1024 + 123); for (let i = 0; i < big.length; i += 7) big[i] = (i * 31) & 255;
+      const want = T.crc32Update(0, big), got = await T.crc32Blob(new NativeBlob([big]));
+      ok(got === want, 'C1-ZIP: crc32Blob liest in Scheiben (9 MB, 3 Stück) und stimmt mit dem Gesamt-CRC überein');
+    }
+    const un = (n, used) => T.zipUniqueName(n, used);
+    { const used = {}; const r = ['reel.mp4', 'reel.mp4', 'Reel.MP4', 'reel (2).mp4', 'a/b:c.mp4', '', 'noext', 'noext'].map(n => un(n, used));
+      ok(r[0] === 'reel.mp4' && r[1] === 'reel (2).mp4' && r[2] === 'Reel (3).MP4' && r[3] === 'reel (2) (2).mp4' && r[4] === 'a-b-c.mp4' && r[5] === 'clip' && r[6] === 'noext' && r[7] === 'noext (2)', 'C1-ZIP: eindeutige Dateinamen (auch Gross-/Kleinschreibung, Sonderzeichen, ohne Endung): ' + r.join(' | ')); }
+    const dt = T.zipDosDateTime(new Date(2026, 9, 15, 14, 30, 42));
+    ok(dt.date === (((2026 - 1980) << 9) | (10 << 5) | 15) && dt.time === ((14 << 11) | (30 << 5) | 21), 'C1-ZIP: DOS-Datum/Zeit');
+    {
+      const e1 = { name: 'reel.mp4', data: Buffer.from('VIDEO-ÄÖ-1'.repeat(300)), date: new Date(2026, 0, 2, 3, 4, 6) };
+      const e2 = { name: 'Über größe — Müller.srt', data: Buffer.from('1\n00:00:00,000 --> 00:00:01,000\nGrüezi\n', 'utf8') };
+      const e3 = { name: 'leer.txt', data: Buffer.alloc(0) };
+      const ents = [e1, e2, e3].map(e => ({ name: e.name, data: e.data, size: e.data.length, crc: T.crc32Update(0, e.data), date: e.date }));
+      const plan = T.zipPlan(ents);
+      const zip = Buffer.concat(plan.parts.map(x => Buffer.from(x)));
+      ok(zip.length === plan.size, 'C1-ZIP: berechnete Grösse = tatsächliche Grösse (' + zip.length + ')');
+      ok(zip.readUInt32LE(0) === 0x04034b50, 'C1-ZIP: beginnt mit der Local-File-Header-Signatur');
+      const eocd = zip.length - 22;
+      ok(zip.readUInt32LE(eocd) === 0x06054b50 && zip.readUInt16LE(eocd + 8) === 3 && zip.readUInt16LE(eocd + 10) === 3 && zip.readUInt16LE(eocd + 20) === 0, 'C1-ZIP: End-of-Central-Directory (3 Einträge, kein Kommentar)');
+      const cdSize = zip.readUInt32LE(eocd + 12), cdOff = zip.readUInt32LE(eocd + 16);
+      ok(cdOff + cdSize === eocd, 'C1-ZIP: Central Directory liegt direkt vor dem EOCD (Offset ' + cdOff + ', Grösse ' + cdSize + ')');
+      let p = cdOff, okAll = true, names = [];
+      ents.forEach(e => {
+        const sig = zip.readUInt32LE(p), flags = zip.readUInt16LE(p + 8), meth = zip.readUInt16LE(p + 10), crc = zip.readUInt32LE(p + 16), cs = zip.readUInt32LE(p + 20), us = zip.readUInt32LE(p + 24);
+        const nl = zip.readUInt16LE(p + 28), off = zip.readUInt32LE(p + 42), nm = zip.toString('utf8', p + 46, p + 46 + nl);
+        names.push(nm);
+        const lhOk = zip.readUInt32LE(off) === 0x04034b50 && zip.readUInt32LE(off + 14) === crc && zip.readUInt32LE(off + 18) === cs && zip.readUInt32LE(off + 22) === us && zip.readUInt16LE(off + 6) === flags && zip.readUInt16LE(off + 26) === nl && zip.toString('utf8', off + 30, off + 30 + nl) === nm;
+        const data = zip.subarray(off + 30 + nl, off + 30 + nl + us);
+        if (!(sig === 0x02014b50 && (flags & 0x0800) === 0x0800 && meth === 0 && cs === us && us === e.size && crc === e.crc && lhOk && Buffer.compare(data, e.data) === 0 && T.crc32Update(0, data) === crc)) okAll = false;
+        p += 46 + nl;
+      });
+      ok(okAll && names.join('|') === ents.map(e => e.name).join('|'), 'C1-ZIP: Central-Directory-Einträge (Offsets, CRC, Grössen, STORE, UTF-8-Flag Bit 11) stimmen mit den Local Headers und Daten überein');
+      ok(names[1] === 'Über größe — Müller.srt', 'C1-ZIP: Umlaut-/Sonderzeichen-Dateiname bleibt UTF-8 erhalten');
+      ok(zip.readUInt16LE(10) === ((3 << 11) | (4 << 5) | 3) && zip.readUInt16LE(12) === (((2026 - 1980) << 9) | (1 << 5) | 2), 'C1-ZIP: Datum/Zeit im Header');
+      // auf Platte schreiben und mit echten Werkzeugen prüfen
+      const zf = path.join(os.tmpdir(), 'gluephs-c1-test-' + process.pid + '.zip'); fs.writeFileSync(zf, zip);
+      const uz = spawnSync('unzip', ['-t', zf], { encoding: 'utf8' });
+      if (uz.error) console.log('  info C1-ZIP: unzip nicht verfügbar, übersprungen'); else ok(uz.status === 0 && /No errors detected/.test(uz.stdout), 'C1-ZIP: unzip -t ohne Fehler: ' + (uz.stdout || uz.stderr).split('\n').slice(-3).join(' / '));
+      const py = spawnSync('python3', ['-m', 'zipfile', '-t', zf], { encoding: 'utf8' });
+      if (py.error) console.log('  info C1-ZIP: python3 nicht verfügbar, übersprungen'); else ok(py.status === 0 && /Done testing/.test(py.stdout), 'C1-ZIP: python3 -m zipfile -t ohne Fehler: ' + (py.stdout || py.stderr).trim().split('\n').pop());
+      const pyl = spawnSync('python3', ['-c', 'import zipfile,sys;z=zipfile.ZipFile(sys.argv[1]);print("|".join(i.filename for i in z.infolist()));print(z.read("Über größe — Müller.srt").decode("utf8").strip().split("\\n")[-1])', zf], { encoding: 'utf8' });
+      if (!pyl.error) ok(pyl.status === 0 && pyl.stdout.trim().split('\n').join('#') === 'reel.mp4|Über größe — Müller.srt|leer.txt#Grüezi', 'C1-ZIP: Python liest Umlaut-Dateinamen und Inhalt korrekt: ' + pyl.stdout.trim().replace(/\n/g, '#') + pyl.stderr);
+      fs.unlinkSync(zf);
+    }
+    { // Grenzen: 4 GB / 65535 Einträge
+      let code = null;
+      try { T.zipPlan([{ name: 'riesig.mp4', data: null, size: 0xFFFFFFFF, crc: 0 }]); } catch (e) { code = e.code; }
+      ok(code === 'zip-limit', 'C1-ZIP: einzelne Datei ab 4 GB wird abgelehnt (zip-limit)');
+      code = null; try { T.zipPlan([{ name: 'a', data: null, size: 0xC0000000, crc: 0 }, { name: 'b', data: null, size: 0x50000000, crc: 0 }]); } catch (e) { code = e.code; }
+      ok(code === 'zip-limit', 'C1-ZIP: Archiv über 4 GB wird abgelehnt (zip-limit)');
+      code = null; try { T.zipPlan(Array.from({ length: 65536 }, (_, i) => ({ name: 'f' + i, data: Buffer.alloc(0), size: 0, crc: 0 }))); } catch (e) { code = e.code; }
+      ok(code === 'zip-limit', 'C1-ZIP: mehr als 65535 Einträge werden abgelehnt (zip-limit)');
+      ok(T.zipPlan(Array.from({ length: 65535 }, (_, i) => ({ name: 'f' + i, data: Buffer.alloc(0), size: 0, crc: 0 }))).parts.length > 0, 'C1-ZIP: genau 65535 Einträge gehen noch');
+    }
+    // 7) Export-Hook: onSettle statt Download, Zustände werden gemeldet
+    {
+      const tk = T.newExportToken(); const got = [];
+      tk.opts = { onSettle: (st, m) => got.push(st + ':' + m) };
+      T.settleExport(tk, 'error', 'kaputt'); T.settleExport(tk, 'ok');
+      ok(got.join() === 'error:kaputt', 'C1-Export: onSettle meldet genau einmal');
+      const tk2 = T.newExportToken(); tk2.opts = { onSettle: (st, m) => got.push(st + ':' + m) }; tk2.cancelled = true; T.exportAborted(tk2);
+      ok(got[1] === 'cancelled:' && !/Export cancelled/.test(toastTxt() || ''), 'C1-Export: Abbruch → «cancelled», kein Einzel-Export-Toast');
+      T.closeExportSheet();
+      const tk3 = T.newExportToken(); tk3.opts = { onSettle: (st, m) => got.push(st + ':' + m) }; T.exportFailed(tk3, 'Boom');
+      ok(got[2] === 'error:Boom' && !T.exportSheetOpen(), 'C1-Export: Fehler → «error» mit Meldung, ohne das Export-Blatt zu öffnen');
+      const tk4 = T.newExportToken(); T.exportFailed(tk4, 'Einzel'); ok(document.getElementById('expNote').textContent === 'Einzel', 'C1-Export: ohne opts bleibt das Einzel-Verhalten (Meldung im Export-Blatt)');
+      T.closeExportSheet();
+      global.CLICKS.length = 0; const oldCU = global.URL.createObjectURL; global.URL.createObjectURL = () => 'blob:y'; T.saveBlobAs({ size: 5 }, 'x.zip'); global.URL.createObjectURL = oldCU;
+      ok(global.CLICKS.length === 1 && global.CLICKS[0].download === 'x.zip', 'C1: saveBlobAs speichert, ohne den Zustand des Einzel-Exports anzufassen');
+    }
+    // 8) Statische Prüfungen: Landing/Editor
+    {
+      ok(/<input type="file" accept="video\/\*" id="landInput" multiple>/.test(htmlContent) && /id="frameInput" multiple/.test(htmlContent) && /id="ctrlInput" multiple/.test(htmlContent) && /id="qAddInput" multiple/.test(htmlContent), 'C1: Datei-Felder (Startseite, leerer Editor, Replace, Clips) erlauben mehrere Dateien');
+      ok(/id="qSheet"/.test(htmlContent) && /id="tbQueue"/.test(htmlContent) && /id="qList"/.test(htmlContent), 'C1: Clip-Blatt, Kopfzeilen-Knopf und Liste im Editor-HTML');
+      const deHtml = fs.readFileSync(path.join(__dirname, 'captly.de.html'), 'utf8');
+      ok(/bis zu 10 gleichzeitig/.test(deHtml) && /Weitere Clips hinzufügen/.test(deHtml) && /id="landInput" multiple/.test(deHtml), 'C1 DE: Landing nennt «bis zu 10 gleichzeitig», Menü «Weitere Clips hinzufügen…»');
+      ok(/if \(fl\.length === 1\) \{ if \(isVideoFile\(fl\[0\]\)\) queueIngest\(fl, 'new'\); \}/.test(script), 'C1: Drop einer einzelnen Nicht-Video-Datei wird weiter ignoriert (wie bisher)');
+    }
+  }
+
+  // ═══════════════ Runde 3 Rest: Box-/Pill-Polster und Emoji fensterunabhängig · Typewriter wächst von der Mitte ═══════════════
+  {
+    const near = (a, b, e) => Math.abs(a - b) <= (e === undefined ? 0.5 : e);
+    const frameEl = document.getElementById('prevFrame');
+    const prevW = frameEl.style.width, prevH = frameEl.style.height, prevFs = T.getFontSize();
+    const setFrame = w => { frameEl.style.width = w + 'px'; frameEl.style.height = Math.round(w * 16 / 9) + 'px'; T.setFontSizeState(Math.round(w * 0.08 * 100) / 100); };
+    const mkCtx = () => ({ font: '', letterSpacing: '0px', measureText(str) { const m = /([\d.]+)px/.exec(this.font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 }; },
+      roundRect() {}, rect() {}, beginPath() {}, fill() {}, stroke() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, fillText() {}, strokeText() {}, ellipse() {},
+      fillRect() {}, clip() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } });
+    const fixR = n => JSON.parse(fs.readFileSync(path.join(__dirname, 'scripts', 'creator-test', 'fixtures', n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end }));
+    const prevId = T.getActiveId(), prevWpb = T.getWpbState(), prevMc = T.getMaxChars(), prevLines = T.getLines();
+    const mkLines = n => ({ dataset: { lines: String(n) }, parentElement: { querySelectorAll() { return []; } }, classList: { add() {}, remove() {} } });
+    T.setMaxCharsState(0);
+    const widths = [90, 125, 220, 385, 720];
+    // 1) Box-/Pill-Polster: schriftrelativ (Referenz CAP_SH_REF = 28 px) — Verhältnis zur Schrift in jeder Fensterbreite gleich
+    {
+      const gb = T.STYLES.find(x => x.id === 'glassbox'), pk = T.STYLES.find(x => x.id === 'boxkara');
+      ok(gb && gb.boxBg && pk && pk.hlPillBg && T.capMotion(pk) === 'highlight', 'R3-Rest: Glass Box (Box) und Highlight Box (Pill) vorhanden');
+      const rel = {};
+      for (const w of widths) {
+        setFrame(w);
+        const fsz = T.getFontSize(), html = T.buildCap(['Drei', 'Tricks,'], gb, 1, fsz, [0, 0.5], 2);
+        const m = /padding:([\d.]+)px ([\d.]+)px;border-radius:([\d.]+)px/.exec(html);
+        rel[w] = { padY: +m[1] / fsz, padX: +m[2] / fsz, rad: +m[3] / fsz, maxW: T.capFitMaxW(gb) / fsz, maxWp: T.capFitMaxW(pk) / fsz, gap: T.capWordGap(pk) / fsz, pillPad: T.CAP_PILL_PAD_X * T.capOutK() / fsz };
+      }
+      const keys = Object.keys(rel[90]);
+      ok(widths.every(w => keys.every(k => near(rel[w][k], rel[90][k], 0.003))), 'R3-Rest: Box-Polster/-Radius, Safe-Zone-Abzug, Pill-Abstand und -Polster bei Rahmen ' + widths.join('/') + ' px gleich im Verhältnis zur Schrift (Polster X ' + rel[90].padX.toFixed(3) + ' · Schrift ' + (rel[90].padX * 28).toFixed(1) + ' px bei 28 px)');
+      ok(near(rel[90].padX, 18 / 28, 0.003) && near(rel[90].padY, 5 / 28, 0.003), 'R3-Rest: 18/5 px gelten für 28 px Schrift (Glass Box)');
+    }
+    // 2) Umbruch (Export-Layout, 1080×1920) und Vorschau-Zeilenverteilung: gleich bei Rahmen 90 … 720 px — Box-Look und Highlight-Pill-Look
+    for (const id of ['glassbox', 'boxkara', 'tiktok']) {
+      const st = T.STYLES.find(x => x.id === id); if (!st) continue;
+      T.setActiveId(id); T.setWpbState(st.layout ? st.layout.wpb : 4); T.setLines(mkLines(st.layout ? st.layout.lines : 2));
+      const sig = {}, fixB = {}; // Blöcke einmal bauen (Segmentierung je Fensterbreite prüft der Block davor) — hier nur Umbruch/Skalierung
+      setFrame(385); ['v1-reel-de', 'v2-podcast-de-16x9'].forEach(f => { fixB[f] = T.buildCaptionBlocks(fixR(f), []); });
+      for (const w of widths) {
+        setFrame(w);
+        const out = [];
+        for (const f of ['v1-reel-de', 'v2-podcast-de-16x9']) {
+          const bl = fixB[f];
+          T.setState(bl, fixR(f), 'karaoke');
+          bl.forEach((b, bi) => { const L = T.capLayout(mkCtx(), b, bi, 0, st, 1080, 1920); out.push(L.lines.map(Ln => Ln.map(wo => wo.t).join(' ')).join('/') + '@' + Math.round(L.fsS * 10 / 1) / 10); });
+        }
+        sig[w] = out.join('|');
+      }
+      const base = sig[90].split('|'), bad = [];
+      for (const w of widths) { const cur = sig[w].split('|'); cur.forEach((c, i) => { if (c.split('@')[0] !== base[i].split('@')[0]) bad.push(w + ':' + c.split('@')[0] + ' ≠ ' + base[i].split('@')[0]); }); }
+      ok(bad.length === 0 && base.length > 20, 'R3-Rest ' + id + ': Zeilenumbruch aller ' + base.length + ' Blöcke bei Rahmen ' + widths.join('/') + ' px identisch' + (bad.length ? ' — ' + bad.slice(0, 3).join('; ') : ''));
+    }
+    // 3) Export-Polster in Referenz-px: Boxbreite / Videobreite bei 90 und 385 px Rahmen gleich (capLayout inkl. Safe-Zone-Breite)
+    {
+      const gb = T.STYLES.find(x => x.id === 'glassbox'); T.setActiveId('glassbox'); T.setWpbState(2); T.setLines(mkLines(2));
+      const ws = ['Drei', 'Tricks,'], blk = { text: ws.join(' '), start: 0, end: 1, words: ws.map((w, i) => ({ word: w, start: i * 0.2, end: i * 0.2 + 0.2 })) };
+      T.setState([blk], blk.words, 'karaoke');
+      const r = {};
+      for (const w of [90, 385]) { setFrame(w); const L = T.capLayout(mkCtx(), blk, 0, 0, gb, 1080, 1920); r[w] = (Math.max.apply(null, L.lineWs) + 36 * L.scale * T.capOutK()) / 1080; }
+      ok(near(r[90], r[385], 0.002), 'R3-Rest: sichtbare Boxbreite / Videobreite bei 90 px (' + r[90].toFixed(4) + ') = 385 px (' + r[385].toFixed(4) + ')');
+    }
+    // 4) Sticker-/Emoji-Grösse: kein Runden auf ganze CSS-px — Verhältnis Emoji / Rahmenbreite in jeder Fensterbreite gleich
+    {
+      const st = T.STYLES.find(x => x.id === 'stickeremoji'), gb = T.STYLES.find(x => x.id === 'glassbox'), rr = {};
+      for (const w of [90, 125, 220, 333, 385, 720]) {
+        setFrame(w);
+        const f1 = T.buildCap(['ab', 'cd'], st, 0, T.getFontSize(), [0, 0.5], 2, { emoji: '🔥', age: 1 }), f2 = T.buildCap(['ab', 'cd'], gb, 0, T.getFontSize(), [0, 0.5], 2, { emoji: '🔥', age: 1 });
+        const px = h => +/font-size:([\d.]+)px;line-height:1;text-align:center/.exec(h.slice(h.indexOf('cap-emo')))[1];
+        rr[w] = { sticker: px(f1) / w, normal: px(f2) / w };
+      }
+      const ws = Object.keys(rr);
+      ok(ws.every(w => near(rr[w].sticker, rr[ws[0]].sticker, 0.0003) && near(rr[w].normal, rr[ws[0]].normal, 0.0003)), 'R3-Rest: Emoji/Rahmenbreite bei 6 Rahmenbreiten gleich (Sticker ' + rr[ws[0]].sticker.toFixed(4) + ' · normal ' + rr[ws[0]].normal.toFixed(4) + ', Schwankung ' + (100 * Math.max.apply(null, ws.map(w => Math.abs(rr[w].sticker / rr[ws[0]].sticker - 1)))).toFixed(2) + ' %)');
+      ok(!/Math\.round\(\(px \|\| 24\) \* EMO_REL\)|Math\.round\(L\.fitPx \* EMO_REL\)/.test(script), 'R3-Rest: Emoji-Grösse in Vorschau und Export nicht mehr gerundet');
+    }
+    // 5) Typewriter: die sichtbare Teilzeile sitzt mittig (früh / Mitte / Ende), jede Zeile für sich — Export-Zeichnung mit Aufzeichnungs-Kontext
+    {
+      const ty = T.STYLES.find(x => x.id === 'typewriter'); T.setActiveId('typewriter'); T.setWpbState(4);
+      const mkRec = () => { const st = [], c = { _font: '', letterSpacing: '0px', calls: [], clipR: null, lastRect: null, lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: 'transparent', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none', textAlign: 'left', textBaseline: 'alphabetic',
+        get font() { return this._font; }, set font(v) { this._font = v; },
+        measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * (m ? +m[1] : 16) * 0.55 + (parseFloat(this.letterSpacing) || 0) * (str || '').length }; },
+        fillText(t, x, y) { const m = /([\d.]+)px/.exec(this._font); this.calls.push({ t, x, y, px: +m[1], w: this.measureText(t).width, clipR: this.clipR }); }, strokeText() {},
+        rect(x, y, w, h) { this.lastRect = { x, w }; }, clip() { this.clipR = this.lastRect.x + this.lastRect.w; },
+        save() { st.push(this.clipR); }, restore() { this.clipR = st.length ? st.pop() : null; },
+        translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {}, roundRect() {}, ellipse() {}, fillRect() {}, drawImage() {}, createLinearGradient() { return { addColorStop() {} }; } }; return c; };
+      const ws = ['Drei', 'Tricks', 'damit', 'deine', 'Reels', 'laufen'].map((w, i) => ({ word: w, start: 1 + i * 0.6, end: 1 + i * 0.6 + 0.55 }));
+      const tyN = Object.assign({}, ty, { cur: '' }); // Cursor würde die sichtbare Breite verfälschen
+      for (const lines of [1, 2]) {
+        T.setLines(mkLines(lines)); setFrame(385);
+        const bl = [{ text: ws.map(w => w.word).join(' '), start: 1, end: 5, words: ws }];
+        T.setState(bl, ws, 'karaoke');
+        const devs = [];
+        for (const t of [1.1, 1.45, 2.3, 3.4, 4.9]) {
+          const c = mkRec(); T.drawCaptionsOnCtx(c, t, tyN, 1080, 1920, false);
+          const rows = {};
+          c.calls.forEach(k => { const key = Math.round(k.y); const R = k.clipR !== null ? Math.min(k.x + k.w, k.clipR - 0.1 * k.px) : k.x + k.w; const r = rows[key] || (rows[key] = { l: Infinity, r: -Infinity }); r.l = Math.min(r.l, k.x); r.r = Math.max(r.r, R); });
+          Object.values(rows).forEach(r => devs.push({ t, d: (r.l + r.r) / 2 - 540 }));
+        }
+        ok(devs.length >= 5 && devs.every(x => Math.abs(x.d) < 1.5), 'R3-Rest Typewriter (' + lines + ' Zeile' + (lines > 1 ? 'n' : '') + '): sichtbare Teilzeile mittig in Export-Frames früh/Mitte/Ende, Abweichung ≤ ' + Math.max.apply(null, devs.map(x => Math.abs(x.d))).toFixed(2) + ' px von 540 (' + devs.length + ' Zeilen-Frames)');
+      }
+      ok(/capTypeCenter\(M, s, fxs, em\)/.test(script) && /typeDx\[wo\.li\]/.test(script) && !/typeLeft/.test(script), 'R3-Rest Typewriter: Vorschau (capTypeCenter) und Export (typeDx) rücken dieselbe Teilzeile');
+    }
+    // 6) suggestHook ist entfernt (nirgends aufgerufen)
+    ok(!/suggestHook/.test(script) && !/suggestHook/.test(htmlContent), 'R3-Rest: ungenutzte Funktion suggestHook entfernt');
+    frameEl.style.width = prevW; frameEl.style.height = prevH; T.setFontSizeState(prevFs);
+    T.setActiveId(prevId); T.setWpbState(prevWpb); T.setMaxCharsState(prevMc); T.setLines(mkLines(prevLines));
+  }
+
+  // ═══════════════ Runde 4 (Noah): Hook weicht dem Logo aus · Kit-Akzent/-Schrift auch für Schlagwörter · Template pro Clip (Layout, Neuladen) ═══════════════
+  {
+    const meas = (font, str) => { const m = /([\d.]+)px/.exec(font); return String(str).length * (m ? parseFloat(m[1]) : 16) * 0.55; };
+    const rectsOverlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const box = L => ({ x: L.boxX, y: L.boxY, w: L.boxW, h: L.boxH });
+    const mixSt = T.STYLES.find(x => x.id === 'mix'), tightSt = T.STYLES.find(x => x.id === 'tight');
+    // 1) Hook-Titel gegen Logo (Kunde A: Logo oben rechts, Kunde B: oben links): nie darüber gezeichnet
+    for (const [Wp, Hp] of [[270, 480], [360, 360], [480, 270]]) {
+      const base = T.hookLayout(meas, tightSt, 'Drei Tricks, damit deine Reels mehr Views bekommen', Wp, Hp);
+      for (const pos of ['tr', 'tl']) {
+        const lg = { w: 300, h: 300, size: 16, margin: 4, pos };
+        const av = T.brandLogoRect(Wp, Hp, lg, 'reels', false);
+        const L = T.hookLayout(meas, tightSt, 'Drei Tricks, damit deine Reels mehr Views bekommen', Wp, Hp, av);
+        ok(!rectsOverlap(box(L), av), 'R4 Hook/Logo ' + Wp + 'x' + Hp + ' ' + pos + ': Titel und Logo überlappen nicht (Titel y ' + L.boxY.toFixed(1) + ', Logo ' + av.y.toFixed(1) + '–' + (av.y + av.h).toFixed(1) + ')');
+        ok(L.boxY + L.boxH <= Hp && L.boxX === base.boxX && L.boxW === base.boxW, 'R4 Hook/Logo ' + Wp + 'x' + Hp + ' ' + pos + ': Titel bleibt im Bild, gleiche Breite/Mitte');
+        if (rectsOverlap(box(base), av)) ok(L.boxY > base.boxY && L.key !== base.key, 'R4 Hook/Logo ' + Wp + 'x' + Hp + ' ' + pos + ': bei Kollision rutscht der Titel nach unten (neuer Layout-Schlüssel für die Vorschau)');
+      }
+      const low = T.hookLayout(meas, tightSt, 'Drei Tricks, damit deine Reels mehr Views bekommen', Wp, Hp, { x: 10, y: Hp * 0.8, w: 40, h: 40 });
+      ok(low.boxY === base.boxY && low.key === base.key, 'R4 Hook/Logo ' + Wp + 'x' + Hp + ': Logo weit unten (keine Kollision) → Titel unverändert');
+      const none = T.hookLayout(meas, tightSt, 'Drei Tricks, damit deine Reels mehr Views bekommen', Wp, Hp, null);
+      ok(none.boxY === base.boxY && none.key === base.key, 'R4 Hook/Logo: ohne Logo unverändert');
+    }
+    ok(T.hookLogoRect(270, 480) === null, 'R4 Hook/Logo: ohne aktives Kit kein Logo-Rechteck');
+    ok(/hookLogoRect\(Wp, Hp\)/.test(script) && /hookLayout\(function\(font, str\)[^]*?, Wp, Hp, av\)/.test(script), 'R4 Hook/Logo: Vorschau und Export teilen sich hookLayoutNow (ein Layout für beides)');
+    // 2) Kit-Akzent und -Schrift gelten auch für Schlagwörter (em/emFont)
+    {
+      const st = T.applyBrandToStyle(T.cloneStyle(mixSt), { colors: { highlight: '#00e5c0', text: '#ffe600' }, font: 'Playfair Display' });
+      ok(st.em === '#00e5c0' && st.tc === '#ffe600' && st.hl === '#00e5c0', 'R4 Kit: Akzent färbt aktives Wort UND Schlagwort (Mix: em ' + st.em + ')');
+      ok(st.emFont === undefined && st.font === "'Playfair Display'" && st.fl === 'Playfair Display', 'R4 Kit: Kit-Schrift ersetzt auch die Schlagwort-Schrift (emFont weg)');
+      const no = T.applyBrandToStyle(T.cloneStyle(T.STYLES.find(x => x.id === 'tight')), { colors: { highlight: '#00e5c0' } });
+      ok(no.em === 'none', 'R4 Kit: Look ohne Schlagwort-Farbe (em «none») bleibt ohne');
+      const keep = T.applyBrandToStyle(T.cloneStyle(mixSt), { colors: { text: '#ffe600' } });
+      ok(keep.em === mixSt.em && keep.emFont === mixSt.emFont, 'R4 Kit: nur Textfarbe → Schlagwort-Farbe/-Schrift des Looks bleiben');
+      ok(T.applyBrandToStyle({ em: '#abc' }, null).em === '#abc', 'R4 Kit: ohne Kit unverändert');
+    }
+    // 3) Warteschlange: Look pro Clip. (a) in der Liste gewechselt, bevor der Clip geöffnet war → Template-Layout beim Öffnen anwenden;
+    //    (b) nach Neuladen wiederhergestellter Clip behält seinen gespeicherten Look (nicht das Standard-Template)
+    {
+      const Q = T.getQ(); T.queueReset(); Q.pass = null;
+      const prevId = T.getActiveId();
+      const mk = (n, styleId) => { const c = T.queueNewClip({ name: n, size: 10, type: 'video/mp4', lastModified: 1 }, styleId, 'r4' + n); Q.clips.push(c); return c; };
+      let c = mk('a', 'colorpop'); c.status = 'ready';
+      T.setActiveId('tight'); T.queueClipOpened(c, true);
+      ok(c.styleId === 'tight' && T.getActiveId() === 'tight', 'R4 Neuladen: wiederhergestellter Clip übernimmt seinen gespeicherten Look statt des Standards (' + c.styleId + ')');
+      c = mk('b', 'tight'); c.status = 'ready'; c.snap = { style: 'tight' };
+      T.queueSetStyle(c.id, 'mix');
+      ok(c.styleId === 'mix' && c.styleUser === true && c.snap.style === 'mix' && c.tplPending === true, 'R4 Look pro Clip: Wahl in der Liste merkt sich «vom Nutzer» + Layout noch anzuwenden');
+      T.setActiveId('mix'); T.queueClipOpened(c, true);
+      ok(c.tplPending === false && c.styleId === 'mix', 'R4 Look pro Clip: beim Öffnen wird das Layout angewendet (Flag zurückgesetzt, Look bleibt)');
+      c = mk('c', 'mix'); c.styleUser = true; c.status = 'ready';
+      T.setActiveId('tight'); T.queueClipOpened(c, true);
+      ok(T.getActiveId() === 'mix' && c.styleId === 'mix', 'R4 Neuladen: vom Nutzer gewählter Look gewinnt gegen den wiederhergestellten');
+      ok(/c\.snap\.style = styleId; c\.tplPending = true/.test(script) && /\(restored && tplNow\)/.test(script) && /restored && !c\.styleUser/.test(script), 'R4 Look pro Clip: Quelltext enthält die Layout-/Neuladen-Regeln');
+      T.queueReset(); Q.pass = null; T.setActiveId(prevId);
+    }
+    // 4) Nach «Alle exportieren» steht das ZIP vor «Alle exportieren» (Handy: sonst unter dem Falz)
+    ok(/var allDone = nDone > 0 &&/.test(script) && /a \+= allDone \? zipHtml \+ expHtml \+ trHtml : expHtml \+ trHtml \+ zipHtml;/.test(script), 'R4 Clips-Blatt: alles exportiert → ZIP zuerst, «alle exportieren» zweitrangig');
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
