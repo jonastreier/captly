@@ -1196,13 +1196,31 @@ body.editor-open .lang-hint{display:none}
   /* Video-Leiste */
   .pp-btn,.mute-btn,.sz-btn{width:44px;height:44px}
   .prog-col{min-height:44px;justify-content:center}
-  .prev-col{padding:8px 12px 6px;gap:8px}
+  .prev-col{padding:4px 12px 4px;gap:6px}
   /* Captions-Tab: kompakter Kopf, Liste bekommt den Platz */
   .ctrl-col .csect[data-tab="captions"]{padding-top:6px;padding-bottom:8px}
   .tr-set{margin:0 0 4px}
   .tr-set summary,.cs-adv summary,.es-opts summary,.fr-box summary{min-height:44px}
   .fr-box{margin:0 0 4px}
   .cap-editor{margin-top:0}
+  /* R3-Rest — Captions-Tab (375×812): Vorschau ≥ 160 px breit UND ≥ 5 Listenzeilen. Platz kommt aus (1) der Format-Pille (steht im Style-Tab und im
+     Export-Blatt; der Hinweis «9:16-Reel?» bleibt), (2) «Find & replace» als Symbol in der Zeile von «Video & language» statt einer eigenen Zeile,
+     (3) engeren Abständen. Desktop und die anderen Tabs unverändert. */
+  #editor:not(.ed-style):not(.tl-mode) .fmt-pill{display:none}
+  #editor:not(.ed-style):not(.tl-mode) .fmt-bar:not(:has(.fmt-hint:not([style*="none"]))){display:none}
+  .ctrl-col[data-tab="captions"] .csect[data-tab="captions"]{display:flex;flex-wrap:wrap;align-content:flex-start;gap:4px 8px;padding-top:4px}
+  .ctrl-col[data-tab="captions"] .csect[data-tab="captions"] > *,.cap-editor[style*="block"] > .coach,.cap-editor[style*="block"] > .cut-row,.cap-editor[style*="block"] > .cap-segs,.cap-editor[style*="block"] > .wpills{flex:0 0 100%;min-width:0;order:0;margin-top:0;margin-bottom:0}
+  .cap-editor[style*="block"]{display:contents!important}
+  .ctrl-col[data-tab="captions"] .csect[data-tab="captions"] > .tr-set{order:1;flex:1 1 0;margin:0}
+  .ctrl-col[data-tab="captions"] .csect[data-tab="captions"] > .tr-set[open]{flex:0 0 100%}
+  .cap-editor[style*="block"] > .fr-box{order:2;flex:0 0 44px;margin:0 0 0 auto}
+  .cap-editor[style*="block"] > .fr-box[open]{flex:0 0 100%}
+  .cap-editor[style*="block"] > .fr-box:not([open]) summary{width:44px;height:44px;box-sizing:border-box;justify-content:center;gap:0;padding:0;font-size:0;border:1px solid var(--line);border-radius:9px;background:var(--fill)}
+  .cap-editor[style*="block"] > .fr-box:not([open]) summary .ic{width:20px;height:20px}
+  .cap-editor[style*="block"] > .coach{order:3}
+  .cap-editor[style*="block"] > .cut-row{order:4}
+  .cap-editor[style*="block"] > .cap-segs{order:5}
+  .cap-editor[style*="block"] > .wpills{order:6}
   .coach{align-items:center;padding:0 0 0 12px;margin-bottom:4px;font-size:12px;line-height:1.35}
   .coach > span{padding:5px 0}
   .coach-x{width:44px;height:44px}
@@ -1913,7 +1931,7 @@ body.editor-open .lang-hint{display:none}
             <input type="checkbox" id="autoCutEd" onchange="onAutoCutChange(this.checked)"><span>Cut silences &amp; filler words</span><b class="cut-save off" id="cutSave" aria-live="polite"></b>
           </label>
           <!-- Find & replace direkt über der Liste (vorher versteckt unter „Video & language“) -->
-          <details class="fr-box" id="frBox" ontoggle="if(this.open){var f=document.getElementById('frFind');if(f&&f.focus)f.focus()}"><summary><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> Find &amp; replace</summary>
+          <details class="fr-box" id="frBox" ontoggle="if(this.open){var f=document.getElementById('frFind');if(f&&f.focus)f.focus()}"><summary title="Find &amp; replace"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg> Find &amp; replace</summary>
             <div class="fr-row">
               <input type="text" id="frFind" class="lang-sel" placeholder="Find" oninput="updateFindCount()" autocomplete="off" spellcheck="false">
               <input type="text" id="frRepl" class="lang-sel" placeholder="Replace with" autocomplete="off" spellcheck="false" onkeydown="if(event.key==='Enter')replaceAllCaptions()">
@@ -11717,7 +11735,7 @@ function setEdCompact(on) {
   var ed = document.getElementById('editor'); if (ed && ed.classList) ed.classList.toggle('ed-compact', on);
   if (vidReady) { layoutPreviewFrame(false); _lastKey = null; updateOverlay(); applyPos(); }
 }
-var PH_CAP_PREV = 0.43; // Handy, Captions-Tab: Anteil der Fensterhöhe für die Vorschau-Spalte (Style-Tab: 0.48)
+var PH_CAP_PREV = 0.436; // Handy, Captions-Tab: Anteil der Fensterhöhe für die Vorschau-Spalte (Style-Tab: 0.48) — 375×812: Vorschau 161 px breit + 5 Listenzeilen (R3-Rest)
 var PH_STYLE_SHEET = 140; // Handy, Style-Tab: so viel Höhe (px) bleibt dem Sheet über der Tab-Leiste mindestens (Look-Streifen 108 + Kopf); alles darüber gehört der Vorschau
 function layoutPreviewFrame(setFont) {
   var vid = document.getElementById('mainVid'), frame = document.getElementById('prevFrame');
@@ -11730,8 +11748,8 @@ function layoutPreviewFrame(setFont) {
   var pcRect = frame.parentElement ? frame.parentElement.getBoundingClientRect() : { width: 360, height: 540 };
   var ctrls = document.getElementById('vidCtrls');
   var ctrlH = (ctrls && ctrls.offsetHeight) || 40;
-  var padX = 28, padY = 28;
-  try { var pcs = getComputedStyle(frame.parentElement); padX = (parseFloat(pcs.paddingLeft) || 0) + (parseFloat(pcs.paddingRight) || 0); padY = (parseFloat(pcs.paddingTop) || 0) + (parseFloat(pcs.paddingBottom) || 0); } catch (e) {}
+  var padX = 28, padY = 28, gapV = 12; // gapV = Abstand Rahmen ↔ Leiste (Handy: 6 px)
+  try { var pcs = getComputedStyle(frame.parentElement); if (typeof tlPhone === 'function' && tlPhone() && parseFloat(pcs.rowGap) >= 0) gapV = parseFloat(pcs.rowGap); padX = (parseFloat(pcs.paddingLeft) || 0) + (parseFloat(pcs.paddingRight) || 0); padY = (parseFloat(pcs.paddingTop) || 0) + (parseFloat(pcs.paddingBottom) || 0); } catch (e) {}
   var pcH = pcRect.height || 540;
   // Handy (außer Timeline-Modus): die Spalte wächst mit dem Video → feste Obergrenze statt gemessener Höhe
   // Beim Tippen in einer Zeile (Tastatur offen) kompakter, damit Zeile + Video gleichzeitig sichtbar bleiben.
@@ -11745,7 +11763,7 @@ function layoutPreviewFrame(setFont) {
   var warnEl = document.getElementById('vidWarn'), warnH = (warnEl && warnEl.style.display !== 'none' && warnEl.offsetHeight) ? warnEl.offsetHeight + 10 : 0; // Warnbox unter dem Video braucht Platz
   syncFormatRow(); // Format-Pille/-Hinweis zuerst auf den aktuellen Stand → ihre Höhe stimmt für die Rechnung
   var fmtBarEl = document.getElementById('fmtBar'), fmtBarH = (fmtBarEl && fmtBarEl.style.display !== 'none' && fmtBarEl.offsetHeight) ? fmtBarEl.offsetHeight + 10 : 0; // N3: Leiste über der Vorschau
-  var maxH = Math.max(100, pcH - padY - ctrlH - 12 - tlReservedHeight() - warnH - fmtBarH); // 12 = Abstand Rahmen↔Leiste
+  var maxH = Math.max(100, pcH - padY - ctrlH - gapV - tlReservedHeight() - warnH - fmtBarH); // gapV = Abstand Rahmen↔Leiste (Desktop 12)
   var maxW = Math.min(720, Math.max(100, (pcRect.width || 360) - padX));
   var h = maxH, w = Math.round(h * ar);
   if (w > maxW) { w = maxW; h = Math.round(w / ar); }

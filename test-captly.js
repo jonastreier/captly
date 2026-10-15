@@ -5366,13 +5366,18 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const om = htmlContent.slice(htmlContent.indexOf('var onMode = function()'), htmlContent.indexOf('var onMode = function()') + 1800);
     ok(/_tl\.wasPhone\s*=\s*tlPhone\(\)/.test(htmlContent) && /phNow !== _tl\.wasPhone/.test(om) && /if \(phNow\) \{ if \(_tl\.open && edTab !== 'timeline'\) tlSetOpen\(false, false\); \}/.test(om) && /localStorage\.getItem\(TL_OPEN_KEY\)/.test(om), 'N-Handy: Modus-Wechsel Desktop↔Handy schliesst/öffnet die Timeline (gemerkte Wahl bleibt)');
     ok(/tlSetOpen\(tlPhone\(\) \|\| tlShortScreen\(\) \? false : pref !== '0', false\)/.test(htmlContent), 'N-Handy: Start am Handy = Timeline zu, Desktop = gemerkte Wahl (TL_OPEN_KEY)');
-    // Zeilenbudget: ≥ 4 Zeilen im Captions-Tab bei 375×812 (Kopf: Tipp 44 + Video&Sprache 44 + Suchen 44 + Abstände)
+    // Zeilenbudget (R3-Rest): ≥ 5 Zeilen im Captions-Tab bei 375×812 UND Vorschau ≥ 160 px breit (Kopf: Video&Sprache + Suche in EINER Zeile 44, Cut-Zeile 44, Abstände;
+    // Format-Pille im Captions-Tab ausgeblendet; der einmalige Tipp 46 kommt dazu, bis er weggeklickt ist)
     const pcap = +(/^var PH_CAP_PREV = ([0-9.]+);/m.exec(htmlContent) || [])[1];
     ok(pcap >= 0.3 && pcap <= 0.48, 'N-Handy: Vorschau-Anteil im Captions-Tab kleiner als im Style-Tab (0,48): ' + pcap);
     ok(/\(edTab === 'captions' \? PH_CAP_PREV : 0\.48\)/.test(htmlContent) && /if \(tlPhone\(\) && name !== 'timeline' && !wasTl\) tlRelayout\(\)/.test(htmlContent), 'N-Handy: Vorschau-Grösse folgt dem Tab (switchTab → tlRelayout)');
-    const H = 812, topbar = 52, tabs = 65, header = 6 + 44 + 4 + 44 + 4 + 44 + 4, rowPitch = 44 + 4;
+    const H = 812, topbar = 52, tabs = 65, header = 4 + 44 + 4 + 44 + 4, rowPitch = 44 + 4;
     const free = H - topbar - Math.round(H * pcap) - tabs;
-    ok(free >= header + 4 * rowPitch, 'N-Handy: 375×812 — Platz für Kopf + 4 Zeilen: ' + free + ' ≥ ' + (header + 4 * rowPitch));
+    ok(free >= header + 5 * rowPitch - 4, 'N-Handy: 375×812 — Platz für Kopf + 5 Zeilen: ' + free + ' ≥ ' + (header + 5 * rowPitch - 4));
+    const prevW = Math.round((Math.round(H * pcap) - 8 - 54 - 6) * 9 / 16);
+    ok(prevW >= 160, 'N-Handy: 375×812 — Vorschau im Captions-Tab ' + prevW + ' px breit (≥ 160; vorher 125)');
+    ok(/#editor:not\(\.ed-style\):not\(\.tl-mode\) \.fmt-pill\{display:none\}/.test(css) && /\.cap-editor\[style\*="block"\]\{display:contents!important\}/.test(css) && /\.cap-editor\[style\*="block"\] > \.fr-box\{order:2;flex:0 0 44px/.test(css), 'N-Handy: Format-Pille nur im Captions-Tab weg; «Find & replace» als 44-px-Symbol in der Zeile von «Video & language»');
+    ok(/gapV = parseFloat\(pcs\.rowGap\)/.test(htmlContent) && /ctrlH - gapV - tlReservedHeight\(\)/.test(htmlContent), 'N-Handy: Vorschau-Höhe rechnet mit dem echten Abstand (Handy 6 px, Desktop 12 px)');
     ok(/\.cap-seg\{min-height:44px;align-items:center\}/.test(css) && /\.cap-seg-ta\{overflow-y:hidden\}/.test(css), 'N-Handy: Zeilen 44 px hoch, kein Scrollbalken im Textfeld');
     // Kein horizontales Scrollen: Zeilen der Kopfzeile schrumpfen (Titel), Schalter/Regler brechen bei 320 px um
     ok(/@media \(max-width:380px\)\{\.sz-row\{flex-wrap:wrap\}\}/.test(css) && /\.tb-title\{min-height:44px;min-width:44px\}/.test(css), 'N-Handy: 320 px — Regler-Zeilen umbrechen, Titel bleibt ≥ 44 px');
