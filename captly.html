@@ -5403,7 +5403,7 @@ function hookBaseOff(font, f, lineH, meas) {
 // Layout in Vorschau-Einheiten (Wp × Hp). meas(font, text) → Breite. → null ohne Text.
 // Schrift ~6,6 % der Bezugsbreite (min(Wp, 0,8·Hp): bei 9:16/4:5 die Breite, bei 16:9/1:1 etwas kleiner), max. 3 Zeilen, Box höchstens
 // 75 % der Rahmenbreite (CAP_SAFE_W) bzw. 80 % der Bezugsbreite, Oberkante in der Safe-Zone (SAFE_ZONE.top + SAFE_PAD).
-function hookLayout(meas, s, text, Wp, Hp) {
+function hookLayout(meas, s, text, Wp, Hp, avoid) {
   text = hookClean(text);
   if (!text || !(Wp > 0) || !(Hp > 0)) return null;
   var st = hookStyleOf(s), words = (st.up ? text.toUpperCase() : text).split(' ');
@@ -5423,17 +5423,28 @@ function hookLayout(meas, s, text, Wp, Hp) {
     k *= 0.9;
   }
   var lineH = f * 1.12, padY = f * 0.3, boxW = Math.min(maxBox, widest + 2 * padX), boxH = lines.length * lineH + 2 * padY;
+  var boxX = (Wp - boxW) / 2, boxY = Hp * (SAFE_ZONE.top + SAFE_PAD) / 100;
+  // Brand-Kit-Logo (Runde 4): liegt das Logo oben und der Titel darunter/daneben im Weg, rutscht der Titel unter das Logo (nie darüber gezeichnet)
+  if (avoid && avoid.w > 0) {
+    var gap = f * 0.5;
+    if (boxX < avoid.x + avoid.w + gap && boxX + boxW > avoid.x - gap && boxY < avoid.y + avoid.h + gap && boxY + boxH > avoid.y - gap) boxY = Math.min(avoid.y + avoid.h + gap, Math.max(boxY, Hp - boxH - 4));
+  }
   return { f: f, font: font, fam: st.fam, bg: st.bg, ink: st.ink, lines: lines, lineH: lineH, padX: padX, padY: padY,
-           boxW: boxW, boxH: boxH, boxX: (Wp - boxW) / 2, boxY: Hp * (SAFE_ZONE.top + SAFE_PAD) / 100, radius: f * 0.3,
+           boxW: boxW, boxH: boxH, boxX: boxX, boxY: boxY, radius: f * 0.3,
            shDy: f * 0.1, shBlur: f * 0.45, bo: hookBaseOff(font, f, lineH, meas), Wp: Wp, Hp: Hp,
-           key: [text, Wp, Hp, font, st.bg, st.ink, st.up ? 1 : 0, _capFontGen].join('|') };
+           key: [text, Wp, Hp, font, st.bg, st.ink, st.up ? 1 : 0, _capFontGen, Math.round(boxY * 10)].join('|') };
 }
 var _hookLayoutCache = { key: '', val: null };
+function hookLogoRect(Wp, Hp) { // Logo des aktiven Brand-Kits in Vorschau-Einheiten (null ohne Logo) — gleiche Formel wie Vorschau und Export
+  var lg = typeof brandLive !== 'undefined' && brandLive && brandLive.logo;
+  if (!lg) return null;
+  try { return brandLogoRect(Wp, Hp, lg, brandLive.safe || 'reels', needsWatermark()); } catch (e) { return null; }
+}
 function hookLayoutNow(s, text) {
-  var Wp = previewFrameW(), Hp = previewFrameH(), st = hookStyleOf(s), c = _hookLayoutCache;
-  var key = [text, Wp, Hp, st.fam, st.fw, st.bg, st.ink, st.up ? 1 : 0, _capFontGen].join('|');
+  var Wp = previewFrameW(), Hp = previewFrameH(), st = hookStyleOf(s), c = _hookLayoutCache, av = hookLogoRect(Wp, Hp);
+  var key = [text, Wp, Hp, st.fam, st.fw, st.bg, st.ink, st.up ? 1 : 0, _capFontGen, av ? [av.x, av.y, av.w, av.h].map(Math.round).join(',') : ''].join('|');
   if (c.key === key) return c.val;
-  var ctx = capMeasureCtx(), val = hookLayout(function(font, str) { ctx.font = font; return ctx.measureText(str).width; }, s, text, Wp, Hp);
+  var ctx = capMeasureCtx(), val = hookLayout(function(font, str) { ctx.font = font; return ctx.measureText(str).width; }, s, text, Wp, Hp, av);
   _hookLayoutCache = { key: key, val: val };
   return val;
 }
@@ -8552,8 +8563,9 @@ function applyBrandToStyle(st, b) {
     if (st.hlPillBg) { st.hlPillBg = c.highlight; st.hlc = contrastText(c.highlight); }
     else { st.hl = c.highlight; delete st.hlg; delete st.hlCycle; }
     if (old && typeof st.hls === 'string' && old !== c.highlight && st.hls.indexOf(old) >= 0) st.hls = st.hls.split(old).join(c.highlight);
+    if (st.em && st.em !== 'none') st.em = c.highlight; // Betonung/Schlagwort in Markenfarbe (sonst bleibt sie in der Look-Farbe: Runde 4)
   }
-  if (b.font) { st.fl = b.font; st.font = "'" + b.font + "'"; delete st.hlFont; }
+  if (b.font) { st.fl = b.font; st.font = "'" + b.font + "'"; delete st.hlFont; delete st.emFont; }
   return st;
 }
 // Logo-Rechteck in Pixeln (x, y, w, h) für einen Rahmen W × H — EINE Funktion für Vorschau (in %) und beide Exportwege.
@@ -16724,7 +16736,13 @@ function queueSnapshotActive() {
 // loadVideo hat den Clip geladen (Metadaten da, Wiederherstellung bzw. Transkription gestartet)
 function queueClipOpened(c, restored) {
   c.key = _autosaveKey || '';
-  if (c.styleId && c.styleId !== 'custom' && c.styleId !== activeId && STYLES.some(function(x) { return x.id === c.styleId; })) selectStyle(c.styleId);
+  // Wiederhergestellter Clip (Autosave nach Neuladen): sein gespeicherter Look/Kunde gilt, solange der Nutzer ihn in dieser Sitzung nicht selbst geändert hat
+  // (sonst bekäme nach dem Neuladen jeder Clip das Standard-Template, z. B. das Logo von Kunde A auf Clips von Kunde B)
+  if (restored && !c.styleUser && activeId) c.styleId = activeId;
+  // Look in der Liste gewechselt, solange der Clip nicht geöffnet war: der Schnappschuss kennt nur die Look-ID, nicht das Layout des Templates
+  // (Format 9:16, Wörter/Zeilen, Kit) → jetzt wie beim Wechsel im Editor anwenden, sonst exportiert Kunde B sein 16:9-Video ohne 9:16
+  var tplNow = !!c.tplPending; c.tplPending = false;
+  if (c.styleId && c.styleId !== 'custom' && (c.styleId !== activeId || (restored && tplNow)) && STYLES.some(function(x) { return x.id === c.styleId; })) selectStyle(c.styleId);
   else if (!c.styleId) c.styleId = activeId;
   if (restored) {
     if (c.status === 'queued' || c.status === 'transcribing' || c.status === 'error') { c.status = captionsEdited ? 'edited' : 'ready'; c.err = ''; c.errKind = ''; }
@@ -16849,9 +16867,9 @@ function queueRemove(id) {
 function queueSetStyle(id, styleId) {
   var c = queueClip(id);
   if (!c || !styleId || _q.exp) return;
-  c.styleId = styleId;
+  c.styleId = styleId; c.styleUser = true; // vom Nutzer gewählt: gewinnt gegen einen wiederhergestellten Look
   if (_q.activeId === c.id && currentFile === c.file && c.status !== 'transcribing' && c.status !== 'queued') { if (styleId !== activeId) selectStyle(styleId); }
-  else if (c.snap) c.snap.style = styleId;
+  else if (c.snap) { c.snap.style = styleId; c.tplPending = true; }
   if (c.status === 'exported' && c.result) { c.result.stale = true; }
   queueRender();
 }
@@ -17190,12 +17208,17 @@ function queueRender() {
     if (_q.exp) a += '<button type="button" class="exp-btn qc-main" onclick="queueCancelExport()"><span class="exp-btn-txt"><span class="exp-btn-label">' + escHtml(_t('Cancel export')) + '</span></span></button>';
     else if (_q.pass) a += '<button type="button" class="exp-btn qc-main" onclick="queuePausePass()"' + (_q.pass.stop ? ' disabled' : '') + '><span class="exp-btn-txt"><span class="exp-btn-label">' + escHtml(_q.pass.stop ? _t('Pausing after this clip…') : _t('Pause after this clip')) + '</span></span></button>';
     else {
-      a += '<button type="button" class="exp-btn hi qc-main" onclick="queueExportAll()"' + (nExp ? '' : ' disabled') + '><span class="exp-btn-icon">' + icon('dl') + '</span><span class="exp-btn-txt"><span class="exp-btn-label">'
-        + escHtml(_tn(nExp, 'Export {0} clip', 'Export all {0} clips', nExp)) + '</span><span class="exp-btn-sub">' + escHtml(_t('Each with its own template, one after another')) + '</span></span></button>';
-      if (n.queued) a += '<button type="button" class="pos-btn qc-wide" onclick="queueRunPass()">' + escHtml(_tn(n.queued, 'Transcribe the remaining {0} clip', 'Transcribe the remaining {0} clips', n.queued)) + '</button>';
-      if (nDone) a += '<button type="button" class="exp-btn hi qc-main" id="qZipBtn" onclick="queueDownloadZip()"><span class="exp-btn-icon">' + icon('dl') + '</span><span class="exp-btn-txt"><span class="exp-btn-label" id="qZipLbl">'
+      // Alles exportiert und nichts mehr geändert → das ZIP ist der nächste Schritt (am Handy sonst unter dem Falz): ZIP zuerst, «alle exportieren» nur noch zweitrangig
+      var allDone = nDone > 0 && _q.clips.every(function(c) { return !queueExportable(c) || (c.status === 'exported' && c.result && c.result.blob && !c.result.stale); });
+      var zipHtml = nDone ? '<button type="button" class="exp-btn hi qc-main" id="qZipBtn" onclick="queueDownloadZip()"><span class="exp-btn-icon">' + icon('dl') + '</span><span class="exp-btn-txt"><span class="exp-btn-label" id="qZipLbl">'
         + escHtml(_tn(nDone, 'Download {0} clip as ZIP', 'Download {0} clips as ZIP', nDone)) + '</span></span></button>'
-        + '<label class="exp-chk qc-srt"><input type="checkbox" id="qSrtChk"' + (_q.srt ? ' checked' : '') + ' onchange="queueSetSrt(this.checked)"><span>' + escHtml(_t('Include SRT files')) + '</span></label>';
+        + '<label class="exp-chk qc-srt"><input type="checkbox" id="qSrtChk"' + (_q.srt ? ' checked' : '') + ' onchange="queueSetSrt(this.checked)"><span>' + escHtml(_t('Include SRT files')) + '</span></label>' : '';
+      var expHtml = '<button type="button" class="' + (allDone ? 'pos-btn qc-wide' : 'exp-btn hi qc-main') + '" id="qExpAllBtn" onclick="queueExportAll()"' + (nExp ? '' : ' disabled') + '>'
+        + (allDone ? escHtml(_tn(nExp, 'Export {0} clip', 'Export all {0} clips', nExp))
+          : '<span class="exp-btn-icon">' + icon('dl') + '</span><span class="exp-btn-txt"><span class="exp-btn-label">' + escHtml(_tn(nExp, 'Export {0} clip', 'Export all {0} clips', nExp)) + '</span><span class="exp-btn-sub">' + escHtml(_t('Each with its own template, one after another')) + '</span></span>')
+        + '</button>';
+      var trHtml = n.queued ? '<button type="button" class="pos-btn qc-wide" onclick="queueRunPass()">' + escHtml(_tn(n.queued, 'Transcribe the remaining {0} clip', 'Transcribe the remaining {0} clips', n.queued)) + '</button>' : '';
+      a += allDone ? zipHtml + expHtml + trHtml : expHtml + trHtml + zipHtml;
     }
     acts.innerHTML = a;
   }
