@@ -918,6 +918,44 @@ body.editor-open .lang-hint{display:none}
 .tb-export{padding:8px 18px;font-size:12.5px}
 /* Export-Blatt (Desktop: Popover unter „Export“) */
 .exp-sheet{position:fixed;top:64px;right:16px;z-index:60;width:360px;max-width:calc(100vw - 32px);max-height:calc(100vh - 80px);background:#fff;border:1px solid var(--line);border-radius:var(--r-sheet);box-shadow:var(--sh-3);padding:16px 20px 20px;overflow-y:auto;animation:scaleIn .18s ease}
+/* Clips (Batch/Queue): Liste im Export-Blatt-Gewand */
+.tb-clips{display:inline-flex;align-items:center;gap:4px;height:36px;padding:0 10px;margin-right:2px;border:1px solid var(--line);border-radius:var(--r-btn);background:#fff;color:var(--ink2);font:600 12.5px 'Inter',sans-serif;font-variant-numeric:tabular-nums;cursor:pointer;white-space:nowrap}
+.tb-clips .ic{width:18px;height:18px}
+.tb-clips:hover{background:var(--fill2)}
+.tb-clips.busy{border-color:rgba(124,58,237,.45);color:var(--brand-ink);background:#f6f2ff}
+.qc-sheet{width:400px}
+.qc-sum{font-size:13px;font-weight:600;color:var(--ink);margin:0 0 8px}
+.qc-sumbar{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin-bottom:10px}
+.qc-sumbar i{display:block;height:100%;width:0;background:var(--brand);transition:width .2s}
+.qc-list{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:8px}
+.qc-row{border:1px solid var(--line);border-radius:12px;padding:10px 10px 8px;background:#fff}
+.qc-row.on{border-color:var(--brand);background:#faf8ff;box-shadow:0 0 0 1px var(--brand) inset}
+.qc-top{display:flex;align-items:baseline;gap:8px;min-width:0}
+.qc-name{flex:1 1 auto;min-width:0;font-size:13px;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qc-dur{flex:0 0 auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.qc-mid{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin:4px 0 6px;min-height:20px}
+.qc-st{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--fill);color:var(--ink2)}
+.qc-st-transcribing,.qc-st-exporting{background:#f1ebff;color:var(--brand-ink)}
+.qc-st-ready{background:#e8f6ec;color:#15803d}
+.qc-st-edited{background:#fff4e0;color:#b45309}
+.qc-st-exported{background:#dcf2e4;color:#166534}
+.qc-st-error{background:#fde8e8;color:#b91c1c}
+.qc-pct{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.qc-stale{font-size:11.5px;color:#b45309}
+.qc-err{font-size:11.5px;color:#b91c1c;flex:1 1 100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qc-bar{height:4px;border-radius:2px;background:var(--fill);overflow:hidden;margin:0 0 8px}
+.qc-bar i{display:block;height:100%;background:var(--brand);transition:width .2s}
+.qc-bot{display:flex;align-items:center;gap:6px}
+.qc-sel{flex:1 1 auto;min-width:0;margin:0}
+.qc-bot .pos-btn{flex:0 0 auto;padding:6px 12px}
+.qc-bot .qc-rm{padding:6px 8px}
+.qc-rm .ic{width:16px;height:16px}
+.qc-dl{display:flex;gap:6px;align-items:center;margin-top:6px;font-size:12px;color:var(--muted)}
+.qc-acts{display:flex;flex-direction:column;gap:8px}
+.qc-wide{width:100%;flex:none}
+.qc-srt{margin:0}
+.qc-add{display:block;margin:10px 0 0}
+.qc-fine{font-size:11.5px;color:var(--muted);margin:10px 0 0;line-height:1.5}
 .es-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .es-head b{font-size:16px;font-weight:700;color:var(--ink)}
 .es-x{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:none;background:none;border-radius:8px;color:var(--muted);cursor:pointer}
@@ -1126,6 +1164,7 @@ body.editor-open .lang-hint{display:none}
   .tb-undo{gap:0}
   .tb-icon{width:38px;height:40px}
   .tb-export{margin-left:4px;min-height:38px;padding:0 14px}
+  .tb-clips{min-height:40px;padding:0 7px;gap:3px;margin-right:0}
   .tb-menu{position:fixed;top:56px;right:8px;left:auto}
   .ed-body{flex-direction:column}
   /* Vorschau wächst mit dem Video (max. ~56 % der Höhe, s. layoutPreviewFrame) → kein toter Grau-Rand bei Querformat */
@@ -1313,6 +1352,7 @@ body.editor-open .lang-hint{display:none}
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.3 2.4 3.4 5.2 3.4 8.5s-1.1 6.1-3.4 8.5c-2.3-2.4-3.4-5.2-3.4-8.5s1.1-6.1 3.4-8.5z"/></symbol>
   <symbol id="i-text" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 10.5h10M7 14h6"/></symbol>
   <symbol id="i-style" viewBox="0 0 24 24"><path d="M12 3.5a8.5 8.5 0 100 17c1.2 0 1.8-.8 1.8-1.7 0-1.4-1.2-1.6-1.2-2.8 0-1 .8-1.6 1.8-1.6h2.1a4 4 0 004-4c0-3.8-3.8-6.9-8.5-6.9z"/><circle class="fill" cx="7.8" cy="11" r="1.2"/><circle class="fill" cx="10.5" cy="7.4" r="1.2"/><circle class="fill" cx="15" cy="7.6" r="1.2"/></symbol>
+  <symbol id="i-clips" viewBox="0 0 24 24"><rect x="3.5" y="8" width="13" height="11.5" rx="2"/><path d="M7 5h13.5v11.5"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
   <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 4l9 15.5H3z"/><path d="M12 10v4"/><circle class="fill" cx="12" cy="16.8" r="1"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
@@ -1362,10 +1402,10 @@ body.editor-open .lang-hint{display:none}
         <button type="button" class="land-try-btn" id="sampleBtn" onclick="trySample(landPick || undefined)"><span class="ll-long">Beispielvideo testen</span><span class="ll-short">Beispiel testen</span></button>
       </div>
       <label class="upload-zone" id="landZone">
-        <input type="file" accept="video/*" id="landInput">
+        <input type="file" accept="video/*" id="landInput" multiple>
         <span class="uz-ic"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg></span>
         <p class="uz-h"><span class="hint-desk">Video hinzufügen und loslegen</span><span class="hint-touch">Tippen, um ein Video zu wählen</span></p>
-        <p><span class="hint-desk">Hierher ziehen oder klicken · </span>MP4, MOV oder WebM</p>
+        <p><span class="hint-desk">Hierher ziehen oder klicken · </span>MP4, MOV oder WebM · bis zu 10 gleichzeitig</p>
       </label>
       <div class="hc-styles">
         <div class="hc-sh"><b>Untertitel-Style</b><span id="landPickLbl">Im Editor jederzeit änderbar</span></div>
@@ -1612,6 +1652,7 @@ body.editor-open .lang-hint{display:none}
     </div>
     <div class="tb-right">
       <button type="button" class="min-left" id="minLeft" style="display:none" onclick="showUpgrade()" title="Transkriptions-Minuten, die diesen Monat noch übrig sind"></button>
+      <button type="button" class="tb-clips" id="tbQueue" style="display:none" onclick="toggleQueueSheet()" aria-haspopup="dialog" aria-expanded="false" aria-controls="qSheet" title="Deine Clips — transkribieren, pro Clip ein Template wählen, alle exportieren" aria-label="Clips"><svg class="ic" aria-hidden="true"><use href="#i-clips"/></svg><span id="tbQueueN">0</span></button>
       <div class="tb-undo" id="tbUndo">
         <button type="button" class="tb-icon" id="undoBtn" onclick="undoCaptions()" disabled title="Letzte Änderung rückgängig (Ctrl/⌘+Z)" aria-label="Rückgängig"><svg class="ic" aria-hidden="true"><use href="#i-undo"/></svg></button>
         <button type="button" class="tb-icon" id="redoBtn" onclick="redoCaptions()" disabled title="Wiederholen (Ctrl/⌘+Shift+Z)" aria-label="Wiederholen"><svg class="ic" aria-hidden="true"><use href="#i-redo"/></svg></button>
@@ -1620,6 +1661,7 @@ body.editor-open .lang-hint{display:none}
         <button type="button" class="tb-icon" id="moreBtn" onclick="toggleMoreMenu(event)" aria-haspopup="true" aria-expanded="false" aria-controls="moreMenu" title="Konto, Projekte &amp; Tastenkürzel" aria-label="Mehr"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></button>
         <div class="tb-menu" id="moreMenu" style="display:none" onclick="event.stopPropagation()">
           <button type="button" class="tm-item" id="mmMin" style="display:none" onclick="closeMoreMenu();showUpgrade()"></button>
+          <button type="button" class="tm-item" id="mmClips" onclick="closeMoreMenu();queueAddPick()" title="Mehrere Videos auf einmal untertiteln (bis zu 10)">Weitere Clips hinzufügen…</button>
           <button type="button" class="tm-item" id="acctBtn" onclick="closeMoreMenu();showAcct()">Anmelden</button>
           <button type="button" class="tm-item" onclick="closeMoreMenu();saveProject()" title="Untertitel + Style in deinem kostenlosen Konto speichern">Im Konto speichern</button>
           <label class="tm-item tm-sel">Projekt laden
@@ -1641,6 +1683,19 @@ body.editor-open .lang-hint{display:none}
        Bottom-Sheet). Primär „Download video“, Untertitel-Dateien als Links, Optionen eingeklappt; nach dem
        Rendern Erfolg inline statt Upsell-Modal. Außerhalb der .topbar, weil deren backdrop-filter sonst
        position:fixed auf die Kopfzeile begrenzen würde. -->
+  <!-- Clips: Warteschlange für mehrere Videos auf einmal (Batch) — Liste mit Look, Status, Öffnen/Entfernen, «Alle exportieren», ZIP.
+       Gleiche Hülle wie das Export-Blatt (Desktop: Popover, Handy: Bottom-Sheet). -->
+  <input type="file" accept="video/*" id="qAddInput" multiple hidden>
+  <div class="exp-sheet qc-sheet" id="qSheet" role="dialog" aria-labelledby="qTtl" style="display:none">
+    <div class="es-head"><b id="qTtl">Clips</b>
+      <button type="button" class="es-x" onclick="closeQueueSheet()" aria-label="Schliessen"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
+    <p class="qc-sum" id="qSum" role="status" aria-live="polite"></p>
+    <div class="qc-sumbar" style="display:none"><i id="qSumBar"></i></div>
+    <ul class="qc-list" id="qList"></ul>
+    <div class="qc-acts" id="qActs"></div>
+    <button type="button" class="es-link qc-add" id="qAddBtn" onclick="queueAddPick()">+ Clips hinzufügen</button>
+    <p class="qc-fine">Bis zu 10 Clips pro Durchgang. Jeder Clip behält seine eigenen Untertitel und seinen Look — beim Wechseln geht nichts verloren.</p>
+  </div>
   <div class="exp-sheet" id="expSheet" role="dialog" aria-labelledby="expTtl" style="display:none">
     <div class="es-head"><b id="expTtl">Export</b>
       <button type="button" class="es-x" onclick="closeExportSheet()" aria-label="Schliessen"><svg class="ic" aria-hidden="true"><use href="#i-x"/></svg></button></div>
@@ -1779,7 +1834,7 @@ body.editor-open .lang-hint{display:none}
         <video id="mainVid" playsinline preload="auto" style="display:none"></video>
         <div id="playOverlay" onclick="event.stopPropagation();if(!panMoved)doPlay()"><div class="play-icon"><svg class="ic" aria-hidden="true"><use href="#i-play"/></svg></div></div>
         <div id="frameDropZone">
-          <input type="file" accept="video/*" id="frameInput">
+          <input type="file" accept="video/*" id="frameInput" multiple>
           <b class="fdz-btn"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Video wählen</b><p><span class="hint-desk">oder hierher ziehen · </span>MP4, MOV oder WebM</p>
         </div>
         <!-- Verarbeitung: Fortschritt direkt auf der Vorschau (statt Platzhalter-Caption + Statustext im Panel) -->
@@ -1884,7 +1939,7 @@ body.editor-open .lang-hint{display:none}
           <summary><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg><span class="tr-set-ttl">Video &amp; Sprache</span><span class="tr-set-sum" id="trSetSum"></span></summary>
           <div class="tr-body">
             <div class="ctrl-upload">
-              <input type="file" accept="video/*" id="ctrlInput">
+              <input type="file" accept="video/*" id="ctrlInput" multiple>
               <p id="uploadLabel"><svg class="ic" aria-hidden="true"><use href="#i-upload"/></svg> Video ersetzen</p>
             </div>
             <label class="f-lbl" for="langSel">Gesprochene Sprache</label>
@@ -2365,7 +2420,7 @@ body.editor-open .lang-hint{display:none}
 // unverändert zurück; scripts/build-i18n.js ersetzt die nächste Zeile für captly.de.html durch das Wörterbuch
 // {EN: DE} aus i18n/de-ui.js. Nur sichtbare Texte wrappen — nie IDs, CSS-Klassen, Look-IDs oder Storage-Schlüssel.
 // ═══════════════════════════════════════
-var UI_DICT = {"English":"Englisch","Spanish":"Spanisch","German":"Deutsch","French":"Französisch","Portuguese":"Portugiesisch","Italian":"Italienisch","Dutch":"Niederländisch","Polish":"Polnisch","Turkish":"Türkisch","Russian":"Russisch","Ukrainian":"Ukrainisch","Japanese":"Japanisch","Korean":"Koreanisch","Chinese":"Chinesisch","Arabic":"Arabisch","Hindi":"Hindi","Detecting speech… window {0}/{1}":"Erkenne Sprache… Abschnitt {0}/{1}","Preparing captions (first time only)…":"Untertitel werden vorbereitet (nur beim ersten Mal)…","Transcription server is not available and the offline engine could not be loaded — check your connection and try again.":"Der Transkriptions-Server ist nicht erreichbar und die Offline-Engine konnte nicht geladen werden — prüf deine Verbindung und versuch es nochmals.","Simple emoji picks for now — AI picks when available.":"Vorerst einfache Emoji-Auswahl — die KI-Auswahl folgt, sobald sie verfügbar ist.","AI is switched off (Settings) — simple emoji picks only.":"Die KI ist ausgeschaltet (Einstellungen) — nur einfache Emoji-Auswahl.","Simple emoji picks – AI picks when available (AI service not reachable right now).":"Einfache Emoji-Auswahl – KI-Auswahl, sobald verfügbar (KI-Dienst gerade nicht erreichbar).","AI is switched off — using simple keyword detection.":"Die KI ist ausgeschaltet — es wird die einfache Schlüsselwort-Erkennung verwendet.","AI picks unavailable — using simple keyword detection.":"KI-Auswahl nicht verfügbar — es wird die einfache Schlüsselwort-Erkennung verwendet.","AI is picking keywords…":"KI wählt Schlüsselwörter…","Title for the first seconds":"Titel für die ersten Sekunden","Asking the AI for a title…":"Frage die KI nach einem Titel…","AI suggestion — edit it freely.":"KI-Vorschlag — ändere ihn frei.","Suggestion from the start of your video — edit it freely.":"Vorschlag vom Anfang deines Videos — ändere ihn frei.","Keyword highlighting turned on":"Schlüsselwörter werden hervorgehoben","Emojis turned on":"Emojis eingeschaltet","Reactions":"Reaktionen","Gestures":"Gesten","Objects":"Objekte","Nature":"Natur","Food":"Essen","Symbols":"Symbole","Change or remove the emoji":"Emoji ändern oder entfernen","Add an emoji to this caption":"Emoji zu diesem Untertitel hinzufügen","Caption emoji":"Untertitel-Emoji","Highlight":"Hervorheben","Tap a word to highlight it":"Wort antippen, um es hervorzuheben","No emoji found — try another word.":"Kein Emoji gefunden — versuch ein anderes Wort.","Search emoji (e.g. fire, Feuer, money)":"Emoji suchen (z. B. fire, Feuer, money)","Search emoji":"Emoji suchen","Emoji categories":"Emoji-Kategorien","No emoji":"Kein Emoji","Auto zoom is on — it starts once your captions are ready":"Auto-Zoom ist an — er startet, sobald deine Untertitel fertig sind","Auto zoom is on — the AI is still picking the key moments…":"Auto-Zoom ist an — die KI wählt noch die wichtigen Momente…","No zoom moments found — zooms start on key words and numbers":"Keine Zoom-Momente gefunden — Zooms setzen bei Schlüsselwörtern und Zahlen ein","Auto zoom: 1 moment":"Auto-Zoom: 1 Moment","Auto zoom: {0} moments":"Auto-Zoom: {0} Momente"," · Preview animation off (reduce motion) — the export includes the zoom":" · Vorschau-Animation aus (Bewegung reduzieren) — der Export enthält den Zoom","Writing…":"Schreibe…","Write":"Schreiben","AI unavailable — simple version from your transcript.":"KI nicht verfügbar — einfache Version aus deinem Transkript.","Copied ✓":"Kopiert ✓","Select & copy":"Markieren & kopieren","Preparing… {0}%":"Vorbereiten… {0}%","Restored — Ctrl/⌘+Z to undo":"Wiederhergestellt — Rückgängig mit Ctrl/⌘+Z","Cut out — not in the video":"Ausgeschnitten — nicht im Video","Removed by Auto-cut — not in the video":"Vom Auto-Cut entfernt — nicht im Video","Partly cut out — only some words stay in the video":"Teilweise ausgeschnitten — nur einige Wörter bleiben im Video","Restore":"Wiederherstellen","Put this caption back into the video":"Diesen Untertitel wieder ins Video setzen","Start":"Start","Start 0.1 s earlier":"Start 0.1 s früher","Drag left/right to move the start (1 px = 0.01 s)":"Nach links/rechts ziehen, um den Start zu verschieben (1 px = 0.01 s)","Start 0.1 s later":"Start 0.1 s später","End":"Ende","End 0.1 s earlier":"Ende 0.1 s früher","Drag left/right to move the end (1 px = 0.01 s)":"Nach links/rechts ziehen, um das Ende zu verschieben (1 px = 0.01 s)","End 0.1 s later":"Ende 0.1 s später","Delete this caption (Ctrl/⌘+Z to undo)":"Diesen Untertitel löschen (Rückgängig mit Ctrl/⌘+Z)","Delete caption":"Untertitel löschen","Fix all":"Alle korrigieren","✓ Fixed {0}× — Ctrl/⌘+Z to undo":"✓ {0}× korrigiert — Rückgängig mit Ctrl/⌘+Z","Bold & clean":"Fett & klar","Impact & display":"Plakativ","Handwritten":"Handschrift","Serif":"Serif","Retro & mono":"Retro & Mono","My fonts (on this device)":"Meine Schriften (auf diesem Gerät)","＋ Upload your own font…":"＋ Eigene Schrift hochladen…","Regular":"Normal","Semi":"Halbfett","Bold":"Fett","Extra":"Extrafett","Black":"Black","This font has only one weight":"Diese Schrift hat nur einen Schnitt","Font weight":"Schriftschnitt","Please choose a .ttf, .otf, .woff or .woff2 file":"Bitte wähl eine .ttf-, .otf-, .woff- oder .woff2-Datei","That font file is too large (max. 3 MB)":"Diese Schriftdatei ist zu gross (max. 3 MB)","You can keep up to {0} own fonts — remove one first":"Du kannst bis zu {0} eigene Schriften behalten — entferne zuerst eine","✓ “{0}” added — stays on this device":"✓ «{0}» hinzugefügt — bleibt auf diesem Gerät","Couldn’t read that font file":"Diese Schriftdatei konnte nicht gelesen werden","Pill":"Pille","Pill color behind the active (spoken) word":"Farbe der Pille hinter dem aktiven (gesprochenen) Wort","Color of the active (spoken) word":"Farbe des aktiven (gesprochenen) Worts","Word pop works with Animation: Highlight.":"Wort-Pop funktioniert mit Animation: Hervorheben.","Preview is still (system setting “reduce motion”) — the export includes the animation.":"Die Vorschau steht still (Systemeinstellung «Bewegung reduzieren») — der Export enthält die Animation.","Keywords: same font as text":"Schlüsselwörter: gleiche Schrift wie der Text","Keywords: {0}":"Schlüsselwörter: {0}","My style":"Mein Style","✓ Logo added — it is saved with the template.":"✓ Logo hinzugefügt — es wird mit dem Template gespeichert.","Please choose a PNG, JPEG or WebP image (SVG is not supported).":"Bitte ein PNG-, JPEG- oder WebP-Bild wählen (SVG wird nicht unterstützt).","This image is too large — please use a smaller file.":"Dieses Bild ist zu gross — bitte eine kleinere Datei verwenden.","Could not read this image.":"Dieses Bild konnte nicht gelesen werden.","active":"aktiv","Replace":"Ersetzen","Upload":"Hochladen","From the look":"Vom Look","This kit’s logo is stored on another device only — upload it again here.":"Das Logo dieses Kits liegt nur auf einem anderen Gerät — lade es hier erneut hoch.","This logo is too large to sync to your account — it stays on this device only.":"Dieses Logo ist zu gross für die Synchronisierung mit deinem Konto — es bleibt nur auf diesem Gerät.","Templates updated from another tab":"Templates aus einem anderen Tab aktualisiert","Editing “{0}”":"«{0}» wird bearbeitet","Update":"Aktualisieren","💾 Save":"💾 Speichern","Overwrite this template with the current style + layout":"Dieses Template mit dem aktuellen Style + Layout überschreiben","Save the current style + position + size + mode as a named template":"Aktuellen Style + Position + Grösse + Modus als benanntes Template speichern","Brand kit removed from “{0}”":"Brand-Kit aus «{0}» entfernt","Enter a name":"Namen eingeben","Give your template a name first.":"Gib deinem Template zuerst einen Namen.","A template named “{0}” already exists. Overwrite it with the current style?":"Ein Template namens «{0}» gibt es schon. Mit dem aktuellen Style überschreiben?","Not saved — choose another name to keep both.":"Nicht gespeichert — wähl einen anderen Namen, um beide zu behalten.","✓ Updated “{0}” — find it under My templates":"✓ «{0}» aktualisiert — du findest es unter «Meine Templates»","✓ Saved as “{0}” — find it under My templates":"✓ Als «{0}» gespeichert — du findest es unter «Meine Templates»"," (synced to your account)":" (mit deinem Konto synchronisiert)"," (saved in this browser)":" (in diesem Browser gespeichert)",". ★ It’s now your default look for every new video (change via ⋯).":". ★ Es ist jetzt dein Standard-Look für jedes neue Video (änderbar über ⋯).","✓ Updated “{0}”":"✓ «{0}» aktualisiert","✓ Saved as “{0}”":"✓ Als «{0}» gespeichert","Use for every new video":"Für jedes neue Video verwenden","★ “{0}” will be used for every new video":"★ «{0}» wird für jedes neue Video verwendet"," · ★ default for every new video":" · ★ Standard für jedes neue Video","No template · {0}":"Kein Template · {0}","Not saved.":"Nicht gespeichert.","✓ Renamed to “{0}”":"✓ Umbenannt in «{0}»","{0} copy":"{0} Kopie","✓ Duplicated as “{0}”":"✓ Dupliziert als «{0}»","Deleted “{0}”":"«{0}» gelöscht","Undo":"Rückgängig","✓ Restored “{0}”":"✓ «{0}» wiederhergestellt","Editing “{0}”: change the style below, then click Update.":"«{0}» wird bearbeitet: Style unten ändern, dann auf «Aktualisieren» klicken.","Hook title removed from “{0}”":"Hook-Titel aus «{0}» entfernt","☆ Stop using as default":"☆ Nicht mehr als Standard verwenden","★ Use for every new video":"★ Für jedes neue Video verwenden","Edit":"Bearbeiten","Rename":"Umbenennen","Duplicate":"Duplizieren","Delete":"Löschen","✓ Hook on ({0} s)":"✓ Hook an ({0} s)","This template switches the hook title on for every video you apply it to":"Dieses Template schaltet bei jedem Video, auf das du es anwendest, den Hook-Titel ein","Remove hook title":"Hook-Titel entfernen","◈ Brand kit":"◈ Brand-Kit","Logo":"Logo","Remove brand kit":"Brand-Kit entfernen","Template name":"Template-Name","Save":"Speichern","Cancel":"Abbrechen"," — not included: ":" — nicht enthalten: ","{0} MB, max. {1} MB":"{0} MB, max. {1} MB","unknown font format":"unbekanntes Schriftformat",". Send that font file along separately.":". Schick diese Schriftdatei separat mit.","No templates yet — save one first.":"Noch keine Templates — speichere zuerst eines.","{0} skipped (already up to date)":"{0} übersprungen (schon aktuell)","{0} failed":"{0} fehlgeschlagen","Could not read this file — please choose a Gluephs templates JSON.":"Diese Datei konnte nicht gelesen werden — bitte wähl eine Gluephs-Templates-JSON.","Not enough browser storage — the logo of “{0}” could not be kept.":"Zu wenig Browser-Speicher — das Logo von «{0}» konnte nicht behalten werden.","My templates":"Meine Templates","{0} saved":"{0} gespeichert","Like your custom look?":"Gefällt dir dein eigener Look?","Save it as a template":"Speichere ihn als Template","to reuse it.":"und nutze ihn wieder.","Presets":"Vorlagen","More looks":"Weitere Looks","unsaved":"nicht gespeichert","★ default":"★ Standard","Hook on":"Hook an","Brand kit":"Brand-Kit","Your template “{0}”":"Dein Template «{0}»","Template options":"Template-Optionen","Options for template {0}":"Optionen für Template {0}","Your current custom style (not saved yet)":"Dein aktueller eigener Style (noch nicht gespeichert)","Caption size {0}: {1} % of the frame height (≈ {2} px on a 1080-px-wide export, before the look’s own size factor). Same value in preview and export.":"Untertitel-Grösse {0}: {1} % der Bildhöhe (≈ {2} px bei einem 1080 px breiten Export, vor dem eigenen Grössenfaktor des Looks). Gleicher Wert in Vorschau und Export.","Auto · {0}":"Auto · {0}","Auto":"Auto","Loading sample…":"Beispiel wird geladen…","Try a sample video":"Beispielvideo ausprobieren","Try a sample":"Beispiel testen","New":"Neu","Trending":"Trend","So":"So","good":"gut","+{0} more in the editor":"+{0} weitere im Editor","Sign-in is temporarily unavailable — please try again later.":"Die Anmeldung ist vorübergehend nicht verfügbar — versuch es später nochmals.","Something went wrong.":"Etwas ist schiefgelaufen.","Accounts are not set up on this deployment yet.":"Konten sind in dieser Version noch nicht eingerichtet.","Code sent — check your inbox.":"Code gesendet — schau in dein Postfach.","Enter your email to get a free login code — your video then exports without the watermark.":"Gib deine E-Mail ein, um einen kostenlosen Login-Code zu erhalten — dein Video wird dann ohne Wasserzeichen exportiert.","Sign in":"Anmelden","— Load project —":"— Projekt laden —","Please cancel your {0} plan first (Manage billing). Once it has ended you can delete the account here, or email contact@gluephs.com.":"Bitte kündige zuerst deinen {0}-Plan (Abo verwalten). Sobald er abgelaufen ist, kannst du das Konto hier löschen — oder schreib an contact@gluephs.com.","Delete your account {0} and all saved projects and templates? This cannot be undone.":"Konto {0} und alle gespeicherten Projekte und Templates löschen? Das lässt sich nicht rückgängig machen.","Sign-in service is unavailable right now. Please try again later.":"Der Anmeldedienst ist gerade nicht verfügbar. Bitte versuch es später nochmals.","Could not delete the account: {0}":"Das Konto konnte nicht gelöscht werden: {0}","Your account and saved projects were deleted":"Dein Konto und deine gespeicherten Projekte wurden gelöscht","Account · {0}":"Konto · {0}"," · signed in":" · angemeldet","Upgrade to remove it":"Upgrade, um es zu entfernen","Captions in seconds · free, no download — works on any device":"Untertitel in Sekunden · gratis, ohne Download — auf jedem Gerät","⚡ Signed in · your projects are saved to the cloud":"⚡ Angemeldet · deine Projekte werden in der Cloud gespeichert","Guest":"Gast","Free":"Gratis","Today's guest minutes are used up. Sign in free for {0} minutes a month.":"Die Gast-Minuten für heute sind aufgebraucht. Melde dich gratis an für {0} Minuten im Monat.","You've used your free minutes for this month. Upgrade for more minutes, or come back next month.":"Du hast deine Gratis-Minuten für diesen Monat aufgebraucht. Upgrade für mehr Minuten — oder komm nächsten Monat wieder.","You've used all minutes of your plan this month. They reset next month.":"Du hast alle Minuten deines Plans für diesen Monat verbraucht. Sie werden nächsten Monat zurückgesetzt.","{0} min left":"noch {0} Min."," · {0} plan · {1} of {2} min left this month":" · {0}-Plan · noch {1} von {2} Min. in diesem Monat","Creator · {0} min/month":"Creator · {0} Min./Monat","Creator · 300 min/mo · $7.99 (≈ CHF 6.50 / € 7) — coming soon":"Creator · 300 Min./Monat · 7.99 $ (≈ CHF 6.50 / € 7) — bald verfügbar","Pro · {0} min/month":"Pro · {0} Min./Monat","Pro · 1200 min/mo · $14.99 (≈ CHF 12 / € 14) — coming soon":"Pro · 1200 Min./Monat · 14.99 $ (≈ CHF 12 / € 14) — bald verfügbar","Price shown in your local currency at checkout":"Der Preis wird an der Kasse in deiner Landeswährung angezeigt","Paid plans are coming soon":"Bezahlte Pläne kommen bald","Paid plans are coming soon — everything is free while Gluephs is in beta.":"Bezahlte Pläne kommen bald — in der Beta von Gluephs ist alles gratis.","Sign in first, then pick a plan.":"Melde dich zuerst an und wähl dann einen Plan.","Checkout is not available yet — please try again later.":"Der Checkout ist noch nicht verfügbar — bitte versuch es später nochmals.","Opening checkout…":"Checkout wird geöffnet…","Could not load the payment window. Please check your connection and try again.":"Das Zahlungsfenster konnte nicht geladen werden. Prüf deine Verbindung und versuch es nochmals.","Checkout could not start. Please try again.":"Der Checkout konnte nicht gestartet werden. Bitte versuch es nochmals.","Thank you! Activating your plan…":"Danke! Dein Plan wird aktiviert…","Your {0} plan is active.":"Dein {0}-Plan ist aktiv.","Payment received — your plan will show up in a minute. Reload if it doesn't.":"Zahlung erhalten — dein Plan erscheint in einer Minute. Lade die Seite neu, falls nicht.","Opening…":"Wird geöffnet…","Could not open the billing portal. Please try again.":"Das Abo-Portal konnte nicht geöffnet werden. Bitte versuch es nochmals.","Untitled":"Ohne Titel","Could not save the project: {0}":"Das Projekt konnte nicht gespeichert werden: {0}","✓ Saved to your account":"✓ In deinem Konto gespeichert","Project loaded — add the video again for preview & export.":"Projekt geladen — füg das Video nochmals hinzu für Vorschau & Export.","Restored your last session":"Deine letzte Sitzung wurde wiederhergestellt","Re-transcribe":"Neu transkribieren","Start fresh":"Neu starten","Saved style":"Gespeicherter Style","That doesn't look like a valid email address — fix it, or tap Skip.":"Das sieht nicht nach einer gültigen E-Mail-Adresse aus — korrigiere sie oder tippe auf «Überspringen».","Re-transcribing… {0}%":"Transkribiere neu… {0}%","Transcribing… {0}%":"Transkribiere… {0}%","Re-transcribing… 0%":"Transkribiere neu… 0%","Your captions update when it finishes":"Deine Untertitel werden danach aktualisiert","Transcribing… 0%":"Transkribiere… 0%","Loading video":"Video wird geladen","The transcription service took too long.":"Der Transkriptions-Dienst hat zu lange gebraucht.","Network problem — check your connection.":"Netzwerkproblem — prüf deine Verbindung."," Please try again.":" Bitte versuch es nochmals.","Free-tier limit reached — please try again in ~{0} min.":"Gratis-Limit erreicht — bitte versuch es in ca. {0} Min. nochmals.","Free-tier limit reached (too many requests) — wait a minute and try again.":"Gratis-Limit erreicht (zu viele Anfragen) — warte eine Minute und versuch es nochmals.","Please log in (top right) to transcribe videos.":"Bitte melde dich an (oben rechts), um Videos zu transkribieren.","Invalid API key — check the server config (config.php).":"Ungültiger API-Schlüssel — prüf die Server-Konfiguration (config.php).","Audio too large for the server — please trim the video.":"Audio zu gross für den Server — bitte kürze das Video.","Transcription service is busy right now — please try again.":"Der Transkriptions-Dienst ist gerade ausgelastet — bitte versuch es nochmals.","Transcription error {0}":"Transkriptionsfehler {0}",". Please try again.":". Bitte versuch es nochmals.","Transcribing":"Transkribiere","{0} (part {1}/{2})…":"{0} (Teil {1}/{2})…","{0} ({1}/{2} parts done)…":"{0} ({1}/{2} Teile fertig)…","Could not read the audio. Please use MP4, MOV or WebM.":"Das Audio konnte nicht gelesen werden. Bitte nimm MP4, MOV oder WebM.","This file looks damaged or incomplete — the audio can't be read. Try re-saving it from your Photos app or another file.":"Diese Datei sieht beschädigt oder unvollständig aus — das Audio lässt sich nicht lesen. Speichere sie nochmals aus deiner Fotos-App oder nimm eine andere Datei.","Extracting audio…":"Audio wird extrahiert…","Preparing transcription…":"Transkription wird vorbereitet…","Finding speech…":"Sprache wird gesucht…","Transcribing (backup model)…":"Transkribiere (Ersatzmodell)…","Auto-detect uncertain — trying {0}…":"Automatische Erkennung unsicher — versuche {0}…","Server unavailable — running locally (one-time model download)…":"Server nicht erreichbar — läuft lokal (einmaliger Modell-Download)…","{0} words":"{0} Wörter"," · → English":" · → Englisch"," · only the first {0} min were transcribed":" · nur die ersten {0} Min. wurden transkribiert"," · quality uncertain — pick the spoken language under “Video &amp; language”":" · Qualität unsicher — wähl die gesprochene Sprache unter «Video &amp; Sprache»","Captions ready — fix any word, then Export.":"Untertitel fertig — korrigiere Wörter, dann exportiere.","Error: {0}":"Fehler: {0}"," Your previous captions are kept.":" Deine bisherigen Untertitel bleiben erhalten.","Turn on “Translate to English” again to retry.":"Schalte «Untertitel ins Englische übersetzen» nochmals ein, um es erneut zu versuchen.","Turn off “Translate to English” again to retry.":"Schalte «Untertitel ins Englische übersetzen» nochmals aus, um es erneut zu versuchen.","Pick the language again to retry.":"Wähl die Sprache nochmals, um es erneut zu versuchen.","This video uses HEVC (iPhone \"High Efficiency\"), which this browser can't play. Open Gluephs in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.":"Dieses Video nutzt HEVC (iPhone «Hohe Effizienz»), das dieser Browser nicht abspielen kann. Öffne Gluephs in Safari oder Chrome auf Mac/iPhone oder stell die iPhone-Kamera auf Formate → Maximale Kompatibilität.","This file has no video track.":"Diese Datei hat keine Videospur.","This browser can't play this H.264 video — open Gluephs in Chrome, Safari or Edge.":"Dieser Browser kann dieses H.264-Video nicht abspielen — öffne Gluephs in Chrome, Safari oder Edge.","This browser can't play this video format. Try Chrome, Safari or Edge, or convert the video to MP4 (H.264).":"Dieser Browser kann dieses Videoformat nicht abspielen. Probier Chrome, Safari oder Edge oder wandle das Video in MP4 (H.264) um."," Captions, SRT and TXT still work — video export needs a picture.":" Untertitel, SRT und TXT funktionieren weiterhin — für den Video-Export braucht es ein Bild.","This browser can't play HEVC video":"Dieser Browser kann kein HEVC-Video abspielen","This browser can't play this H.264 video":"Dieser Browser kann dieses H.264-Video nicht abspielen","This browser can't play this video format":"Dieser Browser kann dieses Videoformat nicht abspielen","No video track":"Keine Videospur","Video can't be played":"Video lässt sich nicht abspielen","That's not a video file. Please choose an MP4, MOV or WebM.":"Das ist keine Videodatei. Bitte wähl eine MP4-, MOV- oder WebM-Datei.","Replace video":"Video ersetzen","This file looks damaged or incomplete. Try re-saving it from your Photos app, or choose another file.":"Diese Datei sieht beschädigt oder unvollständig aus. Speichere sie nochmals aus deiner Fotos-App oder wähl eine andere Datei.","Couldn't load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone's Photos app, then upload it again.":"Dieses Video konnte nicht geladen werden. Probier eine andere Datei (MP4, MOV oder WebM) — oder speichere es nochmals aus der Fotos-App deines Handys und lade es erneut hoch.","This video file looks damaged or incomplete, so it can't be played. Tap “Upload video” to choose another file.":"Diese Videodatei sieht beschädigt oder unvollständig aus und lässt sich nicht abspielen. Tippe auf «Video hochladen», um eine andere Datei zu wählen.","This video couldn't be opened in this browser. Tap “Upload video” to try another file.":"Dieses Video liess sich in diesem Browser nicht öffnen. Tippe auf «Video hochladen», um eine andere Datei zu probieren.","Pause":"Pause","Play":"Abspielen","Unmute":"Ton an","Mute":"Stumm","Captions in sync with the audio":"Untertitel laufen synchron zum Ton","Captions {0} s earlier":"Untertitel {0} s früher","Captions {0} s later":"Untertitel {0} s später","Replace all ({0})":"Alle ersetzen ({0})","✓ Copied":"✓ Kopiert","Copy failed":"Kopieren fehlgeschlagen","nothing to cut":"nichts zu schneiden","{0} possible":"{0} möglich","Select a longer range to cut out":"Wähl einen längeren Bereich zum Ausschneiden","Keep at least {0} s of video":"Lass mindestens {0} s Video stehen","Cut out {0} – {1} — Ctrl/⌘+Z to undo":"{0} – {1} ausgeschnitten — Rückgängig mit Ctrl/⌘+Z","Output {0} s (−{1} s)":"Ausgabe {0} s (−{1} s)","Rendering video…":"Video wird gerendert…"," · ✂️ cutting {0}s":" · ✂️ schneide {0}s","Rendering {0}%…":"Rendern {0}%…","Checking video…":"Prüfe Video…","Your video already has this shape — nothing to fill.":"Dein Video hat schon diese Form — es gibt nichts zu füllen.","Export failed — the video file seems damaged. Try re-saving it from your Photos app or another file.":"Export fehlgeschlagen — die Videodatei scheint beschädigt zu sein. Speichere sie nochmals aus deiner Fotos-App oder nimm eine andere Datei.","Export cancelled — nothing was downloaded.":"Export abgebrochen — es wurde nichts heruntergeladen.","Cancelling…":"Breche ab…","An export is still running. Leave and cancel it?":"Ein Export läuft noch. Verlassen und abbrechen?","Download again":"Nochmals herunterladen","Export with changes":"Mit Änderungen exportieren","Download video":"Video herunterladen","Preparing {0}%…":"Vorbereiten {0}%…","Please upload a video first.":"Bitte lade zuerst ein Video hoch.","Preparing…":"Vorbereiten…","Your browser does not support video export. Please use Chrome, Firefox or Safari.":"Dein Browser unterstützt keinen Video-Export. Bitte nimm Chrome, Firefox oder Safari.","Creating MP4 (one-time ~15 MB converter download)…":"MP4 wird erstellt (einmaliger Konverter-Download, ca. 15 MB)…","Creating MP4… {0}%":"MP4 wird erstellt… {0}%","Creating MP4 {0}%…":"MP4 wird erstellt {0}%…","MP4 conversion failed (maybe offline) — saving as WebM instead. ":"Die MP4-Umwandlung ist fehlgeschlagen (vielleicht offline) — die Datei wird stattdessen als WebM gespeichert. ","Tip: exporting in Chrome or Safari gives you an Instagram-ready MP4 directly.":"Tipp: Ein Export in Chrome oder Safari liefert direkt ein Instagram-taugliches MP4.","Rendering video (no audio track found)…":"Video wird gerendert (keine Tonspur gefunden)…","this changes everything":"das ändert alles","wait for it":"warte ab","the secret nobody tells you":"das Geheimnis, das dir keiner sagt","let me show you how":"ich zeig dir wie","watch this till the end":"schau bis zum Ende","you need to know this":"das musst du wissen","here is the truth":"hier ist die Wahrheit","nobody talks about this":"darüber redet keiner","save this for later":"speicher das für später","it gets better":"es wird noch besser","this is your sign":"das ist dein Zeichen","stop scrolling right now":"hör sofort auf zu scrollen","i wish i knew this":"hätte ich das früher gewusst","the results speak":"die Resultate sprechen","trust the process":"vertrau dem Prozess","level up today":"steig heute auf","one simple trick":"ein einfacher Trick","before and after":"vorher und nachher","game changer":"Gamechanger","do this instead":"mach das stattdessen","Preparing":"Vorbereiten","Exporting":"Exportiere","Export":"Export"," · no watermark":" · ohne Wasserzeichen","original size":"Originalgrösse","original size ({0})":"Originalgrösse ({0})","{0} (source size)":"{0} (Originalgrösse)","{0} (recommended)":"{0} (empfohlen)","Source size · {0}":"Originalgrösse · {0}","Original":"Original","✓ Saved — {0}":"✓ Gespeichert — {0}","Profile grid 3:4":"Profilraster 3:4","Reels / TikTok safe area":"Reels-/TikTok-Safe-Zone","No frame available for this video here — upload an image instead.":"Hier ist für dieses Video kein Bild verfügbar — lade stattdessen ein Bild hoch.","Title is outside the safe area — shorten it or make it smaller.":"Der Titel liegt ausserhalb der Safe Zone — kürze ihn oder mach ihn kleiner.","Your image":"Dein Bild","Please choose an image (JPG, PNG, WebP)":"Bitte wähl ein Bild (JPG, PNG, WebP)","That image is too large (max. 25 MB)":"Das Bild ist zu gross (max. 25 MB)","Couldn’t read that image":"Das Bild konnte nicht gelesen werden","No background — upload an image first":"Kein Hintergrund — lade zuerst ein Bild hoch","Couldn’t create the image":"Das Bild konnte nicht erstellt werden","✓ Cover saved — {0}":"✓ Cover gespeichert — {0}","That file is no longer available — export again.":"Diese Datei ist nicht mehr verfügbar — exportiere nochmals.","✓ Saved again — {0}":"✓ Nochmals gespeichert — {0}","Saved":"Gespeichert","Saving…":"Speichere…","Auto language":"Automatische Sprache","{0} (detected)":"{0} (erkannt)"," · → EN":" · → EN","↶ Undone":"↶ Rückgängig gemacht","↷ Redone":"↷ Wiederholt","Caption deleted — Ctrl/⌘+Z to undo":"Untertitel gelöscht — Rückgängig mit Ctrl/⌘+Z","✓ Caption updated":"✓ Untertitel aktualisiert","“{0}” is no longer your default":"«{0}» ist nicht mehr dein Standard","Upload a video to generate captions":"Lade ein Video hoch, um Untertitel zu erstellen","{0} captions deleted — Ctrl/⌘+Z to undo":"{0} Untertitel gelöscht — Rückgängig mit Ctrl/⌘+Z","Select captions, or set In/Out with I and O, then Cut out (X)":"Wähl Untertitel oder setze In/Out mit I und O und schneide dann aus (X)","This caption is already as short as it can be":"Dieser Untertitel ist schon so kurz wie möglich","The previous caption ends here — shorten it first":"Der vorherige Untertitel endet hier — kürze ihn zuerst","The next caption starts here — shorten it first":"Der nächste Untertitel beginnt hier — kürze ihn zuerst","Already at the start of the video":"Schon am Anfang des Videos","Already at the end of the video":"Schon am Ende des Videos","Stops at a scene cut — turn off Snap to go past it":"Hält an einem Szenenschnitt an — schalte «Einrasten» aus, um darüber hinauszugehen","Move the playhead onto a caption to split it":"Setz den Abspielkopf auf einen Untertitel, um ihn zu teilen","Move the playhead between two words to split":"Setz den Abspielkopf zwischen zwei Wörter, um zu teilen","Split into two captions":"In zwei Untertitel teilen","Tap a caption to select it · drag its edges to trim · hold to move it":"Untertitel antippen zum Wählen · Ränder ziehen zum Kürzen · gedrückt halten zum Verschieben","Drag to move · drag edges to trim · drag over captions to select several":"Ziehen zum Verschieben · Ränder ziehen zum Kürzen · über Untertitel ziehen, um mehrere zu wählen","{0} captions selected · hold one to move them · Delete removes them":"{0} Untertitel gewählt · einen gedrückt halten, um sie zu verschieben · Delete löscht sie","Tap the last caption of the range":"Letzten Untertitel des Bereichs antippen","Swipe across captions to select them, or tap the first and the last":"Über Untertitel wischen oder den ersten und den letzten antippen"," · hold to move · drag the edges to trim":" · gedrückt halten zum Verschieben · Ränder ziehen zum Kürzen","Cut {0} – {1} selected · Restore brings it back":"Schnitt {0} – {1} gewählt · «Wiederherstellen» holt ihn zurück"," · tap a hatched cut to restore it":" · schraffierten Schnitt antippen zum Wiederherstellen","Tap a caption to adjust it · swipe to scrub · pinch to zoom":"Untertitel antippen zum Anpassen · wischen zum Spulen · Pinch zum Zoomen","Scene cut":"Szenenschnitt","Playhead":"Abspielkopf","Caption":"Untertitel","Speech":"Sprache","Word":"Wort","The timeline appears once the video has loaded":"Die Timeline erscheint, sobald das Video geladen ist","Click or drag to seek":"Klicken oder ziehen zum Spulen","Drag to trim the start of the video (everything before it is cut)":"Ziehen, um den Anfang des Videos zu kürzen (alles davor wird abgeschnitten)","Drag to trim the end of the video (everything after it is cut)":"Ziehen, um das Ende des Videos zu kürzen (alles danach wird abgeschnitten)","Cut-out range — click to select it, then Restore":"Ausgeschnittener Bereich — anklicken und dann «Wiederherstellen»","Bring this cut back":"Diesen Schnitt zurückholen","(empty caption)":"(leerer Untertitel)","Drag to move · drag edges to trim · double-click to edit":"Ziehen zum Verschieben · Ränder ziehen zum Kürzen · Doppelklick zum Bearbeiten","Drag to select several captions (Shift adds) · scroll or middle-drag to pan · Ctrl/⌘+wheel to zoom · click to seek":"Ziehen, um mehrere Untertitel zu wählen (Shift fügt hinzu) · scrollen oder mit mittlerer Maustaste ziehen zum Verschieben · Ctrl/⌘+Mausrad zum Zoomen · klicken zum Spulen","Hide timeline":"Timeline ausblenden","Show timeline":"Timeline anzeigen","No gaps to close":"Keine Lücken zum Schliessen"," · removed {0} empty":" · {0} leere entfernt"," — Ctrl/⌘+Z to undo":" — Rückgängig mit Ctrl/⌘+Z","Change “{1}” → “{2}” in 1 more place?":"«{1}» → «{2}» an 1 weiteren Stelle ändern?","Change “{1}” → “{2}” in {0} more places?":"«{1}» → «{2}» an {0} weiteren Stellen ändern?","✓ Exported 1 template":"✓ 1 Template exportiert","✓ Exported {0} templates":"✓ {0} Templates exportiert","1 font":"1 Schrift","{0} fonts":"{0} Schriften","Imported 1 template":"1 Template importiert","Imported {0} templates":"{0} Templates importiert","1 logo skipped (not PNG/JPEG/WebP or too large)":"1 Logo übersprungen (kein PNG/JPEG/WebP oder zu gross)","{0} logos skipped (not PNG/JPEG/WebP or too large)":"{0} Logos übersprungen (kein PNG/JPEG/WebP oder zu gross)","1 font added":"1 Schrift hinzugefügt","{0} fonts added":"{0} Schriften hinzugefügt","1 font could not be added":"1 Schrift konnte nicht hinzugefügt werden","{0} fonts could not be added":"{0} Schriften konnten nicht hinzugefügt werden","You've used your 1 free video without watermark today — this one carries a small watermark. {1}, or come back tomorrow.":"Du hast dein 1 Gratis-Video ohne Wasserzeichen für heute verbraucht — dieses trägt ein kleines Wasserzeichen. {1} — oder komm morgen wieder.","You've used your {0} free videos without watermark today — this one carries a small watermark. {1}, or come back tomorrow.":"Du hast deine {0} Gratis-Videos ohne Wasserzeichen für heute verbraucht — dieses trägt ein kleines Wasserzeichen. {1} — oder komm morgen wieder.","Closed 1 gap":"1 Lücke geschlossen","Closed {0} gaps":"{0} Lücken geschlossen"};
+var UI_DICT = {"English":"Englisch","Spanish":"Spanisch","German":"Deutsch","French":"Französisch","Portuguese":"Portugiesisch","Italian":"Italienisch","Dutch":"Niederländisch","Polish":"Polnisch","Turkish":"Türkisch","Russian":"Russisch","Ukrainian":"Ukrainisch","Japanese":"Japanisch","Korean":"Koreanisch","Chinese":"Chinesisch","Arabic":"Arabisch","Hindi":"Hindi","Detecting speech… window {0}/{1}":"Erkenne Sprache… Abschnitt {0}/{1}","Preparing captions (first time only)…":"Untertitel werden vorbereitet (nur beim ersten Mal)…","Transcription server is not available and the offline engine could not be loaded — check your connection and try again.":"Der Transkriptions-Server ist nicht erreichbar und die Offline-Engine konnte nicht geladen werden — prüf deine Verbindung und versuch es nochmals.","Simple emoji picks for now — AI picks when available.":"Vorerst einfache Emoji-Auswahl — die KI-Auswahl folgt, sobald sie verfügbar ist.","AI is switched off (Settings) — simple emoji picks only.":"Die KI ist ausgeschaltet (Einstellungen) — nur einfache Emoji-Auswahl.","Simple emoji picks – AI picks when available (AI service not reachable right now).":"Einfache Emoji-Auswahl – KI-Auswahl, sobald verfügbar (KI-Dienst gerade nicht erreichbar).","AI is switched off — using simple keyword detection.":"Die KI ist ausgeschaltet — es wird die einfache Schlüsselwort-Erkennung verwendet.","AI picks unavailable — using simple keyword detection.":"KI-Auswahl nicht verfügbar — es wird die einfache Schlüsselwort-Erkennung verwendet.","AI is picking keywords…":"KI wählt Schlüsselwörter…","Title for the first seconds":"Titel für die ersten Sekunden","Asking the AI for a title…":"Frage die KI nach einem Titel…","AI suggestion — edit it freely.":"KI-Vorschlag — ändere ihn frei.","Suggestion from the start of your video — edit it freely.":"Vorschlag vom Anfang deines Videos — ändere ihn frei.","Keyword highlighting turned on":"Schlüsselwörter werden hervorgehoben","Emojis turned on":"Emojis eingeschaltet","Reactions":"Reaktionen","Gestures":"Gesten","Objects":"Objekte","Nature":"Natur","Food":"Essen","Symbols":"Symbole","Change or remove the emoji":"Emoji ändern oder entfernen","Add an emoji to this caption":"Emoji zu diesem Untertitel hinzufügen","Caption emoji":"Untertitel-Emoji","Highlight":"Hervorheben","Tap a word to highlight it":"Wort antippen, um es hervorzuheben","No emoji found — try another word.":"Kein Emoji gefunden — versuch ein anderes Wort.","Search emoji (e.g. fire, Feuer, money)":"Emoji suchen (z. B. fire, Feuer, money)","Search emoji":"Emoji suchen","Emoji categories":"Emoji-Kategorien","No emoji":"Kein Emoji","Auto zoom is on — it starts once your captions are ready":"Auto-Zoom ist an — er startet, sobald deine Untertitel fertig sind","Auto zoom is on — the AI is still picking the key moments…":"Auto-Zoom ist an — die KI wählt noch die wichtigen Momente…","No zoom moments found — zooms start on key words and numbers":"Keine Zoom-Momente gefunden — Zooms setzen bei Schlüsselwörtern und Zahlen ein","Auto zoom: 1 moment":"Auto-Zoom: 1 Moment","Auto zoom: {0} moments":"Auto-Zoom: {0} Momente"," · Preview animation off (reduce motion) — the export includes the zoom":" · Vorschau-Animation aus (Bewegung reduzieren) — der Export enthält den Zoom","Writing…":"Schreibe…","Write":"Schreiben","AI unavailable — simple version from your transcript.":"KI nicht verfügbar — einfache Version aus deinem Transkript.","Copied ✓":"Kopiert ✓","Select & copy":"Markieren & kopieren","Preparing… {0}%":"Vorbereiten… {0}%","Restored — Ctrl/⌘+Z to undo":"Wiederhergestellt — Rückgängig mit Ctrl/⌘+Z","Cut out — not in the video":"Ausgeschnitten — nicht im Video","Removed by Auto-cut — not in the video":"Vom Auto-Cut entfernt — nicht im Video","Partly cut out — only some words stay in the video":"Teilweise ausgeschnitten — nur einige Wörter bleiben im Video","Restore":"Wiederherstellen","Put this caption back into the video":"Diesen Untertitel wieder ins Video setzen","Start":"Start","Start 0.1 s earlier":"Start 0.1 s früher","Drag left/right to move the start (1 px = 0.01 s)":"Nach links/rechts ziehen, um den Start zu verschieben (1 px = 0.01 s)","Start 0.1 s later":"Start 0.1 s später","End":"Ende","End 0.1 s earlier":"Ende 0.1 s früher","Drag left/right to move the end (1 px = 0.01 s)":"Nach links/rechts ziehen, um das Ende zu verschieben (1 px = 0.01 s)","End 0.1 s later":"Ende 0.1 s später","Delete this caption (Ctrl/⌘+Z to undo)":"Diesen Untertitel löschen (Rückgängig mit Ctrl/⌘+Z)","Delete caption":"Untertitel löschen","Fix all":"Alle korrigieren","✓ Fixed {0}× — Ctrl/⌘+Z to undo":"✓ {0}× korrigiert — Rückgängig mit Ctrl/⌘+Z","Bold & clean":"Fett & klar","Impact & display":"Plakativ","Handwritten":"Handschrift","Serif":"Serif","Retro & mono":"Retro & Mono","My fonts (on this device)":"Meine Schriften (auf diesem Gerät)","＋ Upload your own font…":"＋ Eigene Schrift hochladen…","Regular":"Normal","Semi":"Halbfett","Bold":"Fett","Extra":"Extrafett","Black":"Black","This font has only one weight":"Diese Schrift hat nur einen Schnitt","Font weight":"Schriftschnitt","Please choose a .ttf, .otf, .woff or .woff2 file":"Bitte wähl eine .ttf-, .otf-, .woff- oder .woff2-Datei","That font file is too large (max. 3 MB)":"Diese Schriftdatei ist zu gross (max. 3 MB)","You can keep up to {0} own fonts — remove one first":"Du kannst bis zu {0} eigene Schriften behalten — entferne zuerst eine","✓ “{0}” added — stays on this device":"✓ «{0}» hinzugefügt — bleibt auf diesem Gerät","Couldn’t read that font file":"Diese Schriftdatei konnte nicht gelesen werden","Pill":"Pille","Pill color behind the active (spoken) word":"Farbe der Pille hinter dem aktiven (gesprochenen) Wort","Color of the active (spoken) word":"Farbe des aktiven (gesprochenen) Worts","Word pop works with Animation: Highlight.":"Wort-Pop funktioniert mit Animation: Hervorheben.","Preview is still (system setting “reduce motion”) — the export includes the animation.":"Die Vorschau steht still (Systemeinstellung «Bewegung reduzieren») — der Export enthält die Animation.","Keywords: same font as text":"Schlüsselwörter: gleiche Schrift wie der Text","Keywords: {0}":"Schlüsselwörter: {0}","My style":"Mein Style","✓ Logo added — it is saved with the template.":"✓ Logo hinzugefügt — es wird mit dem Template gespeichert.","Please choose a PNG, JPEG or WebP image (SVG is not supported).":"Bitte ein PNG-, JPEG- oder WebP-Bild wählen (SVG wird nicht unterstützt).","This image is too large — please use a smaller file.":"Dieses Bild ist zu gross — bitte eine kleinere Datei verwenden.","Could not read this image.":"Dieses Bild konnte nicht gelesen werden.","active":"aktiv","Replace":"Ersetzen","Upload":"Hochladen","From the look":"Vom Look","This kit’s logo is stored on another device only — upload it again here.":"Das Logo dieses Kits liegt nur auf einem anderen Gerät — lade es hier erneut hoch.","This logo is too large to sync to your account — it stays on this device only.":"Dieses Logo ist zu gross für die Synchronisierung mit deinem Konto — es bleibt nur auf diesem Gerät.","Templates updated from another tab":"Templates aus einem anderen Tab aktualisiert","Editing “{0}”":"«{0}» wird bearbeitet","Update":"Aktualisieren","💾 Save":"💾 Speichern","Overwrite this template with the current style + layout":"Dieses Template mit dem aktuellen Style + Layout überschreiben","Save the current style + position + size + mode as a named template":"Aktuellen Style + Position + Grösse + Modus als benanntes Template speichern","Brand kit removed from “{0}”":"Brand-Kit aus «{0}» entfernt","Enter a name":"Namen eingeben","Give your template a name first.":"Gib deinem Template zuerst einen Namen.","A template named “{0}” already exists. Overwrite it with the current style?":"Ein Template namens «{0}» gibt es schon. Mit dem aktuellen Style überschreiben?","Not saved — choose another name to keep both.":"Nicht gespeichert — wähl einen anderen Namen, um beide zu behalten.","✓ Updated “{0}” — find it under My templates":"✓ «{0}» aktualisiert — du findest es unter «Meine Templates»","✓ Saved as “{0}” — find it under My templates":"✓ Als «{0}» gespeichert — du findest es unter «Meine Templates»"," (synced to your account)":" (mit deinem Konto synchronisiert)"," (saved in this browser)":" (in diesem Browser gespeichert)",". ★ It’s now your default look for every new video (change via ⋯).":". ★ Es ist jetzt dein Standard-Look für jedes neue Video (änderbar über ⋯).","✓ Updated “{0}”":"✓ «{0}» aktualisiert","✓ Saved as “{0}”":"✓ Als «{0}» gespeichert","Use for every new video":"Für jedes neue Video verwenden","★ “{0}” will be used for every new video":"★ «{0}» wird für jedes neue Video verwendet"," · ★ default for every new video":" · ★ Standard für jedes neue Video","No template · {0}":"Kein Template · {0}","Not saved.":"Nicht gespeichert.","✓ Renamed to “{0}”":"✓ Umbenannt in «{0}»","{0} copy":"{0} Kopie","✓ Duplicated as “{0}”":"✓ Dupliziert als «{0}»","Deleted “{0}”":"«{0}» gelöscht","Undo":"Rückgängig","✓ Restored “{0}”":"✓ «{0}» wiederhergestellt","Editing “{0}”: change the style below, then click Update.":"«{0}» wird bearbeitet: Style unten ändern, dann auf «Aktualisieren» klicken.","Hook title removed from “{0}”":"Hook-Titel aus «{0}» entfernt","☆ Stop using as default":"☆ Nicht mehr als Standard verwenden","★ Use for every new video":"★ Für jedes neue Video verwenden","Edit":"Bearbeiten","Rename":"Umbenennen","Duplicate":"Duplizieren","Delete":"Löschen","✓ Hook on ({0} s)":"✓ Hook an ({0} s)","This template switches the hook title on for every video you apply it to":"Dieses Template schaltet bei jedem Video, auf das du es anwendest, den Hook-Titel ein","Remove hook title":"Hook-Titel entfernen","◈ Brand kit":"◈ Brand-Kit","Logo":"Logo","Remove brand kit":"Brand-Kit entfernen","Template name":"Template-Name","Save":"Speichern","Cancel":"Abbrechen"," — not included: ":" — nicht enthalten: ","{0} MB, max. {1} MB":"{0} MB, max. {1} MB","unknown font format":"unbekanntes Schriftformat",". Send that font file along separately.":". Schick diese Schriftdatei separat mit.","No templates yet — save one first.":"Noch keine Templates — speichere zuerst eines.","{0} skipped (already up to date)":"{0} übersprungen (schon aktuell)","{0} failed":"{0} fehlgeschlagen","Could not read this file — please choose a Gluephs templates JSON.":"Diese Datei konnte nicht gelesen werden — bitte wähl eine Gluephs-Templates-JSON.","Not enough browser storage — the logo of “{0}” could not be kept.":"Zu wenig Browser-Speicher — das Logo von «{0}» konnte nicht behalten werden.","My templates":"Meine Templates","{0} saved":"{0} gespeichert","Like your custom look?":"Gefällt dir dein eigener Look?","Save it as a template":"Speichere ihn als Template","to reuse it.":"und nutze ihn wieder.","Presets":"Vorlagen","More looks":"Weitere Looks","unsaved":"nicht gespeichert","★ default":"★ Standard","Hook on":"Hook an","Brand kit":"Brand-Kit","Your template “{0}”":"Dein Template «{0}»","Template options":"Template-Optionen","Options for template {0}":"Optionen für Template {0}","Your current custom style (not saved yet)":"Dein aktueller eigener Style (noch nicht gespeichert)","Caption size {0}: {1} % of the frame height (≈ {2} px on a 1080-px-wide export, before the look’s own size factor). Same value in preview and export.":"Untertitel-Grösse {0}: {1} % der Bildhöhe (≈ {2} px bei einem 1080 px breiten Export, vor dem eigenen Grössenfaktor des Looks). Gleicher Wert in Vorschau und Export.","Auto · {0}":"Auto · {0}","Auto":"Auto","Loading sample…":"Beispiel wird geladen…","Try a sample video":"Beispielvideo ausprobieren","Try a sample":"Beispiel testen","New":"Neu","Trending":"Trend","So":"So","good":"gut","+{0} more in the editor":"+{0} weitere im Editor","Sign-in is temporarily unavailable — please try again later.":"Die Anmeldung ist vorübergehend nicht verfügbar — versuch es später nochmals.","Something went wrong.":"Etwas ist schiefgelaufen.","Accounts are not set up on this deployment yet.":"Konten sind in dieser Version noch nicht eingerichtet.","Code sent — check your inbox.":"Code gesendet — schau in dein Postfach.","Enter your email to get a free login code — your video then exports without the watermark.":"Gib deine E-Mail ein, um einen kostenlosen Login-Code zu erhalten — dein Video wird dann ohne Wasserzeichen exportiert.","Sign in":"Anmelden","— Load project —":"— Projekt laden —","Please cancel your {0} plan first (Manage billing). Once it has ended you can delete the account here, or email contact@gluephs.com.":"Bitte kündige zuerst deinen {0}-Plan (Abo verwalten). Sobald er abgelaufen ist, kannst du das Konto hier löschen — oder schreib an contact@gluephs.com.","Delete your account {0} and all saved projects and templates? This cannot be undone.":"Konto {0} und alle gespeicherten Projekte und Templates löschen? Das lässt sich nicht rückgängig machen.","Sign-in service is unavailable right now. Please try again later.":"Der Anmeldedienst ist gerade nicht verfügbar. Bitte versuch es später nochmals.","Could not delete the account: {0}":"Das Konto konnte nicht gelöscht werden: {0}","Your account and saved projects were deleted":"Dein Konto und deine gespeicherten Projekte wurden gelöscht","Account · {0}":"Konto · {0}"," · signed in":" · angemeldet","Upgrade to remove it":"Upgrade, um es zu entfernen","Captions in seconds · free, no download — works on any device":"Untertitel in Sekunden · gratis, ohne Download — auf jedem Gerät","⚡ Signed in · your projects are saved to the cloud":"⚡ Angemeldet · deine Projekte werden in der Cloud gespeichert","Guest":"Gast","Free":"Gratis","Today's guest minutes are used up. Sign in free for {0} minutes a month.":"Die Gast-Minuten für heute sind aufgebraucht. Melde dich gratis an für {0} Minuten im Monat.","You've used your free minutes for this month. Upgrade for more minutes, or come back next month.":"Du hast deine Gratis-Minuten für diesen Monat aufgebraucht. Upgrade für mehr Minuten — oder komm nächsten Monat wieder.","You've used all minutes of your plan this month. They reset next month.":"Du hast alle Minuten deines Plans für diesen Monat verbraucht. Sie werden nächsten Monat zurückgesetzt.","{0} min left":"noch {0} Min."," · {0} plan · {1} of {2} min left this month":" · {0}-Plan · noch {1} von {2} Min. in diesem Monat","Creator · {0} min/month":"Creator · {0} Min./Monat","Creator · 300 min/mo · $7.99 (≈ CHF 6.50 / € 7) — coming soon":"Creator · 300 Min./Monat · 7.99 $ (≈ CHF 6.50 / € 7) — bald verfügbar","Pro · {0} min/month":"Pro · {0} Min./Monat","Pro · 1200 min/mo · $14.99 (≈ CHF 12 / € 14) — coming soon":"Pro · 1200 Min./Monat · 14.99 $ (≈ CHF 12 / € 14) — bald verfügbar","Price shown in your local currency at checkout":"Der Preis wird an der Kasse in deiner Landeswährung angezeigt","Paid plans are coming soon":"Bezahlte Pläne kommen bald","Paid plans are coming soon — everything is free while Gluephs is in beta.":"Bezahlte Pläne kommen bald — in der Beta von Gluephs ist alles gratis.","Sign in first, then pick a plan.":"Melde dich zuerst an und wähl dann einen Plan.","Checkout is not available yet — please try again later.":"Der Checkout ist noch nicht verfügbar — bitte versuch es später nochmals.","Opening checkout…":"Checkout wird geöffnet…","Could not load the payment window. Please check your connection and try again.":"Das Zahlungsfenster konnte nicht geladen werden. Prüf deine Verbindung und versuch es nochmals.","Checkout could not start. Please try again.":"Der Checkout konnte nicht gestartet werden. Bitte versuch es nochmals.","Thank you! Activating your plan…":"Danke! Dein Plan wird aktiviert…","Your {0} plan is active.":"Dein {0}-Plan ist aktiv.","Payment received — your plan will show up in a minute. Reload if it doesn't.":"Zahlung erhalten — dein Plan erscheint in einer Minute. Lade die Seite neu, falls nicht.","Opening…":"Wird geöffnet…","Could not open the billing portal. Please try again.":"Das Abo-Portal konnte nicht geöffnet werden. Bitte versuch es nochmals.","Untitled":"Ohne Titel","Could not save the project: {0}":"Das Projekt konnte nicht gespeichert werden: {0}","✓ Saved to your account":"✓ In deinem Konto gespeichert","Project loaded — add the video again for preview & export.":"Projekt geladen — füg das Video nochmals hinzu für Vorschau & Export.","Restored your last session":"Deine letzte Sitzung wurde wiederhergestellt","Re-transcribe":"Neu transkribieren","Start fresh":"Neu starten","Saved style":"Gespeicherter Style","That doesn't look like a valid email address — fix it, or tap Skip.":"Das sieht nicht nach einer gültigen E-Mail-Adresse aus — korrigiere sie oder tippe auf «Überspringen».","Re-transcribing… {0}%":"Transkribiere neu… {0}%","Transcribing… {0}%":"Transkribiere… {0}%","Re-transcribing… 0%":"Transkribiere neu… 0%","Your captions update when it finishes":"Deine Untertitel werden danach aktualisiert","Transcribing… 0%":"Transkribiere… 0%","Loading video":"Video wird geladen","The transcription service took too long.":"Der Transkriptions-Dienst hat zu lange gebraucht.","Network problem — check your connection.":"Netzwerkproblem — prüf deine Verbindung."," Please try again.":" Bitte versuch es nochmals.","Free-tier limit reached — please try again in ~{0} min.":"Gratis-Limit erreicht — bitte versuch es in ca. {0} Min. nochmals.","Free-tier limit reached (too many requests) — wait a minute and try again.":"Gratis-Limit erreicht (zu viele Anfragen) — warte eine Minute und versuch es nochmals.","Please log in (top right) to transcribe videos.":"Bitte melde dich an (oben rechts), um Videos zu transkribieren.","Invalid API key — check the server config (config.php).":"Ungültiger API-Schlüssel — prüf die Server-Konfiguration (config.php).","Audio too large for the server — please trim the video.":"Audio zu gross für den Server — bitte kürze das Video.","Transcription service is busy right now — please try again.":"Der Transkriptions-Dienst ist gerade ausgelastet — bitte versuch es nochmals.","Transcription error {0}":"Transkriptionsfehler {0}",". Please try again.":". Bitte versuch es nochmals.","Transcribing":"Transkribiere","{0} (part {1}/{2})…":"{0} (Teil {1}/{2})…","{0} ({1}/{2} parts done)…":"{0} ({1}/{2} Teile fertig)…","Could not read the audio. Please use MP4, MOV or WebM.":"Das Audio konnte nicht gelesen werden. Bitte nimm MP4, MOV oder WebM.","This file looks damaged or incomplete — the audio can't be read. Try re-saving it from your Photos app or another file.":"Diese Datei sieht beschädigt oder unvollständig aus — das Audio lässt sich nicht lesen. Speichere sie nochmals aus deiner Fotos-App oder nimm eine andere Datei.","Extracting audio…":"Audio wird extrahiert…","Preparing transcription…":"Transkription wird vorbereitet…","Finding speech…":"Sprache wird gesucht…","Transcribing (backup model)…":"Transkribiere (Ersatzmodell)…","Auto-detect uncertain — trying {0}…":"Automatische Erkennung unsicher — versuche {0}…","Server unavailable — running locally (one-time model download)…":"Server nicht erreichbar — läuft lokal (einmaliger Modell-Download)…","{0} words":"{0} Wörter"," · → English":" · → Englisch"," · only the first {0} min were transcribed":" · nur die ersten {0} Min. wurden transkribiert"," · quality uncertain — pick the spoken language under “Video &amp; language”":" · Qualität unsicher — wähl die gesprochene Sprache unter «Video &amp; Sprache»","Captions ready — fix any word, then Export.":"Untertitel fertig — korrigiere Wörter, dann exportiere.","Error: {0}":"Fehler: {0}"," Your previous captions are kept.":" Deine bisherigen Untertitel bleiben erhalten.","Turn on “Translate to English” again to retry.":"Schalte «Untertitel ins Englische übersetzen» nochmals ein, um es erneut zu versuchen.","Turn off “Translate to English” again to retry.":"Schalte «Untertitel ins Englische übersetzen» nochmals aus, um es erneut zu versuchen.","Pick the language again to retry.":"Wähl die Sprache nochmals, um es erneut zu versuchen.","This video uses HEVC (iPhone \"High Efficiency\"), which this browser can't play. Open Gluephs in Safari or Chrome on Mac/iPhone, or set iPhone Camera → Formats → Most Compatible.":"Dieses Video nutzt HEVC (iPhone «Hohe Effizienz»), das dieser Browser nicht abspielen kann. Öffne Gluephs in Safari oder Chrome auf Mac/iPhone oder stell die iPhone-Kamera auf Formate → Maximale Kompatibilität.","This file has no video track.":"Diese Datei hat keine Videospur.","This browser can't play this H.264 video — open Gluephs in Chrome, Safari or Edge.":"Dieser Browser kann dieses H.264-Video nicht abspielen — öffne Gluephs in Chrome, Safari oder Edge.","This browser can't play this video format. Try Chrome, Safari or Edge, or convert the video to MP4 (H.264).":"Dieser Browser kann dieses Videoformat nicht abspielen. Probier Chrome, Safari oder Edge oder wandle das Video in MP4 (H.264) um."," Captions, SRT and TXT still work — video export needs a picture.":" Untertitel, SRT und TXT funktionieren weiterhin — für den Video-Export braucht es ein Bild.","This browser can't play HEVC video":"Dieser Browser kann kein HEVC-Video abspielen","This browser can't play this H.264 video":"Dieser Browser kann dieses H.264-Video nicht abspielen","This browser can't play this video format":"Dieser Browser kann dieses Videoformat nicht abspielen","No video track":"Keine Videospur","Video can't be played":"Video lässt sich nicht abspielen","That's not a video file. Please choose an MP4, MOV or WebM.":"Das ist keine Videodatei. Bitte wähl eine MP4-, MOV- oder WebM-Datei.","Replace video":"Video ersetzen","This file looks damaged or incomplete. Try re-saving it from your Photos app, or choose another file.":"Diese Datei sieht beschädigt oder unvollständig aus. Speichere sie nochmals aus deiner Fotos-App oder wähl eine andere Datei.","Couldn't load this video. Try another file (MP4, MOV or WebM) — or re-save it from your phone's Photos app, then upload it again.":"Dieses Video konnte nicht geladen werden. Probier eine andere Datei (MP4, MOV oder WebM) — oder speichere es nochmals aus der Fotos-App deines Handys und lade es erneut hoch.","This video file looks damaged or incomplete, so it can't be played. Tap “Upload video” to choose another file.":"Diese Videodatei sieht beschädigt oder unvollständig aus und lässt sich nicht abspielen. Tippe auf «Video hochladen», um eine andere Datei zu wählen.","This video couldn't be opened in this browser. Tap “Upload video” to try another file.":"Dieses Video liess sich in diesem Browser nicht öffnen. Tippe auf «Video hochladen», um eine andere Datei zu probieren.","This file looks damaged or incomplete.":"Diese Datei scheint beschädigt oder unvollständig zu sein.","Couldn't load this video.":"Dieses Video konnte nicht geladen werden.","Pause":"Pause","Play":"Abspielen","Unmute":"Ton an","Mute":"Stumm","Captions in sync with the audio":"Untertitel laufen synchron zum Ton","Captions {0} s earlier":"Untertitel {0} s früher","Captions {0} s later":"Untertitel {0} s später","Replace all ({0})":"Alle ersetzen ({0})","✓ Copied":"✓ Kopiert","Copy failed":"Kopieren fehlgeschlagen","nothing to cut":"nichts zu schneiden","{0} possible":"{0} möglich","Select a longer range to cut out":"Wähl einen längeren Bereich zum Ausschneiden","Keep at least {0} s of video":"Lass mindestens {0} s Video stehen","Cut out {0} – {1} — Ctrl/⌘+Z to undo":"{0} – {1} ausgeschnitten — Rückgängig mit Ctrl/⌘+Z","Output {0} s (−{1} s)":"Ausgabe {0} s (−{1} s)","Rendering video…":"Video wird gerendert…"," · ✂️ cutting {0}s":" · ✂️ schneide {0}s","Rendering {0}%…":"Rendern {0}%…","Checking video…":"Prüfe Video…","Your video already has this shape — nothing to fill.":"Dein Video hat schon diese Form — es gibt nichts zu füllen.","Export failed — the video file seems damaged. Try re-saving it from your Photos app or another file.":"Export fehlgeschlagen — die Videodatei scheint beschädigt zu sein. Speichere sie nochmals aus deiner Fotos-App oder nimm eine andere Datei.","Export cancelled — nothing was downloaded.":"Export abgebrochen — es wurde nichts heruntergeladen.","Cancelling…":"Breche ab…","An export is still running. Leave and cancel it?":"Ein Export läuft noch. Verlassen und abbrechen?","Download again":"Nochmals herunterladen","Export with changes":"Mit Änderungen exportieren","Download video":"Video herunterladen","Another export is still running.":"Es läuft bereits ein anderer Export.","Wait until the export of all clips is finished — or cancel it in the Clips list.":"Warte, bis der Export aller Clips fertig ist — oder brich ihn in der Clip-Liste ab.","Preparing {0}%…":"Vorbereiten {0}%…","Please upload a video first.":"Bitte lade zuerst ein Video hoch.","Preparing…":"Vorbereiten…","Your browser does not support video export. Please use Chrome, Firefox or Safari.":"Dein Browser unterstützt keinen Video-Export. Bitte nimm Chrome, Firefox oder Safari.","Creating MP4 (one-time ~15 MB converter download)…":"MP4 wird erstellt (einmaliger Konverter-Download, ca. 15 MB)…","Creating MP4… {0}%":"MP4 wird erstellt… {0}%","Creating MP4 {0}%…":"MP4 wird erstellt {0}%…","MP4 conversion failed (maybe offline) — saving as WebM instead. ":"Die MP4-Umwandlung ist fehlgeschlagen (vielleicht offline) — die Datei wird stattdessen als WebM gespeichert. ","Tip: exporting in Chrome or Safari gives you an Instagram-ready MP4 directly.":"Tipp: Ein Export in Chrome oder Safari liefert direkt ein Instagram-taugliches MP4.","Rendering video (no audio track found)…":"Video wird gerendert (keine Tonspur gefunden)…","this changes everything":"das ändert alles","wait for it":"warte ab","the secret nobody tells you":"das Geheimnis, das dir keiner sagt","let me show you how":"ich zeig dir wie","watch this till the end":"schau bis zum Ende","you need to know this":"das musst du wissen","here is the truth":"hier ist die Wahrheit","nobody talks about this":"darüber redet keiner","save this for later":"speicher das für später","it gets better":"es wird noch besser","this is your sign":"das ist dein Zeichen","stop scrolling right now":"hör sofort auf zu scrollen","i wish i knew this":"hätte ich das früher gewusst","the results speak":"die Resultate sprechen","trust the process":"vertrau dem Prozess","level up today":"steig heute auf","one simple trick":"ein einfacher Trick","before and after":"vorher und nachher","game changer":"Gamechanger","do this instead":"mach das stattdessen","Preparing":"Vorbereiten","Exporting":"Exportiere","Export":"Export"," · no watermark":" · ohne Wasserzeichen","original size":"Originalgrösse","original size ({0})":"Originalgrösse ({0})","{0} (source size)":"{0} (Originalgrösse)","{0} (recommended)":"{0} (empfohlen)","Source size · {0}":"Originalgrösse · {0}","Original":"Original","✓ Saved — {0}":"✓ Gespeichert — {0}","Profile grid 3:4":"Profilraster 3:4","Reels / TikTok safe area":"Reels-/TikTok-Safe-Zone","No frame available for this video here — upload an image instead.":"Hier ist für dieses Video kein Bild verfügbar — lade stattdessen ein Bild hoch.","Title is outside the safe area — shorten it or make it smaller.":"Der Titel liegt ausserhalb der Safe Zone — kürze ihn oder mach ihn kleiner.","Your image":"Dein Bild","Please choose an image (JPG, PNG, WebP)":"Bitte wähl ein Bild (JPG, PNG, WebP)","That image is too large (max. 25 MB)":"Das Bild ist zu gross (max. 25 MB)","Couldn’t read that image":"Das Bild konnte nicht gelesen werden","No background — upload an image first":"Kein Hintergrund — lade zuerst ein Bild hoch","Couldn’t create the image":"Das Bild konnte nicht erstellt werden","✓ Cover saved — {0}":"✓ Cover gespeichert — {0}","That file is no longer available — export again.":"Diese Datei ist nicht mehr verfügbar — exportiere nochmals.","✓ Saved again — {0}":"✓ Nochmals gespeichert — {0}","Saved":"Gespeichert","Saving…":"Speichere…","Auto language":"Automatische Sprache","{0} (detected)":"{0} (erkannt)"," · → EN":" · → EN","↶ Undone":"↶ Rückgängig gemacht","↷ Redone":"↷ Wiederholt","Caption deleted — Ctrl/⌘+Z to undo":"Untertitel gelöscht — Rückgängig mit Ctrl/⌘+Z","✓ Caption updated":"✓ Untertitel aktualisiert","“{0}” is no longer your default":"«{0}» ist nicht mehr dein Standard","Upload a video to generate captions":"Lade ein Video hoch, um Untertitel zu erstellen","Queued":"In Warteschlange","Transcribing…":"Wird transkribiert…","Transcribed":"Transkribiert","Edited":"Bearbeitet","Exporting…":"Wird exportiert…","Exported":"Exportiert","Error":"Fehler","Not a video: {0}":"Kein Video: {0}","Already in the list: {0}":"Schon in der Liste: {0}","Limit is {0} clips per batch — not added: {1}":"Maximal {0} Clips pro Durchgang — nicht hinzugefügt: {1}","Wait until the running export is finished.":"Warte, bis der laufende Export fertig ist.","Wait until the export is finished.":"Warte, bis der Export fertig ist.","Wait until transcription is finished — or pause it.":"Warte, bis die Transkription fertig ist — oder pausiere sie.","Nothing to export yet — clips must be transcribed first.":"Noch nichts zu exportieren — die Clips müssen zuerst transkribiert sein.","Enter your email — or skip — to start exporting all clips.":"Gib deine E-Mail ein — oder überspringe sie —, um alle Clips zu exportieren.","Export cancelled — finished clips are kept.":"Export abgebrochen — fertige Clips bleiben erhalten.","This browser can't render this video.":"Dieser Browser kann dieses Video nicht rendern.","Export failed.":"Export fehlgeschlagen.","Packing ZIP… {0}%":"ZIP wird gepackt… {0}%","The ZIP would be over 4 GB — download the clips one by one.":"Das ZIP wäre über 4 GB gross — lade die Clips einzeln herunter.","Couldn't create the ZIP — download the clips one by one.":"Das ZIP konnte nicht erstellt werden — lade die Clips einzeln herunter.","Custom (edited)":"Eigener Style (bearbeitet)","Looks":"Looks","Exporting {0} of {1} — {2}%":"Export {0} von {1} — {2}%","Transcribing {0} of {1}…":"Transkribiere {0} von {1}…","{0} of {1} max.":"{0} von max. {1}","changed since export":"seit dem Export geändert","Template for {0}":"Template für {0}","Editing":"Im Editor","Open":"Öffnen","Remove {0}":"{0} entfernen","Remove from list":"Aus der Liste entfernen","Download MP4":"MP4 herunterladen","Cancel export":"Export abbrechen","Pausing after this clip…":"Pausiert nach diesem Clip…","Pause after this clip":"Nach diesem Clip pausieren","Each with its own template, one after another":"Jeder mit seinem Template, einer nach dem anderen","Include SRT files":"SRT-Dateien dazulegen","{0} captions deleted — Ctrl/⌘+Z to undo":"{0} Untertitel gelöscht — Rückgängig mit Ctrl/⌘+Z","Select captions, or set In/Out with I and O, then Cut out (X)":"Wähl Untertitel oder setze In/Out mit I und O und schneide dann aus (X)","This caption is already as short as it can be":"Dieser Untertitel ist schon so kurz wie möglich","The previous caption ends here — shorten it first":"Der vorherige Untertitel endet hier — kürze ihn zuerst","The next caption starts here — shorten it first":"Der nächste Untertitel beginnt hier — kürze ihn zuerst","Already at the start of the video":"Schon am Anfang des Videos","Already at the end of the video":"Schon am Ende des Videos","Stops at a scene cut — turn off Snap to go past it":"Hält an einem Szenenschnitt an — schalte «Einrasten» aus, um darüber hinauszugehen","Move the playhead onto a caption to split it":"Setz den Abspielkopf auf einen Untertitel, um ihn zu teilen","Move the playhead between two words to split":"Setz den Abspielkopf zwischen zwei Wörter, um zu teilen","Split into two captions":"In zwei Untertitel teilen","Tap a caption to select it · drag its edges to trim · hold to move it":"Untertitel antippen zum Wählen · Ränder ziehen zum Kürzen · gedrückt halten zum Verschieben","Drag to move · drag edges to trim · drag over captions to select several":"Ziehen zum Verschieben · Ränder ziehen zum Kürzen · über Untertitel ziehen, um mehrere zu wählen","{0} captions selected · hold one to move them · Delete removes them":"{0} Untertitel gewählt · einen gedrückt halten, um sie zu verschieben · Delete löscht sie","Tap the last caption of the range":"Letzten Untertitel des Bereichs antippen","Swipe across captions to select them, or tap the first and the last":"Über Untertitel wischen oder den ersten und den letzten antippen"," · hold to move · drag the edges to trim":" · gedrückt halten zum Verschieben · Ränder ziehen zum Kürzen","Cut {0} – {1} selected · Restore brings it back":"Schnitt {0} – {1} gewählt · «Wiederherstellen» holt ihn zurück"," · tap a hatched cut to restore it":" · schraffierten Schnitt antippen zum Wiederherstellen","Tap a caption to adjust it · swipe to scrub · pinch to zoom":"Untertitel antippen zum Anpassen · wischen zum Spulen · Pinch zum Zoomen","Scene cut":"Szenenschnitt","Playhead":"Abspielkopf","Caption":"Untertitel","Speech":"Sprache","Word":"Wort","The timeline appears once the video has loaded":"Die Timeline erscheint, sobald das Video geladen ist","Click or drag to seek":"Klicken oder ziehen zum Spulen","Drag to trim the start of the video (everything before it is cut)":"Ziehen, um den Anfang des Videos zu kürzen (alles davor wird abgeschnitten)","Drag to trim the end of the video (everything after it is cut)":"Ziehen, um das Ende des Videos zu kürzen (alles danach wird abgeschnitten)","Cut-out range — click to select it, then Restore":"Ausgeschnittener Bereich — anklicken und dann «Wiederherstellen»","Bring this cut back":"Diesen Schnitt zurückholen","(empty caption)":"(leerer Untertitel)","Drag to move · drag edges to trim · double-click to edit":"Ziehen zum Verschieben · Ränder ziehen zum Kürzen · Doppelklick zum Bearbeiten","Drag to select several captions (Shift adds) · scroll or middle-drag to pan · Ctrl/⌘+wheel to zoom · click to seek":"Ziehen, um mehrere Untertitel zu wählen (Shift fügt hinzu) · scrollen oder mit mittlerer Maustaste ziehen zum Verschieben · Ctrl/⌘+Mausrad zum Zoomen · klicken zum Spulen","Hide timeline":"Timeline ausblenden","Show timeline":"Timeline anzeigen","No gaps to close":"Keine Lücken zum Schliessen"," · removed {0} empty":" · {0} leere entfernt"," — Ctrl/⌘+Z to undo":" — Rückgängig mit Ctrl/⌘+Z","Change “{1}” → “{2}” in 1 more place?":"«{1}» → «{2}» an 1 weiteren Stelle ändern?","Change “{1}” → “{2}” in {0} more places?":"«{1}» → «{2}» an {0} weiteren Stellen ändern?","✓ Exported 1 template":"✓ 1 Template exportiert","✓ Exported {0} templates":"✓ {0} Templates exportiert","1 font":"1 Schrift","{0} fonts":"{0} Schriften","Imported 1 template":"1 Template importiert","Imported {0} templates":"{0} Templates importiert","1 logo skipped (not PNG/JPEG/WebP or too large)":"1 Logo übersprungen (kein PNG/JPEG/WebP oder zu gross)","{0} logos skipped (not PNG/JPEG/WebP or too large)":"{0} Logos übersprungen (kein PNG/JPEG/WebP oder zu gross)","1 font added":"1 Schrift hinzugefügt","{0} fonts added":"{0} Schriften hinzugefügt","1 font could not be added":"1 Schrift konnte nicht hinzugefügt werden","{0} fonts could not be added":"{0} Schriften konnten nicht hinzugefügt werden","You've used your 1 free video without watermark today — this one carries a small watermark. {1}, or come back tomorrow.":"Du hast dein 1 Gratis-Video ohne Wasserzeichen für heute verbraucht — dieses trägt ein kleines Wasserzeichen. {1} — oder komm morgen wieder.","You've used your {0} free videos without watermark today — this one carries a small watermark. {1}, or come back tomorrow.":"Du hast deine {0} Gratis-Videos ohne Wasserzeichen für heute verbraucht — dieses trägt ein kleines Wasserzeichen. {1} — oder komm morgen wieder.","{0} clip transcribed — pick a template per clip, then export all.":"{0} Clip transkribiert — wähle pro Clip ein Template und exportiere dann alle.","{0} clips transcribed — pick a template per clip, then export all.":"{0} Clips transkribiert — wähle pro Clip ein Template und exportiere dann alle.","{0} clip exported, {1} failed.":"{0} Clip exportiert, {1} fehlgeschlagen.","{0} clips exported, {1} failed.":"{0} Clips exportiert, {1} fehlgeschlagen.","{0} clip exported — download below.":"{0} Clip exportiert — Download unten.","{0} clips exported — download below.":"{0} Clips exportiert — Download unten.","{0} clip":"{0} Clip","{0} clips":"{0} Clips","Export {0} clip":"{0} Clip exportieren","Export all {0} clips":"Alle {0} Clips exportieren","Transcribe the remaining {0} clip":"Verbleibenden {0} Clip transkribieren","Transcribe the remaining {0} clips":"Verbleibende {0} Clips transkribieren","Download {0} clip as ZIP":"{0} Clip als ZIP herunterladen","Download {0} clips as ZIP":"{0} Clips als ZIP herunterladen","Closed 1 gap":"1 Lücke geschlossen","Closed {0} gaps":"{0} Lücken geschlossen"};
 function _t(s) {
   var r = UI_DICT && Object.prototype.hasOwnProperty.call(UI_DICT, s) ? UI_DICT[s] : s, a = arguments;
   return a.length < 2 ? r : String(r).replace(/\{(\d)\}/g, function(m, i) { return +i + 1 < a.length ? a[+i + 1] : m; });
@@ -2563,6 +2618,9 @@ var capVOff         = 20;   // Höhen-Feinjustierung in % (+ = weiter oben), add
 var showSafeZone     = false; // Safe-Zone-Anzeige (Reels-UI-Bereich) an/aus — nur Anzeige, nie im Export
 var SZ_KEY = 'capivo.safezone', szUserChoice = null; // gespeicherte Nutzerwahl (true/false); null = noch keine → Standard: bei 9:16 an
 (function() { try { var v = typeof localStorage !== 'undefined' && localStorage.getItem(SZ_KEY); if (v === '1' || v === '0') { szUserChoice = v === '1'; showSafeZone = szUserChoice; } } catch (e) {} })();
+var _q = { clips: [], activeId: null, pass: null, exp: null, srt: true, seq: 0 }; // Warteschlange (Batch) — s. «BATCH / QUEUE»; leer = Einzelvideo wie bisher
+var _trWait = null;     // einmaliger Rückruf, der das Ende der Transkription/Wiederherstellung meldet (nur die Warteschlange setzt ihn)
+var _trPost          = null;  // Promise der Nachbearbeitung (Polish + KI-Hervorhebung) des jüngsten Laufs — die Warteschlange wartet darauf
 var _trRun           = 0;     // Lauf-Token für transcribeVideo(): nur der jüngste Lauf darf Ergebnisse/Status schreiben
 var captionsEdited   = false; // Text/Split/Merge seit letzter Transkription bzw. Projekt-Load → vor Neu-Transkription fragen
 var zoomLevel        = 1;   // Vorschau-Zoom, 1.0–2.5
@@ -10912,15 +10970,47 @@ function readAutosaves() {
 function writeAutosaves(list) {
   try { localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(list)); return true; } catch (e) { return false; }
 }
+// Stand des geladenen Videos als Autosave-/Schnappschuss-Daten (projectPayload + Wörter + Bearbeitet-Marke + Transkriptions-Meta)
+function autosaveData() {
+  var data = projectPayload();
+  data.words = wordTimestamps; data.edited = captionsEdited; data.meta = _lastTrMeta;
+  return data;
+}
+// Welche Autosave-Einträge bleiben: die jüngsten, aber nie die geschützten (Clips der laufenden Warteschlange, bis 10) — sonst
+// verdrängten ein elfter Clip bzw. spätere Videos die Bearbeitung von Clip 1 (LRU mit 5 Plätzen). list ist neu→alt sortiert.
+// protect = Schlüssel-Menge; max = Plätze für ungeschützte; der erste Eintrag (aktuelles Video) bleibt immer.
+function autosaveTrim(list, protect, max) {
+  protect = protect || {};
+  var out = [], free = Math.max(1, max || AUTOSAVE_MAX);
+  list.forEach(function(e, i) {
+    if (i === 0 || protect[e.key]) { out.push(e); if (!protect[e.key]) free--; return; }
+    if (free > 0) { out.push(e); free--; }
+  });
+  return out;
+}
+function autosaveProtectSet() {
+  var p = {};
+  _q.clips.forEach(function(c) { if (c.key) p[c.key] = true; });
+  return p;
+}
 function autosaveNow() {
   clearTimeout(_autosaveTimer); _autosaveTimer = null;
   if (!_autosaveKey || !captionBlocks.length) { setSaveInd(''); return false; }
-  var data = projectPayload();
-  data.words = wordTimestamps; data.edited = captionsEdited; data.meta = _lastTrMeta;
+  var data = autosaveData();
   var entry = { key: _autosaveKey, savedAt: Date.now(), data: data };
-  var list = [entry].concat(readAutosaves().filter(function(e){ return e.key !== _autosaveKey; })).slice(0, AUTOSAVE_MAX);
-  // Quota voll: ältere Videos opfern (nur den aktuellen Stand behalten) und genau einmal neu versuchen.
-  var ok = writeAutosaves(list) || writeAutosaves([entry]);
+  var protect = autosaveProtectSet();
+  var list = autosaveTrim([entry].concat(readAutosaves().filter(function(e){ return e.key !== _autosaveKey; })), protect, AUTOSAVE_MAX);
+  // Quota voll: zuerst die ältesten ungeschützten Videos opfern, dann die ältesten geschützten, zuletzt nur den aktuellen Stand
+  // (wie bisher) — jeweils nur ein Schreibversuch pro Stufe.
+  var ok = writeAutosaves(list);
+  while (!ok && list.length > 1) {
+    var drop = -1;
+    for (var i = list.length - 1; i > 0; i--) { if (!protect[list[i].key]) { drop = i; break; } }
+    if (drop < 0) drop = list.length - 1;
+    list.splice(drop, 1);
+    ok = writeAutosaves(list);
+  }
+  if (!ok) ok = writeAutosaves([entry]);
   setSaveInd(ok ? 'saved' : '');
   return ok;
 }
@@ -10955,11 +11045,12 @@ function findAutosaveByDuration(key) {
   }
   return null;
 }
-function markCaptionsEdited() { captionsEdited = true; scheduleAutosave(); if (typeof exportSheetOpen === 'function' && exportSheetOpen()) syncExportAgain(); }
+function markCaptionsEdited() { captionsEdited = true; if (_q.clips.length) queueMarkEdited(); scheduleAutosave(); if (typeof exportSheetOpen === 'function' && exportSheetOpen()) syncExportAgain(); }
 // Nach dem Laden der Video-Metadaten: Autosave vorhanden → wiederherstellen, sonst transkribieren.
-function restoreOrTranscribe(file, dur) {
+function restoreOrTranscribe(file, dur, snap) {
   _autosaveKey = autosaveKeyFor(file, dur);
-  var saved = findAutosave(_autosaveKey);
+  // Warteschlange: der Speicher-Schnappschuss des Clips gilt zuerst (funktioniert auch ohne localStorage), sonst wie bisher der Autosave
+  var saved = snap ? { key: _autosaveKey, savedAt: Date.now(), data: JSON.parse(JSON.stringify(snap)) } : findAutosave(_autosaveKey);
   // Fallback: gleiches Video unter anderem Dateinamen
   if (!saved) {
     var fallback = findAutosaveByDuration(_autosaveKey);
@@ -10976,7 +11067,7 @@ function restoreOrTranscribe(file, dur) {
     }
   }
   if (billingOn()) loadBilling(); // Marken-Status gilt pro Video (X-Video-Key)
-  if (saved && restoreAutosave(saved)) return true;
+  if (saved && restoreAutosave(saved)) { trNotify('restored'); return true; }
   transcribeVideo(file);
   return false;
 }
@@ -10995,7 +11086,7 @@ function restoreAutosave(entry) {
     + 'style="color:#7c3aed;font-weight:600;text-decoration:none">' + _t('Re-transcribe') + '</a>', false, false);
   if (setProcessing(false)) switchTab('captions'); // nichts zu transkribieren → direkt zum Text
   // Dasselbe Video nochmal hochgeladen: Wiederherstellung bleibt, aber mit Ausweg «Start fresh» (alte Texte/Schnitte/Hook-Text weg)
-  capToastAction(_t('Restored your last session'), _t('Start fresh'), function() { startFreshSession(); });
+  if (!_q.clips.length) capToastAction(_t('Restored your last session'), _t('Start fresh'), function() { startFreshSession(); }); // in der Warteschlange wechselt man ständig zwischen Clips: kein Hinweis
   return true;
 }
 // Dieses Video von vorn: Untertitel, Trim/Schnitte und Hook-Text zurücksetzen, neu transkribieren (die frische Transkription ersetzt die Sitzung)
@@ -11297,6 +11388,7 @@ function setTProgress(pct) {
   // Vorschau-Überlagerung + Fortschrittsbalken über dem Style-Raster
   var pm = document.getElementById('procMsg'); if (pm) pm.textContent = (_reTr ? _t('Re-transcribing… {0}%', Math.round(p)) : _t('Transcribing… {0}%', Math.round(p)));
   ['procFill', 'shFill'].forEach(function(id) { var f = document.getElementById(id); if (f) f.style.width = p + '%'; });
+  if (_q.pass) setTProgressQueue(p);
 }
 // ── Verarbeitungs-Schritt = Style-Wahl ──
 // Während der ERSTEN Transkription eines Videos: Fortschritt als Überlagerung auf der Vorschau, Panel im
@@ -11998,8 +12090,9 @@ async function transcribeVideo(file) {
     // Feinschliff im Hintergrund: Captions sind schon sichtbar/bearbeitbar; Korrekturen landen nur, solange
     // niemand etwas geändert hat (sonst still verworfen).
     emSrc = null; postCaption = null; hookText = ''; hookAi = ''; _zoomPlanKey = null; syncPostUI(); syncEmphUI(); syncHookUI(); // Hook-Titel: neuer Text je Video (Schalter + Dauer bleiben)
-    postTranscribeAI(run, CODE_BY_LANG[usedLang] || lc || '', vocab);
+    _trPost = postTranscribeAI(run, CODE_BY_LANG[usedLang] || lc || '', vocab);
     if (billingOn()) loadBilling(); // Restminuten nach dem Lauf aktualisieren
+    trNotify('ok');
 
   } catch(err) {
     if (stale() || (err && err.stale)) return; // veralteter Lauf: still beenden, neuer Lauf hat UI & Daten
@@ -12021,7 +12114,8 @@ async function transcribeVideo(file) {
       setTStatus('❌', _t('Error: {0}', err.message || err), false, false);
     }
     document.getElementById('retryWrap').style.display = 'block';
-    if (err && err.quota) setTimeout(showUpgrade, 400);
+    trNotify('error', err);
+    if (err && err.quota && !_q.pass) setTimeout(showUpgrade, 400); // mitten in einer Warteschlange nicht dazwischenfunken: die Liste meldet es
   }
 }
 
@@ -12185,7 +12279,11 @@ function layoutPreviewFrame(setFont) {
   syncSafeZoneDefault(ar);
   return w;
 }
-function loadVideo(file) {
+// opts (nur von der Warteschlange, s. «BATCH / QUEUE»): { clip } = Queue-Clip dieses Videos (Status, Wiederherstellung aus dem
+// Speicher-Schnappschuss, Look des Clips). Ohne opts verhält sich loadVideo exakt wie bei einem einzelnen Video.
+function loadVideo(file, opts) {
+  var qClip = opts && opts.clip || null;
+  if (!qClip && _q.clips.length) queueResetIfForeign(file); // Video ausserhalb der Warteschlange gewählt → Warteschlange ist nicht mehr gemeint
   if (!file || !file.type.startsWith('video/')) {
     // Statt eines nativen alert() (bricht den Look-and-Feel, v.a. auf Mobile) die gleiche
     // rote Fehlerbox wie bei Transkriptionsfehlern zeigen — Editor ggf. dafür erst öffnen,
@@ -12243,7 +12341,9 @@ function loadVideo(file) {
     setPPIcon(false);
     updateOverlay();
     captureTileFrame(url, vid.duration); // Style-Kacheln mit echtem Standbild
-    var restored = restoreOrTranscribe(file, vid.duration);
+    if (qClip) qClip.dur = vid.duration;
+    var restored = restoreOrTranscribe(file, vid.duration, qClip && qClip.snap);
+    if (qClip) queueClipOpened(qClip, restored); // Look des Clips setzen, Status nachführen
     fmtHintArm(); // N3: Querformat/Quadrat ohne Format aus Template/Projekt → Hinweis «Make this a 9:16 Reel?»
     // Kein Bild (HEVC ohne Decoder / reine Audiodatei)? Transkription läuft trotzdem (Ton), Video-Export aus.
     var runFile = file;
@@ -12278,7 +12378,8 @@ function loadVideo(file) {
     // lesbar: dann HEVC-Hinweis zeigen und die Captions dennoch erzeugen (SRT/TXT bleiben nutzbar).
     var errFile = file;
     probeVideoTrack(file).then(function(pr) {
-      if (currentFile !== errFile || !(pr && pr.hasVideo)) return;
+      if (currentFile !== errFile) return;
+      if (!(pr && pr.hasVideo)) { trNotify('error', { message: damaged ? _t('This file looks damaged or incomplete.') : _t('Couldn\'t load this video.') }); return; }
       applyPlayability(classifyUnplayable(pr, errFile));
       setTStatus('', _t('Preparing transcription…'), true, true);
       restoreOrTranscribe(errFile, 0);
@@ -12737,6 +12838,10 @@ function dlBlob(blob, name) {
     if (blob !== _lastExportBlob) { _lastExportSig = _expSigStart != null ? _expSigStart : exportSignature(); _expSigStart = null; } // neuer Export (nicht „Download again“)
     _lastDlName = name; _lastExportBlob = blob; // „✓ Saved — …“ + Teilen/erneut laden
   }
+  saveBlobAs(blob, name);
+}
+// Reines Speichern (Download-Link), ohne den Zustand des Einzel-Exports anzufassen — auch für die Warteschlange (ZIP, einzelne Clips)
+function saveBlobAs(blob, name) {
   var url = URL.createObjectURL(blob);
   var a   = document.createElement('a');
   a.href = url; a.download = name; a.click();
@@ -13560,12 +13665,12 @@ async function tryFastExport(vid, tok) {
     if (!check.ok) throw new Error('Validierung fehlgeschlagen: ' + check.reason);
     if (!exportBlobOk(blob)) throw new Error('Validierung fehlgeschlagen: Datei leer');
     if (tok && tok.cancelled) throw new Error('cancelled'); // Abbruch gewinnt gegen den Download, solange nichts gespeichert ist
-    dlBlob(blob, exportBaseName() + '.mp4');
+    if (!(tok && tok.opts)) dlBlob(blob, exportBaseName() + '.mp4'); else deliverQueueExport(tok, blob, exportBaseName() + '.mp4', wmF);
     recProg.style.display = 'none';
     exportBtnState(null);
     isExporting = false; if (tok && _expTok === tok) _expTok = null;
     if (ctrls) ctrls.classList.remove('exporting'); tlRequestDraw(); // Timeline pausierte während des Exports
-    exportDone(wmF);
+    if (!(tok && tok.opts)) exportDone(wmF); else settleExport(tok, 'ok');
     return true;
   } catch (e) {
     if (tok && tok.cancelled) { exportAborted(tok); return true; } // Nutzer hat abgebrochen → kein Echtzeit-Rückfall, kein Download
@@ -13936,7 +14041,16 @@ function recorderMimeIsSafeMp4(actual, requested, hasAudio) {
 // tok.abort: pfadabhängige Stopp-Funktion (Recorder anhalten bzw. ffmpeg.wasm beenden). Der WebCodecs-Pfad
 // prüft tok.cancelled in seiner Schleife.
 var _expTok = null;
-function newExportToken() { return (_expTok = { cancelled: false, abort: null }); }
+function newExportToken() { return (_expTok = { cancelled: false, abort: null, opts: null, errMsg: '', settled: false }); }
+// Meldet der Warteschlange (opts.onSettle) genau einmal, wie der Export endete: 'ok' | 'cancelled' | 'error'
+function settleExport(tok, state, msg) {
+  if (!tok || tok.settled || !tok.opts) return;
+  tok.settled = true;
+  try { if (tok.opts.onSettle) tok.opts.onSettle(state, msg || ''); } catch (e) { console.warn('[queue] onSettle:', e); }
+}
+function deliverQueueExport(tok, blob, name, wmOn) {
+  try { if (tok.opts.sink) tok.opts.sink(blob, name, wmOn); } catch (e) { console.warn('[queue] sink:', e); }
+}
 // Kleiner als das ist keine echte Videodatei (allein der Container-Kopf ist > 1 KB) → leere/kaputte Aufnahme
 var EXPORT_MIN_BYTES = 1024;
 var MSG_EXPORT_DAMAGED = _t('Export failed — the video file seems damaged. Try re-saving it from your Photos app or another file.');
@@ -13947,6 +14061,7 @@ function exportPlaybackTooShort(elapsedSec, expectedSec) { return expectedSec > 
 function resetExportUI(tok) {
   if (!tok || _expTok === tok) _expTok = null;
   isExporting = false;
+  if (tok && tok.opts) settleExport(tok, tok.cancelled ? 'cancelled' : 'error', tok.errMsg); // Warteschlange: Abbruch/Fehler melden (Erfolg meldet der Aufrufer selbst)
   var rp = document.getElementById('recProg'); if (rp) rp.style.display = 'none';
   var rb = document.getElementById('recBar'); if (rb) rb.style.width = '0%';
   var cb = document.getElementById('expCancel'); if (cb) cb.disabled = false;
@@ -13956,11 +14071,13 @@ function resetExportUI(tok) {
 }
 function exportAborted(tok) {
   resetExportUI(tok); showExportMain();
-  capToast(_t('Export cancelled — nothing was downloaded.'));
+  if (!(tok && tok.opts)) capToast(_t('Export cancelled — nothing was downloaded.'));
 }
 // Fehlermeldung dort zeigen, wo der Nutzer hinschaut: im (ggf. dafür geöffneten) Export-Blatt, nicht als alert()
 function exportFailed(tok, msg) {
+  if (tok) tok.errMsg = msg;
   resetExportUI(tok);
+  if (tok && tok.opts) return; // Warteschlange: der Fehler steht beim Clip in der Liste, kein Export-Blatt öffnen
   if (!exportSheetOpen()) openExportSheet();
   showExportMain();
   var n = document.getElementById('expNote'); if (n) { n.textContent = msg; n.style.display = ''; }
@@ -13976,9 +14093,9 @@ function cancelExport() {
 }
 // Seite verlassen (Zurück-Knopf/Browser-Zurück) während eines Exports: nachfragen; bei „OK“ wird der Export abgebrochen
 function confirmLeaveExport() {
-  if (!(isExporting || _expTok)) return true;
+  if (!(isExporting || _expTok || _q.exp)) return true;
   var ok = typeof confirm === 'function' && confirm(_t('An export is still running. Leave and cancel it?'));
-  if (ok) cancelExport();
+  if (ok) { if (_q.exp) _q.exp.cancel = true; cancelExport(); }
   return ok;
 }
 // Die zuletzt gespeicherte Datei bleibt für „Download again“/Teilen im Speicher, bis ein neuer Export startet,
@@ -14025,6 +14142,7 @@ function syncLastExportUI() {
 // Fortschritt direkt AM Export-Button (Handy: die Fortschrittsleiste darunter liegt oft außerhalb des
 // sichtbaren Bereichs) — Button währenddessen gesperrt. text = null → zurücksetzen.
 function exportBtnState(text) {
+  if (text && _expTok && _expTok.opts && _expTok.opts.onProgress) { try { _expTok.opts.onProgress(text); } catch (e) {} }
   syncTopExport(text, videoPlayable && captionBlocks.length > 0);
   var b = document.getElementById('btnVideo');
   if (!b) return;
@@ -14050,10 +14168,19 @@ function exportBtnState(text) {
     if (lbl) lbl.textContent = (_lastExportBlob && exportChangedSinceLast()) ? _t('Export with changes') : _t('Download video');
   }
 }
-async function exportVideoWithCaptions() {
-  if (isExporting || _expTok) return; // Doppelklick/Enter während eines laufenden Exports
-  if (!passEmailGate()) return; // Beta: erst E-Mail, dann Download (ohne Wasserzeichen)
+// opts (nur Warteschlange «Alle exportieren»): { sink(blob, name, wmOn), onSettle(state, msg), onProgress(text) }.
+//   sink       – nimmt die fertige Datei entgegen statt sie herunterzuladen (Export-Blatt/«Saved»-Zeile bleiben unberührt)
+//   onSettle   – genau einmal am Ende: 'ok' | 'cancelled' | 'error' (+ Meldung)
+//   onProgress – Fortschrittstext («Rendering 42%…»)
+// Die E-Mail-Abfrage entfällt hier: die Warteschlange fragt einmal pro Durchgang (queueExportAll), nicht pro Clip.
+async function exportVideoWithCaptions(opts) {
+  if (opts && typeof opts.preventDefault === 'function') opts = null; // als Event-Handler aufgerufen
+  if (isExporting || _expTok) { if (opts && opts.onSettle) opts.onSettle('error', _t('Another export is still running.')); return; } // Doppelklick/Enter während eines laufenden Exports
+  if (_q.exp && !opts) { capToast(_t('Wait until the export of all clips is finished — or cancel it in the Clips list.')); return; }
+  if (!opts && !passEmailGate()) return; // Beta: erst E-Mail, dann Download (ohne Wasserzeichen)
+  if (!opts && _gateResume) { var resume = _gateResume; _gateResume = null; closeExportSheet(); resume(); return; } // Warteschlange wartete auf die E-Mail → Durchgang starten
   var tok = newExportToken(); // ab hier abbrechbar (auch während „Preparing“)
+  tok.opts = opts || null;
   releaseLastExport(); // neuer Export beginnt → die vorige Datei freigeben (Speicher)
   _expSigStart = exportSignature(); // Stand beim Start (Änderungen während des Renderns zählen als „nach dem Export“)
   // Schnitterkennung läuft noch → kurz warten (sonst überspannen Blöcke Schnitte); die Phase direkt am
@@ -14067,7 +14194,7 @@ async function exportVideoWithCaptions() {
   finally { if (cutTimer) { clearInterval(cutTimer); exportBtnState(null); } }
   var vid = document.getElementById('mainVid');
   if (tok.cancelled) { exportAborted(tok); return; }
-  if (!vid.src || !vid.duration) { resetExportUI(tok); alert(_t('Please upload a video first.')); return; }
+  if (!vid.src || !vid.duration) { resetExportUI(tok); if (!opts) alert(_t('Please upload a video first.')); return; }
   showExportMain(); // „Export again“/neuer Export: Erfolgszeile weg, Fortschritt sichtbar
   exportBtnState(_t('Preparing…'));
   await waitAuth(); // Session-Wiederherstellung abwarten, bevor needsWatermark() entscheidet
@@ -14086,7 +14213,7 @@ async function exportVideoWithCaptions() {
   if (await tryFastExport(vid, tok)) return;
   if (tok.cancelled) { exportAborted(tok); return; }
 
-  if (!window.MediaRecorder) { resetExportUI(tok); alert(_t('Your browser does not support video export. Please use Chrome, Firefox or Safari.')); return; }
+  if (!window.MediaRecorder) { tok.errMsg = _t('Your browser does not support video export. Please use Chrome, Firefox or Safari.'); resetExportUI(tok); if (!opts) alert(tok.errMsg); return; }
 
   var geo = exportGeometry(vid.videoWidth, vid.videoHeight, 30, undefined, undefined, currentFile ? estimateSourceBitrate(currentFile.size, vid.duration) : 0);
   if (_blurBgCanvas) _blurBgCanvas.width = 0; // Blur-Hintergrund des vorigen Exports nicht wiederverwenden
@@ -14164,14 +14291,15 @@ async function exportVideoWithCaptions() {
     }
     tok.abort = null;
     if (tok.cancelled) { restoreVideo(); exportAborted(tok); return; }
-    dlBlob(outBlob, outName);
+    if (!tok.opts) dlBlob(outBlob, outName); else deliverQueueExport(tok, outBlob, outName, wmOn);
     document.getElementById('recProg').style.display = 'none';
     exportBtnState(null);
     restoreVideo();
     isExporting = false; if (_expTok === tok) _expTok = null;
     var ctrls = document.getElementById('vidCtrls');
     if (ctrls) ctrls.classList.remove('exporting'); tlRequestDraw(); // Timeline pausierte während des Exports
-    exportDone(wmOn); // Erfolg inline im Export-Blatt (statt Upsell-Modal)
+    if (!tok.opts) exportDone(wmOn); // Erfolg inline im Export-Blatt (statt Upsell-Modal)
+    else settleExport(tok, 'ok');
   };
 
   // Play/Pause/Seek/Mute während des Renderns sperren — sonst hängt die Fertig-Erkennung für immer,
@@ -15322,7 +15450,7 @@ function exportSheetOpen() { var sh = document.getElementById('expSheet'); retur
 function openExportSheet() {
   var sh = document.getElementById('expSheet');
   if (!sh) return;
-  closeMoreMenu();
+  closeMoreMenu(); closeQueueSheet();
   if (!isExporting && !_expTok) showExportMain();
   var c = document.getElementById('expSkipChk'); if (c) c.checked = expSkip();
   syncSubOptsUI();
@@ -15342,7 +15470,9 @@ function openExportSheet() {
 function pointerFine() {
   try { return typeof matchMedia === 'function' && matchMedia('(pointer:fine)').matches; } catch (e) { return false; }
 }
+var _gateResume = null; // «Alle exportieren» wartet auf die E-Mail-Abfrage → nach dem Gate startet der Durchgang (s. exportVideoWithCaptions)
 function closeExportSheet() {
+  _gateResume = null;
   var sh = document.getElementById('expSheet');
   if (sh) sh.style.display = 'none';
   var tb = document.getElementById('tbExport'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'false');
@@ -15445,6 +15575,7 @@ function exportDone(wmOn) {
   if (m) m.style.display = 'none'; if (ow) ow.style.display = ''; if (d) d.style.display = ''; // Optionen bleiben änderbar (→ syncExportAgain)
   if (!exportSheetOpen()) capToast(_t('✓ Saved — {0}', _lastDlName));
   statExport();
+  if (_q.clips.length && !_q.exp) queueNoteSingleExport(); // einzeln aus dem Editor exportiert: Clip gilt als exportiert (ZIP enthält die Datei)
 }
 
 // ═══════════════════════════════════════
@@ -15979,9 +16110,10 @@ if (typeof document !== 'undefined' && document.addEventListener) {
     if (!t.closest('#moreMenu') && !t.closest('#moreBtn')) closeMoreMenu();
     if (!t.closest('#emoPick') && !t.closest('.se-emo')) closeEmojiPicker();
     if (!t.closest('#expSheet') && !t.closest('#tbExport') && !t.closest('#acctModal') && !isExporting) closeExportSheet();
+    if (!t.closest('#qSheet') && !t.closest('#tbQueue') && !t.closest('#moreMenu') && !t.closest('#moreBtn')) closeQueueSheet();
   }, true);
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { closeMoreMenu(); closeEmojiPicker(); if (!isExporting) closeExportSheet(); }
+    if (e.key === 'Escape') { closeMoreMenu(); closeEmojiPicker(); closeQueueSheet(); if (!isExporting) closeExportSheet(); }
   });
 }
 // Titel = Dateiname (ohne Endung), umbenennbar; wird in Autosave/Projekt gespeichert
@@ -16408,6 +16540,8 @@ function goBack() {
   leaveEditor();
 }
 function leaveEditor() {
+  if (_q.pass) { _q.pass.stop = true; _q.pass.taken = true; } // zurück zur Startseite: der Durchgang lädt keine weiteren Clips in den Editor
+  closeQueueSheet();
   var v = document.getElementById('mainVid');
   if (!v.paused) v.pause();
   releaseLastExport(); showExportMain();
@@ -16419,26 +16553,619 @@ function leaveEditor() {
 }
 
 // ═══════════════════════════════════════
+// BATCH / QUEUE — mehrere Clips in einem Durchgang (Noah: 3–5 Reels am Tag für mehrere Kunden)
+// ═══════════════════════════════════════
+// Ab 2 Dateien (Landing, Drop-Zone, «Add clips») entsteht eine Warteschlange; eine einzelne Datei läuft EXAKT wie bisher
+// (kein Queue-Zustand, keine Liste). Die Warteschlange hat keinen zweiten Editor-Zustand: der Editor ist global (currentFile,
+// captionBlocks …), also steuert sie ihn nacheinander — Clip laden → Transkription abwarten → Autosave/Schnappschuss → nächster.
+// Jeder Clip merkt sich seinen Stand in einem Speicher-Schnappschuss (c.snap, zusätzlich zum Autosave pro Video), damit der
+// Wechsel zwischen Clips nichts verliert — auch wenn localStorage gesperrt ist. «Alle exportieren» nutzt den normalen Exportweg
+// (exportVideoWithCaptions mit opts.sink) und sammelt die Dateien; Download einzeln oder als STORE-ZIP (eigener Schreiber unten).
+var QUEUE_MAX = 10;                               // Clips pro Durchgang
+var QUEUE_STATUS = ['queued', 'transcribing', 'ready', 'edited', 'exporting', 'exported', 'error'];
+function queueStatusLabel(st) {
+  switch (st) {
+    case 'queued': return _t('Queued');
+    case 'transcribing': return _t('Transcribing…');
+    case 'ready': return _t('Transcribed');
+    case 'edited': return _t('Edited');
+    case 'exporting': return _t('Exporting…');
+    case 'exported': return _t('Exported');
+    case 'error': return _t('Error');
+  }
+  return st;
+}
+// Statusübergänge (rein): start | transcribed | failed | edit | exportStart | exportOk | exportFail
+function queueNextStatus(st, ev) {
+  switch (ev) {
+    case 'start': return st === 'queued' || st === 'error' ? 'transcribing' : st;
+    case 'stop': return st === 'transcribing' ? 'queued' : st;
+    case 'transcribed': return st === 'exported' ? 'edited' : st === 'exporting' ? st : 'ready'; // frisch transkribiert; war schon exportiert → Export ist veraltet
+    case 'failed': return st === 'queued' || st === 'transcribing' || st === 'error' ? 'error' : st;
+    case 'edit': return st === 'ready' || st === 'exported' ? 'edited' : st;
+    case 'exportStart': return st === 'ready' || st === 'edited' || st === 'exported' || st === 'error' ? 'exporting' : st;
+    case 'exportOk': return st === 'exporting' ? 'exported' : st;
+    case 'exportFail': return st === 'exporting' ? 'error' : st;
+  }
+  return st;
+}
+function queueFileKey(f) { return (f && f.name || '') + '|' + (f && f.size || 0) + '|' + (f && f.lastModified || 0); }
+function isVideoFile(f) { return !!f && typeof f.type === 'string' && f.type.indexOf('video/') === 0; }
+// Welche Dateien kommen in die Warteschlange? Reihenfolge bleibt; Nicht-Videos, Duplikate (Name|Grösse|Datum) und alles über
+// dem Limit werden mit Grund übersprungen. → { accepted: [File], skipped: [{ name, reason: 'notvideo' | 'duplicate' | 'limit' }] }
+function queuePlanAdd(clips, files, max) {
+  max = max || QUEUE_MAX;
+  var seen = {}, accepted = [], skipped = [], room = Math.max(0, max - clips.length);
+  clips.forEach(function(c) { seen[c.fkey] = true; });
+  Array.prototype.forEach.call(files || [], function(f) {
+    var nm = f && f.name || '?';
+    if (!isVideoFile(f)) { skipped.push({ name: nm, reason: 'notvideo' }); return; }
+    var k = queueFileKey(f);
+    if (seen[k]) { skipped.push({ name: nm, reason: 'duplicate' }); return; }
+    if (accepted.length >= room) { skipped.push({ name: nm, reason: 'limit' }); return; }
+    seen[k] = true; accepted.push(f);
+  });
+  return { accepted: accepted, skipped: skipped };
+}
+function queueNewClip(file, styleId, id) {
+  return { id: id, file: file, fkey: queueFileKey(file), name: file.name || 'video', dur: 0, size: file.size || 0, styleId: styleId || '',
+    status: 'queued', err: '', errKind: '', key: '', snap: null, result: null, pct: 0, words: 0 };
+}
+// Look für neue Clips: bewusst gewählter Startseiten-Chip, sonst das Standard-Template (★), sonst der aktuelle Look
+function queueDefaultStyleId(pickId, brandId, exists, activeNow) {
+  if (pickId && exists(pickId)) return pickId;
+  if (brandId && exists(brandId)) return brandId;
+  return activeNow;
+}
+function queueCounts(clips) {
+  var n = { total: clips.length };
+  QUEUE_STATUS.forEach(function(s) { n[s] = 0; });
+  clips.forEach(function(c) { n[c.status] = (n[c.status] || 0) + 1; });
+  return n;
+}
+function queueExportable(c) {
+  return c.status === 'ready' || c.status === 'edited' || c.status === 'exported' || (c.status === 'error' && c.errKind === 'export');
+}
+function queueSkipMsg(skipped) {
+  function names(list) { var l = list.slice(0, 2).map(function(x) { return x.name; }).join(', '); return list.length > 2 ? l + ' +' + (list.length - 2) : l; }
+  var by = { notvideo: [], duplicate: [], limit: [] }, out = [];
+  skipped.forEach(function(s) { (by[s.reason] || by.notvideo).push(s); });
+  if (by.notvideo.length) out.push(_t('Not a video: {0}', names(by.notvideo)));
+  if (by.duplicate.length) out.push(_t('Already in the list: {0}', names(by.duplicate)));
+  if (by.limit.length) out.push(_t('Limit is {0} clips per batch — not added: {1}', QUEUE_MAX, names(by.limit)));
+  return out.join(' · ');
+}
+function queueClip(id) { for (var i = 0; i < _q.clips.length; i++) if (_q.clips[i].id === id) return _q.clips[i]; return null; }
+function queueActiveClip() { return _q.activeId ? queueClip(_q.activeId) : null; }
+function queueSetStatus(c, ev) { c.status = queueNextStatus(c.status, ev); }
+
+// ── Rückmeldung von Transkription / Wiederherstellung (aus transcribeVideo, restoreOrTranscribe, loadVideo.onerror) ──
+// kind: 'ok' (Captions stehen) | 'restored' (aus Schnappschuss/Autosave) | 'error'
+function trNotify(kind, info) {
+  var c = queueActiveClip();
+  if (c && c.file === currentFile) {
+    if (kind === 'ok') { c.words = wordTimestamps.length; c.err = ''; c.errKind = ''; queueSetStatus(c, 'transcribed'); }
+    else if (kind === 'error') { queueSetStatus(c, 'failed'); if (c.status === 'error') { c.err = String(info && info.message || info || ''); c.errKind = 'transcribe'; } }
+    queueRender();
+  }
+  if (_trWait) { var w = _trWait; _trWait = null; w(kind, info); }
+}
+function setTProgressQueue(p) { var c = _q.pass && queueActiveClip(); if (c && c.status === 'transcribing') { c.pct = p; queueProgress(c); } }
+
+// ── Zustand des geöffneten Clips sichern / wiederherstellen ──
+function queueSnapshotActive() {
+  var c = queueActiveClip();
+  if (!c || c.file !== currentFile || !captionBlocks.length) return;
+  try { c.snap = JSON.parse(JSON.stringify(autosaveData())); } catch (e) {}
+  if (activeId !== 'custom' || !c.styleId) c.styleId = activeId;
+}
+// loadVideo hat den Clip geladen (Metadaten da, Wiederherstellung bzw. Transkription gestartet)
+function queueClipOpened(c, restored) {
+  c.key = _autosaveKey || '';
+  if (c.styleId && c.styleId !== 'custom' && c.styleId !== activeId && STYLES.some(function(x) { return x.id === c.styleId; })) selectStyle(c.styleId);
+  else if (!c.styleId) c.styleId = activeId;
+  if (restored) {
+    if (c.status === 'queued' || c.status === 'transcribing' || c.status === 'error') { c.status = captionsEdited ? 'edited' : 'ready'; c.err = ''; c.errKind = ''; }
+    c.words = wordTimestamps.length;
+  } else if (c.status === 'queued' || c.status === 'error') { queueSetStatus(c, 'start'); c.err = ''; c.errKind = ''; c.pct = 0; }
+  queueRender();
+}
+// Aufruf aus markCaptionsEdited: Text/Timing des geöffneten Clips wurde geändert
+function queueMarkEdited() {
+  var c = queueActiveClip();
+  if (!c || c.file !== currentFile || _q.exp) return;
+  if (c.status === 'ready' || c.status === 'exported') {
+    queueSetStatus(c, 'edit');
+    if (c.result) c.result.stale = true;
+    queueRender();
+  }
+}
+// Video ausserhalb der Warteschlange gewählt (loadVideo ohne opts.clip) → die Warteschlange ist nicht mehr gemeint
+function queueResetIfForeign(file) {
+  if (_q.exp) return;
+  for (var i = 0; i < _q.clips.length; i++) if (_q.clips[i].file === file) return;
+  queueReset();
+}
+function queueReset() {
+  if (_q.pass) { _q.pass.stop = true; _q.pass.taken = true; }
+  if (_trWait) _trWait = null;
+  _q.clips = []; _q.activeId = null; _q.exp = null;
+  closeQueueSheet(); queueRender();
+}
+// Wartet auf das Ende der Transkription/Wiederherstellung des Clips im Editor → 'ok' | 'error' | 'taken' (jemand anderes hat den Editor) | 'removed'
+function queueLoadClip(c, pass) {
+  return new Promise(function(resolve) {
+    var done = false, timer = null;
+    function fin(k, info) { if (done) return; done = true; clearInterval(timer); if (_trWait === waiter) _trWait = null; resolve({ kind: k, info: info }); }
+    function waiter(kind, info) { fin(kind === 'restored' ? 'ok' : kind, info); }
+    _trWait = waiter;
+    _q.activeId = c.id;
+    loadVideo(c.file, { clip: c });
+    timer = setInterval(function() {
+      if (c.removed) fin('removed');
+      else if (currentFile !== c.file || (pass && pass.taken)) fin('taken');
+    }, 400);
+  });
+}
+function queueRaceTimeout(p, ms) { return Promise.race([p, new Promise(function(r) { setTimeout(r, ms); })]); }
+
+// ── Transkription aller wartenden Clips, nacheinander ──
+async function queueRunPass() {
+  if (_q.pass || _q.exp) return;
+  if (isExporting || _expTok) { capToast(_t('Wait until the running export is finished.')); return; }
+  var pass = _q.pass = { stop: false, taken: false, startId: _q.activeId || (_q.clips[0] && _q.clips[0].id), n: 0 };
+  queueRender();
+  var finished = true;
+  try {
+    while (!pass.stop) {
+      var c = null;
+      for (var i = 0; i < _q.clips.length; i++) if (_q.clips[i].status === 'queued') { c = _q.clips[i]; break; }
+      if (!c) break;
+      if (_q.activeId && _q.activeId !== c.id) queueSnapshotActive();
+      c.status = 'transcribing'; c.err = ''; c.pct = 0; pass.n++;
+      queueRender();
+      var r = await queueLoadClip(c, pass);
+      if (r.kind === 'removed') continue;
+      if (r.kind === 'taken') { queueSetStatus(c, 'stop'); finished = false; break; }
+      if (r.kind === 'error') {
+        c.status = 'error'; c.errKind = 'transcribe'; c.err = String(r.info && r.info.message || r.info || '');
+        if (r.info && r.info.quota) { finished = false; capToast(c.err); break; } // Kontingent leer → die weiteren scheitern genauso
+        continue;
+      }
+      // Polish + KI-Hervorhebung abwarten (sonst entwertet das Laden des nächsten Clips sie), dann sichern
+      await queueRaceTimeout(Promise.resolve(_trPost).catch(function() {}), 25000);
+      if (currentFile === c.file) { autosaveNow(); queueSnapshotActive(); }
+      if (c.status === 'transcribing') c.status = 'ready';
+      queueRender();
+    }
+  } finally {
+    _q.pass = null;
+  }
+  if (pass.stop && !pass.taken) finished = false;
+  queueRender();
+  var cnt = queueCounts(_q.clips);
+  if (finished && !pass.taken) {
+    // zurück zum Clip, bei dem man angefangen hat (Stand kommt aus dem Schnappschuss)
+    var st = queueClip(pass.startId);
+    if (st && (currentFile !== st.file) && !_q.exp) queueOpen(st.id, true);
+    capToast(_tn(cnt.total - cnt.error, '{0} clip transcribed — pick a template per clip, then export all.', '{0} clips transcribed — pick a template per clip, then export all.', cnt.total - cnt.error));
+  }
+}
+function queuePausePass() { if (_q.pass) { _q.pass.stop = true; queueRender(); } }
+
+// ── Clip öffnen / entfernen / Look wählen ──
+function queueOpen(id, keepSheet) {
+  var c = queueClip(id);
+  if (!c) return false;
+  if (_q.exp) { capToast(_t('Wait until the export is finished.')); return false; }
+  if (isExporting || _expTok) { capToast(_t('Wait until the running export is finished.')); return false; }
+  if (_q.pass) _q.pass.stop = true; // der Nutzer übernimmt den Editor: Durchgang endet nach dem laufenden Clip
+  if (_q.activeId === c.id && currentFile === c.file) { if (_q.pass) _q.pass.taken = true; if (!keepSheet) closeQueueSheet(); queueRender(); return true; }
+  queueSnapshotActive();
+  if (_q.pass) _q.pass.taken = true;
+  loadVideo(c.file, { clip: c });
+  _q.activeId = c.id;
+  if (!keepSheet) closeQueueSheet();
+  queueRender();
+  return true;
+}
+function queueRemove(id) {
+  var c = queueClip(id);
+  if (!c || _q.exp) return;
+  var idx = _q.clips.indexOf(c), wasActive = _q.activeId === c.id, wasTranscribing = c.status === 'transcribing' && _q.pass;
+  c.removed = true;
+  _q.clips.splice(idx, 1);
+  c.snap = null; c.result = null;
+  if (!_q.clips.length) { queueReset(); return; }
+  if (wasActive) {
+    _q.activeId = null;
+    if (wasTranscribing) { _trRun++; return queueRender(); } // der Durchgang macht mit dem nächsten Clip weiter
+    queueOpen((_q.clips[idx] || _q.clips[idx - 1]).id, true);
+  }
+  queueRender();
+}
+function queueSetStyle(id, styleId) {
+  var c = queueClip(id);
+  if (!c || !styleId || _q.exp) return;
+  c.styleId = styleId;
+  if (_q.activeId === c.id && currentFile === c.file && c.status !== 'transcribing' && c.status !== 'queued') { if (styleId !== activeId) selectStyle(styleId); }
+  else if (c.snap) c.snap.style = styleId;
+  if (c.status === 'exported' && c.result) { c.result.stale = true; }
+  queueRender();
+}
+function queueSetAll(styleId) { if (!styleId) return; _q.clips.forEach(function(c) { queueSetStyle(c.id, styleId); }); }
+
+// ── Dateien aufnehmen ──
+// mode 'new' (Startseite): neuer Durchgang, eine bestehende Warteschlange wird ersetzt · 'add' (Editor): ergänzt
+function queueAdoptCurrent() {
+  if (_q.clips.length || !currentFile) return null;
+  var c = queueNewClip(currentFile, activeId, 'c' + (++_q.seq));
+  var v = document.getElementById('mainVid'); c.dur = v && v.duration || 0; c.key = _autosaveKey || '';
+  if (captionBlocks.length) { c.status = captionsEdited ? 'edited' : 'ready'; c.words = wordTimestamps.length; try { c.snap = JSON.parse(JSON.stringify(autosaveData())); } catch (e) {} }
+  _q.clips.push(c); _q.activeId = c.id;
+  return c;
+}
+function queueIngest(fileList, mode) {
+  var files = Array.prototype.slice.call(fileList || []);
+  if (!files.length) return;
+  if (_q.exp) { capToast(_t('Wait until the export is finished.')); return; }
+  mode = mode || 'new';
+  if (mode === 'new' && _q.clips.length) queueReset();
+  if (mode === 'new' && !_q.clips.length && files.length === 1) { loadVideo(files[0]); return; } // eine Datei: wie bisher
+  if (mode === 'add' && !_q.clips.length && files.length === 1 && !currentFile) { loadVideo(files[0]); return; } // leerer Editor, eine Datei
+  var adopted = mode === 'add' && !_q.clips.length && currentFile ? queueAdoptCurrent() : null;
+  var plan = queuePlanAdd(_q.clips, files, QUEUE_MAX);
+  if (plan.skipped.length) capToast(queueSkipMsg(plan.skipped));
+  if (!plan.accepted.length) { if (adopted) queueReset(); else queueRender(); return; }
+  if (!_q.clips.length && plan.accepted.length === 1) { loadVideo(plan.accepted[0]); return; } // von mehreren bleibt eine gültige Datei: wie ein Einzelvideo
+  try { if (!userTemplates.length) loadTemplates(); } catch (e) {}
+  var def = queueDefaultStyleId(typeof landPick !== 'undefined' && landPick ? resolveStyleId(landPick) : '', resolveStyleId(brandTplId()),
+    function(i) { return STYLES.some(function(x) { return x.id === i; }); }, activeId);
+  plan.accepted.forEach(function(f) { _q.clips.push(queueNewClip(f, def, 'c' + (++_q.seq))); });
+  if (typeof landPick !== 'undefined') landPick = null;
+  queueRender();
+  if (_q.clips.some(function(c) { return c.status === 'queued'; })) {
+    if (!_q.pass) queueRunPass();
+  }
+  openQueueSheet();
+}
+
+// ── Alle exportieren ──
+async function queueExportAll() {
+  if (_q.exp || _q.pass || isExporting || _expTok) { if (_q.pass) capToast(_t('Wait until transcription is finished — or pause it.')); return; }
+  queueSnapshotActive();
+  var list = _q.clips.filter(queueExportable);
+  if (!list.length) { capToast(_t('Nothing to export yet — clips must be transcribed first.')); return; }
+  // E-Mail-Abfrage (freiwillig): einmal pro Durchgang, nicht pro Clip
+  if (gateNeeded()) { _gateResume = queueExportAll; openExportSheet(); capToast(_t('Enter your email — or skip — to start exporting all clips.')); return; }
+  var exp = _q.exp = { cancel: false, total: list.length, done: 0, cur: -1, ok: 0, failed: 0, startId: _q.activeId };
+  list.forEach(function(c) { c.pct = 0; });
+  openQueueSheet(); queueRender();
+  try {
+    for (var i = 0; i < list.length; i++) {
+      if (exp.cancel) break;
+      exp.cur = i; queueRender();
+      var res = await queueExportOne(list[i], exp);
+      exp.done++;
+      if (res === 'ok') exp.ok++; else if (res === 'error') exp.failed++;
+      if (res === 'cancelled') break;
+    }
+  } finally {
+    _q.exp = null;
+  }
+  // wieder dort aufhören, wo man angefangen hat
+  var st = queueClip(exp.startId);
+  if (st && currentFile !== st.file) { try { queueOpen(st.id, true); } catch (e) {} }
+  queueRender();
+  var msg = exp.cancel ? _t('Export cancelled — finished clips are kept.')
+    : exp.failed ? _tn(exp.ok, '{0} clip exported, {1} failed.', '{0} clips exported, {1} failed.', exp.ok, exp.failed)
+    : _tn(exp.ok, '{0} clip exported — download below.', '{0} clips exported — download below.', exp.ok);
+  capToast(msg);
+}
+async function queueExportOne(c, exp) {
+  var prevStatus = c.status;
+  c.status = 'exporting'; c.pct = 0; c.err = ''; c.errKind = '';
+  queueRender();
+  function fail(msg) { c.status = 'error'; c.errKind = 'export'; c.err = msg; c.pct = 0; queueRender(); return 'error'; }
+  // 1) Clip in den Editor holen — immer nur EIN Quellvideo geladen (loadVideo gibt das vorige frei)
+  if (!(currentFile === c.file && vidReady && captionBlocks.length)) {
+    var r = await queueLoadClip(c, null);
+    if (r.kind === 'taken' || r.kind === 'removed') { c.status = prevStatus; queueRender(); return 'cancelled'; }
+    if (r.kind !== 'ok') return fail(String(r.info && r.info.message || r.info || _t('Couldn\'t load this video.')));
+    await queueRaceTimeout(Promise.resolve(_trPost).catch(function() {}), 25000); // frisch neu transkribiert (Schnappschuss fehlte): Nachbearbeitung abwarten
+  } else if (c.styleId && c.styleId !== 'custom' && c.styleId !== activeId) selectStyle(c.styleId);
+  if (exp.cancel) { c.status = prevStatus; queueRender(); return 'cancelled'; }
+  // Bild-Dekodierung prüfen (HEVC ohne Decoder: der Einzel-Export ist dann gesperrt)
+  var vid = document.getElementById('mainVid'), waited = 0;
+  while (videoPlayable && !(vid.videoWidth > 0) && waited < 3000) { await new Promise(function(r2) { setTimeout(r2, 100); }); waited += 100; }
+  if (!videoPlayable || !(vid.videoWidth > 0)) return fail(_t('This browser can\'t render this video.'));
+  // 2) exportieren — der normale Weg, die Datei landet in sink statt im Download
+  var got = null;
+  var res = await new Promise(function(resolve) {
+    var p = exportVideoWithCaptions({
+      sink: function(blob, name) { got = { blob: blob, name: name }; },
+      onSettle: function(state, msg) { resolve({ state: state, msg: msg }); },
+      onProgress: function(text) { var m = /(\d+)%/.exec(text); if (m) { c.pct = Math.min(100, +m[1]); queueProgress(c); } }
+    });
+    if (p && p.catch) p.catch(function(e) { resolve({ state: 'error', msg: e && e.message || String(e) }); });
+  });
+  if (res.state === 'ok' && got && exportBlobOk(got.blob)) {
+    var srt = ''; try { srt = srtFile(currentSubCues()); } catch (e) {}
+    c.result = { blob: got.blob, name: got.name, srt: srt, stale: false };
+    c.status = 'exported'; c.pct = 100; c.err = ''; c.errKind = '';
+    try { statExport(); } catch (e2) {}
+    queueRender();
+    return 'ok';
+  }
+  if (res.state === 'cancelled') { c.status = prevStatus; c.pct = 0; queueRender(); return 'cancelled'; }
+  return fail(res.msg || _t('Export failed.'));
+}
+// Der geöffnete Clip wurde normal (über «Export» oben) gespeichert → «exportiert», Datei fürs ZIP merken
+function queueNoteSingleExport() {
+  var c = queueActiveClip();
+  if (!c || c.file !== currentFile || !_lastExportBlob) return;
+  var srt = ''; try { srt = srtFile(currentSubCues()); } catch (e) {}
+  c.result = { blob: _lastExportBlob, name: _lastDlName, srt: srt, stale: false };
+  c.status = 'exported'; c.err = ''; c.errKind = '';
+  queueRender();
+}
+function queueCancelExport() {
+  if (!_q.exp) return;
+  _q.exp.cancel = true;
+  cancelExport();
+  queueRender();
+}
+
+// ── Download einzeln / ZIP ──
+function queueDownloadOne(id) {
+  var c = queueClip(id);
+  if (c && c.result && c.result.blob) saveBlobAs(c.result.blob, c.result.name);
+}
+function queueDownloadSrt(id) {
+  var c = queueClip(id);
+  if (c && c.result && c.result.srt) dlText(c.result.srt, c.result.name.replace(/\.[^.]+$/, '') + '.srt');
+}
+async function queueDownloadZip() {
+  var items = _q.clips.filter(function(c) { return c.result && c.result.blob; });
+  if (!items.length) return;
+  var used = {}, entries = [], enc = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+  items.forEach(function(c) {
+    var nm = zipUniqueName(c.result.name, used);
+    entries.push({ name: nm, data: c.result.blob, size: c.result.blob.size });
+    if (_q.srt && c.result.srt && enc) {
+      var bytes = enc.encode(c.result.srt);
+      entries.push({ name: zipUniqueName(nm.replace(/\.[^.\/]+$/, '') + '.srt', used), data: bytes, size: bytes.length });
+    }
+  });
+  var btn = document.getElementById('qZipBtn');
+  if (btn) btn.disabled = true;
+  try {
+    var zip = await zipBuild(entries, function(p) { var l = document.getElementById('qZipLbl'); if (l) l.textContent = _t('Packing ZIP… {0}%', Math.round(p * 100)); });
+    saveBlobAs(zip, 'gluephs-clips.zip');
+  } catch (e) {
+    console.warn('[queue] ZIP:', e);
+    capToast(e && e.code === 'zip-limit' ? _t('The ZIP would be over 4 GB — download the clips one by one.') : _t('Couldn\'t create the ZIP — download the clips one by one.'));
+  }
+  if (btn) btn.disabled = false;
+  queueRender();
+}
+function queueSetSrt(on) { _q.srt = !!on; }
+
+// ── ZIP schreiben (STORE, ohne Kompression, ohne Fremdbibliothek) ──
+// Local File Header + Daten je Datei, dann Central Directory, dann End of Central Directory. UTF-8-Dateinamen mit Flag Bit 11
+// (Umlaute!). Kein ZIP64: über 4 GB bzw. 65535 Einträgen wird abgelehnt (Fehler mit code 'zip-limit'). Das Ergebnis ist ein Blob
+// aus Teilen (die Videos werden nie in einen grossen ArrayBuffer kopiert); den CRC-32 liest crc32Blob scheibenweise.
+var _crcTable = null;
+function crc32Table() {
+  if (_crcTable) return _crcTable;
+  var t = new Uint32Array(256);
+  for (var n = 0; n < 256; n++) { var c = n; for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; }
+  return (_crcTable = t);
+}
+// CRC-32 (IEEE) fortsetzen: crc32Update(0, bytes) = Wert für bytes; crc32Update(crc32Update(0, a), b) = Wert für a+b
+function crc32Update(crc, bytes) {
+  var t = crc32Table(), c = (crc ^ 0xFFFFFFFF) >>> 0;
+  for (var i = 0; i < bytes.length; i++) c = t[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+async function crc32Blob(blob, onProgress) {
+  var SLICE = 4 * 1024 * 1024, crc = 0;
+  for (var pos = 0; pos < blob.size; pos += SLICE) {
+    crc = crc32Update(crc, new Uint8Array(await blob.slice(pos, Math.min(blob.size, pos + SLICE)).arrayBuffer()));
+    if (onProgress) onProgress(Math.min(1, (pos + SLICE) / blob.size));
+    await yieldToUI();
+  }
+  return crc;
+}
+function zipDosDateTime(d) {
+  d = d instanceof Date && !isNaN(d) ? d : new Date();
+  var y = Math.max(1980, Math.min(2107, d.getFullYear()));
+  return { time: (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date: ((y - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate() };
+}
+// Eindeutiger Dateiname im ZIP (Gross-/Kleinschreibung egal): «reel.mp4», «reel (2).mp4», «reel (3).mp4» … ; used = Merkliste des Aufrufers
+function zipUniqueName(name, used) {
+  var base = String(name || 'clip').replace(/[\\\/:*?"<>|\u0000-\u001f]+/g, '-').replace(/^[\s.\-]+/, '').trim() || 'clip';
+  var dot = base.lastIndexOf('.'), stem = dot > 0 ? base.slice(0, dot) : base, ext = dot > 0 ? base.slice(dot) : '';
+  var cand = base, n = 1;
+  while (used[cand.toLowerCase()]) { n++; cand = stem + ' (' + n + ')' + ext; }
+  used[cand.toLowerCase()] = true;
+  return cand;
+}
+function zipUtf8(s) {
+  if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(s);
+  var u = unescape(encodeURIComponent(s)), b = new Uint8Array(u.length);
+  for (var i = 0; i < u.length; i++) b[i] = u.charCodeAt(i);
+  return b;
+}
+var ZIP_MAX = 0xFFFFFFFF, ZIP_MAX_ENTRIES = 0xFFFF;
+function zipLimitErr(msg) { var e = new Error(msg); e.code = 'zip-limit'; return e; }
+// entries: [{ name, data (Blob | Uint8Array), size, crc (uint32), date? }] → { parts: [Uint8Array | Blob], size }
+function zipPlan(entries) {
+  if (entries.length > ZIP_MAX_ENTRIES) throw zipLimitErr('ZIP: mehr als 65535 Einträge');
+  var parts = [], central = [], offset = 0, cdSize = 0, flags = 0x0800; // Bit 11: Namen sind UTF-8
+  entries.forEach(function(e) {
+    var nm = zipUtf8(e.name), dt = zipDosDateTime(e.date);
+    if (nm.length > 0xFFFF) throw zipLimitErr('ZIP: Dateiname zu lang');
+    if (e.size >= ZIP_MAX) throw zipLimitErr('ZIP: Datei über 4 GB');
+    var h = new DataView(new ArrayBuffer(30)); // Local File Header
+    h.setUint32(0, 0x04034b50, true); h.setUint16(4, 20, true); h.setUint16(6, flags, true); h.setUint16(8, 0, true);
+    h.setUint16(10, dt.time, true); h.setUint16(12, dt.date, true); h.setUint32(14, e.crc >>> 0, true);
+    h.setUint32(18, e.size, true); h.setUint32(22, e.size, true); h.setUint16(26, nm.length, true); h.setUint16(28, 0, true);
+    var c = new DataView(new ArrayBuffer(46)); // Central Directory Header
+    c.setUint32(0, 0x02014b50, true); c.setUint16(4, 20, true); c.setUint16(6, 20, true); c.setUint16(8, flags, true); c.setUint16(10, 0, true);
+    c.setUint16(12, dt.time, true); c.setUint16(14, dt.date, true); c.setUint32(16, e.crc >>> 0, true);
+    c.setUint32(20, e.size, true); c.setUint32(24, e.size, true); c.setUint16(28, nm.length, true);
+    c.setUint16(30, 0, true); c.setUint16(32, 0, true); c.setUint16(34, 0, true); c.setUint16(36, 0, true); c.setUint32(38, 0, true);
+    c.setUint32(42, offset, true);
+    central.push(new Uint8Array(c.buffer), nm);
+    cdSize += 46 + nm.length;
+    parts.push(new Uint8Array(h.buffer), nm, e.data);
+    offset += 30 + nm.length + e.size;
+    if (offset >= ZIP_MAX) throw zipLimitErr('ZIP: Archiv über 4 GB');
+  });
+  if (offset + cdSize + 22 >= ZIP_MAX) throw zipLimitErr('ZIP: Archiv über 4 GB');
+  var z = new DataView(new ArrayBuffer(22)); // End of Central Directory
+  z.setUint32(0, 0x06054b50, true); z.setUint16(4, 0, true); z.setUint16(6, 0, true);
+  z.setUint16(8, entries.length, true); z.setUint16(10, entries.length, true);
+  z.setUint32(12, cdSize, true); z.setUint32(16, offset, true); z.setUint16(20, 0, true);
+  return { parts: parts.concat(central, [new Uint8Array(z.buffer)]), size: offset + cdSize + 22 };
+}
+async function zipBuild(entries, onProgress) {
+  var total = entries.reduce(function(a, e) { return a + e.size; }, 0) || 1, done = 0, out = [];
+  for (var i = 0; i < entries.length; i++) {
+    var e = entries[i], crc = e.crc;
+    if (crc === undefined) {
+      if (typeof e.data.slice === 'function' && typeof e.data.arrayBuffer === 'function') crc = await crc32Blob(e.data, function(p) { if (onProgress) onProgress((done + p * e.size) / total); });
+      else crc = crc32Update(0, e.data);
+    }
+    done += e.size;
+    if (onProgress) onProgress(done / total);
+    out.push({ name: e.name, data: e.data, size: e.size, crc: crc, date: e.date });
+  }
+  var plan = zipPlan(out);
+  return new Blob(plan.parts, { type: 'application/zip' });
+}
+
+// ── Oberfläche: Blatt «Clips» (Desktop: Popover rechts, Handy: Bottom-Sheet — wie das Export-Blatt) ──
+function queueSheetOpen() { var sh = document.getElementById('qSheet'); return !!(sh && sh.style.display !== 'none'); }
+function openQueueSheet() {
+  var sh = document.getElementById('qSheet');
+  if (!sh) return;
+  closeMoreMenu(); closeExportSheet();
+  sh.style.display = 'block';
+  var tb = document.getElementById('tbQueue'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'true');
+  queueRender();
+}
+function closeQueueSheet() {
+  var sh = document.getElementById('qSheet');
+  if (sh) sh.style.display = 'none';
+  var tb = document.getElementById('tbQueue'); if (tb && tb.setAttribute) tb.setAttribute('aria-expanded', 'false');
+}
+function toggleQueueSheet() { if (queueSheetOpen()) closeQueueSheet(); else openQueueSheet(); }
+function queueAddPick() { var i = document.getElementById('qAddInput'); if (i) i.click(); }
+function queueStyleOptions(sel) {
+  try { if (!userTemplates.length) loadTemplates(); } catch (e) {}
+  var bid = resolveStyleId(brandTplId()), tp = '', lk = '';
+  STYLES.forEach(function(s) {
+    if (s.id === 'custom' && sel !== 'custom') return;
+    var nm = escHtml((s.id === 'custom' ? _t('Custom (edited)') : s.name) + (s.id === bid ? ' ★' : ''));
+    var o = '<option value="' + escHtml(s.id) + '"' + (s.id === sel ? ' selected' : '') + '>' + nm + '</option>';
+    if (s._isTpl) tp += o; else lk += o;
+  });
+  return (tp ? '<optgroup label="' + escHtml(_t('My templates')) + '">' + tp + '</optgroup>' : '') + '<optgroup label="' + escHtml(_t('Looks')) + '">' + lk + '</optgroup>';
+}
+// Fortschritt eines Clips in der Liste nachführen, ohne die Liste neu zu bauen (offene Auswahlfelder bleiben)
+function queueProgress(c) {
+  var el = document.getElementById('qpct-' + c.id), bar = document.getElementById('qbar-' + c.id);
+  if (el) el.textContent = c.pct > 0 && c.pct < 100 ? Math.round(c.pct) + '%' : '';
+  if (bar) bar.style.width = Math.max(0, Math.min(100, c.pct)) + '%';
+  queueSummary();
+}
+function queueSummary() {
+  var n = queueCounts(_q.clips), el = document.getElementById('qSum'), bar = document.getElementById('qSumBar'), txt = '', pct = 0, busy = false, tbn = String(n.total);
+  if (_q.exp) {
+    var cur = _q.clips.filter(function(c) { return c.status === 'exporting'; })[0], cp = cur ? cur.pct : 0;
+    pct = Math.round((_q.exp.done + cp / 100) / _q.exp.total * 100); busy = true;
+    txt = _t('Exporting {0} of {1} — {2}%', Math.min(_q.exp.total, _q.exp.cur + 1), _q.exp.total, pct); tbn = Math.min(_q.exp.total, _q.exp.cur + 1) + '/' + _q.exp.total;
+  } else if (_q.pass) {
+    var tr = _q.clips.filter(function(c) { return c.status === 'transcribing'; })[0], ix = tr ? _q.clips.indexOf(tr) + 1 : n.total;
+    pct = Math.round(((n.total - n.queued - n.transcribing) + (tr ? tr.pct / 100 : 0)) / n.total * 100); busy = true;
+    txt = _t('Transcribing {0} of {1}…', ix, n.total); tbn = ix + '/' + n.total;
+  } else {
+    txt = _tn(n.total, '{0} clip', '{0} clips', n.total) + ' · ' + _t('{0} of {1} max.', n.total, QUEUE_MAX);
+  }
+  if (el) el.textContent = txt;
+  if (bar) { bar.style.width = pct + '%'; if (bar.parentNode && bar.parentNode.style) bar.parentNode.style.display = busy ? '' : 'none'; }
+  var tb = document.getElementById('tbQueue'), tn = document.getElementById('tbQueueN');
+  if (tb) { tb.style.display = n.total ? '' : 'none'; if (tb.classList) tb.classList.toggle('busy', busy); }
+  if (tn) tn.textContent = tbn;
+}
+function queueRender() {
+  queueSummary();
+  var list = document.getElementById('qList');
+  if (!list || !queueSheetOpen()) return;
+  var n = queueCounts(_q.clips), busy = !!(_q.exp || _q.pass), html = '';
+  _q.clips.forEach(function(c) {
+    var act = c.id === _q.activeId, nm = escHtml(c.name), idq = escHtml(c.id), sel = c.styleId || activeId;
+    var stale = c.result && c.result.stale;
+    html += '<li class="qc-row' + (act ? ' on' : '') + '" id="qrow-' + idq + '" data-st="' + c.status + '"' + (act ? ' aria-current="true"' : '') + '>'
+      + '<div class="qc-top"><span class="qc-name" title="' + nm + '">' + nm + '</span><span class="qc-dur">' + (c.dur ? fmtS(c.dur) : '') + '</span></div>'
+      + '<div class="qc-mid"><span class="qc-st qc-st-' + c.status + '">' + escHtml(queueStatusLabel(c.status)) + '</span>'
+      + '<span class="qc-pct" id="qpct-' + idq + '">' + (c.pct > 0 && c.pct < 100 && (c.status === 'exporting' || c.status === 'transcribing') ? Math.round(c.pct) + '%' : '') + '</span>'
+      + (stale ? '<span class="qc-stale">' + escHtml(_t('changed since export')) + '</span>' : '')
+      + (c.err ? '<span class="qc-err" title="' + escHtml(c.err) + '">' + escHtml(c.err) + '</span>' : '') + '</div>'
+      + ((c.status === 'exporting' || c.status === 'transcribing') ? '<div class="qc-bar"><i id="qbar-' + idq + '" style="width:' + Math.round(c.pct || 0) + '%"></i></div>' : '')
+      + '<div class="qc-bot"><select class="lang-sel qc-sel" aria-label="' + escHtml(_t('Template for {0}', c.name)) + '" onchange="queueSetStyle(\'' + idq + '\',this.value)"' + (_q.exp ? ' disabled' : '') + '>' + queueStyleOptions(sel) + '</select>'
+      + '<button type="button" class="pos-btn qc-open" onclick="queueOpen(\'' + idq + '\')"' + (_q.exp ? ' disabled' : '') + '>' + escHtml(act ? _t('Editing') : _t('Open')) + '</button>'
+      + '<button type="button" class="pos-btn qc-rm" onclick="queueRemove(\'' + idq + '\')" aria-label="' + escHtml(_t('Remove {0}', c.name)) + '" title="' + escHtml(_t('Remove from list')) + '"' + (_q.exp ? ' disabled' : '') + '>' + icon('x') + '</button></div>'
+      + (c.result && c.result.blob ? '<div class="qc-dl"><button type="button" class="es-link" onclick="queueDownloadOne(\'' + idq + '\')">' + escHtml(_t('Download MP4')) + '</button><span aria-hidden="true">·</span><button type="button" class="es-link" onclick="queueDownloadSrt(\'' + idq + '\')">SRT</button></div>' : '')
+      + '</li>';
+  });
+  list.innerHTML = html;
+  var acts = document.getElementById('qActs');
+  if (acts) {
+    var nExp = _q.clips.filter(queueExportable).length, nDone = _q.clips.filter(function(c) { return c.result && c.result.blob; }).length, a = '';
+    if (_q.exp) a += '<button type="button" class="exp-btn qc-main" onclick="queueCancelExport()"><span class="exp-btn-txt"><span class="exp-btn-label">' + escHtml(_t('Cancel export')) + '</span></span></button>';
+    else if (_q.pass) a += '<button type="button" class="exp-btn qc-main" onclick="queuePausePass()"' + (_q.pass.stop ? ' disabled' : '') + '><span class="exp-btn-txt"><span class="exp-btn-label">' + escHtml(_q.pass.stop ? _t('Pausing after this clip…') : _t('Pause after this clip')) + '</span></span></button>';
+    else {
+      a += '<button type="button" class="exp-btn hi qc-main" onclick="queueExportAll()"' + (nExp ? '' : ' disabled') + '><span class="exp-btn-icon">' + icon('dl') + '</span><span class="exp-btn-txt"><span class="exp-btn-label">'
+        + escHtml(_tn(nExp, 'Export {0} clip', 'Export all {0} clips', nExp)) + '</span><span class="exp-btn-sub">' + escHtml(_t('Each with its own template, one after another')) + '</span></span></button>';
+      if (n.queued) a += '<button type="button" class="pos-btn qc-wide" onclick="queueRunPass()">' + escHtml(_tn(n.queued, 'Transcribe the remaining {0} clip', 'Transcribe the remaining {0} clips', n.queued)) + '</button>';
+      if (nDone) a += '<button type="button" class="exp-btn hi qc-main" id="qZipBtn" onclick="queueDownloadZip()"><span class="exp-btn-icon">' + icon('dl') + '</span><span class="exp-btn-txt"><span class="exp-btn-label" id="qZipLbl">'
+        + escHtml(_tn(nDone, 'Download {0} clip as ZIP', 'Download {0} clips as ZIP', nDone)) + '</span></span></button>'
+        + '<label class="exp-chk qc-srt"><input type="checkbox" id="qSrtChk"' + (_q.srt ? ' checked' : '') + ' onchange="queueSetSrt(this.checked)"><span>' + escHtml(_t('Include SRT files')) + '</span></label>';
+    }
+    acts.innerHTML = a;
+  }
+  var add = document.getElementById('qAddBtn');
+  if (add) add.disabled = busy || n.total >= QUEUE_MAX;
+}
+
+// ═══════════════════════════════════════
 // FILE WIRING
 // ═══════════════════════════════════════
 function wireFile(id) {
   var el = document.getElementById(id);
   if (!el) return;
   el.addEventListener('change', function(e) {
-    var f = e.target.files && e.target.files[0];
-    if (f) loadVideo(f);
+    // Eine Datei: wie immer loadVideo. Mehrere (Startseite, leerer Editor, «Replace video»): Warteschlange (queueIngest) —
+    // mit bestehender Warteschlange werden sie ergänzt, auf der Startseite ersetzen sie sie.
+    var fl = e.target.files ? Array.prototype.slice.call(e.target.files) : [];
     e.target.value = '';
+    if (!fl.length) return;
+    queueIngest(fl, id === 'qAddInput' || (id !== 'landInput' && _q.clips.length) ? 'add' : 'new');
   });
 }
-wireFile('landInput'); wireFile('frameInput'); wireFile('ctrlInput');
+wireFile('landInput'); wireFile('frameInput'); wireFile('ctrlInput'); wireFile('qAddInput');
 
 var lz = document.getElementById('landZone');
 lz.addEventListener('dragover',  function(e){ e.preventDefault(); lz.classList.add('drag'); });
 lz.addEventListener('dragleave', function(){ lz.classList.remove('drag'); });
 lz.addEventListener('drop', function(e){
   e.preventDefault(); lz.classList.remove('drag');
-  var f = Array.from(e.dataTransfer.files||[]).find(function(f){ return f.type.startsWith('video/'); });
-  if (f) loadVideo(f);
+  var fl = Array.from(e.dataTransfer.files || []);
+  if (fl.length === 1) { if (isVideoFile(fl[0])) queueIngest(fl, 'new'); } // eine Datei: wie bisher (Nicht-Videos werden ignoriert)
+  else if (fl.length) queueIngest(fl, 'new');
 });
 
 // ═══════════════════════════════════════
@@ -17850,7 +18577,7 @@ function tlGlobalKey(e) {
   return tlHandleKey(e);
 }
 function kbModalOpen() {
-  var ids = ['coverModal', 'acctModal', 'expSheet', 'emoPick'];
+  var ids = ['coverModal', 'acctModal', 'expSheet', 'qSheet', 'emoPick'];
   for (var i = 0; i < ids.length; i++) { var el = document.getElementById(ids[i]); if (el && el.style && el.style.display && el.style.display !== 'none') return true; }
   return false;
 }

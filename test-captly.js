@@ -163,7 +163,9 @@ resetGrpBuf:function(){_grpBuf=null;},localEmojis:localEmojis,localEmoLookup:loc
 capOutK:capOutK,capScaleShadowStr:capScaleShadowStr,CAP_SH_REF:CAP_SH_REF,
 brandHex:brandHex,sanitizeBrand:sanitizeBrand,applyBrandToStyle:applyBrandToStyle,brandLogoRect:brandLogoRect,brandWmRect:brandWmRect,brandLogoOk:brandLogoOk,SAFE_ZONE_PRESETS:SAFE_ZONE_PRESETS,SAFE_ZONE:SAFE_ZONE,safePresetSet:safePresetSet,getSafeKey:function(){return _safeKey;},brandSetLive:brandSetLive,getBrandLive:function(){return brandLive;},brandForSave:brandForSave,brandSet:brandSet,brandColor:brandColor,brandLogoPicked:brandLogoPicked,brandEncodeLogo:brandEncodeLogo,templatesForCloud:templatesForCloud,setUserTemplates:function(v){userTemplates=v;},rebuildTemplateStyles:rebuildTemplateStyles,drawBrandLogo:drawBrandLogo,tplHasBrand:tplHasBrand,removeTemplateBrand:removeTemplateBrand,brandSyncUI:brandSyncUI,seedActiveStyle:seedActiveStyle,drawWatermark:drawWatermark,TPL_CLOUD_MAX:TPL_CLOUD_MAX,getBrandImgs:function(){return _brandImgs;},brandImgKey:brandImgKey,brandClearColors:brandClearColors,brandRemoveLogo:brandRemoveLogo,
 hookVariants:hookVariants,hookVariantList:hookVariantList,hookNextVariant:hookNextVariant,hookDupOfCaptions:hookDupOfCaptions,EMO_REL_SIDE:EMO_REL_SIDE,EMO_LOCAL_SEC:EMO_LOCAL_SEC,EMO_LOCAL_GAP:EMO_LOCAL_GAP,EMO_LOCAL_SAME:EMO_LOCAL_SAME,capToastAction:capToastAction,
-capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR};`;
+capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR,
+queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
+crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -6741,6 +6743,174 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.setUserTemplates([]); T.rebuildTemplateStyles(); T.selectStyle('classic'); T.brandSetLive(null);
     global.localStorage = prevLS;
     if (prevLS === undefined) delete global.localStorage;
+  }
+
+  // ═══════════════ C1 Batch/Queue: Warteschlange, ZIP-Schreiber, Autosave für alle Clips ═══════════════
+  {
+    const { spawnSync } = require('child_process'), os = require('os');
+    const mkFile = (n, size, type) => ({ name: n, size: size === undefined ? 1000 + n.length : size, type: type === undefined ? 'video/mp4' : type, lastModified: 1700000000000 });
+    const Q = T.getQ();
+    const toastTxt = () => { const l = document.body.children.filter(c => c.id === 'capToast'); return l.length ? l[l.length - 1].textContent || '' : ''; };
+    // 1) Dateien aufnehmen: Limit 10, Nicht-Videos, Duplikate
+    ok(T.QUEUE_MAX === 10, 'C1: Limit ist 10 Clips pro Durchgang');
+    const files12 = Array.from({ length: 12 }, (_, i) => mkFile('clip' + i + '.mp4', 5000 + i));
+    let plan = T.queuePlanAdd([], files12, T.QUEUE_MAX);
+    ok(plan.accepted.length === 10 && plan.skipped.length === 2 && plan.skipped.every(x => x.reason === 'limit') && plan.skipped[0].name === 'clip10.mp4', 'C1: 12 Dateien → 10 angenommen (Reihenfolge bleibt), 2 über dem Limit gemeldet');
+    plan = T.queuePlanAdd([], [mkFile('a.mp4'), mkFile('notes.txt', 10, 'text/plain'), mkFile('a.mp4'), mkFile('b.mov', 77, 'video/quicktime'), mkFile('ohne-typ', 5, '')], 10);
+    ok(plan.accepted.map(f => f.name).join() === 'a.mp4,b.mov' && plan.skipped.map(x => x.name + ':' + x.reason).join() === 'notes.txt:notvideo,a.mp4:duplicate,ohne-typ:notvideo', 'C1: Nicht-Videos und Duplikate (Name|Grösse|Datum) werden mit Grund übersprungen: ' + JSON.stringify(plan.skipped));
+    ok(T.queuePlanAdd([], [mkFile('a.mp4', 5), mkFile('a.mp4', 6)], 10).accepted.length === 2, 'C1: gleicher Name, andere Grösse = kein Duplikat');
+    const have = [T.queueNewClip(mkFile('x.mp4'), 'hormozi', 'c1')];
+    plan = T.queuePlanAdd(have, [mkFile('x.mp4'), mkFile('y.mp4')], 10);
+    ok(plan.accepted.length === 1 && plan.accepted[0].name === 'y.mp4' && plan.skipped[0].reason === 'duplicate', 'C1: Duplikat gegen bereits vorhandene Clips');
+    const nine = Array.from({ length: 9 }, (_, i) => T.queueNewClip(mkFile('n' + i + '.mp4', 1 + i), 'hormozi', 'c' + i));
+    plan = T.queuePlanAdd(nine, [mkFile('p.mp4', 1), mkFile('q.mp4', 2)], 10);
+    ok(plan.accepted.length === 1 && plan.skipped.length === 1 && plan.skipped[0].reason === 'limit', 'C1: Limit gilt für die Gesamtzahl (9 + 2 → 1 angenommen)');
+    const msg = T.queueSkipMsg([{ name: 'a.txt', reason: 'notvideo' }, { name: 'b.mp4', reason: 'duplicate' }, { name: 'c.mp4', reason: 'limit' }, { name: 'd.mp4', reason: 'limit' }, { name: 'e.mp4', reason: 'limit' }]);
+    ok(/Not a video: a\.txt/.test(msg) && /Already in the list: b\.mp4/.test(msg) && /Limit is 10 clips per batch — not added: c\.mp4, d\.mp4 \+1/.test(msg), 'C1: Meldung nennt Grund und Dateien: ' + msg);
+    // 2) Statusübergänge
+    const ns = T.queueNextStatus;
+    ok(ns('queued', 'start') === 'transcribing' && ns('transcribing', 'transcribed') === 'ready' && ns('transcribing', 'failed') === 'error' && ns('error', 'start') === 'transcribing', 'C1-Status: in Warteschlange → transkribiere → transkribiert / Fehler (Wiederholen möglich)');
+    ok(ns('ready', 'edit') === 'edited' && ns('edited', 'edit') === 'edited' && ns('queued', 'edit') === 'queued' && ns('transcribing', 'edit') === 'transcribing', 'C1-Status: Bearbeiten nur nach «transkribiert»/«exportiert»');
+    ok(ns('ready', 'exportStart') === 'exporting' && ns('edited', 'exportStart') === 'exporting' && ns('exporting', 'exportOk') === 'exported' && ns('exporting', 'exportFail') === 'error' && ns('queued', 'exportStart') === 'queued', 'C1-Status: Export nur von transkribierten Clips, Ergebnis exportiert/Fehler');
+    ok(ns('exported', 'edit') === 'edited' && ns('exported', 'transcribed') === 'edited' && ns('transcribing', 'stop') === 'queued' && ns('ready', 'stop') === 'ready', 'C1-Status: Änderung nach Export → bearbeitet; Abbruch während Transkription → wieder in Warteschlange');
+    const mk = (st, kind) => { const c = T.queueNewClip(mkFile('s.mp4'), 'x', 'c9'); c.status = st; c.errKind = kind || ''; return c; };
+    ok(['ready', 'edited', 'exported'].every(st => T.queueExportable(mk(st))) && !T.queueExportable(mk('queued')) && !T.queueExportable(mk('transcribing')) && !T.queueExportable(mk('error', 'transcribe')) && T.queueExportable(mk('error', 'export')), 'C1: exportierbar sind transkribierte Clips (und Export-Fehler zum Wiederholen), nie wartende/fehlgeschlagene Transkriptionen');
+    const cnt = T.queueCounts([mk('ready'), mk('ready'), mk('queued'), mk('error')]);
+    ok(cnt.total === 4 && cnt.ready === 2 && cnt.queued === 1 && cnt.error === 1 && cnt.exported === 0, 'C1: Zähler je Status');
+    ok(['queued', 'transcribing', 'ready', 'edited', 'exporting', 'exported', 'error'].every(st => T.queueStatusLabel(st) && T.queueStatusLabel(st) !== st), 'C1: jeder Status hat eine Beschriftung');
+    // 3) Template-Standard: gewählter Chip → Default-Template → aktueller Look
+    const exists = id => ['tplA', 'colorpop', 'hormozi'].includes(id);
+    ok(T.queueDefaultStyleId('', 'tplA', exists, 'hormozi') === 'tplA', 'C1-Template: Default-Template (★) ist der Standard für neue Clips');
+    ok(T.queueDefaultStyleId('', '', exists, 'colorpop') === 'colorpop', 'C1-Template: ohne Default-Template gilt der aktuelle Look');
+    ok(T.queueDefaultStyleId('', 'tplGone', exists, 'hormozi') === 'hormozi', 'C1-Template: gelöschtes Default-Template → aktueller Look');
+    ok(T.queueDefaultStyleId('colorpop', 'tplA', exists, 'hormozi') === 'colorpop', 'C1-Template: auf der Startseite bewusst gewählter Chip schlägt das Default-Template');
+    // 4) queueIngest: Limit/Duplikate (ohne den Transkriptions-Durchgang zu starten)
+    Q.pass = { stop: true, taken: true };
+    document.getElementById('qSheet').style.display = 'none';
+    T.queueIngest(files12, 'new');
+    ok(Q.clips.length === 10 && Q.clips.every(c => c.status === 'queued' && c.styleId), 'C1: queueIngest nimmt 10 von 12 Dateien an, alle «in Warteschlange» mit Look');
+    ok(/Limit is 10 clips per batch — not added: clip10\.mp4, clip11\.mp4/.test(toastTxt()), 'C1: Limit-Meldung als Toast: ' + toastTxt());
+    T.queueIngest([mkFile('clip3.mp4', 5003), mkFile('neu.mp4')], 'add');
+    ok(Q.clips.length === 10 && /Limit is 10/.test(toastTxt()), 'C1: bei vollem Limit kommt nichts dazu');
+    T.queueRemove(Q.clips[0].id);
+    T.queueIngest([mkFile('clip3.mp4', 5003), mkFile('neu.mp4')], 'add');
+    ok(Q.clips.length === 10 && Q.clips[9].name === 'neu.mp4' && /Already in the list: clip3\.mp4/.test(toastTxt()), 'C1: Platz frei → Neues kommt dazu, Duplikat wird gemeldet');
+    Q.clips[1].status = 'exported'; Q.clips[1].result = { blob: {}, name: 'x.mp4', srt: '', stale: false }; Q.activeId = Q.clips[1].id; T.setCurrentFile(Q.clips[1].file);
+    T.queueMarkEdited(); ok(Q.clips[1].status === 'edited' && Q.clips[1].result.stale === true, 'C1: Textänderung am geöffneten Clip → «bearbeitet», Export gilt als veraltet');
+    T.queueSetStyle(Q.clips[2].id, 'colorpop'); ok(Q.clips[2].styleId === 'colorpop', 'C1: Look pro Clip wählbar (ohne den Clip zu laden)');
+    T.queueReset(); Q.pass = null; T.setCurrentFile(null);
+    ok(Q.clips.length === 0 && Q.activeId === null, 'C1: queueReset leert die Warteschlange');
+
+    // 5) Autosave: alle Clips der Warteschlange bleiben erhalten (vorher LRU mit 5 Plätzen)
+    const L = n => Array.from({ length: n }, (_, i) => ({ key: 'k' + i, data: {} })); // neu → alt
+    let tr = T.autosaveTrim(L(8), {}, 5);
+    ok(tr.length === 5 && tr[0].key === 'k0' && tr[4].key === 'k4', 'C1-Autosave: ohne Warteschlange wie bisher die 5 jüngsten');
+    const prot = {}; for (let i = 3; i < 13; i++) prot['k' + i] = true;
+    tr = T.autosaveTrim(L(14), prot, 5);
+    ok(['k3', 'k4', 'k5', 'k6', 'k7', 'k8', 'k9', 'k10', 'k11', 'k12'].every(k => tr.some(e => e.key === k)) && tr[0].key === 'k0', 'C1-Autosave: alle 10 geschützten Clips bleiben, auch wenn sie älter als Platz 5 sind');
+    ok(tr.filter(e => !prot[e.key]).length <= 5, 'C1-Autosave: ungeschützte Videos weiter auf 5 begrenzt (' + tr.length + ' Einträge)');
+    {
+      const store2 = {}; let quota = 'none';
+      global.localStorage = { getItem: k => (k in store2 ? store2[k] : null), removeItem: k => { delete store2[k]; },
+        setItem: (k, v) => { if (quota === 'multi' && JSON.parse(v).length > 3) { const e = new Error('Quota'); e.name = 'QuotaExceededError'; throw e; } store2[k] = String(v); } };
+      const wtsQ = [{ word: 'Hallo', start: 0, end: 0.4 }, { word: 'Welt', start: 0.5, end: 0.9 }];
+      T.setState(T.buildCaptionBlocks(wtsQ), wtsQ, 'karaoke');
+      store2[T.AUTOSAVE_KEY] = JSON.stringify([]);
+      for (let i = 0; i < 10; i++) { Q.clips.push(T.queueNewClip(mkFile('q' + i + '.mp4', 10 + i), 'hormozi', 'c' + i)); Q.clips[i].key = 'q' + i + '.mp4|' + (10 + i) + '|100'; T.setAutosaveKey(Q.clips[i].key); T.autosaveNow(); }
+      for (let i = 0; i < 3; i++) { T.setAutosaveKey('fremd' + i + '|1|1'); T.autosaveNow(); }
+      let keys = T.readAutosaves().map(e => e.key);
+      ok(Q.clips.every(c => keys.includes(c.key)), 'C1-Autosave: nach 10 Clips + 3 fremden Videos sind alle 10 Clip-Stände noch da (' + keys.length + ' Einträge)');
+      quota = 'multi'; T.setAutosaveKey('quota|1|1');
+      ok(T.autosaveNow() === true, 'C1-Autosave: Quota voll → trotzdem gespeichert');
+      keys = T.readAutosaves().map(e => e.key);
+      ok(keys.length <= 3 && keys[0] === 'quota|1|1', 'C1-Autosave: Quota voll → ältere Einträge fallen weg, aktueller Stand bleibt (' + keys.length + ' Einträge)');
+      delete global.localStorage; T.queueReset(); Q.pass = null; T.setAutosaveKey(null); T.setState([], []);
+    }
+
+    // 6) CRC-32 und ZIP-Schreiber (STORE)
+    ok(T.crc32Update(0, Buffer.from('123456789')) === 0xCBF43926, 'C1-ZIP: CRC-32("123456789") = 0xCBF43926');
+    ok(T.crc32Update(0, Buffer.alloc(0)) === 0 && T.crc32Update(0, Buffer.from('a')) === 0xE8B7BE43, 'C1-ZIP: CRC-32 leer = 0, "a" = 0xE8B7BE43');
+    ok(T.crc32Update(T.crc32Update(0, Buffer.from('12345')), Buffer.from('6789')) === 0xCBF43926, 'C1-ZIP: CRC-32 lässt sich in Teilen fortsetzen');
+    {
+      const big = Buffer.alloc(9 * 1024 * 1024 + 123); for (let i = 0; i < big.length; i += 7) big[i] = (i * 31) & 255;
+      const want = T.crc32Update(0, big), got = await T.crc32Blob(new NativeBlob([big]));
+      ok(got === want, 'C1-ZIP: crc32Blob liest in Scheiben (9 MB, 3 Stück) und stimmt mit dem Gesamt-CRC überein');
+    }
+    const un = (n, used) => T.zipUniqueName(n, used);
+    { const used = {}; const r = ['reel.mp4', 'reel.mp4', 'Reel.MP4', 'reel (2).mp4', 'a/b:c.mp4', '', 'noext', 'noext'].map(n => un(n, used));
+      ok(r[0] === 'reel.mp4' && r[1] === 'reel (2).mp4' && r[2] === 'Reel (3).MP4' && r[3] === 'reel (2) (2).mp4' && r[4] === 'a-b-c.mp4' && r[5] === 'clip' && r[6] === 'noext' && r[7] === 'noext (2)', 'C1-ZIP: eindeutige Dateinamen (auch Gross-/Kleinschreibung, Sonderzeichen, ohne Endung): ' + r.join(' | ')); }
+    const dt = T.zipDosDateTime(new Date(2026, 9, 15, 14, 30, 42));
+    ok(dt.date === (((2026 - 1980) << 9) | (10 << 5) | 15) && dt.time === ((14 << 11) | (30 << 5) | 21), 'C1-ZIP: DOS-Datum/Zeit');
+    {
+      const e1 = { name: 'reel.mp4', data: Buffer.from('VIDEO-ÄÖ-1'.repeat(300)), date: new Date(2026, 0, 2, 3, 4, 6) };
+      const e2 = { name: 'Über größe — Müller.srt', data: Buffer.from('1\n00:00:00,000 --> 00:00:01,000\nGrüezi\n', 'utf8') };
+      const e3 = { name: 'leer.txt', data: Buffer.alloc(0) };
+      const ents = [e1, e2, e3].map(e => ({ name: e.name, data: e.data, size: e.data.length, crc: T.crc32Update(0, e.data), date: e.date }));
+      const plan = T.zipPlan(ents);
+      const zip = Buffer.concat(plan.parts.map(x => Buffer.from(x)));
+      ok(zip.length === plan.size, 'C1-ZIP: berechnete Grösse = tatsächliche Grösse (' + zip.length + ')');
+      ok(zip.readUInt32LE(0) === 0x04034b50, 'C1-ZIP: beginnt mit der Local-File-Header-Signatur');
+      const eocd = zip.length - 22;
+      ok(zip.readUInt32LE(eocd) === 0x06054b50 && zip.readUInt16LE(eocd + 8) === 3 && zip.readUInt16LE(eocd + 10) === 3 && zip.readUInt16LE(eocd + 20) === 0, 'C1-ZIP: End-of-Central-Directory (3 Einträge, kein Kommentar)');
+      const cdSize = zip.readUInt32LE(eocd + 12), cdOff = zip.readUInt32LE(eocd + 16);
+      ok(cdOff + cdSize === eocd, 'C1-ZIP: Central Directory liegt direkt vor dem EOCD (Offset ' + cdOff + ', Grösse ' + cdSize + ')');
+      let p = cdOff, okAll = true, names = [];
+      ents.forEach(e => {
+        const sig = zip.readUInt32LE(p), flags = zip.readUInt16LE(p + 8), meth = zip.readUInt16LE(p + 10), crc = zip.readUInt32LE(p + 16), cs = zip.readUInt32LE(p + 20), us = zip.readUInt32LE(p + 24);
+        const nl = zip.readUInt16LE(p + 28), off = zip.readUInt32LE(p + 42), nm = zip.toString('utf8', p + 46, p + 46 + nl);
+        names.push(nm);
+        const lhOk = zip.readUInt32LE(off) === 0x04034b50 && zip.readUInt32LE(off + 14) === crc && zip.readUInt32LE(off + 18) === cs && zip.readUInt32LE(off + 22) === us && zip.readUInt16LE(off + 6) === flags && zip.readUInt16LE(off + 26) === nl && zip.toString('utf8', off + 30, off + 30 + nl) === nm;
+        const data = zip.subarray(off + 30 + nl, off + 30 + nl + us);
+        if (!(sig === 0x02014b50 && (flags & 0x0800) === 0x0800 && meth === 0 && cs === us && us === e.size && crc === e.crc && lhOk && Buffer.compare(data, e.data) === 0 && T.crc32Update(0, data) === crc)) okAll = false;
+        p += 46 + nl;
+      });
+      ok(okAll && names.join('|') === ents.map(e => e.name).join('|'), 'C1-ZIP: Central-Directory-Einträge (Offsets, CRC, Grössen, STORE, UTF-8-Flag Bit 11) stimmen mit den Local Headers und Daten überein');
+      ok(names[1] === 'Über größe — Müller.srt', 'C1-ZIP: Umlaut-/Sonderzeichen-Dateiname bleibt UTF-8 erhalten');
+      ok(zip.readUInt16LE(10) === ((3 << 11) | (4 << 5) | 3) && zip.readUInt16LE(12) === (((2026 - 1980) << 9) | (1 << 5) | 2), 'C1-ZIP: Datum/Zeit im Header');
+      // auf Platte schreiben und mit echten Werkzeugen prüfen
+      const zf = path.join(os.tmpdir(), 'gluephs-c1-test-' + process.pid + '.zip'); fs.writeFileSync(zf, zip);
+      const uz = spawnSync('unzip', ['-t', zf], { encoding: 'utf8' });
+      if (uz.error) console.log('  info C1-ZIP: unzip nicht verfügbar, übersprungen'); else ok(uz.status === 0 && /No errors detected/.test(uz.stdout), 'C1-ZIP: unzip -t ohne Fehler: ' + (uz.stdout || uz.stderr).split('\n').slice(-3).join(' / '));
+      const py = spawnSync('python3', ['-m', 'zipfile', '-t', zf], { encoding: 'utf8' });
+      if (py.error) console.log('  info C1-ZIP: python3 nicht verfügbar, übersprungen'); else ok(py.status === 0 && /Done testing/.test(py.stdout), 'C1-ZIP: python3 -m zipfile -t ohne Fehler: ' + (py.stdout || py.stderr).trim().split('\n').pop());
+      const pyl = spawnSync('python3', ['-c', 'import zipfile,sys;z=zipfile.ZipFile(sys.argv[1]);print("|".join(i.filename for i in z.infolist()));print(z.read("Über größe — Müller.srt").decode("utf8").strip().split("\\n")[-1])', zf], { encoding: 'utf8' });
+      if (!pyl.error) ok(pyl.status === 0 && pyl.stdout.trim().split('\n').join('#') === 'reel.mp4|Über größe — Müller.srt|leer.txt#Grüezi', 'C1-ZIP: Python liest Umlaut-Dateinamen und Inhalt korrekt: ' + pyl.stdout.trim().replace(/\n/g, '#') + pyl.stderr);
+      fs.unlinkSync(zf);
+    }
+    { // Grenzen: 4 GB / 65535 Einträge
+      let code = null;
+      try { T.zipPlan([{ name: 'riesig.mp4', data: null, size: 0xFFFFFFFF, crc: 0 }]); } catch (e) { code = e.code; }
+      ok(code === 'zip-limit', 'C1-ZIP: einzelne Datei ab 4 GB wird abgelehnt (zip-limit)');
+      code = null; try { T.zipPlan([{ name: 'a', data: null, size: 0xC0000000, crc: 0 }, { name: 'b', data: null, size: 0x50000000, crc: 0 }]); } catch (e) { code = e.code; }
+      ok(code === 'zip-limit', 'C1-ZIP: Archiv über 4 GB wird abgelehnt (zip-limit)');
+      code = null; try { T.zipPlan(Array.from({ length: 65536 }, (_, i) => ({ name: 'f' + i, data: Buffer.alloc(0), size: 0, crc: 0 }))); } catch (e) { code = e.code; }
+      ok(code === 'zip-limit', 'C1-ZIP: mehr als 65535 Einträge werden abgelehnt (zip-limit)');
+      ok(T.zipPlan(Array.from({ length: 65535 }, (_, i) => ({ name: 'f' + i, data: Buffer.alloc(0), size: 0, crc: 0 }))).parts.length > 0, 'C1-ZIP: genau 65535 Einträge gehen noch');
+    }
+    // 7) Export-Hook: onSettle statt Download, Zustände werden gemeldet
+    {
+      const tk = T.newExportToken(); const got = [];
+      tk.opts = { onSettle: (st, m) => got.push(st + ':' + m) };
+      T.settleExport(tk, 'error', 'kaputt'); T.settleExport(tk, 'ok');
+      ok(got.join() === 'error:kaputt', 'C1-Export: onSettle meldet genau einmal');
+      const tk2 = T.newExportToken(); tk2.opts = { onSettle: (st, m) => got.push(st + ':' + m) }; tk2.cancelled = true; T.exportAborted(tk2);
+      ok(got[1] === 'cancelled:' && !/Export cancelled/.test(toastTxt() || ''), 'C1-Export: Abbruch → «cancelled», kein Einzel-Export-Toast');
+      T.closeExportSheet();
+      const tk3 = T.newExportToken(); tk3.opts = { onSettle: (st, m) => got.push(st + ':' + m) }; T.exportFailed(tk3, 'Boom');
+      ok(got[2] === 'error:Boom' && !T.exportSheetOpen(), 'C1-Export: Fehler → «error» mit Meldung, ohne das Export-Blatt zu öffnen');
+      const tk4 = T.newExportToken(); T.exportFailed(tk4, 'Einzel'); ok(document.getElementById('expNote').textContent === 'Einzel', 'C1-Export: ohne opts bleibt das Einzel-Verhalten (Meldung im Export-Blatt)');
+      T.closeExportSheet();
+      global.CLICKS.length = 0; const oldCU = global.URL.createObjectURL; global.URL.createObjectURL = () => 'blob:y'; T.saveBlobAs({ size: 5 }, 'x.zip'); global.URL.createObjectURL = oldCU;
+      ok(global.CLICKS.length === 1 && global.CLICKS[0].download === 'x.zip', 'C1: saveBlobAs speichert, ohne den Zustand des Einzel-Exports anzufassen');
+    }
+    // 8) Statische Prüfungen: Landing/Editor
+    {
+      ok(/<input type="file" accept="video\/\*" id="landInput" multiple>/.test(htmlContent) && /id="frameInput" multiple/.test(htmlContent) && /id="ctrlInput" multiple/.test(htmlContent) && /id="qAddInput" multiple/.test(htmlContent), 'C1: Datei-Felder (Startseite, leerer Editor, Replace, Clips) erlauben mehrere Dateien');
+      ok(/id="qSheet"/.test(htmlContent) && /id="tbQueue"/.test(htmlContent) && /id="qList"/.test(htmlContent), 'C1: Clip-Blatt, Kopfzeilen-Knopf und Liste im Editor-HTML');
+      const deHtml = fs.readFileSync(path.join(__dirname, 'captly.de.html'), 'utf8');
+      ok(/bis zu 10 gleichzeitig/.test(deHtml) && /Weitere Clips hinzufügen/.test(deHtml) && /id="landInput" multiple/.test(deHtml), 'C1 DE: Landing nennt «bis zu 10 gleichzeitig», Menü «Weitere Clips hinzufügen…»');
+      ok(/if \(fl\.length === 1\) \{ if \(isVideoFile\(fl\[0\]\)\) queueIngest\(fl, 'new'\); \}/.test(script), 'C1: Drop einer einzelnen Nicht-Video-Datei wird weiter ignoriert (wie bisher)');
+    }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
