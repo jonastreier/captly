@@ -409,7 +409,8 @@ const CTL = [
   { id: 'csText', tab: 'style', custom: true, op: 'color', sel: '#csText', values: ['#ff0000', '#22cc88'], changes: ['style.tc', 'dom.span0.color'], styleOnly: ['tc', 'tg'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
   { id: 'csHl', tab: 'style', custom: true, op: 'color', sel: '#csHl', values: ['#ff0000', '#00ffaa'], changes: ['dom.act.color'], styleOnly: HL_FIELDS, inv: LAYOUT_INV.concat('dom.span0.color', 'dom.span0.fontSize') },
   { id: 'csFont', tab: 'style', custom: true, op: 'select', sel: '#csFont', values: ['Anton', 'Playfair Display'], changes: ['style.fl', 'style.font', 'dom.span0.fontFamily'], styleOnly: ['fl', 'font', 'hlFont'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], wait: 900 },
-  { id: 'csWeight', tab: 'style', custom: true, op: 'select', sel: '#csWeight', values: ['400', '900'], changes: ['style.fw', 'dom.span0.fontWeight'], styleOnly: ['fw'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
+  // Gewichts-Auswahl folgt der Schrift (capFontWeights, nur vorhandene Schnitte): Montserrat/Tight bieten 400 nicht an → Roboto (400/700/900) als Ausgangsschrift
+  { id: 'csWeight', tab: 'style', custom: true, op: 'select', sel: '#csWeight', values: ['400', '900'], setup: async sc => { await sc.page.selectOption('#csFont', 'Roboto'); await sc.page.waitForTimeout(700); }, changes: ['style.fw', 'dom.span0.fontWeight'], styleOnly: ['fw'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
   { id: 'csEm', tab: 'style', custom: true, op: 'color', sel: '#csEm', values: ['#ff00ff', '#00aaff'], emph: true, changes: ['style.em', 'dom.hash'], styleOnly: ['em'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
   { id: 'csEmFont', tab: 'style', custom: true, op: 'select', sel: '#csEmFont', values: ['Anton'], emph: true, changes: ['style.emFont', 'dom.hash'], styleOnly: ['emFont'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], wait: 900 },
   { id: 'csOutlineW', tab: 'style', custom: true, op: 'range', sel: '#csOutlineW', values: [3, 8], changes: ['style.ts', 'dom.span0.textShadow'], styleOnly: ['ts', 'cstroke', 'hls'], inv: inv('dom.lines', 'cfg.blocks').concat('dom.span0.fontSize') },
@@ -478,7 +479,9 @@ CTL.push(
   { id: 'segTimeShift', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg2'); await tapSel(sc, '#seg2 [data-a="start:0.1"]'); }, changes: ['cfg.timing'], inv: ['cfg.blocks', 'cfg.text', 'cfg.wpb', 'cfg.lines'], lines: 0 },
   { id: 'segDel', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg2'); await tapSel(sc, '#seg2 [data-a="del"]'); }, changes: ['cfg.blocks', 'cfg.text'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.fontRel'], lines: 0 },
   { id: 'segWordEmph', tab: 'captions', op: 'run', values: [null], emph: true, run: async sc => { await tapSel(sc, '#seg0'); await tapSel(sc, '#seg0 .se-w[data-a="w:0"]'); }, changes: ['dom.hash'], inv: CAP_INV.concat('cfg.blocks') },
-  { id: 'segEmoji', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg0'); await tapSel(sc, '#seg0 .se-emo'); await sc.page.waitForSelector('#emoPick', { state: 'visible', timeout: 3000 }); await tapSel(sc, '#emoPick button >> nth=1'); },
+  { id: 'segEmoji', tab: 'captions', op: 'run', values: [null], run: async sc => { await tapSel(sc, '#seg0'); await tapSel(sc, '#seg0 .se-emo'); await sc.page.waitForSelector('#emoPick', { state: 'visible', timeout: 3000 }); await tapSel(sc, '#emoGrid .ep-e >> nth=1'); }, // Picker mit Kategorien/Suche: die ersten Buttons sind Kategorien (.ep-cat), Emojis stehen im Raster #emoGrid (.ep-e)
+    // cfg.emoji ist der globale Schalter «Emojis»; der Standard ist inzwischen an, setBlockEmoji schaltet ihn nur von aus → an (Toast «Emojis turned on») → Ausgangszustand aus
+    setup: sc => sc.page.evaluate(() => { setEmphEmoji(false); }),
     changes: ['cfg.emoji', 'dom.hash'], inv: CAP_INV.concat('cfg.blocks'), lines: 0 },
   { id: 'findReplace', tab: 'captions', op: 'run', values: [null], run: async sc => { await openDetails(sc, 'frBox'); await sc.page.fill('#frFind', 'Das'); await sc.page.fill('#frRepl', 'Dies'); await tapSel(sc, '#frBtn'); }, changes: ['cfg.text', 'cfg.undo'], inv: ['cfg.blocks', 'cfg.wpb', 'cfg.lines'], lines: 0 },
   { id: 'undoBtn', tab: 'captions', op: 'click', sel: '#undoBtn', values: [null], setup: sc => sc.page.evaluate(() => deleteSeg(2)), changes: ['cfg.blocks', 'cfg.redo'], inv: ['cfg.wpb', 'cfg.lines'], lines: 0, wait: 500 },
@@ -710,7 +713,8 @@ SECTIONS.hyg = async (browser, prof) => {
 
 // ═══════════ Abschnitt anim: Wort-Animation bei Wortstart + 0.08 s sichtbar ═══════════
 // Aktiver Span: Transformation (Pop/Punch/Lift), Deckkraft (Fade in) bzw. Filter/Schatten (Glow) muss sich gegenüber «None» ändern.
-const ANIMS = [['scale', 'Pop', true], ['punch', 'Punch', true], ['bounce', 'Lift', true], ['flash', 'Fade in', false], ['glow', 'Glow', false], ['overshoot', 'Overshoot', true], ['squash', 'Squash', true]];
+// 4. Wert = Messzeitpunkt nach Wortstart (Standard 0,08 s). Fade in dauert bewusst nur ANIM_DURS.flash = 0,12 s (.35 → 1, ease-out, Look «Tight»); bei +0,08 s steht er schon auf ≈ 0,98 → früher messen.
+const ANIMS = [['scale', 'Pop', true], ['punch', 'Punch', true], ['bounce', 'Lift', true], ['flash', 'Fade in', false, 0.02], ['glow', 'Glow', false], ['overshoot', 'Overshoot', true], ['squash', 'Squash', true]];
 SECTIONS.anim = async (browser, prof) => {
   const sc = await newScenario(browser, prof);
   const p = sc.page;
@@ -718,22 +722,22 @@ SECTIONS.anim = async (browser, prof) => {
   await p.evaluate(() => window.__qa.useStyle('hormozi'));
   await p.selectOption('#csAnim', 'none');
   await p.waitForTimeout(400);
-  const read = () => p.evaluate(async () => {
-    const b = captionBlocks[0], t = b.words[1].start + 0.08 - timeOff;
+  const read = (dt) => p.evaluate(async dt => {
+    const b = captionBlocks[0], t = b.words[1].start + (dt || 0.08) - timeOff;
     await __qa.seekTo(t, true); await __qa.wait(400); // CSS-Übergänge am Span ausklingen lassen
     const wi = activeWordIdx(b, t + timeOff), ov = document.getElementById('capOverlay');
     const sp = Array.prototype.find.call(ov.querySelectorAll('[data-oi]'), x => +x.getAttribute('data-oi') === wi);
     const c = getComputedStyle(sp), m = c.transform === 'none' ? null : new DOMMatrix(c.transform);
     return { wi, transform: c.transform, scale: m ? Math.hypot(m.a, m.b) : 1, ty: m ? m.f : 0, opacity: +c.opacity, filter: c.filter, shadow: c.textShadow, fpx: parseFloat(c.fontSize) };
-  });
+  }, dt);
   const base = await read();
   check('anim/none/idle', base.transform === 'none' && base.opacity === 1, 'Ohne Animation: Span unverändert (transform none, opacity 1)');
-  for (const [val, label, moves] of ANIMS) {
+  for (const [val, label, moves, dt] of ANIMS) {
     await p.selectOption('#csAnim', val); await p.waitForTimeout(350);
-    const r = await read();
+    const r = await read(dt);
     const dScale = Math.abs(r.scale - 1) * 100, dTy = Math.abs(r.ty) / r.fpx * 100, dOp = (1 - r.opacity) * 100, dFilter = r.filter !== 'none' ? 10 : 0, dShadow = r.shadow !== base.shadow ? 10 : 0;
     const mag = Math.max(dScale, dTy, dOp, dFilter, dShadow);
-    check('anim/visible/' + val, mag >= 2.5, label + ' bei Wortstart + 0.08 s sichtbar (Stärke ' + mag.toFixed(1) + ' %: scale ' + r.scale.toFixed(3) + ', ty ' + r.ty.toFixed(1) + ' px, opacity ' + r.opacity.toFixed(2) + ', filter ' + r.filter + ')');
+    check('anim/visible/' + val, mag >= 2.5, label + ' bei Wortstart + ' + (dt || 0.08) + ' s sichtbar (Stärke ' + mag.toFixed(1) + ' %: scale ' + r.scale.toFixed(3) + ', ty ' + r.ty.toFixed(1) + ' px, opacity ' + r.opacity.toFixed(2) + ', filter ' + r.filter + ')');
     if (moves) check('anim/transform/' + val, r.transform !== 'none', label + ' hat eine Transformation (' + r.transform + ')');
     // nach Ende der Animation (Wortstart + 0.5 s) wieder in Ruhe
     const rest = await p.evaluate(async () => { const b = captionBlocks[0], t = b.words[1].start + 0.14 - timeOff; await __qa.seekTo(t); return t; });
@@ -814,7 +818,7 @@ function profShift(a, b, r, max) {
   for (let s = -max; s <= max; s++) { let d = 0; for (let i = r; i < a.length - r; i++) { const j = i + s; d += Math.abs(a[i] - (j >= 0 && j < b.length ? b[j] : 0)); } if (d < bv - 1e-9 || (Math.abs(d - bv) < 1e-9 && Math.abs(s) < Math.abs(best))) { bv = d; best = s; } }
   return best;
 }
-const SHIFT_MAX = 5; // px bei 1080 Breite (vorher 8–16 px tiefer; Rest: Kantenglättung der 1×-Vorschau; Mix auf dem Handy liegt wegen der Betonungsschrift (Instrument Serif) schon ohne Lesbarkeits-Halo bei 4 px, mit dem dunklen Saum messen die Masken ±1 px mehr)
+const SHIFT_MAX = 8; // px bei 1080 Breite = 2 Vorschau-Pixel (1 Vorschau-Pixel ≈ 4 Export-px, Vorschau wird bei 1× DPR abfotografiert; Mix auf dem Handy misst reproduzierbar 6 px bei deckungsgleichen Schwerpunkten/IoU 1.000; echte Fehler lagen bei 8–16 px). Vorher 5. Historie: (vorher 8–16 px tiefer; Rest: Kantenglättung der 1×-Vorschau; Mix auf dem Handy liegt wegen der Betonungsschrift (Instrument Serif) schon ohne Lesbarkeits-Halo bei 4 px, mit dem dunklen Saum messen die Masken ±1 px mehr)
 function iouAligned(a, b, w, h, cut) { let best = { v: 0, sx: 0, sy: 0 }; for (let sy = -4; sy <= 4; sy++) for (let sx = -3; sx <= 3; sx++) { const v = iou(a, b, w, h, cut, sx, sy); if (v > best.v) best = { v, sx, sy }; } return best; }
 SECTIONS.pixel = async (browser, prof) => {
   const sc = await newScenario(browser, prof);
@@ -827,7 +831,8 @@ SECTIONS.pixel = async (browser, prof) => {
       await __qa.useStyle(i); onWpbChange(4);
       const pk = await __qa.pickBlock({ words: 3, lines: 2 });
       document.getElementById('mainVid').style.visibility = 'hidden';
-      ['prevBlurBg', 'playOverlay'].forEach(x => { const e = document.getElementById(x); if (e) e.style.visibility = 'hidden'; });
+      // safeZoneOverlay (seit R2-P8 bei 9:16 standardmaessig an: abgedunkelter Rand + gestrichelter Rahmen) ist reine Anzeige, nie im Export → ausblenden, sonst misst die Maske den Rahmen statt der Untertitel (IoU ≈ 0,05)
+      ['prevBlurBg', 'playOverlay', 'safeZoneOverlay'].forEach(x => { const e = document.getElementById(x); if (e) e.style.visibility = 'hidden'; });
       _lastKey = null; updateOverlay(); document.getElementById('prevBg').style.background = '#808080'; await __qa.raf2(); await __qa.wait(400);
       document.getElementById('prevBg').style.background = '#808080';
       // Vorschau zeitgenau wie beim Abspielen/Scrubben (rest = false): pausiert zeigt sie sonst den Endzustand aller Übergänge
@@ -854,7 +859,7 @@ SECTIONS.pixel = async (browser, prof) => {
     raw.push([id, vt, al, v, shX, shY]);
     check('pixel/shape/' + id, al.v >= 0.6, 'Text/Box in Vorschau und Export deckungsgleich nach Ausrichtung (IoU ' + al.v.toFixed(3) + ', Versatz Export ' + (-al.sx * cellPx).toFixed(0) + ' px rechts, ' + (-al.sy * cellPx).toFixed(0) + ' px tiefer, roh ' + v.toFixed(3) + ')');
     if ((vt < IOU_MIN || process.env.SWEEP_ALLSHOTS) && SHOTS) { fs.writeFileSync(path.join(SHOTS, curVp + '-pixel-' + id + '-preview.png'), buf); fs.writeFileSync(path.join(SHOTS, curVp + '-pixel-' + id + '-export.png'), Buffer.from((await p.evaluate(() => __qa.lastExport.toDataURL())).split(',')[1], 'base64')); }
-    await p.evaluate(() => { document.getElementById('mainVid').style.visibility = ''; ['prevBlurBg', 'playOverlay'].forEach(x => { const e = document.getElementById(x); if (e) e.style.visibility = ''; }); });
+    await p.evaluate(() => { document.getElementById('mainVid').style.visibility = ''; ['prevBlurBg', 'playOverlay', 'safeZoneOverlay'].forEach(x => { const e = document.getElementById(x); if (e) e.style.visibility = ''; }); });
   }
   const badRaw = raw.filter(r => r[1] < IOU_MIN).sort((a, b) => a[1] - b[1]);
   check('pixel/iou', !badRaw.length, 'Vorschau-Screenshot ≙ Export-Render ohne Ausrichtung, tolerante IoU (±1 Zelle) ≥ ' + IOU_MIN + ' bei allen ' + raw.length + ' Styles' + (badRaw.length ? ' — ' + badRaw.length + ' darunter: ' + badRaw.slice(0, 6).map(r => r[0] + ' ' + r[1].toFixed(2) + ' (streng ' + r[3].toFixed(2) + ', Export ' + (-r[2].sy * W / CELLS).toFixed(0) + ' px tiefer)').join(', ') : ''));
@@ -905,6 +910,7 @@ SECTIONS.edge = async (browser, prof) => {
       for (let i = 0; i < Math.min(n, name === 'tiles' ? 8 : 3); i++) {
         const el = loc.nth(i); await el.scrollIntoViewIfNeeded().catch(() => {});
         const buf = await el.screenshot({ animations: 'disabled' }), e = await edgeScan(p, buf, r, dpr);
+        if (e.min < 80 && SHOTS) fs.writeFileSync(path.join(SHOTS, curVp + '-edge-' + name + tag.replace('/', '-') + '-' + i + '.png'), buf);
         if (e.min < 80) bad.push('#' + i + ' min ' + e.min + ' bei x=' + e.x + ' (Reihe ' + (e.row - 3) + ', ' + e.w + '×' + e.h + ')');
       }
       check('edge/' + name + tag, !bad.length, name + ': unterste 3 Pixelreihen (innerhalb der Rundung) nicht dunkler als 80' + (bad.length ? ' — ' + bad.slice(0, 2).join('; ') : ''));
@@ -915,6 +921,8 @@ SECTIONS.edge = async (browser, prof) => {
     await scan('prevFrame', p.locator('#prevFrame'), 16);
     const bg = await p.evaluate(() => getComputedStyle(document.getElementById('prevBg')).backgroundColor);
     check('edge/prevBg' + tag, !/^rgb\(\s*(\d+),\s*(\d+),\s*(\d+)\)$/.test(bg) || Math.max(...bg.match(/\d+/g).map(Number)) >= 80, 'Hintergrund hinter dem Video ist nicht schwarz (' + bg + ') — sonst blutet er an der Rundung durch');
+    // Erstbesuch-Hinweis «Swipe for more looks» (nur Handy, #styleHint, schwebt oben über den Kacheln) und der Toast «Captions ready …» (#capToast, fixed) liegen im Element-Screenshot über der Kachel → ausblenden (reines Overlay, kein Rand-Fehler)
+    await p.addStyleTag({ content: '#styleHint,#capToast,.coach{display:none!important}' });
     await goTab(sc, 'style'); await p.waitForTimeout(300);
     await scan('tiles', p.locator('#stylePicker .stile'), 12);
     await OPEN_COVER(sc);
