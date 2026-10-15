@@ -2,7 +2,7 @@
 
 > Gluephs is a free browser tool (no watermark, no account) that turns the speech in a video into animated, word-by-word captions for Instagram Reels, TikTok and YouTube Shorts. Upload a clip, check the captions, pick a style and download an MP4 with burned-in captions, or SRT/VTT subtitle files. Free during the beta, no account needed.
 
-Gluephs (formerly CaptionRush, earlier Capivo) is made in Switzerland by Jonas Treier (sole proprietorship web&meh) in Frick, Aargau. It is currently in beta.
+Gluephs (formerly CaptionRush, earlier Capivo) is made in Switzerland by web&meh in Frick, Aargau. It is currently in beta.
 
 ## Key facts
 

@@ -1626,7 +1626,7 @@ body.editor-open .lang-hint{display:none}
     <p class="foot-legal">Your video stays on your device; only the audio is sent for transcription. Details in our <a href="privacy.html">privacy policy</a>.</p>
     <p class="foot-legal">All trademarks and product names mentioned are the property of their respective owners. Gluephs is not affiliated with them.</p>
     <p class="foot-lang"><svg class="ic" aria-hidden="true"><use href="#i-globe"/></svg><a href="/" hreflang="en" lang="en" aria-current="page">English</a><a href="/de" hreflang="de" lang="de">Deutsch</a></p>
-    <p class="foot-copy">© 2026 Gluephs · Made in Switzerland by Jonas Treier</p>
+    <p class="foot-copy">© 2026 Gluephs · Made in Switzerland</p>
   </footer>
 </div>
 
@@ -11428,7 +11428,7 @@ function passEmailGate() {
     return false;
   }
   var v = String((inp && inp.value) || '').trim();
-  // Pflicht (Entscheid Jonas 15.10.): ohne gültige Adresse kein Download. Newsletter bleibt separates Opt-in.
+  // Pflicht (Entscheid 15.10.): ohne gültige Adresse kein Download. Newsletter bleibt separates Opt-in.
   if (!v || !isEmail(v)) {
     if (err) { err.textContent = v ? _t('That doesn\'t look like a valid email address.') : _t('Enter your email to download.'); err.style.display = ''; }
     if (inp && inp.focus) inp.focus();

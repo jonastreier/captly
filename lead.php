@@ -74,8 +74,8 @@ if ($needMail) {
     $de = stripos($lang, 'de') === 0;
     $subject = $de ? 'Bitte bestätige deine Anmeldung bei Gluephs' : 'Please confirm your Gluephs subscription';
     $text = $de
-      ? "Hallo\n\nDu hast dich für Neuigkeiten von Gluephs angemeldet. Bitte bestätige das mit diesem Link:\n\n$link\n\nHast du dich nicht angemeldet, ignoriere diese Mail – du bekommst dann nichts von uns.\n\nGluephs · Jonas Treier · Hauptstrasse 84A · 5070 Frick · Schweiz\n"
-      : "Hi\n\nYou signed up for Gluephs news. Please confirm with this link:\n\n$link\n\nIf you didn't sign up, just ignore this email – you won't hear from us.\n\nGluephs · Jonas Treier · Hauptstrasse 84A · 5070 Frick · Switzerland\n";
+      ? "Hallo\n\nDu hast dich für Neuigkeiten von Gluephs angemeldet. Bitte bestätige das mit diesem Link:\n\n$link\n\nHast du dich nicht angemeldet, ignoriere diese Mail – du bekommst dann nichts von uns.\n\nGluephs · web&meh · Hauptstrasse 84A · 5070 Frick · Schweiz\n"
+      : "Hi\n\nYou signed up for Gluephs news. Please confirm with this link:\n\n$link\n\nIf you didn't sign up, just ignore this email – you won't hear from us.\n\nGluephs · web&meh · Hauptstrasse 84A · 5070 Frick · Switzerland\n";
     $unsub = cr_unsub_link($cfg, $email);
     if ($unsub !== '') $text .= ($de ? "\nAbmelden: " : "\nUnsubscribe: ") . $unsub . "\n";
     $mailed = cr_send_mail($cfg, $email, $subject, $text, cr_unsub_headers($cfg, $email));

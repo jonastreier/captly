@@ -221,8 +221,8 @@ module.exports = {
      'Dein Video bleibt auf deinem Gerät; nur die Tonspur wird zur Transkription gesendet. Details in der <a href="datenschutz.html">Datenschutzerklärung</a>.'],
     ['All trademarks and product names mentioned are the property of their respective owners. Gluephs is not affiliated with them.',
      'Alle genannten Marken und Produktnamen sind Eigentum ihrer jeweiligen Inhaber. Gluephs steht in keiner Verbindung zu ihnen.'],
-    ['Made in Switzerland by', 'Gemacht in der Schweiz von'],
+    ['Made in Switzerland', 'Gemacht in der Schweiz'],
   ],
   // Texte, die auf DE bewusst identisch bleiben (Marken, Formate, Style-Namen) — sonst meldet --check sie als unübersetzt
-  keep: ['Gluephs', 'glue', 'phs', 'in', 'FAQ', 'MP4, SRT &amp; VTT', 'MP4, SRT, VTT &amp; TXT', 'Export', 'Reveal', 'Bold', 'Neon', 'Creator', 'Pro', 'Impressum', 'web&amp;meh', 'Jonas Treier', 'English', 'Deutsch', 'EN', 'DE', 'English · Deutsch'],
+  keep: ['Gluephs', 'glue', 'phs', 'in', 'FAQ', 'MP4, SRT &amp; VTT', 'MP4, SRT, VTT &amp; TXT', 'Export', 'Reveal', 'Bold', 'Neon', 'Creator', 'Pro', 'Impressum', 'web&amp;meh', 'English', 'Deutsch', 'EN', 'DE', 'English · Deutsch'],
 };
