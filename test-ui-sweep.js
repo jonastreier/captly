@@ -153,6 +153,9 @@ function qaMain() {
       o['cfg.fontSize'] = fontSize; o['cfg.fontRel'] = Math.round(fontSize / previewFrameW() * 1000) / 1000; o['cfg.pos'] = capPos; o['cfg.voff'] = capVOff; o['cfg.hoff'] = capHOff; o['cfg.free'] = capFree; o['cfg.mode'] = displayMode; o['cfg.case'] = capCase;
       o['cfg.punct'] = capNoPunct ? 1 : 0; o['cfg.kw'] = emKw ? 1 : 0; o['cfg.emoji'] = emEmoji ? 1 : 0; o['cfg.zoom'] = emZoom; o['cfg.timeOff'] = timeOff;
       o['cfg.hook'] = hookOn ? 1 : 0; o['cfg.hookDur'] = hookDur; o['cfg.hookText'] = hookText; // Hook-Titel (N-KI)
+      // Brand-Kit (Logo, Farben, Schrift, Safe-Zone): Kit ohne Logo-Daten + Lage des Logos in der Vorschau
+      o['brand.cfg'] = JSON.stringify(brandLive, (k, v) => k === 'data' ? undefined : v); o['cfg.safe'] = _safeKey;
+      const bl = document.getElementById('brandLogoOv'); o['brand.logo'] = bl ? [bl.style.display, bl.style.left, bl.style.top, bl.style.width, bl.style.opacity].join('|') : null;
       o['cfg.blocks'] = captionBlocks.length;
       o['cfg.text'] = hash(captionBlocks.map(b => b.text).join('|'));
       o['cfg.timing'] = hash(captionBlocks.map(b => b.start.toFixed(2) + '-' + b.end.toFixed(2)).join('|'));
@@ -374,6 +377,13 @@ const inv = (...drop) => LAYOUT_INV.filter(k => !drop.includes(k));
 const NOCHANGE_FS = k => k; // Lesehilfe
 const CUSTOM_VARIANTS = ['plain', 'layoutPreset'];
 const HL_FIELDS = ['hl', 'hlg', 'hlCycle', 'hlPillBg', 'hlc', 'hls'];
+const BRAND_INV = ['cfg.lines', 'cfg.wpb', 'cfg.blocks', 'cfg.fontSize', 'cfg.pos', 'cfg.maxChars', 'dom.lines', 'dom.span0.fontSize', 'dom.span0.color']; // Logo-Regler berühren die Untertitel nicht
+const BRAND_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='; // 1×1, wird auf Logo-Grösse gestreckt
+async function OPEN_BRAND(sc, withLogo) { // Kit-Box öffnen; mit Logo (setzt es direkt, ohne Datei-Upload) werden Grösse/Rand/Position/Deckkraft sichtbar
+  await openDetails(sc, 'bkBox');
+  if (withLogo) await sc.page.evaluate(png => { const b = brandEnsure(); b.logo = { data: png, w: 64, h: 64, pos: 'tl', size: 15, opacity: 1, margin: 4 }; brandChanged(); }, BRAND_PNG);
+  await sc.page.waitForTimeout(150);
+}
 const CTL = [
   // ── Style-Tab: Layout ──
   { id: 'szSlider', tab: 'style', op: 'range', sel: '#szSlider', values: [14, 34], changes: ['cfg.fontSize', 'dom.span0.fontSize'], inv: inv('cfg.fontSize', 'cfg.blocks', 'dom.lines', 'cfg.maxChars') },
@@ -429,6 +439,15 @@ const CTL = [
   { id: 'toSlider', tab: 'style', custom: false, op: 'range', sel: '#toSlider', values: [-0.3, 0.3], changes: ['cfg.timeOff'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], customize: true },
   { id: 'pauseChk', tab: 'style', op: 'check', sel: '#pauseChk', values: [null], changes: ['cfg.mode'], inv: LAYOUT_INV, customize: true },
   { id: 'punctBtn', tab: 'style', op: 'check', sel: '#punctBtn', values: [null], punct: true, changes: ['cfg.punct', 'dom.hash'], inv: ['cfg.wpb', 'cfg.lines', 'cfg.pos', 'cfg.fontSize'], customize: true },
+  // ── Style-Tab: Brand-Kit (Logo, Farben, Schrift, Safe-Zone) — das Kit liegt in <details id="bkBox">; Logo-Regler erscheinen erst mit Logo (OPEN_BRAND setzt ein Mini-PNG) ──
+  { id: 'bkSize', tab: 'style', op: 'range', sel: '#bkSize', values: [8, 25], pre: sc => OPEN_BRAND(sc, true), changes: ['brand.cfg', 'brand.logo'], inv: BRAND_INV },
+  { id: 'bkOp', tab: 'style', op: 'range', sel: '#bkOp', values: [40, 80], pre: sc => OPEN_BRAND(sc, true), changes: ['brand.cfg', 'brand.logo'], inv: BRAND_INV },
+  { id: 'bkMargin', tab: 'style', op: 'range', sel: '#bkMargin', values: [2, 8], pre: sc => OPEN_BRAND(sc, true), changes: ['brand.cfg', 'brand.logo'], inv: BRAND_INV },
+  { id: 'bkPos', tab: 'style', op: 'click', values: ['#bkPos [data-p="tr"]', '#bkPos [data-p="br"]'], pre: sc => OPEN_BRAND(sc, true), changes: ['brand.cfg', 'brand.logo'], inv: BRAND_INV },
+  { id: 'bkSafe', tab: 'style', op: 'select', sel: '#bkSafe', values: ['tiktok', 'off'], pre: sc => OPEN_BRAND(sc, false), changes: ['brand.cfg', 'cfg.safe'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.fontSize', 'cfg.blocks'] },
+  { id: 'bkText', tab: 'style', custom: true, op: 'color', sel: '#bkText', values: ['#ff0000', '#22cc88'], pre: sc => OPEN_BRAND(sc, false), changes: ['brand.cfg', 'style.tc', 'dom.span0.color'], styleOnly: ['tc', 'tg'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
+  { id: 'bkHl', tab: 'style', custom: true, op: 'color', sel: '#bkHl', values: ['#ff0000', '#00ffaa'], pre: sc => OPEN_BRAND(sc, false), changes: ['brand.cfg', 'dom.act.color'], styleOnly: HL_FIELDS, inv: LAYOUT_INV.concat('dom.span0.color', 'dom.span0.fontSize') },
+  { id: 'bkFont', tab: 'style', custom: true, op: 'select', sel: '#bkFont', values: ['Anton', 'Playfair Display'], pre: sc => OPEN_BRAND(sc, false), changes: ['brand.cfg', 'style.fl', 'style.font', 'dom.span0.fontFamily'], styleOnly: ['fl', 'font', 'hlFont'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], wait: 900 },
 ];
 
 

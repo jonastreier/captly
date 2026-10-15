@@ -167,7 +167,8 @@ capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurO
 queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueClipOpened:queueClipOpened,hookLogoRect:hookLogoRect,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
 queueZipEntries:queueZipEntries,zipFolderName:zipFolderName,queueTplInfo:queueTplInfo,queueStyleOptions:queueStyleOptions,btnVideoText:btnVideoText,syncGateBatchUI:syncGateBatchUI,setGateResume:function(f){_gateResume=f;},getSessionSaved:function(){return _sessionSaved;},
 crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen,
-capLogoDodge:capLogoDodge,capDodgeTotal:capDodgeTotal,brandLogoRectFor:brandLogoRectFor};`;
+capLogoDodge:capLogoDodge,capDodgeTotal:capDodgeTotal,brandLogoRectFor:brandLogoRectFor,
+queueResumeCount:queueResumeCount,queueResumeMsg:queueResumeMsg,QUEUE_RESUME_DAYS:QUEUE_RESUME_DAYS};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -6424,7 +6425,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     // 5) Landing-Toast «Auch auf Deutsch verfügbar» nicht mehr sofort am Desktop
     {
-      ok(/\.lang-hint\{[^}]*opacity:0;pointer-events:none/.test(htmlContent) && /\.lang-hint\.lh-on\{opacity:1;pointer-events:auto\}/.test(htmlContent) && /r\.bottom < \(window\.innerWidth > 640 \? \(window\.innerHeight \|\| 800\) - 80 : 0\)/.test(htmlContent), 'R3-Toast: Sprachhinweis ist auch am Desktop erst sichtbar, wenn die Upload-Karte den unteren Rand freigibt');
+      ok(/\.lang-hint\{[^}]*opacity:0;pointer-events:none/.test(htmlContent) && /\.lang-hint\.lh-on\{opacity:1;pointer-events:auto\}/.test(htmlContent) && /\(f \|\| r\)\.bottom <= vh - 68/.test(htmlContent) && /else on = !card \|\| !r \|\| r\.bottom < 0;/.test(htmlContent), 'R3-Toast (R5): Sprachhinweis am Desktop nur ganz oben und bei freiem Platz unter dem Kleingedruckten, am Handy erst nach dem Scrollen');
     }
     // 6) DE-Kleinkram: Suffix-Beschriftung, Toast-Knopf aus dem DOM
     {
@@ -7303,6 +7304,43 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(list.every((x, j) => j === 0 || x.i - list[j - 1].i >= 2), 'R5-Emoji ' + nm + ': nie zwei Emojis in direkt aufeinanderfolgenden Blöcken');
     }
     ok(T.EMO_LOCAL_SEC <= 5 && T.EMO_LOCAL_GAP <= 2.5, 'R5-Emoji: Ziel-Abstand ≈ 5 s oder weniger');
+  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // R5 Landing: Handy-Kopfzeile der Upload-Karte, Sprach-Pille am Desktop, Neulade-Hinweis für Queue-Clips, Brand-Kit im UI-Sweep
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    // 1) Handy (≤ 520 px): Sprachfeld nimmt die volle Zeile (Auswahl nicht abgeschnitten), «Beispiel testen» umbricht darunter statt rechts herauszuragen
+    const m520 = htmlContent.match(/@media \(max-width:520px\)\{([^\n]*)\}\n/);
+    ok(!!m520 && /\.hc-top\{[^}]*flex-wrap:wrap;justify-content:center/.test(m520[1]) && /\.land-lang\{flex:1 1 100%;min-width:0/.test(m520[1]) && /\.land-lang select\{[^}]*max-width:none/.test(m520[1]) && !/max-width:150px/.test(m520[1]), 'R5 Handy: Sprachfeld volle Breite, Beispiel-Knopf umbricht (kein max-width:150px mehr)');
+    ok(!/@media \(max-width:370px\)\{[^\n]*max-width:150px/.test(htmlContent), 'R5 Handy: auch ≤ 370 px keine feste Select-Breite');
+    // 2) Sprach-Pille «Auch auf Deutsch verfügbar»: Desktop nur ganz oben + freier Platz unter dem Kleingedruckten (sonst überdeckt sie Inhalt)
+    ok(/pageYOffset \|\| 0\) < 40 && \(f \|\| r\)\.bottom <= vh - 68/.test(htmlContent) && /fine = document\.querySelector\('\.hero-fine'\)/.test(htmlContent), 'R5 Toast: Sprach-Pille am Desktop nur oben und bei freiem Platz unter .hero-fine');
+    ok(/initQueueResume\(\);[^\n]*\ninitLangHint\(\);/.test(htmlContent), 'R5 Toast: Queue-Hinweis wird vor der Sprach-Pille eingefügt (Platzbedarf stimmt)');
+    // 3) Neulade-Hinweis: nur ≥ 2 bearbeitete Queue-Clips (Marke entry.q), nicht älter als 7 Tage
+    {
+      const now = 1e12, d = 864e5, mk = (q, ed, age) => ({ key: 'k' + Math.random(), savedAt: now - age, q: q ? 1 : undefined, data: { blocks: [{}], edited: ed } });
+      const cnt = l => T.queueResumeCount(l, now);
+      ok(cnt([]) === 0 && cnt(null) === 0, 'R5 Neulade-Hinweis: leerer Autosave → 0');
+      ok(cnt([mk(1, true, 1000), mk(1, true, 5000), mk(1, true, 9000)]) === 3, 'R5 Neulade-Hinweis: drei bearbeitete Queue-Clips → 3');
+      ok(cnt([mk(1, true, 1000), mk(0, true, 5000), mk(1, false, 9000)]) === 1, 'R5 Neulade-Hinweis: Einzelvideo (ohne Marke) und unbearbeitete Clips zählen nicht');
+      ok(cnt([mk(1, true, 6.9 * d), mk(1, true, 7.1 * d)]) === 1, 'R5 Neulade-Hinweis: älter als 7 Tage zählt nicht mehr');
+      ok(cnt(Array.from({ length: 14 }, () => mk(1, true, 10))) === T.QUEUE_MAX, 'R5 Neulade-Hinweis: höchstens QUEUE_MAX');
+      ok(T.queueResumeMsg(1) === '1 clip edited last time — pick the same file again to continue' && T.queueResumeMsg(3) === '3 clips edited last time — pick the same files again to continue', 'R5 Neulade-Hinweis: Text Einzahl/Mehrzahl (_tn)');
+      ok(/if \(n < 2\) \{ el\.hidden = true;/.test(script), 'R5 Neulade-Hinweis: erst ab 2 Clips sichtbar');
+      ok(/if \(protect\[_autosaveKey\]\) entry\.q = 1;/.test(script), 'R5 Neulade-Hinweis: autosaveNow markiert Queue-Clips (entry.q), Einzelvideos nicht');
+      ok(/<p class="hero-resume" id="queueResume" role="status" hidden><\/p>/.test(htmlContent) && /\.hero-resume\[hidden\]\{display:none\}/.test(htmlContent), 'R5 Neulade-Hinweis: Platzhalter im Hero, standardmässig versteckt');
+      const dui = fs.readFileSync(path.join(__dirname, 'i18n', 'de-ui.js'), 'utf8');
+      ok(/"\{0\} clip edited last time — pick the same file again to continue":/.test(dui) && /"\{0\} clips edited last time — pick the same files again to continue":/.test(dui), 'R5 Neulade-Hinweis: deutsche Übersetzung (Einzahl + Mehrzahl) in de-ui.js');
+    }
+    // 4) UI-Sweep: jeder Brand-Kit-Regler hat einen Eintrag in CTL
+    {
+      const sweep = fs.readFileSync(path.join(__dirname, 'test-ui-sweep.js'), 'utf8');
+      const bkIds = [...htmlContent.matchAll(/<(?:input|select)\b[^>]*\bid="(bk(?:Size|Op|Margin|Text|Hl|Font|Safe))"/g)].map(x => x[1]).concat(/id="bkPos"/.test(htmlContent) ? ['bkPos'] : []);
+      ok(bkIds.length === 8, 'R5 Brand-Kit: alle 8 Regler im Markup (' + bkIds.join(', ') + ')');
+      const noEntry = bkIds.filter(id => !new RegExp("\\{ id: '" + id + "', tab: 'style'").test(sweep));
+      ok(noEntry.length === 0, 'R5 Brand-Kit: CTL in test-ui-sweep.js deckt alle Regler ab (fehlt: ' + noEntry.join(', ') + ')');
+      ok(/o\['brand\.cfg'\]/.test(sweep) && /o\['brand\.logo'\]/.test(sweep) && /o\['cfg\.safe'\]/.test(sweep), 'R5 Brand-Kit: Signatur des Sweeps kennt Kit, Logo-Lage und Safe-Zone');
+    }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);

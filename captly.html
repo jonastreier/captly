@@ -123,11 +123,13 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .hero-price{position:relative;display:inline-block;margin-top:10px;font-size:13px;font-weight:600;color:var(--brand-ink);text-decoration:none;background:var(--brand-soft);border-radius:999px;padding:6px 14px;text-align:center}
 .hero-price::after{content:' \203A'}
 .hero-price:hover{text-decoration:underline}
+.hero-resume{max-width:620px;margin:14px auto 0;padding:8px 14px;border-radius:12px;background:var(--brand-soft);color:var(--brand-ink);font-size:13px;font-weight:600;line-height:1.45;text-align:center}
+.hero-resume[hidden]{display:none}
 .hero-fine{display:flex;align-items:flex-start;gap:8px;max-width:620px;margin-top:16px;font-size:13px;line-height:1.5;color:var(--muted);text-align:left}
 .hero-fine .ic{width:16px;height:16px;margin-top:1px;color:var(--brand)}
 .ll-short{display:none}
-@media (max-width:520px){.ll-long{display:none}.ll-short{display:inline}.hero{padding-top:40px}.land-sub{font-size:15px}.hero-card{border-radius:24px;padding:10px;margin-top:24px}.upload-zone{min-height:200px;padding:24px 16px}.hc-top{padding:2px 2px 10px;flex-wrap:nowrap;gap:4px}.land-try-btn{white-space:nowrap;padding:8px 6px}.land-lang{gap:2px;padding:2px 4px 2px 12px}.land-lang select{padding:6px 2px;max-width:150px}.land-try-btn::after{content:none}.how-steps{grid-template-columns:1fr;gap:10px}.how-sec,.feat-sec,.pricing-sec,.showcase,.faq-sec,.cta-band{margin-top:72px}}
-@media (max-width:370px){.hc-top{flex-wrap:wrap;justify-content:center}.land-try-btn{white-space:nowrap}.land-lang select{max-width:150px}}
+@media (max-width:520px){.ll-long{display:none}.ll-short{display:inline}.hero{padding-top:40px}.land-sub{font-size:15px}.hero-card{border-radius:24px;padding:10px;margin-top:24px}.upload-zone{min-height:200px;padding:24px 16px}.hc-top{padding:2px 2px 10px;flex-wrap:wrap;justify-content:center;gap:6px}.land-try-btn{white-space:nowrap;padding:8px 6px}.land-lang{flex:1 1 100%;min-width:0;gap:4px;padding:2px 4px 2px 12px}.land-lang select{flex:1 1 auto;min-width:0;padding:6px 2px;max-width:none;text-overflow:ellipsis}.land-try-btn::after{content:none}.how-steps{grid-template-columns:1fr;gap:10px}.how-sec,.feat-sec,.pricing-sec,.showcase,.faq-sec,.cta-band{margin-top:72px}}
+@media (max-width:370px){.land-try-btn{white-space:nowrap}}
 
 /* NAV LINKS + SCROLL STATE */
 .land-nav-links{display:flex;align-items:center;gap:24px}
@@ -851,7 +853,7 @@ input[type=checkbox]{accent-color:var(--brand)}
 .land-nav-links a.nav-lang{font-size:12px;font-weight:600;padding:3px 8px;border:1px solid var(--line2);border-radius:999px}
 /* Hinweis „Gibt's auch auf Deutsch“ (nur EN-Seite, nur bei deutscher Browsersprache, wegklickbar) */
 .lang-hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:60;display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);padding:8px 8px 8px 16px;border-radius:999px;background:var(--ink);color:#fff;font-size:13px;box-shadow:var(--sh-3);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .25s}
-.lang-hint.lh-on{opacity:1;pointer-events:auto} /* R3: auch am Desktop erst nach dem Scrollen (sonst deckt er die letzte Look-Chip-Reihe bei 800 px Höhe) */
+.lang-hint.lh-on{opacity:1;pointer-events:auto} /* R5: am Desktop nur ganz oben und nur bei freiem Platz unter dem Kleingedruckten (initLangHint) */
 .lang-hint a{color:#fff;font-weight:600;white-space:nowrap}
 body.editor-open .lang-hint{display:none}
 .lang-hint button{border:none;background:rgba(255,255,255,.14);color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;flex-shrink:0;font-size:15px;line-height:1}
@@ -1407,6 +1409,7 @@ body.editor-open .lang-hint{display:none}
         <p><span class="hint-desk">Drop it here or click to browse · </span>MP4, MOV or WebM · up to 10 at once</p>
       </label>
     </div>
+    <p class="hero-resume" id="queueResume" role="status" hidden></p>
     <p class="hero-fine"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>Your video stays on your device — only the audio is sent for transcription. No account; we ask for your email only before the download.</p>
   </section>
 
@@ -10992,9 +10995,10 @@ function autosaveNow() {
   clearTimeout(_autosaveTimer); _autosaveTimer = null;
   if (!_autosaveKey || !captionBlocks.length) { setSaveInd(''); return false; }
   var data = autosaveData();
-  var entry = { key: _autosaveKey, savedAt: Date.now(), data: data };
-  _sessionSaved[_autosaveKey] = true; // in DIESER Sitzung geschrieben → kein «Restored your last session» (s. restoreOrTranscribe)
   var protect = autosaveProtectSet();
+  var entry = { key: _autosaveKey, savedAt: Date.now(), data: data };
+  if (protect[_autosaveKey]) entry.q = 1; // Clip einer Warteschlange (nur Marke fürs Neulade-Hinweis auf der Startseite, s. queueResumeCount)
+  _sessionSaved[_autosaveKey] = true; // in DIESER Sitzung geschrieben → kein «Restored your last session» (s. restoreOrTranscribe)
   var list = autosaveTrim([entry].concat(readAutosaves().filter(function(e){ return e.key !== _autosaveKey; })), protect, AUTOSAVE_MAX);
   // Quota voll: zuerst die ältesten ungeschützten Videos opfern, dann die ältesten geschützten, zuletzt nur den aktuellen Stand
   // (wie bisher) — jeweils nur ein Schreibversuch pro Stufe.
@@ -11021,6 +11025,26 @@ function scheduleAutosave() {
 function autosaveWhenIdle() {
   if (isExporting) { clearTimeout(_autosaveTimer); _autosaveTimer = setTimeout(autosaveWhenIdle, 1500); return; }
   autosaveNow();
+}
+// Neulade-Hinweis (R5): wie viele bearbeitete Warteschlangen-Clips hält der Autosave noch? (rein: list = Autosave-Einträge, now = Date.now())
+// Zählt nur Einträge mit Queue-Marke (entry.q, s. autosaveNow), die bearbeitet wurden (data.edited) und höchstens 7 Tage alt sind.
+var QUEUE_RESUME_DAYS = 7;
+function queueResumeCount(list, now) {
+  var n = 0, max = QUEUE_RESUME_DAYS * 864e5;
+  (list || []).forEach(function(e) {
+    if (e && e.q && e.data && e.data.edited && now - (+e.savedAt || 0) <= max) n++;
+  });
+  return Math.min(n, QUEUE_MAX);
+}
+function queueResumeMsg(n) {
+  return _tn(n, '{0} clip edited last time — pick the same file again to continue', '{0} clips edited last time — pick the same files again to continue', n);
+}
+function initQueueResume() {
+  var el = document.getElementById('queueResume');
+  if (!el) return;
+  var n = queueResumeCount(readAutosaves(), Date.now());
+  if (n < 2) { el.hidden = true; el.textContent = ''; return; }
+  el.textContent = queueResumeMsg(n); el.hidden = false;
 }
 function findAutosave(key) {
   var list = readAutosaves();
@@ -18808,6 +18832,7 @@ fetchMe().then(function(){ if (meEmail) loadProjects(); return loadBilling(); })
 initLandingNavScroll();
 initScrollReveal();
 initHowDemo();
+initQueueResume(); // vor initLangHint: der Hinweis verschiebt das Kleingedruckte, die Sprach-Pille richtet sich danach
 initLangHint();
 // Editor-Shortcuts (Pro-Creator-Standard): Leertaste = Play/Pause, ←/→ = ±1 s (Shift: ±0.1 s),
 // Ctrl/⌘+Z / Ctrl/⌘+Shift+Z (bzw. Ctrl+Y) = Undo/Redo der Caption-Edits, Esc verlässt ein Textfeld.
@@ -18922,8 +18947,15 @@ function initLangHint() {
   document.body.appendChild(d);
   // Erst zeigen, wenn die Upload-Karte (Dropzone + Look-Chips) den Toast-Bereich unten freigibt: Handy = ganz aus dem Bild gescrollt,
   // Desktop = Unterkante der Karte über dem Toast (vorher sofort → verdeckte bei 1280×800 die letzte Reihe der Look-Chips)
-  var card = document.querySelector('.hero-card'), tmr = 0;
-  function upd() { tmr = 0; var r = card && card.getBoundingClientRect(); d.classList.toggle('lh-on', !card || !r || r.bottom < (window.innerWidth > 640 ? (window.innerHeight || 800) - 80 : 0)); }
+  var card = document.querySelector('.hero-card'), fine = document.querySelector('.hero-fine'), tmr = 0;
+  // Desktop (R5): nur ganz oben auf der Seite und nur, wenn unter der letzten Hero-Zeile (Kleingedrucktes) noch freier Platz für die Pille bleibt —
+  // gescrollt oder bei niedrigem Fenster würde sie sonst Inhalt überdecken. Handy unverändert (nach dem Scrollen, siehe CSS).
+  function upd() {
+    tmr = 0; var r = card && card.getBoundingClientRect(), f = fine && fine.getBoundingClientRect(), vh = window.innerHeight || 800, on;
+    if (window.innerWidth > 640) on = !card || !r || ((window.pageYOffset || 0) < 40 && (f || r).bottom <= vh - 68);
+    else on = !card || !r || r.bottom < 0;
+    d.classList.toggle('lh-on', on);
+  }
   function sched() { if (!tmr) tmr = setTimeout(upd, 60); }
   window.addEventListener('scroll', sched, { passive: true }); window.addEventListener('resize', sched);
   upd();
