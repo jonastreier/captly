@@ -164,7 +164,7 @@ capOutK:capOutK,capScaleShadowStr:capScaleShadowStr,CAP_SH_REF:CAP_SH_REF,
 brandHex:brandHex,sanitizeBrand:sanitizeBrand,applyBrandToStyle:applyBrandToStyle,brandLogoRect:brandLogoRect,brandWmRect:brandWmRect,brandLogoOk:brandLogoOk,SAFE_ZONE_PRESETS:SAFE_ZONE_PRESETS,SAFE_ZONE:SAFE_ZONE,safePresetSet:safePresetSet,getSafeKey:function(){return _safeKey;},brandSetLive:brandSetLive,getBrandLive:function(){return brandLive;},brandForSave:brandForSave,brandSet:brandSet,brandColor:brandColor,brandLogoPicked:brandLogoPicked,brandEncodeLogo:brandEncodeLogo,templatesForCloud:templatesForCloud,setUserTemplates:function(v){userTemplates=v;},rebuildTemplateStyles:rebuildTemplateStyles,drawBrandLogo:drawBrandLogo,tplHasBrand:tplHasBrand,removeTemplateBrand:removeTemplateBrand,brandSyncUI:brandSyncUI,seedActiveStyle:seedActiveStyle,drawWatermark:drawWatermark,TPL_CLOUD_MAX:TPL_CLOUD_MAX,getBrandImgs:function(){return _brandImgs;},brandImgKey:brandImgKey,brandClearColors:brandClearColors,brandRemoveLogo:brandRemoveLogo,
 hookVariants:hookVariants,hookVariantList:hookVariantList,hookNextVariant:hookNextVariant,hookDupOfCaptions:hookDupOfCaptions,EMO_REL_SIDE:EMO_REL_SIDE,EMO_LOCAL_SEC:EMO_LOCAL_SEC,EMO_LOCAL_GAP:EMO_LOCAL_GAP,EMO_LOCAL_SAME:EMO_LOCAL_SAME,capToastAction:capToastAction,
 capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR,
-queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
+queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueClipOpened:queueClipOpened,hookLogoRect:hookLogoRect,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
 crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -7020,6 +7020,65 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(!/suggestHook/.test(script) && !/suggestHook/.test(htmlContent), 'R3-Rest: ungenutzte Funktion suggestHook entfernt');
     frameEl.style.width = prevW; frameEl.style.height = prevH; T.setFontSizeState(prevFs);
     T.setActiveId(prevId); T.setWpbState(prevWpb); T.setMaxCharsState(prevMc); T.setLines(mkLines(prevLines));
+  }
+
+  // ═══════════════ Runde 4 (Noah): Hook weicht dem Logo aus · Kit-Akzent/-Schrift auch für Schlagwörter · Template pro Clip (Layout, Neuladen) ═══════════════
+  {
+    const meas = (font, str) => { const m = /([\d.]+)px/.exec(font); return String(str).length * (m ? parseFloat(m[1]) : 16) * 0.55; };
+    const rectsOverlap = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const box = L => ({ x: L.boxX, y: L.boxY, w: L.boxW, h: L.boxH });
+    const mixSt = T.STYLES.find(x => x.id === 'mix'), tightSt = T.STYLES.find(x => x.id === 'tight');
+    // 1) Hook-Titel gegen Logo (Kunde A: Logo oben rechts, Kunde B: oben links): nie darüber gezeichnet
+    for (const [Wp, Hp] of [[270, 480], [360, 360], [480, 270]]) {
+      const base = T.hookLayout(meas, tightSt, 'Drei Tricks, damit deine Reels mehr Views bekommen', Wp, Hp);
+      for (const pos of ['tr', 'tl']) {
+        const lg = { w: 300, h: 300, size: 16, margin: 4, pos };
+        const av = T.brandLogoRect(Wp, Hp, lg, 'reels', false);
+        const L = T.hookLayout(meas, tightSt, 'Drei Tricks, damit deine Reels mehr Views bekommen', Wp, Hp, av);
+        ok(!rectsOverlap(box(L), av), 'R4 Hook/Logo ' + Wp + 'x' + Hp + ' ' + pos + ': Titel und Logo überlappen nicht (Titel y ' + L.boxY.toFixed(1) + ', Logo ' + av.y.toFixed(1) + '–' + (av.y + av.h).toFixed(1) + ')');
+        ok(L.boxY + L.boxH <= Hp && L.boxX === base.boxX && L.boxW === base.boxW, 'R4 Hook/Logo ' + Wp + 'x' + Hp + ' ' + pos + ': Titel bleibt im Bild, gleiche Breite/Mitte');
+        if (rectsOverlap(box(base), av)) ok(L.boxY > base.boxY && L.key !== base.key, 'R4 Hook/Logo ' + Wp + 'x' + Hp + ' ' + pos + ': bei Kollision rutscht der Titel nach unten (neuer Layout-Schlüssel für die Vorschau)');
+      }
+      const low = T.hookLayout(meas, tightSt, 'Drei Tricks, damit deine Reels mehr Views bekommen', Wp, Hp, { x: 10, y: Hp * 0.8, w: 40, h: 40 });
+      ok(low.boxY === base.boxY && low.key === base.key, 'R4 Hook/Logo ' + Wp + 'x' + Hp + ': Logo weit unten (keine Kollision) → Titel unverändert');
+      const none = T.hookLayout(meas, tightSt, 'Drei Tricks, damit deine Reels mehr Views bekommen', Wp, Hp, null);
+      ok(none.boxY === base.boxY && none.key === base.key, 'R4 Hook/Logo: ohne Logo unverändert');
+    }
+    ok(T.hookLogoRect(270, 480) === null, 'R4 Hook/Logo: ohne aktives Kit kein Logo-Rechteck');
+    ok(/hookLogoRect\(Wp, Hp\)/.test(script) && /hookLayout\(function\(font, str\)[^]*?, Wp, Hp, av\)/.test(script), 'R4 Hook/Logo: Vorschau und Export teilen sich hookLayoutNow (ein Layout für beides)');
+    // 2) Kit-Akzent und -Schrift gelten auch für Schlagwörter (em/emFont)
+    {
+      const st = T.applyBrandToStyle(T.cloneStyle(mixSt), { colors: { highlight: '#00e5c0', text: '#ffe600' }, font: 'Playfair Display' });
+      ok(st.em === '#00e5c0' && st.tc === '#ffe600' && st.hl === '#00e5c0', 'R4 Kit: Akzent färbt aktives Wort UND Schlagwort (Mix: em ' + st.em + ')');
+      ok(st.emFont === undefined && st.font === "'Playfair Display'" && st.fl === 'Playfair Display', 'R4 Kit: Kit-Schrift ersetzt auch die Schlagwort-Schrift (emFont weg)');
+      const no = T.applyBrandToStyle(T.cloneStyle(T.STYLES.find(x => x.id === 'tight')), { colors: { highlight: '#00e5c0' } });
+      ok(no.em === 'none', 'R4 Kit: Look ohne Schlagwort-Farbe (em «none») bleibt ohne');
+      const keep = T.applyBrandToStyle(T.cloneStyle(mixSt), { colors: { text: '#ffe600' } });
+      ok(keep.em === mixSt.em && keep.emFont === mixSt.emFont, 'R4 Kit: nur Textfarbe → Schlagwort-Farbe/-Schrift des Looks bleiben');
+      ok(T.applyBrandToStyle({ em: '#abc' }, null).em === '#abc', 'R4 Kit: ohne Kit unverändert');
+    }
+    // 3) Warteschlange: Look pro Clip. (a) in der Liste gewechselt, bevor der Clip geöffnet war → Template-Layout beim Öffnen anwenden;
+    //    (b) nach Neuladen wiederhergestellter Clip behält seinen gespeicherten Look (nicht das Standard-Template)
+    {
+      const Q = T.getQ(); T.queueReset(); Q.pass = null;
+      const prevId = T.getActiveId();
+      const mk = (n, styleId) => { const c = T.queueNewClip({ name: n, size: 10, type: 'video/mp4', lastModified: 1 }, styleId, 'r4' + n); Q.clips.push(c); return c; };
+      let c = mk('a', 'colorpop'); c.status = 'ready';
+      T.setActiveId('tight'); T.queueClipOpened(c, true);
+      ok(c.styleId === 'tight' && T.getActiveId() === 'tight', 'R4 Neuladen: wiederhergestellter Clip übernimmt seinen gespeicherten Look statt des Standards (' + c.styleId + ')');
+      c = mk('b', 'tight'); c.status = 'ready'; c.snap = { style: 'tight' };
+      T.queueSetStyle(c.id, 'mix');
+      ok(c.styleId === 'mix' && c.styleUser === true && c.snap.style === 'mix' && c.tplPending === true, 'R4 Look pro Clip: Wahl in der Liste merkt sich «vom Nutzer» + Layout noch anzuwenden');
+      T.setActiveId('mix'); T.queueClipOpened(c, true);
+      ok(c.tplPending === false && c.styleId === 'mix', 'R4 Look pro Clip: beim Öffnen wird das Layout angewendet (Flag zurückgesetzt, Look bleibt)');
+      c = mk('c', 'mix'); c.styleUser = true; c.status = 'ready';
+      T.setActiveId('tight'); T.queueClipOpened(c, true);
+      ok(T.getActiveId() === 'mix' && c.styleId === 'mix', 'R4 Neuladen: vom Nutzer gewählter Look gewinnt gegen den wiederhergestellten');
+      ok(/c\.snap\.style = styleId; c\.tplPending = true/.test(script) && /\(restored && tplNow\)/.test(script) && /restored && !c\.styleUser/.test(script), 'R4 Look pro Clip: Quelltext enthält die Layout-/Neuladen-Regeln');
+      T.queueReset(); Q.pass = null; T.setActiveId(prevId);
+    }
+    // 4) Nach «Alle exportieren» steht das ZIP vor «Alle exportieren» (Handy: sonst unter dem Falz)
+    ok(/var allDone = nDone > 0 &&/.test(script) && /a \+= allDone \? zipHtml \+ expHtml \+ trHtml : expHtml \+ trHtml \+ zipHtml;/.test(script), 'R4 Clips-Blatt: alles exportiert → ZIP zuerst, «alle exportieren» zweitrangig');
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
