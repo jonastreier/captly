@@ -165,6 +165,7 @@ brandHex:brandHex,sanitizeBrand:sanitizeBrand,applyBrandToStyle:applyBrandToStyl
 hookVariants:hookVariants,hookVariantList:hookVariantList,hookNextVariant:hookNextVariant,hookDupOfCaptions:hookDupOfCaptions,EMO_REL_SIDE:EMO_REL_SIDE,EMO_LOCAL_SEC:EMO_LOCAL_SEC,EMO_LOCAL_GAP:EMO_LOCAL_GAP,EMO_LOCAL_SAME:EMO_LOCAL_SAME,capToastAction:capToastAction,
 capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR,
 queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueClipOpened:queueClipOpened,hookLogoRect:hookLogoRect,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
+queueZipEntries:queueZipEntries,zipFolderName:zipFolderName,queueTplInfo:queueTplInfo,queueStyleOptions:queueStyleOptions,btnVideoText:btnVideoText,syncGateBatchUI:syncGateBatchUI,setGateResume:function(f){_gateResume=f;},getSessionSaved:function(){return _sessionSaved;},
 crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
@@ -5324,7 +5325,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(ag.style.display === 'none' && dl.style.display === '' && dl.textContent === 'Download again' && ht.style.display === 'none', 'N10: direkt nach dem Export: «Download again», kein «Export with changes» (Last-export-Zeile sichtbar: ' + (E('expLast').style.display === '') + ')');
       T.setExportResUI('orig');
       ok(ag.style.display === '' && ag.classList.contains('on') && dl.style.display === 'none' && ht.style.display === '' && /id="expAgain"[^>]*>Export with changes</.test(htmlContent), 'N10: Auflösung geändert → «Export with changes» (Hauptknopf), «Download again» weg — ohne Dialog neu zu öffnen');
-      ok(E('expLast').style.display === 'none' && /\(_lastExportBlob && exportChangedSinceLast\(\)\) \? _t\('Export with changes'\) : _t\('Download video'\)/.test(script) && /ch \? _t\('Export with changes'\) : _t\('Download video'\)/.test(script), 'N10: Export-Ansicht: «Last export … Download again» weg, Hauptknopf heisst «Export with changes»');
+      ok(E('expLast').style.display === 'none' && /\(_lastExportBlob && exportChangedSinceLast\(\)\) \? _t\('Export with changes'\) : _t\('Download video'\)/.test(script) && /lbl\.textContent = btnVideoText\(\)/.test(script), 'N10: Export-Ansicht: «Last export … Download again» weg, Hauptknopf heisst «Export with changes»');
       T.setExportResUI('1080');
       ok(ag.style.display === 'none' && dl.style.display === '' , 'N10: Änderung zurück → wieder «Download again»');
       T.onAutoCutChange(true);
@@ -7069,6 +7070,121 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     // 4) Nach «Alle exportieren» steht das ZIP vor «Alle exportieren» (Handy: sonst unter dem Falz)
     ok(/var allDone = nDone > 0 &&/.test(script) && /a \+= allDone \? zipHtml \+ expHtml \+ trHtml : expHtml \+ trHtml \+ zipHtml;/.test(script), 'R4 Clips-Blatt: alles exportiert → ZIP zuerst, «alle exportieren» zweitrangig');
+  }
+
+  // ═══════════════ R5 Batch (Creator-Runde 4, Funde 7–10, 13): Kit nie still Standard · ◈ im Clips-Blatt · Export-all-Gate · Sitzungshinweis · ZIP-Ordner ═══════════════
+  {
+    const E = id => document.getElementById(id);
+    const PNG1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const store = {}; const prevLS = global.localStorage;
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    const toastBtn = label => (E('capToast').children || []).find(c => c.textContent === label);
+    const toastTxt = () => { const l = document.body.children.filter(c => c.id === 'capToast'); return l.length ? l[l.length - 1].textContent || '' : ''; };
+    // 7) Template MIT Kit wird nie still Standard; ohne Kit mit sichtbarem Toast (+ «Not as default»)
+    {
+      T.setUserTemplates([]); T.rebuildTemplateStyles(); T.brandSetLive(null);
+      T.selectStyle('hormozi'); T.brandSetLive({ logo: { data: PNG1, w: 512, h: 256, pos: 'tl', size: 20, opacity: 0.9, margin: 4 } });
+      E('capToast').children = []; E('tplName').value = 'Kunde A'; const kit = T.saveTemplate();
+      ok(kit && kit.brand && T.brandTplId() === '', 'R5 #7: erstes Template MIT Kit wird NICHT automatisch Standard');
+      ok(!/default look for every new video/.test(E('tplStatus').textContent) && !!toastBtn('Use for every new video'), 'R5 #7: Statuszeile ohne «now your default»; Toast bietet «Use for every new video» an');
+      T.brandSetLive(null); T.selectStyle('classic');
+      E('capToast').children = []; E('tplName').value = 'Plain'; const plain = T.saveTemplate();
+      ok(plain && !plain.brand && T.brandTplId() === plain.id, 'R5 #7: Template OHNE Kit wird weiter (erstes) Standard');
+      ok(/default for every new video/.test(toastTxt()) && !!toastBtn('Not as default'), 'R5 #7: …jetzt mit sichtbarem Toast + Knopf «Not as default»');
+      toastBtn('Not as default').onclick();
+      ok(T.brandTplId() === '', 'R5 #7: «Not as default» nimmt den Standard zurück');
+      // bestehender Standard bleibt, auch wenn danach ein Kit-Template gespeichert wird
+      T.toggleBrandTpl(plain.id); ok(T.brandTplId() === plain.id, 'R5 #7: Standard setzbar (ausdrücklich)');
+      T.selectStyle('hormozi'); T.brandSetLive({ logo: { data: PNG1, w: 512, h: 256, pos: 'br', size: 20, opacity: 0.9, margin: 4 } });
+      E('tplName').value = 'Kunde B'; T.saveTemplate();
+      ok(T.brandTplId() === plain.id, 'R5 #7: bestehender Standard wird von einem neuen Kit-Template nicht angefasst');
+      // ausdrücklich gewählt → ein Kit-Template darf Standard werden
+      T.toggleBrandTpl(kit.id); ok(T.brandTplId() === kit.id, 'R5 #7: Kit-Template wird nur auf ausdrückliche Wahl Standard (⋯-Menü)');
+      ok(/!t\.brand && \(!brandTplId\(\)/.test(script), 'R5 #7: Quelltext — Auto-Standard nur ohne Kit');
+      // 8) Kit-Marker im Clips-Blatt
+      const opts = T.queueStyleOptions('classic');
+      ok(opts.indexOf('◈ Kunde A') > 0 && opts.indexOf('◈ Kunde B') > 0 && opts.indexOf('◈ Plain') < 0 && />Plain</.test(opts) && opts.indexOf('◈ Hormozi') < 0, 'R5 #8: Clips-Blatt zeigt «◈» nur bei Templates mit Kit: ' + opts.replace(/<option value="[^"]*"( selected)?>/g, '|').slice(0, 160));
+      ok(/Kunde A ★/.test(opts), 'R5 #8: Standard-Stern bleibt hinter dem Namen');
+      T.setUserTemplates([]); T.rebuildTemplateStyles(); T.brandSetLive(null); T.selectStyle('classic');
+      for (const k of Object.keys(store)) delete store[k];
+    }
+    // 9) «Alle exportieren»: Gate-Beschriftung
+    {
+      const sk = E('gateSkip'), lbl = E('btnVideoLbl');
+      T.setGateResume(null); T.syncGateBatchUI();
+      ok(sk.textContent === 'Skip — download now' && lbl.textContent === 'Download video', 'R5 #9: Einzelexport — Beschriftung unverändert');
+      const Q = T.getQ(); T.queueReset(); Q.pass = null;
+      ['a', 'b', 'c'].forEach(n => { const c = T.queueNewClip({ name: n + '.mp4', size: 10, type: 'video/mp4', lastModified: 1 }, 'classic', 'r5' + n); c.status = 'ready'; Q.clips.push(c); });
+      T.setGateResume(() => {}); T.syncGateBatchUI();
+      ok(sk.textContent === 'Skip — export all' && lbl.textContent === 'Export all clips' && E('btnVideoSub').textContent === '3 clips · MP4 · no watermark', 'R5 #9: Batch-Gate — «Export all clips» / «Skip — export all» / Unterzeile: ' + [sk.textContent, lbl.textContent, E('btnVideoSub').textContent].join(' | '));
+      T.closeExportSheet();
+      ok(sk.textContent === 'Skip — download now' && lbl.textContent === 'Download video', 'R5 #9: Blatt schliessen → Beschriftung wieder Einzelexport');
+      ok(/_gateResume = null; syncGateBatchUI\(\); closeExportSheet\(\); resume\(\)/.test(script), 'R5 #9: Ablauf (Skip/Bestätigen → Durchgang startet) unverändert, Beschriftung wird vorher zurückgesetzt');
+      T.queueReset(); Q.pass = null;
+    }
+    // 10) «Restored your last session» nur aus einer früheren Sitzung
+    {
+      const wts = [{ word: 'Hallo', start: 0, end: .5 }, { word: 'Welt', start: .5, end: 1 }];
+      const Q = T.getQ(); T.queueReset(); Q.pass = null;
+      T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke'); T.setAutosaveKey('r5-clip.mp4|777|50');
+      ok(T.autosaveNow() === true && T.getSessionSaved()['r5-clip.mp4|777|50'] === true, 'R5 #10: Setup — Autosave dieser Sitzung geschrieben und vermerkt');
+      const snap = JSON.parse(JSON.stringify(T.autosaveData()));
+      const reload = () => { T.setState([], []); T.setCaptionsEdited(false); T.setAutosaveKey(null); E('tStatus').innerHTML = ''; E('capToast').children = []; };
+      // a) Warteschlange, Schnappschuss (Rückkehr zum Startclip)
+      Q.clips.push(T.queueNewClip({ name: 'r5-clip.mp4', size: 777, type: 'video/mp4', lastModified: 1 }, 'classic', 'r5s'));
+      reload(); T.restoreOrTranscribe({ name: 'r5-clip.mp4', size: 777 }, 5, snap);
+      ok(T.getBlocks().length > 0 && !/Restored your last session/.test(E('tStatus').innerHTML) && /2 words/.test(E('tStatus').innerHTML) && /Re-transcribe/.test(E('tStatus').innerHTML), 'R5 #10: Schnappschuss in der Warteschlange → kein «Restored», stattdessen «N words» + Re-transcribe: ' + E('tStatus').innerHTML.replace(/<[^>]*>/g, '').trim());
+      // b) Warteschlange, Autosave dieser Sitzung (ohne Schnappschuss)
+      reload(); T.restoreOrTranscribe({ name: 'r5-clip.mp4', size: 777 }, 5);
+      ok(T.getBlocks().length > 0 && !/Restored your last session/.test(E('tStatus').innerHTML), 'R5 #10: Autosave dieser Sitzung in der Warteschlange → kein «Restored»');
+      // c) frühere Sitzung (nach Neuladen: nichts vermerkt) → Hinweis bleibt
+      Object.keys(T.getSessionSaved()).forEach(k => delete T.getSessionSaved()[k]);
+      reload(); T.restoreOrTranscribe({ name: 'r5-clip.mp4', size: 777 }, 5);
+      ok(/Restored your last session/.test(E('tStatus').innerHTML), 'R5 #10: Autosave aus früherer Sitzung → Hinweis «Restored your last session» bleibt');
+      // d) Einzelvideo (keine Warteschlange): Verhalten unverändert, Toast mit «Start fresh»
+      T.queueReset(); Q.pass = null;
+      T.getSessionSaved()['r5-clip.mp4|777|50'] = true;
+      reload(); T.restoreOrTranscribe({ name: 'r5-clip.mp4', size: 777 }, 5);
+      ok(/Restored your last session/.test(E('tStatus').innerHTML) && !!toastBtn('Start fresh'), 'R5 #10: Einzelvideo unverändert — Hinweis + «Start fresh»');
+      T.setState([], []); T.setAutosaveKey(null); store['capivo.autosave'] = undefined; delete store['capivo.autosave'];
+    }
+    // 13) Kundenordner im ZIP
+    {
+      const enc = s => Buffer.from(s, 'utf8');
+      const mk = (name, tplKey, tplLabel, srt) => ({ name, blob: { size: 5 + name.length }, srt, tpl: { key: tplKey, label: tplLabel } });
+      const names = es => es.map(e => e.name).join('|');
+      // Hilfsfunktionen
+      const used = {};
+      ok(T.zipFolderName('Kunde A', used) === 'Kunde A' && T.zipFolderName('kunde a', used) === 'kunde a (2)', 'R5 #13: Ordnername — je Name eindeutig (Gross-/Kleinschreibung egal)');
+      ok(T.zipFolderName('A/B\\C:D*E?"F<G>H|I', {}) === 'A-B-C-D-E-F-G-H-I', 'R5 #13: Ordnername — Pfad- und Sonderzeichen bereinigt: ' + T.zipFolderName('A/B\\C:D*E?"F<G>H|I', {}));
+      ok(T.zipFolderName('  ..Müller & Söhne. ', {}) === 'Müller & Söhne' && T.zipFolderName('...', {}) === 'folder' && T.zipFolderName('', {}) === 'folder' && T.zipFolderName('x'.repeat(200), {}).length === 80, 'R5 #13: Ordnername — Umlaute bleiben, führende/abschliessende Punkte weg, Fallback, Längenlimit');
+      ok(T.queueTplInfo('classic').key === '' && T.queueTplInfo('').key === '' && T.queueTplInfo('gibt-es-nicht').key === '', 'R5 #13: queueTplInfo — Look/leer/unbekannt = kein Template');
+      // ein Template (oder keins) → flach wie heute
+      let es = T.queueZipEntries([mk('a.mp4', 't1', 'Kunde A', 'S1'), mk('b.mp4', 't1', 'Kunde A', 'S2')], true);
+      ok(names(es) === 'a.mp4|a.srt|b.mp4|b.srt', 'R5 #13: nur ein Template → ZIP bleibt flach (inkl. SRT): ' + names(es));
+      es = T.queueZipEntries([mk('a.mp4', '', ''), mk('a.mp4', '', '')], true);
+      ok(names(es) === 'a.mp4|a (2).mp4', 'R5 #13: kein Template → flach, Dateinamen eindeutig: ' + names(es));
+      // mehrere Templates → Ordner pro Template
+      es = T.queueZipEntries([mk('reel.mp4', 't1', 'Kunde A', 'S1'), mk('reel.mp4', 't2', 'Müller/Söhne: Bau', 'S2'), mk('reel.mp4', 't1', 'Kunde A', 'S3'), mk('x.mp4', '', '', 'S4')], true);
+      ok(names(es) === 'Kunde A/reel.mp4|Kunde A/reel.srt|Müller-Söhne- Bau/reel.mp4|Müller-Söhne- Bau/reel.srt|Kunde A/reel (2).mp4|Kunde A/reel (2).srt|No template/x.mp4|No template/x.srt', 'R5 #13: mehrere Templates → Ordner pro Template, SRT daneben, Namen je Ordner eindeutig: ' + names(es));
+      es = T.queueZipEntries([mk('a.mp4', 't1', 'A', 'S'), mk('b.mp4', 't2', 'B', 'S')], false);
+      ok(names(es) === 'A/a.mp4|B/b.mp4', 'R5 #13: SRT aus → nur Videos in den Ordnern: ' + names(es));
+      es = T.queueZipEntries([mk('a.mp4', 't1', 'Gleich', 'S'), mk('b.mp4', 't2', 'gleich', 'S')], false);
+      ok(names(es) === 'Gleich/a.mp4|gleich (2)/b.mp4', 'R5 #13: zwei Templates mit gleichem Ordnernamen bleiben getrennt: ' + names(es));
+      ok(/queueZipEntries\(items\.map/.test(script) && /tpl: queueTplInfo\(c\.styleId\)/.test(script), 'R5 #13: Quelltext — Download-ZIP und Export-Ergebnis nutzen die Ordnerlogik');
+      // echtes ZIP: Pfade mit Ordnern, UTF-8
+      es = T.queueZipEntries([mk('reel.mp4', 't1', 'Kunde Ä', 'Grüezi'), mk('reel.mp4', 't2', 'Müller & Söhne', 'Hoi'), mk('z.mp4', '', '', '')], true);
+      const ents = es.map(e => { const d = Buffer.isBuffer(e.data) || e.data instanceof Uint8Array ? Buffer.from(e.data) : Buffer.from('V'.repeat(e.size)); return { name: e.name, data: d, size: d.length, crc: T.crc32Update(0, d) }; });
+      const zip = Buffer.concat(T.zipPlan(ents).parts.map(x => Buffer.from(x)));
+      const { spawnSync } = require('child_process'), os = require('os');
+      const zf = path.join(os.tmpdir(), 'gluephs-r5-test-' + process.pid + '.zip'); fs.writeFileSync(zf, zip);
+      const uz = spawnSync('unzip', ['-t', zf], { encoding: 'utf8' });
+      if (uz.error) console.log('  info R5-ZIP: unzip nicht verfügbar, übersprungen'); else ok(uz.status === 0 && /No errors detected/.test(uz.stdout), 'R5 #13: unzip -t ohne Fehler');
+      const pyl = spawnSync('python3', ['-c', 'import zipfile,sys;z=zipfile.ZipFile(sys.argv[1]);print("|".join(i.filename for i in z.infolist()));print(z.read("Kunde Ä/reel.srt").decode("utf8"))', zf], { encoding: 'utf8' });
+      if (!pyl.error) ok(pyl.status === 0 && pyl.stdout.trim().split('\n').join('#') === 'Kunde Ä/reel.mp4|Kunde Ä/reel.srt|Müller & Söhne/reel.mp4|Müller & Söhne/reel.srt|No template/z.mp4#Grüezi', 'R5 #13: Python liest Ordnerpfade + UTF-8 korrekt: ' + pyl.stdout.trim().replace(/\n/g, '#') + pyl.stderr);
+      fs.unlinkSync(zf);
+    }
+    global.localStorage = prevLS;
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
