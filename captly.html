@@ -115,24 +115,6 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .upload-zone:hover .uz-ic{transform:translateY(-2px)}
 .upload-zone .uz-h{font-size:18px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
 .upload-zone p{font-size:13px;color:var(--muted);line-height:1.5}
-.hc-styles{padding:14px 4px 4px}
-.hc-sh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:0 2px 10px}
-.hc-sh b{font-size:13px;font-weight:600;color:var(--ink)}
-.hc-sh span{font-size:12.5px;color:var(--muted)}
-.hc-chips{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 24px 4px 2px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
-.hc-chips::-webkit-scrollbar{display:none}
-.hc-chip{flex:0 0 auto;width:92px;display:flex;flex-direction:column;align-items:stretch;gap:6px;padding:4px 4px 6px;border:1px solid var(--line);border-radius:14px;background:#fff;cursor:pointer;scroll-snap-align:start;font-family:'Inter',sans-serif;transition:border-color .15s,box-shadow .15s}
-.hc-chip:hover{border-color:var(--line2);box-shadow:var(--sh-1)}
-.hc-chip.on{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset,0 0 0 3px rgba(124,58,237,.12)}
-.hc-th{position:relative;display:flex;align-items:flex-end;justify-content:center;height:60px;border-radius:10px;overflow:hidden;padding:0 2px 7px;background:linear-gradient(180deg,rgba(0,0,0,0) 30%,rgba(0,0,0,.55)),url(assets/showcase/bloom.jpg) center 28%/cover,#2a2d30}
-.hc-cap{position:relative;display:block;width:100%;text-align:center;line-height:1.2;white-space:nowrap;pointer-events:none}
-.hc-nm{font-size:12px;font-weight:600;color:var(--ink2);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hc-chip.on .hc-nm{color:var(--brand-ink)}
-.hc-grp{flex:0 0 auto;scroll-snap-align:start;align-self:center;max-width:68px;padding:0 6px 0 2px;font-size:12px;font-weight:700;line-height:1.25;color:var(--muted);text-align:left;white-space:normal}
-.hc-grp:not(:first-child){padding-left:12px;margin-left:4px;border-left:1px solid var(--line)}
-.hc-chip{min-height:44px}
-.hc-dflt{position:absolute;left:4px;top:4px;padding:1px 6px;border-radius:999px;background:var(--brand);color:#fff;font-size:10px;font-weight:700;line-height:1.5;letter-spacing:.02em}
-.hc-more{flex:0 0 auto;align-self:center;font-size:12.5px;color:var(--muted);padding:0 10px;white-space:nowrap}
 .hero-free{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
 .hero-free a,.hero-free span{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:700;color:var(--brand-ink);background:var(--brand-soft);border-radius:999px;padding:7px 13px;text-decoration:none;min-height:32px}
 .hero-free a:hover{text-decoration:underline}
@@ -1404,7 +1386,7 @@ body.editor-open .lang-hint{display:none}
     <button class="nav-cta" onclick="openEditorClean();showAcct()">Sign in</button>
   </div>
   <!-- Hero: zentrierte Überschrift direkt über EINER großen Upload-Karte (Sprache, Ablagefläche,
-       Style-Chips mit Live-Vorschau). Gewählter Chip = Style fürs nächste Video (landPick). -->
+       ohne Style-Chips: die Looks zeigt die Showcase darunter, ein Tipp dort startet das Beispielvideo im Look). -->
   <section class="hero">
     <h1 class="land-h">Auto captions in seconds.</h1>
     <p class="land-sub">Animated, word-by-word captions for Reels, TikTok and YouTube Shorts. Upload a clip, pick a style, download the MP4. Free during the beta.</p>
@@ -1424,10 +1406,6 @@ body.editor-open .lang-hint{display:none}
         <p class="uz-h"><span class="hint-desk">Add your video to start</span><span class="hint-touch">Tap to choose a video</span></p>
         <p><span class="hint-desk">Drop it here or click to browse · </span>MP4, MOV or WebM · up to 10 at once</p>
       </label>
-      <div class="hc-styles">
-        <div class="hc-sh"><b>Caption style</b><span id="landPickLbl">You can change it any time in the editor</span></div>
-        <div class="hc-chips" id="landChips" role="radiogroup" aria-label="Caption style for your video"></div>
-      </div>
     </div>
     <p class="hero-fine"><svg class="ic" aria-hidden="true"><use href="#i-shield"/></svg>Your video stays on your device — only the audio is sent for transcription. No account; we ask for your email only before the download.</p>
   </section>
@@ -10423,11 +10401,11 @@ function setLandLang(v) {
 // ist übersetzt; die wenigen Landing-Texte, die per JS gesetzt werden, stehen hier.
 var PAGE_LANG = (typeof document !== 'undefined' && document.documentElement && String(document.documentElement.lang || '').slice(0, 2)) || 'en';
 var LAND_TXT = {
-  en: { auto: 'Auto-detect', picked: ' selected · change it any time in the editor',
-        myTpl: 'My templates', looks: 'Looks', tplDefaultTag: 'Default', tplDefault: ' · your default template for every new video', tryStyle: function(n){ return 'Try the ' + n + ' style on a sample video'; },
+  en: { auto: 'Auto-detect',
+        tryStyle: function(n){ return 'Try the ' + n + ' style on a sample video'; },
         demo: { run: 'Auto-captioning', ready: 'Captions ready', p1: ['Captions', 'in', 'seconds,'], p2: ['word', 'by', 'word.'] } },
-  de: { auto: 'Automatisch erkennen', picked: ' gewählt · im Editor jederzeit änderbar',
-        myTpl: 'Meine Templates', looks: 'Looks', tplDefaultTag: 'Standard', tplDefault: ' · dein Standard-Template für jedes neue Video', tryStyle: function(n){ return 'Style «' + n + '» am Beispielvideo ausprobieren'; },
+  de: { auto: 'Automatisch erkennen',
+        tryStyle: function(n){ return 'Style «' + n + '» am Beispielvideo ausprobieren'; },
         demo: { run: 'Untertitel entstehen', ready: 'Untertitel fertig', p1: ['Untertitel', 'in', 'Sekunden,'], p2: ['Wort', 'für', 'Wort.'] },
         langs: { english: 'Englisch', spanish: 'Spanisch', german: 'Deutsch', french: 'Französisch', portuguese: 'Portugiesisch',
                  italian: 'Italienisch', dutch: 'Niederländisch', polish: 'Polnisch', turkish: 'Türkisch', russian: 'Russisch',
@@ -10524,7 +10502,7 @@ function loadStyleDrops() {
   if (typeof fetch !== 'function') return Promise.resolve(0);
   return fetch('styles.json', { cache: 'no-cache' }).then(function(r) { return r.ok ? r.json() : []; }).then(function(list) {
     var n = applyStyleDrops(list);
-    if (n) { try { buildPicker(); renderLandChips(); renderShowcase(); } catch (e) {} }
+    if (n) { try { buildPicker(); renderShowcase(); } catch (e) {} }
     return n;
   }).catch(function(){ return 0; }); // fehlt die Datei (Entwicklung, offline) → nur die eingebauten Looks
 }
@@ -10573,25 +10551,8 @@ function loadStyleStats() {
     return n;
   }).catch(function(){ return 0; });
 }
-var LAND_CHIPS = ['hormozi', 'tight', 'mix', 'statement', 'accent', 'serifbold', 'reveal', 'classic', 'boxkara', 'beast']; // Standard-Look (DEFAULT_STYLE) zuerst
-var landPick = null;
-// ID des Standard-Templates, falls es (noch) existiert — sonst ''. Lädt die Templates bei Bedarf (Startseite kommt vor openEditor).
-function landBrandId() {
-  var bid = '';
-  try {
-    bid = resolveStyleId(brandTplId());
-    if (bid && !STYLES.some(function(x){ return x.id === bid; })) { loadTemplates(); }
-    if (bid && !STYLES.some(function(x){ return x.id === bid; })) bid = '';
-  } catch (e) { bid = ''; }
-  return bid;
-}
-// Chip-Beschriftung unter der Karte: bei Template «★ Kunde A · Standard-Template …», sonst wie bisher «Name selected …»
-function landPickLabel(s, bid) {
-  if (!s) return '';
-  if (s._isTpl) return (s.id === bid ? '★ ' : '') + s.name + (s.id === bid ? LT.tplDefault : LT.picked);
-  return s.name + LT.picked;
-}
-// Eigene Templates für die Startseite: Standard-Template zuerst, danach neueste zuerst (wie «My templates» im Editor)
+var landPick = null; // Look fürs nächste Video (Showcase → trySample, Queue-Standard)
+// Eigene Templates (Template-Umschalter im Editor): Standard-Template zuerst, danach neueste zuerst (wie «My templates»)
 function landTemplates(bid) {
   var made = {};
   userTemplates.forEach(function(t){ made[t.id] = t.createdAt || t.updatedAt || 0; });
@@ -10599,62 +10560,6 @@ function landTemplates(bid) {
     if (a.id === bid) return -1; if (b.id === bid) return 1;
     return (made[b.id] || 0) - (made[a.id] || 0);
   });
-}
-function renderLandChips() {
-  var row = document.getElementById('landChips');
-  if (!row || typeof STYLES === 'undefined') return;
-  row.innerHTML = '';
-  // Eigene Templates stehen schon vor dem ersten Video bereit (Startseite kommt vor openEditor)
-  try { if (!userTemplates.length) loadTemplates(); } catch (e) {}
-  // Standard-Template („Use for every new video“) schlägt den zuletzt angeklickten Look: openEditor() wählt es für jedes neue
-  // Video (landPick = bewusst auf der Startseite gewählt gewinnt). Die Chips zeigen deshalb dasselbe, nicht den letzten Klick.
-  var bid = landBrandId();
-  var cur = resolveStyleId(landPick || bid || activeId);
-  var tpls = landTemplates(bid);
-  // Reihenfolge: Standard-Look (Bold Pop) zuerst, dann die neuesten Style Drops, dann die übrigen Chips (eigene Templates stehen in eigener Gruppe davor)
-  var ids = LAND_CHIPS.slice(0, 1).concat(_dropIds.slice(0, 2), LAND_CHIPS.slice(1)).filter(function(id){ return STYLES.some(function(s){ return s.id === id; }); });
-  if (cur && ids.indexOf(cur) < 0 && STYLES.some(function(s){ return s.id === cur && !s._isTpl && s.id !== 'custom'; })) ids.unshift(cur);
-  var addChip = function(id, isTpl) {
-    var s = STYLES.find(function(x){ return x.id === id; });
-    var b = document.createElement('button');
-    b.type = 'button'; b.className = 'hc-chip' + (isTpl ? ' tpl' : '') + (id === cur ? ' on' : ''); b.dataset.id = id;
-    if (b.setAttribute) { b.setAttribute('role', 'radio'); b.setAttribute('aria-checked', id === cur ? 'true' : 'false'); }
-    if (isTpl) b.title = s.name + (id === bid ? ' · ' + LT.tplDefaultTag : '');
-    b.onclick = function(){ pickLandStyle(id); };
-    b.innerHTML = '<span class="hc-th"><span class="hc-cap">' + buildCap([_t('So'), _t('good')], s, 1, 11, null) + '</span>'
-      + (isTpl && id === bid ? '<span class="hc-dflt">★ ' + escHtml(LT.tplDefaultTag) + '</span>' : '') + '</span>'
-      + '<span class="hc-nm">' + escHtml(s.name) + '</span>';
-    row.appendChild(b);
-  };
-  var addGrp = function(txt) {
-    var g = document.createElement('span');
-    g.className = 'hc-grp'; g.textContent = txt;
-    row.appendChild(g);
-  };
-  if (tpls.length) {
-    addGrp(LT.myTpl);
-    tpls.forEach(function(t){ addChip(t.id, true); });
-    addGrp(LT.looks);
-  }
-  ids.forEach(function(id){ addChip(id, false); });
-  var more = document.createElement('span');
-  more.className = 'hc-more'; more.textContent = _t('+{0} more in the editor', Math.max(0, STYLES.filter(function(x){ return !x._tpl && x.id !== 'custom'; }).length - ids.length));
-  row.appendChild(more);
-  // Vorgewähltes Template (Standard) sagt es auch in der Zeile unter der Überschrift
-  var cs = STYLES.find(function(x){ return x.id === cur; }), lbl = document.getElementById('landPickLbl');
-  if (lbl && cs && cs._isTpl) lbl.textContent = landPickLabel(cs, bid);
-}
-function pickLandStyle(id) {
-  landPick = id;
-  try { localStorage.setItem(STYLE_KEY, id); } catch (e) {}
-  activeId = resolveStyleId(id);
-  document.querySelectorAll('.hc-chip').forEach(function(c) {
-    var on = c.dataset.id === id;
-    c.classList.toggle('on', on);
-    if (c.setAttribute) c.setAttribute('aria-checked', on ? 'true' : 'false');
-  });
-  var s = STYLES.find(function(x){ return x.id === id; }), lbl = document.getElementById('landPickLbl');
-  if (lbl && s) lbl.textContent = landPickLabel(s, landBrandId());
 }
 // Wort-Chunks von Whisper → saubere Timestamps (NaN/null abfangen)
 function chunksToWords(chunks) {
@@ -16623,7 +16528,7 @@ function leaveEditor() {
   document.getElementById('editor').style.display  = 'none';
   document.getElementById('landing').style.display = 'flex';
   document.body.classList.remove('editor-open');
-  renderShowcase(); renderLandChips(); // Karaoke-Vorschau + Video-Loops wieder aufbauen (in openEditor() gestoppt); Chips zeigen den aktuellen Style
+  renderShowcase(); // Karaoke-Vorschau + Video-Loops wieder aufbauen (in openEditor() gestoppt)
 }
 
 // ═══════════════════════════════════════
@@ -18799,7 +18704,7 @@ renderWPills();
 syncTimeOffUI(); syncTextFormatUI(); updateTrSetSum(); syncUndoBtns(); buildFontSelect(); loadUserFonts();
 // Sprache: Auto-Erkennung als Standard (Groq/Whisper erkennt zuverlässig) — manuelle Wahl bleibt möglich.
 // NAV_LANG dient weiterhin nur dem lokalen Fallback-Retry bei unsicherer Auto-Erkennung.
-renderShowcase(); renderLandChips();
+renderShowcase();
 loadStyleDrops().then(loadStyleStats);
 updateAcctUI();
 // Bereits eingeloggte Nutzer erkennen (supabase-js hält die Session in localStorage).

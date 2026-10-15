@@ -149,13 +149,13 @@ videoKeyHash:videoKeyHash,setAutosaveKey:function(k){_autosaveKey=k;},resetGateS
 CAP_PILL_PAD_X:CAP_PILL_PAD_X,
 capSizeInfo:capSizeInfo,syncSzDisp:syncSzDisp,segSeek:segSeek,previewFrameW:previewFrameW,previewFrameH:previewFrameH,
 capNoItalic:capNoItalic,capPopFactor:capPopFactor,setCsBase:function(b){_csBase=b;},drawTextGrouped:drawTextGrouped,capHyphEligible:capHyphEligible,capCharSplit:capCharSplit,
-setActiveId:function(i){activeId=i;},lookSnapshot:lookSnapshot,lookUndoRun:lookUndoRun,lookUndoEnd:lookUndoEnd,tlHandleKey:tlHandleKey,tlGlobalKey:tlGlobalKey,capNoHyphen:capNoHyphen,landBrandId:landBrandId,setCsDirtyGet:function(){return _csDirty;},setHOff:function(v){capHOff=v;},setFree:function(v){capFree=v;},
+setActiveId:function(i){activeId=i;},lookSnapshot:lookSnapshot,lookUndoRun:lookUndoRun,lookUndoEnd:lookUndoEnd,tlHandleKey:tlHandleKey,tlGlobalKey:tlGlobalKey,capNoHyphen:capNoHyphen,setCsDirtyGet:function(){return _csDirty;},setHOff:function(v){capHOff=v;},setFree:function(v){capFree=v;},
 parseHexInput:parseHexInput,csHexCommit:csHexCommit,csOpCommit:csOpCommit,csColorCss:csColorCss,csSyncColors:csSyncColors,getCsAlpha:function(){return _csAlpha;},
 onTemplatesStorage:onTemplatesStorage,undoDeleteTemplate:undoDeleteTemplate,importTemplateMessage:importTemplateMessage,persistTemplates:persistTemplates,
 emojiSearch:emojiSearch,EMO_CATS:EMO_CATS,EMO_PICK:EMO_PICK,emAiUnavailable:emAiUnavailable,setEmSrc:function(v){emSrc=v;},syncEmphUI:syncEmphUI,setEmphEmoji:setEmphEmoji,setCaptionBlocksForTest:function(b){captionBlocks=b;},
 autoCutRegions:autoCutRegions,exportCutRegions:exportCutRegions,cutSavedSeconds:cutSavedSeconds,cutSavedLabel:cutSavedLabel,syncAutoCutUI:syncAutoCutUI,onAutoCutChange:onAutoCutChange,getAutoCut:function(){return autoCutSilence;},estimateSourceBitrate:estimateSourceBitrate,snapFrameRate:snapFrameRate,createCfrPlanner:createCfrPlanner,cfrFrameTimeUs:cfrFrameTimeUs,syncExportAgainIfOpen:syncExportAgainIfOpen,exportSignature:exportSignature,setExportFill:setExportFill,setExportFormat:setExportFormat,setExportResUI:setExportRes,
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
-segFrameSnap:segFrameSnap,segDragTarget:segDragTarget,segDragApply:segDragApply,fmtT2:fmtT2,landTemplates:landTemplates,landPickLabel:landPickLabel,getBlocksB2:function(){return captionBlocks;},
+segFrameSnap:segFrameSnap,segDragTarget:segDragTarget,segDragApply:segDragApply,fmtT2:fmtT2,landTemplates:landTemplates,getBlocksB2:function(){return captionBlocks;},
 mergeCutRegions:mergeCutRegions,allCutRegionsOf:allCutRegionsOf,allCutRegions:allCutRegions,srcToOut:srcToOut,outToSrc:outToSrc,cuesToOutput:cuesToOutput,setTrim:setTrim,cutOutRange:cutOutRange,restoreCut:restoreCut,getTrim:function(){return {i:trimIn,o:trimOut,c:manualCuts};},currentSubCues:currentSubCues,previewSkipCuts:previewSkipCuts,tlCutRange:tlCutRange,tlCutOut:tlCutOut,tlSetMark:tlSetMark,tlSelectCut:tlSelectCut,tlRestoreSel:tlRestoreSel,trimSnapshot:trimSnapshot,trimResetState:trimResetState,tlTrimHit:tlTrimHit,setTlSel:function(i){tlSel=i;},
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
 openTplMenu:openTplMenu,closeTplMenu:closeTplMenu,showTplRename:showTplRename,exportTemplates:exportTemplates,getTplMenu:function(){return _tplMenuEl;},tplMenuScroll:_tplMenuScroll,tplMenuKey:_tplMenuKey,
@@ -4701,9 +4701,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(store['capivo.style'] === 'hormozi' && T.brandTplId() === gym.id, 'A1: zuletzt gewähltes Preset ändert das Standard-Template nicht');
       T.selectStyle('classic'); T.applyBrandOnOpen();
       ok(T.getActiveId() === gym.id, 'A1: neues Video: Standard-Template schlägt capivo.style: ' + T.getActiveId());
-      ok(T.landBrandId() === gym.id, 'A1: Startseite zeigt das Standard-Template als gewählt');
       T.toggleBrandTpl(gym.id); T.selectStyle('hormozi'); T.applyBrandOnOpen();
-      ok(T.getActiveId() === 'hormozi' && T.landBrandId() === '', 'A1: ohne Standard-Template gilt das zuletzt gewählte Preset');
+      ok(T.getActiveId() === 'hormozi', 'A1: ohne Standard-Template gilt das zuletzt gewählte Preset');
       T.setUserTemplates([]); T.loadTemplates(); T.selectStyle('hormozi');
       global.localStorage = prevLS; if (!prevLS) delete global.localStorage;
     }
@@ -4897,7 +4896,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
         try { return new Function(script + ';return activeId;')(); } finally { delete global.localStorage; }
       };
       ok(runWith({}) === 'hormozi' && runWith({ 'capivo.style': 'tight' }) === 'tight' && runWith({ 'capivo.style': 'mix' }) === 'mix', 'N1: ohne gespeicherte Wahl Bold Pop, gespeicherte Wahl (Tight/Mix) bleibt');
-      ok(/var LAND_CHIPS = \['hormozi',/.test(src), 'N1: Landing-Chips: Standard-Look steht vorn (renderLandChips markiert ihn über activeId als gewählt)');
+      ok(!/id="landChips"/.test(src) && !/function renderLandChips/.test(src) && !/\.hc-chip\{/.test(src), 'Landing ohne Style-Chips über dem Upload (die Looks zeigt die Showcase darunter)');
     }
     // Tight: Fade in nur 0,12 s, ease-out, Start > 0 — nur flash; kurze Wörter nie halbtransparent
     {
@@ -5680,13 +5679,6 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   // ═════════════════════════════════════════════════════════════════
   {
     const E = id => document.getElementById(id);
-    // B2: Landing — eigene Templates als Gruppe vor den Looks, Standard zuerst + markiert
-    const rl = htmlContent.slice(htmlContent.indexOf('function renderLandChips()'), htmlContent.indexOf('function pickLandStyle('));
-    ok(/addGrp\(LT\.myTpl\);[\s\S]*tpls\.forEach[\s\S]*addGrp\(LT\.looks\);[\s\S]*ids\.forEach/.test(rl), 'B2: Landing-Chips: «My templates» vor «Looks»');
-    ok(/id === bid \? '<span class="hc-dflt">/.test(rl) && /if \(tpls\.length\)/.test(rl), 'B2: Standard-Template mit Abzeichen; ohne Templates keine Gruppen (Landing wie vorher)');
-    ok(/s\.id === cur && !s\._isTpl/.test(rl), 'B2: gewähltes Template wird nicht zusätzlich als Look vorangestellt');
-    ok(/\.hc-chip\{min-height:44px\}/.test(htmlContent) && /\.hc-chips\{display:flex;gap:8px;overflow-x:auto/.test(htmlContent), 'B2: Chips ≥ 44 px, Reihe horizontal scrollbar');
-    ok(/myTpl: 'My templates'/.test(htmlContent) && /myTpl: 'Meine Templates'/.test(htmlContent), 'B2: Landing-Texte EN + DE');
     {
       const store = {}; const prevLS = global.localStorage;
       global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
@@ -5700,8 +5692,6 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       T.toggleBrandTpl(A.id); T.toggleBrandTpl(B.id);
       order = T.landTemplates(T.brandTplId()).map(x => x.name);
       ok(order[0] === 'Kunde B', 'B2: neuer Standard rückt nach vorn: ' + order.join(','));
-      const lbl = T.landPickLabel(T.STYLES.find(x => x.id === B.id), B.id);
-      ok(/^★ Kunde B/.test(lbl) && T.landPickLabel(T.STYLES.find(x => x.id === 'hormozi'), B.id).indexOf('★') < 0, 'B2: Beschriftung markiert nur das Standard-Template: ' + lbl);
       // Template-Wahl auf der Landing → neues Video: Format/Fill aus dem Template (B1), schlägt das Standard-Template
       const A2 = T.getUserTemplates().find(t => t.name === 'Kunde A'), B2 = T.getUserTemplates().find(t => t.name === 'Kunde B');
       B2.layout = Object.assign({}, B2.layout, { aspect: '1:1', fill: 'blur' }); A2.layout = Object.assign({}, A2.layout, { aspect: '16:9', fill: 'crop' }); A2.updatedAt = B2.updatedAt = Date.now() + 5000; T.persistTemplates(); T.loadTemplates();

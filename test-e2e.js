@@ -169,9 +169,9 @@ if (require.main !== module) return;
 
     await page.goto(base + '/', { waitUntil: 'load' });
     await shot('01-landing');
-    // Rand: Showcase-Karten und Landing-Style-Kacheln haben unten keinen dunklen Streifen (Sprung gegenüber den Reihen darüber)
+    // Rand: Showcase-Karten haben unten keinen dunklen Streifen (Sprung gegenüber den Reihen darüber)
     await page.waitForTimeout(900);
-    for (const [sel, abs] of [['.show-card', 0], ['.hc-th', 25]]) {
+    for (const [sel, abs] of [['.show-card', 0]]) {
       let bad = [];
       for (let i = 0; i < 3; i++) {
         const loc = page.locator(sel).nth(i);

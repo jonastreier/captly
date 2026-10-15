@@ -111,8 +111,6 @@ module.exports = {
     ['alt="Step 1: upload a vertical video as MP4, MOV or WebM"', 'alt="Schritt 1: Hochformat-Video als MP4, MOV oder WebM hochladen"'],
     ['MP4, MOV or WebM · up to 10 at once', 'MP4, MOV oder WebM · bis zu 10 gleichzeitig'],
     ['MP4, MOV or WebM', 'MP4, MOV oder WebM'],
-    ['<b>Caption style</b><span id="landPickLbl">You can change it any time in the editor</span>', '<b>Untertitel-Style</b><span id="landPickLbl">Im Editor jederzeit änderbar</span>'],
-    ['aria-label="Caption style for your video"', 'aria-label="Untertitel-Style für dein Video"'],
     ['Your video stays on your device — only the audio is sent for transcription. No account; we ask for your email only before the download.',
      'Dein Video bleibt auf deinem Gerät – nur die Tonspur wird zur Transkription gesendet. Kein Konto nötig; nach deiner E-Mail fragen wir erst vor dem Download.'],
     // Showcase
