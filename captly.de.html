@@ -3583,12 +3583,15 @@ function capFontPending(spec) {
 // (SAFE_ZONE.right = 12.5 %), zentriert also links gleich viel Abstand → 1 − 2 × 12.5 % = 75 %. Vorher 86 % —
 // lange Wörter/Zeilen ragten dann rechts in die Icons (Safe-Zone-Warnung trotz Auto).
 var CAP_SAFE_W = 0.75;
-function capFitMaxW(s, w) {
+function capFitMaxW(s, w, k) {
   // Nutzbare Breite wie clampLinesToWidth (CAP_SAFE_W) minus feste Deko-Innenabstände der Styles: Box-Padding (2 × 18) bzw.
   // die Highlight-Box (hlPillBg), die an Zeilenrändern CAP_PILL_PAD_X über den Text hinausragt — die SICHTBARE Fläche
   // bleibt so innerhalb der Safe-Zone (vorher: nur der Text, die Box ragte bis 92 % in die Icon-Spalte).
   // Auch Umbruch (wrapCaptionLines) und Export (drawCaptionsOnCtx) nehmen dieses Mass, damit alle drei gleich umbrechen.
-  return (w > 0 ? w : previewFrameW()) * CAP_SAFE_W - (s.boxBg ? 36 : 0) - (s.pill ? 18 : 0) - ((s.hlPillBg && capMotion(s) === 'highlight') ? 2 * CAP_PILL_PAD_X : 0);
+  // R3: Die Innenabstände sind schriftrelativ (k = Schrift / CAP_SH_REF, wie Kontur/Laufweite; capAutoChars übergibt k des Referenzrahmens) —
+  // feste Vorschau-px liessen den Umbruch von der Fensterbreite abhängen (36 px = 10 % einer 360-px-, 21 % einer 170-px-Vorschau).
+  return (w > 0 ? w : previewFrameW()) * CAP_SAFE_W
+    - ((s.boxBg ? 36 : 0) + (s.pill ? 18 : 0) + ((s.hlPillBg && capMotion(s) === 'highlight') ? 2 * CAP_PILL_PAD_X : 0)) * (k > 0 ? k : capOutK());
 }
 function previewFrameH() {
   var f = document.getElementById('prevFrame');
@@ -3678,7 +3681,7 @@ function fitCaptionWords(words, s, px, maxW, lines, em) {
     });
     var g = nl; // Zeilen bei gieriger Füllung = Mindestzahl, die bei dieser Größe nötig ist
     nl = Math.max(nl, Math.min(lines || 1, outW.length));
-    var h = nl * capLineH(s) * p * fsMul + (s.boxBg ? 10 : 0);
+    var h = nl * capLineH(s) * p * fsMul + (s.boxBg ? 10 * capOutK() : 0);
     return { px: p, words: outW, orig: orig, lines: nl, h: h, g: g, hq: hq };
   }
   var floor = px * CAP_FIT_MIN;
@@ -4276,7 +4279,8 @@ function capScaleShadowStr(str, k) {
 // → dafür bekommen Box-Styles CAP_PILL_GAP extra Wortabstand (Vorschau, Umbruch, Auto-Fit, Export gleich).
 function capWordGap(s, raw) {
   var p = capShadowPlan(s && s.ts);
-  return (p.ring && p.ring.w > 0 ? 2 * p.ring.w * (raw ? 1 : capOutK()) : 0) + ((s && s.hlPillBg && capMotion(s) === 'highlight') ? CAP_PILL_GAP : 0);
+  // raw: ohne k (Referenz-Schrift CAP_SH_REF) — Kontur-Ring UND Box-Abstand sind schriftrelativ (R3)
+  return ((p.ring && p.ring.w > 0 ? 2 * p.ring.w : 0) + ((s && s.hlPillBg && capMotion(s) === 'highlight') ? CAP_PILL_GAP : 0)) * (raw ? 1 : capOutK());
 }
 // Zeilenhöhe (Vielfaches der Schriftgröße) — Standard 1.3; eigene Styles: „Line height“ 0.9–1.8
 // Buchstabenabstand eines Styles in px (Vorschau-Einheiten). Neben px gilt auch em (z. B. '-.04em' = enger Satz):
@@ -4308,7 +4312,8 @@ var CAP_MOT = {
   ul: 0.18,                                 // Unterstreichung: Strich fährt in 0,18 s unter das Wort
   tpMin: 0.12, tpMax: 0.8, curBlink: 0.9    // Typewriter: Tippdauer je Wort (0,9 × Wortdauer, begrenzt) · Cursor-Blinkperiode (s)
 };
-var CAP_PILL_PAD_X = 9, CAP_PILL_PAD_Y = 2, CAP_PILL_GAP = 8; // Highlight-Box (Vorschau-px)
+// Highlight-Box: wie Kontur/Box-Polster für CAP_SH_REF px Schrift gemeint (× capOutK() in Vorschau UND Export, R3) — nicht feste Vorschau-px
+var CAP_PILL_PAD_X = 9, CAP_PILL_PAD_Y = 2, CAP_PILL_GAP = 8;
 function capMotion(s) { var m = s && s.motion; return (m === 'reveal' || m === 'fill' || m === 'none' || m === 'type') ? m : 'highlight'; }
 function capEaseOut(x) { x = x > 0 ? (x < 1 ? x : 1) : 0; return 1 - (1 - x) * (1 - x) * (1 - x); }
 // Fortschritt 0..1 eines Übergangs, der dt Sekunden läuft (dur 0 = sofort, z. B. reduzierte Bewegung)
@@ -4505,8 +4510,9 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     + ';letter-spacing:' + ls + ';font-style:' + fi + ';font-size:' + sz
     + ';line-height:' + capLineH(s) + ';display:inline-block;max-width:100%;';
   if (lineTarget && capWordGap(s)) wCss += 'word-spacing:' + capWordGap(s) + 'px;';
+  var pk = live ? capOutK() : 1; // schriftrelatives Polster/Radius (R3); Kacheln/Showcase (nicht live) behalten ihre festen px
   if (s.boxBg) {
-    wCss += 'background:' + s.boxBg + ';padding:5px 18px;border-radius:' + (s.boxBr || '6px') + ';';
+    wCss += 'background:' + s.boxBg + ';padding:' + (5 * pk).toFixed(2) + 'px ' + (18 * pk).toFixed(2) + 'px;border-radius:' + (live ? (parseFloat(s.boxBr || '6') * pk).toFixed(2) + 'px' : (s.boxBr || '6px')) + ';';
     // Weicher Schatten der Box wie im Export (drawCaptionsOnCtx: Blur 0.3·Schrift, Versatz 4 Export-px)
     // Glas-Box: feiner Innenrand (boxBd) als inset-Schatten — verändert das Layout nicht; Export zeichnet ihn als Linie (capBoxPaint)
     var bsh = [];
@@ -4529,9 +4535,9 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   var pCss = '';
   if (hp) {
     var p = s.pill;
-    pCss = 'display:inline-block;background:' + p.bg + ';border-radius:' + p.br + ';padding:' + p.p + ';';
-    if (p.border)     pCss += 'border:' + p.border + ';';
-    if (p.borderLeft) pCss += 'border-left:' + p.borderLeft + ';';
+    pCss = 'display:inline-block;background:' + p.bg + ';border-radius:' + (live ? capScaleShadowStr(p.br, pk) : p.br) + ';padding:' + (live ? capScaleShadowStr(p.p, pk) : p.p) + ';';
+    if (p.border)     pCss += 'border:' + (live ? capScaleShadowStr(p.border, pk) : p.border) + ';';
+    if (p.borderLeft) pCss += 'border-left:' + (live ? capScaleShadowStr(p.borderLeft, pk) : p.borderLeft) + ';';
   }
   function wordHtml(i) {
     var oi   = orig ? orig[i] : i; // Teilwort → Originalwort (Highlight, Keyword, Seek gelten fürs ganze Wort)
@@ -4607,7 +4613,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
     for (var i = 0; i < words.length; i++) built += (i ? ' ' : '') + wordHtml(i);
   }
   if (hlBox) built = '<span class="cap-hlbox" aria-hidden="true" style="position:absolute;left:0;top:0;width:0;height:0;opacity:0;background:'
-    + s.hlPillBg + ';border-radius:5px;z-index:-1;pointer-events:none"></span>' + built;
+    + s.hlPillBg + ';border-radius:' + (5 * pk).toFixed(2) + 'px;z-index:-1;pointer-events:none"></span>' + built;
   if (ulOn) { // ein Strich je Wortspan (Reihenfolge = [data-oi]); Breite/Position setzt capDomMotion
     var ulh = '';
     for (var ui = 0; ui < words.length; ui++) ulh += '<span class="cap-ul" aria-hidden="true" style="position:absolute;left:0;top:0;width:0;height:0;opacity:0;background:' + s.ul + ';border-radius:99px;z-index:-1;pointer-events:none"></span>';
@@ -4619,9 +4625,9 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
   // Pop-in per negativer animation-delay (Phase = Zeit seit Blockbeginn) → beim Scrubben/Neu-Rendern stabil.
   if (ex && ex.emoji && s.emoSide) {
     // Sticker-Emoji: gross NEBEN dem Text (rechts der Caption-Box, vertikal mittig), Mini-Bounce mit Kippen (capEmoSticker)
-    var Es = Math.round((px || 24) * EMO_REL_SIDE);
+    var Es = (px || 24) * EMO_REL_SIDE; // R3: nicht auf ganze px runden (±4 % je nach Fensterbreite), Export rechnet gleich ungerundet
     built += '<span class="cap-emo" aria-hidden="true" style="position:absolute;left:100%;top:50%;margin-left:' + (Es * EMO_SIDE_GAP).toFixed(2) + 'px;margin-top:' + (-Es / 2).toFixed(2)
-      + 'px;font-family:' + EMO_FONT + ';font-size:' + Es + 'px;line-height:1;text-align:center;font-weight:400;font-style:normal;'
+      + 'px;font-family:' + EMO_FONT + ';font-size:' + Es.toFixed(2) + 'px;line-height:1;text-align:center;font-weight:400;font-style:normal;'
       + 'letter-spacing:0;word-spacing:0;text-transform:none;white-space:nowrap;text-shadow:0 ' + (Es * 0.04).toFixed(2) + 'px ' + (Es * 0.12).toFixed(2) + 'px rgba(0,0,0,.35);'
       + 'pointer-events:none;transform-origin:50% 50%;animation:capEmoSticker ' + EMO_STICKER_DUR + 's linear both;animation-delay:'
       + (-Math.max(0, ex.age || 0)).toFixed(3) + 's">' + escHtml(ex.emoji) + '</span>';
@@ -4631,9 +4637,9 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
       return '<span' + rootAttr + ' style="' + wCss + '"><span style="' + pCss + '">' + built.slice(0, cut2) + '</span>' + built.slice(cut2) + '</span>';
     }
   } else if (ex && ex.emoji) {
-    var E = Math.round((px || 24) * EMO_REL), below = capPos === 'top';
+    var E = (px || 24) * EMO_REL, below = capPos === 'top';
     built += '<span class="cap-emo" aria-hidden="true" style="position:absolute;left:0;right:0;' + (below ? 'top:100%;margin-top:' : 'bottom:100%;margin-bottom:')
-      + (E * EMO_GAP).toFixed(2) + 'px;font-family:' + EMO_FONT + ';font-size:' + E + 'px;line-height:1;text-align:center;font-weight:400;font-style:normal;'
+      + (E * EMO_GAP).toFixed(2) + 'px;font-family:' + EMO_FONT + ';font-size:' + E.toFixed(2) + 'px;line-height:1;text-align:center;font-weight:400;font-style:normal;'
       + 'letter-spacing:0;word-spacing:0;text-transform:none;white-space:nowrap;text-shadow:0 ' + (E * 0.04).toFixed(2) + 'px ' + (E * 0.12).toFixed(2) + 'px rgba(0,0,0,.35);'
       + 'pointer-events:none;transform-origin:50% ' + (below ? '0%' : '100%') + ';animation:capEmoIn ' + ANIM_DUR + 's linear both;animation-delay:'
       + (-Math.max(0, ex.age || 0)).toFixed(3) + 's">' + escHtml(ex.emoji) + '</span>';
@@ -5430,12 +5436,6 @@ function hookNextVariant() {
   hookChanged(true);
   return next;
 }
-function suggestHook() {
-  hookText = ''; hookAi = '';
-  var ti = document.getElementById('hookTxt'); if (ti) ti.value = '';
-  hookChanged(true);
-  if (!aiOff()) hookFetchAi(true);
-}
 // KI-Vorschlag: optionales Feld `hook` der Post-Antwort; fehlt es (alter Server, KI aus/nicht erreichbar) → es bleibt beim lokalen Vorschlag
 async function hookFetchAi(force) {
   if (_hookBusy || !captionBlocks.length || aiOff() || (hookAi && !force) || emSrc === 'local') return '';
@@ -5709,7 +5709,7 @@ function emojiPopState(age) {
 }
 var _emoSprites = new Map();
 function emojiSprite(emo, px) {
-  var key = emo + '|' + Math.round(px);
+  var key = emo + '|' + Math.round(px * 10);
   var hit = _emoSprites.get(key);
   if (hit) return hit;
   var cv = document.createElement('canvas'), m = Math.ceil(px * 0.25) + 4;
@@ -5741,9 +5741,9 @@ function emojiStickerState(age) {
 // L: capLayout-Ergebnis · age: Sekunden seit Blockbeginn (Pop-in)
 function drawCapEmoji(ctx, emo, L, s, age, W) {
   if (s.emoSide) { // Sticker: rechts neben der Caption-Box (Vorschau: left:100% + Abstand), vertikal mittig
-    var Es = Math.round(L.fitPx * EMO_REL_SIDE) * L.scale;
+    var Es = L.fitPx * EMO_REL_SIDE * L.scale;
     if (!(Es > 4)) return;
-    var sp2 = emojiSprite(emo, Es), widest = Math.max.apply(null, L.lineWs), padXs = s.boxBg ? 18 * L.scale : 0;
+    var sp2 = emojiSprite(emo, Es), widest = Math.max.apply(null, L.lineWs), padXs = s.boxBg ? 18 * L.scale * capOutK() : 0;
     var ew = sp2.cv.width - 2 * sp2.m, left = W / 2 + widest / 2 + padXs + Es * EMO_SIDE_GAP, top2 = (L.boxT + L.boxB) / 2 - Es / 2;
     var ss = emojiStickerState(age);
     if (ss.op <= 0) return;
@@ -5755,9 +5755,9 @@ function drawCapEmoji(ctx, emo, L, s, age, W) {
     ctx.restore();
     return;
   }
-  var px = Math.round(L.fitPx * EMO_REL) * L.scale; // wie die Vorschau: dort auf ganze CSS-px gerundet
+  var px = L.fitPx * EMO_REL * L.scale; // wie die Vorschau (ungerundet, R3: Emoji-Höhe unabhängig von der Fensterbreite)
   if (!(px > 4)) return;
-  var spr = emojiSprite(emo, px), padB = s.boxBg ? 5 * L.scale : 0, gap = px * EMO_GAP, top;
+  var spr = emojiSprite(emo, px), padB = s.boxBg ? 5 * L.scale * capOutK() : 0, gap = px * EMO_GAP, top;
   if (capPos === 'top') top = (L.boxB !== undefined ? L.boxB : L.y0 + (L.lines.length - 1) * L.lh + L.capD + padB) + gap; // unter bzw. über der .cap-root-Box
   else top = (L.boxT !== undefined ? L.boxT : L.y0 - L.capA - padB) - gap - px;
   var st = emojiPopState(age);
@@ -6133,11 +6133,11 @@ function capDomMotion(ov, s, b, bi, wi, t, forced, rest) {
   // Highlight-Box: Rechtecke je Originalwort (Vorschau-px relativ zur Caption-Box), einmal je Aufbau gemessen
   if (!M.rects) {
     M.rects = {};
-    var lh = M.fpx * capLineH(s);
+    var lh = M.fpx * capLineH(s), pdx = CAP_PILL_PAD_X * capOutK(), pdy = CAP_PILL_PAD_Y * capOutK();
     M.spans.forEach(function(sp) {
       var oi = +sp.getAttribute('data-oi');
-      (M.rects[oi] = M.rects[oi] || []).push({ x: sp.offsetLeft - CAP_PILL_PAD_X, y: sp.offsetTop - CAP_PILL_PAD_Y,
-                                               w: sp.offsetWidth + 2 * CAP_PILL_PAD_X, h: lh + 2 * CAP_PILL_PAD_Y });
+      (M.rects[oi] = M.rects[oi] || []).push({ x: sp.offsetLeft - pdx, y: sp.offsetTop - pdy,
+                                               w: sp.offsetWidth + 2 * pdx, h: lh + 2 * pdy });
     });
   }
   var k = (fxs[wi] || capWordFx(s, b, wi, wi, t, forced, rm)).hk;
@@ -6796,13 +6796,12 @@ function capActiveStyle() {
 var CAP_REF_W = 360;
 function capAutoChars(s) {
   s = s || capActiveStyle();
-  var frameW = previewFrameW(), k = CAP_REF_W / frameW, fRef = fontSize * k, maxW = capFitMaxW(s, CAP_REF_W);
+  var frameW = previewFrameW(), k = CAP_REF_W / frameW, fRef = fontSize * k, maxW = capFitMaxW(s, CAP_REF_W, fRef / CAP_SH_REF);
   // „Mein Style“: Wortabstands-Zugabe (Kontur-Ring/Pill) kommt vom AUSGANGS-Style. Eine neu gewählte Konturfarbe schaltet die Kontur ein
   // (Breite 0 → 2) — das darf die Blöcke nicht neu zerlegen (8 → 10 Blöcke, 2 → 1 Zeile). Der Umbruch (wrapCaptionLines/Auto-Fit) rechnet
   // weiter mit dem echten Abstand und verkleinert die Schrift, falls die breitere Kontur nicht mehr passt.
   var gapS = (s.id === 'custom' && typeof _csBase !== 'undefined' && _csBase) ? _csBase : s;
-  var pillGap = (gapS && gapS.hlPillBg && capMotion(gapS) === 'highlight') ? CAP_PILL_GAP : 0;
-  var gapW = (capWordGap(gapS, true) - pillGap) * fRef / CAP_SH_REF + pillGap; // Kontur-Ring schriftrelativ (capOutK), Pill-Gap fest
+  var gapW = capWordGap(gapS, true) * fRef / CAP_SH_REF; // Kontur-Ring und Box-Abstand schriftrelativ (capOutK)
   var key = [Math.round(fontSize / frameW * 20000), s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, s.hlPillBg ? 1 : 0, s.circle ? 1 : 0,
              s.boxBg ? 1 : 0, s.pill ? 1 : 0, s.ts, Math.round(gapW * 100), capCase, _capFontGen, capMotion(s)].join('|');
   if (_capAutoCharsCache[key]) return _capAutoCharsCache[key];
@@ -14194,7 +14193,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   // Vorher: Mitte mit fester Konstante fs·0.35 (Anton/Kalam/Playfair 6–8 px daneben), oben/unten ungerundete
   // Canvas-Metrik (Playfair/Montserrat-Betonung bis 15 px tiefer als die Vorschau, s. test-ui-sweep geom/pixel).
   var Lh = capLineH(s), lh = fsS * Lh, nL = lines.length;
-  var fm = capFontMetrics(ctx, fsS), padB = s.boxBg ? 5 * scale : 0;
+  var fm = capFontMetrics(ctx, fsS), padB = s.boxBg ? 5 * scale * capOutK() : 0;
   var gapBelow = padB + Lh * fsS / 2 + (fm.d - fm.a) / 2 * fsS;
   var gapAbove = padB + Lh * fsS / 2 + (fm.a - fm.d) / 2 * fsS;
   var dm = capDomVMetrics(b.words.map(function(w){ return displayWord(w.word); }), s, fontSize, capLinesEff(CAPTION_LINES), emk);
@@ -14277,7 +14276,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
   ctx.save();
   if (bf.op < 1) ctx.globalAlpha *= bf.op;
   // Horizontaler Versatz (capHOff, % der Rahmenbreite) = Vorschau (capApplyH): eine Verschiebung für alles — Box, Wörter, Emoji, statische Ebene
-  var hxPct = capHOff ? capHClamp(capHOff, (Math.max.apply(null, lineWs) + (s.boxBg ? 36 * L0.scale : 0)) / W * 100) : 0;
+  var hxPct = capHOff ? capHClamp(capHOff, (Math.max.apply(null, lineWs) + (s.boxBg ? 36 * L0.scale * capOutK() : 0)) / W * 100) : 0;
   if (hxPct) ctx.translate(hxPct / 100 * W, 0);
   if (bf.dy) ctx.translate(0, bf.dy * fsS);
   if (hookOn) { var hkDy = hookCapDodge(tHook, s, W, H, cuts, L0.boxT, L0.boxB); if (hkDy) ctx.translate(0, hkDy); } // weicht dem Hook-Titel aus (wie die Vorschau, hookUpdate)
@@ -14315,13 +14314,12 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
       if ('letterSpacing' in ctx) { var lsv = lsPxS ? (lsPxS + 'px') : '0px'; if (lsv !== curLs) { ctx.letterSpacing = lsv; curLs = lsv; } }
     }
     var kOut = capOutK(), shTs = capShadowPlan(s.ts, kOut), shHl = capShadowPlan(s.hls, kOut); // schriftrelative Kontur/Schatten wie die Vorschau (capOutK)
-    // boxBg-Padding/-Radius sind im DOM (buildCap: "padding:5px 18px", s.boxBr) feste px-Werte, die bei
-    // der Vorschaubreite (previewFrameW) gemeint sind — mit `scale` (== W/previewFrameW, dieselbe Umrechnung
-    // wie fsS) 1:1 in den Export übertragen, statt (wie zuvor) willkürlich an fsS gekoppelt und boxBr zu ignorieren.
+    // boxBg-Padding/-Radius sind im DOM (buildCap: 5/18 px × capOutK, s.boxBr × capOutK) schriftrelativ (R3) — mit `scale` (== W/previewFrameW,
+    // dieselbe Umrechnung wie fsS) 1:1 in den Export übertragen.
     if (mode2 !== 'live' && s.boxBg) {
       var widest = Math.max.apply(null, lineWs);
-      var padX = 18 * scale, padY = 5 * scale;
-      var radius = parseFloat(s.boxBr || '6') * scale;
+      var padX = 18 * scale * kOut, padY = 5 * scale * kOut;
+      var radius = parseFloat(s.boxBr || '6') * scale * kOut;
       var bx = W/2 - widest/2 - padX, by = L0.boxT, bw = widest + padX*2, bh = L0.boxB - L0.boxT; // = .cap-root inkl. Padding (capLayout)
       var boxPath = function(x, y, w, h, r) { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h); };
       var boxA = (cssColorToHexA(s.boxBg) || { a: 1 }).a;
@@ -14348,12 +14346,12 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
     // im Export bisher komplett.
     if (mode2 !== 'live' && s.pill) {
       var widest2 = Math.max.apply(null, lineWs);
-      var pm = String(s.pill.p || '0').split(/\s+/).map(function(v){ return parseFloat(v) || 0; });
-      var pT = (pm[0] || 0) * scale, pR = (pm.length > 1 ? pm[1] : pm[0]) * scale,
-          pB = (pm.length > 2 ? pm[2] : pm[0]) * scale, pL = (pm.length > 3 ? pm[3] : pR) * scale;
+      var pm = String(s.pill.p || '0').split(/\s+/).map(function(v){ return parseFloat(v) || 0; }), sk = scale * kOut;
+      var pT = (pm[0] || 0) * sk, pR = (pm.length > 1 ? pm[1] : pm[0]) * sk,
+          pB = (pm.length > 2 ? pm[2] : pm[0]) * sk, pL = (pm.length > 3 ? pm[3] : pR) * sk;
       var borderW = 0, borderColor = null;
       var bm = s.pill.borderLeft && s.pill.borderLeft.match(/^([\d.]+)px\s+\S+\s+(.+)$/);
-      if (bm) { borderW = parseFloat(bm[1]) * scale; borderColor = bm[2]; }
+      if (bm) { borderW = parseFloat(bm[1]) * sk; borderColor = bm[2]; }
       var pillT = L0.pillT !== null ? L0.pillT : y0 - capA - pT, pillB = L0.pillB !== null ? L0.pillB : y0 + (lines.length - 1) * lh + capD + pB; // gemessen (DOM) bzw. Modell
       var pillL = W/2 - widest2/2 - pL - borderW, pillR = W/2 + widest2/2 + pR;
       if (s.pill.bg && s.pill.bg !== 'transparent') {
@@ -14368,7 +14366,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
     // Wort herüber (capSlideBoxes) — Padding/Radius wie im DOM (.cap-hlbox: 9/2 px, Radius 5 px bei previewFrameW).
     // Liegt nur über Wortzwischenräumen (CAP_PILL_GAP) bzw. den live gezeichneten Wörtern → über der Ebene ok.
     if (mode2 !== 'static' && hlOn && s.hlPillBg) {
-      var pdx = CAP_PILL_PAD_X * scale, pdy = CAP_PILL_PAD_Y * scale;
+      var pdx = CAP_PILL_PAD_X * scale * kOut, pdy = CAP_PILL_PAD_Y * scale * kOut;
       var rectsOf = function(idx) {
         var out = [];
         lines.forEach(function(L) { L.forEach(function(wo) {
@@ -14381,7 +14379,7 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
         if (r.op < 1) ctx.globalAlpha *= r.op;
         ctx.fillStyle = s.hlPillBg;
         ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 5 * scale); else ctx.rect(r.x, r.y, r.w, r.h);
+        if (ctx.roundRect) ctx.roundRect(r.x, r.y, r.w, r.h, 5 * scale * kOut); else ctx.rect(r.x, r.y, r.w, r.h);
         ctx.fill(); ctx.restore();
       });
     }

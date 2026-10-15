@@ -3791,7 +3791,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(/class="cap-root"/.test(hv) && /data-oi="1"/.test(hv) && !/animation:captly/.test(hv), 'Vorschau Reveal: Wort-Spans mit data-oi, keine CSS-Animation');
       const hb = T.buildCap(['eins', 'zwei'], bk, 1, 22, [1, 1.5], 2, { em: null });
       ok(/class="cap-hlbox"/.test(hb) && !/padding:2px 9px/.test(hb) && /word-spacing:/.test(hb), 'Vorschau Box: eigene Flaeche, kein Padding am Wort, extra Wortabstand');
-      ok(Math.abs(T.capWordGap(bk) - (4 * T.capOutK() + T.CAP_PILL_GAP)) < 1e-9 && T.capWordGap(rv) === 0, 'Box-Styles: Wortabstand + Box-Gap');
+      ok(Math.abs(T.capWordGap(bk) - ((4 + T.CAP_PILL_GAP) * T.capOutK())) < 1e-9 && T.capWordGap(rv) === 0, 'Box-Styles: Wortabstand + Box-Gap');
       const hz2 = T.buildCap(['eins', 'zwei'], hz, 1, 22, [1, 1.5], 2, { em: null });
       ok(!/animation:captly/.test(hz2), 'Vorschau Highlight: Pop zeitbasiert statt CSS-Animation');
       const ed = T.buildCap(['eins', 'zwei'], ST('editorial'), 1, 22, [1, 1.5], 2, { em: null });
@@ -4439,7 +4439,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
   {
     const stub = () => ({ _font: '', letterSpacing: '0px', calls: [], rects: [], lineWidth: 1, strokeStyle: '#000', fillStyle: '#000', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1, filter: 'none',
       get font() { return this._font; }, set font(v) { this._font = v; },
-      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: str === ' ' ? (m ? +m[1] : 16) * 0.2 : (str || '').length * (m ? +m[1] : 16) * 0.58 }; },
+      measureText(str) { const m = /([\d.]+)px/.exec(this._font); return { width: (str || '').length * ((m ? +m[1] : 16) * 0.55 + (parseFloat(this.letterSpacing) || 0)) }; }, // = Mess-Stub oben (Auto-Fit und capLayout müssen gleich messen)
       fillText() {}, strokeText() {}, save() {}, restore() {}, translate() {}, rotate() {}, scale() {}, beginPath() {}, fill() {}, stroke() {} });
     const sets = { Standardsatz: 'Heute zeigen wir dir wie schnell das wirklich geht'.split(' '),
                    Kompositum: 'Die Donaudampfschifffahrtsgesellschaft ist Geschwindigkeitsbegrenzung Rindfleischverarbeitungsbetriebe'.split(' ') };
@@ -4455,7 +4455,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
           const bl = T.getBlocks ? T.getBlocks() : null; if (!bl || !bl[bi]) break;
           const L = T.capLayout(stub(), bl[bi], bi, 0, st, W, 1920);
           const wMax = Math.max.apply(null, L.lineWs);
-          const vis = wMax + (st.boxBg ? 36 * L.scale : 0) + ((st.hlPillBg && T.capMotion(st) === 'highlight') ? 2 * T.CAP_PILL_PAD_X * L.scale : 0);
+          const vis = wMax + (st.boxBg ? 36 * L.scale * T.capOutK() : 0) + ((st.hlPillBg && T.capMotion(st) === 'highlight') ? 2 * T.CAP_PILL_PAD_X * L.scale * T.capOutK() : 0);
           const l = (W - vis) / 2 / W * 100, r = 100 - l;
           if (r > 87.5 + 0.1 || l < 12.5 - 0.1) bad.push(nm + '/' + st.id + '#' + bi + ' ' + l.toFixed(1) + '–' + r.toFixed(1) + '%');
         }
@@ -6411,9 +6411,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const rel = T.EMO_REL_SIDE / fsEm;
       ok(rel >= 1.6 && rel <= 2.0, 'R3-Sticker: Emoji = ' + rel.toFixed(2) + ' × gezeichnete Schrift (EMO_REL_SIDE ' + T.EMO_REL_SIDE + ' / fs ' + fsEm + ')');
       const hs = T.buildCap(['ab', 'cd'], st, 0, 25, [0, 0.5], 2, { emoji: '🔥', age: 1 });
-      const fpx = +/font-size:(\d+)px;line-height:1;text-align:center/.exec(hs.slice(hs.indexOf('cap-emo')))[1];
-      ok(fpx === Math.round(25 * T.EMO_REL_SIDE) && fpx / (25 * fsEm) >= 1.6, 'R3-Sticker: Vorschau-DOM Emoji ' + fpx + ' px bei Basisschrift 25 px (' + (fpx / (25 * fsEm)).toFixed(2) + ' × gezeichnete Schrift)');
-      ok(/var Es = Math\.round\(\(px \|\| 24\) \* EMO_REL_SIDE\)/.test(script) && /var Es = Math\.round\(L\.fitPx \* EMO_REL_SIDE\) \* L\.scale/.test(script), 'R3-Sticker: Vorschau und Export-Zeichnung rechnen mit derselben Konstante EMO_REL_SIDE');
+      const fpx = +/font-size:([\d.]+)px;line-height:1;text-align:center/.exec(hs.slice(hs.indexOf('cap-emo')))[1];
+      ok(Math.abs(fpx - 25 * T.EMO_REL_SIDE) < 0.01 && fpx / (25 * fsEm) >= 1.6, 'R3-Sticker: Vorschau-DOM Emoji ' + fpx + ' px bei Basisschrift 25 px (' + (fpx / (25 * fsEm)).toFixed(2) + ' × gezeichnete Schrift)');
+      ok(/var Es = \(px \|\| 24\) \* EMO_REL_SIDE/.test(script) && /var Es = L\.fitPx \* EMO_REL_SIDE \* L\.scale/.test(script), 'R3-Sticker: Vorschau und Export-Zeichnung rechnen mit derselben Konstante EMO_REL_SIDE');
     }
     // 4) Handy-Captions-Tab / Timeline-Leiste: Kurzwörter, kompakter Format-Hinweis
     {
