@@ -19,13 +19,19 @@ RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
 RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
 
 # Schöne URLs: / = Startseite, /de = deutsche Startseite; die Dateinamen selbst sind nicht kanonisch
+# REDIRECT_STATUS leer = echter Aufruf von aussen; ohne die Bedingung leitet Apache nach dem internen
+# Rewrite (/de → captly.de.html) erneut um → Endlosschleife
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
 RewriteRule ^captly\.html$ / [R=301,L]
 # alte, von Hand hochgeladene Startseite (index.html) nie ausliefern
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
 RewriteRule ^index\.html$ / [R=301,L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
 RewriteRule ^captly\.de\.html$ /de [R=301,L]
 RewriteRule ^de/$ /de [R=301,L]
 RewriteRule ^de$ captly.de.html [L]
 RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)$ $1.html [L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
 RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)\.html$ /$1 [R=301,L]
 
 # API: gleiche Pfade wie auf Vercel (/api/transcribe …) → PHP-Gegenstücke
