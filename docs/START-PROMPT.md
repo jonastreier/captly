@@ -1,7 +1,7 @@
 # Start-Prompt für die nächste Session (zum Kopieren)
 
 ```
-Projekt: Gluephs (vormals CaptionRush/Capivo) – Untertitel-Tool für Reels/TikTok. Repo jonastreier/captly (lokal ~/Documents/claude/captly, origin per SSH), Live-Domain https://gluephs.com (Hostpoint, Server sl52). Lies zuerst CLAUDE.md, dann docs/vergleich/creator-2026-10-14-runde3/noah-runde3.md (Creator-Test Runde 3, Kapitel 6 und 8 sind der Massstab); ältere Runden (creator-2026-10-14/, -retest/) nur bei Bedarf. Antworten auf Deutsch (Schweizer Schreibweise, ss statt ß), knapp und kritisch. Ohne Rückfragen bis zum Ende durchführen; nur Merge nach main braucht meine Freigabe.
+Projekt: Gluephs (vormals CaptionRush/Capivo) – Untertitel-Tool für Reels/TikTok. Repo jonastreier/captly (lokal ~/Documents/claude/captly, origin per SSH), Live-Domain https://gluephs.com (Hostpoint, Server sl52). Lies zuerst CLAUDE.md, dann docs/vergleich/creator-2026-10-15-runde4/noah-runde4.md (Creator-Test Runde 4, Kapitel «Was mich noch stört» und «Top-Empfehlungen» sind der Massstab); ältere Runden (runde3/, creator-2026-10-14/, -retest/) nur bei Bedarf. Antworten auf Deutsch (Schweizer Schreibweise, ss statt ß), knapp und kritisch. Ohne Rückfragen bis zum Ende durchführen; nur Merge nach main braucht meine Freigabe.
 
 ## Arbeitsweise (verbindlich)
 - Du (Opus) planst, dirigierst und integrierst. Umsetzung pro Paket an Sonnet-Subagents (Haiku nur für mechanische Edits/Doku), jeder in eigenem git-worktree: `git worktree add -b claude/<thema> ../captly-wt/<thema> <basis>`; committet dort, pusht nicht. Integrations-Branch pro Runde, Merges dort, danach alle Pflicht-Tests.
