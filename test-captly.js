@@ -165,7 +165,8 @@ brandHex:brandHex,sanitizeBrand:sanitizeBrand,applyBrandToStyle:applyBrandToStyl
 hookVariants:hookVariants,hookVariantList:hookVariantList,hookNextVariant:hookNextVariant,hookDupOfCaptions:hookDupOfCaptions,EMO_REL_SIDE:EMO_REL_SIDE,EMO_LOCAL_SEC:EMO_LOCAL_SEC,EMO_LOCAL_GAP:EMO_LOCAL_GAP,EMO_LOCAL_SAME:EMO_LOCAL_SAME,capToastAction:capToastAction,
 capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR,
 queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueClipOpened:queueClipOpened,hookLogoRect:hookLogoRect,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
-crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen};`;
+crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen,
+capLogoDodge:capLogoDodge,capDodgeTotal:capDodgeTotal,brandLogoRectFor:brandLogoRectFor};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -5624,7 +5625,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(bT > 0 && T.hookCapDodge(1.0, tight, 1080, 1920, null, 1200, 1500) === 0 && T.hookCapDodge(2.5, tight, 1080, 1920, null, 220, 700) === 0, 'Hook-Export: Untertitel oben weichen nur im Zeitfenster aus (' + Math.round(bT) + ' px)');
       fr.style.width = ''; fr.style.height = '';
       // beide Export-Pfade zeichnen den Titel mit denselben Argumenten wie die Untertitel (Quelltext)
-      ok((script.match(/drawHookTitle\(ctx, t, [a-z.]+, W, H, [a-zA-Z]+\);/g) || []).length === 2 && /drawCaptionsOnCtx\(ctx, t, o\.style, W, H, false, cuts\)/.test(script) && /drawCaptionsOnCtx\(ctx, t, s, W, H, false, cutRegions\)/.test(script),
+      ok((script.match(/drawHookTitle\(ctx, t, [a-z.]+, W, H, [a-zA-Z]+\);/g) || []).length === 2 && /drawCaptionsOnCtx\(ctx, t, o\.style, W, H, false, cuts[,)]/.test(script) && /drawCaptionsOnCtx\(ctx, t, s, W, H, false, cutRegions[,)]/.test(script),
          'Hook-Export: Schnellexport (WebCodecs) und Echtzeit-Pfad rufen drawHookTitle + Untertitel-Ausweichen auf');
       ok(/hookUpdate\(tHook, rest, s, ov\);[\s\S]{0,120}capDomMotion\(ov/.test(script) && /\(ov\._hkDy \|\| 0\)/.test(script), 'Hook-Vorschau: Ausweichen der Untertitel fliesst in capDomMotion (wie im Export)');
     }
@@ -7069,6 +7070,90 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     // 4) Nach «Alle exportieren» steht das ZIP vor «Alle exportieren» (Handy: sonst unter dem Falz)
     ok(/var allDone = nDone > 0 &&/.test(script) && /a \+= allDone \? zipHtml \+ expHtml \+ trHtml : expHtml \+ trHtml \+ zipHtml;/.test(script), 'R4 Clips-Blatt: alles exportiert → ZIP zuerst, «alle exportieren» zweitrangig');
+  }
+
+  // ═══ R5 Logo: Untertitel weichen dem Brand-Kit-Logo aus (Creator-Runde 4, Fund #6) ═══
+  {
+    const ov = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const cap = (W, top, h, wFrac) => ({ x: W * (1 - wFrac) / 2, y: top, w: W * wFrac, h });
+    const kit = (pos, over) => Object.assign({ w: 300, h: 300, size: 16, margin: 4, pos }, over);
+    let n = 0;
+    // 1) Alle Ecken × Top/Bottom × 9:16/16:9 × Safe-Zones: nach dem Ausweichen kein Überlapp, Box im Bild (4 px Luft)
+    for (const [W, H] of [[270, 480], [480, 270], [360, 360]]) {
+      for (const safe of ['reels', 'tiktok', 'shorts', 'off']) {
+        for (const pos of ['tr', 'tl', 'br', 'bl']) {
+          const lg = T.brandLogoRect(W, H, kit(pos), safe, false);
+          for (const capPos of ['top', 'bottom', 'middle']) {
+            const h = H * 0.12, top = capPos === 'top' ? H * 0.125 : capPos === 'bottom' ? H * 0.75 : H / 2 - h / 2;
+            const c = cap(W, top, h, 0.524);
+            const d = T.capLogoDodge(c.y, c.y + c.h, c.x, c.x + c.w, H, lg);
+            const gp = H * 0.01, hit = ov(c, { x: lg.x - gp, y: lg.y - gp, w: lg.w + 2 * gp, h: lg.h + 2 * gp }); // Lücke zählt mit
+            const moved = { x: c.x, y: c.y + d, w: c.w, h: c.h };
+            n++;
+            ok(moved.y >= 4 - 1e-9 && moved.y + moved.h <= H - 4 + 1e-9 || d === 0, 'R5 Logo ' + W + 'x' + H + ' ' + safe + ' ' + pos + ' ' + capPos + ': Box bleibt im Bild');
+            if (!hit) ok(d === 0, 'R5 Logo ' + W + 'x' + H + ' ' + safe + ' ' + pos + ' ' + capPos + ': kein Überlapp → 0 (' + d + ')');
+            else {
+              ok(d !== 0, 'R5 Logo ' + W + 'x' + H + ' ' + safe + ' ' + pos + ' ' + capPos + ': Überlapp → Verschiebung');
+              ok(!ov(moved, lg), 'R5 Logo ' + W + 'x' + H + ' ' + safe + ' ' + pos + ' ' + capPos + ': nach dem Ausweichen kein Überlapp mehr (d ' + d.toFixed(1) + ')');
+              ok(pos[0] === 't' ? d > 0 : d < 0, 'R5 Logo ' + W + 'x' + H + ' ' + pos + ': Logo oben → nach unten, Logo unten → nach oben (d ' + d.toFixed(1) + ')');
+            }
+          }
+        }
+      }
+    }
+    ok(n === 144, 'R5 Logo: Geometrie-Matrix vollständig (' + n + ')');
+    // 2) Befund aus Runde 4: Kit oben rechts, 9:16, Position Top → Untertitel x 0,238–0,762 / y 0,125–0,243, Logo x 0,675–0,835 / y 0,137–0,227
+    {
+      const W = 270, H = 480, lg = T.brandLogoRect(W, H, kit('tr'), 'reels', false);
+      const c = cap(W, H * 0.125, H * 0.118, 0.524), d = T.capLogoDodge(c.y, c.y + c.h, c.x, c.x + c.w, H, lg);
+      ok(d > 0 && c.y + d >= lg.y + lg.h, 'R5 Logo Befund #6: Untertitel rutschen unter das Logo (d ' + d.toFixed(1) + ', Logo-Unterkante ' + (lg.y + lg.h).toFixed(1) + ')');
+    }
+    // 3) Kein horizontaler Überlapp (Untertitel links vom Logo) → 0; Lücke zählt mit
+    {
+      const W = 270, H = 480, lg = T.brandLogoRect(W, H, kit('tr'), 'reels', false);
+      ok(T.capLogoDodge(H * 0.125, H * 0.2, 10, lg.x - 0.01 * H - 1, H, lg) === 0, 'R5 Logo: Untertitel seitlich neben dem Logo → nichts tun');
+      ok(T.capLogoDodge(H * 0.125, H * 0.2, 10, lg.x - 0.01 * H + 1, H, lg) > 0, 'R5 Logo: schon die Lücke zählt als Überlapp');
+      ok(T.capLogoDodge(lg.y + lg.h + 0.01 * H + 0.5, lg.y + lg.h + 60, 10, 260, H, lg) === 0, 'R5 Logo: Untertitel unter Logo samt Lücke → 0');
+    }
+    // 4) Clamp am Rand: nach unten nie über Hp − 4, nach oben nie unter 4
+    {
+      const W = 270, H = 480, lgT = { x: 150, y: 40, w: 80, h: 60 }, lgB = { x: 150, y: 380, w: 80, h: 60 };
+      const dT = T.capLogoDodge(30, H - 20, 20, 250, H, lgT);
+      ok(dT >= 0 && (H - 20) + dT <= H - 4 + 1e-9, 'R5 Logo Clamp unten: Box endet höchstens bei Hp − 4 (d ' + dT + ')');
+      const dB = T.capLogoDodge(20, 400, 20, 250, H, lgB);
+      ok(dB <= 0 && 20 + dB >= 4 - 1e-9, 'R5 Logo Clamp oben: Box beginnt frühestens bei 4 (d ' + dB + ')');
+    }
+    // 5) Ungültige Masse / kein Logo → 0
+    ok(T.capLogoDodge(10, 50, 0, 100, 480, null) === 0 && T.capLogoDodge(NaN, 50, 0, 100, 480, { x: 0, y: 0, w: 10, h: 10 }) === 0 && T.capLogoDodge(10, 50, 0, 100, 0, { x: 0, y: 0, w: 10, h: 10 }) === 0, 'R5 Logo: ohne Logo/ungültig → 0');
+    // 6) Zusammenspiel mit dem Hook-Titel: ohne Logo identisch zu vorher, mit Logo nie in Hook oder Logo
+    {
+      const meas = (font, str) => { const m = /([\d.]+)px/.exec(font); return String(str).length * (m ? parseFloat(m[1]) : 16) * 0.55; };
+      const tight = T.STYLES.find(x => x.id === 'tight');
+      for (const [W, H] of [[270, 480], [480, 270]]) {
+        const lg = T.brandLogoRect(W, H, kit('tr'), 'reels', false);
+        const L = T.hookLayout(meas, tight, 'Drei Tricks, damit deine Reels mehr Views bekommen', W, H, lg);
+        const need = (a, b) => T.hookDodgeNeed(L, a, b);
+        for (const top of [H * 0.1, H * 0.125, H * 0.2, H * 0.3, H * 0.5]) {
+          const h = H * 0.12, c = cap(W, top, h, 0.524);
+          const base = need(c.y, c.y + h);
+          ok(T.capDodgeTotal(c.y, c.y + h, c.x, c.x + c.w, H, null, need) === base, 'R5 Logo+Hook ' + W + 'x' + H + ' top ' + top.toFixed(0) + ': ohne Logo exakt wie der Hook-Dodge allein');
+          ok(T.capDodgeTotal(c.y, c.y + h, c.x, c.x + c.w, H, lg, null) === T.capLogoDodge(c.y, c.y + h, c.x, c.x + c.w, H, lg), 'R5 Logo+Hook: ohne Titel gilt nur das Logo');
+          const d = T.capDodgeTotal(c.y, c.y + h, c.x, c.x + c.w, H, lg, need);
+          const mv = { x: c.x, y: c.y + d, w: c.w, h };
+          const hb = { x: L.boxX, y: L.boxY, w: L.boxW, h: L.boxH };
+          ok(!ov(mv, lg), 'R5 Logo+Hook ' + W + 'x' + H + ' top ' + top.toFixed(0) + ': Untertitel schneiden das Logo nicht (d ' + d.toFixed(1) + ')');
+          ok(!ov(mv, hb) || mv.y + mv.h > H - 3, 'R5 Logo+Hook ' + W + 'x' + H + ' top ' + top.toFixed(0) + ': Untertitel schneiden den Hook-Titel nicht (d ' + d.toFixed(1) + ')');
+        }
+      }
+    }
+    // 7) brandLogoRectFor = dieselbe Rechteck-Funktion wie drawBrandLogo; Quelltext: alle drei Exportwege reichen das Logo durch, ein gemeinsamer Code
+    {
+      const b = { logo: kit('tr'), safe: 'tiktok' };
+      const r1 = T.brandLogoRectFor(b, 1080, 1920, true), r2 = T.brandLogoRect(1080, 1920, b.logo, 'tiktok', true);
+      ok(JSON.stringify(r1) === JSON.stringify(r2) && T.brandLogoRectFor(null, 1080, 1920, false) === null && T.brandLogoRectFor({}, 1080, 1920, false) === null, 'R5 Logo: brandLogoRectFor = brandLogoRect (Export) bzw. null ohne Logo');
+      ok(/brandLogoRectFor\(o\.brand, W, H, o\.wmOn\)/.test(script) && /brandLogoRectFor\(brandX, W, H, wmOn\)/.test(script) && /brandLogoRectFor\(brandP, W, H, wmPng\)/.test(script), 'R5 Logo: Fast-Export, Echtzeit-Export und PNG-Export reichen das Logo-Rechteck an drawCaptionsOnCtx');
+      ok((script.match(/capDodgeTotal\(/g) || []).length === 3 && /capPreviewDodge\(ov, L, fx\.op\)/.test(script), 'R5 Logo: Vorschau und Export rechnen über capDodgeTotal (kein zweites Formel-Duplikat)');
+    }
   }
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
