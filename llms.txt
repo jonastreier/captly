@@ -1,6 +1,6 @@
 # Gluephs
 
-> Gluephs is a free browser tool (no watermark, no signup) that turns the speech in a video into animated, word-by-word captions for Instagram Reels, TikTok and YouTube Shorts. Upload a clip, check the captions, pick a style and download an MP4 with burned-in captions, or SRT/VTT subtitle files. Free during the beta, no account needed.
+> Gluephs is a free browser tool (no watermark, no account) that turns the speech in a video into animated, word-by-word captions for Instagram Reels, TikTok and YouTube Shorts. Upload a clip, check the captions, pick a style and download an MP4 with burned-in captions, or SRT/VTT subtitle files. Free during the beta, no account needed.
 
 Gluephs (formerly CaptionRush, earlier Capivo) is made in Switzerland by Jonas Treier (sole proprietorship web&meh) in Frick, Aargau. It is currently in beta.
 
@@ -27,7 +27,7 @@ Gluephs (formerly CaptionRush, earlier Capivo) is made in Switzerland by Jonas T
 ## FAQ highlights
 
 - How do I add captions to Instagram Reels, TikTok or YouTube Shorts? Upload the video on the page, check the captions, pick a style and download the MP4. The captions are burned into the video, so the file can be posted as it is.
-- Is it free? Is there a watermark? Free during the beta, no account needed; MP4 export has no watermark. An email is asked (optionally, you can skip it) before the first video download. During the beta there is never a watermark.
+- Is it free? Is there a watermark? Free during the beta, no account needed; MP4 export has no watermark. An email address is required before the first video download (no account, no password). During the beta there is never a watermark.
 - Do I need to install anything? No, it runs in the browser.
 - Is my video uploaded? No, only the audio track is sent for transcription.
 

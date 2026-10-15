@@ -452,23 +452,27 @@ if (require.main !== module) return;
       await page.evaluate(() => { tlSnapOn = true; });
     }
 
-    // 3) Export: Das E-Mail-Gate ist FREIWILLIG (Beta: nie Wasserzeichen) → ungültige Adresse wird gemeldet, «Skip» lädt trotzdem ohne Marke
+    // 3) Export: E-Mail ist PFLICHT (seit 15.10.; Beta: nie Wasserzeichen) → leer/ungültig wird gemeldet, gültige Adresse lädt ohne Marke
     await page.click('#tbExport');
     await page.waitForSelector('#expSheet', { state: 'visible' });
     await shot('04-export-sheet');
     const gateVisible = await page.isVisible('#expGate');
     ok(gateVisible, 'E-Mail-Gate sichtbar vor dem ersten Export');
     ok(!(await page.isVisible('#wmOpt')) && !(await page.evaluate(() => needsWatermark())), 'Beta: kein Wasserzeichen-Hinweis, needsWatermark() = false (auch ohne E-Mail)');
-    ok(await page.isVisible('#gateSkip') && /Skip/.test(await page.textContent('#gateSkip')), 'Gate hat «Skip — download now»');
+    ok(!(await page.$('#gateSkip')), 'Gate hat keinen Skip-Knopf mehr');
     if (gateVisible) {
       await page.fill('#gateEmail', 'kaputt@');
       await page.click('#btnVideo');
       await page.waitForTimeout(300);
-      ok(await page.isVisible('#gateErr') && /Skip/.test(await page.textContent('#gateErr')) && state.leads.length === 0, 'ungültige E-Mail: gemeldet (mit Skip-Hinweis), nichts gesendet');
+      ok(await page.isVisible('#gateErr') && /valid email/.test(await page.textContent('#gateErr')) && state.leads.length === 0, 'ungültige E-Mail: gemeldet, nichts gesendet');
       await page.fill('#gateEmail', '');
+      await page.click('#btnVideo');
+      await page.waitForTimeout(300);
+      ok(await page.isVisible('#gateErr') && /Enter your email/.test(await page.textContent('#gateErr')) && state.leads.length === 0, 'leeres Feld: Download blockiert, nichts gesendet');
+      await page.fill('#gateEmail', 'erst@example.com');
     }
     const dlP = page.waitForEvent('download', { timeout: 180000 }).catch(() => null);
-    await page.click('#gateSkip'); // Export 1: ohne E-Mail überspringen → muss OHNE Wasserzeichen laufen
+    await page.click('#btnVideo'); // Export 1: mit E-Mail (ohne Newsletter) → muss OHNE Wasserzeichen laufen
     await page.waitForTimeout(1500);
     await shot('05-exporting');
     const dl = await dlP;
@@ -571,7 +575,7 @@ if (require.main !== module) return;
       // Schwelle 100 statt 20: Der System-Chrome nimmt H.264 direkt auf (Echtzeit-Encoder, Chroma-Rauschen an den Farbbalken-Kanten des Testbilds) → auf dem Handy 31–55 Rauschpixel;
       // das echte Wasserzeichen (Export 2, unten) liefert 530–600 → klar getrennt.
       ok(wm1 >= 0 && wm1 < 100, 'Export 1 (Beta, E-Mail übersprungen): Frame OHNE Wasserzeichen (' + wm1 + ' abweichende Pixel unten rechts)');
-      ok(state.leads.length === 0, 'Export 1: ohne E-Mail kein Lead gesendet');
+      ok(state.leads.length === 1 && state.leads[0].email === 'erst@example.com' && state.leads[0].newsletter === false, 'Export 1: Lead ohne Newsletter gesendet'); state.leads.length = 0;
       ok(state.videoKeys.length > 0 && state.videoKeys.every(k => /^[0-9a-f]{16}$/.test(k)), 'Transkription sendet nur einen Hash als X-Video-Key (' + state.videoKeys[0] + ')');
       if (fs.existsSync(mpFr) && fs.existsSync(srcFr)) {
         await page.evaluate(() => { try { closeExportSheet(); } catch (e) {} });
@@ -608,7 +612,7 @@ if (require.main !== module) return;
       // Export 2: Abos «an», Server meldet watermark:true (Übernutzung) + E-Mail/Newsletter diesmal über das Gate → Frame MIT Wasserzeichen
       await page.waitForFunction(() => !isExporting, null, { timeout: 60000 });
       state.plan = { enabled: true, loggedIn: false, plan: 'anon', limits: { free: 1800, creator: 18000, pro: 72000 }, paddle: {}, watermark: true, clean_videos: 2, videos_today: 3, video_pos: 3 };
-      await page.evaluate(() => { _gateSkipped = false; try { sessionStorage.removeItem(GATE_SKIP_KEY); } catch (e) {} return loadBilling(); });
+      await page.evaluate(() => { _gateSkipped = false; try { localStorage.removeItem(LEAD_KEY); } catch (e) {} return loadBilling(); });
       ok(await page.evaluate(() => needsWatermark() === true), 'Abos an + watermark:true → needsWatermark()');
       await page.evaluate(() => { showExportMain(); openExportSheet(); });
       ok(await page.isVisible('#wmOpt') && /free videos? without watermark today/.test(await page.textContent('#wmOpt')) && /Upgrade/.test(await page.textContent('#wmOpt')), 'Export-Blatt: freundlicher Hinweis + Upgrade-Link');

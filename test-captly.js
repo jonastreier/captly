@@ -478,7 +478,7 @@ T.setMe('anon', '');
   const nav = htmlContent.slice(htmlContent.indexOf('<nav class="land-nav-links">'), htmlContent.indexOf('</nav>', htmlContent.indexOf('<nav class="land-nav-links">')));
   ok(/<a href="#pricing">/.test(nav) && /<a href="#faq">/.test(nav) && /class="nav-lang"/.test(nav) && !/nl-opt" href="#pricing"|nl-opt" href="#faq"/.test(nav), 'A6: Preise, FAQ und Sprache sind auch mobil in der Nav');
   ok(/\.land-nav-links \.nl-opt\{display:none\}/.test(htmlContent) && !/\.land-nav-links\{display:none\}/.test(htmlContent), 'A6: mobil nur die Nebenlinks ausgeblendet, die Nav bleibt');
-  ok(/<div class="hero-free"><a href="#pricing">[\s\S]{0,120}Free during the beta<\/a>[\s\S]{0,160}No watermark[\s\S]{0,160}No signup/.test(htmlContent), 'A6 + Gratis-Push: Preis-Anker im Hero («Free during the beta» → #pricing) + No watermark + No signup');
+  ok(/<div class="hero-free"><a href="#pricing">[\s\S]{0,120}Free during the beta<\/a>[\s\S]{0,160}No watermark[\s\S]{0,160}No account/.test(htmlContent), 'A6 + Gratis-Push: Preis-Anker im Hero («Free during the beta» → #pricing) + No watermark + No account');
 }
 
 // 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
@@ -1706,7 +1706,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     T.openExportSheet();
     ok(g.style.display === '' && sh.style.display === 'block', 'Export-Blatt zeigt das E-Mail-Feld sofort');
     inp.value = 'kein-mail';
-    ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent) && /Skip/.test(err.textContent), 'ungültige Adresse → Fehlermeldung (mit Skip-Hinweis)');
+    ok(T.passEmailGate() === false && err.style.display === '' && /valid email/.test(err.textContent) && !/Skip/.test(err.textContent), 'ungültige Adresse → Fehlermeldung (mit Skip-Hinweis)');
     fail = true; inp.value = 'Treier@Example.CH'; nw.checked = true;
     ok(T.passEmailGate() === true && g.style.display === 'none', 'gültige Adresse → Export läuft (auch wenn Speichern fehlschlägt)');
     await new Promise(r => setTimeout(r, 0));
@@ -1732,16 +1732,15 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     ok(g.style.display === 'none', 'bekannte Adresse → Feld beim Öffnen versteckt');
     T.closeExportSheet();
     delete store[T.LEAD_KEY];
-    // Freiwillig: leeres Feld = übersprungen (kein Lead, kein Request), Export läuft, Feld bleibt danach weg
+    // Pflicht (seit 15.10.): leeres Feld blockiert den Download, kein Skip-Knopf, alter Session-Skip zählt nicht
     T.openExportSheet(); inp.value = ''; const nCalls = calls.length;
-    ok(g.style.display === '' && T.passEmailGate() === true && g.style.display === 'none' && calls.length === nCalls && !(T.LEAD_KEY in store), 'leeres Feld + Download → Gate übersprungen, nichts gespeichert/gesendet');
-    ok(T.needsWatermark() === false, 'übersprungen → kein Wasserzeichen');
-    T.passEmailGate(); T.closeExportSheet(); T.openExportSheet();
-    ok(g.style.display === 'none', 'nach Skip: Feld beim erneuten Öffnen weg (Sitzung)');
+    ok(g.style.display === '' && T.passEmailGate() === false && g.style.display === '' && calls.length === nCalls && !(T.LEAD_KEY in store), 'leeres Feld + Download → blockiert, nichts gespeichert/gesendet');
+    ok(err.style.display === '' && /Enter your email/.test(err.textContent), 'leeres Feld → Hinweis «Enter your email to download.»');
+    ok(!/id="gateSkip"/.test(fs.readFileSync(path.join(__dirname, 'captly.html'), 'utf8')), 'kein Skip-Knopf mehr im Export-Blatt');
+    if (typeof sessionStorage !== 'undefined') sessionStorage.setItem('capivo.gateSkip', '1');
+    ok(T.passEmailGate() === false, 'alter sessionStorage-Skip umgeht das Gate nicht');
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('capivo.gateSkip');
     T.closeExportSheet(); T.resetGateSkip();
-    T.openExportSheet();
-    ok(g.style.display === '', 'Skip zurückgesetzt → Feld wieder da');
-    T.closeExportSheet();
     T.setMe('free', 'x@y.z'); g.style.display = 'none';
     ok(T.passEmailGate() === true && g.style.display === 'none', 'angemeldet → kein Gate');
     T.openExportSheet();
@@ -7196,15 +7195,15 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     // 9) «Alle exportieren»: Gate-Beschriftung
     {
-      const sk = E('gateSkip'), lbl = E('btnVideoLbl');
+      const lbl = E('btnVideoLbl');
       T.setGateResume(null); T.syncGateBatchUI();
-      ok(sk.textContent === 'Skip — download now' && lbl.textContent === 'Download video', 'R5 #9: Einzelexport — Beschriftung unverändert');
+      ok(lbl.textContent === 'Download video', 'R5 #9: Einzelexport — Beschriftung unverändert');
       const Q = T.getQ(); T.queueReset(); Q.pass = null;
       ['a', 'b', 'c'].forEach(n => { const c = T.queueNewClip({ name: n + '.mp4', size: 10, type: 'video/mp4', lastModified: 1 }, 'classic', 'r5' + n); c.status = 'ready'; Q.clips.push(c); });
       T.setGateResume(() => {}); T.syncGateBatchUI();
-      ok(sk.textContent === 'Skip — export all' && lbl.textContent === 'Export all clips' && E('btnVideoSub').textContent === '3 clips · MP4 · no watermark', 'R5 #9: Batch-Gate — «Export all clips» / «Skip — export all» / Unterzeile: ' + [sk.textContent, lbl.textContent, E('btnVideoSub').textContent].join(' | '));
+      ok(lbl.textContent === 'Export all clips' && E('btnVideoSub').textContent === '3 clips · MP4 · no watermark', 'R5 #9: Batch-Gate — «Export all clips» / Unterzeile: ' + [lbl.textContent, E('btnVideoSub').textContent].join(' | '));
       T.closeExportSheet();
-      ok(sk.textContent === 'Skip — download now' && lbl.textContent === 'Download video', 'R5 #9: Blatt schliessen → Beschriftung wieder Einzelexport');
+      ok(lbl.textContent === 'Download video', 'R5 #9: Blatt schliessen → Beschriftung wieder Einzelexport');
       ok(/_gateResume = null; syncGateBatchUI\(\); closeExportSheet\(\); resume\(\)/.test(script), 'R5 #9: Ablauf (Skip/Bestätigen → Durchgang startet) unverändert, Beschriftung wird vorher zurückgesetzt');
       T.queueReset(); Q.pass = null;
     }
