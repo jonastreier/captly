@@ -12,18 +12,18 @@ Projekt: Gluephs (vormals CaptionRush/Capivo) – Untertitel-Tool für Reels/Tik
 - Ein Merge nach `main` löst den Deploy aus → erst nach meiner Freigabe. Push per SSH (id_ed25519_github).
 - Nie: Personen-/Markennamen für Looks, Google/CDN im Browser, interne `capivo`-Schlüssel umbenennen, service_role-Key ins Frontend, Konten bei Konkurrenten anlegen oder Passwörter eingeben, Secrets in Chat/Felder.
 
-## Stand (15.10.2026, nach Creator-Runde 4)
-- Auf `main` (live noch NICHT): alles bis Runde 3. Auf `claude/runde4` (wartet auf Freigabe zum Merge nach main): C1 Batch/Queue (bis 10 Clips, Template pro Clip, Status, «Alle exportieren», eigener STORE-ZIP-Schreiber mit optional SRT, Autosave schützt alle Queue-Clips), C5 Brand-Kit (Template-Erweiterung `brand`: Logo PNG/JPEG/WebP ≤ 512 px, Text-/Akzentfarbe, Schrift, Safe-Zone-Presets reels/tiktok/shorts/off; Logo in Vorschau, Fast-, Echtzeit- und PNG-Export), Restpunkte R3 (Polster/Emoji fensterunabhängig, Typewriter zentriert, Handy-Captions-Vorschau 161×286 px, `suggestHook` entfernt), Runde-4-Fixes (Template-Wechsel in der Queue wendet Format an, Hook weicht dem Logo aus, Kit-Akzent auf Schlagwörtern, Reload behält Clip-Templates, ZIP-Knopf am Handy), Landing ohne Style-Chips über dem Upload (Looks zeigt nur noch die Showcase darunter; `landTemplates` bleibt für den Template-Umschalter im Editor). Branch ist gepusht.
+## Stand (15.10.2026, nach Runde 5)
+- `main` enthält alles bis Runde 4 (Merge 24a859b, gepusht), ist aber NICHT live: Deploy-Lauf scheiterte am Schritt «Secrets prüfen» (Secrets fehlen). Live zeigt noch «CaptionRush».
+- Auf `claude/runde5` (gepusht, wartet auf Freigabe zum Merge nach main): Untertitel weichen dem Kit-Logo aus (`capDodgeTotal`/`capLogoDodge`, Vorschau = Fast-Export ±3 px, Logo oben → darunter, unten → darüber, nur vertikal); Kit-Templates nie still Standard (Toast mit Aktion); ◈ im Clips-Blatt; Batch-Gate beschriftet («Export all clips»); «Restored» nur aus früherer Sitzung; ZIP-Ordner pro Template; Bitrate-Untergrenze 0,02 bit/Pixel/Frame (v1 1,14× statt 1,5×); lokaler Emoji-Fallback dichter (~1 je 4,5 s); Landing 375 px (Kopfzeile umbricht); Sprach-Pille am Desktop nur oben bei freiem Platz; Neulade-Hinweis «n Clips zuletzt bearbeitet» (Autosave-Marke `entry.q`); 8 Brand-Kit-`CTL`-Einträge in test-ui-sweep.js (ungetestet, Playwright fehlt).
 - Noah Runde 4 (docs/vergleich/creator-2026-10-15-runde4/noah-runde4.md): «Für Kundenarbeit: ja.» Zahlungsbereitschaft Einzelnutzung CHF 8–12, mit Batch + Kit CHF 18–20 – Bedingung: echte Transkription geprüft und Logo-gegen-Untertitel-oben gelöst.
 - Live: Deploy per GitHub Actions braucht die Pflicht-Secrets FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, GROQ_API_KEY und empfohlen FTP_DIR (Jonas trägt sie selbst ein) – sonst lädt Jonas `gluephs-dist.zip` (`node scripts/build-dist.js --zip`, Inhalt inkl. .htaccess) per FTP hoch. Zuerst prüfen: `curl -s https://gluephs.com/ | grep -o '<title>[^<]*'` (neu: «Free Auto Captions for Reels & TikTok – No Watermark | Gluephs») und `curl -s 'https://api.github.com/repos/jonastreier/captly/actions/runs?per_page=5'`. Ist der neue Stand live: Live-Check zusammenfassen, an Search Console erinnern (Sitemap, Indexierung `/` und `/de`).
 - Konkurrenz (Submagic, CapCut) in drei Runden nie getestet: kein Login in Chrome. Nur testen, wenn Jonas eingeloggt ist (vorher per Tab prüfen).
 
 ## Auftrag (Reihenfolge)
-0. **Zuerst fragen:** Ist `claude/runde4` nach `main` gemergt (`git log main --oneline -3`)? Wenn nicht: Jonas um Freigabe bitten; bis dahin auf `claude/runde4` weiterarbeiten (neue Worktrees davon abzweigen).
-1. **Live-Abnahme (S, selbst):** wie bisher – nur wenn der neue Stand live ist (Titel prüfen), mit echter Transkription v1/v2/v3 gegen die Wahrheits-JSON zählen (Wortfehlerrate, Namen «Sandra Meier», «Winterthur», «Klartext Business», Zeitversatz, `/api/enhance`, Hook-KI). Funde als eigenes Paket.
-2. **Logo vs. Untertitel oben (M, Sonnet):** Position «Top» bzw. Hook kollidiert mit einem Kit-Logo oben → Untertitel-/Logo-Ausweichlogik (Vorschau = Export, alle Safe-Zone-Presets, 9:16 und 16:9). Noahs Bedingung für CHF 18–20.
-3. Niedrig (Runde 4, Kap. 6): erstes gespeichertes Template wird still Standard (bringt Logo A auf jedes neue Video) → nachfragen bzw. Kits nie automatisch Standard; Kit-Marker im Clips-Blatt; E-Mail-Abfrage bei «Alle exportieren» öffnet das Einzel-Export-Blatt; Bitrate 1,5–2× Quelle; Emoji-Dichte (R3 #9); `CTL`-Einträge für Brand-Kit-Regler in test-ui-sweep.js; Landing am Handy (375 px): Sprachfeld zeigt «Automatisch erk…» abgeschnitten, «Beispiel testen» klebt am rechten Rand.
-4. Danach Creator-Runde 5 (Noah) gegen Runde 4, sobald live: Schwerpunkt echte Transkription + Kit-Konflikte.
+0. **Zuerst fragen:** Ist `claude/runde5` nach `main` gemergt und der Deploy grün (Secrets eingetragen)? Wenn nicht: Jonas um Freigabe bzw. Secrets bitten; bis dahin auf `claude/runde5` weiterarbeiten.
+1. **Live-Abnahme (S, selbst):** nur wenn der neue Stand live ist (Titel prüfen), mit echter Transkription v1/v2/v3 gegen die Wahrheits-JSON zählen (Wortfehlerrate, Namen «Sandra Meier», «Winterthur», «Klartext Business», Zeitversatz, `/api/enhance`, Hook-KI). Funde als eigenes Paket.
+2. **Creator-Runde 5 (Noah) gegen Runde 4**, sobald live: Schwerpunkt echte Transkription + Kit-Konflikte (Logo × Top/Bottom × Safe-Zone × Hook × Wasserzeichen, Echtzeit- und PNG-Export im Browser – in Runde 5 nur per Unit-Test belegt).
+3. Offen/klein: Untertitel weichen nur vertikal aus (16:9, grosse Schrift, Logo unten → Sprung um ~26 % der Höhe; evtl. seitlich ausweichen oder Logo-Ecke wechseln); Hook-Titel liest das Kit aus dem Live-Zustand statt aus dem Export-Schnappschuss; `test-ui-sweep.js`-Brand-Kit-Einträge beim ersten Playwright-Lauf nachjustieren.
 
 Vorschlagen, nicht ungefragt bauen: C2 Cloud-Sync (braucht Supabase), C4 Auto-Reframe mit Gesichtsfokus (lokal), Musik-Bett mit Ducking, Preismodell nach der Beta.
 
@@ -33,6 +33,6 @@ Vorschlagen, nicht ungefragt bauen: C2 Cloud-Sync (braucht Supabase), C4 Auto-Re
 - Upload im Browser: `await fetch('/mock/use?v=<name>')`, dann Blob von `/test/<name>.mp4` → `new File` → `DataTransfer` → `#landInput.files` + `change`-Event.
 
 ## Abnahme
-- Pro Paket: Tests grün (Playwright-Lücke benennen), Browser-Check EN und /de, Vorschau = Export, wo Geometrie/Animation betroffen ist; Status in noah-runde3.md (bzw. Runde 4) nachführen.
+- Pro Paket: Tests grün (Playwright-Lücke benennen), Browser-Check EN und /de, Vorschau = Export, wo Geometrie/Animation betroffen ist; Status in noah-runde4.md (bzw. Runde 5) nachführen.
 - Schluss: Zusammenfassung in 10 Zeilen; offene Punkte nur noch die, die Jonas selbst erledigen muss.
 ```

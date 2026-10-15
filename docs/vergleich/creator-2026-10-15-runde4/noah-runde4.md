@@ -14,7 +14,7 @@ Methode in einem Satz: Die Exporte habe ich im Browser aufgebrochen (MP4-Boxen `
 
 - **Wechseln? Für Kundenarbeit mit mehreren Reels pro Tag: ja, mit einer Einschränkung, die ich in dieser Runde gefunden und gleich behoben sehe.** Batch und Brand-Kit tun, was versprochen ist: 5 Clips in einem Zug hochladen, je Clip ein Kunden-Template, «Alle exportieren», ein ZIP mit 5 MP4 und 5 SRT (CRC aller 10 Einträge stimmt). Die Logos sitzen pixelgenau (Kunde A: `#ff6a00` exakt, Kunde B: 90 % Deckkraft, gemessen `(1,168,159)` gegen erwartet `(2,166,157)`), Vorschau und Export stimmen in Position und Farbe überein.
 - **Was mich im ersten Durchlauf fast getroffen hätte (alle behoben, Commit `12d1910`):** (1) Kunde B, dem ich das Template erst im Clips-Blatt zugewiesen hatte, exportierte als **1920×1080 statt 1080×1920**, das 9:16-Format des Templates kam nie an (hoch). (2) Der **Hook-Titel wurde über das Logo gezeichnet** und verdeckte «DAMIT»/«MEHR» (hoch). (3) Die **Kit-Akzentfarbe und -Schrift erreichten die Schlagwörter nicht**, sie blieben orange bzw. grün in der Look-Farbe (mittel). (4) Nach **Neuladen** bekamen alle Clips das Standard-Template (mittel). (5) Der **ZIP-Knopf lag am Handy unter dem Falz** (mittel).
-- **Was noch offen ist:** Untertitel auf «Top» kollidieren mit einem Logo oben (mittel, Aufwand M, nicht umgesetzt); das erste gespeicherte Template wird still zum Standard und bringt Logo A auf jedes neue Video (niedrig); Desktop-Toast auf der Landing (aus Runde 3) und Bitrate (aus Runde 1) unverändert.
+- **Was noch offen ist:** Untertitel auf «Top» kollidieren mit einem Logo oben (mittel, Aufwand M; **behoben in Runde 5, `1d0f744`**); das erste gespeicherte Template wird still zum Standard und bringt Logo A auf jedes neue Video (niedrig); Desktop-Toast auf der Landing (aus Runde 3) und Bitrate (aus Runde 1) unverändert.
 - **Zahlungsbereitschaft:** Einzelnutzung unverändert **CHF 8–12 pro Monat**. Für Kundenarbeit mit Batch und Kit gehe ich auf **CHF 18–20** (obere Grenze meiner Runde-1-Schätzung), weil das Versprochene jetzt da ist und ich 2–4 Kunden-Kits sauber ablegen kann. Bedingung: echte Transkription (hier Mock) und dass Kit-Konflikte (Logo gegen Untertitel oben) gelöst sind. Limits und Preise der Gluephs-Pläne habe ich nicht geprüft.
 - **Nicht beurteilt:** Transkriptionsgenauigkeit (Mock), KI-Emoji/Keywords, echte Handy-Gesten, Konkurrenz (kein Login, siehe Kapitel 9).
 
@@ -33,7 +33,7 @@ Alle 11 Punkte aus Runde 3 geprüft. Die Spalte «Stand Runde 4» steht auch in 
 | 5 | Hook wiederholt erste Zeile | **behoben** | v3: Hook «This one setting doubled my watch time», erste Untertitelzeile «Stop scrolling.» |
 | 6 | Sticker Emoji nicht gross | **behoben** | Emoji 43,7 px bei 26,2 px Schrift = 1,67× |
 | 7 | Handy-Captions-Tab: Vorschau 129 px | **behoben** | 375×812: Vorschau 161×286 px, 4 volle Zeilen + angeschnittene fünfte (Bild 09). «Edit t…»/«Close…» nicht erneut geprüft |
-| 8 | Desktop-Toast deckt Look-Chips | **offen** | 1280×800: Toast y 742–784 überdeckt 4 Chips |
+| 8 | Desktop-Toast deckt Look-Chips | **behoben in Runde 5 (`a988c21`)** | 1280×800: Toast y 742–784 überdeckt 4 Chips |
 | 9 | Emoji-Fallback dünn | **teilweise** | v1: 3 (💡💬⏰), v3: 3 (🛑💬🎬) statt 3 und 2; Dichte 1 pro 6–7 s |
 | 10 | Typewriter beginnt links | **behoben** | laut Commit a82cf12 und Test (Canvas-Stub); im Browser nicht erneut als Export vermessen |
 | 11 | Kleinkram DE | **behoben** | Export-Blatt: «Dateiname mit Zusatz „-gluephs“». Verwaisten «Start fresh»-Knopf nicht erneut geprüft |
@@ -140,14 +140,14 @@ Konkurrenz weiterhin nur aus Runde 1 (kein Zugriff, Kapitel 9).
 | 3 | **mittel** | **Kit-Akzent und -Schrift erreichen Schlagwörter nicht** (`em`/`emFont`). | Pixel/DOM: `rgb(74,222,128)` Instrument Serif bei Kit B; «WATCH» orange bei Kit A | Kit mit Akzent, Mix oder Bold Pop, Frame bei Schlagwort | **behoben in `12d1910`** (`applyBrandToStyle`) |
 | 4 | **mittel** | **Neuladen + gleiche Dateien: Template-Zuordnung geht verloren**, alle Clips bekommen das Standard-Template (Logo A auf Kunde B). | `_q.clips[].styleId` alle gleich nach Re-Upload | 5 Clips mit A/B, Seite neu laden, dieselben Dateien wählen | **behoben in `12d1910`** (`restored && !styleUser`) |
 | 5 | **mittel** | **ZIP-Knopf am Handy unter dem Falz**, «Alle exportieren» bleibt Hauptknopf nach dem Export. | y 793–837 bei Höhe 812 (Bild 06) | 375×812, 3 Clips exportieren | **behoben in `12d1910`** (ZIP zuerst, y 727–771, Bild 10) |
-| 6 | **mittel** | **Untertitel «Top» kollidieren mit Logo oben.** | Untertitel x 0,238–0,762 / y 0,125–0,243 gegen Logo x 0,675–0,835 / y 0,137–0,227 | Kit A, v1b, Position «Top», Zeit 4 s | **offen, Aufwand M** (Logo als Hindernis für den Untertitel-Ausweichweg wie beim Hook, Vorschau und beide Exportwege) |
-| 7 | niedrig | **Erstes gespeichertes Template wird still Standard (★)** und bringt Logo A auf jedes neue Video, auch von Kunde B. Hinweis nur in der Statuszeile. | Podcast-Clip (Kunde B) lud direkt nach dem Speichern von «Kunde A» mit riesigem Logo A über der Schrift (Bild 11) | Erstes Kit speichern, anderes Video laden | offen |
-| 8 | niedrig | **Clips-Blatt zeigt keinen Kit-Marker** (◈ gibt es nur in der Template-Leiste im Style-Tab). | Auswahlfeld im Blatt zeigt «Kunde A» ohne ◈ | Clips-Blatt öffnen | offen |
-| 9 | niedrig | **E-Mail-Abfrage beim ersten «Alle exportieren» öffnet das Einzel-Export-Blatt** mit «Download video». Skip und «Download video» setzen beide den Batch fort, die Beschriftung passt aber nicht. | Bild 12, Toast «Enter your email — or skip — to start exporting all clips.» | `sessionStorage` leeren, «Export all» | offen |
-| 10 | niedrig | **«Restored your last session»** erscheint auch für Clips, die in derselben Sitzung gerade transkribiert wurden (Rückkehr zum Startclip). | tStatus nach dem Durchgang | 5 Clips hochladen, Durchgang abwarten | offen |
-| 11 | niedrig | **Desktop-Toast auf der Landing deckt 4 Look-Chips** (Runde 3, Punkt 8). | Toast y 742–784 bei 1280×800 | `/` laden | offen |
-| 12 | niedrig | **Bitrate 1,5–2× der Quelle** (Runde 1, Punkt 9). | 5,15 MB gegen 3,48 MB | Export v1 | offen |
-| 13 | niedrig | **ZIP ohne Kundenordner**, Kundenname steckt nirgends im Dateinamen. Für 4 Kunden will ich pro Kunde sortieren. | ZIP-Inhalt flach | «Download as ZIP» | Wunsch, offen |
+| 6 | **mittel** | **Untertitel «Top» kollidieren mit Logo oben.** | Untertitel x 0,238–0,762 / y 0,125–0,243 gegen Logo x 0,675–0,835 / y 0,137–0,227 | Kit A, v1b, Position «Top», Zeit 4 s | **behoben in `1d0f744`** (`capDodgeTotal`: Untertitel weichen dem Logo vertikal aus, Vorschau = Fast-Export ±3 px; Echtzeit/PNG nur Unit-Test) |
+| 7 | niedrig | **Erstes gespeichertes Template wird still Standard (★)** und bringt Logo A auf jedes neue Video, auch von Kunde B. Hinweis nur in der Statuszeile. | Podcast-Clip (Kunde B) lud direkt nach dem Speichern von «Kunde A» mit riesigem Logo A über der Schrift (Bild 11) | Erstes Kit speichern, anderes Video laden | **behoben in `eec4bc2`** (Kit-Templates nie automatisch Standard; Toast mit «Use for every new video» bzw. «Not as default») |
+| 8 | niedrig | **Clips-Blatt zeigt keinen Kit-Marker** (◈ gibt es nur in der Template-Leiste im Style-Tab). | Auswahlfeld im Blatt zeigt «Kunde A» ohne ◈ | Clips-Blatt öffnen | **behoben in `eec4bc2`** |
+| 9 | niedrig | **E-Mail-Abfrage beim ersten «Alle exportieren» öffnet das Einzel-Export-Blatt** mit «Download video». Skip und «Download video» setzen beide den Batch fort, die Beschriftung passt aber nicht. | Bild 12, Toast «Enter your email — or skip — to start exporting all clips.» | `sessionStorage` leeren, «Export all» | **behoben in `eec4bc2`** («Export all clips» / «Skip — export all») |
+| 10 | niedrig | **«Restored your last session»** erscheint auch für Clips, die in derselben Sitzung gerade transkribiert wurden (Rückkehr zum Startclip). | tStatus nach dem Durchgang | 5 Clips hochladen, Durchgang abwarten | **behoben in `eec4bc2`** (nur bei Stand aus früherer Sitzung) |
+| 11 | niedrig | **Desktop-Toast auf der Landing deckt 4 Look-Chips** (Runde 3, Punkt 8). | Toast y 742–784 bei 1280×800 | `/` laden | **behoben in `a988c21`** (war die Sprach-Pille, nicht ein Toast; Desktop nur noch oben und bei freiem Platz) |
+| 12 | niedrig | **Bitrate 1,5–2× der Quelle** (Runde 1, Punkt 9). | 5,15 MB gegen 3,48 MB | Export v1 | **behoben in `5eb3985`** (Untergrenze 0,02 bit/Pixel/Frame statt 2 Mbit/s: v1 1,14×; sehr knappe Quellen wie v1b mit 0,82 Mbit/s bleiben ≈ 1,46×) |
+| 13 | niedrig | **ZIP ohne Kundenordner**, Kundenname steckt nirgends im Dateinamen. Für 4 Kunden will ich pro Kunde sortieren. | ZIP-Inhalt flach | «Download as ZIP» | **behoben in `eec4bc2`** (Ordner pro Template, sobald mehr als eines im ZIP) |
 
 Beobachtung, nicht als Fehler gezählt: Beim allerersten Öffnen von Clip 4 stand einmal Look A statt der zugewiesenen Kunde-B-Vorlage. Mit drei Wiederholungen und zwei vollständigen Läufen nicht mehr reproduzierbar; wahrscheinlich dieselbe Ursache wie Punkt 1.
 
@@ -172,11 +172,11 @@ Beobachtung, nicht als Fehler gezählt: Beim allerersten Öffnen von Clip 4 stan
 | 3 | Kit-Akzent/-Schrift auch für Schlagwörter | hoch | S | **erledigt `12d1910`** |
 | 4 | Gespeicherte Zuordnung Clip ↔ Kunde nach Neuladen | hoch | S | **erledigt `12d1910`** |
 | 5 | ZIP-Knopf nach dem Export vorn | mittel | S | **erledigt `12d1910`** |
-| 6 | Untertitel weichen dem Logo aus (Position «Top»), Vorschau und Export | hoch | M | offen |
-| 7 | Landing-Hinweis «n Clips zuletzt bearbeitet: Dateien wieder wählen» beim Neuladen | mittel | S–M | offen |
-| 8 | Brand-Kit-Template nicht stillschweigend zum Standard machen (Rückfrage oder Hinweis-Toast) | mittel | S | offen |
-| 9 | Kit-Marker ◈ im Clips-Blatt, Kundenordner im ZIP | niedrig | S | offen |
-| 10 | Bitrate an die Quelle koppeln | mittel | S–M | offen |
+| 6 | Untertitel weichen dem Logo aus (Position «Top»), Vorschau und Export | hoch | M | **erledigt `1d0f744`** |
+| 7 | Landing-Hinweis «n Clips zuletzt bearbeitet: Dateien wieder wählen» beim Neuladen | mittel | S–M | **erledigt `a988c21`** |
+| 8 | Brand-Kit-Template nicht stillschweigend zum Standard machen (Rückfrage oder Hinweis-Toast) | mittel | S | **erledigt `eec4bc2`** |
+| 9 | Kit-Marker ◈ im Clips-Blatt, Kundenordner im ZIP | niedrig | S | **erledigt `eec4bc2`** |
+| 10 | Bitrate an die Quelle koppeln | mittel | S–M | **erledigt `5eb3985`** |
 
 ---
 
