@@ -165,7 +165,10 @@ brandHex:brandHex,sanitizeBrand:sanitizeBrand,applyBrandToStyle:applyBrandToStyl
 hookVariants:hookVariants,hookVariantList:hookVariantList,hookNextVariant:hookNextVariant,hookDupOfCaptions:hookDupOfCaptions,EMO_REL_SIDE:EMO_REL_SIDE,EMO_LOCAL_SEC:EMO_LOCAL_SEC,EMO_LOCAL_GAP:EMO_LOCAL_GAP,EMO_LOCAL_SAME:EMO_LOCAL_SAME,capToastAction:capToastAction,
 capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR,
 queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueClipOpened:queueClipOpened,hookLogoRect:hookLogoRect,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
-crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen};`;
+queueZipEntries:queueZipEntries,zipFolderName:zipFolderName,queueTplInfo:queueTplInfo,queueStyleOptions:queueStyleOptions,btnVideoText:btnVideoText,syncGateBatchUI:syncGateBatchUI,setGateResume:function(f){_gateResume=f;},getSessionSaved:function(){return _sessionSaved;},
+crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen,
+capLogoDodge:capLogoDodge,capDodgeTotal:capDodgeTotal,capDodgePlan:capDodgePlan,capLayoutCacheKey:function(){return _capLayoutCache.key;},capLayoutRaw:capLayout,capMeasureCtxRaw:capMeasureCtx,capLogoMode:capLogoMode,capLogoDecision:capLogoDecision,capLogoShiftX:capLogoShiftX,hookExportState:hookExportState,hookLayoutNow:hookLayoutNow,brandLogoRectFor:brandLogoRectFor,
+queueResumeCount:queueResumeCount,queueResumeMsg:queueResumeMsg,QUEUE_RESUME_DAYS:QUEUE_RESUME_DAYS};`;
 const T = new Function(script + tail)();
 const initialLang = T.getLang(); // direkt nach INIT, bevor Tests den State ändern
 T.setEnhAuto(false); // KI-Hervorhebung läuft sonst im Hintergrund und trifft die fetch-Mocks anderer Tests (eigene Tests: test-emphasis-Gruppe)
@@ -5283,11 +5286,11 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // N9: Bitrate an die Quelle koppeln
     ok(T.exportBitrate(1080, 1920, 30) === Math.round(0.07 * 1080 * 1920 * 30), 'N9: ohne Quellbitrate unverändert (alte Formel)');
     ok(T.exportBitrate(1080, 1920, 30, 2.1e6, 1080, 1920) === Math.round(2.1e6 * 1.2), 'N9: Quelle 2,1 Mbit/s, gleiche Grösse → Quelle × 1,2 = ' + T.exportBitrate(1080, 1920, 30, 2.1e6, 1080, 1920));
-    ok(T.exportBitrate(1080, 1920, 30, 0.4e6, 1080, 1920) === 2e6, 'N9: sehr kleine Quelle → Minimum 2 Mbit/s');
+    ok(T.exportBitrate(1080, 1920, 30, 0.4e6, 1080, 1920) === Math.round(0.02 * 1080 * 1920 * 30), 'N9: sehr kleine Quelle → Untergrenze 0,02 bpp (R5; vorher fix 2 Mbit/s)');
     ok(T.exportBitrate(1080, 1920, 30, 40e6, 2160, 3840) === Math.round(0.07 * 1080 * 1920 * 30) && T.exportBitrate(1920, 1080, 30, 40e6, 3840, 2160) <= 12e6, 'N9: grosse Quelle → Obergrenze wie bisher (nie mehr als die Formel)');
     {
       const a = T.exportBitrate(1080, 1920, 30, 1.3e6, 1280, 720); // 16:9 → 9:16 Reframe: ×2,25 Pixel
-      ok(a === Math.round(Math.max(2e6, Math.min(0.07 * 1080 * 1920 * 30, 1.3e6 * 1.2 * (1080 * 1920) / (1280 * 720)))) && a > 2e6, 'N9: Reframe/Upscale proportional zur Pixelzahl (' + a + ')');
+      ok(a === Math.round(Math.max(0.02 * 1080 * 1920 * 30, Math.min(0.07 * 1080 * 1920 * 30, 1.3e6 * 1.2 * (1080 * 1920) / (1280 * 720)))) && a > 2e6, 'N9: Reframe/Upscale proportional zur Pixelzahl (' + a + ')');
       const g = T.exportGeometry(1080, 1920, 30, '1080', 'original', 2.1e6);
       ok(g.bitrate === Math.round(2.1e6 * 1.2) && T.exportGeometry(1080, 1920, 30, '1080', 'original').bitrate === Math.round(0.07 * 1080 * 1920 * 30), 'N9: exportGeometry reicht die Quellbitrate durch (v1: ' + g.bitrate + ' statt ' + Math.round(0.07 * 1080 * 1920 * 30) + ' bit/s)');
     }
@@ -5324,7 +5327,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(ag.style.display === 'none' && dl.style.display === '' && dl.textContent === 'Download again' && ht.style.display === 'none', 'N10: direkt nach dem Export: «Download again», kein «Export with changes» (Last-export-Zeile sichtbar: ' + (E('expLast').style.display === '') + ')');
       T.setExportResUI('orig');
       ok(ag.style.display === '' && ag.classList.contains('on') && dl.style.display === 'none' && ht.style.display === '' && /id="expAgain"[^>]*>Export with changes</.test(htmlContent), 'N10: Auflösung geändert → «Export with changes» (Hauptknopf), «Download again» weg — ohne Dialog neu zu öffnen');
-      ok(E('expLast').style.display === 'none' && /\(_lastExportBlob && exportChangedSinceLast\(\)\) \? _t\('Export with changes'\) : _t\('Download video'\)/.test(script) && /ch \? _t\('Export with changes'\) : _t\('Download video'\)/.test(script), 'N10: Export-Ansicht: «Last export … Download again» weg, Hauptknopf heisst «Export with changes»');
+      ok(E('expLast').style.display === 'none' && /\(_lastExportBlob && exportChangedSinceLast\(\)\) \? _t\('Export with changes'\) : _t\('Download video'\)/.test(script) && /lbl\.textContent = btnVideoText\(\)/.test(script), 'N10: Export-Ansicht: «Last export … Download again» weg, Hauptknopf heisst «Export with changes»');
       T.setExportResUI('1080');
       ok(ag.style.display === 'none' && dl.style.display === '' , 'N10: Änderung zurück → wieder «Download again»');
       T.onAutoCutChange(true);
@@ -5624,7 +5627,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       ok(bT > 0 && T.hookCapDodge(1.0, tight, 1080, 1920, null, 1200, 1500) === 0 && T.hookCapDodge(2.5, tight, 1080, 1920, null, 220, 700) === 0, 'Hook-Export: Untertitel oben weichen nur im Zeitfenster aus (' + Math.round(bT) + ' px)');
       fr.style.width = ''; fr.style.height = '';
       // beide Export-Pfade zeichnen den Titel mit denselben Argumenten wie die Untertitel (Quelltext)
-      ok((script.match(/drawHookTitle\(ctx, t, [a-z.]+, W, H, [a-zA-Z]+\);/g) || []).length === 2 && /drawCaptionsOnCtx\(ctx, t, o\.style, W, H, false, cuts\)/.test(script) && /drawCaptionsOnCtx\(ctx, t, s, W, H, false, cutRegions\)/.test(script),
+      ok((script.match(/drawHookTitle\(ctx, t, [a-z.]+, W, H, [a-zA-Z]+, lg[FR]\);/g) || []).length === 2 && /drawCaptionsOnCtx\(ctx, t, o\.style, W, H, false, cuts[,)]/.test(script) && /drawCaptionsOnCtx\(ctx, t, s, W, H, false, cutRegions[,)]/.test(script),
          'Hook-Export: Schnellexport (WebCodecs) und Echtzeit-Pfad rufen drawHookTitle + Untertitel-Ausweichen auf');
       ok(/hookUpdate\(tHook, rest, s, ov\);[\s\S]{0,120}capDomMotion\(ov/.test(script) && /\(ov\._hkDy \|\| 0\)/.test(script), 'Hook-Vorschau: Ausweichen der Untertitel fliesst in capDomMotion (wie im Export)');
     }
@@ -6395,7 +6398,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       for (const [nm, n, minN] of [['v1', 'v1-reel-de', 3], ['v2', 'v2-podcast-de-16x9', 4], ['v3', 'v3-hook-en', 3]]) {
         const bl = blk3(n), k = T.localEmojis(bl), list = bl.map((b, i) => ({ i, t: b.words[0].start, e: T.blockEmoji(b) })).filter(x => x.e);
         const dur = bl[bl.length - 1].words[bl[bl.length - 1].words.length - 1].end - bl[0].words[0].start, per = dur / list.length;
-        ok(k === list.length && k >= minN && per >= 5 && per <= 8.5, 'R3-Emoji ' + nm + ': ' + k + ' Emojis in ' + dur.toFixed(1) + ' s (≈ 1 je ' + per.toFixed(1) + ' s): ' + list.map(x => x.i + T.blockEmoji(bl[x.i])).join(' '));
+        ok(k === list.length && k >= minN && per >= 4 && per <= 8.5, 'R3-Emoji ' + nm + ': ' + k + ' Emojis in ' + dur.toFixed(1) + ' s (≈ 1 je ' + per.toFixed(1) + ' s): ' + list.map(x => x.i + T.blockEmoji(bl[x.i])).join(' '));
         ok(list.every((x, j) => j === 0 || (x.i - list[j - 1].i >= 2 && x.t - list[j - 1].t >= T.EMO_LOCAL_GAP - 1e-9)) && list.every((x, j) => list.every((y, m) => m >= j || x.e !== y.e || x.t - y.t >= T.EMO_LOCAL_SAME)), 'R3-Emoji ' + nm + ': ≥ 2 Blöcke / ≥ 3 s Abstand, dasselbe Motiv frühestens nach 8 s wieder');
       }
       const L = w => (T.localEmoLookup(w) || {}).e;
@@ -6422,7 +6425,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
     // 5) Landing-Toast «Auch auf Deutsch verfügbar» nicht mehr sofort am Desktop
     {
-      ok(/\.lang-hint\{[^}]*opacity:0;pointer-events:none/.test(htmlContent) && /\.lang-hint\.lh-on\{opacity:1;pointer-events:auto\}/.test(htmlContent) && /r\.bottom < \(window\.innerWidth > 640 \? \(window\.innerHeight \|\| 800\) - 80 : 0\)/.test(htmlContent), 'R3-Toast: Sprachhinweis ist auch am Desktop erst sichtbar, wenn die Upload-Karte den unteren Rand freigibt');
+      ok(/\.lang-hint\{[^}]*opacity:0;pointer-events:none/.test(htmlContent) && /\.lang-hint\.lh-on\{opacity:1;pointer-events:auto\}/.test(htmlContent) && /\(f \|\| r\)\.bottom <= vh - 68/.test(htmlContent) && /else on = !card \|\| !r \|\| r\.bottom < 0;/.test(htmlContent), 'R3-Toast (R5): Sprachhinweis am Desktop nur ganz oben und bei freiem Platz unter dem Kleingedruckten, am Handy erst nach dem Scrollen');
     }
     // 6) DE-Kleinkram: Suffix-Beschriftung, Toast-Knopf aus dem DOM
     {
@@ -7070,6 +7073,392 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // 4) Nach «Alle exportieren» steht das ZIP vor «Alle exportieren» (Handy: sonst unter dem Falz)
     ok(/var allDone = nDone > 0 &&/.test(script) && /a \+= allDone \? zipHtml \+ expHtml \+ trHtml : expHtml \+ trHtml \+ zipHtml;/.test(script), 'R4 Clips-Blatt: alles exportiert → ZIP zuerst, «alle exportieren» zweitrangig');
   }
+
+  // ═══ R5 Logo: Untertitel weichen dem Brand-Kit-Logo aus (Creator-Runde 4, Fund #6) ═══
+  {
+    const ov = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const cap = (W, top, h, wFrac) => ({ x: W * (1 - wFrac) / 2, y: top, w: W * wFrac, h });
+    const kit = (pos, over) => Object.assign({ w: 300, h: 300, size: 16, margin: 4, pos }, over);
+    let n = 0;
+    // 1) Alle Ecken × Top/Bottom × 9:16/16:9 × Safe-Zones: nach dem Ausweichen kein Überlapp, Box im Bild (4 px Luft)
+    for (const [W, H] of [[270, 480], [480, 270], [360, 360]]) {
+      for (const safe of ['reels', 'tiktok', 'shorts', 'off']) {
+        for (const pos of ['tr', 'tl', 'br', 'bl']) {
+          const lg = T.brandLogoRect(W, H, kit(pos), safe, false);
+          for (const capPos of ['top', 'bottom', 'middle']) {
+            const h = H * 0.12, top = capPos === 'top' ? H * 0.125 : capPos === 'bottom' ? H * 0.75 : H / 2 - h / 2;
+            const c = cap(W, top, h, 0.524);
+            const d = T.capLogoDodge(c.y, c.y + c.h, c.x, c.x + c.w, H, lg);
+            const gp = H * 0.01, hit = ov(c, { x: lg.x - gp, y: lg.y - gp, w: lg.w + 2 * gp, h: lg.h + 2 * gp }); // Lücke zählt mit
+            const moved = { x: c.x, y: c.y + d, w: c.w, h: c.h };
+            n++;
+            ok(moved.y >= 4 - 1e-9 && moved.y + moved.h <= H - 4 + 1e-9 || d === 0, 'R5 Logo ' + W + 'x' + H + ' ' + safe + ' ' + pos + ' ' + capPos + ': Box bleibt im Bild');
+            if (!hit) ok(d === 0, 'R5 Logo ' + W + 'x' + H + ' ' + safe + ' ' + pos + ' ' + capPos + ': kein Überlapp → 0 (' + d + ')');
+            else {
+              ok(d !== 0, 'R5 Logo ' + W + 'x' + H + ' ' + safe + ' ' + pos + ' ' + capPos + ': Überlapp → Verschiebung');
+              ok(!ov(moved, lg), 'R5 Logo ' + W + 'x' + H + ' ' + safe + ' ' + pos + ' ' + capPos + ': nach dem Ausweichen kein Überlapp mehr (d ' + d.toFixed(1) + ')');
+              ok(pos[0] === 't' ? d > 0 : d < 0, 'R5 Logo ' + W + 'x' + H + ' ' + pos + ': Logo oben → nach unten, Logo unten → nach oben (d ' + d.toFixed(1) + ')');
+            }
+          }
+        }
+      }
+    }
+    ok(n === 144, 'R5 Logo: Geometrie-Matrix vollständig (' + n + ')');
+    // 2) Befund aus Runde 4: Kit oben rechts, 9:16, Position Top → Untertitel x 0,238–0,762 / y 0,125–0,243, Logo x 0,675–0,835 / y 0,137–0,227
+    {
+      const W = 270, H = 480, lg = T.brandLogoRect(W, H, kit('tr'), 'reels', false);
+      const c = cap(W, H * 0.125, H * 0.118, 0.524), d = T.capLogoDodge(c.y, c.y + c.h, c.x, c.x + c.w, H, lg);
+      ok(d > 0 && c.y + d >= lg.y + lg.h, 'R5 Logo Befund #6: Untertitel rutschen unter das Logo (d ' + d.toFixed(1) + ', Logo-Unterkante ' + (lg.y + lg.h).toFixed(1) + ')');
+    }
+    // 3) Kein horizontaler Überlapp (Untertitel links vom Logo) → 0; Lücke zählt mit
+    {
+      const W = 270, H = 480, lg = T.brandLogoRect(W, H, kit('tr'), 'reels', false);
+      ok(T.capLogoDodge(H * 0.125, H * 0.2, 10, lg.x - 0.01 * H - 1, H, lg) === 0, 'R5 Logo: Untertitel seitlich neben dem Logo → nichts tun');
+      ok(T.capLogoDodge(H * 0.125, H * 0.2, 10, lg.x - 0.01 * H + 1, H, lg) > 0, 'R5 Logo: schon die Lücke zählt als Überlapp');
+      ok(T.capLogoDodge(lg.y + lg.h + 0.01 * H + 0.5, lg.y + lg.h + 60, 10, 260, H, lg) === 0, 'R5 Logo: Untertitel unter Logo samt Lücke → 0');
+    }
+    // 4) Clamp am Rand: nach unten nie über Hp − 4, nach oben nie unter 4
+    {
+      const W = 270, H = 480, lgT = { x: 150, y: 40, w: 80, h: 60 }, lgB = { x: 150, y: 380, w: 80, h: 60 };
+      const dT = T.capLogoDodge(30, H - 20, 20, 250, H, lgT);
+      ok(dT >= 0 && (H - 20) + dT <= H - 4 + 1e-9, 'R5 Logo Clamp unten: Box endet höchstens bei Hp − 4 (d ' + dT + ')');
+      const dB = T.capLogoDodge(20, 400, 20, 250, H, lgB);
+      ok(dB <= 0 && 20 + dB >= 4 - 1e-9, 'R5 Logo Clamp oben: Box beginnt frühestens bei 4 (d ' + dB + ')');
+    }
+    // 5) Ungültige Masse / kein Logo → 0
+    ok(T.capLogoDodge(10, 50, 0, 100, 480, null) === 0 && T.capLogoDodge(NaN, 50, 0, 100, 480, { x: 0, y: 0, w: 10, h: 10 }) === 0 && T.capLogoDodge(10, 50, 0, 100, 0, { x: 0, y: 0, w: 10, h: 10 }) === 0, 'R5 Logo: ohne Logo/ungültig → 0');
+    // 6) Zusammenspiel mit dem Hook-Titel: ohne Logo identisch zu vorher, mit Logo nie in Hook oder Logo
+    {
+      const meas = (font, str) => { const m = /([\d.]+)px/.exec(font); return String(str).length * (m ? parseFloat(m[1]) : 16) * 0.55; };
+      const tight = T.STYLES.find(x => x.id === 'tight');
+      for (const [W, H] of [[270, 480], [480, 270]]) {
+        const lg = T.brandLogoRect(W, H, kit('tr'), 'reels', false);
+        const L = T.hookLayout(meas, tight, 'Drei Tricks, damit deine Reels mehr Views bekommen', W, H, lg);
+        const need = (a, b) => T.hookDodgeNeed(L, a, b);
+        for (const top of [H * 0.1, H * 0.125, H * 0.2, H * 0.3, H * 0.5]) {
+          const h = H * 0.12, c = cap(W, top, h, 0.524);
+          const base = need(c.y, c.y + h);
+          ok(T.capDodgeTotal(c.y, c.y + h, c.x, c.x + c.w, H, null, need) === base, 'R5 Logo+Hook ' + W + 'x' + H + ' top ' + top.toFixed(0) + ': ohne Logo exakt wie der Hook-Dodge allein');
+          ok(T.capDodgeTotal(c.y, c.y + h, c.x, c.x + c.w, H, lg, null) === T.capLogoDodge(c.y, c.y + h, c.x, c.x + c.w, H, lg), 'R5 Logo+Hook: ohne Titel gilt nur das Logo');
+          const d = T.capDodgeTotal(c.y, c.y + h, c.x, c.x + c.w, H, lg, need);
+          const mv = { x: c.x, y: c.y + d, w: c.w, h };
+          const hb = { x: L.boxX, y: L.boxY, w: L.boxW, h: L.boxH };
+          ok(!ov(mv, lg), 'R5 Logo+Hook ' + W + 'x' + H + ' top ' + top.toFixed(0) + ': Untertitel schneiden das Logo nicht (d ' + d.toFixed(1) + ')');
+          ok(!ov(mv, hb) || mv.y + mv.h > H - 3, 'R5 Logo+Hook ' + W + 'x' + H + ' top ' + top.toFixed(0) + ': Untertitel schneiden den Hook-Titel nicht (d ' + d.toFixed(1) + ')');
+        }
+      }
+    }
+    // 7) brandLogoRectFor = dieselbe Rechteck-Funktion wie drawBrandLogo; Quelltext: alle drei Exportwege reichen das Logo durch, ein gemeinsamer Code
+    {
+      const b = { logo: kit('tr'), safe: 'tiktok' };
+      const r1 = T.brandLogoRectFor(b, 1080, 1920, true), r2 = T.brandLogoRect(1080, 1920, b.logo, 'tiktok', true);
+      ok(JSON.stringify(r1) === JSON.stringify(r2) && T.brandLogoRectFor(null, 1080, 1920, false) === null && T.brandLogoRectFor({}, 1080, 1920, false) === null, 'R5 Logo: brandLogoRectFor = brandLogoRect (Export) bzw. null ohne Logo');
+      ok(/brandLogoRectFor\(o\.brand, W, H, o\.wmOn\)/.test(script) && /brandLogoRectFor\(brandX, W, H, wmOn\)/.test(script) && /brandLogoRectFor\(brandP, W, H, wmPng\)/.test(script), 'R5 Logo: Fast-Export, Echtzeit-Export und PNG-Export reichen das Logo-Rechteck an drawCaptionsOnCtx');
+      ok((script.match(/capDodgePlan\(/g) || []).length === 3 && (script.match(/capDodgeTotal\(/g) || []).length === 2 && /capPreviewDodge\(ov, L, fx\.op, s\)/.test(script), 'R5 Logo: Vorschau und Export rechnen über capDodgePlan → capDodgeTotal (kein zweites Formel-Duplikat)');
+    }
+  }
+
+  // ═══════════════ R5 Batch (Creator-Runde 4, Funde 7–10, 13): Kit nie still Standard · ◈ im Clips-Blatt · Export-all-Gate · Sitzungshinweis · ZIP-Ordner ═══════════════
+  {
+    const E = id => document.getElementById(id);
+    const PNG1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+    const store = {}; const prevLS = global.localStorage;
+    global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+    const toastBtn = label => (E('capToast').children || []).find(c => c.textContent === label);
+    const toastTxt = () => { const l = document.body.children.filter(c => c.id === 'capToast'); return l.length ? l[l.length - 1].textContent || '' : ''; };
+    // 7) Template MIT Kit wird nie still Standard; ohne Kit mit sichtbarem Toast (+ «Not as default»)
+    {
+      T.setUserTemplates([]); T.rebuildTemplateStyles(); T.brandSetLive(null);
+      T.selectStyle('hormozi'); T.brandSetLive({ logo: { data: PNG1, w: 512, h: 256, pos: 'tl', size: 20, opacity: 0.9, margin: 4 } });
+      E('capToast').children = []; E('tplName').value = 'Kunde A'; const kit = T.saveTemplate();
+      ok(kit && kit.brand && T.brandTplId() === '', 'R5 #7: erstes Template MIT Kit wird NICHT automatisch Standard');
+      ok(!/default look for every new video/.test(E('tplStatus').textContent) && !!toastBtn('Use for every new video'), 'R5 #7: Statuszeile ohne «now your default»; Toast bietet «Use for every new video» an');
+      T.brandSetLive(null); T.selectStyle('classic');
+      E('capToast').children = []; E('tplName').value = 'Plain'; const plain = T.saveTemplate();
+      ok(plain && !plain.brand && T.brandTplId() === plain.id, 'R5 #7: Template OHNE Kit wird weiter (erstes) Standard');
+      ok(/default for every new video/.test(toastTxt()) && !!toastBtn('Not as default'), 'R5 #7: …jetzt mit sichtbarem Toast + Knopf «Not as default»');
+      toastBtn('Not as default').onclick();
+      ok(T.brandTplId() === '', 'R5 #7: «Not as default» nimmt den Standard zurück');
+      // bestehender Standard bleibt, auch wenn danach ein Kit-Template gespeichert wird
+      T.toggleBrandTpl(plain.id); ok(T.brandTplId() === plain.id, 'R5 #7: Standard setzbar (ausdrücklich)');
+      T.selectStyle('hormozi'); T.brandSetLive({ logo: { data: PNG1, w: 512, h: 256, pos: 'br', size: 20, opacity: 0.9, margin: 4 } });
+      E('tplName').value = 'Kunde B'; T.saveTemplate();
+      ok(T.brandTplId() === plain.id, 'R5 #7: bestehender Standard wird von einem neuen Kit-Template nicht angefasst');
+      // ausdrücklich gewählt → ein Kit-Template darf Standard werden
+      T.toggleBrandTpl(kit.id); ok(T.brandTplId() === kit.id, 'R5 #7: Kit-Template wird nur auf ausdrückliche Wahl Standard (⋯-Menü)');
+      ok(/!t\.brand && \(!brandTplId\(\)/.test(script), 'R5 #7: Quelltext — Auto-Standard nur ohne Kit');
+      // 8) Kit-Marker im Clips-Blatt
+      const opts = T.queueStyleOptions('classic');
+      ok(opts.indexOf('◈ Kunde A') > 0 && opts.indexOf('◈ Kunde B') > 0 && opts.indexOf('◈ Plain') < 0 && />Plain</.test(opts) && opts.indexOf('◈ Hormozi') < 0, 'R5 #8: Clips-Blatt zeigt «◈» nur bei Templates mit Kit: ' + opts.replace(/<option value="[^"]*"( selected)?>/g, '|').slice(0, 160));
+      ok(/Kunde A ★/.test(opts), 'R5 #8: Standard-Stern bleibt hinter dem Namen');
+      T.setUserTemplates([]); T.rebuildTemplateStyles(); T.brandSetLive(null); T.selectStyle('classic');
+      for (const k of Object.keys(store)) delete store[k];
+    }
+    // 9) «Alle exportieren»: Gate-Beschriftung
+    {
+      const sk = E('gateSkip'), lbl = E('btnVideoLbl');
+      T.setGateResume(null); T.syncGateBatchUI();
+      ok(sk.textContent === 'Skip — download now' && lbl.textContent === 'Download video', 'R5 #9: Einzelexport — Beschriftung unverändert');
+      const Q = T.getQ(); T.queueReset(); Q.pass = null;
+      ['a', 'b', 'c'].forEach(n => { const c = T.queueNewClip({ name: n + '.mp4', size: 10, type: 'video/mp4', lastModified: 1 }, 'classic', 'r5' + n); c.status = 'ready'; Q.clips.push(c); });
+      T.setGateResume(() => {}); T.syncGateBatchUI();
+      ok(sk.textContent === 'Skip — export all' && lbl.textContent === 'Export all clips' && E('btnVideoSub').textContent === '3 clips · MP4 · no watermark', 'R5 #9: Batch-Gate — «Export all clips» / «Skip — export all» / Unterzeile: ' + [sk.textContent, lbl.textContent, E('btnVideoSub').textContent].join(' | '));
+      T.closeExportSheet();
+      ok(sk.textContent === 'Skip — download now' && lbl.textContent === 'Download video', 'R5 #9: Blatt schliessen → Beschriftung wieder Einzelexport');
+      ok(/_gateResume = null; syncGateBatchUI\(\); closeExportSheet\(\); resume\(\)/.test(script), 'R5 #9: Ablauf (Skip/Bestätigen → Durchgang startet) unverändert, Beschriftung wird vorher zurückgesetzt');
+      T.queueReset(); Q.pass = null;
+    }
+    // 10) «Restored your last session» nur aus einer früheren Sitzung
+    {
+      const wts = [{ word: 'Hallo', start: 0, end: .5 }, { word: 'Welt', start: .5, end: 1 }];
+      const Q = T.getQ(); T.queueReset(); Q.pass = null;
+      T.setState(T.buildCaptionBlocks(wts), wts, 'karaoke'); T.setAutosaveKey('r5-clip.mp4|777|50');
+      ok(T.autosaveNow() === true && T.getSessionSaved()['r5-clip.mp4|777|50'] === true, 'R5 #10: Setup — Autosave dieser Sitzung geschrieben und vermerkt');
+      const snap = JSON.parse(JSON.stringify(T.autosaveData()));
+      const reload = () => { T.setState([], []); T.setCaptionsEdited(false); T.setAutosaveKey(null); E('tStatus').innerHTML = ''; E('capToast').children = []; };
+      // a) Warteschlange, Schnappschuss (Rückkehr zum Startclip)
+      Q.clips.push(T.queueNewClip({ name: 'r5-clip.mp4', size: 777, type: 'video/mp4', lastModified: 1 }, 'classic', 'r5s'));
+      reload(); T.restoreOrTranscribe({ name: 'r5-clip.mp4', size: 777 }, 5, snap);
+      ok(T.getBlocks().length > 0 && !/Restored your last session/.test(E('tStatus').innerHTML) && /2 words/.test(E('tStatus').innerHTML) && /Re-transcribe/.test(E('tStatus').innerHTML), 'R5 #10: Schnappschuss in der Warteschlange → kein «Restored», stattdessen «N words» + Re-transcribe: ' + E('tStatus').innerHTML.replace(/<[^>]*>/g, '').trim());
+      // b) Warteschlange, Autosave dieser Sitzung (ohne Schnappschuss)
+      reload(); T.restoreOrTranscribe({ name: 'r5-clip.mp4', size: 777 }, 5);
+      ok(T.getBlocks().length > 0 && !/Restored your last session/.test(E('tStatus').innerHTML), 'R5 #10: Autosave dieser Sitzung in der Warteschlange → kein «Restored»');
+      // c) frühere Sitzung (nach Neuladen: nichts vermerkt) → Hinweis bleibt
+      Object.keys(T.getSessionSaved()).forEach(k => delete T.getSessionSaved()[k]);
+      reload(); T.restoreOrTranscribe({ name: 'r5-clip.mp4', size: 777 }, 5);
+      ok(/Restored your last session/.test(E('tStatus').innerHTML), 'R5 #10: Autosave aus früherer Sitzung → Hinweis «Restored your last session» bleibt');
+      // d) Einzelvideo (keine Warteschlange): Verhalten unverändert, Toast mit «Start fresh»
+      T.queueReset(); Q.pass = null;
+      T.getSessionSaved()['r5-clip.mp4|777|50'] = true;
+      reload(); T.restoreOrTranscribe({ name: 'r5-clip.mp4', size: 777 }, 5);
+      ok(/Restored your last session/.test(E('tStatus').innerHTML) && !!toastBtn('Start fresh'), 'R5 #10: Einzelvideo unverändert — Hinweis + «Start fresh»');
+      T.setState([], []); T.setAutosaveKey(null); store['capivo.autosave'] = undefined; delete store['capivo.autosave'];
+    }
+    // 13) Kundenordner im ZIP
+    {
+      const enc = s => Buffer.from(s, 'utf8');
+      const mk = (name, tplKey, tplLabel, srt) => ({ name, blob: { size: 5 + name.length }, srt, tpl: { key: tplKey, label: tplLabel } });
+      const names = es => es.map(e => e.name).join('|');
+      // Hilfsfunktionen
+      const used = {};
+      ok(T.zipFolderName('Kunde A', used) === 'Kunde A' && T.zipFolderName('kunde a', used) === 'kunde a (2)', 'R5 #13: Ordnername — je Name eindeutig (Gross-/Kleinschreibung egal)');
+      ok(T.zipFolderName('A/B\\C:D*E?"F<G>H|I', {}) === 'A-B-C-D-E-F-G-H-I', 'R5 #13: Ordnername — Pfad- und Sonderzeichen bereinigt: ' + T.zipFolderName('A/B\\C:D*E?"F<G>H|I', {}));
+      ok(T.zipFolderName('  ..Müller & Söhne. ', {}) === 'Müller & Söhne' && T.zipFolderName('...', {}) === 'folder' && T.zipFolderName('', {}) === 'folder' && T.zipFolderName('x'.repeat(200), {}).length === 80, 'R5 #13: Ordnername — Umlaute bleiben, führende/abschliessende Punkte weg, Fallback, Längenlimit');
+      ok(T.queueTplInfo('classic').key === '' && T.queueTplInfo('').key === '' && T.queueTplInfo('gibt-es-nicht').key === '', 'R5 #13: queueTplInfo — Look/leer/unbekannt = kein Template');
+      // ein Template (oder keins) → flach wie heute
+      let es = T.queueZipEntries([mk('a.mp4', 't1', 'Kunde A', 'S1'), mk('b.mp4', 't1', 'Kunde A', 'S2')], true);
+      ok(names(es) === 'a.mp4|a.srt|b.mp4|b.srt', 'R5 #13: nur ein Template → ZIP bleibt flach (inkl. SRT): ' + names(es));
+      es = T.queueZipEntries([mk('a.mp4', '', ''), mk('a.mp4', '', '')], true);
+      ok(names(es) === 'a.mp4|a (2).mp4', 'R5 #13: kein Template → flach, Dateinamen eindeutig: ' + names(es));
+      // mehrere Templates → Ordner pro Template
+      es = T.queueZipEntries([mk('reel.mp4', 't1', 'Kunde A', 'S1'), mk('reel.mp4', 't2', 'Müller/Söhne: Bau', 'S2'), mk('reel.mp4', 't1', 'Kunde A', 'S3'), mk('x.mp4', '', '', 'S4')], true);
+      ok(names(es) === 'Kunde A/reel.mp4|Kunde A/reel.srt|Müller-Söhne- Bau/reel.mp4|Müller-Söhne- Bau/reel.srt|Kunde A/reel (2).mp4|Kunde A/reel (2).srt|No template/x.mp4|No template/x.srt', 'R5 #13: mehrere Templates → Ordner pro Template, SRT daneben, Namen je Ordner eindeutig: ' + names(es));
+      es = T.queueZipEntries([mk('a.mp4', 't1', 'A', 'S'), mk('b.mp4', 't2', 'B', 'S')], false);
+      ok(names(es) === 'A/a.mp4|B/b.mp4', 'R5 #13: SRT aus → nur Videos in den Ordnern: ' + names(es));
+      es = T.queueZipEntries([mk('a.mp4', 't1', 'Gleich', 'S'), mk('b.mp4', 't2', 'gleich', 'S')], false);
+      ok(names(es) === 'Gleich/a.mp4|gleich (2)/b.mp4', 'R5 #13: zwei Templates mit gleichem Ordnernamen bleiben getrennt: ' + names(es));
+      ok(/queueZipEntries\(items\.map/.test(script) && /tpl: queueTplInfo\(c\.styleId\)/.test(script), 'R5 #13: Quelltext — Download-ZIP und Export-Ergebnis nutzen die Ordnerlogik');
+      // echtes ZIP: Pfade mit Ordnern, UTF-8
+      es = T.queueZipEntries([mk('reel.mp4', 't1', 'Kunde Ä', 'Grüezi'), mk('reel.mp4', 't2', 'Müller & Söhne', 'Hoi'), mk('z.mp4', '', '', '')], true);
+      const ents = es.map(e => { const d = Buffer.isBuffer(e.data) || e.data instanceof Uint8Array ? Buffer.from(e.data) : Buffer.from('V'.repeat(e.size)); return { name: e.name, data: d, size: d.length, crc: T.crc32Update(0, d) }; });
+      const zip = Buffer.concat(T.zipPlan(ents).parts.map(x => Buffer.from(x)));
+      const { spawnSync } = require('child_process'), os = require('os');
+      const zf = path.join(os.tmpdir(), 'gluephs-r5-test-' + process.pid + '.zip'); fs.writeFileSync(zf, zip);
+      const uz = spawnSync('unzip', ['-t', zf], { encoding: 'utf8' });
+      if (uz.error) console.log('  info R5-ZIP: unzip nicht verfügbar, übersprungen'); else ok(uz.status === 0 && /No errors detected/.test(uz.stdout), 'R5 #13: unzip -t ohne Fehler');
+      const pyl = spawnSync('python3', ['-c', 'import zipfile,sys;z=zipfile.ZipFile(sys.argv[1]);print("|".join(i.filename for i in z.infolist()));print(z.read("Kunde Ä/reel.srt").decode("utf8"))', zf], { encoding: 'utf8' });
+      if (!pyl.error) ok(pyl.status === 0 && pyl.stdout.trim().split('\n').join('#') === 'Kunde Ä/reel.mp4|Kunde Ä/reel.srt|Müller & Söhne/reel.mp4|Müller & Söhne/reel.srt|No template/z.mp4#Grüezi', 'R5 #13: Python liest Ordnerpfade + UTF-8 korrekt: ' + pyl.stdout.trim().replace(/\n/g, '#') + pyl.stderr);
+      fs.unlinkSync(zf);
+    }
+    global.localStorage = prevLS;
+  }
+  // ═══════════════ R5 Export: Bitrate folgt der Quelle (Untergrenze auflösungsabhängig) · Emoji-Fallback dichter ═══════════════
+  {
+    const px = 1080 * 1920 * 30, cap = Math.round(0.07 * px);
+    // 1) v1-Wahrheit (ffprobe): Video 1 246 150 bit/s, Ton 119 597 bit/s, Datei 3 480 132 B in 20,333 s. Vorher: fixe Untergrenze 2 Mbit/s → 2,12 Mbit/s gesamt ≈ 1,55 × Quelle
+    const srcV = 1246150, srcA = 119597, srcSize = 3480132, srcDur = 20.333333, srcTotal = srcSize * 8 / srcDur;
+    const est = T.estimateSourceBitrate(srcSize, srcDur), b1 = T.exportBitrate(1080, 1920, 30, est, 1080, 1920);
+    ok(Math.abs(est - srcV) / srcV < 0.03, 'R5 Bitrate: Schätzung aus Grösse/Dauer trifft die echte Video-Bitrate von v1 (' + est + ' statt ' + srcV + ')');
+    ok(b1 === Math.round(est * 1.2), 'R5 Bitrate: v1 → Quelle × 1,2 (' + b1 + '), nicht mehr auf 2 Mbit/s angehoben');
+    const ratio = (b1 + srcA) * srcDur / 8 / srcSize;
+    ok(ratio >= 1.0 && ratio <= 1.25, 'R5 Bitrate: erwartete v1-Ausgabe (Video + kopierter Ton) = ' + ratio.toFixed(2) + ' × Quelldatei (vorher ' + ((2e6 + srcA) * srcDur / 8 / srcSize).toFixed(2) + ')');
+    // 2) Untergrenze: 0,02 bit/Pixel/Frame, mind. 0,5 Mbit/s; Obergrenze unverändert
+    ok(T.exportBitrate(1080, 1920, 30, 0.3e6, 1080, 1920) === Math.round(0.02 * px) && Math.round(0.02 * px) > 1.2e6 && Math.round(0.02 * px) < 1.3e6, 'R5 Bitrate: 1080×1920 hat Untergrenze ≈ 1,24 Mbit/s');
+    ok(T.exportBitrate(640, 360, 30, 0.1e6, 640, 360) === 0.5e6 && T.exportBitrate(1280, 720, 30, 0.1e6, 1280, 720) === Math.round(0.02 * 1280 * 720 * 30), 'R5 Bitrate: kleine Auflösung → Untergrenze skaliert mit (0,5 Mbit/s absolut, 720p ≈ 0,55)');
+    for (const [src, label] of [[8e6, '8'], [12e6, '12'], [20e6, '20']]) {
+      ok(T.exportBitrate(1080, 1920, 30, src, 1080, 1920) === cap, 'R5 Bitrate: Handyquelle ' + label + ' Mbit/s 1080p → Obergrenze 0,07 bpp wie bisher (' + cap + ')');
+    }
+    ok(T.exportBitrate(1080, 1920, 30, 3e6, 1080, 1920) === 3.6e6, 'R5 Bitrate: mittlere Quelle 3 Mbit/s → × 1,2');
+    let mono = true, prev = 0;
+    for (let sb = 1e5; sb <= 3e7; sb *= 1.3) { const v = T.exportBitrate(1080, 1920, 30, sb, 1080, 1920); if (v < prev || v > cap) mono = false; prev = v; }
+    ok(mono, 'R5 Bitrate: monoton in der Quellbitrate, nie über der Obergrenze');
+    ok(T.exportBitrate(1080, 1920, 30) === cap && T.exportBitrate(320, 240, 30) === 2e6, 'R5 Bitrate: Quelle unbekannt → alte Formel unverändert');
+    ok(T.exportBitrate(1080, 1920, 30, srcV, 1080, 1920) === T.exportGeometry(1080, 1920, 30, '1080', 'original', srcV).bitrate, 'R5 Bitrate: exportGeometry (MediaRecorder-Weg) und exportBitrate (WebCodecs-Weg) liefern dasselbe');
+    ok(/bitrate: exportBitrate\(W, H, fps, srcBps, pW, pH\)/.test(script) && /videoBitsPerSecond: geo\.bitrate/.test(script) && /estimateSourceBitrate\(currentFile\.size, vid\.duration\)/.test(script), 'R5 Bitrate: beide Exportwege (WebCodecs, MediaRecorder) beziehen die Quellbitrate ein');
+    // 3) Emoji-Fallback: etwa +1 je 20 s gegenüber R3 (v1 3 → 4, v2 4 → 5, v3 3 → 4), nie in direkt aufeinanderfolgenden Blöcken
+    const fixDir5 = path.join(__dirname, 'scripts', 'creator-test', 'fixtures');
+    const blk5 = n => T.buildCaptionBlocks(JSON.parse(fs.readFileSync(path.join(fixDir5, n + '.json'), 'utf8')).words.map(w => ({ word: w.word, start: w.start, end: w.end })), []);
+    for (const [nm, n, before] of [['v1', 'v1-reel-de', 3], ['v2', 'v2-podcast-de-16x9', 4], ['v3', 'v3-hook-en', 3]]) {
+      const bl = blk5(n), k = T.localEmojis(bl), list = bl.map((b, i) => ({ i, e: T.blockEmoji(b) })).filter(x => x.e);
+      ok(k === list.length && k >= before + 1, 'R5-Emoji ' + nm + ': ' + k + ' statt ' + before + ' Emojis: ' + list.map(x => x.i + x.e).join(' '));
+      ok(list.every((x, j) => j === 0 || x.i - list[j - 1].i >= 2), 'R5-Emoji ' + nm + ': nie zwei Emojis in direkt aufeinanderfolgenden Blöcken');
+    }
+    ok(T.EMO_LOCAL_SEC <= 5 && T.EMO_LOCAL_GAP <= 2.5, 'R5-Emoji: Ziel-Abstand ≈ 5 s oder weniger');
+  }
+  // ═══════════════════════════════════════════════════════════════════════════
+  // R5 Landing: Handy-Kopfzeile der Upload-Karte, Sprach-Pille am Desktop, Neulade-Hinweis für Queue-Clips, Brand-Kit im UI-Sweep
+  // ═══════════════════════════════════════════════════════════════════════════
+  {
+    // 1) Handy (≤ 520 px): Sprachfeld nimmt die volle Zeile (Auswahl nicht abgeschnitten), «Beispiel testen» umbricht darunter statt rechts herauszuragen
+    const m520 = htmlContent.match(/@media \(max-width:520px\)\{([^\n]*)\}\n/);
+    ok(!!m520 && /\.hc-top\{[^}]*flex-wrap:wrap;justify-content:center/.test(m520[1]) && /\.land-lang\{flex:1 1 100%;min-width:0/.test(m520[1]) && /\.land-lang select\{[^}]*max-width:none/.test(m520[1]) && !/max-width:150px/.test(m520[1]), 'R5 Handy: Sprachfeld volle Breite, Beispiel-Knopf umbricht (kein max-width:150px mehr)');
+    ok(!/@media \(max-width:370px\)\{[^\n]*max-width:150px/.test(htmlContent), 'R5 Handy: auch ≤ 370 px keine feste Select-Breite');
+    // 2) Sprach-Pille «Auch auf Deutsch verfügbar»: Desktop nur ganz oben + freier Platz unter dem Kleingedruckten (sonst überdeckt sie Inhalt)
+    ok(/pageYOffset \|\| 0\) < 40 && \(f \|\| r\)\.bottom <= vh - 68/.test(htmlContent) && /fine = document\.querySelector\('\.hero-fine'\)/.test(htmlContent), 'R5 Toast: Sprach-Pille am Desktop nur oben und bei freiem Platz unter .hero-fine');
+    ok(/initQueueResume\(\);[^\n]*\ninitLangHint\(\);/.test(htmlContent), 'R5 Toast: Queue-Hinweis wird vor der Sprach-Pille eingefügt (Platzbedarf stimmt)');
+    // 3) Neulade-Hinweis: nur ≥ 2 bearbeitete Queue-Clips (Marke entry.q), nicht älter als 7 Tage
+    {
+      const now = 1e12, d = 864e5, mk = (q, ed, age) => ({ key: 'k' + Math.random(), savedAt: now - age, q: q ? 1 : undefined, data: { blocks: [{}], edited: ed } });
+      const cnt = l => T.queueResumeCount(l, now);
+      ok(cnt([]) === 0 && cnt(null) === 0, 'R5 Neulade-Hinweis: leerer Autosave → 0');
+      ok(cnt([mk(1, true, 1000), mk(1, true, 5000), mk(1, true, 9000)]) === 3, 'R5 Neulade-Hinweis: drei bearbeitete Queue-Clips → 3');
+      ok(cnt([mk(1, true, 1000), mk(0, true, 5000), mk(1, false, 9000)]) === 1, 'R5 Neulade-Hinweis: Einzelvideo (ohne Marke) und unbearbeitete Clips zählen nicht');
+      ok(cnt([mk(1, true, 6.9 * d), mk(1, true, 7.1 * d)]) === 1, 'R5 Neulade-Hinweis: älter als 7 Tage zählt nicht mehr');
+      ok(cnt(Array.from({ length: 14 }, () => mk(1, true, 10))) === T.QUEUE_MAX, 'R5 Neulade-Hinweis: höchstens QUEUE_MAX');
+      ok(T.queueResumeMsg(1) === '1 clip edited last time — pick the same file again to continue' && T.queueResumeMsg(3) === '3 clips edited last time — pick the same files again to continue', 'R5 Neulade-Hinweis: Text Einzahl/Mehrzahl (_tn)');
+      ok(/if \(n < 2\) \{ el\.hidden = true;/.test(script), 'R5 Neulade-Hinweis: erst ab 2 Clips sichtbar');
+      ok(/if \(protect\[_autosaveKey\]\) entry\.q = 1;/.test(script), 'R5 Neulade-Hinweis: autosaveNow markiert Queue-Clips (entry.q), Einzelvideos nicht');
+      ok(/<p class="hero-resume" id="queueResume" role="status" hidden><\/p>/.test(htmlContent) && /\.hero-resume\[hidden\]\{display:none\}/.test(htmlContent), 'R5 Neulade-Hinweis: Platzhalter im Hero, standardmässig versteckt');
+      const dui = fs.readFileSync(path.join(__dirname, 'i18n', 'de-ui.js'), 'utf8');
+      ok(/"\{0\} clip edited last time — pick the same file again to continue":/.test(dui) && /"\{0\} clips edited last time — pick the same files again to continue":/.test(dui), 'R5 Neulade-Hinweis: deutsche Übersetzung (Einzahl + Mehrzahl) in de-ui.js');
+    }
+    // 4) UI-Sweep: jeder Brand-Kit-Regler hat einen Eintrag in CTL
+    {
+      const sweep = fs.readFileSync(path.join(__dirname, 'test-ui-sweep.js'), 'utf8');
+      const bkIds = [...htmlContent.matchAll(/<(?:input|select)\b[^>]*\bid="(bk(?:Size|Op|Margin|Text|Hl|Font|Safe))"/g)].map(x => x[1]).concat(/id="bkPos"/.test(htmlContent) ? ['bkPos'] : []);
+      ok(bkIds.length === 8, 'R5 Brand-Kit: alle 8 Regler im Markup (' + bkIds.join(', ') + ')');
+      const noEntry = bkIds.filter(id => !new RegExp("\\{ id: '" + id + "', tab: 'style'").test(sweep));
+      ok(noEntry.length === 0, 'R5 Brand-Kit: CTL in test-ui-sweep.js deckt alle Regler ab (fehlt: ' + noEntry.join(', ') + ')');
+      ok(/o\['brand\.cfg'\]/.test(sweep) && /o\['brand\.logo'\]/.test(sweep) && /o\['cfg\.safe'\]/.test(sweep), 'R5 Brand-Kit: Signatur des Sweeps kennt Kit, Logo-Lage und Safe-Zone');
+    }
+  }
+
+  // ═══ R5 Dodge: seitliches Ausweichen (ein Modus pro Clip) · Hook-Titel nimmt das Kit des Export-Schnappschusses ═══
+  {
+    const ov = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    const cap = (W, top, h, wFrac) => ({ x: W * (1 - wFrac) / 2, y: top, w: W * wFrac, h });
+    const kit = (pos, over) => Object.assign({ w: 300, h: 300, size: 16, margin: 4, pos }, over);
+    const rectsOf = caps => caps.map(c => ({ top: c.y, bot: c.y + c.h, l: c.x, r: c.x + c.w }));
+    const plan = (c, W, H, lg, dec, need) => T.capDodgePlan(c.y, c.y + c.h, c.x, c.x + c.w, W, H, lg, need || null, dec);
+    const moved = (c, p) => ({ x: c.x + p.dx, y: c.y + p.dy, w: c.w, h: c.h });
+    let nSide = 0, nVert = 0;
+    // 1) Matrix: 9:16 / 16:9 / 1:1 × vier Ecken × Top/Mitte/Unten, ein «Clip» = Blöcke verschiedener Breite. Ein Modus für ALLE Blöcke:
+    //    alle berührenden Blöcke mit identischem Versatz (seitlich) oder alle senkrecht wie bisher; nie Überlapp, immer im Bild
+    for (const [W, H] of [[270, 480], [480, 270], [360, 360]]) {
+      for (const pos of ['tr', 'tl', 'br', 'bl']) {
+        const lg = T.brandLogoRect(W, H, kit(pos), 'reels', false);
+        for (const capPos of ['top', 'middle', 'bottom']) {
+          for (const widths of [[0.3, 0.4, 0.5], [0.35, 0.524, 0.75]]) {
+            const h = H * 0.12, top = capPos === 'top' ? H * 0.125 : capPos === 'bottom' ? H * 0.75 : H / 2 - h / 2;
+            const caps = widths.map(w => cap(W, top, h, w)), dec = T.capLogoMode(rectsOf(caps), W, H, lg);
+            const tag = 'R5 Dodge ' + W + 'x' + H + ' ' + pos + ' ' + capPos + ' w' + widths.join('/');
+            const gp = H * 0.01, plans = caps.map(c => ({ c, p: plan(c, W, H, lg, dec), hit: ov(c, { x: lg.x - gp, y: lg.y - gp, w: lg.w + 2 * gp, h: lg.h + 2 * gp }),
+              full: T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, lg, null) }));
+            const hits = plans.filter(q => q.hit);
+            if (!hits.length) { ok(plans.every(q => q.p.dx === 0 && q.p.dy === 0) && dec.mode === 'vert', tag + ': kein Konflikt → Geometrie unverändert'); continue; }
+            ok(hits.every(q => !ov(moved(q.c, q.p), lg)), tag + ': kein Überlapp nach dem Ausweichen (' + dec.mode + ')');
+            ok(hits.every(q => q.p.dx >= -q.c.x && q.p.dx <= W - q.c.x - q.c.w + 1e-9), tag + ': Boxen bleiben seitlich im Bild');
+            if (dec.mode === 'side') {
+              nSide++;
+              ok(hits.every(q => q.p.dx === hits[0].p.dx && q.p.dx !== 0 && q.p.dy === 0), tag + ': ALLE berührenden Blöcke seitlich mit EINEM gemeinsamen Versatz (' + (hits[0].p.dx / W * 100).toFixed(1) + ' % B)');
+              ok(hits.every(q => Math.abs(hits[0].p.dx) / W < 0.75 * Math.abs(q.full) / H + 1e-9) && Math.abs(dec.dxFrac) <= 0.2 + 1e-9, tag + ': seitlich nur wenn deutlich kleiner als senkrecht');
+              ok(pos[1] === 'r' ? hits[0].p.dx < 0 : hits[0].p.dx > 0, tag + ': weicht vom Logo weg');
+            } else {
+              nVert++;
+              ok(hits.every(q => q.p.dx === 0 && q.p.dy === q.full), tag + ': ALLE senkrecht wie bisher (' + hits.map(q => q.full.toFixed(0)).join('/') + ')');
+            }
+          }
+        }
+      }
+    }
+    ok(nSide >= 3 && nVert >= 5, 'R5 Dodge: Matrix deckt beide Modi ab (seitlich ' + nSide + ', senkrecht ' + nVert + ')');
+    // 2) Befund Creator-Runde 5: 16:9, Logo unten rechts, Position unten, grosse Schrift → vorher ~26 % der Höhe nach oben; schmale Blöcke → seitlich
+    {
+      const W = 480, H = 270, lg = T.brandLogoRect(W, H, kit('br', { size: 18 }), 'reels', false), caps = [0.4, 0.5, 0.58].map(w => cap(W, H * 0.69, H * 0.2, w));
+      const dec = T.capLogoMode(rectsOf(caps), W, H, lg), full = T.capDodgeTotal(caps[2].y, caps[2].y + caps[2].h, caps[2].x, caps[2].x + caps[2].w, H, lg, null);
+      ok(full < -H * 0.1 && dec.mode === 'side', 'R5 Dodge Befund: bisher senkrecht ' + (full / H * 100).toFixed(1) + ' % der Höhe → jetzt Modus «' + dec.mode + '»');
+      const ps = caps.map(c => plan(c, W, H, lg, dec));
+      ok(ps.every(p => p.dy === 0 && p.dx === ps[2].dx && p.dx < 0) && caps.every((c, i) => !ov(moved(c, ps[i]), lg)), 'R5 Dodge Befund: alle drei Blöcke gleich ' + (-ps[2].dx / W * 100).toFixed(1) + ' % der Breite nach links, Höhe unverändert');
+      // Ein breiter Block passt nicht seitlich → ALLE senkrecht (auch die schmalen, die allein seitlich gingen)
+      const wide = cap(W, H * 0.69, H * 0.2, 0.75), decW = T.capLogoMode(rectsOf(caps.concat([wide])), W, H, lg);
+      const allV = caps.concat([wide]).map(c => plan(c, W, H, lg, decW));
+      ok(decW.mode === 'vert' && allV.every((p, i) => p.dx === 0 && p.dy === T.capDodgeTotal(caps.concat([wide])[i].y, caps.concat([wide])[i].y + caps.concat([wide])[i].h, caps.concat([wide])[i].x, caps.concat([wide])[i].x + caps.concat([wide])[i].w, H, lg, null)),
+         'R5 Dodge: ein breiter Block passt seitlich nicht → ALLE Blöcke senkrecht wie bisher');
+      ok(T.capLogoMode(rectsOf(caps), W, H, null).mode === 'vert' && T.capLogoMode([], W, H, lg).mode === 'vert', 'R5 Dodge: ohne Logo/ohne Blöcke → «vert», nichts zu tun');
+    }
+    // 3) Logo genau mittig / links-rechts gemischt → senkrecht; nach rechts nie über die Safe-Zone-Kante (Icon-Spalte)
+    {
+      const W = 480, H = 270, c = cap(W, H * 0.69, H * 0.2, 0.5), mid = { x: W / 2 - 20, y: H * 0.7, w: 40, h: 30 };
+      ok(T.capLogoShiftX(c.x, c.x + c.w, W, H, mid) === null && T.capLogoMode(rectsOf([c]), W, H, mid).mode === 'vert', 'R5 Dodge: Logo mittig → seitlich nicht lösbar');
+      const lgL = T.brandLogoRect(W, H, kit('bl', { size: 18 }), 'reels', false), cw = cap(W, H * 0.69, H * 0.2, 0.75);
+      ok(T.capLogoShiftX(cw.x, cw.x + cw.w, W, H, lgL) === null, 'R5 Dodge: nach rechts nie über die Safe-Zone-Kante');
+    }
+    // 4) Ohne Logo oder ohne Konflikt: identisch zu capDodgeTotal; mit Hook-Titel bleibt dessen Verschiebung
+    {
+      const W = 270, H = 480, c = cap(W, H * 0.125, H * 0.118, 0.3), need = (a, b) => (a < 100 ? 37 : 0);
+      ok(JSON.stringify(plan(c, W, H, null, null)) === '{"dx":0,"dy":0}' && plan(c, W, H, null, null, need).dy === T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, null, need), 'R5 Dodge: ohne Logo exakt wie vorher');
+      const far = T.brandLogoRect(W, H, kit('bl'), 'reels', false), decF = T.capLogoMode(rectsOf([c]), W, H, far);
+      ok(plan(c, W, H, far, decF, need).dy === T.capDodgeTotal(c.y, c.y + c.h, c.x, c.x + c.w, H, far, need) && plan(c, W, H, far, decF, need).dx === 0, 'R5 Dodge: Logo weit weg → nur Hook-Dodge');
+      const lg = T.brandLogoRect(W, H, kit('tr'), 'reels', false), dec = T.capLogoMode(rectsOf([c]), W, H, lg), p = plan(c, W, H, lg, dec, need);
+      ok(p.dy >= 37 - 1e-9 && !ov(moved(c, p), lg), 'R5 Dodge: mit Hook-Titel bleibt dessen Verschiebung erhalten (dy ' + p.dy.toFixed(1) + ', dx ' + p.dx.toFixed(1) + ', ' + dec.mode + ')');
+    }
+    // 5) Echte Blöcke: die Entscheidung kommt aus dem Canvas-Layout ALLER Blöcke, ist gecacht, gilt für alle Blöcke gleich und stellt den Layout-Cache des Frames nicht um
+    {
+      const E = id => document.getElementById(id), fr = E('prevFrame'); fr.style.width = '605px'; fr.style.height = '340px';
+      const mkBlk = (txt, t0) => { const ws = txt.split(' ').map((w, i) => ({ word: w, start: t0 + i * 0.3, end: t0 + i * 0.3 + 0.28 })); return { text: txt, start: t0, end: t0 + ws.length * 0.3, words: ws }; };
+      const st = T.STYLES.find(x => x.id === 'tight'), prevPos = T.getCapPos ? T.getCapPos() : null;
+      const lgP = T.brandLogoRect(605, 340, kit('br', { size: 12 }), 'reels', false);
+      T.setState([mkBlk('Hallo du', 0), mkBlk('Drei Tricks für mehr', 1), mkBlk('Hallo da', 2)], [], 'karaoke');
+      const d1 = T.capLogoDecision(st, lgP), d2 = T.capLogoDecision(st, lgP);
+      ok(d1 && d1 === d2, 'R5 Dodge: capLogoDecision ist gecacht (gleiches Objekt)');
+      ok(T.capLogoDecision(st, null) === null, 'R5 Dodge: ohne Logo keine Entscheidung');
+      T.capLayoutRaw(T.capMeasureCtxRaw(), T.getBlocks ? T.getBlocks()[0] : null, 0, -1, st, 605, 340);
+      const lay = T.capLayoutCacheKey();
+      T.capLogoDecision(st, T.brandLogoRect(605, 340, kit('br', { size: 13 }), 'reels', false));
+      ok(!!lay && T.capLayoutCacheKey() === lay, 'R5 Dodge: Analyse lässt den Layout-Cache des laufenden Frames unangetastet');
+      T.setState([mkBlk('Hallo du', 0), mkBlk('Drei Tricks für mehr Views bei jedem Reel den du machst', 1), mkBlk('Hallo da', 2)], [], 'karaoke');
+      const d3 = T.capLogoDecision(st, lgP);
+      ok(d3 !== d1, 'R5 Dodge: andere Blöcke → neue Entscheidung (Cache-Schlüssel enthält die Texte)');
+      fr.style.width = ''; fr.style.height = '';
+    }
+    // 6) Vorschau und Export rechnen über denselben Plan/Entscheidung (Quelltext)
+    ok(/ctx\.translate\(dg\.dx, dg\.dy\)/.test(script) && /'translate\(' \+ lgDx\.toFixed\(2\) \+ 'px,'/.test(script) && /ov\._lgDx = pl\.dx/.test(script) && (script.match(/capLogoDecision\(/g) || []).length === 3, 'R5 Dodge: Vorschau (translate x,y) und Export (ctx.translate) setzen denselben Plan um, beide fragen capLogoDecision');
+    // 7) Hook-Titel liest im Export das Kit des Schnappschusses, nie brandLive
+    {
+      const E = id => document.getElementById(id), fr = E('prevFrame'); fr.style.width = '270px'; fr.style.height = '480px';
+      const tight = T.STYLES.find(x => x.id === 'tight'), PNG1 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      const rec = () => { const c = { calls: [], font: '', fillStyle: '', textAlign: '', textBaseline: '', letterSpacing: '0px', shadowColor: '', shadowBlur: 0, shadowOffsetX: 0, shadowOffsetY: 0, globalAlpha: 1 };
+        ['save', 'restore', 'beginPath', 'fill', 'rect', 'translate', 'drawImage'].forEach(n => { c[n] = () => { c.calls.push([n]); }; });
+        c.roundRect = (x, y, w, h, r) => { c.calls.push(['roundRect', x, y, w, h, r]); }; c.fillText = (t, x, y) => { c.calls.push(['fillText', t, x, y, c.font]); }; return c; };
+      const prevHook = T.getHookState(), prevBrand = T.getBrandLive();
+      T.setHookState(true, 'Drei Tricks, damit deine Reels mehr Views bekommen', 2, '');
+      const snapTR = { logo: { data: PNG1, w: 512, h: 512, pos: 'tr', size: 22, opacity: 1, margin: 3 }, safe: 'reels' };
+      const lgSnap = T.brandLogoRectFor(snapTR, 1080, 1920, false);
+      T.brandSetLive(null); // Live-Kit: kein Logo (Batch: Queue hat inzwischen einen anderen Clip geladen)
+      const none = T.hookExportState(1.0, tight, 1080, 1920, null, null).L, snap = T.hookExportState(1.0, tight, 1080, 1920, null, lgSnap).L;
+      ok(snap.boxY > none.boxY, 'R5 Dodge Hook: Schnappschuss-Logo (oben rechts) schiebt den Titel weg, obwohl das Live-Kit keins hat (' + none.boxY.toFixed(1) + ' → ' + snap.boxY.toFixed(1) + ')');
+      T.brandSetLive(snapTR); // jetzt umgekehrt: Live-Kit hat ein Logo, der Export-Schnappschuss keins
+      const liveL = T.hookExportState(1.0, tight, 1080, 1920, null).L, noSnap = T.hookExportState(1.0, tight, 1080, 1920, null, null).L;
+      ok(liveL.boxY > noSnap.boxY && Math.abs(liveL.boxY - snap.boxY) < 0.5, 'R5 Dodge Hook: ohne Argument (Vorschau/Tests) gilt das aktive Kit — gleiche Lage wie der gleiche Schnappschuss');
+      ok(Math.abs(noSnap.boxY - none.boxY) < 1e-9, 'R5 Dodge Hook: Schnappschuss ohne Logo → Live-Kit wird ignoriert');
+      const yOf = c => c.calls.find(x => x[0] === 'roundRect')[2];
+      const cA = rec(); T.drawHookTitle(cA, 1.0, tight, 1080, 1920, null, null), cB = rec(); T.drawHookTitle(cB, 1.0, tight, 1080, 1920, null, lgSnap);
+      ok(yOf(cB) > yOf(cA), 'R5 Dodge Hook: drawHookTitle zeichnet mit dem übergebenen Logo-Rechteck (' + yOf(cA).toFixed(1) + ' → ' + yOf(cB).toFixed(1) + ' px)');
+      ok(/hookExportState\(tHook, s, W, H, cuts, logo\)/.test(script) && /drawHookTitle\(ctx, t, o\.style, W, H, cuts, lgF\)/.test(script) && /drawHookTitle\(ctx, t, s, W, H, cutRegions, lgR\)/.test(script) && /brandLogoRectFor\(o\.brand, W, H, o\.wmOn\)/.test(script), 'R5 Dodge Hook: beide Exportwege reichen das Schnappschuss-Rechteck an Untertitel UND Titel');
+      T.setHookState(prevHook.on, prevHook.text, prevHook.dur, prevHook.ai); T.brandSetLive(prevBrand); fr.style.width = ''; fr.style.height = '';
+    }
+  }
+
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();
