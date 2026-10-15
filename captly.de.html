@@ -5443,6 +5443,32 @@ function hookDodgeNeed(L, capTop, capBot) {
   if (capTop >= hb || capBot <= L.boxY - gap) return 0;
   return Math.max(0, Math.min(hb - capTop, L.Hp - 4 - capBot));
 }
+// Untertitel weichen dem Brand-Kit-Logo aus (Runde 5): Untertitel-Box [capTop,capBot]×[capL,capR] und Logo-Rechteck lg {x,y,w,h}
+// (brandLogoRect) in EINER Einheit (Vorschau-px bzw. Export-px; Hp = Rahmenhöhe). → Verschiebung (+ = nach unten, − = nach oben, 0 ohne
+// Überlapp samt Lücke). Logo in der oberen Bildhälfte → Untertitel darunter, sonst darüber; im Bild bleiben (4 px Luft) geht vor.
+function capLogoDodge(capTop, capBot, capL, capR, Hp, lg) {
+  if (!lg || !(lg.w > 0) || !(lg.h > 0) || !(Hp > 0) || !isFinite(capTop) || !isFinite(capBot) || !isFinite(capL) || !isFinite(capR)) return 0;
+  var gap = Hp * 0.01;
+  if (capL >= lg.x + lg.w + gap || capR <= lg.x - gap || capTop >= lg.y + lg.h + gap || capBot <= lg.y - gap) return 0;
+  if (lg.y + lg.h / 2 <= Hp / 2) return Math.max(0, Math.min(lg.y + lg.h + gap - capTop, Hp - 4 - capBot));
+  return Math.min(0, Math.max(lg.y - gap - capBot, 4 - capTop));
+}
+// Gesamtes Ausweichen der Untertitel (Vorschau und alle Exportwege): erst vor dem Hook-Titel (hookNeed(top, bot) → Verschiebung nach
+// unten, schon mit der Titel-Deckkraft gewichtet), dann vor dem Logo. Rutschen die Untertitel dabei nach unten, kann der Hook-Titel
+// (liegt unter dem Logo) erneut im Weg sein → noch einmal prüfen, damit sich beide Verschiebungen nie gegenseitig in eine Kollision drücken.
+function capDodgeTotal(capTop, capBot, capL, capR, Hp, lg, hookNeed) {
+  var d = hookNeed ? hookNeed(capTop, capBot) : 0;
+  if (!lg) return d;
+  var dl = capLogoDodge(capTop + d, capBot + d, capL, capR, Hp, lg);
+  if (!dl) return d;
+  d += dl;
+  if (dl > 0 && hookNeed) d += hookNeed(capTop + d, capBot + d);
+  return d;
+}
+function brandLogoRectFor(b, W, H, wmOn) { // Logo-Rechteck eines Kit-Schnappschusses (Exportwege), null ohne Logo
+  if (!b || !b.logo) return null;
+  try { return brandLogoRect(W, H, b.logo, b.safe || 'reels', !!wmOn); } catch (e) { return null; }
+}
 // Vorschau rechnet den Titel in derselben Ausgabezeit wie der Export (Trim, Schnitte, Auto-Cut) → pro Quellframe identisch.
 // Die Schnittliste wird höchstens alle 250 ms neu bestimmt (läuft pro Frame).
 var _hkCuts = null, _hkCutsAt = 0;
@@ -5458,11 +5484,11 @@ function hookUpdate(t, rest, s, ov) {
   var txt = hookOn ? hookTextNow() : '', fx = txt ? hookFx(hookOutTime(t, hookPreviewCuts()), rest) : { op: 0, dy: 0 };
   if (!(fx.op > 0)) {
     if (el._on) { el.style.display = 'none'; el._on = false; }
-    if (ov) ov._hkDy = 0;
+    if (ov) ov._hkDy = capPreviewDodge(ov, null, 0); // kein Titel: nur das Logo
     return;
   }
   var L = hookLayoutNow(s, txt);
-  if (!L) { el.style.display = 'none'; el._on = false; if (ov) ov._hkDy = 0; return; }
+  if (!L) { el.style.display = 'none'; el._on = false; if (ov) ov._hkDy = capPreviewDodge(ov, null, 0); return; }
   if (el._key !== L.key) {
     el._key = L.key;
     el.innerHTML = '<div class="hk-box" style="left:' + L.boxX.toFixed(2) + 'px;top:' + L.boxY.toFixed(2) + 'px;width:' + L.boxW.toFixed(2) + 'px;height:' + L.boxH.toFixed(2)
@@ -5476,13 +5502,17 @@ function hookUpdate(t, rest, s, ov) {
   if (!el._on) { el.style.display = 'block'; el._on = true; }
   capSetSt(el, 'opacity', fx.op < 1 ? fx.op.toFixed(3) : '');
   capSetSt(el, 'transform', Math.abs(fx.dy) > 1e-4 ? 'translateY(' + (fx.dy * L.f).toFixed(2) + 'px)' : '');
-  // Untertitel-Box (Layoutposition, ohne Transform) gegen die Titel-Box prüfen
-  var dy = 0, root = ov && ov.querySelector ? ov.querySelector('.cap-root') : null;
-  if (root && isFinite(root.offsetTop) && isFinite(ov.offsetTop)) {
-    var top = ov.offsetTop + root.offsetTop;
-    dy = hookDodgeNeed(L, top, top + root.offsetHeight) * fx.op;
-  }
-  if (ov) ov._hkDy = dy;
+  if (ov) ov._hkDy = capPreviewDodge(ov, L, fx.op);
+}
+// Untertitel-Box (Layoutposition, ohne Transform) gegen Hook-Titel (L, Deckkraft op) und Brand-Kit-Logo prüfen → Verschiebung in px
+function capPreviewDodge(ov, L, op) {
+  var lg = hookLogoRect(previewFrameW(), previewFrameH());
+  if (!L && !lg) return 0;
+  var root = ov && ov.querySelector ? ov.querySelector('.cap-root') : null;
+  if (!root || !isFinite(root.offsetTop) || !isFinite(ov.offsetTop)) return 0;
+  var top = ov.offsetTop + root.offsetTop, left = ov.offsetLeft + root.offsetLeft;
+  return capDodgeTotal(top, top + root.offsetHeight, left, left + root.offsetWidth, L ? L.Hp : previewFrameH(), lg,
+                       L ? function(a, b) { return hookDodgeNeed(L, a, b) * op; } : null);
 }
 // Export (Canvas): Titel zeichnen. cuts = Auto-Cut-Bereiche (Quellzeit), t = Quellzeit. Gibt den Zustand zurück (für das Ausweichen der Untertitel).
 function hookExportState(t, s, W, H, cuts) {
@@ -13460,7 +13490,7 @@ async function exportFastWebCodecs(file, o) {
         drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
           drawReframed(ctx, W, H, o.mode || 'original', function(c, w, h, fit, pan){ drawFastFrame(c, frame, w, h, rot, fit, pan); }, o.pan);
         });
-        drawCaptionsOnCtx(ctx, t, o.style, W, H, false, cuts);
+        drawCaptionsOnCtx(ctx, t, o.style, W, H, false, cuts, brandLogoRectFor(o.brand, W, H, o.wmOn)); // weicht dem Logo aus (dieselbe Rechteck-Funktion wie drawBrandLogo)
         drawHookTitle(ctx, t, o.style, W, H, cuts);
         drawBrandLogo(ctx, W, H, o.brand, o.wmOn); // Brand-Kit-Logo (gleiche Rechteck-Funktion wie die Vorschau)
         drawWatermark(ctx, W, H, o.wmOn);
@@ -14349,7 +14379,7 @@ async function exportVideoWithCaptions(opts) {
     drawZoomedVideo(ctx, W, H, t, function() { // Auto-Zoom: nur das Video, nie die Captions
       drawReframed(ctx, W, H, geo.mode, function(c, w, h, fit, pan){ drawVideoFit(c, vid, w, h, fit, pan); }, geo.pan);
     });
-    drawCaptionsOnCtx(ctx, t, s, W, H, false, cutRegions);
+    drawCaptionsOnCtx(ctx, t, s, W, H, false, cutRegions, brandLogoRectFor(brandX, W, H, wmOn));
     drawHookTitle(ctx, t, s, W, H, cutRegions);
     drawBrandLogo(ctx, W, H, brandX, wmOn);
     drawWatermark(ctx, W, H, wmOn); // nur anonym (beim Export-Start festgelegt)
@@ -14776,7 +14806,7 @@ function capLayout(ctx, b, bi, wi, s, W, H) {
   _capLayoutCache = { key: key, s: s, ctx: ctx, val: val };
   return val;
 }
-function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
+function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts, logo) {
   if (!captionBlocks.length) return;
   s = caseStyle(s); // gleiche Case-Regel wie die Vorschau (updateOverlay)
   var tHook = t; // Hook-Titel: Quellzeit ohne Timing-Feinschliff (cuts = Auto-Cut-Bereiche → Ausgabezeit)
@@ -14810,7 +14840,14 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts) {
   var hxPct = capHOff ? capHClamp(capHOff, (Math.max.apply(null, lineWs) + (s.boxBg ? 36 * L0.scale * capOutK() : 0)) / W * 100) : 0;
   if (hxPct) ctx.translate(hxPct / 100 * W, 0);
   if (bf.dy) ctx.translate(0, bf.dy * fsS);
-  if (hookOn) { var hkDy = hookCapDodge(tHook, s, W, H, cuts, L0.boxT, L0.boxB); if (hkDy) ctx.translate(0, hkDy); } // weicht dem Hook-Titel aus (wie die Vorschau, hookUpdate)
+  // weicht dem Hook-Titel und dem Brand-Kit-Logo aus (wie die Vorschau, capPreviewDodge); logo: Rechteck des Exports, null = keins, undefined = aktives Kit
+  var lgR = logo === undefined ? hookLogoRect(W, H) : logo, hkSt = hookOn ? hookExportState(tHook, s, W, H, cuts) : null;
+  if (hkSt || lgR) {
+    var halfW = (Math.max.apply(null, lineWs) + (s.boxBg ? 36 * L0.scale * capOutK() : 0)) / 2, cx = W / 2 + hxPct / 100 * W;
+    var hkDy = capDodgeTotal(L0.boxT, L0.boxB, cx - halfW, cx + halfW, H, lgR,
+                             hkSt ? function(a, b) { return hookDodgeNeed(hkSt.L, a / hkSt.ky, b / hkSt.ky) * hkSt.fx.op * hkSt.ky; } : null);
+    if (hkDy) ctx.translate(0, hkDy);
+  }
   // Typewriter (R3): sichtbare Teilzeile je Zeile mittig — Versatz nach rechts = (Endbreite − sichtbare Breite) / 2 (Vorschau: capTypeCenter)
   var typeDx = null;
   if (mode === 'type') {
@@ -15105,7 +15142,7 @@ async function exportPNG() {
       var vw = vid.videoWidth, vh = vid.videoHeight, sc = Math.max(W/vw, H/vh);
       drawZoomedVideo(ctx, W, H, vid.currentTime || 0, function() { ctx.drawImage(vid, (W-vw*sc)/2, (H-vh*sc)/2, vw*sc, vh*sc); });
     } else { ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0,0,W,H); }
-    drawCaptionsOnCtx(ctx, vidReady ? vid.currentTime : 0, s, W, H, true);
+    drawCaptionsOnCtx(ctx, vidReady ? vid.currentTime : 0, s, W, H, true, undefined, brandLogoRectFor(brandP, W, H, wmPng));
     drawBrandLogo(ctx, W, H, brandP, wmPng);
     drawWatermark(ctx, W, H, wmPng);
     var a = document.createElement('a');
