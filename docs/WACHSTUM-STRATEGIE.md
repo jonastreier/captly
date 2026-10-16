@@ -14,6 +14,16 @@ Entstanden aus drei Recherchen (Konkurrenz-Wachstum, SEO, Launch-Kanäle) und ei
   5. **Das Zahlungssignal ist wichtiger als der Nutzer:** Tracking nach Funnel plus «Pro vormerken»-Klicks, Wiederkehrer nur Beiwerk.
   6. **Paddle:** Für den Live-Betrieb braucht es ein verifiziertes Paddle-Konto (macht nur Jonas, Dauer und Anforderungen vorab prüfen). Bis dahin: Preise testen mit «Pro vormerken».
 
+## Umsetzungsstand (16.10.2026)
+
+Live und getestet:
+- **Trichter-Zähler** (api/track, cookielos, ohne ID/IP, nicht bei DNT/GPC): Besuch → Upload → Transkription → Export-Klick → E-Mail → Export fertig, dazu `seo_view`, `pro_interest`, `limit_user`, `limit_site`. Auswertung: `ssh hostpoint 'for f in ~/gluephs-data/track-*.json; do cat $f; echo; done' | node scripts/track-report.js 14`
+- **Zahlungssignale:** Preisabschnitt mit «Sag mir Bescheid beim Start» (Double-Opt-in, Push auf dein Handy), Upgrade-Frage nach dem ersten fertigen Export, nutzenorientierter Newsletter-Text am E-Mail-Gate.
+- **Limits:** 60 Min. Ton pro Nutzer und Tag, ca. 15 h pro Tag insgesamt (zwei Groq-Modelle), Push bei Erreichen, Warnung ab 2 GB, Ablehnung ab 8 GB.
+- **SEO-Seiten** (EN + DE, per `node scripts/build-pages.js` erzeugt, in der Sitemap, in der Search Console angemeldet): Reels, TikTok, Shorts, SRT↔VTT-Konverter (lokal im Browser), Kapwing-Alternative (nur belegte Fakten, Quelle kapwing.com/pricing, geprüft 16.10.2026). Jede Seite führt mit `utm_source=seo-<seite>` in den Editor, so sieht man im Report, welche Seite Exporte bringt.
+
+Bewusst offen: Vergleichsseiten zu VEED/CapCut (Gratis-Limits dort aus den Quellen nicht eindeutig belegbar), Überlast-Warteschlange, Bezahl-Schaltung (braucht Paddle-Konto), Preis-/Funktionsabgrenzung der Pläne.
+
 ## 1. Diagnose
 
 1. Der Hebel sind nicht Reichweite oder Launch-Spitzen, sondern wenige wiederkehrende Nutzer aus Nischen, in denen die Grossen schwach sind: deutschsprachige/Schweizer Creator, Datenschutz-sensible Nutzer (Agenturen, KMU, Gemeinden, Schulen), Longtail-Suchen.
