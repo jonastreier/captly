@@ -37,7 +37,10 @@ Live und getestet:
 - **Limits:** 60 Min. Ton pro Nutzer und Tag, ca. 15 h pro Tag insgesamt (zwei Groq-Modelle), Push bei Erreichen, Warnung ab 2 GB, Ablehnung ab 8 GB.
 - **SEO-Seiten** (EN + DE, per `node scripts/build-pages.js` erzeugt, in der Sitemap, in der Search Console angemeldet): Reels, TikTok, Shorts, SRT↔VTT-Konverter (lokal im Browser), Kapwing-Alternative (nur belegte Fakten, Quelle kapwing.com/pricing, geprüft 16.10.2026). Jede Seite führt mit `utm_source=seo-<seite>` in den Editor, so sieht man im Report, welche Seite Exporte bringt.
 
-Bewusst offen: Vergleichsseiten zu VEED/CapCut (Gratis-Limits dort aus den Quellen nicht eindeutig belegbar), Überlast-Warteschlange, Bezahl-Schaltung (braucht Paddle-Konto), Preis-/Funktionsabgrenzung der Pläne.
+- **Überlast-Schutz** (`api/status`, Banner auf der Seite): «ausgelastet, ca. N s» bei Groq-Drosselung, bei vollem Tageskontingent das Angebot «Mein Gerät nutzen» (lokal, langsamer) und automatisches lokales Weitermachen, statt einer Fehlermeldung. Das war die Voraussetzung für einen grösseren Launch (Show HN, Product Hunt).
+- Schweizer-Akzent-Seite, Paddle-Anleitung (`docs/PADDLE-ANLEITUNG.md`), Newsletter-Vergleich (oben).
+
+Bewusst offen: Vergleichsseiten zu VEED/CapCut (Gratis-Limits dort aus den Quellen nicht eindeutig belegbar), Bezahl-Schaltung (braucht Paddle-Konto), Preis-/Funktionsabgrenzung der Pläne.
 
 ## 1. Diagnose
 
