@@ -202,6 +202,46 @@ if ($AUDIO_CAP > 0) {
   @file_put_contents($af, json_encode($use), LOCK_EX);
 }
 
+// ── Tageslimit pro Nutzer (IP): wer es übertreibt, wird gebremst; normale Nutzung merkt nichts ──
+// Default 1800 s = 30 min Ton pro 24 h. Beim Erreichen: 429 «ip_daily_cap» (Frontend: «Bezahlpläne kommen») + Push an den Betreiber
+// (alert_ops, einmal pro Stunde): so siehst du, dass jemand mehr will. 0 = aus. Eingeloggte Abo-Nutzer ($quotaUid) sind ausgenommen.
+$IP_DAY = (int)($cfg['MAX_AUDIO_SEC_PER_IP_DAY'] ?? 1800);
+if ($IP_DAY > 0 && empty($quotaUid)) {
+  $df = sys_get_temp_dir() . '/capivo_audioday_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json';
+  $nowD = time(); $ud = [];
+  if (is_file($df)) { $d = json_decode((string)@file_get_contents($df), true); if (is_array($d)) $ud = array_values(array_filter($d, function($e) use ($nowD) { return is_array($e) && $e[0] > $nowD - 86400; })); }
+  $usedD = 0; foreach ($ud as $e) $usedD += $e[1];
+  if ($usedD + $secs > $IP_DAY) {
+    if ($cleanup) @unlink($tmp);
+    alert_ops('ip-day-cap', 'Gluephs: Ein Nutzer hat das Tageslimit (' . (int)($IP_DAY / 60) . ' Min. Ton) erreicht. Interesse an mehr? Bei vielen solchen Meldungen lohnt sich ein Bezahlplan.');
+    header('Retry-After: 3600');
+    fail(429, 'ip_daily_cap');
+  }
+  $ud[] = [$nowD, $secs]; @file_put_contents($df, json_encode($ud), LOCK_EX);
+}
+
+// ── Globales Tageslimit (alle Nutzer zusammen): Notbremse gegen Kosten/Missbrauch über viele Adressen ──
+// Zählt die Sekunden Ton pro UTC-Tag in einer Datei; ab Erreichen antwortet der Server 429 «daily_cap» (Retry-After bis zum
+// nächsten UTC-Tag, das Frontend zeigt «morgen wieder»). Default 10 h Ton/Tag ≈ 1 $ bei whisper-large-v3; 0 = aus.
+// Eingeloggte Abo-Nutzer ($quotaUid, nur bei BILLING_ENABLED) sind ausgenommen.
+$DAY_CAP = (int)($cfg['MAX_AUDIO_SEC_PER_DAY_TOTAL'] ?? 36000);
+if ($DAY_CAP > 0 && empty($quotaUid)) {
+  $gf = sys_get_temp_dir() . '/capivo_gday_' . gmdate('Ymd') . '.txt';
+  $gh = @fopen($gf, 'c+');
+  if ($gh && flock($gh, LOCK_EX)) {
+    $cur = (int)trim((string)stream_get_contents($gh));
+    if ($cur + $secs > $DAY_CAP) {
+      flock($gh, LOCK_UN); fclose($gh);
+      if ($cleanup) @unlink($tmp);
+      alert_ops('daily-cap', 'Gluephs: globales Tageslimit für Transkription erreicht (' . $DAY_CAP . ' s Ton). Neue Anfragen werden bis morgen abgelehnt.');
+      header('Retry-After: ' . max(1800, strtotime('tomorrow 00:00 UTC') - time()));
+      fail(429, 'daily_cap');
+    }
+    ftruncate($gh, 0); rewind($gh); fwrite($gh, (string)($cur + $secs)); fflush($gh);
+    flock($gh, LOCK_UN); fclose($gh);
+  }
+}
+
 // Push an den Betreiber (z. B. ntfy.sh-Thema aus config.php ALERT_URL), höchstens einmal pro Stunde
 function alert_ops($key, $msg) {
   global $cfg;

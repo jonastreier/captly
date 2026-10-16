@@ -17,7 +17,7 @@ const UID = '11111111-2222-4333-8444-555555555555', UID2 = '99999999-2222-4333-8
 const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_pro';
 
 (async () => {
-  const [sbPort, groqPort, paddlePort, phpPort, phpOffPort, phpVPort, phpC1Port] = [await freePort(), await freePort(), await freePort(), await freePort(), await freePort(), await freePort(), await freePort()];
+  const [sbPort, groqPort, paddlePort, phpPort, phpOffPort, phpVPort, phpC1Port, phpCapPort, phpIpPort] = [await freePort(), await freePort(), await freePort(), await freePort(), await freePort(), await freePort(), await freePort(), await freePort(), await freePort()];
   // ── Mock-Supabase
   const db = { profiles: {}, usage: [], events: new Set(), failProfileWrite: false, rpc: [], vk: {} }; // vk: 'uid' → Schlüssel von «heute» (Tageswechsel = db.vk = {})
   const tokens = { 'tok-user': { id: UID, email: 'a@example.com' }, 'tok-user2': { id: UID2, email: 'b@example.com' } };
@@ -54,7 +54,7 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
   const paddle = http.createServer((req, res) => { let b = ''; req.on('data', d => b += d); req.on('end', () => { paddleReqs.push({ url: req.url, auth: req.headers.authorization, method: req.method }); res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ data: { urls: { general: { overview: 'https://customer-portal.paddle.com/cpl_x?token=abc' } } } })); }); }).listen(paddlePort);
 
   const base = { SUPABASE_URL: `http://127.0.0.1:${sbPort}`, SUPABASE_SERVICE_KEY: 'svc', SUPABASE_ANON_KEY: 'anon', GROQ_API_KEY: 'gsk_test', GROQ_BASE: `http://127.0.0.1:${groqPort}`,
-    RATE_LIMIT_PER_HOUR: 0, MAX_AUDIO_SEC_PER_HOUR: 0, PADDLE_PRICE_CREATOR: PRICE_C, PADDLE_PRICE_PRO: PRICE_P, PADDLE_WEBHOOK_SECRET: SECRET, PADDLE_API_KEY: 'pdl_key',
+    RATE_LIMIT_PER_HOUR: 0, MAX_AUDIO_SEC_PER_HOUR: 0, MAX_AUDIO_SEC_PER_IP_DAY: 0, PADDLE_PRICE_CREATOR: PRICE_C, PADDLE_PRICE_PRO: PRICE_P, PADDLE_WEBHOOK_SECRET: SECRET, PADDLE_API_KEY: 'pdl_key',
     PADDLE_API_BASE: `http://127.0.0.1:${paddlePort}`, PADDLE_CLIENT_TOKEN: 'test_client', PADDLE_ENV: 'sandbox', ANON_SEC_PER_DAY: 20 };
   const mkdir = (cfg) => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crbill-'));
@@ -64,10 +64,12 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
   };
   const dirOn = mkdir(Object.assign({ BILLING_ENABLED: true }, base)), dirOff = mkdir(Object.assign({ BILLING_ENABLED: false }, base));
   const dirV = mkdir(Object.assign({}, base, { BILLING_ENABLED: true, ANON_SEC_PER_DAY: 600 })), dirC1 = mkdir(Object.assign({}, base, { BILLING_ENABLED: true, FREE_CLEAN_VIDEOS_PER_DAY: 1 }));
+  const dirCap = mkdir(Object.assign({}, base, { BILLING_ENABLED: false, MAX_AUDIO_SEC_PER_DAY_TOTAL: 7 }));
+  const dirIp = mkdir(Object.assign({}, base, { BILLING_ENABLED: false, MAX_AUDIO_SEC_PER_IP_DAY: 5 }));
   const spawnPhp = (dir, port) => spawn('php', ['-S', '127.0.0.1:' + port, '-t', dir], { env: Object.assign({}, process.env, { TMPDIR: dir }), stdio: 'ignore' });
-  const php = spawnPhp(dirOn, phpPort), phpOff = spawnPhp(dirOff, phpOffPort), phpV = spawnPhp(dirV, phpVPort), phpC1 = spawnPhp(dirC1, phpC1Port);
+  const php = spawnPhp(dirOn, phpPort), phpOff = spawnPhp(dirOff, phpOffPort), phpV = spawnPhp(dirV, phpVPort), phpC1 = spawnPhp(dirC1, phpC1Port), phpCap = spawnPhp(dirCap, phpCapPort), phpIp = spawnPhp(dirIp, phpIpPort);
   await new Promise(r => setTimeout(r, 900));
-  const U = 'http://127.0.0.1:' + phpPort + '/', UOFF = 'http://127.0.0.1:' + phpOffPort + '/', UV = 'http://127.0.0.1:' + phpVPort + '/', UC1 = 'http://127.0.0.1:' + phpC1Port + '/';
+  const U = 'http://127.0.0.1:' + phpPort + '/', UOFF = 'http://127.0.0.1:' + phpOffPort + '/', UV = 'http://127.0.0.1:' + phpVPort + '/', UC1 = 'http://127.0.0.1:' + phpC1Port + '/', UCAP = 'http://127.0.0.1:' + phpCapPort + '/', UIP = 'http://127.0.0.1:' + phpIpPort + '/';
 
   // ── Helfer
   const sign = (body, ts, secret = SECRET) => 'ts=' + ts + ';h1=' + crypto.createHmac('sha256', secret).update(ts + ':' + body).digest('hex');
@@ -216,7 +218,24 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     ok((await plan('tok-user2', UC1, KB)).watermark === true && (await plan('tok-user2', UC1, KA)).watermark === false, 'Konfig: 1 sauberes Video pro Tag → 2. markiert, 1. sauber');
     // Abos aus: nie ein Flag, keine Zählung
     const offW = await plan('tok-user2', UOFF, KC); ok(offW.enabled === false && !('watermark' in offW), 'Abos aus: kein Wasserzeichen-Flag (Frontend: nie Marke)');
-  } finally { php.kill(); phpV.kill(); phpC1.kill(); phpOff.kill(); sb.close(); groq.close(); paddle.close(); for (const d of [dirOn, dirOff, dirV, dirC1]) fs.rmSync(d, { recursive: true, force: true }); }
+    // ════ Globales Tageslimit (MAX_AUDIO_SEC_PER_DAY_TOTAL = 7 s): alle Nutzer zusammen, danach 429 daily_cap — ohne Groq-Aufruf
+    const gCap0 = groqCalls;
+    const c1 = await tr(null, 3, UCAP), c2 = await tr(null, 3, UCAP); ok(c1.s === 200 && c2.s === 200 && groqCalls === gCap0 + 2, 'Tageslimit: 3 s + 3 s (6 von 7 s) laufen durch');
+    const c3 = await fetch(UCAP + 'transcribe.php?model=whisper-large-v3-turbo', { method: 'POST', body: wav(3), headers: { 'Content-Type': 'audio/wav' } });
+    const c3j = await c3.json().catch(() => ({}));
+    ok(c3.status === 429 && c3j.error === 'daily_cap' && groqCalls === gCap0 + 2 && parseInt(c3.headers.get('retry-after'), 10) >= 1800, 'Tageslimit: 3 weitere Sekunden → 429 daily_cap mit Retry-After, Groq wird nicht angefragt');
+    const c4 = await tr(null, 1, UCAP); ok(c4.s === 200, 'Tageslimit: ein Rest von 1 s (7 von 7) passt noch');
+    const c5 = await tr(null, 1, UCAP); ok(c5.s === 429, 'Tageslimit: danach ist Schluss');
+    const offCap = await tr(null, 3, UOFF); ok(offCap.s === 200, 'Tageslimit: Standard (10 h) blockiert normale Nutzung nicht');
+    // ════ Tageslimit pro Nutzer (MAX_AUDIO_SEC_PER_IP_DAY = 5 s)
+    const gIp0 = groqCalls;
+    const i1 = await tr(null, 3, UIP); ok(i1.s === 200, 'Nutzerlimit: 3 von 5 s laufen durch');
+    const i2 = await fetch(UIP + 'transcribe.php?model=whisper-large-v3-turbo', { method: 'POST', body: wav(3), headers: { 'Content-Type': 'audio/wav' } });
+    const i2j = await i2.json().catch(() => ({}));
+    ok(i2.status === 429 && i2j.error === 'ip_daily_cap' && groqCalls === gIp0 + 1 && parseInt(i2.headers.get('retry-after'), 10) >= 1800, 'Nutzerlimit: 3 weitere s → 429 ip_daily_cap, Groq wird nicht angefragt');
+    const i3 = await tr(null, 2, UIP); ok(i3.s === 200, 'Nutzerlimit: Rest von 2 s (5 von 5) passt noch');
+    ok((await tr(null, 1, UIP)).s === 429, 'Nutzerlimit: danach ist Schluss');
+  } finally { php.kill(); phpV.kill(); phpC1.kill(); phpCap.kill(); phpIp.kill(); phpOff.kill(); sb.close(); groq.close(); paddle.close(); for (const d of [dirOn, dirOff, dirV, dirC1, dirCap, dirIp]) fs.rmSync(d, { recursive: true, force: true }); }
   console.log(fails ? `${fails}/${n} FEHLER` : `test-billing: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);
 })();

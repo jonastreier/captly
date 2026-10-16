@@ -19,6 +19,10 @@ return [
 
   // Optional: max. Sekunden Ton pro IP und Stunde (Default 1800 = 30 Min.). 0 = aus.
   'MAX_AUDIO_SEC_PER_HOUR' => 1800,
+  // Limit pro Nutzer (IP): Sekunden Ton pro 24 h (Default 1800 = 30 min). Danach «Bezahlpläne kommen» + Push (ALERT_URL). 0 = aus.
+  'MAX_AUDIO_SEC_PER_IP_DAY' => 1800,
+  // Notbremse: Sekunden Ton pro UTC-Tag über ALLE Nutzer zusammen (Default 36000 = 10 h ≈ 1 $ bei large-v3). 0 = aus.
+  'MAX_AUDIO_SEC_PER_DAY_TOTAL' => 36000,
 
   // Optional: Push-Meldung an dich, wenn Groq sein Limit meldet (z. B. https://ntfy.sh/<geheimes-thema>,
   // dazu die ntfy-App abonnieren). Leer = aus.

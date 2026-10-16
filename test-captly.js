@@ -5519,6 +5519,9 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const mix = T.STYLES.find(s => s.id === 'mix'), tight = T.STYLES.find(s => s.id === 'tight');
 
     // ── KI-Standard: Keywords + Emojis an, Hinweis bleibt am Schalter ──
+    ok(/var VIDEO_WARN_BYTES = 2 \* 1073741824, VIDEO_MAX_BYTES = 8 \* 1073741824;/.test(script) && /file\.size > VIDEO_MAX_BYTES\) \{[\s\S]{0,500}return;/.test(script) && /file\.size > VIDEO_WARN_BYTES\) capToast/.test(script), 'Dateigrösse: Warnung ab 2 GB, Ablehnung ab 8 GB (vor dem Laden)');
+    ok(/detail === 'ip_daily_cap' \? _t\('You\\'ve used today/.test(script), 'Nutzerlimit: Frontend nennt 30 Min. und «Bezahlpläne kommen»');
+    ok(/detail === 'daily_cap' \? _t\('Gluephs has reached today/.test(script), 'Tageslimit: Frontend zeigt «komm morgen wieder» statt Wartezeit-Text');
     ok(/var emKw = true, emEmoji = false, emZoom = 'off';/.test(script), 'Standard (ohne gemerkte Wahl): nur Keywords an, Emojis und Auto-Zoom AUS (Entscheid 16.10.)');
     ok(/id="emKwBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /id="emEmoBtn"[^>]*aria-pressed="false"/.test(htmlContent) && !/class="em-chip on" id="emEmoBtn"/.test(htmlContent) && /class="pos-btn on" data-z="off"/.test(htmlContent), 'Markup: Keywords an, Emojis aus, Auto-Zoom «Off»');
     ok(/emSrc === 'local' \|\| aiOff\(\)/.test(script) && /Simple emoji picks – AI picks when available/.test(script) && /AI picks unavailable — using simple keyword detection/.test(script), 'N-KI: Hinweis am Schalter bleibt, wenn die KI nicht antwortet');

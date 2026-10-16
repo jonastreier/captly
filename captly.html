@@ -11629,6 +11629,8 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       throw transcribeErr(resp.status === 401 && detail === 'login_required' ? _t('Please log in (top right) to transcribe videos.')
         : resp.status === 401 ? _t('Invalid API key — check the server config (config.php).')
         : resp.status === 413 ? _t('Audio too large for the server — please trim the video.')
+        : resp.status === 429 && detail === 'ip_daily_cap' ? _t('You\'ve used today\'s free limit (30 minutes of audio). Paid plans are coming — write to hello@gluephs.com to be notified, or come back tomorrow.')
+        : resp.status === 429 && detail === 'daily_cap' ? _t('Gluephs has reached today\'s free capacity — please come back tomorrow.')
         : resp.status === 429 ? rlMsg
         : resp.status >= 500 ? _t('Transcription service is busy right now — please try again.')
         : _t('Transcription error {0}', resp.status) + (detail ? ' (' + detail.slice(0, 120) + ')' : '') + _t('. Please try again.'),
@@ -12397,9 +12399,16 @@ function layoutPreviewFrame(setFont) {
 }
 // opts (nur von der Warteschlange, s. «BATCH / QUEUE»): { clip } = Queue-Clip dieses Videos (Status, Wiederherstellung aus dem
 // Speicher-Schnappschuss, Look des Clips). Ohne opts verhält sich loadVideo exakt wie bei einem einzelnen Video.
+var VIDEO_WARN_BYTES = 2 * 1073741824, VIDEO_MAX_BYTES = 8 * 1073741824; // Warnung ab 2 GB, Ablehnung ab 8 GB (Verarbeitung läuft im Browser des Nutzers)
 function loadVideo(file, opts) {
   var qClip = opts && opts.clip || null;
   if (!qClip && _q.clips.length) queueResetIfForeign(file); // Video ausserhalb der Warteschlange gewählt → Warteschlange ist nicht mehr gemeint
+  if (file && file.type.startsWith('video/') && file.size > VIDEO_MAX_BYTES) { // Schutz vor 30-GB-Dateien: Browser-Speicher, nicht unser Server (der Ton ist klein)
+    openEditor();
+    setTStatus('❌', _t('This file is very large ({0} GB). Please trim or compress it first — Reels clips are usually under 1 GB.', (file.size / 1073741824).toFixed(1)), false, false);
+    return;
+  }
+  if (file && file.type.startsWith('video/') && file.size > VIDEO_WARN_BYTES) capToast(_t('Large file ({0} GB) — it may take a while or run out of memory. Trimming it first helps.', (file.size / 1073741824).toFixed(1)));
   if (!file || !file.type.startsWith('video/')) {
     // Statt eines nativen alert() (bricht den Look-and-Feel, v.a. auf Mobile) die gleiche
     // rote Fehlerbox wie bei Transkriptionsfehlern zeigen — Editor ggf. dafür erst öffnen,

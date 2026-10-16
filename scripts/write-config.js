@@ -11,6 +11,8 @@ const cfg = [
   ['CORS_ORIGIN', q(e.CORS_ORIGIN || '')],
   ['RATE_LIMIT_PER_HOUR', num(e.RATE_LIMIT_PER_HOUR, 120)],
   ['MAX_AUDIO_SEC_PER_HOUR', num(e.MAX_AUDIO_SEC_PER_HOUR, 1800)],
+  ['MAX_AUDIO_SEC_PER_DAY_TOTAL', num(e.MAX_AUDIO_SEC_PER_DAY_TOTAL, 36000)],
+  ['MAX_AUDIO_SEC_PER_IP_DAY', num(e.MAX_AUDIO_SEC_PER_IP_DAY, 1800)],
   ['ALERT_URL', q(e.ALERT_URL || '')],
   ['REQUIRE_LOGIN', 'false'],
   ['SUPABASE_URL', q(e.SUPABASE_URL || 'https://tghodbtdraqkfwcmedcv.supabase.co')],
