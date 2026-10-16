@@ -2,6 +2,18 @@
 
 Entstanden aus drei Recherchen (Konkurrenz-Wachstum, SEO, Launch-Kanäle) und einer Planung mit Opus. Zahlen mit *Annahme* sind nicht belegt. Eine Erfolgsgarantie gibt es nicht; dafür gibt es messbare Zwischenziele und Entscheidungsregeln.
 
+## 0. Entscheide von Jonas (16.10.2026), sie gehen den Abschnitten unten vor
+
+- **Ziel ist möglichst schneller Umsatz mit dem Tool**, kein Portfolio-Stück. «Wiederkehrende Nutzer» unten ist nur Zwischenmass; das Endmass ist zahlende Kunden.
+- **Die E-Mail-Pflicht vor dem Download bleibt.** Die Adressen sind der Kundenstamm für Newsletter und den Start der Bezahlpläne. Der Abschnitt «E-Mail-Gate abschwächen» unten ist damit verworfen.
+- Folgen für die Planung:
+  1. **Kurzer Weg zum Geld:** Bezahlpläne früh scharf schalten (Code und Paddle-Anbindung sind vorbereitet, aber aus). Trennlinie: Einzelclips im Rahmen des Gratis-Limits bleiben gratis; Batch, Brand-Kit, lange Videos und höheres Tageslimit werden Pro. Am Tageslimit erscheint statt «morgen wieder» ein «Pro vormerken/Upgrade»-Knopf. Jeder Klick ist ein Zahlungssignal und eine Liste für den Start.
+  2. **Zahlungsbereite Zielgruppe zuerst:** Social-Media-Freelancer, Agenturen, KMU und Vereine zahlen eher als Hobby-Creator. Entsprechend ausrichten (Brand-Kit, Batch, Safe-Zone, Datenschutz, DE/CH).
+  3. **Newsletter-Recht (keine Rechtsberatung):** Die Adresse ist Pflicht, die Newsletter-Einwilligung ist es nicht. Werbung per E-Mail braucht in der Schweiz (UWG) und der EU in der Regel vorherige Einwilligung. Laut Datenschutzerklärung nutzen wir Adressen ohne Häkchen nur für wichtige Hinweise zum Dienst. Darum: Häkchen am Gate nutzenorientiert formulieren («Neue Stile, Startrabatt Pro»), nie vorangekreuzt, Double-Opt-in beibehalten, und vor dem ersten Werbemail an Nicht-Opt-ins klären, was erlaubt ist. Ein Hinweis «Beta endet, Preise starten» ist ein Dienstmail, ein Rabatt-Angebot ist Werbung.
+  4. **Schneller Umsatz auch ohne SaaS-Skalierung:** Das Tool als Dienstleistung für lokale KMU anbieten («Reels-Untertitel-Paket», Preis pro Monat). Ein Kunde bringt mehr als hundert Gratisnutzer und liefert Gesprächsmaterial.
+  5. **Das Zahlungssignal ist wichtiger als der Nutzer:** Tracking nach Funnel plus «Pro vormerken»-Klicks, Wiederkehrer nur Beiwerk.
+  6. **Paddle:** Für den Live-Betrieb braucht es ein verifiziertes Paddle-Konto (macht nur Jonas, Dauer und Anforderungen vorab prüfen). Bis dahin: Preise testen mit «Pro vormerken».
+
 ## 1. Diagnose
 
 1. Der Hebel sind nicht Reichweite oder Launch-Spitzen, sondern wenige wiederkehrende Nutzer aus Nischen, in denen die Grossen schwach sind: deutschsprachige/Schweizer Creator, Datenschutz-sensible Nutzer (Agenturen, KMU, Gemeinden, Schulen), Longtail-Suchen.
