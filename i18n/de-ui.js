@@ -32,7 +32,7 @@ module.exports = {
   "Thanks! Please check your inbox and confirm with the link — then we will tell you when it launches.": "Danke! Schau in dein Postfach und bestätige mit dem Link – dann melden wir uns beim Start.",
   "Plans": "Pläne",
   "Enjoying Gluephs?": "Gefällt dir Gluephs?",
-  "Creator plans (from $7.99/month) will bring 300 minutes a month, translation and saved projects. Want one email when they launch?": "Die Creator-Pläne (ab 7.99 $ pro Monat) bringen 300 Minuten pro Monat, Übersetzung und gespeicherte Projekte. Möchtest du eine E-Mail zum Start?",
+  "Creator plans (from $7.99/month) will bring 300 minutes a month, translation and saved projects. Want one email when they launch, with a one-time early-bird discount?": "Die Creator-Pläne (ab 7.99 $ pro Monat) bringen 300 Minuten pro Monat, Übersetzung und gespeicherte Projekte. Möchtest du eine E-Mail zum Start, mit einem einmaligen Frühbucher-Rabatt?",
   "Yes, notify me": "Ja, sag mir Bescheid",
   "No thanks": "Nein danke",
   "Thanks! Check your inbox and confirm with the link — then we will tell you when plans launch.": "Danke! Schau in dein Postfach und bestätige mit dem Link – dann melden wir uns beim Start der Pläne.",

@@ -14,6 +14,21 @@ Entstanden aus drei Recherchen (Konkurrenz-Wachstum, SEO, Launch-Kanäle) und ei
   5. **Das Zahlungssignal ist wichtiger als der Nutzer:** Tracking nach Funnel plus «Pro vormerken»-Klicks, Wiederkehrer nur Beiwerk.
   6. **Paddle:** Für den Live-Betrieb braucht es ein verifiziertes Paddle-Konto (macht nur Jonas, Dauer und Anforderungen vorab prüfen). Bis dahin: Preise testen mit «Pro vormerken».
 
+## Entscheide und Empfehlungen vom 16.10.2026 (Nachtrag)
+
+- **Preisplan:** Aktuell bleibt alles gratis. In ca. 2 Monaten (Dezember 2026) kommen Batch (bis 10 Clips), Brand-Kit/Logo und ein höheres Tageslimit hinter die Bezahlpläne. Wer sich jetzt auf die Warteliste setzt, bekommt einen **einmaligen Frühbucher-Rabatt** (Höhe offen). Paddle-Konto fehlt, Anleitung: [PADDLE-ANLEITUNG.md](PADDLE-ANLEITUNG.md).
+- **Schweizer Akzent:** Ein 9-Minuten-Clip (Landwirtschaft, Schweizer Hochdeutsch) wurde sehr gut erkannt, einzelne Fachwörter falsch; es war keine Mundart. Darum gibt es die Seite «Untertitel für Videos mit Schweizer Akzent» und keine Behauptung zu Mundart. Fachwörter: Feld «Namen & Begriffe» nutzen.
+- **Newsletter-Tool (Fakten aus Websuchen, vor Entscheid auf den Preisseiten prüfen):**
+
+| Tool | Gratis-Grenze | Hinweis |
+|---|---|---|
+| Brevo | 300 E-Mails pro Tag (ca. 9000/Monat), Brevo-Logo in den Mails | Zu den Kontakten widersprechen sich die Quellen (unbegrenzt bis 100 000). Die «300» ist laut Quellen das **Tageslimit der Mails**, nicht die Kontaktzahl: im eigenen Konto unter «Pläne» prüfen. EU-Anbieter. |
+| MailerLite | bis 500 Abonnenten, 12 000 Mails/Monat | Gratisgrenze wurde im Sept. 2025 von 1000 auf 500 gesenkt (laut einem Ratgeber). |
+| Resend | 3 000 Mails/Monat, 100/Tag | Eher für Systemmails; Marketing-Kontakte begrenzt. |
+| Amazon SES | kein Abo, ca. 0.10 $ pro 1000 Mails | Günstigste Lösung, braucht aber eigene Versand-Software und Einrichtung. |
+
+  **Empfehlung:** Für die ersten paar hundert bestätigte Adressen reicht Brevo gratis. Ein eigenes Konto/eigene Liste für Gluephs, getrennt von Wald und Tier. Die Anmeldung samt Double-Opt-in läuft bereits über unser System, an Brevo geht nur der Export der **bestätigten** Adressen (CSV aus Supabase, `confirmed_at` gesetzt und nicht abgemeldet). Wichtig vor dem ersten Versand: Absender-Domain gluephs.com bei Brevo bestätigen (DKIM-Eintrag im Hostpoint-DNS; der bestehende SPF-Eintrag nutzt `redirect=` und muss dafür angepasst werden). Wird die Liste grösser als ein paar tausend Adressen, lohnt sich Amazon SES mit eigenem Versandskript oder der günstigste Brevo-Tarif (ab ca. 9 $/Monat laut Quellen).
+
 ## Umsetzungsstand (16.10.2026)
 
 Live und getestet:

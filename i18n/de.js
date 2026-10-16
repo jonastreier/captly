@@ -170,7 +170,7 @@ module.exports = {
     ['<li>Everything in Creator</li>', '<li>Alles aus Creator</li>'],
     ['<li>Batch processing (coming soon)</li>', '<li>Stapelverarbeitung (folgt bald)</li>'],
     ['>Notify me when it launches<', '>Sag mir Bescheid beim Start<'],
-    ['One email when this plan launches, with a confirmation link first. Unsubscribe anytime.', 'Eine E-Mail zum Start dieses Plans, vorher mit Bestätigungslink. Jederzeit abbestellbar.'],
+    ['One-time early-bird discount for everyone on the list. One email when this plan launches, with a confirmation link first. Unsubscribe anytime.', 'Einmaliger Frühbucher-Rabatt für alle auf der Liste. Eine E-Mail zum Start dieses Plans, vorher mit Bestätigungslink. Jederzeit abbestellbar.'],
     // FAQ (die JSON-LD-Strukturdaten entstehen aus diesen Einträgen)
     ['Frequently asked questions', 'Häufige Fragen'],
     ['>Is Gluephs free? Is there a watermark?<', '>Ist Gluephs kostenlos? Gibt es ein Wasserzeichen?<'],

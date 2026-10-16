@@ -163,6 +163,35 @@ const PAGES = [
     ],
   },
   {
+    slug: 'untertitel-schweizer-hochdeutsch', lang: 'de', other: null, kind: 'article', crumb: 'Schweizer Akzent',
+    title: 'Untertitel für Videos mit Schweizer Akzent: kostenlos | Gluephs',
+    desc: 'Automatische Untertitel für Deutsch mit Schweizer Akzent: Test mit einem 9-Minuten-Video, Tipps für Fachwörter und eine ehrliche Antwort zu Mundart.',
+    h1: 'Untertitel für Videos mit Schweizer Akzent',
+    lead: 'Gluephs erkennt Deutsch auch mit Schweizer Akzent. Wir haben es an einem 9-minütigen Video aus der Landwirtschaft geprüft: Die Sätze kamen sehr gut an, einzelne Fachwörter brauchten eine Korrektur.',
+    blocks: [
+      { h2: 'Was wir getestet haben', p: [
+        'Ein Interview-Video von gut neun Minuten, mehrere Sprecher, Aufnahmen im Freien mit Wind, gesprochen in Schweizer Hochdeutsch (so reden die meisten im Beruf und vor der Kamera). Die automatische Erkennung auf Deutsch lieferte zusammenhängende, gut lesbare Sätze mit Satzzeichen. Fachwörter wie «Keyline Design» oder «Waldrandaufwertung» wurden richtig geschrieben.',
+        'Nicht alles war richtig: Einzelne Fachbegriffe aus der Landwirtschaft wurden als ähnlich klingende Alltagswörter geschrieben. Das ist bei jedem Fachgebiet so und lässt sich gut in den Griff bekommen (siehe unten). Das war ein Test an einem einzigen Video, kein Qualitätsversprechen für jede Aufnahme.',
+      ] },
+      { h2: 'So holst du das Beste heraus', ol: [
+        'Stelle die gesprochene Sprache auf «Deutsch», statt automatisch erkennen zu lassen, wenn dein Video durchgehend Deutsch ist.',
+        'Trage im Feld «Namen &amp; Begriffe» deine Fachwörter, Orte und Namen ein (zum Beispiel Betriebsnamen oder Fachausdrücke). Die Erkennung bekommt sie als Hinweis und schreibt sie danach häufiger richtig.',
+        'Gehe die Untertitel einmal durch und korrigiere einzelne Wörter direkt im Tab «Captions». Das Timing bleibt erhalten.',
+        'Achte beim Dreh auf guten Ton: Mikrofon nah am Sprecher, bei Wind ein Windschutz. Das bringt mehr als jede Einstellung danach.',
+      ] },
+      { h2: 'Und echte Mundart?', p: [
+        'Reine Mundart (zum Beispiel Berndeutsch oder Züritüütsch) ist eine andere Sache. Die Spracherkennung kennt Schweizerdeutsch nicht als eigene Sprache und behandelt es wie Hochdeutsch. Das Ergebnis kann deshalb stark abweichen. Wir haben echte Mundart noch nicht systematisch geprüft und versprechen dafür keine Qualität.',
+        'Du siehst es aber sofort: <a href="@HOME@">Probiere einen kurzen Clip aus</a>, der Test dauert eine Minute und kostet nichts.',
+      ] },
+    ],
+    faq: [
+      { q: 'Funktioniert Gluephs mit Schweizerdeutsch?', a: 'Mit Schweizer Hochdeutsch und Akzent ja, das haben wir an einem 9-Minuten-Video geprüft. Reine Mundart behandelt die Erkennung wie Hochdeutsch, deshalb ist dort die Qualität nicht garantiert.' },
+      { q: 'Kann ich Fachwörter und Namen vorgeben?', a: 'Ja, im Feld «Namen & Begriffe». Die Erkennung nutzt sie als Hinweis, und du kannst Wörter zusätzlich von Hand korrigieren.' },
+      { q: 'Wird mein Video hochgeladen?', a: 'Nein. Das Video wird in deinem Browser verarbeitet. Nur die Tonspur geht zur Texterstellung; Ton und Transkript speichern wir nicht auf unseren Servern.' },
+      { q: 'Kostet das etwas?', a: 'In der Beta ist Gluephs kostenlos und setzt kein Wasserzeichen. Vor dem ersten Download fragen wir nach deiner E-Mail-Adresse (kein Konto, kein Passwort). Es gilt ein Fair-Use-Limit von 60 Minuten Ton pro Person und Tag.' },
+    ],
+  },
+  {
     slug: 'kapwing-alternative', lang: 'en', other: 'alternative-zu-kapwing', kind: 'compare', crumb: 'Kapwing alternative',
     title: 'Kapwing alternative for captions: free, no watermark | Gluephs',
     desc: 'Looking for a Kapwing alternative just for captions? Compare the free plans honestly: watermark, export length, resolution and subtitle limits.',
@@ -330,7 +359,7 @@ $('dl').addEventListener('click',function(){var v=$('out').value;if(!v)return;va
 }
 
 function render(pg) {
-  const t = T[pg.lang], other = PAGES.find(p => p.slug === pg.other);
+  const t = T[pg.lang], other = pg.other ? PAGES.find(p => p.slug === pg.other) : null;
   const url = `${SITE}/${pg.slug}`, homeAbs = pg.lang === 'de' ? `${SITE}/de` : `${SITE}/`;
   const homeHref = `${t.home}?utm_source=seo-${pg.slug}`;
   const ctx = { homeHref };
@@ -353,8 +382,8 @@ function render(pg) {
 <meta name="description" content="${esc(pg.desc)}">
 <meta name="robots" content="index,follow,max-image-preview:large">
 <link rel="canonical" href="${url}">
-<link rel="alternate" hreflang="${pg.lang}" href="${url}">
-<link rel="alternate" hreflang="${other.lang}" href="${SITE}/${other.slug}">
+${other ? `<link rel="alternate" hreflang="${pg.lang}" href="${url}">
+<link rel="alternate" hreflang="${other.lang}" href="${SITE}/${other.slug}">` : ''}
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="Gluephs">
 <meta property="og:locale" content="${t.locale}">
@@ -372,7 +401,7 @@ ${ld.map(o => `<script type="application/ld+json">${JSON.stringify(o)}</script>`
 <body>
 <header class="top">
   <a class="logo" href="${t.home}" aria-label="Gluephs">glue<b>phs</b></a>
-  <nav><a class="lang" href="/${pg.other}" hreflang="${other.lang}" lang="${other.lang}">${t.lang}</a><a class="btn" href="${homeHref}">${esc(t.cta)}</a></nav>
+  <nav>${other ? `<a class="lang" href="/${pg.other}" hreflang="${other.lang}" lang="${other.lang}">${t.lang}</a>` : ''}<a class="btn" href="${homeHref}">${esc(t.cta)}</a></nav>
 </header>
 <main>
 <p class="crumbs"><a href="${t.home}">${t.crumbHome}</a> › ${esc(pg.crumb)}</p>
@@ -396,10 +425,11 @@ ${pg.disclaimer ? `<p class="disc">${esc(pg.disclaimer)}</p>` : ''}
 }
 
 function sitemap() {
-  const e = (loc, alts) => `  <url>\n    <loc>${loc}</loc>\n${alts.map(a => `    <xhtml:link rel="alternate" hreflang="${a[0]}" href="${a[1]}"/>`).join('\n')}\n  </url>`;
+  const e = (loc, alts) => `  <url>\n    <loc>${loc}</loc>\n${alts.map(a => `    <xhtml:link rel="alternate" hreflang="${a[0]}" href="${a[1]}"/>\n`).join('')}  </url>`;
   const home = [['en', SITE + '/'], ['de', SITE + '/de'], ['x-default', SITE + '/']];
   const urls = [e(SITE + '/', home), e(SITE + '/de', home)];
   PAGES.forEach(p => {
+    if (!p.other) { urls.push(e(`${SITE}/${p.slug}`, [])); return; }
     const o = PAGES.find(x => x.slug === p.other);
     const en = p.lang === 'en' ? p : o, de = p.lang === 'de' ? p : o;
     urls.push(e(`${SITE}/${p.slug}`, [['en', `${SITE}/${en.slug}`], ['de', `${SITE}/${de.slug}`], ['x-default', `${SITE}/${en.slug}`]]));
