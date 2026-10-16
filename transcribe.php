@@ -203,9 +203,9 @@ if ($AUDIO_CAP > 0) {
 }
 
 // ── Tageslimit pro Nutzer (IP): wer es übertreibt, wird gebremst; normale Nutzung merkt nichts ──
-// Default 1800 s = 30 min Ton pro 24 h. Beim Erreichen: 429 «ip_daily_cap» (Frontend: «Bezahlpläne kommen») + Push an den Betreiber
+// Default 3600 s = 60 min Ton pro 24 h. Beim Erreichen: 429 «ip_daily_cap» (Frontend: «Bezahlpläne kommen») + Push an den Betreiber
 // (alert_ops, einmal pro Stunde): so siehst du, dass jemand mehr will. 0 = aus. Eingeloggte Abo-Nutzer ($quotaUid) sind ausgenommen.
-$IP_DAY = (int)($cfg['MAX_AUDIO_SEC_PER_IP_DAY'] ?? 1800);
+$IP_DAY = (int)($cfg['MAX_AUDIO_SEC_PER_IP_DAY'] ?? 3600);
 if ($IP_DAY > 0 && empty($quotaUid)) {
   $df = sys_get_temp_dir() . '/capivo_audioday_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json';
   $nowD = time(); $ud = [];
@@ -220,26 +220,38 @@ if ($IP_DAY > 0 && empty($quotaUid)) {
   $ud[] = [$nowD, $secs]; @file_put_contents($df, json_encode($ud), LOCK_EX);
 }
 
-// ── Globales Tageslimit (alle Nutzer zusammen): Notbremse gegen Kosten/Missbrauch über viele Adressen ──
-// Zählt die Sekunden Ton pro UTC-Tag in einer Datei; ab Erreichen antwortet der Server 429 «daily_cap» (Retry-After bis zum
-// nächsten UTC-Tag, das Frontend zeigt «morgen wieder»). Default 10 h Ton/Tag ≈ 1 $ bei whisper-large-v3; 0 = aus.
-// Eingeloggte Abo-Nutzer ($quotaUid, nur bei BILLING_ENABLED) sind ausgenommen.
-$DAY_CAP = (int)($cfg['MAX_AUDIO_SEC_PER_DAY_TOTAL'] ?? 36000);
-if ($DAY_CAP > 0 && empty($quotaUid)) {
-  $gf = sys_get_temp_dir() . '/capivo_gday_' . gmdate('Ymd') . '.txt';
-  $gh = @fopen($gf, 'c+');
-  if ($gh && flock($gh, LOCK_EX)) {
-    $cur = (int)trim((string)stream_get_contents($gh));
-    if ($cur + $secs > $DAY_CAP) {
-      flock($gh, LOCK_UN); fclose($gh);
-      if ($cleanup) @unlink($tmp);
-      alert_ops('daily-cap', 'Gluephs: globales Tageslimit für Transkription erreicht (' . $DAY_CAP . ' s Ton). Neue Anfragen werden bis morgen abgelehnt.');
-      header('Retry-After: ' . max(1800, strtotime('tomorrow 00:00 UTC') - time()));
-      fail(429, 'daily_cap');
+// ── Tageskontingent pro Modell (alle Nutzer zusammen): Notbremse + Ausweichen ──
+// Groq begrenzt Audio-Sekunden PRO MODELL und Tag (Free-Tarif: 28 800 s = 8 h je Modell). Wir zählen je UTC-Tag mit und halten
+// einen Puffer (Default 27 000 s je Modell), damit der Nutzer unsere freundliche Meldung sieht statt Groqs Fehler.
+// Ist das gewünschte Modell voll, weicht der Server aufs andere aus (ausser beim Übersetzen: nur large-v3); sind beide voll,
+// antwortet er 429 «daily_cap». Free-Tarif = null Kosten; im bezahlten Tarif begrenzt der Wert die Tagesausgaben
+// (27 000 s large-v3 ≈ 0,83 $, turbo ≈ 0,30 $). 0 = aus. Eingeloggte Abo-Nutzer ($quotaUid) sind ausgenommen.
+$MODEL_DAY = (int)($cfg['MAX_AUDIO_SEC_PER_DAY_PER_MODEL'] ?? 27000);
+if ($MODEL_DAY > 0 && empty($quotaUid)) {
+  $cands = [$model];
+  if (!$translate) $cands[] = ($model === 'whisper-large-v3') ? 'whisper-large-v3-turbo' : 'whisper-large-v3';
+  $picked = null;
+  foreach ($cands as $cm) {
+    $gf = sys_get_temp_dir() . '/capivo_gday_' . preg_replace('/[^a-z0-9]/', '', $cm) . '_' . gmdate('Ymd') . '.txt';
+    $gh = @fopen($gf, 'c+');
+    if (!$gh) { $picked = $cm; break; } // Zähler nicht schreibbar → nicht blockieren
+    if (flock($gh, LOCK_EX)) {
+      $cur = (float)trim((string)stream_get_contents($gh));
+      if ($cur + $secs <= $MODEL_DAY) {
+        ftruncate($gh, 0); rewind($gh); fwrite($gh, (string)($cur + $secs)); fflush($gh);
+        flock($gh, LOCK_UN); fclose($gh); $picked = $cm; break;
+      }
+      flock($gh, LOCK_UN);
     }
-    ftruncate($gh, 0); rewind($gh); fwrite($gh, (string)($cur + $secs)); fflush($gh);
-    flock($gh, LOCK_UN); fclose($gh);
+    fclose($gh);
   }
+  if ($picked === null) {
+    if ($cleanup) @unlink($tmp);
+    alert_ops('daily-cap', 'Gluephs: Tageskontingent für Transkription ausgeschöpft (beide Modelle je ' . $MODEL_DAY . ' s Ton). Neue Anfragen werden bis morgen (UTC) abgelehnt.');
+    header('Retry-After: ' . max(1800, strtotime('tomorrow 00:00 UTC') - time()));
+    fail(429, 'daily_cap');
+  }
+  if ($picked !== $model) { $model = $picked; header('X-Gluephs-Model-Fallback: ' . $picked); }
 }
 
 // Push an den Betreiber (z. B. ntfy.sh-Thema aus config.php ALERT_URL), höchstens einmal pro Stunde

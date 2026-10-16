@@ -11629,7 +11629,7 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       throw transcribeErr(resp.status === 401 && detail === 'login_required' ? _t('Please log in (top right) to transcribe videos.')
         : resp.status === 401 ? _t('Invalid API key — check the server config (config.php).')
         : resp.status === 413 ? _t('Audio too large for the server — please trim the video.')
-        : resp.status === 429 && detail === 'ip_daily_cap' ? _t('You\'ve used today\'s free limit (30 minutes of audio). Paid plans are coming — write to hello@gluephs.com to be notified, or come back tomorrow.')
+        : resp.status === 429 && detail === 'ip_daily_cap' ? _t('You\'ve used today\'s free limit (60 minutes of audio). Paid plans are coming — write to hello@gluephs.com to be notified, or come back tomorrow.')
         : resp.status === 429 && detail === 'daily_cap' ? _t('Gluephs has reached today\'s free capacity — please come back tomorrow.')
         : resp.status === 429 ? rlMsg
         : resp.status >= 500 ? _t('Transcription service is busy right now — please try again.')

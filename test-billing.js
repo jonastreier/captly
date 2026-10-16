@@ -64,7 +64,7 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
   };
   const dirOn = mkdir(Object.assign({ BILLING_ENABLED: true }, base)), dirOff = mkdir(Object.assign({ BILLING_ENABLED: false }, base));
   const dirV = mkdir(Object.assign({}, base, { BILLING_ENABLED: true, ANON_SEC_PER_DAY: 600 })), dirC1 = mkdir(Object.assign({}, base, { BILLING_ENABLED: true, FREE_CLEAN_VIDEOS_PER_DAY: 1 }));
-  const dirCap = mkdir(Object.assign({}, base, { BILLING_ENABLED: false, MAX_AUDIO_SEC_PER_DAY_TOTAL: 7 }));
+  const dirCap = mkdir(Object.assign({}, base, { BILLING_ENABLED: false, MAX_AUDIO_SEC_PER_DAY_PER_MODEL: 7 }));
   const dirIp = mkdir(Object.assign({}, base, { BILLING_ENABLED: false, MAX_AUDIO_SEC_PER_IP_DAY: 5 }));
   const spawnPhp = (dir, port) => spawn('php', ['-S', '127.0.0.1:' + port, '-t', dir], { env: Object.assign({}, process.env, { TMPDIR: dir }), stdio: 'ignore' });
   const php = spawnPhp(dirOn, phpPort), phpOff = spawnPhp(dirOff, phpOffPort), phpV = spawnPhp(dirV, phpVPort), phpC1 = spawnPhp(dirC1, phpC1Port), phpCap = spawnPhp(dirCap, phpCapPort), phpIp = spawnPhp(dirIp, phpIpPort);
@@ -218,15 +218,18 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     ok((await plan('tok-user2', UC1, KB)).watermark === true && (await plan('tok-user2', UC1, KA)).watermark === false, 'Konfig: 1 sauberes Video pro Tag → 2. markiert, 1. sauber');
     // Abos aus: nie ein Flag, keine Zählung
     const offW = await plan('tok-user2', UOFF, KC); ok(offW.enabled === false && !('watermark' in offW), 'Abos aus: kein Wasserzeichen-Flag (Frontend: nie Marke)');
-    // ════ Globales Tageslimit (MAX_AUDIO_SEC_PER_DAY_TOTAL = 7 s): alle Nutzer zusammen, danach 429 daily_cap — ohne Groq-Aufruf
+    // ════ Tageskontingent je Modell (7 s je Modell): erst Wunschmodell, dann Ausweichen aufs andere, dann daily_cap — ohne Groq-Aufruf
     const gCap0 = groqCalls;
-    const c1 = await tr(null, 3, UCAP), c2 = await tr(null, 3, UCAP); ok(c1.s === 200 && c2.s === 200 && groqCalls === gCap0 + 2, 'Tageslimit: 3 s + 3 s (6 von 7 s) laufen durch');
-    const c3 = await fetch(UCAP + 'transcribe.php?model=whisper-large-v3-turbo', { method: 'POST', body: wav(3), headers: { 'Content-Type': 'audio/wav' } });
-    const c3j = await c3.json().catch(() => ({}));
-    ok(c3.status === 429 && c3j.error === 'daily_cap' && groqCalls === gCap0 + 2 && parseInt(c3.headers.get('retry-after'), 10) >= 1800, 'Tageslimit: 3 weitere Sekunden → 429 daily_cap mit Retry-After, Groq wird nicht angefragt');
-    const c4 = await tr(null, 1, UCAP); ok(c4.s === 200, 'Tageslimit: ein Rest von 1 s (7 von 7) passt noch');
-    const c5 = await tr(null, 1, UCAP); ok(c5.s === 429, 'Tageslimit: danach ist Schluss');
-    const offCap = await tr(null, 3, UOFF); ok(offCap.s === 200, 'Tageslimit: Standard (10 h) blockiert normale Nutzung nicht');
+    const rq = async sec => { const r = await fetch(UCAP + 'transcribe.php?model=whisper-large-v3-turbo', { method: 'POST', body: wav(sec), headers: { 'Content-Type': 'audio/wav' } }); return { s: r.status, fb: r.headers.get('x-gluephs-model-fallback'), ra: r.headers.get('retry-after'), j: await r.json().catch(() => ({})) }; };
+    const q1 = await rq(3), q2 = await rq(3); ok(q1.s === 200 && q2.s === 200 && !q1.fb && !q2.fb, 'Modell-Kontingent: 3 s + 3 s (6 von 7) laufen auf dem Wunschmodell');
+    const q3 = await rq(3); ok(q3.s === 200 && q3.fb === 'whisper-large-v3', 'Modell-Kontingent: Wunschmodell voll → Ausweichen auf large-v3 (Header X-Gluephs-Model-Fallback)');
+    const q4 = await rq(3); ok(q4.s === 200 && q4.fb === 'whisper-large-v3' && groqCalls === gCap0 + 4, 'Modell-Kontingent: zweites Ausweichen passt noch (6 von 7 auf large-v3)');
+    const q5 = await rq(3); ok(q5.s === 429 && q5.j.error === 'daily_cap' && parseInt(q5.ra, 10) >= 1800 && groqCalls === gCap0 + 4, 'Modell-Kontingent: beide Modelle voll → 429 daily_cap mit Retry-After, Groq wird nicht angefragt');
+    ok((await rq(1)).s === 200, 'Modell-Kontingent: Rest von 1 s (7 von 7) passt noch');
+    const tl = await fetch(UCAP + 'transcribe.php?translate=1', { method: 'POST', body: wav(1), headers: { 'Content-Type': 'audio/wav' } }); ok(tl.status === 200, 'Modell-Kontingent: Übersetzen bleibt auf large-v3 (hat noch 1 s Platz)');
+    ok((await rq(2)).s === 429, 'Modell-Kontingent: danach ist Schluss');
+    const offCap = await tr(null, 3, UOFF); ok(offCap.s === 200, 'Modell-Kontingent: Standard (27 000 s) blockiert normale Nutzung nicht');
+
     // ════ Tageslimit pro Nutzer (MAX_AUDIO_SEC_PER_IP_DAY = 5 s)
     const gIp0 = groqCalls;
     const i1 = await tr(null, 3, UIP); ok(i1.s === 200, 'Nutzerlimit: 3 von 5 s laufen durch');
