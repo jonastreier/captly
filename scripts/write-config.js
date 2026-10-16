@@ -4,6 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const e = process.env;
 if (!e.GROQ_API_KEY) { console.error('GROQ_API_KEY fehlt (GitHub → Settings → Secrets → Actions).'); process.exit(1); }
+// Abos erst live, wenn die Rechtstexte den Verkäufer nennen (Audit 2026-10-16): ohne «Paddle» in Terms und beiden
+// Datenschutzerklärungen bricht der Deploy ab, statt Kunden ohne Kauf-/Rückerstattungsregeln abzurechnen.
+if (e.BILLING_ENABLED === '1' || e.BILLING_ENABLED === 'true') {
+  const miss = ['terms.html', 'privacy.html', 'datenschutz.html'].filter(f => { try { return !/Paddle/.test(fs.readFileSync(path.join(__dirname, '..', f), 'utf8')); } catch (x) { return true; } });
+  if (miss.length) { console.error('BILLING_ENABLED, aber ' + miss.join(', ') + ' nennt Paddle nicht (Kauf, Rückerstattung, Datenschutz) — erst Texte ergänzen.'); process.exit(1); }
+}
 const q = v => "'" + String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
 const num = (v, d) => (v !== undefined && v !== '' && !isNaN(+v)) ? +v : d;
 const cfg = [
@@ -13,6 +19,10 @@ const cfg = [
   ['MAX_AUDIO_SEC_PER_HOUR', num(e.MAX_AUDIO_SEC_PER_HOUR, 1800)],
   ['MAX_AUDIO_SEC_PER_DAY_PER_MODEL', num(e.MAX_AUDIO_SEC_PER_DAY_PER_MODEL, 27000)],
   ['MAX_AUDIO_SEC_PER_IP_DAY', num(e.MAX_AUDIO_SEC_PER_IP_DAY, 3600)],
+  ['MAX_UPLOAD_BYTES', num(e.MAX_UPLOAD_BYTES, 4718592)],
+  ['LLM_CALLS_PER_IP_DAY', num(e.LLM_CALLS_PER_IP_DAY, 300)],
+  ['LLM_CALLS_PER_DAY_TOTAL', num(e.LLM_CALLS_PER_DAY_TOTAL, 4000)],
+  ['LEAD_MAILS_PER_DAY', num(e.LEAD_MAILS_PER_DAY, 300)],
   ['ALERT_URL', q(e.ALERT_URL || '')],
   ['REQUIRE_LOGIN', 'false'],
   ['SUPABASE_URL', q(e.SUPABASE_URL || 'https://tghodbtdraqkfwcmedcv.supabase.co')],
@@ -38,6 +48,9 @@ const cfg = [
   ['PADDLE_API_KEY', q(e.PADDLE_API_KEY || '')],
   ['PADDLE_WEBHOOK_SECRET', q(e.PADDLE_WEBHOOK_SECRET || '')],
   ['PADDLE_TOLERANCE_SEC', num(e.PADDLE_TOLERANCE_SEC, 300)],
+  // Bot-Check (Cloudflare Turnstile, human.php): beide gesetzt = an. Der Site-Key ist öffentlich, das Secret nie im Frontend.
+  ['TURNSTILE_SITE_KEY', q(e.TURNSTILE_SITE_KEY || '')],
+  ['TURNSTILE_SECRET', q(e.TURNSTILE_SECRET || '')],
 ];
 const php = '<?php\n// Automatisch erzeugt von scripts/write-config.js (GitHub-Action). Nicht bearbeiten, nicht committen.\nreturn [\n'
   + cfg.map(([k, v]) => '  ' + q(k) + ' => ' + v + ',').join('\n') + '\n];\n';

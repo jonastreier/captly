@@ -28,7 +28,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
   }).listen(sbPort);
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crtel-'));
-  for (const f of ['log.php', 'stat.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
+  for (const f of ['log.php', 'stat.php', 'ratelimit.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
   fs.writeFileSync(path.join(dir, 'config.php'), `<?php return ['SUPABASE_URL'=>'http://127.0.0.1:${sbPort}','SUPABASE_SERVICE_KEY'=>'svc'];`);
   const php = spawn('php', ['-S', '127.0.0.1:' + phpPort, '-t', dir], { env: Object.assign({}, process.env, { TMPDIR: dir }), stdio: 'ignore' });
   await new Promise(r => setTimeout(r, 800));
@@ -61,6 +61,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
     ok((await post('stat.php', 'x')).s === 400, 'stat: kaputter Body → 400');
     const s1 = await (await fetch(base + 'stat.php')).json();
     ok(s1.total === 103 && s1.top[0].style === 'tight' && s1.top[0].n === 50 && s1.top[1].style === 'hormozi', 'stat: GET summiert 30 Tage, sortiert: ' + JSON.stringify(s1.top));
+    ok(Array.isArray(s1.all) && s1.all.length === 4 && s1.all[3].style === 'x' && s1.all[3].n === 1, 'stat: GET liefert die ganze Rangliste (all) für die Style-Rotation');
     await fetch(base + 'stat.php'); ok(statGets === 1, 'stat: zweite Abfrage aus dem Datei-Cache (1 DB-Zugriff)');
     const hdr = (await fetch(base + 'stat.php')).headers.get('cache-control'); ok(/max-age=3600/.test(hdr || ''), 'stat: Cache-Control für 1 Stunde');
     let l2; for (let i = 0; i < 22; i++) l2 = await post('stat.php', { style: 'mix' });
@@ -68,7 +69,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
 
     // ── ohne Konfiguration (eigener Server, damit kein Opcache-Cache dazwischenfunkt)
     const dir2 = fs.mkdtempSync(path.join(os.tmpdir(), 'crtel2-')); const p2 = await freePort();
-    for (const f of ['log.php', 'stat.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir2, f));
+    for (const f of ['log.php', 'stat.php', 'ratelimit.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir2, f));
     const php2 = spawn('php', ['-S', '127.0.0.1:' + p2, '-t', dir2], { env: Object.assign({}, process.env, { TMPDIR: dir2 }), stdio: 'ignore' });
     await new Promise(r => setTimeout(r, 800));
     try {
@@ -99,7 +100,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
     } finally { php4.kill(); groq.close(); fs.rmSync(dir4, { recursive: true, force: true }); }
     // ── track.php (Trichter-Zähler, ohne Datenbank, Zähler in Datei)
     const dir3 = fs.mkdtempSync(path.join(os.tmpdir(), 'crtrk-')); const p3 = await freePort(); const data3 = path.join(dir3, 'data');
-    for (const f of ['track.php', 'trackstore.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir3, f));
+    for (const f of ['track.php', 'trackstore.php', 'ratelimit.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir3, f));
     fs.writeFileSync(path.join(dir3, 'config.php'), `<?php return ['TRACK_DIR'=>'${data3}'];`);
     const php3 = spawn('php', ['-S', '127.0.0.1:' + p3, '-t', dir3], { env: Object.assign({}, process.env, { TMPDIR: dir3 }), stdio: 'ignore' });
     await new Promise(r => setTimeout(r, 800));

@@ -21,6 +21,16 @@ return [
   'MAX_AUDIO_SEC_PER_HOUR' => 1800,
   // Limit pro Nutzer (IP): Sekunden Ton pro 24 h (Default 3600 = 60 min). Danach «Bezahlpläne kommen» + Push (ALERT_URL). 0 = aus.
   'MAX_AUDIO_SEC_PER_IP_DAY' => 3600,
+  // Kostenschutz (Audit 2026-10-16): Bytes pro Audio-Stück (130 s WAV ≈ 4,2 MB), LLM-Aufrufe (polish+enhance) pro Absender und Tag
+  // bzw. insgesamt pro UTC-Tag, Bestätigungsmails (lead.php) insgesamt pro Tag. 0 = aus.
+  'MAX_UPLOAD_BYTES' => 4718592,
+  'LLM_CALLS_PER_IP_DAY' => 300,
+  'LLM_CALLS_PER_DAY_TOTAL' => 4000,
+  'LEAD_MAILS_PER_DAY' => 300,
+  // Bot-Check (Cloudflare Turnstile, kostenlos: dash.cloudflare.com → Turnstile → Widget «Managed», Domain gluephs.com).
+  // Beide gesetzt = Transkription, KI-Funktionen und Newsletter-Formular verlangen einmal pro Sitzung die (meist unsichtbare) Prüfung.
+  'TURNSTILE_SITE_KEY' => '',
+  'TURNSTILE_SECRET' => '',
   // Tageskontingent je Whisper-Modell über ALLE Nutzer (UTC-Tag), knapp unter Groqs Free-Limit (28 800 s je Modell). Ist ein Modell
   // voll, weicht der Server aufs andere aus; sind beide voll → «morgen wieder». Bezahlter Groq-Tarif: Wert = Tagesbudget. 0 = aus.
   'MAX_AUDIO_SEC_PER_DAY_PER_MODEL' => 27000,

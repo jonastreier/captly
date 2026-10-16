@@ -107,7 +107,7 @@ encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSup
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
-brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,applyTrending:applyTrending,teleError:teleError,statExport:statExport,tlRange:tlRange,tlDeleteSel:tlDeleteSel,tlToggleMulti:tlToggleMulti,tlSelState:function(a,b){tlSel=a;tlSelEnd=b;},tlGet:function(){return {sel:tlSel,end:tlSelEnd,multi:tlMulti};},coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,applyTrending:applyTrending,teleError:teleError,statExport:statExport,cloneHost:cloneHost,tlRange:tlRange,tlDeleteSel:tlDeleteSel,tlToggleMulti:tlToggleMulti,tlSelState:function(a,b){tlSel=a;tlSelEnd=b;},tlGet:function(){return {sel:tlSel,end:tlSelEnd,multi:tlMulti};},coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
@@ -163,7 +163,7 @@ resetGrpBuf:function(){_grpBuf=null;},localEmojis:localEmojis,localEmoLookup:loc
 capOutK:capOutK,capScaleShadowStr:capScaleShadowStr,CAP_SH_REF:CAP_SH_REF,
 brandHex:brandHex,sanitizeBrand:sanitizeBrand,applyBrandToStyle:applyBrandToStyle,brandLogoRect:brandLogoRect,brandWmRect:brandWmRect,brandLogoOk:brandLogoOk,SAFE_ZONE_PRESETS:SAFE_ZONE_PRESETS,SAFE_ZONE:SAFE_ZONE,safePresetSet:safePresetSet,getSafeKey:function(){return _safeKey;},brandSetLive:brandSetLive,getBrandLive:function(){return brandLive;},brandForSave:brandForSave,brandSet:brandSet,brandColor:brandColor,brandLogoPicked:brandLogoPicked,brandEncodeLogo:brandEncodeLogo,templatesForCloud:templatesForCloud,setUserTemplates:function(v){userTemplates=v;},rebuildTemplateStyles:rebuildTemplateStyles,drawBrandLogo:drawBrandLogo,tplHasBrand:tplHasBrand,removeTemplateBrand:removeTemplateBrand,brandSyncUI:brandSyncUI,seedActiveStyle:seedActiveStyle,drawWatermark:drawWatermark,TPL_CLOUD_MAX:TPL_CLOUD_MAX,getBrandImgs:function(){return _brandImgs;},brandImgKey:brandImgKey,brandClearColors:brandClearColors,brandRemoveLogo:brandRemoveLogo,
 hookVariants:hookVariants,hookVariantList:hookVariantList,hookNextVariant:hookNextVariant,hookDupOfCaptions:hookDupOfCaptions,EMO_REL_SIDE:EMO_REL_SIDE,EMO_LOCAL_SEC:EMO_LOCAL_SEC,EMO_LOCAL_GAP:EMO_LOCAL_GAP,EMO_LOCAL_SAME:EMO_LOCAL_SAME,capToastAction:capToastAction,
-capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR,
+capBlockBase:capBlockBase,capTypeTp:capTypeTp,capTypeN:capTypeN,capCurOn:capCurOn,capUlFx:capUlFx,capUlRect:capUlRect,emojiStickerState:emojiStickerState,emphScale:emphScale,applyStyleDrops:applyStyleDrops,STYLE_MORE:STYLE_MORE,capScatterOff:capScatterOff,styleListed:styleListed,CAP_SCATTER:CAP_SCATTER,setCycBase:function(v){_capCycBase=v;},EMO_STICKER_DUR:EMO_STICKER_DUR,
 queuePlanAdd:queuePlanAdd,queueNextStatus:queueNextStatus,queueNewClip:queueNewClip,queueDefaultStyleId:queueDefaultStyleId,queueCounts:queueCounts,queueExportable:queueExportable,queueSkipMsg:queueSkipMsg,queueFileKey:queueFileKey,isVideoFile:isVideoFile,QUEUE_MAX:QUEUE_MAX,getQ:function(){return _q;},queueIngest:queueIngest,queueReset:queueReset,queueRemove:queueRemove,queueSetStyle:queueSetStyle,queueClipOpened:queueClipOpened,hookLogoRect:hookLogoRect,queueMarkEdited:queueMarkEdited,queueStatusLabel:queueStatusLabel,
 queueZipEntries:queueZipEntries,zipFolderName:zipFolderName,queueTplInfo:queueTplInfo,queueStyleOptions:queueStyleOptions,btnVideoText:btnVideoText,syncGateBatchUI:syncGateBatchUI,setGateResume:function(f){_gateResume=f;},getSessionSaved:function(){return _sessionSaved;},
 crc32Update:crc32Update,crc32Blob:crc32Blob,zipPlan:zipPlan,zipUniqueName:zipUniqueName,zipDosDateTime:zipDosDateTime,autosaveTrim:autosaveTrim,autosaveData:autosaveData,saveBlobAs:saveBlobAs,settleExport:settleExport,exportSheetOpen:exportSheetOpen,
@@ -227,6 +227,12 @@ ok(T.activeWordIdx(bl[2], 3.5) === 2, 'aktives Wort = etwas');
 // 6) buildCap: index-basiertes Highlight + Seek-Handler
 const s = T.STYLES.find(x => x.id === 'stack');
 const html = T.buildCap(['ein', 'zwei', 'drei'], s, 1, 22, [0, 0.5, 1]);
+ok(['gluephs.com', 'www.gluephs.com', 'localhost', 'app.localhost', 'x.test', '127.0.0.1', 'gluephs-git-x.vercel.app'].every(h => !T.cloneHost(h)) && ['gluephs.co', 'evilgluephs.com', 'clone.example.com'].every(h => T.cloneHost(h)),
+   'Klon-Erkennung: eigene Domains/Entwicklung ausgenommen, fremde Domains erkannt');
+{ // Audit 2026-10-16: Wörter aus Transkript/Projekt/Autosave nie als HTML (DOM-XSS → Zugriff auf die Supabase-Sitzung)
+  const evil = T.buildCap(['<img src=x onerror=alert(1)>', 'R&D'], s, 0, 22, [0, 0.5]);
+  ok(!/<img/i.test(evil) && /&lt;img/i.test(evil) && /R&amp;D/i.test(evil), 'buildCap escapt Untertitel-Wörter (kein <img> im HTML)');
+}
 ok(html.includes('f7c204'), 'HL-Farbe im HTML');
 ok(html.split('capOverlayClickWord').length === 4, '3 Klick-Handler (Seek/Inline-Edit), habe ' + (html.split('capOverlayClickWord').length - 1));
 ok(/data-wi="2"[^>]*capOverlayClickWord\(event,2,1\.000\)/.test(html), 'Wort-Index + Zeit am Wort-Span');
@@ -4318,7 +4324,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
 
     // ── 2) TPL_STYLE_KEYS: jedes Feld übersteht den Rundlauf; jedes Style-Feld der Presets hat einen Eintrag ──
     {
-      const bool = ['hlItalic', 'hlUpper', 'circle', 'emItalic', 'emoSide'], num = ['lh', 'emS', 'ulH'];
+      const bool = ['hlItalic', 'hlUpper', 'circle', 'emItalic', 'emoSide', 'scatter'], num = ['lh', 'emS', 'ulH'];
       const ENUM = { anim: 'scale', motion: 'reveal', ulMode: 'kw', ulH: 0.2, ul: '#ff00ff', boxBd: 'rgba(255,255,255,.4)', cur: '#facc15' }; // N-Looks: Felder mit geprüftem Wertebereich
       const sample = k => ENUM[k] ? ENUM[k] : bool.includes(k) ? true : num.includes(k) ? 1.25 : k === 'hlCycle' ? ['#ff0000', '#00ff00'] :
         k === 'pill' ? { bg: '#fff', br: '5px', p: '1px 2px', border: '1px solid #000', borderLeft: '2px solid #f00' } : 'v-' + k;
@@ -5873,12 +5879,46 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     {
       const saved = T.STYLES.slice();
       const add = T.applyStyleDrops(file.map(o => Object.assign({}, o, { id: 'x' + o.id })), now);
-      ok(add === 8 && T.STYLES[0].id === 'hormozi' && T.STYLES[1].id === 'xcolorpop' && T.STYLES[8].id === 'xsquashpop' && T.STYLES[9].id === 'tight', 'N-Looks: Drops direkt hinter Bold Pop');
+      const live = file.filter(o => !o.retired).slice().map((o, i) => [o, i]).sort((a, b) => (Date.parse(b[0].added) - Date.parse(a[0].added)) || (a[1] - b[1])).map(p => 'x' + p[0].id);
+      ok(add === Math.min(live.length, 16) && T.STYLES[0].id === 'hormozi' && live.slice(0, add).every((id, i) => T.STYLES[1 + i].id === id) && T.STYLES[1 + add].id === 'tight', 'N-Looks: Drops direkt hinter Bold Pop, neueste zuerst (' + T.STYLES.slice(1, 1 + add).map(x => x.id).join() + ')');
       T.STYLES.splice(0, T.STYLES.length, ...saved);
       const idx = id => T.STYLES.findIndex(x => x.id === id);
       ok(T.STYLES[0].id === 'hormozi' && T.STYLE_MORE.every(id => idx(id) > idx('marker')) && T.STYLE_MORE.every(id => T.STYLES.some(x => x.id === id)), 'N-Looks: Bold Pop vorn, schwache Looks («More looks») hinten, IDs unverändert: ' + T.STYLE_MORE.join());
     }
-    // sanitizeStyle: akzeptiert gültige neue Felder, verwirft Unsinn
+    // Trend-Drop 2026-10-16: frei platziert (scatter), Ruhestand (retired), neueste zuerst
+    {
+      const W = 1080, H = 1920, sc = { scatter: true };
+      const a = T.capScatterOff(sc, 1, 400, 1300, 280, 120, W, H), b = T.capScatterOff(sc, 1, 400 / 3, 1300 / 3, 280 / 3, 120 / 3, W / 3, H / 3);
+      ok(Math.abs(a.dx - b.dx * 3) < 1e-6 && Math.abs(a.dy - b.dy * 3) < 1e-6 && (a.dx || a.dy), 'Scatter: gleiche Anteile in Vorschau- und Export-px (Vorschau = Export)');
+      ok(JSON.stringify(T.capScatterOff(sc, 3, 400, 1300, 280, 120, W, H)) === JSON.stringify(T.capScatterOff(sc, 3 + T.CAP_SCATTER.length, 400, 1300, 280, 120, W, H)), 'Scatter: festes Muster je Block-Index (kein Zufall)');
+      const z = T.capScatterOff({}, 1, 400, 1300, 280, 120, W, H);
+      ok(z.dx === 0 && z.dy === 0, 'Scatter: ohne Style-Feld kein Versatz');
+      const inside = [...Array(14).keys()].every(i => { const o = T.capScatterOff(sc, i, 30, 60, 600, 200, W, H); return 30 + o.dx >= 0.04 * W - 1e-6 && 30 + o.dx + 600 <= 0.96 * W + 1e-6 && 60 + o.dy >= 0.06 * H - 1e-6; });
+      ok(inside, 'Scatter: Box bleibt im Bild (Rand 4 % / 6 %)');
+      const wide = T.capScatterOff(sc, 1, 0, 1300, W, 120, W, H);
+      ok(wide.dx === 0, 'Scatter: Box breiter als der Platz → kein seitlicher Versatz');
+      ok(T.sanitizeStyle({ scatter: 'yes' }).scatter === undefined && T.sanitizeStyle({ scatter: true }).scatter === true, 'Scatter: sanitizeStyle nimmt nur true/false');
+      const saved = T.STYLES.slice();
+      const mk = (id, added, extra) => Object.assign({ id, name: id, added, style: { fl: 'Inter', font: "'Inter'", fw: '700' } }, extra || {});
+      const n = T.applyStyleDrops([mk('rold', '2026-01-01'), mk('rnew', '2026-10-15'), mk('rgone', '2026-02-01', { retired: true })], Date.parse('2026-10-16'));
+      const ids = T.STYLES.map(x => x.id), gone = T.STYLES.find(x => x.id === 'rgone');
+      ok(n === 2 && ids[1] === 'rnew' && ids[2] === 'rold', 'Drops: neueste zuerst (nach added), unabhängig von der Datei-Reihenfolge');
+      ok(gone && gone._retired && !gone.badge && ids.indexOf('rgone') === ids.length - 1, 'Drops: Ruhestand bleibt renderbar (in STYLES, hinten, ohne Abzeichen)');
+      ok(!T.styleListed(gone, 'hormozi') && T.styleListed(gone, 'rgone') && T.styleListed(T.STYLES[1], 'hormozi'), 'Drops: Ruhestand nur gelistet, solange gewählt');
+      ok(T.STYLES.find(x => x.id === 'rnew').badge === 'New' && T.STYLES.find(x => x.id === 'rold').badge === undefined, 'Drops: «New» nur für frische Looks');
+      T.STYLES.splice(0, T.STYLES.length, ...saved);
+      const many = [...Array(20).keys()].map(i => mk('rm' + String(i).padStart(2, '0'), '2026-10-' + String(i + 1).padStart(2, '0')));
+      const nm = T.applyStyleDrops(many, Date.parse('2026-10-25'));
+      ok(nm === 16 && T.STYLES[1].id === 'rm19' && T.STYLES.find(x => x.id === 'rm00')._retired, 'Drops: höchstens 16 sichtbar, ältere automatisch im Ruhestand (renderbar)');
+      T.STYLES.splice(0, T.STYLES.length, ...saved);
+      const sf = file.find(o => o.id === 'floatwords');
+      ok(sf && T.dropToStyle(sf, now).scatter === true, 'styles.json: Floating Words trägt scatter');
+      const SR = require('./scripts/style-report.js'), dd = [{ id: 'a', added: '2026-09-01' }, { id: 'b', added: '2026-09-01' }, { id: 'c', added: '2026-11-10' }, { id: 'r', added: '2026-01-01', retired: true }];
+      const pr = SR.plan(dd, { total: 1000, all: [{ style: 'a', n: 300 }, { style: 'b', n: 5 }] }, Date.parse('2026-11-20')).rows.map(r => r.rec).join();
+      const pq = SR.plan(dd, { total: 50, all: [] }, Date.parse('2026-11-20')).rows.map(r => r.rec).join();
+      ok(pr === 'keep,retire,keep,retired' && pq === 'keep,keep,keep,retired', 'Style-Rotation: Ruhestand nur alt + selten genutzt + genug Daten (' + pr + ' / ' + pq + ')');
+      ok(file.every(o => o.retired === undefined || o.retired === true), 'styles.json: retired nur als true');
+    }
     {
       const okS = T.sanitizeStyle({ boxBd: 'rgba(255,255,255,.4)', ul: '#facc15', cur: '#fff', ulMode: 'kw', ulH: 0.2, emoSide: true, emS: 2.1, motion: 'type', anim: 'squash' });
       ok(okS.boxBd && okS.ul === '#facc15' && okS.cur === '#fff' && okS.ulMode === 'kw' && okS.ulH === 0.2 && okS.emoSide === true && okS.emS === 2.1 && okS.motion === 'type' && okS.anim === 'squash', 'sanitizeStyle: gültige N-Looks-Felder bleiben');

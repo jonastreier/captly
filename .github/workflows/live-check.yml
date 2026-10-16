@@ -13,18 +13,25 @@ on:
     types: [completed]
   schedule:
     - cron: '17 6 * * *'
+# Minimale Rechte für das GITHUB_TOKEN (Audit 2026-10-16); Actions auf Commit-SHA gepinnt (Tags lassen sich umbiegen), Updates via .github/dependabot.yml
+permissions:
+  contents: read
 jobs:
   check:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
       - name: Kurz warten (Server übernimmt die Dateien)
         if: ${{ github.event_name == 'workflow_run' }}
         run: sleep 20
       - name: Live-Check
-        run: node scripts/live-check.js "${{ github.event.inputs.url || 'https://gluephs.com' }}"
+        env:
+          URL: ${{ github.event.inputs.url || 'https://gluephs.com' }} # über env statt direkt im Skript (keine Shell-Injection über die Eingabe)
+        run: |
+          case "$URL" in https://*) ;; *) echo "Nur https-Adressen"; exit 1 ;; esac
+          node scripts/live-check.js "$URL"
