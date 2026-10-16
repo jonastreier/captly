@@ -61,6 +61,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
     ok((await post('stat.php', 'x')).s === 400, 'stat: kaputter Body → 400');
     const s1 = await (await fetch(base + 'stat.php')).json();
     ok(s1.total === 103 && s1.top[0].style === 'tight' && s1.top[0].n === 50 && s1.top[1].style === 'hormozi', 'stat: GET summiert 30 Tage, sortiert: ' + JSON.stringify(s1.top));
+    ok(Array.isArray(s1.all) && s1.all.length === 4 && s1.all[3].style === 'x' && s1.all[3].n === 1, 'stat: GET liefert die ganze Rangliste (all) für die Style-Rotation');
     await fetch(base + 'stat.php'); ok(statGets === 1, 'stat: zweite Abfrage aus dem Datei-Cache (1 DB-Zugriff)');
     const hdr = (await fetch(base + 'stat.php')).headers.get('cache-control'); ok(/max-age=3600/.test(hdr || ''), 'stat: Cache-Control für 1 Stunde');
     let l2; for (let i = 0; i < 22; i++) l2 = await post('stat.php', { style: 'mix' });

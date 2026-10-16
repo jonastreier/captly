@@ -5553,6 +5553,17 @@ function capBlockXRange(L0, s, W) {
   var hx = capHOff ? capHClamp(capHOff, half * 2 / W * 100) : 0, cx = W / 2 + hx / 100 * W;
   return { l: cx - half, r: cx + half, hx: hx };
 }
+// Frei platziert (Style-Feld scatter, Trend «Floating Words»): jeder Block springt an einen anderen Platz rund um die Person —
+// festes Muster je Block-Index (kein Zufall → Vorschau = Export, jeder Export gleich), Versatz in Anteilen der Rahmenbreite/-höhe
+// (dx, dy; − = links/oben), danach so begrenzt, dass die Box im Bild bleibt (4 % / 6 % Rand). l/t/w/h = Box ohne Versatz,
+// W/H = Rahmen — Vorschau in Vorschau-px, Export in Export-px (gleiche Anteile → gleiches Bild).
+var CAP_SCATTER = [[-0.17, -0.02], [0.18, -0.13], [-0.13, -0.27], [0.15, -0.31], [0.02, -0.09], [-0.19, -0.17], [0.17, -0.04]];
+function capScatterOff(s, bi, l, t, w, h, W, H) {
+  if (!s || !s.scatter || !(W > 0) || !(H > 0) || !isFinite(l) || !isFinite(t)) return { dx: 0, dy: 0 };
+  var n = CAP_SCATTER.length, p = CAP_SCATTER[((bi % n) + n) % n], mx = 0.04 * W, my = 0.06 * H;
+  function fit(d, a, len, size, m) { return len > size - 2 * m ? 0 : Math.max(m - a, Math.min(size - m - (a + len), d)); }
+  return { dx: fit(p[0] * W, l, w, W, mx), dy: fit(p[1] * H, t, h, H, my) };
+}
 function brandLogoRectFor(b, W, H, wmOn) { // Logo-Rechteck eines Kit-Schnappschusses (Exportwege), null ohne Logo
   if (!b || !b.logo) return null;
   try { return brandLogoRect(W, H, b.logo, b.safe || 'reels', !!wmOn); } catch (e) { return null; }
@@ -5599,6 +5610,8 @@ function capPreviewDodge(ov, L, op, s) {
   var root = ov && ov.querySelector ? ov.querySelector('.cap-root') : null;
   if (!root || !isFinite(root.offsetTop) || !isFinite(ov.offsetTop)) { if (ov) ov._lgDx = 0; return 0; }
   var top = ov.offsetTop + root.offsetTop, left = ov.offsetLeft + root.offsetLeft;
+  var sc = capScatterOff(s, _lastBi, left, top, root.offsetWidth, root.offsetHeight, previewFrameW(), previewFrameH()); // frei platziert: Ausweichen ab dem versetzten Platz (wie der Export)
+  top += sc.dy; left += sc.dx;
   var pl = capDodgePlan(top, top + root.offsetHeight, left, left + root.offsetWidth, previewFrameW(), L ? L.Hp : previewFrameH(), lg,
                         L ? function(a, b) { return hookDodgeNeed(L, a, b) * op; } : null, lg ? capLogoDecision(s, lg) : null);
   ov._lgDx = pl.dx; // seitliches Ausweichen vor dem Logo (capDomMotion: translateX)
@@ -6371,6 +6384,10 @@ function capDomMotion(ov, s, b, bi, wi, t, forced, rest) {
   capSetSt(M.root, 'opacity', bf.op < 1 ? bf.op.toFixed(3) : '');
   var hkDy = (bf.dy > 1e-4 ? bf.dy * M.fpx : 0) + (ov._hkDy || 0); // + Ausweichen vor dem Hook-Titel (hookUpdate)
   var lgDx = ov._lgDx || 0; // seitliches Ausweichen vor dem Brand-Kit-Logo (capPreviewDodge)
+  if (s.scatter) { // frei platziert (capScatterOff): Versatz ab der Box ohne Transform (offset*), gleiche Anteile wie der Export
+    var sc = capScatterOff(s, bi, ov.offsetLeft + M.root.offsetLeft, ov.offsetTop + M.root.offsetTop, M.root.offsetWidth, M.root.offsetHeight, previewFrameW(), previewFrameH());
+    lgDx += sc.dx; hkDy += sc.dy;
+  }
   capSetSt(M.root, 'transform', Math.abs(lgDx) > 1e-4 ? 'translate(' + lgDx.toFixed(2) + 'px,' + hkDy.toFixed(2) + 'px)' : Math.abs(hkDy) > 1e-4 ? 'translateY(' + hkDy.toFixed(2) + 'px)' : '');
   var fxs = {};
   M.spans.forEach(function(sp) {
@@ -8581,7 +8598,7 @@ var userTemplates = [];
 // Zeichen entfernen, mit denen man aus dem style="…"-Attribut (buildCap) ausbrechen könnte.
 var TPL_STYLE_KEYS = ['fl','font','fw','tt','ls','lh','fs','fi','tc','ts','hl','hls','anim','cstroke','thumbBg','hlPillBg','hlc',
   'boxBg','boxBr','pill','tg','hlFont','hlItalic','hlg','hlUpper','circle','hlCycle','em','emS','motion','emFont','emItalic','emFw',
-  'boxBd','ul','ulMode','ulH','emoSide','cur']; // N-Looks: Glas-Rand · Unterstreichung (Farbe/Modus/Höhe) · Sticker-Emoji · Typewriter-Cursor
+  'boxBd','ul','ulMode','ulH','emoSide','cur','scatter']; // N-Looks: Glas-Rand · Unterstreichung (Farbe/Modus/Höhe) · Sticker-Emoji · Typewriter-Cursor · frei platziert (capScatterOff)
 function cleanCssVal(v) { return String(v).replace(/[<>"\\;{}]/g, '').replace(/url\s*\(|expression\s*\(/gi, '').slice(0, 600); }
 function sanitizeStyle(st) {
   var out = {};
@@ -8602,6 +8619,7 @@ function sanitizeStyle(st) {
   if (out.ulMode !== undefined && out.ulMode !== 'active' && out.ulMode !== 'kw') delete out.ulMode;
   if (out.ulH !== undefined && !(typeof out.ulH === 'number' && out.ulH >= 0.03 && out.ulH <= 0.5)) delete out.ulH;
   if (out.emoSide !== undefined && typeof out.emoSide !== 'boolean') delete out.emoSide;
+  if (out.scatter !== undefined && typeof out.scatter !== 'boolean') delete out.scatter;
   if (out.emS !== undefined && !(typeof out.emS === 'number' && out.emS >= 1 && out.emS <= 2.2)) delete out.emS; // = EMS_MAX
   if (out.motion !== undefined && ['highlight', 'reveal', 'fill', 'none', 'type'].indexOf(out.motion) < 0) delete out.motion;
   if (out.anim !== undefined && !(out.anim === 'none' || (typeof ANIM_KEYFRAMES === 'object' && Object.prototype.hasOwnProperty.call(ANIM_KEYFRAMES, out.anim)))) delete out.anim;
@@ -9663,7 +9681,7 @@ function buildPicker() {
   // Gruppen: „My templates“ (Custom-Entwurf + eigene Templates, neueste zuerst) OBEN, dann die Presets —
   // vorher hingen Templates hinter 36 Presets und man sah nicht, ob/was gespeichert wurde.
   var mine = [], presets = [];
-  STYLES.forEach(function(s){ (s._isTpl || s.id === 'custom' ? mine : presets).push(s); });
+  STYLES.forEach(function(s){ if (styleListed(s, activeId)) (s._isTpl || s.id === 'custom' ? mine : presets).push(s); });
   var tplCreated = {};
   userTemplates.forEach(function(t){ tplCreated[t.id] = t.createdAt || t.updatedAt || 0; });
   mine.sort(function(a, b) {
@@ -10580,10 +10598,12 @@ function trySample(styleId) {
 // Kacheln, auf EINEM gemeinsamen Standbild). Gewählter Chip = Style fürs nächste Video — openEditor() setzt
 // ihn nach dem Brand-Template (landPick schlägt die Marke, weil bewusst gewählt). Gemerkt wie jede Style-Wahl.
 // ── Style Drops: neue Looks kommen über styles.json (eigene Datei, kein App-Code) ──
-// Jeder Eintrag: { id, name, added: 'YYYY-MM-DD', photo?: 'bloom', style: {…wie in STYLES…}, layout?: {wpb, lines} }.
+// Jeder Eintrag: { id, name, added: 'YYYY-MM-DD', photo?: 'bloom', style: {…wie in STYLES…}, layout?: {wpb, lines}, retired?: true }.
 // Alles wird wie Vorlagen aus Projekten bereinigt (sanitizeStyle), Schriften müssen lokal vorliegen (vendor/fonts),
-// IDs dürfen eingebaute Styles nie überschreiben. Neue Looks stehen vorn und tragen 30 Tage das Abzeichen „New“.
-var DROP_NEW_DAYS = 30, _dropIds = [];
+// IDs dürfen eingebaute Styles nie überschreiben. Neueste zuerst (nach `added`), höchstens DROP_MAX sichtbar, die neuesten
+// tragen DROP_NEW_DAYS Tage das Abzeichen „New“. Wöchentliche Rotation (STYLE-DROPS.md): alte Looks nie löschen, sondern
+// `retired: true` setzen — sie verschwinden aus Auswahl/Showcase, gespeicherte Projekte/Vorlagen/Autosaves rendern weiter gleich.
+var DROP_NEW_DAYS = 21, DROP_MAX = 16, DROP_RETIRED_MAX = 80, _dropIds = [];
 function dropToStyle(o, now) {
   if (!o || typeof o !== 'object') return null;
   var id = String(o.id || '');
@@ -10611,21 +10631,30 @@ function dropToStyle(o, now) {
     if (lay.wrap === true) st.layout.wrap = true; // Paar-Umbruch (R3): 2+ Wörter/Block, passt das Paar nicht in eine Zeile → 2 Zeilen statt Einzelwort-Blöcken, s. capPairWrap
   }
   var t = Date.parse(o.added);
-  if (t && (now || Date.now()) - t < DROP_NEW_DAYS * 864e5) st.badge = _t('New');
-  st._drop = true;
+  if (o.retired === true) st._retired = true;
+  else if (t && (now || Date.now()) - t < DROP_NEW_DAYS * 864e5) st.badge = _t('New');
+  st._drop = true; st._added = t || 0;
   if (/^[a-z0-9]{3,24}$/.test(String(o.photo || ''))) SHOWCASE_PHOTO[id] = o.photo;
   return st;
 }
 function applyStyleDrops(list, now) {
   if (!Array.isArray(list)) return 0;
-  var add = [];
-  list.slice(0, 12).forEach(function(o) { var st = dropToStyle(o, now); if (st && !add.some(function(x){ return x.id === st.id; })) add.push(st); });
-  if (!add.length) return 0;
+  var all = [];
+  list.slice(0, DROP_MAX + DROP_RETIRED_MAX).forEach(function(o) { var st = dropToStyle(o, now); if (st && !all.some(function(x){ return x.id === st.id; })) all.push(st); });
+  // Neueste zuerst; gleiches Datum → Reihenfolge der Datei (stabil sortiert)
+  var live = all.filter(function(x){ return !x._retired; }).map(function(x, i){ return [x, i]; })
+    .sort(function(a, b){ return (b[0]._added - a[0]._added) || (a[1] - b[1]); }).map(function(p){ return p[0]; });
+  var add = live.slice(0, DROP_MAX), old = live.slice(DROP_MAX).concat(all.filter(function(x){ return x._retired; }));
+  old.forEach(function(x){ x._retired = true; delete x.badge; }); // über DROP_MAX: wie im Ruhestand (bleibt renderbar)
+  if (!add.length && !old.length) return 0;
   var at = 0; STYLES.forEach(function(x, i){ if (x.id === STYLE_FIRST) at = i + 1; }); // direkt hinter dem Standard-Look (Bold Pop)
   STYLES.splice.apply(STYLES, [at, 0].concat(add));
+  Array.prototype.push.apply(STYLES, old); // Ruhestand: ganz hinten, ausgeblendet (styleListed)
   _dropIds = add.map(function(x){ return x.id; }).concat(_dropIds);
   return add.length;
 }
+// In Auswahl/Listen zeigen? Ruhestands-Looks nur, solange sie gerade gewählt sind (sonst wäre die Wahl unsichtbar).
+function styleListed(s, sel) { return !!s && (!s._retired || s.id === sel); }
 function loadStyleDrops() {
   if (typeof fetch !== 'function') return Promise.resolve(0);
   return fetch('styles.json', { cache: 'no-cache' }).then(function(r) { return r.ok ? r.json() : []; }).then(function(list) {
@@ -10667,7 +10696,7 @@ function applyTrending(res) {
   var n = 0;
   res.top.slice(0, 3).forEach(function(t) {
     var st = STYLES.filter(function(x){ return x.id === t.style; })[0];
-    if (st && !st._isTpl && !st.badge) { st.badge = _t('Trending'); st._trend = true; n++; }
+    if (st && !st._isTpl && !st.badge && !st._retired) { st.badge = _t('Trending'); st._trend = true; n++; }
   });
   return n;
 }
@@ -14995,12 +15024,14 @@ function drawCaptionsOnCtx(ctx, t, s, W, H, forceShow, cuts, logo) {
   var xr = capBlockXRange(L0, s, W), hxPct = xr.hx;
   if (hxPct) ctx.translate(hxPct / 100 * W, 0);
   if (bf.dy) ctx.translate(0, bf.dy * fsS);
+  var sc = capScatterOff(s, bi, xr.l, L0.boxT, xr.r - xr.l, L0.boxB - L0.boxT, W, H); // frei platziert (Vorschau: capDomMotion)
+  if (sc.dx || sc.dy) ctx.translate(sc.dx, sc.dy);
   // weicht dem Hook-Titel und dem Brand-Kit-Logo aus (wie die Vorschau, capPreviewDodge); logo: Rechteck des Exports, null = keins, undefined = aktives Kit
   var lgR = logo === undefined ? hookLogoRect(W, H) : logo, hkSt = hookOn ? hookExportState(tHook, s, W, H, cuts, logo) : null;
   if (hkSt || lgR) {
     var kP = lgR ? previewFrameW() / W : 1, kQ = lgR ? previewFrameH() / H : 1; // Logo-Rechteck in Vorschau-Einheiten → dieselbe Entscheidung wie die Vorschau
     var dec = lgR ? capLogoDecision(s, { x: lgR.x * kP, y: lgR.y * kQ, w: lgR.w * kP, h: lgR.h * kQ }) : null;
-    var dg = capDodgePlan(L0.boxT, L0.boxB, xr.l, xr.r, W, H, lgR,
+    var dg = capDodgePlan(L0.boxT + sc.dy, L0.boxB + sc.dy, xr.l + sc.dx, xr.r + sc.dx, W, H, lgR,
                           hkSt ? function(a, b) { return hookDodgeNeed(hkSt.L, a / hkSt.ky, b / hkSt.ky) * hkSt.fx.op * hkSt.ky; } : null, dec);
     if (dg.dx || dg.dy) ctx.translate(dg.dx, dg.dy);
   }
@@ -17275,7 +17306,7 @@ function queueStyleOptions(sel) {
   try { if (!userTemplates.length) loadTemplates(); } catch (e) {}
   var bid = resolveStyleId(brandTplId()), tp = '', lk = '';
   STYLES.forEach(function(s) {
-    if (s.id === 'custom' && sel !== 'custom') return;
+    if ((s.id === 'custom' && sel !== 'custom') || !styleListed(s, sel)) return;
     var nm = escHtml((s._isTpl && tplHasBrand(s.id) ? '◈ ' : '') + (s.id === 'custom' ? _t('Custom (edited)') : s.name) + (s.id === bid ? ' ★' : '')); // ◈ = Template mit Brand-Kit (wie in der Template-Leiste)
     var o = '<option value="' + escHtml(s.id) + '"' + (s.id === sel ? ' selected' : '') + '>' + nm + '</option>';
     if (s._isTpl) tp += o; else lk += o;
