@@ -856,9 +856,9 @@ input[type=checkbox]{accent-color:var(--brand)}
 .foot-links a{color:var(--ink2);font-size:13px;text-decoration:none;cursor:pointer;transition:color .15s}
 .foot-links a:hover{color:var(--brand)}
 .foot-claim{color:var(--muted);font-size:12.5px;margin-top:14px;max-width:520px}
-.foot-legal{color:var(--faint);font-size:12px;margin-top:10px;line-height:1.6;max-width:560px}
+.foot-legal{color:var(--muted);font-size:12px;margin-top:10px;line-height:1.6;max-width:560px}
 .foot-legal a{color:var(--brand);text-decoration:underline;cursor:pointer}
-.foot-copy{color:var(--faint);font-size:12px;margin-top:12px}
+.foot-copy{color:var(--muted);font-size:12px;margin-top:12px}
 .foot-lang{display:flex;align-items:center;gap:14px;margin-top:16px;font-size:12.5px}
 .foot-lang .ic{width:15px;height:15px;color:var(--faint);margin-right:-6px}
 .foot-lang a{color:var(--ink2);text-decoration:none}.foot-lang a:hover{color:var(--brand)}
@@ -1401,6 +1401,7 @@ body.editor-open .lang-hint{display:none}
   </div>
   <!-- Hero: zentrierte Überschrift direkt über EINER großen Upload-Karte (Sprache, Ablagefläche,
        ohne Style-Chips: die Looks zeigt die Showcase darunter, ein Tipp dort startet das Beispielvideo im Look). -->
+  <main id="landMain">
   <section class="hero">
     <h1 class="land-h">Auto captions in seconds.</h1>
     <p class="land-sub">Animated, word-by-word captions for Reels, TikTok and YouTube Shorts. Upload a clip, pick a style, download the MP4. Free during the beta.</p>
@@ -1620,6 +1621,7 @@ body.editor-open .lang-hint{display:none}
   </section>
 
   <!-- Footer -->
+  </main>
   <footer class="land-foot">
     <div class="foot-cols">
       <div class="foot-col foot-col-brand">
@@ -10555,10 +10557,10 @@ function setLandLang(v) {
 var PAGE_LANG = (typeof document !== 'undefined' && document.documentElement && String(document.documentElement.lang || '').slice(0, 2)) || 'en';
 var LAND_TXT = {
   en: { auto: 'Auto-detect',
-        tryStyle: function(n){ return 'Try the ' + n + ' style on a sample video'; },
+        tryStyle: function(n){ return n + ' – try this style on a sample video'; },
         demo: { run: 'Auto-captioning', ready: 'Captions ready', p1: ['Captions', 'in', 'seconds,'], p2: ['word', 'by', 'word.'] } },
   de: { auto: 'Automatisch erkennen',
-        tryStyle: function(n){ return 'Style «' + n + '» am Beispielvideo ausprobieren'; },
+        tryStyle: function(n){ return n + ' – Stil am Beispielvideo ausprobieren'; },
         demo: { run: 'Untertitel entstehen', ready: 'Untertitel fertig', p1: ['Untertitel', 'in', 'Sekunden,'], p2: ['Wort', 'für', 'Wort.'] },
         langs: { english: 'Englisch', spanish: 'Spanisch', german: 'Deutsch', french: 'Französisch', portuguese: 'Portugiesisch',
                  italian: 'Italienisch', dutch: 'Niederländisch', polish: 'Polnisch', turkish: 'Türkisch', russian: 'Russisch',
