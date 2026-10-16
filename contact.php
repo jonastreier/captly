@@ -1,7 +1,7 @@
 <?php
 /**
  * Gluephs – Kontaktformular: /contact (Sprache nach Browser) und /kontakt (deutsch).
- * GET zeigt das Formular, POST verschickt die Nachricht per Mail an CONTACT_TO (Standard: contact@gluephs.com)
+ * GET zeigt das Formular, POST verschickt die Nachricht per Mail an CONTACT_TO (Standard: hello@gluephs.com)
  * mit Reply-To = Adresse der Absenderin. Es wird nichts gespeichert, auch keine IP (nur ein Zähler pro IP-Hash in /tmp).
  * Schutz gegen Spam ohne Drittanbieter: unsichtbares Feld (Honeypot), signierter Zeitstempel (mind. 4 s zwischen
  * Anzeige und Absenden), höchstens 5 Nachrichten pro Stunde und IP, Längenlimits.
@@ -17,7 +17,7 @@ header('X-Robots-Tag: noindex');
 
 $qlang = (string)($_GET['lang'] ?? '');
 $de = $qlang === 'de' || ($qlang !== 'en' && stripos((string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''), 'de') === 0);
-$to = (string)($cfg['CONTACT_TO'] ?? 'contact@gluephs.com');
+$to = (string)($cfg['CONTACT_TO'] ?? 'hello@gluephs.com');
 $secret = (string)($cfg['LEAD_SECRET'] ?? '');
 $post = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
 

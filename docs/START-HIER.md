@@ -17,7 +17,7 @@ Alles andere ist vorbereitet. Reihenfolge einhalten, jeder Schritt hat eine **Pr
 
 ## 2. Zwei Postfächer (ca. 10 min)
 Hostpoint → E-Mail → Postfach anlegen:
-- `contact@gluephs.com` (steht im Impressum; Weiterleitung auf deine Adresse ist ok)
+- `hello@gluephs.com` (steht im Impressum; Weiterleitung auf deine Adresse ist ok)
 - `noreply@gluephs.com` (sendet Login-Codes, Bestätigungen, Kontaktformular). **Passwort in den Passwortmanager.**
 - SMTP-Daten aus der Hostpoint-Hilfe notieren: Server (meist `asmtp.mail.hostpoint.ch`, bitte dort bestätigen), Port **465** (SSL), Benutzer = volle Adresse.
 ✅ Mit Thunderbird/Apple Mail eine Testmail von `noreply@` an dich schicken.
@@ -27,7 +27,7 @@ Hostpoint → Domain → **DNS-Zone bearbeiten**:
 - **SPF:** Knopf «Hostpoint-SPF-Eintrag hinzufügen» (genau **ein** SPF-Eintrag pro Domain).
 - **DKIM:** Hostpoint-Support «Activate DKIM» befolgen; findest du den Schalter nicht, den Support fragen: *«Kann ich DKIM für ausgehende Mails von gluephs.com aktivieren?»*
 - **DMARC:** neuer **TXT**-Eintrag, Name `_dmarc`, Wert zum Kopieren:
-  `v=DMARC1; p=none; rua=mailto:contact@gluephs.com`
+  `v=DMARC1; p=none; rua=mailto:hello@gluephs.com`
 ✅ Testmail von `noreply@` an Gmail → «Original anzeigen»: **SPF: PASS** (DKIM: PASS, wenn aktiv).
 
 ## 4. FTP für den Upload (ca. 15 min)

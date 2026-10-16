@@ -20,14 +20,14 @@ Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eine
 2. Die Erweiterungen **curl** und **mbstring** müssen aktiv sein (bei Hostpoint standardmässig). ✅ Nach dem ersten Deploy zeigt `https://gluephs.com/api/transcribe` → `{"ok":true,…,"configured":true}`. Wenn `curl` fehlt, steht dort ein Fehler: dann Support fragen.
 
 **A3. Postfächer anlegen** (Control Panel → E-Mail)
-1. `contact@gluephs.com`: steht im Impressum und der Datenschutzerklärung, muss gelesen werden (Weiterleitung auf deine Adresse ist ok).
+1. `hello@gluephs.com`: steht im Impressum und der Datenschutzerklärung, muss gelesen werden (Weiterleitung auf deine Adresse ist ok).
 2. `noreply@gluephs.com`: Absender für Login-Codes und Bestätigungsmails. Passwort sicher notieren.
 3. SMTP-Daten aus der Hostpoint-Hilfe holen (Servername, Port 465 SSL, Benutzer = volle Adresse). ✅ Mit einem Mailprogramm (z. B. Thunderbird) einmal eine Testmail von `noreply@` an dich senden.
 
 **A4. SPF, DKIM, DMARC** (damit die Mails nicht im Spam landen)
 1. **SPF**: Control Panel → Domains → deine Domain → «DNS-Zone bearbeiten» → Knopf «Hostpoint-SPF-Eintrag hinzufügen» (laut Hostpoint-Support), speichern. Dauert 5 bis 10 Minuten. Falls schon ein SPF-Eintrag existiert, den Hostpoint-Teil in diesen **einen** Eintrag einfügen, nicht einen zweiten anlegen.
 2. **DKIM**: Hostpoint-Support-Artikel «Activate DKIM» (support.hostpoint.ch → E-Mail → E-Mail-Sicherheit) befolgen. Wenn du Hostpoint-Nameserver nutzt, ist es meist ein Klick im Control Panel. Ich konnte nicht prüfen, ob Hostpoint DKIM für ausgehende Mails unterstützt: Finde den Schalter nicht → Support fragen: «Kann ich DKIM für ausgehende Mails von gluephs.com aktivieren?».
-3. **DMARC**: in der DNS-Zone einen **TXT-Eintrag** anlegen: Name `_dmarc`, Wert `v=DMARC1; p=none; rua=mailto:contact@gluephs.com`. Nach ein bis zwei Wochen ohne Probleme auf `p=quarantine` erhöhen.
+3. **DMARC**: in der DNS-Zone einen **TXT-Eintrag** anlegen: Name `_dmarc`, Wert `v=DMARC1; p=none; rua=mailto:hello@gluephs.com`. Nach ein bis zwei Wochen ohne Probleme auf `p=quarantine` erhöhen.
 4. ✅ Prüfen: Testmail von `noreply@` an eine Gmail-Adresse, in Gmail «Original anzeigen»: **SPF: PASS** (DKIM: PASS, wenn aktiviert). Zusätzlich <https://mxtoolbox.com/SuperTool.aspx> (SPF- und DMARC-Lookup für `gluephs.com`).
 
 **A5. FTP-Zugang und `FTP_DIR` ermitteln**
@@ -90,7 +90,7 @@ Kurzfassung der Technik: [`SETUP.md`](../SETUP.md). Ein Haken (✅) am Ende eine
 3. Mailbox: **Bestätigungsmail** kommt (nicht im Spam), Link anklicken → «Danke, bestätigt». Supabase → Table Editor → `leads`: Zeile mit `confirmed_at`.
 4. In derselben Mail unten den **Abmelde-Link** anklicken → Seite «Newsletter abmelden?» → Knopf → «Abgemeldet»; in `leads` steht `unsubscribed_at`.
 5. Menü (drei Punkte) → Sign in → Code per Mail → eingeloggt → «Save to account» → Seite neu laden → «Load project» → Projekt ist da.
-6. Kontaktformular (`/kontakt`): Nachricht senden (nach mindestens 4 Sekunden) → «Danke»; in `contact@gluephs.com` kommt die Mail an, «Antworten» geht an deine Testadresse.
+6. Kontaktformular (`/kontakt`): Nachricht senden (nach mindestens 4 Sekunden) → «Danke»; in `hello@gluephs.com` kommt die Mail an, «Antworten» geht an deine Testadresse.
 7. Cover erstellen (Export-Fenster → «Create cover»), PNG öffnen.
 8. Supabase `style_stats` hat nach dem Export eine Zeile (nur, wenn dein Browser nicht «Do Not Track» sendet).
 9. Spam-Test: auf mail-tester.com die angezeigte Adresse als Newsletter-Anmeldung verwenden (Export mit Häkchen) und den Wert ansehen: Ziel ≥ 8/10.

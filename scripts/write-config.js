@@ -18,7 +18,7 @@ const cfg = [
   // Lead-Erfassung (lead.php): service_role-Key NUR hier auf dem Server, nie im Frontend
   ['SUPABASE_SERVICE_KEY', q(e.SUPABASE_SERVICE_KEY || '')],
   ['SITE_URL', q(e.SITE_URL || 'https://gluephs.com')],
-  ['MAIL_FROM', q(e.MAIL_FROM || 'contact@gluephs.com')],
+  ['MAIL_FROM', q(e.MAIL_FROM || 'hello@gluephs.com')],
   ['MAIL_FROM_NAME', q(e.MAIL_FROM_NAME || 'Gluephs')],
   ['SMTP_HOST', q(e.SMTP_HOST || '')],
   ['SMTP_PORT', num(e.SMTP_PORT, 465)],

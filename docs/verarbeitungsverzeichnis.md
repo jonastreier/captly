@@ -1,6 +1,6 @@
 # Verzeichnis der Bearbeitungstätigkeiten (Art. 30 DSGVO / Art. 12 DSG)
 
-**Verantwortlicher:** Jonas Treier, Einzelunternehmen web&meh, Hauptstrasse 84A, 5070 Frick, Schweiz · contact@gluephs.com
+**Verantwortlicher:** Jonas Treier, Einzelunternehmen web&meh, Hauptstrasse 84A, 5070 Frick, Schweiz · hello@gluephs.com
 **Datenschutzberater / EU-Vertreter:** keiner bestellt (Stand Oktober 2026; zum EU-Vertreter siehe [`eu-vertreter.md`](eu-vertreter.md))
 **Dienst:** Gluephs (gluephs.com) · **Stand:** Oktober 2026 · **Prüfung:** bei jeder Änderung des Dienstes, mindestens jährlich
 

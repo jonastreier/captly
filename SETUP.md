@@ -11,7 +11,7 @@ Reihenfolge einhalten.
 - SSL aktivieren (Let's Encrypt, in Hostpoint ein Klick). Die `.htaccess` leitet auf https und ohne `www` um.
 
 ## 2. Postfächer anlegen (Hostpoint → E-Mail)
-- `contact@gluephs.com` — steht im Impressum und in der Datenschutzerklärung, muss **erreichbar** sein.
+- `hello@gluephs.com` — steht im Impressum und in der Datenschutzerklärung, muss **erreichbar** sein.
 - `noreply@gluephs.com` — Absender der Login-Codes und der Bestätigungsmails. Nur dafür; Passwort notieren.
 - SMTP-Daten aus der Hostpoint-Hilfe: Server (z. B. `asmtp.mail.hostpoint.ch`, Port 465 SSL — im Kundencenter prüfen), Benutzer = die volle Adresse.
 - In Hostpoint die **SPF/DKIM-Einträge** für die Domain aktivieren (Mail → Domain → «E-Mail-Sicherheit»), damit Codes nicht im Spam landen.

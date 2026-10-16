@@ -37,8 +37,8 @@ if ($valid && $post) {
 $msg = [
   'ask'     => [$de ? 'Newsletter abmelden?' : 'Unsubscribe from the newsletter?', $de ? 'Mit einem Klick erhältst du keine Neuigkeiten mehr von Gluephs.' : 'One click and you won\'t get news from Gluephs any more.'],
   'done'    => [$de ? 'Abgemeldet' : 'You\'re unsubscribed', $de ? 'Du bekommst keine Newsletter mehr. Der Export ohne Anmeldung funktioniert weiterhin.' : 'You won\'t get any more newsletters. Exporting without signing up still works.'],
-  'invalid' => [$de ? 'Link ungültig' : 'Link not valid', $de ? 'Der Abmelde-Link ist unvollständig oder verändert. Schreib uns an contact@gluephs.com, dann tragen wir dich aus.' : 'This unsubscribe link is incomplete or was altered. Write to contact@gluephs.com and we\'ll remove you.'],
-  'error'   => [$de ? 'Das hat nicht geklappt' : 'Something went wrong', $de ? 'Bitte versuche es später nochmals oder schreib uns an contact@gluephs.com.' : 'Please try again later or write to contact@gluephs.com.'],
+  'invalid' => [$de ? 'Link ungültig' : 'Link not valid', $de ? 'Der Abmelde-Link ist unvollständig oder verändert. Schreib uns an hello@gluephs.com, dann tragen wir dich aus.' : 'This unsubscribe link is incomplete or was altered. Write to hello@gluephs.com and we\'ll remove you.'],
+  'error'   => [$de ? 'Das hat nicht geklappt' : 'Something went wrong', $de ? 'Bitte versuche es später nochmals oder schreib uns an hello@gluephs.com.' : 'Please try again later or write to hello@gluephs.com.'],
 ][$state];
 http_response_code($state === 'error' ? 503 : 200);
 ?><!doctype html>

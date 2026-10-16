@@ -514,7 +514,7 @@ module.exports = {
   "Accounts are not set up on this deployment yet.": "Konten sind in dieser Version noch nicht eingerichtet.",
   "Code sent — check your inbox.": "Code gesendet — schau in dein Postfach.",
   "Enter your email to get a free login code — your video then exports without the watermark.": "Gib deine E-Mail ein, um einen kostenlosen Login-Code zu erhalten — dein Video wird dann ohne Wasserzeichen exportiert.",
-  "Please cancel your {0} plan first (Manage billing). Once it has ended you can delete the account here, or email contact@gluephs.com.": "Bitte kündige zuerst deinen {0}-Plan (Abo verwalten). Sobald er abgelaufen ist, kannst du das Konto hier löschen — oder schreib an contact@gluephs.com.",
+  "Please cancel your {0} plan first (Manage billing). Once it has ended you can delete the account here, or email hello@gluephs.com.": "Bitte kündige zuerst deinen {0}-Plan (Abo verwalten). Sobald er abgelaufen ist, kannst du das Konto hier löschen — oder schreib an hello@gluephs.com.",
   "Delete your account {0} and all saved projects and templates? This cannot be undone.": "Konto {0} und alle gespeicherten Projekte und Templates löschen? Das lässt sich nicht rückgängig machen.",
   "Sign-in service is unavailable right now. Please try again later.": "Der Anmeldedienst ist gerade nicht verfügbar. Bitte versuch es später nochmals.",
   "Could not delete the account: {0}": "Das Konto konnte nicht gelöscht werden: {0}",

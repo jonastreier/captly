@@ -33,4 +33,4 @@ Gluephs (formerly CaptionRush, earlier Capivo) is made in Switzerland by web&meh
 
 ## Contact
 
-- Email: contact@gluephs.com
+- Email: hello@gluephs.com

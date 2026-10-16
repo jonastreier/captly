@@ -39,7 +39,7 @@ Stand bereits erledigt: gluephs.com läuft bei Hostpoint (Server `sl52.web.hostp
 ## 2. Zwei Postfächer + SMTP (ca. 10 min)
 
 Hostpoint → **E-Mail** → Postfach anlegen:
-- `contact@gluephs.com` steht im Impressum. Eine Weiterleitung auf deine Adresse ist ok.
+- `hello@gluephs.com` steht im Impressum. Eine Weiterleitung auf deine Adresse ist ok.
 - `noreply@gluephs.com` verschickt Login-Codes, Bestätigungen und das Kontaktformular. Das Passwort kommt in den Passwortmanager.
 
 SMTP-Daten (in der Hostpoint-Hilfe kurz bestätigen):

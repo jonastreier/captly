@@ -29,7 +29,7 @@ if (preg_match('/^[a-f0-9]{48}$/', $t)) {
 $msg = [
   'ok'      => [$de ? 'Danke, bestätigt!' : 'Thanks, you\'re confirmed!', $de ? 'Du bekommst ab jetzt gelegentlich Neuigkeiten von Gluephs. Abmelden kannst du dich in jeder Mail.' : 'You\'ll now get occasional news from Gluephs. You can unsubscribe in every email.'],
   'invalid' => [$de ? 'Link ungültig' : 'Link not valid', $de ? 'Der Link wurde schon benutzt oder ist abgelaufen. Falls du dich anmelden wolltest, trage deine Adresse im Export-Fenster nochmals ein.' : 'This link was already used or has expired. If you wanted to subscribe, enter your address again in the export window.'],
-  'error'   => [$de ? 'Das hat nicht geklappt' : 'Something went wrong', $de ? 'Bitte versuche es später nochmals oder schreib uns an contact@gluephs.com.' : 'Please try again later or write to contact@gluephs.com.'],
+  'error'   => [$de ? 'Das hat nicht geklappt' : 'Something went wrong', $de ? 'Bitte versuche es später nochmals oder schreib uns an hello@gluephs.com.' : 'Please try again later or write to hello@gluephs.com.'],
 ][$state];
 http_response_code($state === 'error' ? 503 : 200);
 ?><!doctype html>

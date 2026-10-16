@@ -24,7 +24,7 @@ const RECOMMENDED = [
   ['SMTP_USER', 'Mailversand', 'volle Adresse noreply@gluephs.com'],
   ['SMTP_PASS', 'Mailversand', 'Passwort des Postfachs noreply@'],
   ['SMTP_PORT', 'Mail-Port (sonst 465)', '465'],
-  ['MAIL_FROM', 'Absenderadresse (sonst contact@gluephs.com)', 'noreply@gluephs.com'],
+  ['MAIL_FROM', 'Absenderadresse (sonst hello@gluephs.com)', 'noreply@gluephs.com'],
   ['ALERT_URL', 'Push-Alarm bei Groq-Limit/Fehlern', 'https://ntfy.sh/<dein-geheimes-thema>'],
 ];
 
