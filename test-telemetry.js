@@ -77,6 +77,26 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
       ok(q1.status === 503 && q2.status === 503, 'ohne Config: 503 bei POST (' + q1.status + ',' + q2.status + ')');
       const off = await (await fetch(b2 + 'stat.php')).json(); ok(off.configured === false && off.total === 0, 'ohne Config: GET liefert leere Rangliste');
     } finally { php2.kill(); fs.rmSync(dir2, { recursive: true, force: true }); }
+    // ── status.php (Auslastung) + Groq-429-Merker in transcribe.php
+    const dir4 = fs.mkdtempSync(path.join(os.tmpdir(), 'crsta-')); const p4 = await freePort(); const gp = await freePort();
+    for (const f of ['status.php', 'transcribe.php', 'trackstore.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir4, f));
+    let g429 = false;
+    const groq = http.createServer((req, res) => { let b = ''; req.on('data', d => b += d); req.on('end', () => { if (g429) { res.statusCode = 429; res.setHeader('Retry-After', '40'); res.setHeader('Content-Type', 'application/json'); return res.end('{"error":{"message":"rate"}}'); } res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ text: 'hi', language: 'english', words: [{ word: 'hi', start: 0, end: 1 }] })); }); }).listen(gp);
+    fs.writeFileSync(path.join(dir4, 'config.php'), `<?php return ['GROQ_API_KEY'=>'gsk_t','GROQ_BASE'=>'http://127.0.0.1:${gp}','MAX_AUDIO_SEC_PER_DAY_PER_MODEL'=>100,'MAX_AUDIO_SEC_PER_IP_DAY'=>0,'RATE_LIMIT_PER_HOUR'=>0,'MAX_AUDIO_SEC_PER_HOUR'=>0,'TRACK_DIR'=>'${path.join(dir4, 'trk')}'];`);
+    const php4 = spawn('php', ['-S', '127.0.0.1:' + p4, '-t', dir4], { env: Object.assign({}, process.env, { TMPDIR: dir4 }), stdio: 'ignore' });
+    await new Promise(r => setTimeout(r, 800));
+    try {
+      const b4 = 'http://127.0.0.1:' + p4 + '/', stat = () => fetch(b4 + 'status.php').then(r => r.json());
+      const wav4 = sec => { const nS = Math.round(16000 * sec), d = Buffer.alloc(44 + nS * 2); d.write('RIFF', 0); d.writeUInt32LE(36 + nS * 2, 4); d.write('WAVEfmt ', 8); d.writeUInt32LE(16, 16); d.writeUInt16LE(1, 20); d.writeUInt16LE(1, 22); d.writeUInt32LE(16000, 24); d.writeUInt32LE(32000, 28); d.writeUInt16LE(2, 32); d.writeUInt16LE(16, 34); d.write('data', 36); d.writeUInt32LE(nS * 2, 40); for (let i = 0; i < nS; i++) d.writeInt16LE(Math.round((Math.random() - 0.5) * 8000), 44 + i * 2); return d; };
+      const tr4 = sec => fetch(b4 + 'transcribe.php?model=whisper-large-v3', { method: 'POST', body: wav4(sec), headers: { 'Content-Type': 'audio/wav' } });
+      let st = await stat(); ok(st.state === 'ok' && st.busy_sec === 0 && st.reset_sec >= 60 && st.reset_sec <= 86400 && st.used_pct === 0, 'status: frischer Tag → ok, Rest bis Reset plausibel');
+      g429 = true; const r429 = await tr4(2); ok(r429.status === 429, 'status: Groq drosselt → Anfrage wird durchgereicht (429)');
+      st = await stat(); ok(st.state === 'busy' && st.busy_sec > 20 && st.busy_sec <= 40, 'status: nach Groq-429 → busy mit ehrlicher Restwartezeit (Retry-After 40 s): ' + JSON.stringify(st));
+      g429 = false; fs.rmSync(path.join(dir4, 'capivo_busy.txt'), { force: true });
+      st = await stat(); ok(st.state === 'ok', 'status: Merker weg → wieder ok');
+      for (let i = 0; i < 4; i++) await tr4(40); // 4 × 40 s: large-v3 80 s, Überlauf turbo 80 s → je Modell nur noch 20 s frei (< 60 s)
+      st = await stat(); ok(st.state === 'full' && st.used_pct >= 70, 'status: beide Modelle aufgebraucht → full (' + st.used_pct + ' %)');
+    } finally { php4.kill(); groq.close(); fs.rmSync(dir4, { recursive: true, force: true }); }
     // ── track.php (Trichter-Zähler, ohne Datenbank, Zähler in Datei)
     const dir3 = fs.mkdtempSync(path.join(os.tmpdir(), 'crtrk-')); const p3 = await freePort(); const data3 = path.join(dir3, 'data');
     for (const f of ['track.php', 'trackstore.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir3, f));

@@ -69,6 +69,9 @@ async function get(path, opt = {}) {
   }
   const st = await get('/api/stat');
   if (st.json && st.json.configured) pass('Style-Zähler: bereit'); else if (st.json) note('Style-Zähler: Supabase nicht konfiguriert', 'Secret SUPABASE_SERVICE_KEY und schema.sql in Supabase ausführen.'); else fail('/api/stat nicht erreichbar');
+  const ss = await get('/api/status');
+  if (ss.json && /^(ok|busy|full)$/.test(ss.json.state)) { if (ss.json.state === 'ok') pass('Auslastung (/api/status): ok'); else note('Auslastung: ' + ss.json.state + (ss.json.state === 'full' ? ' — Tageskontingent aufgebraucht, Nutzer werden aufs eigene Gerät verwiesen' : ' — Groq drosselt gerade (' + ss.json.busy_sec + ' s)')); }
+  else fail('/api/status nicht erreichbar (Status ' + (ss.error || ss.status) + ')', 'status.php fehlt auf dem Server? Deploy prüfen.');
   const pl = await get('/api/plan');
   if (pl.json && pl.json.enabled === false) pass('Abos: aus (richtig für den Start)'); else if (pl.json && pl.json.enabled) note('Abos sind EINGESCHALTET', 'Gewollt? Sonst Variable BILLING_ENABLED entfernen und neu deployen.'); else fail('/api/plan nicht erreichbar (Status ' + (pl.error || pl.status) + ')');
 

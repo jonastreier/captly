@@ -311,6 +311,8 @@ if ($vkey !== '' && $status >= 200 && $status < 300) {
   if ($quotaUid) cr_add_video_user($cfg, $quotaUid, $vkey);
   elseif ($quotaGuest) cr_add_video_anon($_SERVER['REMOTE_ADDR'] ?? 'x', $vkey);
 }
+// Groq drosselt: Zeitpunkt merken, damit api/status ehrlich «ausgelastet, ca. N s» melden kann (mind. 10 s, höchstens 10 min)
+if ($status == 429) @file_put_contents(sys_get_temp_dir() . '/capivo_busy.txt', (string)(time() + max(10, min(600, is_numeric($retryAfter) ? (int)$retryAfter : 30))), LOCK_EX);
 if ($status == 429) alert_ops('groq-429-whisper', 'Groq-Limit erreicht (Transkription, HTTP 429). Nutzer bekommen gerade Fehler bzw. den langsamen lokalen Fallback.');
 
 // Groq-Status & -Body 1:1 durchreichen (Frontend kennt 401/402/413/429/503 und wiederholt 429/5xx selbst).

@@ -240,6 +240,10 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .exp-upsell .eu-row{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
 .exp-upsell button{font:600 12.5px 'Inter',sans-serif;border-radius:999px;padding:7px 13px;cursor:pointer;border:1px solid var(--line2);background:#fff;color:var(--ink)}
 .exp-upsell button.eu-yes{background:var(--brand,#7c3aed);border-color:transparent;color:#fff}
+.status-banner{position:relative;z-index:60;display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:9px 40px 9px 16px;background:#fff7e6;border-bottom:1px solid #f1d9a8;color:#5a4310;font:500 13.5px/1.4 'Inter',sans-serif;text-align:center}
+.status-banner[hidden]{display:none}
+.status-banner .sb-btn{font:600 12.5px 'Inter',sans-serif;border-radius:999px;padding:6px 13px;border:1px solid #d8b872;background:#fff;color:#5a4310;cursor:pointer}
+.status-banner .sb-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:none;font-size:20px;line-height:1;color:#8a6d2b;cursor:pointer;padding:4px 8px}
 .price-wl{margin-top:20px;display:flex;flex-direction:column;gap:8px}
 .price-wl input{width:100%;box-sizing:border-box;font:400 14px 'Inter',sans-serif;padding:10px 12px;border:1px solid var(--line2);border-radius:9px;background:#fff;color:var(--ink)}
 .price-wl .price-cta{margin-top:0;background:var(--brand,#7c3aed);color:#fff}
@@ -1348,6 +1352,11 @@ body.editor-open .lang-hint{display:none}
 </style>
 </head>
 <body>
+<div class="status-banner" id="statusBanner" role="status" aria-live="polite" hidden>
+  <span id="statusTxt"></span>
+  <button type="button" id="statusLocalBtn" class="sb-btn" onclick="useLocalTranscription()" hidden>Use my device</button>
+  <button type="button" class="sb-x" id="statusX" onclick="statusDismiss()" aria-label="Close">×</button>
+</div>
 <!-- EIN Icon-Satz für alle Bedienelemente (Inline-SVG-Sprite, Strichstärke/Farbe per CSS .ic) — statt
      gemischter Emoji/Unicode-Glyphen, die je nach System anders aussehen. Nutzung: <svg class="ic"><use href="#i-…"/></svg> -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -10688,6 +10697,40 @@ function statExport() {
   if (!s || s._isTpl || s.id === 'custom' || !/^[a-z0-9_-]{1,32}$/.test(s.id)) return;
   telePost('api/stat', { style: s.id });
 }
+// ── Auslastung: Status-Banner (api/status → status.php) und lokaler Ausweg ──
+// ok = nichts zu sehen. busy = Groq drosselt gerade (ehrliche Restwartezeit). full = Tageskontingent der Seite aufgebraucht:
+// Banner bietet an, auf dem eigenen Gerät zu transkribieren (langsamer, einmaliger Modell-Download), statt den Nutzer hängen zu lassen.
+var _useLocalTr = false, _localByBanner = false, _statusLast = null, _statusDismissed = '';
+function statusApply(st) {
+  _statusLast = st;
+  var el = document.getElementById('statusBanner'), tx = document.getElementById('statusTxt'), btn = document.getElementById('statusLocalBtn');
+  if (!el || !tx || !btn) return;
+  if (!st || st.state === 'ok' || (st.state === _statusDismissed && st.state === 'busy')) {
+    el.hidden = true;
+    if (_localByBanner && (!st || st.state !== 'full')) { _useLocalTr = false; _localByBanner = false; }
+    return;
+  }
+  if (st.state === 'busy') {
+    tx.textContent = _t('Gluephs is busy right now — captions may take a little longer (about {0} s). Your upload still works.', Math.max(10, st.busy_sec | 0));
+    btn.hidden = true;
+  } else {
+    var h = Math.max(1, Math.ceil((st.reset_sec || 3600) / 3600));
+    tx.textContent = _useLocalTr ? _t('Today\'s free server capacity is used up. Captions are created on your device (slower, one-time model download).')
+      : _tn(h, 'Today\'s free server capacity is used up and resets in about {0} hour. You can still transcribe on your device (slower, one-time model download).',
+               'Today\'s free server capacity is used up and resets in about {0} hours. You can still transcribe on your device (slower, one-time model download).', h);
+    btn.hidden = _useLocalTr;
+  }
+  var x = document.getElementById('statusX'); if (x) x.hidden = st.state === 'full';
+  el.hidden = false;
+}
+function statusPoll() {
+  if (typeof fetch !== 'function' || (typeof location !== 'undefined' && (location.protocol === 'file:' || /^(localhost|127\.|\[::1\])/.test(location.hostname)))) return;
+  fetch('api/status', { cache: 'no-store' }).then(function(r) { return r.ok ? r.json() : null; }).then(statusApply).catch(function() {});
+}
+function statusDismiss() { _statusDismissed = _statusLast && _statusLast.state; var el = document.getElementById('statusBanner'); if (el && _statusDismissed === 'busy') el.hidden = true; }
+function useLocalTranscription() { _useLocalTr = true; _localByBanner = true; statusApply(_statusLast); capToast(_t('OK — captions will be created on your device (slower, one-time model download).')); }
+setTimeout(statusPoll, 1500);
+setInterval(function() { if (!document.hidden) statusPoll(); }, 120000);
 // Trichter-Zähler (api/track → track.php): anonym, ohne Cookies/ID/IP-Speicherung; nur Ereignisname, Quelle (utm_source oder Host der
 // verweisenden Seite, sonst «direct») und Sprache. Nicht bei «Do Not Track»/GPC und nicht auf localhost (TELE_ON).
 var _trkSrc = null, _trkVisited = false;
@@ -11683,7 +11726,7 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       if ((resp.status === 429 || resp.status >= 500) && attempt < maxAttempts) {
         var ra = parseFloat(resp.headers.get('Retry-After'));
         var wait = isFinite(ra) ? ra * 1000 : 2000 * Math.pow(2, attempt - 1);
-        if (wait <= 25000) { await sleepMs(wait + 250); continue; }
+        if (wait <= 25000) { setTStatus('', _t('Busy right now — trying again in {0} s…', Math.max(1, Math.ceil(wait / 1000))), true, true); await sleepMs(wait + 250); continue; }
       }
       // Konkrete Wartezeit nennen statt „wait a minute“ — Groq-Free-Tier sperrt teils mehrere Minuten.
       var raSec = parseFloat(resp.headers.get('Retry-After'));
@@ -11702,7 +11745,7 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
         : resp.status === 429 ? rlMsg
         : resp.status >= 500 ? _t('Transcription service is busy right now — please try again.')
         : _t('Transcription error {0}', resp.status) + (detail ? ' (' + detail.slice(0, 120) + ')' : '') + _t('. Please try again.'),
-        { status: resp.status }); // Status für den Aufrufer (400 auf Ogg → einmal mit WAV wiederholen)
+        { status: resp.status, dailyCap: resp.status === 429 && detail === 'daily_cap' }); // Status für den Aufrufer (400 auf Ogg → einmal mit WAV wiederholen); dailyCap → lokaler Ausweg
     }
     var j;
     try { j = await resp.json(); }
@@ -12134,13 +12177,19 @@ async function transcribeVideo(file) {
 
     // ── 1) Serverseitig transkribieren (Groq via transcribe.php) — kein Download für den Nutzer ──
     // large-v3 (beste Qualität); scheitert es (Groq-Limit je Modell, 5xx, Netz, Timeout) → einmal still mit turbo.
-    var served;
-    try { served = await serverTranscribe(audioData, SERVER_MODEL.perfect, lc, audioDur, stale, vocab, spans); }
+    var served, capLocal = false;
+    if (_useLocalTr && !doTranslate) { served = null; capLocal = true; } // Banner «Use my device» oder Server voll: direkt lokal
+    else try { served = await serverTranscribe(audioData, SERVER_MODEL.perfect, lc, audioDur, stale, vocab, spans); }
     catch (eS) {
-      if (stale() || (eS && eS.stale) || !turboFallbackOk(eS)) throw eS;
-      console.warn('large-v3 fehlgeschlagen, Fallback turbo:', eS && eS.message || eS);
-      setTStatus('', _t('Transcribing (backup model)…'), true, true);
-      served = await serverTranscribe(audioData, SERVER_MODEL.fast, lc, audioDur, stale, vocab, spans);
+      if (stale() || (eS && eS.stale)) throw eS;
+      if (eS && eS.dailyCap && !doTranslate) { served = null; capLocal = true; } // Tageskontingent der Seite aufgebraucht → statt Fehler lokal weitermachen
+      else {
+        if (!turboFallbackOk(eS)) throw eS;
+        console.warn('large-v3 fehlgeschlagen, Fallback turbo:', eS && eS.message || eS);
+        setTStatus('', _t('Transcribing (backup model)…'), true, true);
+        try { served = await serverTranscribe(audioData, SERVER_MODEL.fast, lc, audioDur, stale, vocab, spans); }
+        catch (eT) { if (eT && eT.dailyCap && !doTranslate) { served = null; capLocal = true; } else throw eT; }
+      }
     }
     bailIfStale();
 
@@ -12194,7 +12243,8 @@ async function transcribeVideo(file) {
       }
     } else {
       // ── 2) Fallback: lokal im Browser (z. B. Vercel-Demo ohne PHP-Proxy) ──
-      setTStatus('', _t('Server unavailable — running locally (one-time model download)…'), true, true);
+      setTStatus('', capLocal ? _t('Today\'s free server capacity is used up — running on your device instead (one-time model download)…') : _t('Server unavailable — running locally (one-time model download)…'), true, true);
+      if (capLocal) statusPoll();
       var pipe = await getPipe(LOCAL_MODEL[whisperModel] || 'base');
       bailIfStale();
       // return_language:true haengt die von Whisper selbst erkannte Audio-Sprache an die Chunks an

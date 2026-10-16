@@ -39,7 +39,7 @@ RewriteCond %{ENV:REDIRECT_STATUS} ^$
 RewriteRule ^(impressum|datenschutz|privacy|terms|licenses)\.html$ /$1 [R=301,L]
 
 # API: gleiche Pfade wie auf Vercel (/api/transcribe …) → PHP-Gegenstücke
-RewriteRule ^api/(transcribe|polish|enhance|lead|confirm|unsubscribe|log|stat|track|plan)/?$ $1.php [L,QSA]
+RewriteRule ^api/(transcribe|polish|enhance|lead|confirm|unsubscribe|log|stat|track|status|plan)/?$ $1.php [L,QSA]
 RewriteRule ^contact/?$ contact.php [L,QSA]
 RewriteRule ^kontakt/?$ contact.php?lang=de [L,QSA]
 RewriteRule ^api/paddle-webhook/?$ paddle-webhook.php [L,QSA]

@@ -75,7 +75,7 @@ ok(r.status === 1 && /✗ GROQ_API_KEY/.test(r.stdout), 'check-secrets: leerer W
   };
   const follow = p => { const seen = []; for (let i = 0; i < 6; i++) { const r = req(p); if (r.redirect === undefined) return Object.assign(r, { hops: i }); if (seen.includes(r.redirect)) return { loop: true }; seen.push(p); p = r.redirect; } return { loop: true }; };
   const expect = { '': 'captly.html', 'de': 'captly.de.html', 'de/': 'captly.de.html', 'captly.html': 'captly.html', 'index.html': 'captly.html',
-    'captly.de.html': 'captly.de.html', 'contact': 'contact.php', 'kontakt': 'contact.php', 'api/transcribe': 'transcribe.php', 'api/track': 'track.php', 'api/lead/': 'lead.php' };
+    'captly.de.html': 'captly.de.html', 'contact': 'contact.php', 'kontakt': 'contact.php', 'api/transcribe': 'transcribe.php', 'api/track': 'track.php', 'api/status': 'status.php', 'api/lead/': 'lead.php' };
   for (const sl of ['reels-captions', 'reels-untertitel', 'tiktok-captions', 'tiktok-untertitel', 'shorts-captions', 'shorts-untertitel', 'srt-to-vtt', 'srt-zu-vtt', 'kapwing-alternative', 'alternative-zu-kapwing', 'untertitel-schweizer-hochdeutsch']) { expect[sl] = 'p/' + sl + '.html'; expect['p/' + sl + '.html'] = 'p/' + sl + '.html'; }
   for (const pg of ['impressum', 'datenschutz', 'privacy', 'terms', 'licenses']) { expect[pg] = pg + '.html'; expect[pg + '.html'] = pg + '.html'; }
   for (const [p, want] of Object.entries(expect)) {
@@ -114,7 +114,7 @@ if ($p === '/config.php' && $deny) { http_response_code(403); exit; }
 $pages = ['/' => 'captly.html', '/de' => 'captly.de.html', '/impressum' => 'impressum.html', '/datenschutz' => 'datenschutz.html', '/privacy' => 'privacy.html', '/terms' => 'terms.html'];
 if (preg_match('#^/(reels-captions|reels-untertitel|tiktok-captions|tiktok-untertitel|shorts-captions|shorts-untertitel|srt-to-vtt|srt-zu-vtt|kapwing-alternative|alternative-zu-kapwing|untertitel-schweizer-hochdeutsch)$#', $p, $mm)) { header('Content-Type: text/html; charset=utf-8'); readfile(__DIR__ . '/p/' . $mm[1] . '.html'); return true; }
 if (isset($pages[$p])) { header('Content-Type: text/html; charset=utf-8'); readfile(__DIR__ . '/' . $pages[$p]); return true; }
-if (preg_match('#^/api/(transcribe|lead|log|stat|plan)$#', $p, $m)) { require __DIR__ . '/' . $m[1] . '.php'; return true; }
+if (preg_match('#^/api/(transcribe|lead|log|stat|plan|status)$#', $p, $m)) { require __DIR__ . '/' . $m[1] . '.php'; return true; }
 if ($p === '/kontakt') { $_GET['lang'] = 'de'; require __DIR__ . '/contact.php'; return true; }
 if ($p === '/contact') { require __DIR__ . '/contact.php'; return true; }
 return false;`);
