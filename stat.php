@@ -2,7 +2,8 @@
 /**
  * Gluephs – anonyme Style-Zählung.
  *   POST /api/stat {style}  → zählt einen Export pro Tag und Style hoch (public.style_stats, keine Nutzerdaten, keine IP gespeichert)
- *   GET  /api/stat          → {total, top:[{style,n}]} der letzten 30 Tage, 1 Stunde gecached (für das «Trending»-Abzeichen)
+ *   GET  /api/stat          → {total, top:[{style,n}], all:[{style,n}]} der letzten 30 Tage, 1 Stunde gecached
+ *                              (top = «Trending»-Abzeichen im Editor, all = wöchentliche Style-Rotation: scripts/style-report.js)
  */
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
 require_once __DIR__ . '/ratelimit.php'; // gl_rl_ip(): IPv6 je /64 — gemeinsamer Schlüssel aller Limits
@@ -46,6 +47,7 @@ $sum = []; $total = 0;
 foreach ($rows as $r) { if (!isset($r['style'], $r['n'])) continue; $sum[$r['style']] = ($sum[$r['style']] ?? 0) + (int)$r['n']; $total += (int)$r['n']; }
 arsort($sum);
 $top = []; foreach (array_slice($sum, 0, 5, true) as $s => $n) $top[] = ['style' => (string)$s, 'n' => $n];
-$json = json_encode(['configured' => true, 'total' => $total, 'top' => $top]);
+$all = []; foreach (array_slice($sum, 0, 200, true) as $s => $n) $all[] = ['style' => (string)$s, 'n' => $n];
+$json = json_encode(['configured' => true, 'total' => $total, 'top' => $top, 'all' => $all]);
 @file_put_contents($cf, $json, LOCK_EX);
 echo $json;

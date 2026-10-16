@@ -239,6 +239,7 @@ function qaMain() {
       const ov = document.getElementById('capOverlay'), fr = frame().getBoundingClientRect(), ratio = fr.width / previewFrameW();
       const spans = Array.prototype.slice.call(ov.querySelectorAll('[data-oi]'));
       spans.forEach(x => { x.style.transform = 'none'; }); // laufende Pop-/Lift-Animation würde die Rechtecke verschieben
+      const rootEl = ov.querySelector('.cap-root'); if (rootEl) rootEl.style.transform = 'none'; // Block-Versatz (frei platziert/Ausweichen) ist eine reine Verschiebung — hier zählt das Layout
       const pieces = []; L.lines.forEach((ln, li) => ln.forEach(wo => pieces.push({ wo, li })));
       const out = { n: spans.length, nExp: pieces.length, linesDom: qa.domLines(), linesExp: L.lines.length, scale: L.scale, fsS: L.fsS, lhExp: L.lh, dx: 0, dw: 0, dy: 0, dh: 0, db: 0, pitchDom: null, W, H, worst: '' };
       const rows = {}, wraps = [];
@@ -246,7 +247,9 @@ function qaMain() {
         const r = spans[i].getBoundingClientRect(), p = pieces[i].wo, k = W / (previewFrameW() * ratio);
         const x = (r.left - fr.left) * k, w = r.width * k, top = (r.top - fr.top) * k, h = r.height * k;
         const isEm = parseFloat(getComputedStyle(spans[i]).fontSize) > parseFloat(getComputedStyle(spans[i].closest('.cap-root')).fontSize) * 1.001;
-        const dx = Math.abs(x - p.x), dw = Math.abs(w - p.w), dy = Math.abs(top - (p.y - L.capA)), dh = isEm ? 0 : Math.abs(h - (L.capA + L.capD));
+        // Betonungswort: eigene, mit emS (bis 2.2×) und Zweitschrift wachsende Box → Oberkante/Höhe nicht gegen die Normalwort-Box (L.capA/capD)
+        // prüfen (wuchs bei Big Keyword/Italic Punch auf 16–28 px); seine Schriftlage prüft die Grundlinie (db, 0.2 %) unten genau
+        const dx = Math.abs(x - p.x), dw = Math.abs(w - p.w), dy = isEm ? 0 : Math.abs(top - (p.y - L.capA)), dh = isEm ? 0 : Math.abs(h - (L.capA + L.capD));
         if (dx > out.dx) { out.dx = dx; out.worst = 'x ' + spans[i].textContent; }
         out.dw = Math.max(out.dw, dw); if (dy > out.dy) { out.dy = dy; out.worstY = spans[i].textContent + (isEm ? ' (Betonung)' : '') + ' Zeile ' + pieces[i].li + ' DOM ' + top.toFixed(1) + ' / Export ' + (p.y - L.capA).toFixed(1); } out.dh = Math.max(out.dh, dh);
         const wr = spans[i].parentElement; if (wraps.indexOf(wr) < 0) wraps.push(wr);
