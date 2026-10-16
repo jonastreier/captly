@@ -22,7 +22,7 @@ Gluephs (formerly CaptionRush, earlier Capivo) is made in Switzerland by web&meh
 - [Gluephs (English)](https://gluephs.com/): app and landing page with features, pricing and FAQ
 - [Gluephs (Deutsch)](https://gluephs.com/de): German landing page ("Untertitel automatisch erstellen")
 - [Impressum](https://gluephs.com/impressum.html): legal notice (German)
-- [Datenschutz](https://gluephs.com/datenschutz.html): privacy policy (German), incl. which data goes to Groq and Vercel
+- [Datenschutz](https://gluephs.com/datenschutz.html): privacy policy (German), incl. which data goes to Groq, Supabase and (for paid plans) Paddle
 
 ## FAQ highlights
 

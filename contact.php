@@ -9,6 +9,7 @@
 define('CR_INCLUDE', 1);
 require __DIR__ . '/mail.php';
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
+require_once __DIR__ . '/ratelimit.php'; // gl_rl_ip(): IPv6 je /64 — gemeinsamer Schlüssel aller Limits
 header('Content-Type: text/html; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -43,7 +44,7 @@ if ($post) {
     $err = $de ? 'Bitte schreib uns eine Nachricht.' : 'Please write a message.';
   } else {
     // Drosselung pro IP: 5 Nachrichten pro Stunde (Datei mit IP-Hash, nur Zeitstempel)
-    $rf = sys_get_temp_dir() . '/capivo_contact_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json'; $now = time(); $hits = [];
+    $rf = sys_get_temp_dir() . '/capivo_contact_' . md5(gl_rl_ip()) . '.json'; $now = time(); $hits = [];
     if (is_file($rf)) { $d = json_decode((string)@file_get_contents($rf), true); if (is_array($d)) $hits = array_values(array_filter($d, function($t) use ($now) { return $t > $now - 3600; })); }
     if (count($hits) >= 5) {
       http_response_code(429); header('Retry-After: 900');

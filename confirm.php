@@ -1,7 +1,8 @@
 <?php
 /**
- * Gluephs – Double-Opt-in-Bestätigung: GET /api/confirm?t=<token> (Link aus der Bestätigungsmail).
- * Setzt confirmed_at (Nachweis der Einwilligung: Zeitpunkt + gehashte IP). Token ist einmalig.
+ * Gluephs – Double-Opt-in-Bestätigung: /api/confirm?t=<token> (Link aus der Bestätigungsmail).
+ * GET zeigt nur eine Seite mit Knopf (Mail-Scanner wie Outlook Safe Links/Gmail rufen Links vorab ab — sie dürfen
+ * keine Einwilligung auslösen); erst der POST des Knopfs setzt confirmed_at (Nachweis: Zeitpunkt + gehashte IP). Token ist einmalig.
  */
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
 header('Content-Type: text/html; charset=utf-8');
@@ -13,10 +14,12 @@ header('X-Robots-Tag: noindex');
 $de = stripos((string)($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''), 'de') === 0;
 $t = (string)($_GET['t'] ?? '');
 $state = 'invalid';
-if (preg_match('/^[a-f0-9]{48}$/', $t)) {
+$post = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
+if (preg_match('/^[a-f0-9]{48}$/', $t) && !$post) $state = 'ask';
+elseif (preg_match('/^[a-f0-9]{48}$/', $t)) {
   $SB = rtrim((string)($cfg['SUPABASE_URL'] ?? ''), '/'); $KEY = (string)($cfg['SUPABASE_SERVICE_KEY'] ?? '');
   if ($SB !== '' && $KEY !== '') {
-    $salt = (string)($cfg['LEAD_SECRET'] ?? $KEY);
+    $salt = (string)($cfg['LEAD_SECRET'] ?? '') !== '' ? (string)$cfg['LEAD_SECRET'] : $KEY; // leeres LEAD_SECRET → Service-Key als Salt
     $c = curl_init($SB . '/rest/v1/leads?confirm_hash=eq.' . hash('sha256', $t) . '&confirmed_at=is.null');
     curl_setopt_array($c, [CURLOPT_CUSTOMREQUEST => 'PATCH', CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 12,
       CURLOPT_HTTPHEADER => ['apikey: ' . $KEY, 'Authorization: Bearer ' . $KEY, 'Content-Type: application/json', 'Prefer: return=representation'],
@@ -27,6 +30,7 @@ if (preg_match('/^[a-f0-9]{48}$/', $t)) {
   } else { $state = 'error'; }
 }
 $msg = [
+  'ask'     => [$de ? 'Newsletter bestätigen?' : 'Confirm the newsletter?', $de ? 'Ein Klick, dann bekommst du gelegentlich Neuigkeiten von Gluephs. Abmelden kannst du dich in jeder Mail.' : 'One click and you\'ll get occasional news from Gluephs. You can unsubscribe in every email.'],
   'ok'      => [$de ? 'Danke, bestätigt!' : 'Thanks, you\'re confirmed!', $de ? 'Du bekommst ab jetzt gelegentlich Neuigkeiten von Gluephs. Abmelden kannst du dich in jeder Mail.' : 'You\'ll now get occasional news from Gluephs. You can unsubscribe in every email.'],
   'invalid' => [$de ? 'Link ungültig' : 'Link not valid', $de ? 'Der Link wurde schon benutzt oder ist abgelaufen. Falls du dich anmelden wolltest, trage deine Adresse im Export-Fenster nochmals ein.' : 'This link was already used or has expired. If you wanted to subscribe, enter your address again in the export window.'],
   'error'   => [$de ? 'Das hat nicht geklappt' : 'Something went wrong', $de ? 'Bitte versuche es später nochmals oder schreib uns an hello@gluephs.com.' : 'Please try again later or write to hello@gluephs.com.'],
@@ -37,5 +41,7 @@ http_response_code($state === 'error' ? 503 : 200);
 <title><?= htmlspecialchars($msg[0]) ?> · Gluephs</title>
 <style>:root{--ink:#16181d;--muted:#5d6470;--brand:#7c3aed;--bg:#f5f7f8;--card:#fff;--line:#e3e7ea}@media(prefers-color-scheme:dark){:root{--ink:#f2f3f5;--muted:#a0a7b3;--bg:#14161a;--card:#1c1f25;--line:#2b2f37}}
 *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:16px;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-main{max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:32px 24px;text-align:center}h1{margin:0 0 8px;font-size:22px}p{margin:0 0 20px;color:var(--muted)}a{display:inline-block;background:var(--brand);color:#fff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px}</style>
-</head><body><main><h1><?= htmlspecialchars($msg[0]) ?></h1><p><?= htmlspecialchars($msg[1]) ?></p><a href="<?= $de ? '/de' : '/' ?>">Gluephs</a></main></body></html>
+main{max-width:420px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:32px 24px;text-align:center}h1{margin:0 0 8px;font-size:22px}p{margin:0 0 20px;color:var(--muted)}a,button{display:inline-block;background:var(--brand);color:#fff;text-decoration:none;font:600 16px system-ui,sans-serif;padding:12px 20px;border:0;border-radius:10px;cursor:pointer}</style>
+</head><body><main><h1><?= htmlspecialchars($msg[0]) ?></h1><p><?= htmlspecialchars($msg[1]) ?></p>
+<?php if ($state === 'ask'): ?><form method="post" action="?t=<?= htmlspecialchars($t) ?>"><button type="submit"><?= $de ? 'Ja, anmelden' : 'Yes, subscribe' ?></button></form>
+<?php else: ?><a href="<?= $de ? '/de' : '/' ?>">Gluephs</a><?php endif; ?></main></body></html>

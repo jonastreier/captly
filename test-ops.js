@@ -148,6 +148,20 @@ return false;`);
 
   const dead = await live('http://127.0.0.1:' + await freePort());
   ok(dead.status === 1 && /Seite nicht erreichbar/.test(dead.out), 'live-check: nicht erreichbare Seite → verständliche Meldung');
+
+  // Abo-Schalter nur mit Rechtstexten (write-config.js): «Paddle» muss in Terms + beiden Datenschutzerklärungen stehen
+  {
+    const t = fs.mkdtempSync(path.join(os.tmpdir(), 'glcfg-')); fs.mkdirSync(path.join(t, 'scripts'));
+    fs.copyFileSync(path.join(__dirname, 'scripts', 'write-config.js'), path.join(t, 'scripts', 'write-config.js'));
+    for (const f of ['terms.html', 'privacy.html', 'datenschutz.html']) fs.copyFileSync(path.join(__dirname, f), path.join(t, f));
+    const wc = env => spawnSync('node', [path.join(t, 'scripts', 'write-config.js')], { env: Object.assign({ PATH: process.env.PATH, GROQ_API_KEY: 'x' }, env), encoding: 'utf8' });
+    ok(wc({ BILLING_ENABLED: '1' }).status === 0, 'write-config: Abos an, Rechtstexte nennen Paddle → ok');
+    fs.writeFileSync(path.join(t, 'privacy.html'), '<p>ohne Verkäufer</p>');
+    const r = wc({ BILLING_ENABLED: '1' });
+    ok(r.status === 1 && /privacy\.html nennt Paddle nicht/.test(r.stderr), 'write-config: Abos an ohne Paddle in der Datenschutzerklärung → Deploy bricht ab');
+    ok(wc({}).status === 0, 'write-config: Abos aus → keine Prüfung');
+    fs.rmSync(t, { recursive: true, force: true });
+  }
   done();
 })();
 

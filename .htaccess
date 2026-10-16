@@ -48,10 +48,12 @@ RewriteRule ^api/portal/?$ paddle-portal.php [L,QSA]
 # Repo-Dateien, die nie zum Upload-Paket gehören (z. B. Reste eines früheren Handuploads des ganzen Repos)
 RewriteRule ^(scripts|i18n|docs|e2e-shots|api|captly-wt)/ - [R=404,L]
 RewriteRule ^(vercel\.json|package(-lock)?\.json|\.vercelignore|\.env\.example)$ - [R=404,L]
+# Versteckte Ordner (.git/config, .github/…): FilesMatch unten prüft nur den Dateinamen, nicht den Ordner (Audit 2026-10-16)
+RewriteRule (^|/)\.(?!well-known/) - [R=404,L]
 </IfModule>
 
 # Interne Dateien nie ausliefern
-<FilesMatch "(^\.|^config(\.example)?\.php$|\.(md|sql|sh|log)$|^test-.*|^server\.js$|^schema\.sql$)">
+<FilesMatch "(^\.|^config(\.example)?\.php|\.(md|sql|sh|log|bak|old|orig|swp|save|tmp)$|~$|^test-.*|^server\.js$|^schema\.sql$)">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>

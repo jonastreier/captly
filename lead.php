@@ -10,6 +10,7 @@
 define('CR_INCLUDE', 1);
 require __DIR__ . '/mail.php';
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
+require_once __DIR__ . '/ratelimit.php'; // gl_rl_ip(): IPv6 je /64 — gemeinsamer Schlüssel aller Limits
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
@@ -22,7 +23,7 @@ $KEY = (string)($cfg['SUPABASE_SERVICE_KEY'] ?? '');
 if ($SB === '' || $KEY === '') out(503, ['error' => 'not_configured']);
 
 // Drosselung pro IP (Dateien in sys_get_temp_dir): 20 Einträge pro Stunde
-$ip = $_SERVER['REMOTE_ADDR'] ?? 'x';
+$ip = gl_rl_ip();
 $rf = sys_get_temp_dir() . '/capivo_lead_' . md5($ip) . '.json'; $now = time(); $hits = [];
 if (is_file($rf)) { $d = json_decode((string)@file_get_contents($rf), true); if (is_array($d)) $hits = array_values(array_filter($d, function($t) use ($now) { return $t > $now - 3600; })); }
 if (count($hits) >= 20) { header('Retry-After: 900'); out(429, ['error' => 'rate_limited']); }
@@ -65,6 +66,10 @@ if ($row) {
 }
 
 $mailed = false;
+// Mail-Bomben-Schutz (Audit 2026-10-16): der Empfänger ist frei wählbar → höchstens 3 Bestätigungsmails pro Adresse und 24 h,
+// 10 pro Absender (IPv6 je /64) und Tag, LEAD_MAILS_PER_DAY (Default 300) insgesamt pro UTC-Tag. Darüber: Eintrag ja, Mail nein.
+if ($needMail && !(gl_rl_take('leadmail', 86400, 3, 1, 'to:' . $email) && gl_rl_take('leadmailip', 86400, 10)
+                   && gl_day_take('leadmail', (int)($cfg['LEAD_MAILS_PER_DAY'] ?? 300)))) $needMail = false;
 if ($needMail) {
   $token = bin2hex(random_bytes(24));
   [$st3] = sb('PATCH', 'leads?id=eq.' . rawurlencode($id), ['confirm_hash' => hash('sha256', $token), 'confirm_sent' => gmdate('c')], 'return=minimal');

@@ -61,7 +61,7 @@ function cr_effective_plan($row, $now = null) {
   $st = (string)($row['status'] ?? 'active');
   if (!in_array($st, ['active', 'trialing', 'past_due'], true)) return 'free';
   $end = !empty($row['period_end']) ? strtotime((string)$row['period_end']) : 0;
-  if ($end && $end + ($st === 'past_due' ? 3 * 86400 : 0) < $now) return 'free';
+  if ($end && $end + ($st === 'past_due' ? 3 * 86400 : 86400) < $now) return 'free'; // 1 Tag Kulanz: Verlängerungs-Webhook kann sich verspäten
   return $plan;
 }
 

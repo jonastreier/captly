@@ -107,7 +107,7 @@ encodeUploadAudio:encodeUploadAudio,resetOpus:function(){_opusOff=false;_opusSup
 sceneCutPath:sceneCutPath,waitForSceneCuts:waitForSceneCuts,beginCutRun:beginCutRun,finishCutRun:finishCutRun,cutsDetecting:cutsDetecting,mergeCutCands:mergeCutCands,CUT_W:CUT_W,CUT_H:CUT_H,
 nudgeBlockEdge:nudgeBlockEdge,pushUndo:pushUndo,undoCaptions:undoCaptions,redoCaptions:redoCaptions,resetUndo:resetUndo,
 undoDepth:function(){return [_undoStack.length,_redoStack.length];},templateFontSize:templateFontSize,normalizeTemplate:normalizeTemplate,
-brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,applyTrending:applyTrending,teleError:teleError,statExport:statExport,tlRange:tlRange,tlDeleteSel:tlDeleteSel,tlToggleMulti:tlToggleMulti,tlSelState:function(a,b){tlSel=a;tlSelEnd=b;},tlGet:function(){return {sel:tlSel,end:tlSelEnd,multi:tlMulti};},coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
+brandTplId:brandTplId,toggleBrandTpl:toggleBrandTpl,applyBrandOnOpen:applyBrandOnOpen,cleanFontName:cleanFontName,dropToStyle:dropToStyle,applyTrending:applyTrending,teleError:teleError,statExport:statExport,cloneHost:cloneHost,tlRange:tlRange,tlDeleteSel:tlDeleteSel,tlToggleMulti:tlToggleMulti,tlSelState:function(a,b){tlSel=a;tlSelEnd=b;},tlGet:function(){return {sel:tlSel,end:tlSelEnd,multi:tlMulti};},coverCropRect:coverCropRect,coverSafeRegion:coverSafeRegion,coverInRect:coverInRect,coverWrap:coverWrap,coverBlockY:coverBlockY,coverFileName:coverFileName,coverHook:coverHook,coverDefaultTime:coverDefaultTime,coverRestore:coverRestore,getCover:function(){return coverState;},capLsPx:capLsPx,capWordFace:capWordFace,isKnownFont:isKnownFont,ensureCapFont:ensureCapFont,CAP_FONT_W:CAP_FONT_W,
 tileWords:tileWords,capFontMetrics:capFontMetrics,capLineH:capLineH,switchTab:switchTab,deleteSeg:deleteSeg,closeInlineEdit:closeInlineEdit,openInlineEdit:openInlineEdit,
 updateTrSetSum:updateTrSetSum,syncTopExport:syncTopExport,currentLayout:currentLayout,getFontSize:function(){return fontSize;},getCase:function(){return capCase;},
 detectSpeechRegions:detectSpeechRegions,speechProbabilities:speechProbabilities,speechSpans:speechSpans,buildSpeechTrack:buildSpeechTrack,mapTrackWord:mapTrackWord,constrainWordsToSpeech:constrainWordsToSpeech,vadFft:vadFft,vadFftTables:vadFftTables,
@@ -227,6 +227,12 @@ ok(T.activeWordIdx(bl[2], 3.5) === 2, 'aktives Wort = etwas');
 // 6) buildCap: index-basiertes Highlight + Seek-Handler
 const s = T.STYLES.find(x => x.id === 'stack');
 const html = T.buildCap(['ein', 'zwei', 'drei'], s, 1, 22, [0, 0.5, 1]);
+ok(['gluephs.com', 'www.gluephs.com', 'localhost', 'app.localhost', 'x.test', '127.0.0.1', 'gluephs-git-x.vercel.app'].every(h => !T.cloneHost(h)) && ['gluephs.co', 'evilgluephs.com', 'clone.example.com'].every(h => T.cloneHost(h)),
+   'Klon-Erkennung: eigene Domains/Entwicklung ausgenommen, fremde Domains erkannt');
+{ // Audit 2026-10-16: Wörter aus Transkript/Projekt/Autosave nie als HTML (DOM-XSS → Zugriff auf die Supabase-Sitzung)
+  const evil = T.buildCap(['<img src=x onerror=alert(1)>', 'R&D'], s, 0, 22, [0, 0.5]);
+  ok(!/<img/i.test(evil) && /&lt;img/i.test(evil) && /R&amp;D/i.test(evil), 'buildCap escapt Untertitel-Wörter (kein <img> im HTML)');
+}
 ok(html.includes('f7c204'), 'HL-Farbe im HTML');
 ok(html.split('capOverlayClickWord').length === 4, '3 Klick-Handler (Seek/Inline-Edit), habe ' + (html.split('capOverlayClickWord').length - 1));
 ok(/data-wi="2"[^>]*capOverlayClickWord\(event,2,1\.000\)/.test(html), 'Wort-Index + Zeit am Wort-Span');

@@ -38,6 +38,7 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
           return json(rows);
         }
         if (req.method === 'POST') { if (db.failProfileWrite) return json({ message: 'boom' }, 500); const j = JSON.parse(b); db.profiles[j.user_id] = Object.assign(db.profiles[j.user_id] || {}, j); res.statusCode = 201; return res.end(); }
+        if (req.method === 'PATCH') { const j = JSON.parse(b); Object.values(db.profiles).filter(r => (q.get('paddle_subscription_id') && r.paddle_subscription_id === eq('paddle_subscription_id')) || (q.get('paddle_customer_id') && r.paddle_customer_id === eq('paddle_customer_id'))).forEach(r => Object.assign(r, j)); res.statusCode = 204; return res.end(); }
       }
       if (u.pathname === '/rest/v1/usage' && req.method === 'GET' && (q.get('select') || '') === 'vkeys') return json(db.vk[eq('user_id')] ? [{ vkeys: db.vk[eq('user_id')] }] : []);
       if (u.pathname === '/rest/v1/rpc/add_video') { const j = JSON.parse(b); const a = db.vk[j.p_user] = db.vk[j.p_user] || []; if (!a.includes(j.p_key) && a.length < j.p_max) a.push(j.p_key); res.statusCode = 204; return res.end(); }
@@ -58,7 +59,7 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     PADDLE_API_BASE: `http://127.0.0.1:${paddlePort}`, PADDLE_CLIENT_TOKEN: 'test_client', PADDLE_ENV: 'sandbox', ANON_SEC_PER_DAY: 20 };
   const mkdir = (cfg) => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crbill-'));
-    for (const f of ['billing.php', 'plan.php', 'paddle-webhook.php', 'paddle-portal.php', 'transcribe.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
+    for (const f of ['billing.php', 'plan.php', 'paddle-webhook.php', 'paddle-portal.php', 'transcribe.php', 'ratelimit.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
     fs.writeFileSync(path.join(dir, 'config.php'), '<?php return ' + require('child_process').execSync('php -r \'echo var_export(json_decode(file_get_contents("php://stdin"), true), true);\'', { input: JSON.stringify(cfg) }).toString() + ';');
     return dir;
   };
@@ -136,6 +137,18 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     const rf = await hook(failEv); ok(rf.s === 500 && !db.events.has(failEv.event_id), 'Webhook: DB-Fehler → 500 und Event-ID wieder frei');
     db.failProfileWrite = false;
     const rr = await hook(failEv); ok(rr.s === 200 && rr.j.plan === 'pro', 'Webhook: Wiederholung nach DB-Fehler wird verarbeitet');
+    // Rückerstattung/Chargeback (adjustment.*): nur volle, genehmigte Erstattung bzw. Chargeback beendet den Plan
+    const adj = (data) => ({ event_id: 'evt_' + (++evSeq), event_type: 'adjustment.created', occurred_at: new Date().toISOString(), data: Object.assign({ id: 'adj_1', subscription_id: 'sub_1', customer_id: 'ctm_1', transaction_id: 'txn_1' }, data) });
+    const ap = await hook(adj({ action: 'refund', status: 'approved', type: 'partial' }));
+    ok(ap.s === 200 && /^adjustment_/.test(ap.j.ignored || '') && db.profiles[UID].status === 'active', 'Webhook: Teil-Erstattung ändert den Plan nicht');
+    const apend = await hook(adj({ action: 'refund', status: 'pending_approval', type: 'full' }));
+    ok(apend.s === 200 && db.profiles[UID].status === 'active', 'Webhook: noch nicht genehmigte Erstattung ändert nichts');
+    const afull = await hook(adj({ action: 'refund', status: 'approved', type: 'full' }));
+    ok(afull.s === 200 && afull.j.revoked === 'refund' && db.profiles[UID].status === 'canceled', 'Webhook: volle, genehmigte Erstattung → Plan endet sofort (canceled)');
+    db.profiles[UID].status = 'active';
+    const acb = await hook(adj({ action: 'chargeback', status: 'approved', type: 'full' }));
+    ok(acb.s === 200 && db.profiles[UID].status === 'canceled', 'Webhook: Chargeback → Plan endet sofort');
+    db.profiles[UID].status = 'active';
     const cEv = await hook(sub('subscription.canceled', { occurred_at: new Date(Date.now() + 300000).toISOString() }, { status: 'canceled', items: [{ price: { id: PRICE_P } }] }));
     ok(cEv.s === 200 && db.profiles[UID].status === 'canceled', 'Webhook: subscription.canceled → Status canceled');
 
@@ -146,8 +159,10 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     p = await plan('falsches-token'); ok(p.loggedIn === false, 'plan: ungültiges Token → Gast');
     db.profiles[UID].plan = 'creator'; db.profiles[UID].status = 'active'; db.profiles[UID].period_end = new Date(Date.now() + 864e5).toISOString();
     p = await plan('tok-user'); ok(p.plan === 'creator' && p.limit_sec === 18000 && p.canPortal === true, 'plan: Creator aktiv → 300 Min., Portal möglich');
-    db.profiles[UID].period_end = new Date(Date.now() - 864e5).toISOString();
-    p = await plan('tok-user'); ok(p.plan === 'free', 'plan: abgelaufene Laufzeit → free');
+    db.profiles[UID].period_end = new Date(Date.now() - 3600e3).toISOString();
+    p = await plan('tok-user'); ok(p.plan === 'creator', 'plan: aktiv, Laufzeit seit 1 h vorbei → 1 Tag Kulanz (Verlängerungs-Webhook verspätet)');
+    db.profiles[UID].period_end = new Date(Date.now() - 2 * 864e5).toISOString();
+    p = await plan('tok-user'); ok(p.plan === 'free', 'plan: abgelaufene Laufzeit (nach Kulanz) → free');
     db.profiles[UID].status = 'past_due'; db.profiles[UID].period_end = new Date(Date.now() - 864e5).toISOString();
     p = await plan('tok-user'); ok(p.plan === 'creator', 'plan: past_due innerhalb der 3 Tage Kulanz → Plan bleibt');
     db.profiles[UID].period_end = new Date(Date.now() - 5 * 864e5).toISOString();
@@ -238,6 +253,14 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     ok(i2.status === 429 && i2j.error === 'ip_daily_cap' && groqCalls === gIp0 + 1 && parseInt(i2.headers.get('retry-after'), 10) >= 1800, 'Nutzerlimit: 3 weitere s → 429 ip_daily_cap, Groq wird nicht angefragt');
     const i3 = await tr(null, 2, UIP); ok(i3.s === 200, 'Nutzerlimit: Rest von 2 s (5 von 5) passt noch');
     ok((await tr(null, 1, UIP)).s === 429, 'Nutzerlimit: danach ist Schluss');
+    // ════ Gefälschte WAV-Köpfe (Audit 2026-10-16): Dauer zählt nach echten Bytes, nicht nach byteRate/data-Länge
+    const post = async (buf, url = UOFF) => (await fetch(url + 'transcribe.php?model=whisper-large-v3-turbo', { method: 'POST', body: buf, headers: { 'Content-Type': 'audio/wav' } })).status;
+    const fakeRate = wav(3); fakeRate.writeUInt32LE(0xFFFFFFFF, 28);
+    ok(await post(fakeRate) === 400, 'Audio: WAV mit gefälschter byteRate wird abgelehnt (nur 16 kHz mono 16 Bit)');
+    const fakeLen = wav(131); fakeLen.writeUInt32LE(32000, 40); // Kopf behauptet 1 s, angehängt sind 131 s
+    ok(await post(fakeLen) === 413, 'Audio: zu kleine data-Länge im Kopf hilft nicht — 131 s echte Bytes → 413');
+    ok(await post(Buffer.concat([wav(1), Buffer.alloc(5 * 1024 * 1024)])) === 413, 'Audio: Stück über 4,5 MB → 413 (vorher bis 40 MB)');
+    ok(await post(wav(100)) === 200, 'Audio: normales 100-s-Stück des Frontends läuft weiter durch');
   } finally { php.kill(); phpV.kill(); phpC1.kill(); phpCap.kill(); phpIp.kill(); phpOff.kill(); sb.close(); groq.close(); paddle.close(); for (const d of [dirOn, dirOff, dirV, dirC1, dirCap, dirIp]) fs.rmSync(d, { recursive: true, force: true }); }
   console.log(fails ? `${fails}/${n} FEHLER` : `test-billing: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);

@@ -17,6 +17,7 @@
 
 // ── Config / Key laden ───────────────────────────────────────────────
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
+require_once __DIR__ . '/ratelimit.php'; // gl_rl_ip(): IPv6 je /64 — gemeinsamer Schlüssel aller Limits
 if (is_file(__DIR__ . '/trackstore.php')) require_once __DIR__ . '/trackstore.php'; // anonyme Zähler (limit_user/limit_site)
 if (!is_array($cfg)) $cfg = [];
 $KEY  = $cfg['GROQ_API_KEY'] ?? getenv('GROQ_API_KEY') ?: '';
@@ -93,7 +94,7 @@ if (!empty($cfg['REQUIRE_LOGIN'])) {
 // Das Frontend schickt pro ~100 s Audio einen Request; Default 120/Stunde ≈ 3 h Audio pro IP.
 $LIMIT = (int)($cfg['RATE_LIMIT_PER_HOUR'] ?? 120);
 if ($LIMIT > 0) {
-  $ip = $_SERVER['REMOTE_ADDR'] ?? 'x';
+  $ip = gl_rl_ip();
   $rf = sys_get_temp_dir() . '/capivo_rl_' . md5($ip) . '.json';
   $now = time(); $hits = [];
   if (is_file($rf)) { $d = json_decode((string)@file_get_contents($rf), true); if (is_array($d)) $hits = array_filter($d, function($t) use ($now) { return $t > $now - 3600; }); }
@@ -112,6 +113,10 @@ function ini_bytes($v) {
 $cl = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
 $pm = ini_bytes(ini_get('post_max_size'));
 if ($pm > 0 && $cl > $pm) fail(413, 'Upload überschreitet post_max_size (' . ini_get('post_max_size') . ') des Servers.');
+// Harte Grenze pro Stück (Kostenschutz): das Frontend schickt ≤ ~115 s → WAV 16 kHz mono ≤ 3,7 MB, Ogg/Opus 32 kbit/s ≤ 0,5 MB.
+// 130 s WAV = 4 160 044 Byte → Default 4,5 MB. Vorher 40 MB: ein Bot konnte ~20 Min. Ton pro Request schicken.
+$MAX_BYTES = (int)($cfg['MAX_UPLOAD_BYTES'] ?? 4718592);
+if ($MAX_BYTES > 0 && $cl > $MAX_BYTES) fail(413, 'Audio-Stück zu gross.');
 
 // ── Audio besorgen: multipart-Feld "file" ODER roher Body ────────────
 $tmp = null; $cleanup = false;
@@ -120,32 +125,39 @@ $ctype = strtolower(trim(explode(';', (string)($_SERVER['CONTENT_TYPE'] ?? ''))[
 if (!empty($_FILES['file']['tmp_name']) && is_uploaded_file($_FILES['file']['tmp_name'])) {
   $tmp = $_FILES['file']['tmp_name'];
   $ctype = strtolower((string)($_FILES['file']['type'] ?? ''));
+  if ($MAX_BYTES > 0 && (int)@filesize($tmp) > $MAX_BYTES) fail(413, 'Audio-Stück zu gross.');
 } else {
   $raw = file_get_contents('php://input');
   if ($raw === false || strlen($raw) < 100) fail(400, 'Keine Audiodaten empfangen.');
-  if (strlen($raw) > 40 * 1024 * 1024) fail(413, 'Audio zu groß (max ~40 MB). Video kürzen.');
+  if ($MAX_BYTES > 0 && strlen($raw) > $MAX_BYTES) fail(413, 'Audio-Stück zu gross.');
   $tmp = tempnam(sys_get_temp_dir(), 'capivo_');
   if ($tmp === false || file_put_contents($tmp, $raw) === false) fail(500, 'Temp-Datei konnte nicht geschrieben werden.');
   $cleanup = true;
 }
 
-// ── Missbrauchsschutz 2: Dauer aus dem Header (nicht der Client-Angabe) — ein Stück ≤ 130 s, pro IP ein
+// ── Missbrauchsschutz 2: Dauer aus den echten Bytes (nicht der Client-Angabe) — ein Stück ≤ 130 s, pro IP ein
 // Stunden-Kontingent an Ton (Dateien in sys_get_temp_dir → gilt über alle Requests, anders als auf Vercel).
+// Kopfdaten setzt der Absender selbst (byteRate, data-Länge, Ogg-Granule) → nie allein darauf verlassen:
+// WAV nur im Format des Frontends (16 kHz, mono, 16 Bit) und gezählt werden ALLE Bytes nach dem data-Kopf;
+// Ogg mindestens so lang, wie die Datei bei 64 kbit/s dauern würde (Frontend: 32 kbit/s).
 function audio_seconds($path, $isOgg) {
   $b = (string)@file_get_contents($path);
   if (strlen($b) < 44) return null;
   if (!$isOgg) {
     if (substr($b, 0, 4) !== 'RIFF' || substr($b, 8, 4) !== 'WAVE') return null;
-    $byteRate = unpack('V', substr($b, 28, 4))[1];
-    if (!$byteRate) return null;
-    $p = 12;
+    $p = 12; $fmtOk = false;
     while ($p + 8 <= strlen($b)) {
       $id = substr($b, $p, 4); $len = unpack('V', substr($b, $p + 4, 4))[1];
-      if ($id === 'data') return min($len, strlen($b) - $p - 8) / $byteRate;
+      if ($id === 'fmt ' && $len >= 16 && $p + 24 <= strlen($b)) {
+        $f = unpack('vfmt/vch/Vrate/Vbyterate/vblock/vbits', substr($b, $p + 8, 16));
+        $fmtOk = $f['fmt'] === 1 && $f['ch'] === 1 && $f['rate'] === 16000 && $f['bits'] === 16 && $f['byterate'] === 32000;
+      }
+      if ($id === 'data') return $fmtOk ? (strlen($b) - $p - 8) / 32000 : null;
       $p += 8 + $len + ($len & 1);
     }
     return null;
   }
+  $floor = strlen($b) * 8 / 64000; // Mindestdauer nach Dateigrösse
   // Ogg Seite für Seite (27-Byte-Kopf + Segmenttabelle); Granule der letzten Seite (48 kHz) minus Pre-Skip
   $p = 0; $gran = -1; $pre = 0; $n = strlen($b);
   while ($p + 27 <= $n && substr($b, $p, 4) === 'OggS') {
@@ -158,7 +170,7 @@ function audio_seconds($path, $isOgg) {
     $gran = unpack('P', substr($b, $p + 6, 8))[1];
     $p = $st + $body;
   }
-  return $gran > 0 ? max(0, $gran - $pre) / 48000 : null;
+  return $gran > 0 ? max(max(0, $gran - $pre) / 48000, $floor) : null;
 }
 $isOgg = strpos($ctype, 'ogg') !== false;
 $secs = audio_seconds($tmp, $isOgg);
@@ -183,7 +195,7 @@ if (!empty($cfg['BILLING_ENABLED'])) {
     $quotaGuest = true;
     $anonCap = (int)($cfg['ANON_SEC_PER_DAY'] ?? 600);
     if ($anonCap > 0) {
-      $nf = sys_get_temp_dir() . '/capivo_anon_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json';
+      $nf = sys_get_temp_dir() . '/capivo_anon_' . md5(gl_rl_ip()) . '.json';
       $nowA = time(); $ua = [];
       if (is_file($nf)) { $d = json_decode((string)@file_get_contents($nf), true); if (is_array($d)) $ua = array_values(array_filter($d, function($e) use ($nowA) { return is_array($e) && $e[0] > $nowA - 86400; })); }
       $usedA = 0; foreach ($ua as $e) $usedA += $e[1];
@@ -194,7 +206,7 @@ if (!empty($cfg['BILLING_ENABLED'])) {
 }
 $AUDIO_CAP = (int)($cfg['MAX_AUDIO_SEC_PER_HOUR'] ?? 1800);
 if ($AUDIO_CAP > 0) {
-  $af = sys_get_temp_dir() . '/capivo_audio_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json';
+  $af = sys_get_temp_dir() . '/capivo_audio_' . md5(gl_rl_ip()) . '.json';
   $now = time(); $use = [];
   if (is_file($af)) { $d = json_decode((string)@file_get_contents($af), true); if (is_array($d)) $use = array_values(array_filter($d, function($e) use ($now) { return is_array($e) && $e[0] > $now - 3600; })); }
   $used = 0; foreach ($use as $e) $used += $e[1];
@@ -208,7 +220,7 @@ if ($AUDIO_CAP > 0) {
 // (alert_ops, einmal pro Stunde): so siehst du, dass jemand mehr will. 0 = aus. Eingeloggte Abo-Nutzer ($quotaUid) sind ausgenommen.
 $IP_DAY = (int)($cfg['MAX_AUDIO_SEC_PER_IP_DAY'] ?? 3600);
 if ($IP_DAY > 0 && empty($quotaUid)) {
-  $df = sys_get_temp_dir() . '/capivo_audioday_' . md5($_SERVER['REMOTE_ADDR'] ?? 'x') . '.json';
+  $df = sys_get_temp_dir() . '/capivo_audioday_' . md5(gl_rl_ip()) . '.json';
   $nowD = time(); $ud = [];
   if (is_file($df)) { $d = json_decode((string)@file_get_contents($df), true); if (is_array($d)) $ud = array_values(array_filter($d, function($e) use ($nowD) { return is_array($e) && $e[0] > $nowD - 86400; })); }
   $usedD = 0; foreach ($ud as $e) $usedD += $e[1];
@@ -309,7 +321,7 @@ if ($quotaUid && $status >= 200 && $status < 300) cr_add_usage($cfg, $quotaUid, 
 // Video-Zählung (Wasserzeichen ab dem (FREE_CLEAN_VIDEOS_PER_DAY+1). Video am Tag): ein Schlüssel zählt einmal, egal wie viele Stücke
 if ($vkey !== '' && $status >= 200 && $status < 300) {
   if ($quotaUid) cr_add_video_user($cfg, $quotaUid, $vkey);
-  elseif ($quotaGuest) cr_add_video_anon($_SERVER['REMOTE_ADDR'] ?? 'x', $vkey);
+  elseif ($quotaGuest) cr_add_video_anon(gl_rl_ip(), $vkey);
 }
 if ($status == 429) alert_ops('groq-429-whisper', 'Groq-Limit erreicht (Transkription, HTTP 429). Nutzer bekommen gerade Fehler bzw. den langsamen lokalen Fallback.');
 

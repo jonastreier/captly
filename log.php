@@ -7,6 +7,7 @@
  * Auswertung: Supabase → SQL Editor → `select * from public.error_summary;`
  */
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
+require_once __DIR__ . '/ratelimit.php'; // gl_rl_ip(): IPv6 je /64 — gemeinsamer Schlüssel aller Limits
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -16,7 +17,7 @@ $SB = rtrim((string)($cfg['SUPABASE_URL'] ?? ''), '/'); $KEY = (string)($cfg['SU
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'service' => 'gluephs-log', 'configured' => $SB !== '' && $KEY !== '']);
 if ($SB === '' || $KEY === '') out(503, ['error' => 'not_configured']);
 
-$ip = $_SERVER['REMOTE_ADDR'] ?? 'x'; $now = time();
+$ip = gl_rl_ip(); $now = time();
 $rf = sys_get_temp_dir() . '/capivo_log_' . md5($ip) . '.json'; $hits = [];
 if (is_file($rf)) { $d = json_decode((string)@file_get_contents($rf), true); if (is_array($d)) $hits = array_values(array_filter($d, function($t) use ($now) { return $t > $now - 3600; })); }
 if (count($hits) >= 20) out(429, ['error' => 'rate_limited']);
@@ -60,6 +61,17 @@ function sbreq($method, $path, $body = null) {
 }
 $st = sbreq('POST', 'client_errors', $row);
 if ($st < 200 || $st >= 300) out(502, ['error' => 'db']);
+// Klon-Erkennung (captly.html meldet «clone: <host>», wenn die Seite unter einer fremden Domain läuft): Push an den Betreiber
+// (ALERT_URL, z. B. ntfy), höchstens einmal pro Domain und Tag. Nur der Hostname, keine Nutzerdaten.
+if (preg_match('/^clone: ([a-z0-9.-]{1,80})$/i', $msg, $cm) && gl_rl_take('clonealert', 86400, 1, 1, strtolower($cm[1]))) {
+  $au = (string)($cfg['ALERT_URL'] ?? '');
+  if (preg_match('~^https://~', $au)) {
+    $c = curl_init($au);
+    curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => 'Gluephs läuft unter einer fremden Domain: ' . $cm[1] . ' (Kopie? Seite prüfen, Beweise sichern).',
+      CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3, CURLOPT_HTTPHEADER => ['Title: Gluephs Klon-Verdacht', 'Tags: warning']]);
+    @curl_exec($c); curl_close($c);
+  }
+}
 // Aufbewahrung: gelegentlich (1 %) Einträge älter als 30 Tage löschen
 if (random_int(1, 100) === 1) sbreq('DELETE', 'client_errors?created_at=lt.' . rawurlencode(gmdate('c', $now - 30 * 86400)));
 out(204);
