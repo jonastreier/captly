@@ -48,6 +48,9 @@ const cfg = [
   ['PADDLE_API_KEY', q(e.PADDLE_API_KEY || '')],
   ['PADDLE_WEBHOOK_SECRET', q(e.PADDLE_WEBHOOK_SECRET || '')],
   ['PADDLE_TOLERANCE_SEC', num(e.PADDLE_TOLERANCE_SEC, 300)],
+  // Bot-Check (Cloudflare Turnstile, human.php): beide gesetzt = an. Der Site-Key ist öffentlich, das Secret nie im Frontend.
+  ['TURNSTILE_SITE_KEY', q(e.TURNSTILE_SITE_KEY || '')],
+  ['TURNSTILE_SECRET', q(e.TURNSTILE_SECRET || '')],
 ];
 const php = '<?php\n// Automatisch erzeugt von scripts/write-config.js (GitHub-Action). Nicht bearbeiten, nicht committen.\nreturn [\n'
   + cfg.map(([k, v]) => '  ' + q(k) + ' => ' + v + ',').join('\n') + '\n];\n';

@@ -25,6 +25,7 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     let b = ''; req.on('data', d => b += d); req.on('end', () => {
       const u = new URL(req.url, 'http://x'), q = u.searchParams; const json = (x, c = 200) => { res.statusCode = c; res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify(x)); };
       const eq = k => (q.get(k) || '').replace(/^(eq|gte)\./, '');
+      if (u.pathname === '/turnstile') { const f = new URLSearchParams(b); return json({ success: f.get('secret') === 'ts-secret' && f.get('response') === 'ok-token' }); } // Mock Cloudflare siteverify
       if (u.pathname === '/auth/v1/user') { const t = (req.headers.authorization || '').replace('Bearer ', ''); return tokens[t] ? json(Object.assign({ aud: 'authenticated' }, tokens[t])) : json({ msg: 'bad' }, 401); }
       if (u.pathname === '/rest/v1/paddle_events') {
         if (req.method === 'POST') { const j = JSON.parse(b); if (db.events.has(j.event_id)) return json([]); db.events.add(j.event_id); return json([j], 201); }
@@ -59,7 +60,7 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     PADDLE_API_BASE: `http://127.0.0.1:${paddlePort}`, PADDLE_CLIENT_TOKEN: 'test_client', PADDLE_ENV: 'sandbox', ANON_SEC_PER_DAY: 20 };
   const mkdir = (cfg) => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crbill-'));
-    for (const f of ['billing.php', 'plan.php', 'paddle-webhook.php', 'paddle-portal.php', 'transcribe.php', 'ratelimit.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
+    for (const f of ['billing.php', 'plan.php', 'paddle-webhook.php', 'paddle-portal.php', 'transcribe.php', 'ratelimit.php', 'human.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
     fs.writeFileSync(path.join(dir, 'config.php'), '<?php return ' + require('child_process').execSync('php -r \'echo var_export(json_decode(file_get_contents("php://stdin"), true), true);\'', { input: JSON.stringify(cfg) }).toString() + ';');
     return dir;
   };
@@ -67,8 +68,10 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
   const dirV = mkdir(Object.assign({}, base, { BILLING_ENABLED: true, ANON_SEC_PER_DAY: 600 })), dirC1 = mkdir(Object.assign({}, base, { BILLING_ENABLED: true, FREE_CLEAN_VIDEOS_PER_DAY: 1 }));
   const dirCap = mkdir(Object.assign({}, base, { BILLING_ENABLED: false, MAX_AUDIO_SEC_PER_DAY_PER_MODEL: 7 }));
   const dirIp = mkdir(Object.assign({}, base, { BILLING_ENABLED: false, MAX_AUDIO_SEC_PER_IP_DAY: 5 }));
+  const phpHPort = await freePort(), dirH = mkdir(Object.assign({}, base, { BILLING_ENABLED: false, TURNSTILE_SITE_KEY: 'ts-site', TURNSTILE_SECRET: 'ts-secret', TURNSTILE_VERIFY_URL: `http://127.0.0.1:${sbPort}/turnstile` }));
   const spawnPhp = (dir, port) => spawn('php', ['-S', '127.0.0.1:' + port, '-t', dir], { env: Object.assign({}, process.env, { TMPDIR: dir }), stdio: 'ignore' });
   const php = spawnPhp(dirOn, phpPort), phpOff = spawnPhp(dirOff, phpOffPort), phpV = spawnPhp(dirV, phpVPort), phpC1 = spawnPhp(dirC1, phpC1Port), phpCap = spawnPhp(dirCap, phpCapPort), phpIp = spawnPhp(dirIp, phpIpPort);
+  const phpH = spawnPhp(dirH, phpHPort), UH = 'http://127.0.0.1:' + phpHPort + '/';
   await new Promise(r => setTimeout(r, 900));
   const U = 'http://127.0.0.1:' + phpPort + '/', UOFF = 'http://127.0.0.1:' + phpOffPort + '/', UV = 'http://127.0.0.1:' + phpVPort + '/', UC1 = 'http://127.0.0.1:' + phpC1Port + '/', UCAP = 'http://127.0.0.1:' + phpCapPort + '/', UIP = 'http://127.0.0.1:' + phpIpPort + '/';
 
@@ -261,7 +264,20 @@ const SECRET = 'pdl_ntfset_testsecret', PRICE_C = 'pri_creator', PRICE_P = 'pri_
     ok(await post(fakeLen) === 413, 'Audio: zu kleine data-Länge im Kopf hilft nicht — 131 s echte Bytes → 413');
     ok(await post(Buffer.concat([wav(1), Buffer.alloc(5 * 1024 * 1024)])) === 413, 'Audio: Stück über 4,5 MB → 413 (vorher bis 40 MB)');
     ok(await post(wav(100)) === 200, 'Audio: normales 100-s-Stück des Frontends läuft weiter durch');
-  } finally { php.kill(); phpV.kill(); phpC1.kill(); phpCap.kill(); phpIp.kill(); phpOff.kill(); sb.close(); groq.close(); paddle.close(); for (const d of [dirOn, dirOff, dirV, dirC1, dirCap, dirIp]) fs.rmSync(d, { recursive: true, force: true }); }
+    // ════ Bot-Check (Turnstile): mit Schlüsseln verlangt transcribe.php einen Pass von human.php
+    const hg = await (await fetch(UH + 'human.php')).json();
+    ok(hg.enabled === true && hg.sitekey === 'ts-site' && !('secret' in hg), 'Bot-Check: GET meldet an + öffentlichen Site-Key (nie das Secret)');
+    ok((await fetch(UOFF + 'human.php').then(r => r.json())).enabled === false, 'Bot-Check: ohne Schlüssel aus');
+    const noPass = await tr(null, 2, UH); ok(noPass.s === 428 && noPass.j.error === 'human_required', 'Bot-Check: Transkription ohne Pass → 428 human_required');
+    const hp = async tok => { const r = await fetch(UH + 'human.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: tok }) }); return { s: r.status, j: await r.json().catch(() => ({})) }; };
+    ok((await hp('falsch')).s === 403, 'Bot-Check: abgelehntes Turnstile-Token → 403, kein Pass');
+    const hpOk = await hp('ok-token'); ok(hpOk.s === 200 && /^\d{10}\.[a-f0-9]{12}\.[a-f0-9]{32}$/.test(hpOk.j.pass || ''), 'Bot-Check: gültiges Token → signierter Pass');
+    const trP = async pass => (await fetch(UH + 'transcribe.php?model=whisper-large-v3-turbo', { method: 'POST', body: wav(2), headers: { 'Content-Type': 'audio/wav', 'X-Gluephs-Pass': pass } })).status;
+    ok(await trP(hpOk.j.pass) === 200, 'Bot-Check: Transkription mit Pass → 200');
+    ok(await trP(hpOk.j.pass.slice(0, -1) + (hpOk.j.pass.slice(-1) === '0' ? '1' : '0')) === 428, 'Bot-Check: veränderter Pass → 428');
+    ok(await trP(String(Math.floor(Date.now() / 1000) - 10) + hpOk.j.pass.slice(10)) === 428, 'Bot-Check: abgelaufener Pass → 428');
+    ok((await tr(null, 2, UOFF)).s === 200, 'Bot-Check: ohne Schlüssel läuft alles wie bisher');
+  } finally { phpH.kill(); php.kill(); phpV.kill(); phpC1.kill(); phpCap.kill(); phpIp.kill(); phpOff.kill(); sb.close(); groq.close(); paddle.close(); for (const d of [dirOn, dirOff, dirV, dirC1, dirCap, dirIp, dirH]) fs.rmSync(d, { recursive: true, force: true }); }
   console.log(fails ? `${fails}/${n} FEHLER` : `test-billing: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);
 })();

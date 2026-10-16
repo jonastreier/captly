@@ -21,6 +21,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') out(200, ['ok' => true, 'serv
 $SB  = rtrim((string)($cfg['SUPABASE_URL'] ?? ''), '/');
 $KEY = (string)($cfg['SUPABASE_SERVICE_KEY'] ?? '');
 if ($SB === '' || $KEY === '') out(503, ['error' => 'not_configured']);
+gl_require_human($cfg); // Bot-Check (Turnstile), nur wenn eingerichtet — s. ratelimit.php
 
 // Drosselung pro IP (Dateien in sys_get_temp_dir): 20 Einträge pro Stunde
 $ip = gl_rl_ip();

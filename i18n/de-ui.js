@@ -889,4 +889,5 @@ module.exports = {
   "Transcribe the remaining {0} clips": "Verbleibende {0} Clips transkribieren",
   "Download {0} clip as ZIP": "{0} Clip als ZIP herunterladen",
   "Download {0} clips as ZIP": "{0} Clips als ZIP herunterladen",
+  "Quick check that you are human": "Kurze Prüfung, dass du ein Mensch bist",
 };

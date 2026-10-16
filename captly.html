@@ -595,6 +595,9 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 }
 .tm-legal{padding:8px 12px 4px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);margin-top:4px}.tm-legal a{color:inherit}
 .cap-toast{position:fixed;left:50%;bottom:24px;width:max-content;transform:translateX(-50%) translateY(20px);opacity:0;z-index:1200;background:#1f1b2b;color:#fff;font:600 12.5px/1.3 'Inter',sans-serif;padding:10px 16px;border-radius:10px;box-shadow:0 10px 30px rgba(20,10,40,.3);transition:opacity .2s,transform .2s;pointer-events:none;max-width:calc(100vw - 32px)}
+.human-box{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:1300;background:#fff;color:#16181d;border-radius:14px;padding:12px 14px;box-shadow:0 10px 40px rgba(20,10,40,.28);opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100vw - 32px)} /* Bot-Check: nur sichtbar, wenn Turnstile einen Klick braucht (humanSolve) */
+.human-box.on{opacity:1;pointer-events:auto}
+.human-msg{font:600 13px/1.3 'Inter',sans-serif;margin:0 0 8px}
 .cap-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .cap-toast.has-act{display:flex;align-items:center;gap:12px}
 .cap-toast.show.has-act{pointer-events:auto}
@@ -5126,7 +5129,7 @@ async function postEnhance(body) {
   for (var guard = 0; guard < ENH_ENDPOINTS.length + 1; guard++) {
     var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, ENH_TIMEOUT_MS), resp;
     try {
-      resp = await fetch(ENH_ENDPOINTS[_enIdx], { method: 'POST', signal: ctrl.signal,
+      resp = await humanFetch(ENH_ENDPOINTS[_enIdx], { method: 'POST', signal: ctrl.signal,
         headers: tok ? { 'Content-Type': 'application/json', 'X-Capivo-Token': tok } : { 'Content-Type': 'application/json' },
         body: JSON.stringify(body) });
     } catch (e) { clearTimeout(timer); throw new Error('enhance: ' + (e && e.name === 'AbortError' ? 'Timeout' : 'Netzwerk')); }
@@ -11073,7 +11076,7 @@ function proWaitlist(ev, plan) {
   var v = String((inp && inp.value) || '').trim();
   if (!isEmail(v)) { if (inp) inp.focus(); return false; }
   if (btn) { btn.disabled = true; }
-  fetch('api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+  humanFetch('api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
     email: v, newsletter: true, consent_text: 'Notify me once when the ' + plan + ' plan launches.', source: 'waitlist-' + plan,
     lang: (navigator.language || '').slice(0, 20) }) })
   .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('http ' + r.status)); })
@@ -11465,6 +11468,77 @@ function videoKeyHash() {
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   return ('00000000' + (h2 >>> 0).toString(16)).slice(-8) + ('00000000' + (h1 >>> 0).toString(16)).slice(-8);
 }
+// ── Bot-Check (Cloudflare Turnstile, s. human.php / gl_require_human in ratelimit.php) — nur aktiv, wenn der Server
+// {enabled, sitekey} meldet; sonst (nicht eingerichtet, lokal, offline) passiert nichts. Einmal pro Sitzung löst der Browser
+// eine meist unsichtbare Prüfung und tauscht das Token gegen einen Pass (2 h, an das Netz gebunden, Header X-Gluephs-Pass).
+// Muss doch jemand klicken, erscheint das Kästchen unten in der Mitte. 428 = Pass fehlt/abgelaufen → einmal neu holen.
+var HUMAN_KEY = 'capivo.hpass', _humanCfgP = null, _humanP = null;
+function humanCfg() {
+  if (!_humanCfgP) {
+    var web = typeof fetch === 'function' && typeof location !== 'undefined' && /^https?:$/.test(location.protocol);
+    _humanCfgP = (web ? fetch('api/human', { cache: 'no-store' }).then(function(r){ return r.ok ? r.json() : null; }) : Promise.resolve(null))
+      .catch(function(){ return null; })
+      .then(function(j){ return j && j.enabled && typeof j.sitekey === 'string' && j.sitekey ? j : { enabled: false }; });
+  }
+  return _humanCfgP;
+}
+function humanStored() { try { var v = JSON.parse(sessionStorage.getItem(HUMAN_KEY) || 'null'); return v && v.p && v.exp > Date.now() + 60000 ? String(v.p) : ''; } catch (e) { return ''; } }
+function humanReset() { try { sessionStorage.removeItem(HUMAN_KEY); } catch (e) {} }
+function humanSolve(sitekey) {
+  return new Promise(function(resolve, reject) {
+    var box = document.getElementById('humanBox'), wid, done = false, to;
+    if (!box) { box = document.createElement('div'); box.id = 'humanBox'; box.className = 'human-box'; box.setAttribute('role', 'dialog'); document.body.appendChild(box); }
+    box.innerHTML = '<div class="human-msg">' + escHtml(_t('Quick check that you are human')) + '</div><div class="human-w"></div>';
+    function finish(err, tok) {
+      if (done) return; done = true; clearTimeout(to); box.classList.remove('on');
+      try { if (wid !== undefined && window.turnstile) window.turnstile.remove(wid); } catch (e) {}
+      box.innerHTML = '';
+      if (err) reject(err); else resolve(tok);
+    }
+    to = setTimeout(function(){ finish(new Error('human: timeout')); }, 120000);
+    function go() {
+      try {
+        wid = window.turnstile.render(box.querySelector('.human-w'), { sitekey: sitekey, appearance: 'interaction-only',
+          callback: function(t){ finish(null, t); }, 'error-callback': function(){ finish(new Error('human: error')); },
+          'expired-callback': function(){ finish(new Error('human: expired')); }, 'before-interactive-callback': function(){ box.classList.add('on'); } });
+      } catch (e) { finish(e); }
+    }
+    if (window.turnstile) { go(); return; }
+    var sc = document.createElement('script');
+    sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'; sc.async = true;
+    sc.onload = go; sc.onerror = function(){ finish(new Error('human: script blocked')); };
+    document.head.appendChild(sc);
+  });
+}
+// Pass holen ('' = Check aus oder nicht lösbar, z. B. Skript blockiert → die Endpunkte antworten 428, Aufrufer fallen zurück)
+function humanPass() {
+  var p = humanStored();
+  if (p) return Promise.resolve(p);
+  if (_humanP) return _humanP;
+  _humanP = humanCfg().then(function(c) {
+    if (!c.enabled) return '';
+    return humanSolve(c.sitekey).then(function(tok) {
+      return fetch('api/human', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: tok }) });
+    }).then(function(r){ return r.ok ? r.json() : null; }).then(function(j) {
+      if (!j || typeof j.pass !== 'string' || !j.pass) return '';
+      try { sessionStorage.setItem(HUMAN_KEY, JSON.stringify({ p: j.pass, exp: Date.now() + (+j.ttl || 7200) * 1000 })); } catch (e) {}
+      return j.pass;
+    });
+  }).catch(function(e){ console.warn('Bot-Check:', e && e.message); return ''; }).then(function(v){ _humanP = null; return v; });
+  return _humanP;
+}
+// fetch für die Endpunkte mit Bot-Check: Pass mitschicken, bei 428 einmal neu prüfen und wiederholen
+async function humanFetch(url, opts) {
+  opts = opts || {};
+  var h = Object.assign({}, opts.headers || {}), p = await humanPass();
+  if (p) h['X-Gluephs-Pass'] = p;
+  var r = await fetch(url, Object.assign({}, opts, { headers: h }));
+  if (r.status !== 428) return r;
+  humanReset(); p = await humanPass();
+  if (!p) return r;
+  h['X-Gluephs-Pass'] = p;
+  return fetch(url, Object.assign({}, opts, { headers: h }));
+}
 function trHeaders(ctype, tok) {
   var h = { 'Content-Type': ctype }, vk = videoKeyHash();
   if (tok) h['X-Capivo-Token'] = tok;
@@ -11532,7 +11606,7 @@ function flushLead(lead) {
   if (!lead || typeof fetch !== 'function') return Promise.resolve(false);
   // Über den eigenen Server (lead.php): er prüft, drosselt und schreibt mit dem Server-Schlüssel in die DB und
   // schickt bei Newsletter-Wunsch die Double-Opt-in-Mail. Direkt aus dem Browser kann niemand mehr in leads schreiben.
-  return fetch('api/lead', {
+  return humanFetch('api/lead', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(lead)
@@ -11664,7 +11738,7 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
         resp = await fetch('https://api.openai.com/v1/audio/' + (doTranslate ? 'translations' : 'transcriptions'),
           { method: 'POST', headers: { Authorization: 'Bearer ' + openaiKey }, body: fd, signal: ctrl.signal });
       } else {
-        resp = await fetch(TR_ENDPOINTS[_trIdx] + '?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : '')
+        resp = await humanFetch(TR_ENDPOINTS[_trIdx] + '?model=' + encodeURIComponent(model) + '&translate=' + (doTranslate ? '1' : '0') + (lc && !doTranslate ? '&lang=' + lc : '')
           + (prompt && !doTranslate ? '&prompt=' + encodeURIComponent(prompt) : ''),
           { method: 'POST', headers: trHeaders(ctype, tok), body: wavBlob, signal: ctrl.signal });
       }
@@ -11682,6 +11756,8 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
       if (_trIdx < TR_ENDPOINTS.length - 1) { _trIdx++; attempt--; continue; } // nächsten Endpunkt probieren
       _trIdx = 0; throw transcribeErr('no proxy', { noProxy: true });
     }
+    // Bot-Check nicht lösbar (z. B. Turnstile-Skript blockiert): wie «kein Proxy» → lokale Erkennung im Browser
+    if (!openaiKey && resp.status === 428) { _trIdx = 0; throw transcribeErr('no proxy', { noProxy: true }); }
     if (!resp.ok) {
       var detail = '', ej = null;
       try { ej = await resp.json(); detail = (ej && (typeof ej.error === 'string' ? ej.error : ej.error && ej.error.message)) || ''; } catch (e2) {}
@@ -11737,6 +11813,7 @@ async function postChunk(wavBlob, model, lc, isStale, prompt) {
 // die Original-Zeitachse zurückgerechnet. Ohne spans: ganzes Audio wie bisher.
 async function serverTranscribe(audioData, model, lc, audioDur, isStale, prompt, spans) {
   prompt = cleanVocab(prompt);
+  humanPass(); // Bot-Check früh starten (läuft parallel zur Audio-Aufbereitung; ohne Einrichtung sofort fertig)
   function checkStale() { if (isStale && isStale()) throw transcribeErr('stale', { stale: true }); }
   var label = _t('Transcribing');
   var track = spans && spans.length ? buildSpeechTrack(audioData, 16000, spans) : null;
@@ -12006,7 +12083,7 @@ async function postPolish(body) {
   for (var guard = 0; guard < POLISH_ENDPOINTS.length + 1; guard++) {
     var ctrl = new AbortController(), timer = setTimeout(function(){ ctrl.abort(); }, POLISH_TIMEOUT_MS), resp;
     try {
-      resp = await fetch(POLISH_ENDPOINTS[_plIdx], { method: 'POST', signal: ctrl.signal,
+      resp = await humanFetch(POLISH_ENDPOINTS[_plIdx], { method: 'POST', signal: ctrl.signal,
         headers: tok ? { 'Content-Type': 'application/json', 'X-Capivo-Token': tok } : { 'Content-Type': 'application/json' },
         body: JSON.stringify(body) });
     } catch (e) { clearTimeout(timer); throw new Error('polish: ' + (e && e.name === 'AbortError' ? 'Timeout' : 'Netzwerk')); }
@@ -14350,7 +14427,7 @@ function proUpsellNo() { proUpsellSet('1'); }
 function proUpsellYes() {
   var em = (typeof meEmail !== 'undefined' && meEmail) || leadEmail();
   if (!em || !isEmail(em)) { proUpsellSet('1'); return; } // ohne bekannte Adresse nichts senden (das Gate sorgt normalerweise dafür, dass sie da ist)
-  fetch('api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+  humanFetch('api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
     email: em, newsletter: true, consent_text: 'Notify me once when the paid plans launch.', source: 'waitlist-export', lang: (navigator.language || '').slice(0, 20) }) })
   .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('http ' + r.status)); })
   .then(function() { trackEv('pro_interest'); proUpsellSet('2'); capToast(_t('Thanks! Check your inbox and confirm with the link — then we will tell you when plans launch.')); })

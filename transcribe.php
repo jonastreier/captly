@@ -30,7 +30,7 @@ if ($CORS !== '' && $origin !== '') {
   if (in_array($origin, $allow, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Vary: Origin');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Capivo-Token, X-Video-Key');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Capivo-Token, X-Video-Key, X-Gluephs-Pass');
     header('Access-Control-Allow-Methods: POST, OPTIONS');
   }
 }
@@ -51,6 +51,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
   exit;
 }
 @set_time_limit(130); // Groq kann bei grösseren Stücken ein paar Sekunden brauchen
+gl_require_human($cfg); // Bot-Check (Turnstile), nur wenn eingerichtet — s. ratelimit.php
 if ($KEY === '') fail(500, 'Server nicht konfiguriert: GROQ_API_KEY fehlt (config.php anlegen).');
 
 // ── Modell whitelisten (verhindert Missbrauch beliebiger Werte) ──────

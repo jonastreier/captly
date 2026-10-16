@@ -61,3 +61,26 @@ function gl_day_take($name, $limit, $add = 1) {
   fclose($h);
   return $ok;
 }
+
+// ── Bot-Check (Cloudflare Turnstile): an, sobald TURNSTILE_SITE_KEY + TURNSTILE_SECRET gesetzt sind (sonst ändert sich nichts).
+// Der Browser löst EINMAL eine Turnstile-Prüfung (api/human → human.php) und bekommt einen signierten Pass (2 h, an das
+// Absender-Netz gl_rl_ip() gebunden), den er als Header X-Gluephs-Pass mitschickt. Kostenpflichtige Endpunkte rufen
+// gl_require_human(): ohne gültigen Pass 428 {error:'human_required'} → das Frontend holt einen neuen Pass und wiederholt.
+// 428 statt 403: 403 deutet das Frontend als «Proxy fehlt» (Vercel-Demo).
+function gl_human_on($cfg) { return (string)($cfg['TURNSTILE_SECRET'] ?? '') !== '' && (string)($cfg['TURNSTILE_SITE_KEY'] ?? '') !== ''; }
+function gl_pass_mac($cfg, $exp, $net) { return substr(hash_hmac('sha256', $exp . '|' . $net, 'gluephs-pass|' . (string)($cfg['TURNSTILE_SECRET'] ?? '')), 0, 32); }
+function gl_pass_make($cfg, $ttl = 7200) {
+  $exp = time() + $ttl; $net = substr(md5(gl_rl_ip()), 0, 12);
+  return $exp . '.' . $net . '.' . gl_pass_mac($cfg, $exp, $net);
+}
+function gl_pass_ok($cfg, $p) {
+  if (!preg_match('/^(\d{10})\.([a-f0-9]{12})\.([a-f0-9]{32})$/', (string)$p, $m)) return false;
+  if ((int)$m[1] < time() || (int)$m[1] > time() + 86400) return false;
+  if ($m[2] !== substr(md5(gl_rl_ip()), 0, 12)) return false; // anderes Netz (z. B. Mobilfunk gewechselt) → neu prüfen
+  return hash_equals(gl_pass_mac($cfg, $m[1], $m[2]), $m[3]);
+}
+function gl_require_human($cfg) {
+  if (!gl_human_on($cfg) || gl_pass_ok($cfg, $_SERVER['HTTP_X_GLUEPHS_PASS'] ?? '')) return;
+  http_response_code(428); header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+  echo json_encode(['error' => 'human_required']); exit;
+}
