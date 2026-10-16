@@ -7,6 +7,7 @@
 define('CR_INCLUDE', 1);
 require __DIR__ . '/billing.php';
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
+require_once __DIR__ . '/ratelimit.php'; // gl_rl_ip(): IPv6 je /64 — gemeinsamer Schlüssel aller Limits
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
@@ -22,7 +23,7 @@ $paddle = ['env' => (($cfg['PADDLE_ENV'] ?? 'sandbox') === 'production') ? 'prod
 $u = cr_user_from_token($cfg, $_SERVER['HTTP_X_CAPIVO_TOKEN'] ?? '');
 $vkey = cr_video_key($_SERVER['HTTP_X_VIDEO_KEY'] ?? ''); $clean = cr_clean_videos($cfg);
 if (!$u) out(200, array_merge(['enabled' => true, 'loggedIn' => false, 'plan' => 'anon', 'limits' => $limits, 'paddle' => $paddle],
-  cr_video_state(cr_videos_anon($_SERVER['REMOTE_ADDR'] ?? 'x'), $vkey, $clean, false)));
+  cr_video_state(cr_videos_anon(gl_rl_ip()), $vkey, $clean, false)));
 
 $row = cr_profile($cfg, $u['id']);
 $plan = cr_effective_plan($row);

@@ -160,6 +160,7 @@ function polish_apply($segs, $map) {
 function polish_groq($key, $model, $messages, $timeout) {
   $body = ['model' => $model, 'messages' => $messages, 'temperature' => 0, 'response_format' => ['type' => 'json_object']];
   if (strpos($model, 'gpt-oss') !== false) $body['reasoning_effort'] = 'low';
+  $body['max_completion_tokens'] = 8000; // Deckel gegen ausufernde Antworten (inkl. Reasoning); normale Antworten brauchen < 4000
   $ch = curl_init('https://api.groq.com/openai/v1/chat/completions');
   curl_setopt_array($ch, [
     CURLOPT_POST => true, CURLOPT_POSTFIELDS => polish_json($body),
@@ -181,6 +182,7 @@ if (defined('CAPIVO_POLISH_LIB')) return;
 
 // ── Config / Key laden ───────────────────────────────────────────────
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
+require_once __DIR__ . '/ratelimit.php'; // gl_rl_ip(): IPv6 je /64 — gemeinsamer Schlüssel aller Limits
 if (!is_array($cfg)) $cfg = [];
 $KEY  = $cfg['GROQ_API_KEY'] ?? getenv('GROQ_API_KEY') ?: '';
 $CORS = $cfg['CORS_ORIGIN']  ?? getenv('GROQ_CORS_ORIGIN') ?: '';
@@ -192,7 +194,7 @@ if ($CORS !== '' && $origin !== '') {
   if (in_array($origin, $allow, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Vary: Origin');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Capivo-Token');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Capivo-Token, X-Gluephs-Pass');
     header('Access-Control-Allow-Methods: POST, OPTIONS');
   }
 }
@@ -212,6 +214,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
   exit;
 }
 @set_time_limit(60);
+gl_require_human($cfg); // Bot-Check (Turnstile), nur wenn eingerichtet — s. ratelimit.php
 if ($KEY === '') fail(500, 'Server nicht konfiguriert: GROQ_API_KEY fehlt (config.php anlegen).');
 
 // ── Optional: nur eingeloggte Nutzer (Supabase) – wie transcribe.php ──
@@ -235,7 +238,7 @@ if (!empty($cfg['REQUIRE_LOGIN'])) {
 // ── IP-Limit (eigener Zähler, getrennt von transcribe.php) ───────────
 $LIMIT = (int)($cfg['RATE_LIMIT_PER_HOUR'] ?? 120);
 if ($LIMIT > 0) {
-  $ip = $_SERVER['REMOTE_ADDR'] ?? 'x';
+  $ip = gl_rl_ip();
   $rf = sys_get_temp_dir() . '/capivo_rlp_' . md5($ip) . '.json';
   $now = time(); $hits = [];
   if (is_file($rf)) { $d = json_decode((string)@file_get_contents($rf), true); if (is_array($d)) $hits = array_filter($d, function($t) use ($now) { return $t > $now - 3600; }); }
@@ -243,6 +246,12 @@ if ($LIMIT > 0) {
   $hits[] = $now;
   @file_put_contents($rf, json_encode(array_values($hits)), LOCK_EX);
 }
+
+// ── Tageslimits für LLM-Aufrufe (Kostenschutz, Audit 2026-10-16): polish + enhance teilen sich den Zähler.
+// Pro Absender (IPv6 je /64) LLM_CALLS_PER_IP_DAY (Default 300 ≈ 60 Videos), alle zusammen LLM_CALLS_PER_DAY_TOTAL
+// (Default 4000/UTC-Tag ≈ 12 $ bei gpt-oss-120b). Darüber 429 → das Frontend fällt auf die lokale Auswahl zurück. 0 = aus.
+if (!gl_rl_take('llmday', 86400, (int)($cfg['LLM_CALLS_PER_IP_DAY'] ?? 300))) { header('Retry-After: 3600'); fail(429, 'ip_daily_cap'); }
+if (!gl_day_take('llm', (int)($cfg['LLM_CALLS_PER_DAY_TOTAL'] ?? 4000))) { header('Retry-After: 3600'); fail(429, 'daily_cap'); }
 
 // ── Body lesen + prüfen ──────────────────────────────────────────────
 if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0) > POLISH_MAX_BYTES) fail(413, 'Anfrage zu gross.');

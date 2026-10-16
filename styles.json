@@ -1,5 +1,212 @@
 [
  {
+  "id": "floatwords",
+  "name": "Floating Words",
+  "added": "2026-10-16",
+  "photo": "bloom",
+  "layout": {
+   "wpb": 1,
+   "lines": 1
+  },
+  "style": {
+   "fl": "Inter Tight",
+   "font": "'Inter Tight'",
+   "fw": "800",
+   "ls": "-.04em",
+   "fs": "1.55em",
+   "motion": "reveal",
+   "scatter": true,
+   "thumbBg": "linear-gradient(160deg,#1b2226,#0a0e10)",
+   "tc": "#ffffff",
+   "ts": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "hl": "#ffffff",
+   "hls": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "anim": "none",
+   "em": "none",
+   "emS": 1.2
+  }
+ },
+ {
+  "id": "cleanline",
+  "name": "Clean Sentence",
+  "added": "2026-10-16",
+  "photo": "editorial",
+  "layout": {
+   "wpb": 4,
+   "lines": 2
+  },
+  "style": {
+   "fl": "Inter Tight",
+   "font": "'Inter Tight'",
+   "fw": "700",
+   "ls": "-.035em",
+   "lh": 1.02,
+   "fs": "1.05em",
+   "motion": "reveal",
+   "thumbBg": "linear-gradient(160deg,#20201f,#0c0c0b)",
+   "tc": "#ffffff",
+   "ts": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "hl": "#ffffff",
+   "hls": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "anim": "none",
+   "em": "none",
+   "emS": 1
+  }
+ },
+ {
+  "id": "italicpunch",
+  "name": "Italic Punch",
+  "added": "2026-10-16",
+  "photo": "carbon",
+  "layout": {
+   "wpb": 3,
+   "lines": 2,
+   "kw": true
+  },
+  "style": {
+   "fl": "Inter",
+   "font": "'Inter'",
+   "fw": "800",
+   "fi": "italic",
+   "ls": "-.03em",
+   "lh": 1,
+   "fs": ".95em",
+   "motion": "reveal",
+   "thumbBg": "linear-gradient(160deg,#241a14,#0d0907)",
+   "tc": "#ffffff",
+   "ts": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "hl": "#ffffff",
+   "hls": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "anim": "none",
+   "em": "#ffffff",
+   "emItalic": true,
+   "emFw": "800",
+   "emS": 2.2
+  }
+ },
+ {
+  "id": "goldword",
+  "name": "Golden Word",
+  "added": "2026-10-16",
+  "photo": "lift",
+  "layout": {
+   "wpb": 4,
+   "lines": 2,
+   "kw": true
+  },
+  "style": {
+   "fl": "Inter",
+   "font": "'Inter'",
+   "fw": "700",
+   "ls": "-.02em",
+   "lh": 1,
+   "fs": ".95em",
+   "motion": "reveal",
+   "thumbBg": "linear-gradient(160deg,#2a2110,#0e0b05)",
+   "tc": "#ffffff",
+   "ts": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "hl": "#ffffff",
+   "hls": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "anim": "none",
+   "em": "#F2C14E",
+   "emFont": "'DM Serif Display'",
+   "emItalic": false,
+   "emFw": "400",
+   "emS": 2.1
+  }
+ },
+ {
+  "id": "redscript",
+  "name": "Red Script",
+  "added": "2026-10-16",
+  "photo": "neon",
+  "layout": {
+   "wpb": 4,
+   "lines": 2,
+   "kw": true
+  },
+  "style": {
+   "fl": "Montserrat",
+   "font": "'Montserrat'",
+   "fw": "800",
+   "ls": "-.03em",
+   "lh": 1,
+   "fs": ".95em",
+   "motion": "reveal",
+   "thumbBg": "linear-gradient(160deg,#250b0d,#0d0405)",
+   "tc": "#ffffff",
+   "ts": "0 0 2px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55)",
+   "hl": "#ffffff",
+   "hls": "0 0 2px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9),0 0 2px rgba(0,0,0,.9),0 1px 4px rgba(0,0,0,.55)",
+   "anim": "none",
+   "em": "#FF2D3A",
+   "emFont": "'Dancing Script'",
+   "emFw": "700",
+   "emS": 1.7
+  }
+ },
+ {
+  "id": "thickthin",
+  "name": "Thick Thin",
+  "added": "2026-10-16",
+  "photo": "hush",
+  "layout": {
+   "wpb": 3,
+   "lines": 2,
+   "kw": true
+  },
+  "style": {
+   "fl": "Inter Tight",
+   "font": "'Inter Tight'",
+   "fw": "900",
+   "tt": "uppercase",
+   "ls": "-.01em",
+   "lh": 1,
+   "fs": "1em",
+   "motion": "reveal",
+   "thumbBg": "linear-gradient(160deg,#262626,#0b0b0b)",
+   "tc": "#ffffff",
+   "ts": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "hl": "#ffffff",
+   "hls": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "anim": "none",
+   "em": "#ffffff",
+   "emFont": "'Raleway'",
+   "emFw": "300",
+   "emS": 1.5
+  }
+ },
+ {
+  "id": "softserif",
+  "name": "Soft Serif",
+  "added": "2026-10-16",
+  "photo": "prismpro",
+  "layout": {
+   "wpb": 4,
+   "lines": 2,
+   "kw": true
+  },
+  "style": {
+   "fl": "Instrument Serif",
+   "font": "'Instrument Serif'",
+   "fw": "400",
+   "ls": "-.01em",
+   "lh": 1,
+   "fs": "1.2em",
+   "motion": "reveal",
+   "thumbBg": "linear-gradient(160deg,#18200f,#080b05)",
+   "tc": "#ffffff",
+   "ts": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "hl": "#ffffff",
+   "hls": "0 1px 3px rgba(0,0,0,.35),0 3px 14px rgba(0,0,0,.45)",
+   "anim": "none",
+   "em": "#D9F99D",
+   "emFont": "'DM Serif Display'",
+   "emFw": "400",
+   "emS": 1.8
+  }
+ },
+ {
   "id": "colorpop",
   "name": "Color Pop",
   "added": "2026-10-14",

@@ -14,13 +14,16 @@ on:
 concurrency:
   group: deploy
   cancel-in-progress: false
+# Minimale Rechte für das GITHUB_TOKEN (Audit 2026-10-16); Actions auf Commit-SHA gepinnt (Tags lassen sich umbiegen), Updates via .github/dependabot.yml
+permissions:
+  contents: read
 jobs:
   deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: 22
       - name: Secrets prüfen (nennt alle fehlenden auf einmal)
@@ -85,9 +88,12 @@ jobs:
           PADDLE_API_KEY: ${{ secrets.PADDLE_API_KEY }}
           PADDLE_WEBHOOK_SECRET: ${{ secrets.PADDLE_WEBHOOK_SECRET }}
           PADDLE_TOLERANCE_SEC: ${{ secrets.PADDLE_TOLERANCE_SEC }}
+          # Bot-Check (Cloudflare Turnstile): beide gesetzt = an, leer = aus (s. human.php)
+          TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET }}
         run: node scripts/write-config.js
       - name: Hochladen (FTPS)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@8e83cea8672e3fbcbb9fdafff34debf6ae4c5f65 # v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}

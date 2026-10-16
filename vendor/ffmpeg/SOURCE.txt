@@ -10,5 +10,5 @@ Corresponding source code (written offer):
     The Dockerfile in that repository pins the exact FFmpeg, x264 and other library versions used for the binary.
   - FFmpeg:  https://ffmpeg.org/download.html
   - x264:    https://code.videolan.org/videolan/x264
-If you cannot obtain the source from there, write to contact@captionrush.com and we will provide it.
+If you cannot obtain the source from there, write to hello@gluephs.com and we will provide it (this offer stays valid for at least three years after our last distribution of the binaries).
 The binary is unmodified; to replace it with your own build, run `scripts/fetch-ffmpeg.sh`.

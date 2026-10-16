@@ -46,7 +46,7 @@ if (!is_array($ev) || empty($ev['event_id']) || empty($ev['event_type']) || !is_
 $eventId = (string)$ev['event_id']; $type = (string)$ev['event_type'];
 if (!preg_match('/^[A-Za-z0-9_.-]{1,80}$/', $eventId)) out(400, ['error' => 'bad_event']);
 $handled = ['subscription.created', 'subscription.activated', 'subscription.updated', 'subscription.resumed', 'subscription.trialing',
-            'subscription.past_due', 'subscription.paused', 'subscription.canceled'];
+            'subscription.past_due', 'subscription.paused', 'subscription.canceled', 'adjustment.created', 'adjustment.updated'];
 if (!in_array($type, $handled, true)) out(200, ['ok' => true, 'ignored' => $type]);
 
 // ── Idempotenz: Event-ID zuerst eintragen; Duplikat → nichts tun ──
@@ -54,6 +54,21 @@ if (!in_array($type, $handled, true)) out(200, ['ok' => true, 'ignored' => $type
 if ($st < 200 || $st >= 300) out(500, ['error' => 'db']);
 if (!is_array($ins) || !count($ins)) out(200, ['ok' => true, 'duplicate' => true]);
 function undo_event($cfg, $eventId) { cr_sb($cfg, 'DELETE', 'paddle_events?event_id=eq.' . rawurlencode($eventId), null, 'return=minimal'); }
+
+// ── Rückerstattung / Chargeback (adjustment.*, Audit 2026-10-16): volle, genehmigte Rückerstattung oder Chargeback → Plan endet
+// sofort (status canceled, period_end jetzt). Teil-Gutschriften, offene/abgelehnte Anträge ändern nichts. Nutzer über die
+// gespeicherte Abo- bzw. Kunden-ID (nie über custom_data: kommt aus dem Browser).
+if (strpos($type, 'adjustment.') === 0) {
+  $a = $ev['data'];
+  $act = (string)($a['action'] ?? ''); $ast = (string)($a['status'] ?? ''); $full = (string)($a['type'] ?? 'full') === 'full';
+  if (!(($act === 'refund' && $ast === 'approved' && $full) || ($act === 'chargeback' && $ast === 'approved'))) out(200, ['ok' => true, 'ignored' => 'adjustment_' . preg_replace('/[^a-z_]/', '', $act . '_' . $ast)]);
+  $q = !empty($a['subscription_id']) ? 'paddle_subscription_id=eq.' . rawurlencode((string)$a['subscription_id'])
+     : (!empty($a['customer_id']) ? 'paddle_customer_id=eq.' . rawurlencode((string)$a['customer_id']) : '');
+  if ($q === '') out(200, ['ok' => true, 'ignored' => 'no_user']);
+  [$sa] = cr_sb($cfg, 'PATCH', 'profiles?' . $q, ['status' => 'canceled', 'period_end' => gmdate('c'), 'last_event_at' => gmdate('c'), 'updated_at' => gmdate('c')], 'return=minimal');
+  if ($sa < 200 || $sa >= 300) { undo_event($cfg, $eventId); out(500, ['error' => 'db']); }
+  out(200, ['ok' => true, 'revoked' => $act]);
+}
 
 $d = $ev['data'];
 $custId = (string)($d['customer_id'] ?? ''); $subId = (string)($d['id'] ?? '');
