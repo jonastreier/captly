@@ -2124,7 +2124,7 @@ body.editor-open .lang-hint{display:none}
             <div class="cs-sh">Emphasis <span>AI picks the key words</span></div>
             <div class="em-row">
               <button type="button" class="em-chip on" id="emKwBtn" onclick="setEmphKw(!emKw)" aria-pressed="true" title="AI picks the important words and highlights them in the style's accent colour — tap words in the Captions tab to change"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg>Highlight keywords</button>
-              <button type="button" class="em-chip on" id="emEmoBtn" onclick="setEmphEmoji(!emEmoji)" aria-pressed="true" title="A fitting emoji on some captions — change or remove it per caption in the Captions tab"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg>Emojis</button>
+              <button type="button" class="em-chip" id="emEmoBtn" onclick="setEmphEmoji(!emEmoji)" aria-pressed="false" title="A fitting emoji on some captions — change or remove it per caption in the Captions tab"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg>Emojis</button>
             </div>
             <div class="em-row">
               <span class="q-k" title="Smooth punch-in zooms on key moments (video only, never across a scene cut)">Auto zoom</span>
@@ -4789,7 +4789,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
 //   w.zm   1 = Zoom-Moment (Punch-in) beginnt bei diesem Wort
 // Darstellung: Vorschau (buildCap) und Export (capLayout/drawCaptionsOnCtx) nutzen dieselben Helfer.
 var EM_KEY = 'capivo.emph';
-var emKw = true, emEmoji = true, emZoom = 'subtle'; // Schalter im Style-Tab (Default: Keywords + Emojis an — N-KI: antwortet die KI nicht, zeigt der Schalter den Hinweis; Auto-Zoom «Subtle» ab Werk, gespeicherte Wahl gewinnt)
+var emKw = true, emEmoji = false, emZoom = 'off'; // Schalter im Style-Tab (Default seit 16.10.: nur Keywords an; Emojis und Auto-Zoom ab Werk AUS — Entscheid Jonas: ruhiger Standard, gespeicherte Wahl gewinnt)
 var emSrc = null;      // 'llm' | 'local' | null — Herkunft der automatischen Auswahl
 var EMPH_SCALE = 1.12; // hervorgehobenes Wort ~12 % größer (One Word: s.emS)
 var EMO_REL = 1.35;    // Emoji-Größe relativ zur (angepassten) Caption-Schriftgröße

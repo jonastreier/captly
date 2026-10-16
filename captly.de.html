@@ -2125,7 +2125,7 @@ body.editor-open .lang-hint{display:none}
             <div class="cs-sh">Betonung <span>Die KI wählt die Schlüsselwörter</span></div>
             <div class="em-row">
               <button type="button" class="em-chip on" id="emKwBtn" onclick="setEmphKw(!emKw)" aria-pressed="true" title="Die KI wählt die wichtigen Wörter und hebt sie in der Akzentfarbe des Styles hervor — im Tab «Untertitel» Wörter antippen zum Ändern"><svg class="ic" aria-hidden="true"><use href="#i-spark"/></svg>Schlüsselwörter hervorheben</button>
-              <button type="button" class="em-chip on" id="emEmoBtn" onclick="setEmphEmoji(!emEmoji)" aria-pressed="true" title="Ein passendes Emoji bei einigen Untertiteln — im Tab «Untertitel» pro Untertitel ändern oder entfernen"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg>Emojis</button>
+              <button type="button" class="em-chip" id="emEmoBtn" onclick="setEmphEmoji(!emEmoji)" aria-pressed="false" title="Ein passendes Emoji bei einigen Untertiteln — im Tab «Untertitel» pro Untertitel ändern oder entfernen"><svg class="ic" aria-hidden="true"><use href="#i-smile"/></svg>Emojis</button>
             </div>
             <div class="em-row">
               <span class="q-k" title="Sanfte Zoom-Effekte bei wichtigen Momenten (nur im Video, nie über einen Szenenschnitt hinweg)">Auto-Zoom</span>
@@ -4790,7 +4790,7 @@ function buildCap(words, s, hlIdx, px, seekTimes, lineTarget, ex) {
 //   w.zm   1 = Zoom-Moment (Punch-in) beginnt bei diesem Wort
 // Darstellung: Vorschau (buildCap) und Export (capLayout/drawCaptionsOnCtx) nutzen dieselben Helfer.
 var EM_KEY = 'capivo.emph';
-var emKw = true, emEmoji = true, emZoom = 'subtle'; // Schalter im Style-Tab (Default: Keywords + Emojis an — N-KI: antwortet die KI nicht, zeigt der Schalter den Hinweis; Auto-Zoom «Subtle» ab Werk, gespeicherte Wahl gewinnt)
+var emKw = true, emEmoji = false, emZoom = 'off'; // Schalter im Style-Tab (Default seit 16.10.: nur Keywords an; Emojis und Auto-Zoom ab Werk AUS — Entscheid Jonas: ruhiger Standard, gespeicherte Wahl gewinnt)
 var emSrc = null;      // 'llm' | 'local' | null — Herkunft der automatischen Auswahl
 var EMPH_SCALE = 1.12; // hervorgehobenes Wort ~12 % größer (One Word: s.emS)
 var EMO_REL = 1.35;    // Emoji-Größe relativ zur (angepassten) Caption-Schriftgröße

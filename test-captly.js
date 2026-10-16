@@ -5519,8 +5519,8 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const mix = T.STYLES.find(s => s.id === 'mix'), tight = T.STYLES.find(s => s.id === 'tight');
 
     // ── KI-Standard: Keywords + Emojis an, Hinweis bleibt am Schalter ──
-    ok(/var emKw = true, emEmoji = true, emZoom = 'subtle';/.test(script), 'N-KI: Standard (ohne gemerkte Wahl): Keywords + Emojis an, Auto-Zoom Subtle (Runde 2: P8)');
-    ok(/id="emKwBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /id="emEmoBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /class="em-chip on" id="emEmoBtn"/.test(htmlContent), 'N-KI: Markup der beiden Schalter zeigt «an»');
+    ok(/var emKw = true, emEmoji = false, emZoom = 'off';/.test(script), 'Standard (ohne gemerkte Wahl): nur Keywords an, Emojis und Auto-Zoom AUS (Entscheid 16.10.)');
+    ok(/id="emKwBtn"[^>]*aria-pressed="true"/.test(htmlContent) && /id="emEmoBtn"[^>]*aria-pressed="false"/.test(htmlContent) && !/class="em-chip on" id="emEmoBtn"/.test(htmlContent) && /class="pos-btn on" data-z="off"/.test(htmlContent), 'Markup: Keywords an, Emojis aus, Auto-Zoom «Off»');
     ok(/emSrc === 'local' \|\| aiOff\(\)/.test(script) && /Simple emoji picks – AI picks when available/.test(script) && /AI picks unavailable — using simple keyword detection/.test(script), 'N-KI: Hinweis am Schalter bleibt, wenn die KI nicht antwortet');
     // Fallback (lokale Heuristik): jede Caption ab 3 Wörtern bekommt ≥ 1 sichtbares Keyword
     {
@@ -6112,7 +6112,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
 
     // ── P8: Defaults für neue Nutzer (Auto-Zoom Subtle, Safe-Zone bei 9:16); gespeicherte Wahl bleibt ──
     {
-      ok(/emZoom = 'subtle'/.test(script) && /if \(\['off', 'subtle', 'punchy'\]\.indexOf\(o\.zoom\) >= 0\) emZoom = o\.zoom;/.test(script), 'R2-P8: Auto-Zoom «Subtle» ab Werk, gespeicherte Wahl (o.zoom) überstimmt');
+      ok(/emZoom = 'off'; \/\/ Schalter/.test(script) && /if \(\['off', 'subtle', 'punchy'\]\.indexOf\(o\.zoom\) >= 0\) emZoom = o\.zoom;/.test(script), 'Auto-Zoom ab Werk «Off», gespeicherte Wahl (o.zoom) überstimmt');
       T.setSzUser(null);
       T.syncSafeZoneDefault(9 / 16);
       ok(T.getSafeZone().on === true && T.getSafeZone().user === null, 'R2-P8: ohne gespeicherte Wahl → Hilfslinien bei 9:16 an');
