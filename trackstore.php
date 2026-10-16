@@ -4,7 +4,7 @@
  * nie Dateinamen. Datei: <Home>/gluephs-data/track-JJJJMM.json (ausserhalb des Webroots; bei Test/Fremdumgebung: Temp-Ordner).
  * Auswertung: ssh hostpoint 'for f in ~/gluephs-data/track-*.json; do cat $f; echo; done' | node scripts/track-report.js
  */
-const GL_TRACK_EVENTS = ['visit', 'upload', 'transcribed', 'export_click', 'gate_pass', 'export_done', 'pro_interest', 'limit_user', 'limit_site'];
+const GL_TRACK_EVENTS = ['visit', 'upload', 'transcribed', 'export_click', 'gate_pass', 'export_done', 'pro_interest', 'seo_view', 'limit_user', 'limit_site'];
 
 function gl_track_dir($cfg) {
   $d = (string)($cfg['TRACK_DIR'] ?? '');

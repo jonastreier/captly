@@ -5521,6 +5521,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     // ── KI-Standard: Keywords + Emojis an, Hinweis bleibt am Schalter ──
     ok(/var VIDEO_WARN_BYTES = 2 \* 1073741824, VIDEO_MAX_BYTES = 8 \* 1073741824;/.test(script) && /file\.size > VIDEO_MAX_BYTES\) \{[\s\S]{0,500}return;/.test(script) && /file\.size > VIDEO_WARN_BYTES\) capToast/.test(script), 'Dateigrösse: Warnung ab 2 GB, Ablehnung ab 8 GB (vor dem Laden)');
     ok(/function trackEv\(e\) \{\s*if \(!TELE_ON\) return;/.test(script) && ['upload', 'transcribed', 'export_click', 'gate_pass', 'export_done'].every(ev => script.includes("trackEv('" + ev + "')")) && /trackEv\('visit'\)/.test(script), 'Tracking: Trichter-Ereignisse gesetzt, nur bei TELE_ON (kein DNT/GPC/localhost)');
+    ok(/id="expUpsell"/.test(htmlContent) && /function proUpsellYes\(\)/.test(script) && /source: 'waitlist-export'/.test(script) && /!proUpsellState\(\)\) \? '' : 'none'/.test(script), 'Upgrade-Moment: Karte im Export-Blatt, nur nach fertigem Export und solange nicht beantwortet; Ja → Warteliste (Double-Opt-in)');
     ok(/detail === 'ip_daily_cap' \? _t\('You\\'ve used today/.test(script), 'Nutzerlimit: Frontend nennt 60 Min. und «Bezahlpläne kommen»');
     ok(/detail === 'daily_cap' \? _t\('Gluephs has reached today/.test(script), 'Tageslimit: Frontend zeigt «komm morgen wieder» statt Wartezeit-Text');
     ok(/var emKw = true, emEmoji = false, emZoom = 'off';/.test(script), 'Standard (ohne gemerkte Wahl): nur Keywords an, Emojis und Auto-Zoom AUS (Entscheid 16.10.)');

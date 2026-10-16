@@ -76,12 +76,22 @@ ok(r.status === 1 && /✗ GROQ_API_KEY/.test(r.stdout), 'check-secrets: leerer W
   const follow = p => { const seen = []; for (let i = 0; i < 6; i++) { const r = req(p); if (r.redirect === undefined) return Object.assign(r, { hops: i }); if (seen.includes(r.redirect)) return { loop: true }; seen.push(p); p = r.redirect; } return { loop: true }; };
   const expect = { '': 'captly.html', 'de': 'captly.de.html', 'de/': 'captly.de.html', 'captly.html': 'captly.html', 'index.html': 'captly.html',
     'captly.de.html': 'captly.de.html', 'contact': 'contact.php', 'kontakt': 'contact.php', 'api/transcribe': 'transcribe.php', 'api/track': 'track.php', 'api/lead/': 'lead.php' };
+  for (const sl of ['reels-captions', 'reels-untertitel', 'tiktok-captions', 'tiktok-untertitel', 'shorts-captions', 'shorts-untertitel', 'srt-to-vtt', 'srt-zu-vtt', 'kapwing-alternative', 'alternative-zu-kapwing']) { expect[sl] = 'p/' + sl + '.html'; expect['p/' + sl + '.html'] = 'p/' + sl + '.html'; }
   for (const pg of ['impressum', 'datenschutz', 'privacy', 'terms', 'licenses']) { expect[pg] = pg + '.html'; expect[pg + '.html'] = pg + '.html'; }
   for (const [p, want] of Object.entries(expect)) {
     const r = follow(p);
     ok(!r.loop && r.serve === want, `.htaccess: /${p} → ${want} (bekommen: ${JSON.stringify(r)})`);
     ok(fs.existsSync(path.join(__dirname, want)), `.htaccess: Ziel ${want} fehlt im Repo`);
   }
+  { const r = run('scripts/build-pages.js', ['--check']); ok(r.status === 0, 'build-pages: p/*.html + sitemap.xml passen zu den Daten' + (r.status ? '\n' + r.stderr : '')); }
+  { const C = require('./assets/srt-convert.js');
+    const srt = '1\r\n00:00:01,000 --> 00:00:02,500\r\nHallo Welt\r\n\r\n2\r\n00:01:02,500 --> 00:01:04,000\r\nZeile eins\r\nZeile zwei\r\n';
+    const vtt = C.srtToVtt(srt);
+    ok(vtt === 'WEBVTT\n\n00:00:01.000 --> 00:00:02.500\nHallo Welt\n\n00:01:02.500 --> 00:01:04.000\nZeile eins\nZeile zwei\n', 'srt-convert: SRT → VTT (Kopfzeile, Punkt statt Komma, CRLF, mehrzeilig)');
+    ok(C.vttToSrt(vtt) === srt.replace(/\r\n/g, '\n'), 'srt-convert: VTT → SRT ist die Umkehrung');
+    ok(C.vttToSrt('WEBVTT\n\nNOTE kommentar\n\ncue1\n00:00:01.000 --> 00:00:02.000 align:start position:0%\n<b>Hi</b>\n') === '1\n00:00:01,000 --> 00:00:02,000\n<b>Hi</b>\n', 'srt-convert: VTT mit Notiz, Cue-ID und Cue-Einstellungen');
+    ok(C.shift(srt, -1500, 'srt').startsWith('1\n00:00:00,000 --> 00:00:01,000') && C.shift(srt, 2000, 'vtt').startsWith('WEBVTT\n\n00:00:03.000 --> 00:00:04.500'), 'srt-convert: Zeiten verschieben (nie unter 0), VTT-Ausgabe');
+    ok(C.srtToVtt('kein untertitel') === 'WEBVTT\n\n' && C.parseCues('').length === 0, 'srt-convert: Müll ergibt keine Untertitel'); }
   ok(follow('de').hops === 0 && follow('impressum').hops === 0, '.htaccess: schöne URLs liefern direkt aus (keine Weiterleitung)');
   ok(follow('docs/START-HIER.md').status === 404 && follow('scripts/build-dist.js').status === 404, '.htaccess: interne Ordner → 404');
 }
@@ -102,6 +112,7 @@ $deny = ${leak ? 'false' : "preg_match('#(^/\\\\.|/config(\\\\.example)?\\\\.php
 if ($deny && $p !== '/config.php') { http_response_code(403); exit; }
 if ($p === '/config.php' && $deny) { http_response_code(403); exit; }
 $pages = ['/' => 'captly.html', '/de' => 'captly.de.html', '/impressum' => 'impressum.html', '/datenschutz' => 'datenschutz.html', '/privacy' => 'privacy.html', '/terms' => 'terms.html'];
+if (preg_match('#^/(reels-captions|reels-untertitel|tiktok-captions|tiktok-untertitel|shorts-captions|shorts-untertitel|srt-to-vtt|srt-zu-vtt|kapwing-alternative|alternative-zu-kapwing)$#', $p, $mm)) { header('Content-Type: text/html; charset=utf-8'); readfile(__DIR__ . '/p/' . $mm[1] . '.html'); return true; }
 if (isset($pages[$p])) { header('Content-Type: text/html; charset=utf-8'); readfile(__DIR__ . '/' . $pages[$p]); return true; }
 if (preg_match('#^/api/(transcribe|lead|log|stat|plan)$#', $p, $m)) { require __DIR__ . '/' . $m[1] . '.php'; return true; }
 if ($p === '/kontakt') { $_GET['lang'] = 'de'; require __DIR__ . '/contact.php'; return true; }

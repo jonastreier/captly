@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SRT zu VTT umwandeln (und zurück): kostenlos, im Browser | Gluephs</title>
+<meta name="description" content="SRT-Untertitel in WebVTT umwandeln und VTT in SRT, oder alle Zeiten verschieben. Kostenlos, läuft im Browser, nichts wird hochgeladen.">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<link rel="canonical" href="https://gluephs.com/srt-zu-vtt">
+<link rel="alternate" hreflang="de" href="https://gluephs.com/srt-zu-vtt">
+<link rel="alternate" hreflang="en" href="https://gluephs.com/srt-to-vtt">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="Gluephs">
+<meta property="og:locale" content="de_CH">
+<meta property="og:title" content="SRT zu VTT umwandeln (und zurück): kostenlos, im Browser">
+<meta property="og:description" content="SRT-Untertitel in WebVTT umwandeln und VTT in SRT, oder alle Zeiten verschieben. Kostenlos, läuft im Browser, nichts wird hochgeladen.">
+<meta property="og:url" content="https://gluephs.com/srt-zu-vtt">
+<meta property="og:image" content="https://gluephs.com/assets/og-image-de.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+<link rel="stylesheet" href="/vendor/fonts/fonts.css">
+<style>:root{--ink:#16181d;--muted:#5b6068;--line:#e4e6ec;--bg:#f6f7fb;--brand:#6d28d9;--brand2:#7c3aed}
+*{box-sizing:border-box}html{-webkit-text-size-adjust:100%}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--brand)}
+.top{max-width:860px;margin:0 auto;padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{display:inline-flex;align-items:center;font:800 22px/1 'Inter',sans-serif;letter-spacing:-.02em;color:var(--ink);text-decoration:none}
+.logo b{background:var(--brand2);color:#fff;border-radius:7px;padding:3px 7px 4px;margin-left:2px}
+.top nav{display:flex;align-items:center;gap:14px;font-size:14px}
+.top nav a.lang{color:var(--muted);text-decoration:none}
+.btn{display:inline-block;background:var(--brand2);color:#fff;text-decoration:none;font-weight:700;border-radius:999px;padding:10px 18px;border:0;cursor:pointer;font-size:14.5px}
+.btn:hover{background:var(--brand)}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+main{max-width:860px;margin:0 auto;padding:8px 16px 56px}
+.crumbs{font-size:13px;color:var(--muted);margin:4px 0 14px}.crumbs a{color:var(--muted)}
+article{background:#fff;border:1px solid var(--line);border-radius:18px;padding:30px 28px}
+h1{font-size:clamp(26px,5vw,36px);line-height:1.15;letter-spacing:-.02em;margin:0 0 14px}
+.lead{font-size:18px;color:#343840;margin:0 0 8px}
+h2{font-size:21px;line-height:1.25;margin:34px 0 10px;letter-spacing:-.01em}
+p{margin:0 0 12px}ul,ol{margin:0 0 12px;padding-left:22px}li{margin:0 0 7px}
+.tablewrap{overflow-x:auto;margin:6px 0 10px}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:15px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:#faf9ff;font-weight:700}
+td:first-child{font-weight:600}
+.note{font-size:13px;color:var(--muted)}
+details{border-top:1px solid var(--line);padding:12px 0}details:last-of-type{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:650;list-style:none;display:flex;justify-content:space-between;gap:12px}
+summary::-webkit-details-marker{display:none}summary::after{content:'+';color:var(--brand);font-weight:700}
+details[open] summary::after{content:'–'}details p{margin:8px 0 0;color:#343840}
+.band{margin:34px 0 0;background:linear-gradient(135deg,#f4efff,#eef3ff);border:1px solid #e3dcf7;border-radius:16px;padding:22px;text-align:center}
+.band p{font-weight:650;margin:0 0 12px}
+.rel{margin-top:26px}.rel ul{list-style:none;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.rel a{display:inline-block;background:#f4f5fa;border:1px solid var(--line);border-radius:999px;padding:6px 13px;text-decoration:none;font-size:14px;color:var(--ink)}
+.rel a:hover{border-color:var(--brand2)}
+.disc{font-size:12.5px;color:var(--muted);margin-top:20px}
+footer{max-width:860px;margin:0 auto;padding:6px 16px 40px;font-size:14px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 18px}
+footer a{color:var(--muted)}
+.tool textarea{width:100%;min-height:200px;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;border:1px solid var(--line);border-radius:12px;padding:12px;resize:vertical;background:#fff;color:var(--ink)}
+.tool .row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;align-items:center}
+.tool .seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+.tool .seg button{border:0;background:#fff;padding:9px 14px;font:600 14px 'Inter',sans-serif;cursor:pointer;color:var(--ink)}
+.tool .seg button[aria-pressed=true]{background:var(--brand2);color:#fff}
+.tool label{font-size:14px;color:var(--muted)}.tool input[type=number]{width:96px;padding:8px;border:1px solid var(--line);border-radius:8px;font:14px 'Inter',sans-serif}
+.tool .msg{font-size:14px;color:var(--muted);min-height:20px}
+@media (max-width:560px){article{padding:22px 16px}.lead{font-size:16.5px}table{min-width:0;font-size:13.5px}th,td{padding:8px 6px}}</style>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Gluephs","item":"https://gluephs.com/de"},{"@type":"ListItem","position":2,"name":"SRT-zu-VTT-Konverter","item":"https://gluephs.com/srt-zu-vtt"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Wird meine Datei hochgeladen?","acceptedAnswer":{"@type":"Answer","text":"Nein. Die Umwandlung läuft in deinem Browser mit JavaScript. Es wird nichts an einen Server gesendet."}},{"@type":"Question","name":"Bleiben Zeilenumbrüche und mehrzeilige Untertitel erhalten?","acceptedAnswer":{"@type":"Answer","text":"Ja. Zeilenumbrüche innerhalb eines Untertitels bleiben erhalten. Positionsangaben aus VTT entfallen bei der Umwandlung in SRT, weil SRT dafür nichts kennt."}},{"@type":"Question","name":"Was macht «Zeiten verschieben»?","acceptedAnswer":{"@type":"Answer","text":"Es addiert oder subtrahiert die eingegebenen Sekunden bei jedem Untertitel, zum Beispiel wenn Untertitel eine halbe Sekunde zu früh laufen. Zeiten gehen nie unter null."}}]}</script>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="/de" aria-label="Gluephs">glue<b>phs</b></a>
+  <nav><a class="lang" href="/srt-to-vtt" hreflang="en" lang="en">English</a><a class="btn" href="/de?utm_source=seo-srt-zu-vtt">Zum Editor</a></nav>
+</header>
+<main>
+<p class="crumbs"><a href="/de">Gluephs</a> › SRT-zu-VTT-Konverter</p>
+<article>
+<h1>SRT zu VTT umwandeln, kostenlos und privat</h1>
+<p class="lead">Untertiteldatei einfügen oder laden und zwischen SRT und WebVTT umwandeln oder alle Zeiten verschieben. Alles passiert in deinem Browser, die Datei verlässt dein Gerät nie.</p>
+<div class="tool" id="tool">
+<div class="row"><div class="seg" role="group" aria-label="Mode"><button type="button" data-m="srt" aria-pressed="true">SRT → VTT</button><button type="button" data-m="vtt" aria-pressed="false">VTT → SRT</button><button type="button" data-m="shift" aria-pressed="false">Zeiten verschieben</button></div>
+<span class="row" id="shiftRow" hidden><label for="off">Verschieben um (Sekunden, negativ = früher)</label><input type="number" id="off" step="0.1" value="0"></span></div>
+<textarea id="inp" spellcheck="false" placeholder="Untertitel hier einfügen oder Datei laden" aria-label="Untertitel hier einfügen oder Datei laden"></textarea>
+<div class="row"><label class="btn ghost" for="file" style="margin:0">Datei laden</label><input type="file" id="file" accept=".srt,.vtt,.txt,text/plain,text/vtt" hidden><button type="button" class="btn" id="go">Umwandeln</button></div>
+<textarea id="out" spellcheck="false" readonly aria-label="Output"></textarea>
+<div class="row"><button type="button" class="btn ghost" id="copy">Kopieren</button><button type="button" class="btn ghost" id="dl">Herunterladen</button><span class="msg" id="msg" role="status"></span></div>
+</div>
+<script src="/assets/srt-convert.js"></script>
+<script>
+(function(){var m='srt',$=function(i){return document.getElementById(i)},ui={"srt":"SRT → VTT","vtt":"VTT → SRT","shift":"Zeiten verschieben","input":"Untertitel hier einfügen oder Datei laden","load":"Datei laden","convert":"Umwandeln","copy":"Kopieren","download":"Herunterladen","offset":"Verschieben um (Sekunden, negativ = früher)","done":"Fertig","empty":"Keine Untertitel gefunden. Format prüfen.","copied":"Kopiert"};
+document.querySelectorAll('#tool [data-m]').forEach(function(b){b.addEventListener('click',function(){m=b.dataset.m;document.querySelectorAll('#tool [data-m]').forEach(function(x){x.setAttribute('aria-pressed',x===b)});$('shiftRow').hidden=m!=='shift';});});
+$('file').addEventListener('change',function(e){var f=e.target.files[0];if(!f)return;var r=new FileReader();r.onload=function(){$('inp').value=String(r.result||'');};r.readAsText(f);});
+function ext(){return m==='srt'?'vtt':(m==='vtt'?'srt':(/^\s*WEBVTT/.test($('inp').value)?'vtt':'srt'));}
+$('go').addEventListener('click',function(){var t=$('inp').value,o='';
+ if(m==='srt')o=SrtConvert.srtToVtt(t);else if(m==='vtt')o=SrtConvert.vttToSrt(t);else o=SrtConvert.shift(t,Math.round(parseFloat($('off').value||'0')*1000),ext());
+ $('out').value=o;$('msg').textContent=SrtConvert.parseCues(t).length?ui.done:ui.empty;});
+$('copy').addEventListener('click',function(){var v=$('out').value;if(!v)return;(navigator.clipboard?navigator.clipboard.writeText(v):Promise.reject()).then(function(){$('msg').textContent=ui.copied;}).catch(function(){$('out').select();document.execCommand('copy');$('msg').textContent=ui.copied;});});
+$('dl').addEventListener('click',function(){var v=$('out').value;if(!v)return;var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([v],{type:'text/plain;charset=utf-8'}));a.download='subtitles.'+ext();a.click();setTimeout(function(){URL.revokeObjectURL(a.href)},1000);});
+})();
+</script>
+<h2>Was ist der Unterschied zwischen SRT und VTT?</h2>
+<p>SRT ist das einfachste und am weitesten verbreitete Untertitelformat: eine Nummer, ein Zeitbereich mit Komma vor den Millisekunden und der Text. WebVTT (VTT) ist das Format der HTML5-Videoplayer. Es beginnt mit der Kopfzeile WEBVTT, nutzt einen Punkt vor den Millisekunden und kann Gestaltung und Position mitgeben.</p>
+<p>Die meisten Social-Plattformen akzeptieren SRT, viele Web-Player erwarten VTT. Dieses Werkzeug wandelt Zeitformat und Dateiaufbau um; es übersetzt oder verändert dein Timing nicht.</p>
+<h2>Noch keine Untertitel?</h2>
+<p>Gluephs erstellt Wort-für-Wort-Untertitel aus deinem Video in 16 Sprachen und exportiert SRT- und VTT-Dateien sowie ein MP4 mit eingebrannten Untertiteln. <a href="/de?utm_source=seo-srt-zu-vtt">Kostenlos testen</a>.</p>
+
+<h2>Häufige Fragen</h2>
+<details><summary>Wird meine Datei hochgeladen?</summary><p>Nein. Die Umwandlung läuft in deinem Browser mit JavaScript. Es wird nichts an einen Server gesendet.</p></details>
+<details><summary>Bleiben Zeilenumbrüche und mehrzeilige Untertitel erhalten?</summary><p>Ja. Zeilenumbrüche innerhalb eines Untertitels bleiben erhalten. Positionsangaben aus VTT entfallen bei der Umwandlung in SRT, weil SRT dafür nichts kennt.</p></details>
+<details><summary>Was macht «Zeiten verschieben»?</summary><p>Es addiert oder subtrahiert die eingegebenen Sekunden bei jedem Untertitel, zum Beispiel wenn Untertitel eine halbe Sekunde zu früh laufen. Zeiten gehen nie unter null.</p></details>
+<div class="band"><p>In der Beta kostenlos. Ohne Wasserzeichen. Ohne Konto.</p><a class="btn" href="/de?utm_source=seo-srt-zu-vtt">Jetzt Untertitel erstellen</a></div>
+<nav class="rel" aria-label="Weitere Seiten"><h2>Weitere Seiten</h2><ul><li><a href="/reels-untertitel">Untertitel für Instagram Reels</a></li><li><a href="/tiktok-untertitel">Untertitel für TikTok</a></li><li><a href="/shorts-untertitel">Untertitel für YouTube Shorts</a></li><li><a href="/alternative-zu-kapwing">Alternative zu Kapwing</a></li></ul></nav>
+
+</article>
+</main>
+<footer><a href="/datenschutz">Datenschutz</a><a href="/terms">AGB</a><a href="/impressum">Impressum</a><a href="/kontakt">Kontakt</a><span>© 2026 Gluephs</span></footer>
+<script>(function(){try{if(location.protocol!=='https:'||navigator.doNotTrack==='1'||navigator.globalPrivacyControl||/bot|crawl|spider|headless|lighthouse/i.test(navigator.userAgent))return;setTimeout(function(){fetch('/api/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({e:'seo_view',s:'srt-zu-vtt',l:'de'}),keepalive:true}).catch(function(){});},600);}catch(e){}})();</script>
+</body>
+</html>

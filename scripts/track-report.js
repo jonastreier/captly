@@ -4,7 +4,7 @@ const days = Math.max(1, parseInt(process.argv[2], 10) || 14);
 let raw = ''; process.stdin.on('data', d => raw += d).on('end', () => {
   const all = {};
   for (const line of raw.split('\n')) { if (!line.trim()) continue; try { Object.assign(all, JSON.parse(line)); } catch (e) { /* kaputte Zeile überspringen */ } }
-  const EV = ['visit', 'upload', 'transcribed', 'export_click', 'gate_pass', 'export_done', 'pro_interest', 'limit_user', 'limit_site'];
+  const EV = ['visit', 'upload', 'transcribed', 'export_click', 'gate_pass', 'export_done', 'pro_interest', 'seo_view', 'limit_user', 'limit_site'];
   const byDay = {}, bySrc = {};
   const since = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
   for (const [k, n] of Object.entries(all)) {

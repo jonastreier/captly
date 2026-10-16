@@ -86,7 +86,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
     try {
       const b3 = 'http://127.0.0.1:' + p3 + '/', tp = body => fetch(b3 + 'track.php', { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) }).then(r => r.status);
       ok((await (await fetch(b3 + 'track.php')).json()).service === 'gluephs-track', 'track: GET meldet den Dienst');
-      ok(await tp({ e: 'visit', s: 'Reddit.com', l: 'de' }) === 204 && await tp({ e: 'visit', s: 'reddit.com', l: 'de' }) === 204 && await tp({ e: 'export_done', s: 'x', l: 'en' }) === 204, 'track: gültige Ereignisse → 204');
+      ok(await tp({ e: 'visit', s: 'Reddit.com', l: 'de' }) === 204 && await tp({ e: 'visit', s: 'reddit.com', l: 'de' }) === 204 && await tp({ e: 'export_done', s: 'x', l: 'en' }) === 204 && await tp({ e: 'seo_view', s: 'reels-captions', l: 'en' }) === 204, 'track: gültige Ereignisse → 204');
       ok(await tp({ e: 'limit_user' }) === 400 && await tp({ e: 'limit_site' }) === 400 && await tp({ e: 'drop table' }) === 400 && await tp('kein json') === 400, 'track: Server-Ereignisse und Unbekanntes vom Browser abgelehnt (400)');
       const f3 = fs.readdirSync(data3).filter(f => /^track-\d{6}\.json$/.test(f))[0];
       const c3 = JSON.parse(fs.readFileSync(path.join(data3, f3), 'utf8'));

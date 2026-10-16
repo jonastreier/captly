@@ -235,6 +235,11 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .price-cta.ghost:hover{background:var(--fill);border-color:var(--line3)}
 .price-cta.soon{color:var(--muted);border-style:dashed;cursor:default}
 .price-cta.soon:hover{background:#fff;border-color:var(--line2)}
+.exp-upsell{margin:10px 0 0;padding:12px 14px;border:1px solid #e3dcf7;background:linear-gradient(135deg,#f6f1ff,#f0f4ff);border-radius:12px;font-size:13px;line-height:1.45;color:var(--ink)}
+.exp-upsell b{display:block;margin-bottom:2px;font-size:13.5px}
+.exp-upsell .eu-row{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap}
+.exp-upsell button{font:600 12.5px 'Inter',sans-serif;border-radius:999px;padding:7px 13px;cursor:pointer;border:1px solid var(--line2);background:#fff;color:var(--ink)}
+.exp-upsell button.eu-yes{background:var(--brand,#7c3aed);border-color:transparent;color:#fff}
 .price-wl{margin-top:20px;display:flex;flex-direction:column;gap:8px}
 .price-wl input{width:100%;box-sizing:border-box;font:400 14px 'Inter',sans-serif;padding:10px 12px;border:1px solid var(--line2);border-radius:9px;background:#fff;color:var(--ink)}
 .price-wl .price-cta{margin-top:0;background:var(--brand,#7c3aed);color:#fff}
@@ -1726,6 +1731,11 @@ body.editor-open .lang-hint{display:none}
         <span class="exp-btn-txt"><span class="exp-btn-label">Download video</span><span class="exp-btn-sub" id="btnVideoSub">MP4 · 1080p · no watermark</span></span>
       </button>
       <p class="es-last" id="expLast" style="display:none">Last export: <b id="expLastName"></b> · <button type="button" class="es-link" onclick="downloadLastExport()" title="Save the same file again — no new rendering">Download again</button></p>
+      <div class="exp-upsell" id="expUpsell" style="display:none" role="region" aria-label="Plans">
+        <b>Enjoying Gluephs?</b>
+        Creator plans (from $7.99/month) will bring 300 minutes a month, translation and saved projects. Want one email when they launch?
+        <div class="eu-row"><button type="button" class="eu-yes" onclick="proUpsellYes()">Yes, notify me</button><button type="button" onclick="proUpsellNo()">No thanks</button></div>
+      </div>
       <p class="es-render" id="expRender" style="display:none">Rendering on your device — keep this tab open. <button type="button" class="es-link es-cancel" id="expCancel" onclick="cancelExport()" title="Stop the export — nothing is downloaded">Cancel</button></p>
       <div id="recProg">
         <p id="recMsg">Rendering video…</p>
@@ -14317,11 +14327,27 @@ function syncExportAgain() {
   return ch;
 }
 function syncExportAgainIfOpen() { if (_lastExportBlob && typeof exportSheetOpen === 'function' && exportSheetOpen()) syncExportAgain(); }
+// Upgrade-Moment nach dem ersten fertigen Export: einmal fragen, ob wir beim Start der Bezahlpläne eine Mail schicken dürfen (Double-Opt-in
+// über api/lead). Merkt sich die Antwort (1 = Nein, 2 = Ja); wer Nein sagt, wird nicht erneut gefragt.
+var PRO_UP_KEY = 'capivo.proUpsell';
+function proUpsellState() { try { return localStorage.getItem(PRO_UP_KEY) || ''; } catch (e) { return ''; } }
+function proUpsellSet(v) { try { localStorage.setItem(PRO_UP_KEY, v); } catch (e) {} var u = document.getElementById('expUpsell'); if (u) u.style.display = 'none'; }
+function proUpsellNo() { proUpsellSet('1'); }
+function proUpsellYes() {
+  var em = (typeof meEmail !== 'undefined' && meEmail) || leadEmail();
+  if (!em || !isEmail(em)) { proUpsellSet('1'); return; } // ohne bekannte Adresse nichts senden (das Gate sorgt normalerweise dafür, dass sie da ist)
+  fetch('api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    email: em, newsletter: true, consent_text: 'Notify me once when the paid plans launch.', source: 'waitlist-export', lang: (navigator.language || '').slice(0, 20) }) })
+  .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('http ' + r.status)); })
+  .then(function() { trackEv('pro_interest'); proUpsellSet('2'); capToast(_t('Thanks! Check your inbox and confirm with the link — then we will tell you when plans launch.')); })
+  .catch(function() { capToast(_t('Could not save that right now — please try again.')); });
+}
 function syncLastExportUI() {
   var el = document.getElementById('expLast'), nm = document.getElementById('expLastName');
   if (nm) nm.textContent = _lastDlName;
   var ch = !!_lastExportBlob && exportChangedSinceLast();
   if (el) el.style.display = (_lastExportBlob && !isExporting && !_expTok && !ch) ? '' : 'none'; // „Download again“ nur ohne Änderung seit dem Export
+  var up = document.getElementById('expUpsell'); if (up) up.style.display = (_lastExportBlob && !isExporting && !_expTok && !ch && !proUpsellState()) ? '' : 'none';
   var b = document.getElementById('btnVideo'), lbl = b && b.querySelector ? b.querySelector('.exp-btn-label') : null;
   if (lbl && !(b.classList && b.classList.contains('busy'))) lbl.textContent = btnVideoText();
 }

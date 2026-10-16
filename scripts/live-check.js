@@ -48,7 +48,7 @@ async function get(path, opt = {}) {
   }
 
   // 3) Seiten
-  for (const [p, re] of [['/de', /Untertitel/i], ['/impressum', /Impressum/i], ['/datenschutz', /Datenschutz/i], ['/privacy', /Privacy/i], ['/terms', /Terms|Nutzungsbedingungen/i], ['/kontakt', /name="message"/], ['/contact', /name="message"/]]) {
+  for (const [p, re] of [['/de', /Untertitel/i], ['/impressum', /Impressum/i], ['/datenschutz', /Datenschutz/i], ['/privacy', /Privacy/i], ['/terms', /Terms|Nutzungsbedingungen/i], ['/kontakt', /name="message"/], ['/contact', /name="message"/], ['/reels-captions', /Instagram Reels/], ['/reels-untertitel', /Untertitel/], ['/srt-to-vtt', /SRT to VTT/], ['/srt-zu-vtt', /SRT zu VTT/], ['/kapwing-alternative', /Kapwing/], ['/tiktok-captions', /TikTok/], ['/shorts-captions', /Shorts/]]) {
     const r = await get(p);
     if (r.status === 200 && re.test(r.text)) pass(p + ' lädt'); else fail(`${p} liefert Status ${r.error || r.status} oder falschen Inhalt`, '.htaccess nicht aktiv? Bei /kontakt: contact.php fehlt oder PHP läuft nicht.');
   }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Bei Domainwechsel: Basis-URL zusammen mit canonical/hreflang/og:url in captly.html + i18n/de.js anpassen -->
+<!-- Erzeugt von scripts/build-pages.js. Bei Domainwechsel SITE dort ändern und Basis-URL zusammen mit canonical/hreflang/og:url in captly.html + i18n/de.js anpassen -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://gluephs.com/</loc>
@@ -12,5 +12,65 @@
     <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/"/>
     <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/de"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/reels-captions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/reels-captions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/reels-untertitel"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/reels-captions"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/reels-untertitel</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/reels-captions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/reels-untertitel"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/reels-captions"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/tiktok-captions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/tiktok-captions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/tiktok-untertitel"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/tiktok-captions"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/tiktok-untertitel</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/tiktok-captions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/tiktok-untertitel"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/tiktok-captions"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/shorts-captions</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/shorts-captions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/shorts-untertitel"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/shorts-captions"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/shorts-untertitel</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/shorts-captions"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/shorts-untertitel"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/shorts-captions"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/srt-to-vtt</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/srt-to-vtt"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/srt-zu-vtt"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/srt-to-vtt"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/srt-zu-vtt</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/srt-to-vtt"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/srt-zu-vtt"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/srt-to-vtt"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/kapwing-alternative</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/kapwing-alternative"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/alternative-zu-kapwing"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/kapwing-alternative"/>
+  </url>
+  <url>
+    <loc>https://gluephs.com/alternative-zu-kapwing</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://gluephs.com/kapwing-alternative"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://gluephs.com/alternative-zu-kapwing"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://gluephs.com/kapwing-alternative"/>
   </url>
 </urlset>

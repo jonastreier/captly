@@ -22,6 +22,6 @@ $in = json_decode((string)file_get_contents('php://input', false, null, 0, 512),
 if (!is_array($in)) out(400, ['error' => 'bad_request']);
 $e = (string)($in['e'] ?? '');
 // Serverseitige Ereignisse (limit_*) kommen nie vom Browser
-if (!in_array($e, ['visit', 'upload', 'transcribed', 'export_click', 'gate_pass', 'export_done', 'pro_interest'], true)) out(400, ['error' => 'bad_event']);
+if (!in_array($e, ['visit', 'upload', 'transcribed', 'export_click', 'gate_pass', 'export_done', 'pro_interest', 'seo_view'], true)) out(400, ['error' => 'bad_event']);
 gl_track_add($cfg, $e, (string)($in['s'] ?? 'direct'), ($in['l'] ?? '') === 'de' ? 'de' : 'en');
 out(204);
