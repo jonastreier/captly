@@ -80,7 +80,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
     } finally { php2.kill(); fs.rmSync(dir2, { recursive: true, force: true }); }
     // ── status.php (Auslastung) + Groq-429-Merker in transcribe.php
     const dir4 = fs.mkdtempSync(path.join(os.tmpdir(), 'crsta-')); const p4 = await freePort(); const gp = await freePort();
-    for (const f of ['status.php', 'transcribe.php', 'trackstore.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir4, f));
+    for (const f of ['status.php', 'transcribe.php', 'trackstore.php', 'ratelimit.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir4, f));
     let g429 = false;
     const groq = http.createServer((req, res) => { let b = ''; req.on('data', d => b += d); req.on('end', () => { if (g429) { res.statusCode = 429; res.setHeader('Retry-After', '40'); res.setHeader('Content-Type', 'application/json'); return res.end('{"error":{"message":"rate"}}'); } res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ text: 'hi', language: 'english', words: [{ word: 'hi', start: 0, end: 1 }] })); }); }).listen(gp);
     fs.writeFileSync(path.join(dir4, 'config.php'), `<?php return ['GROQ_API_KEY'=>'gsk_t','GROQ_BASE'=>'http://127.0.0.1:${gp}','MAX_AUDIO_SEC_PER_DAY_PER_MODEL'=>100,'MAX_AUDIO_SEC_PER_IP_DAY'=>0,'RATE_LIMIT_PER_HOUR'=>0,'MAX_AUDIO_SEC_PER_HOUR'=>0,'TRACK_DIR'=>'${path.join(dir4, 'trk')}'];`);
