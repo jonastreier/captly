@@ -245,7 +245,8 @@ function qaMain() {
       const rows = {}, wraps = [];
       for (let i = 0; i < Math.min(spans.length, pieces.length); i++) {
         const r = spans[i].getBoundingClientRect(), p = pieces[i].wo, k = W / (previewFrameW() * ratio);
-        const x = (r.left - fr.left) * k, w = r.width * k, top = (r.top - fr.top) * k, h = r.height * k;
+        const lx = spans[i].style.position === 'relative' ? (parseFloat(spans[i].style.left) || 0) * ratio : 0; // Typewriter: capTypeCenter rückt die Teilzeile per left (Export: typeDx beim Zeichnen) — verglichen wird das reservierte Layout
+        const x = (r.left - lx - fr.left) * k, w = r.width * k, top = (r.top - fr.top) * k, h = r.height * k;
         const isEm = parseFloat(getComputedStyle(spans[i]).fontSize) > parseFloat(getComputedStyle(spans[i].closest('.cap-root')).fontSize) * 1.001;
         // Betonungswort: eigene, mit emS (bis 2.2×) und Zweitschrift wachsende Box → Oberkante/Höhe nicht gegen die Normalwort-Box (L.capA/capD)
         // prüfen (wuchs bei Big Keyword/Italic Punch auf 16–28 px); seine Schriftlage prüft die Grundlinie (db, 0.2 %) unten genau
@@ -411,7 +412,8 @@ const CTL = [
   { id: 'csLh', tab: 'style', custom: true, op: 'range', sel: '#csLh', values: [0.9, 1.8], changes: ['style.lh', 'dom.span0.lineHeight'], styleOnly: ['lh'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
   { id: 'csText', tab: 'style', custom: true, op: 'color', sel: '#csText', values: ['#ff0000', '#22cc88'], changes: ['style.tc', 'dom.span0.color'], styleOnly: ['tc', 'tg'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
   { id: 'csHl', tab: 'style', custom: true, op: 'color', sel: '#csHl', values: ['#ff0000', '#00ffaa'], changes: ['dom.act.color'], styleOnly: HL_FIELDS, inv: LAYOUT_INV.concat('dom.span0.color', 'dom.span0.fontSize') },
-  { id: 'csFont', tab: 'style', custom: true, op: 'select', sel: '#csFont', values: ['Anton', 'Playfair Display'], changes: ['style.fl', 'style.font', 'dom.span0.fontFamily'], styleOnly: ['fl', 'font', 'hlFont'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], wait: 900 },
+  // Schriftwechsel darf fw mitändern: Anton hat nur 400, Playfair Display nur 700 → csFontWeightApply wählt das nächstliegende vorhandene Gewicht (sonst fälscht der Browser Fett)
+  { id: 'csFont', tab: 'style', custom: true, op: 'select', sel: '#csFont', values: ['Anton', 'Playfair Display'], changes: ['style.fl', 'style.font', 'dom.span0.fontFamily'], styleOnly: ['fl', 'font', 'hlFont', 'fw'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], wait: 900 },
   // Gewichts-Auswahl folgt der Schrift (capFontWeights, nur vorhandene Schnitte): Montserrat/Tight bieten 400 nicht an → Roboto (400/700/900) als Ausgangsschrift
   { id: 'csWeight', tab: 'style', custom: true, op: 'select', sel: '#csWeight', values: ['400', '900'], setup: async sc => { await sc.page.selectOption('#csFont', 'Roboto'); await sc.page.waitForTimeout(700); }, changes: ['style.fw', 'dom.span0.fontWeight'], styleOnly: ['fw'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'] },
   { id: 'csEm', tab: 'style', custom: true, op: 'color', sel: '#csEm', values: ['#ff00ff', '#00aaff'], emph: true, changes: ['style.em', 'dom.hash'], styleOnly: ['em'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
@@ -451,7 +453,7 @@ const CTL = [
   { id: 'bkSafe', tab: 'style', op: 'select', sel: '#bkSafe', values: ['tiktok', 'off'], pre: sc => OPEN_BRAND(sc, false), changes: ['brand.cfg', 'cfg.safe'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.fontSize', 'cfg.blocks'] },
   { id: 'bkText', tab: 'style', custom: true, op: 'color', sel: '#bkText', values: ['#ff0000', '#22cc88'], pre: sc => OPEN_BRAND(sc, false), changes: ['brand.cfg', 'style.tc', 'dom.span0.color'], styleOnly: ['tc', 'tg'], inv: LAYOUT_INV.concat('dom.span0.fontSize') },
   { id: 'bkHl', tab: 'style', custom: true, op: 'color', sel: '#bkHl', values: ['#ff0000', '#00ffaa'], pre: sc => OPEN_BRAND(sc, false), changes: ['brand.cfg', 'dom.act.color'], styleOnly: HL_FIELDS, inv: LAYOUT_INV.concat('dom.span0.color', 'dom.span0.fontSize') },
-  { id: 'bkFont', tab: 'style', custom: true, op: 'select', sel: '#bkFont', values: ['Anton', 'Playfair Display'], pre: sc => OPEN_BRAND(sc, false), changes: ['brand.cfg', 'style.fl', 'style.font', 'dom.span0.fontFamily'], styleOnly: ['fl', 'font', 'hlFont'], inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], wait: 900 },
+  { id: 'bkFont', tab: 'style', custom: true, op: 'select', sel: '#bkFont', values: ['Anton', 'Playfair Display'], pre: sc => OPEN_BRAND(sc, false), changes: ['brand.cfg', 'style.fl', 'style.font', 'dom.span0.fontFamily'], styleOnly: ['fl', 'font', 'hlFont', 'fw'], /* fw: wie csFont */ inv: ['cfg.lines', 'cfg.wpb', 'cfg.pos', 'cfg.fontSize'], wait: 900 },
 ];
 
 
@@ -509,7 +511,10 @@ CTL.push(
   { id: 'taMulti', tab: 'timeline', op: 'click', sel: '#taMulti', values: [null], vp: ['phone'], pre: GOTO_TL, changes: ['tl.multi'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   { id: 'taEdit', tab: 'timeline', op: 'click', sel: '#taEdit', values: [null], vp: ['phone'], pre: GOTO_TL, setup: sc => sc.page.evaluate(() => tlSelect(1, true)), changes: ['ui.inlineEd'], inv: ['cfg.blocks', 'cfg.text'], lines: 0, wait: 600 },
   // ── Export-Sheet ──
-  { id: 'expRes', tab: 'style', op: 'select', sel: '#expRes', values: ['orig'], pre: OPEN_EXPOPTS, changes: ['cfg.exportRes', 'ui.btnVideoSub'], inv: ['cfg.blocks', 'cfg.text', 'cfg.wpb'], lines: 0 },
+  // Testvideo 540×960: «1080p» und «Original» ergeben dieselbe Grösse (keine Hochskalierung) → syncExpSub zeigt bewusst nur EINE Option.
+  // Geprüft wird diese Entdoppelung; die Wahl «Original» selbst deckt test-captly (exportGeometry/exportSizeLabel) ab.
+  { id: 'expRes', tab: 'style', op: 'run', values: [null], pre: OPEN_EXPOPTS, noopOk: 'kleine Quelle: nur eine Auflösung wählbar (1080p = Original)', inv: ['cfg.blocks', 'cfg.text', 'cfg.wpb', 'cfg.exportRes'], lines: 0,
+    run: async sc => { const o = await sc.page.$$eval('#expRes option', a => a.map(x => x.value)); check('ctl/expRes/dedupe', o.join() === '1080', 'Quelle 540×960: nur die Option «1080» (ist: ' + o.join(',') + ')'); await sc.page.selectOption('#expRes', '1080', { timeout: 4000 }); } },
   { id: 'expFmt', tab: 'style', op: 'select', sel: '#expFmt', values: ['1:1', '16:9'], pre: OPEN_EXPOPTS, changes: ['cfg.exportFmt', 'ui.btnVideoSub'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },
   // Ausfüllart erscheint erst bei einem Zielformat ≠ Quelle (Testvideo 9:16 → 1:1); Pan/Zurücksetzen nur bei «crop» mit Spielraum
   { id: 'expFill', tab: 'style', op: 'select', sel: '#expFill', values: ['blur'], pre: async sc => { await OPEN_EXPOPTS(sc); await sc.page.evaluate(() => { setExportFormat('1:1'); }); }, changes: ['cfg.exportFmt'], inv: ['cfg.blocks', 'cfg.text'], lines: 0 },

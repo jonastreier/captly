@@ -8864,7 +8864,8 @@ function brandColor(which, hex) {
 function brandClearColors() { if (brandLive) delete brandLive.colors; brandChanged(); }
 function brandFont(v) {
   var b = brandEnsure(), f = cleanFontName(v);
-  if (f) { b.font = f; onFontPick({ value: f }); } else delete b.font;
+  // #csFont mitziehen: buildCustomStyle liest die Schrift aus #csFont — sonst änderte die Kit-Schrift nur das Gewicht, nicht die Schrift
+  if (f) { b.font = f; var cf = document.getElementById('csFont'); if (cf) cf.value = f; onFontPick({ value: f }); } else delete b.font;
   brandChanged();
 }
 function brandChanged() { brandSyncUI(); brandUpdateOverlay(); }
