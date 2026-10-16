@@ -17,6 +17,7 @@
 
 // ── Config / Key laden ───────────────────────────────────────────────
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
+if (is_file(__DIR__ . '/trackstore.php')) require_once __DIR__ . '/trackstore.php'; // anonyme Zähler (limit_user/limit_site)
 if (!is_array($cfg)) $cfg = [];
 $KEY  = $cfg['GROQ_API_KEY'] ?? getenv('GROQ_API_KEY') ?: '';
 $CORS = $cfg['CORS_ORIGIN']  ?? getenv('GROQ_CORS_ORIGIN') ?: '';
@@ -213,6 +214,7 @@ if ($IP_DAY > 0 && empty($quotaUid)) {
   $usedD = 0; foreach ($ud as $e) $usedD += $e[1];
   if ($usedD + $secs > $IP_DAY) {
     if ($cleanup) @unlink($tmp);
+    if (function_exists('gl_track_add')) gl_track_add($cfg, 'limit_user');
     alert_ops('ip-day-cap', 'Gluephs: Ein Nutzer hat das Tageslimit (' . (int)($IP_DAY / 60) . ' Min. Ton) erreicht. Interesse an mehr? Bei vielen solchen Meldungen lohnt sich ein Bezahlplan.');
     header('Retry-After: 3600');
     fail(429, 'ip_daily_cap');
@@ -247,6 +249,7 @@ if ($MODEL_DAY > 0 && empty($quotaUid)) {
   }
   if ($picked === null) {
     if ($cleanup) @unlink($tmp);
+    if (function_exists('gl_track_add')) gl_track_add($cfg, 'limit_site');
     alert_ops('daily-cap', 'Gluephs: Tageskontingent für Transkription ausgeschöpft (beide Modelle je ' . $MODEL_DAY . ' s Ton). Neue Anfragen werden bis morgen (UTC) abgelehnt.');
     header('Retry-After: ' . max(1800, strtotime('tomorrow 00:00 UTC') - time()));
     fail(429, 'daily_cap');

@@ -81,4 +81,14 @@ if ($needMail) {
     $mailed = cr_send_mail($cfg, $email, $subject, $text, cr_unsub_headers($cfg, $email));
   }
 }
+// Warteliste («Pro vormerken», source waitlist-…): Push an den Betreiber (ALERT_URL, z. B. ntfy) — ohne Adresse, nur der Hinweis
+if (strpos($source, 'waitlist') === 0) {
+  $au = (string)($cfg['ALERT_URL'] ?? '');
+  if (preg_match('~^https://~', $au)) {
+    $c = curl_init($au);
+    curl_setopt_array($c, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => 'Gluephs: Neue Vormerkung für einen Bezahlplan (' . $source . ').',
+      CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3, CURLOPT_HTTPHEADER => ['Title: Gluephs Pro-Interesse', 'Tags: moneybag']]);
+    @curl_exec($c); curl_close($c);
+  }
+}
 out(200, ['ok' => true, 'confirm_mail' => $needMail ? $mailed : null]);

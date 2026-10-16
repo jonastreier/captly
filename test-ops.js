@@ -75,7 +75,7 @@ ok(r.status === 1 && /✗ GROQ_API_KEY/.test(r.stdout), 'check-secrets: leerer W
   };
   const follow = p => { const seen = []; for (let i = 0; i < 6; i++) { const r = req(p); if (r.redirect === undefined) return Object.assign(r, { hops: i }); if (seen.includes(r.redirect)) return { loop: true }; seen.push(p); p = r.redirect; } return { loop: true }; };
   const expect = { '': 'captly.html', 'de': 'captly.de.html', 'de/': 'captly.de.html', 'captly.html': 'captly.html', 'index.html': 'captly.html',
-    'captly.de.html': 'captly.de.html', 'contact': 'contact.php', 'kontakt': 'contact.php', 'api/transcribe': 'transcribe.php', 'api/lead/': 'lead.php' };
+    'captly.de.html': 'captly.de.html', 'contact': 'contact.php', 'kontakt': 'contact.php', 'api/transcribe': 'transcribe.php', 'api/track': 'track.php', 'api/lead/': 'lead.php' };
   for (const pg of ['impressum', 'datenschutz', 'privacy', 'terms', 'licenses']) { expect[pg] = pg + '.html'; expect[pg + '.html'] = pg + '.html'; }
   for (const [p, want] of Object.entries(expect)) {
     const r = follow(p);

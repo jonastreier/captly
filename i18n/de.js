@@ -169,7 +169,8 @@ module.exports = {
     ['<li>Save projects to your account</li>', '<li>Projekte im Konto speichern</li>'],
     ['<li>Everything in Creator</li>', '<li>Alles aus Creator</li>'],
     ['<li>Batch processing (coming soon)</li>', '<li>Stapelverarbeitung (folgt bald)</li>'],
-    ['>Coming soon<', '>Folgt bald<'],
+    ['>Notify me when it launches<', '>Sag mir Bescheid beim Start<'],
+    ['One email when this plan launches, with a confirmation link first. Unsubscribe anytime.', 'Eine E-Mail zum Start dieses Plans, vorher mit Bestätigungslink. Jederzeit abbestellbar.'],
     // FAQ (die JSON-LD-Strukturdaten entstehen aus diesen Einträgen)
     ['Frequently asked questions', 'Häufige Fragen'],
     ['>Is Gluephs free? Is there a watermark?<', '>Ist Gluephs kostenlos? Gibt es ein Wasserzeichen?<'],
@@ -224,5 +225,5 @@ module.exports = {
     ['Made in Switzerland', 'Gemacht in der Schweiz'],
   ],
   // Texte, die auf DE bewusst identisch bleiben (Marken, Formate, Style-Namen) — sonst meldet --check sie als unübersetzt
-  keep: ['Gluephs', 'glue', 'phs', 'in', 'FAQ', 'MP4, SRT &amp; VTT', 'MP4, SRT, VTT &amp; TXT', 'Export', 'Reveal', 'Bold', 'Neon', 'Creator', 'Pro', 'Impressum', 'web&amp;meh', 'English', 'Deutsch', 'EN', 'DE', 'English · Deutsch'],
+  keep: ['Gluephs', 'glue', 'phs', 'in', 'FAQ', 'MP4, SRT &amp; VTT', 'MP4, SRT, VTT &amp; TXT', 'Export', 'Reveal', 'Bold', 'Neon', 'Creator', 'Pro', 'Impressum', 'web&amp;meh', 'English', 'Deutsch', 'EN', 'DE', 'English · Deutsch', 'you@example.com', 'Email'],
 };

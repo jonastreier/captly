@@ -235,6 +235,14 @@ body.editor-open{height:100vh;height:100dvh;overflow:hidden}
 .price-cta.ghost:hover{background:var(--fill);border-color:var(--line3)}
 .price-cta.soon{color:var(--muted);border-style:dashed;cursor:default}
 .price-cta.soon:hover{background:#fff;border-color:var(--line2)}
+.price-wl{margin-top:20px;display:flex;flex-direction:column;gap:8px}
+.price-wl input{width:100%;box-sizing:border-box;font:400 14px 'Inter',sans-serif;padding:10px 12px;border:1px solid var(--line2);border-radius:9px;background:#fff;color:var(--ink)}
+.price-wl .price-cta{margin-top:0;background:var(--brand,#7c3aed);color:#fff}
+.price-wl .price-cta:disabled{opacity:.6;cursor:default}
+.price-wl-fine{margin:0;font-size:11.5px;line-height:1.4;color:var(--muted)}
+.price-wl-fine a{color:inherit;text-decoration:underline}
+.price-wl-msg{margin:0;font-size:13px;line-height:1.45;font-weight:600;color:var(--ink)}
+@media (max-width:640px){.price-wl input{font-size:16px}}
 .price-beta{display:table;margin:14px auto 0;font-size:12.5px;font-weight:600;color:var(--brand-ink);background:var(--brand-soft);border-radius:999px;padding:6px 14px;text-align:center}
 
 /* FAQ (Landing) */
@@ -1518,7 +1526,11 @@ body.editor-open .lang-hint{display:none}
           <li>Translate captions to English</li>
           <li>Save projects to your account</li>
         </ul>
-        <button class="price-cta ghost soon" onclick="showPlanSoon('creator')">Coming soon</button>
+        <form class="price-wl" onsubmit="return proWaitlist(event, 'creator')">
+          <input type="email" required maxlength="254" placeholder="you@example.com" autocomplete="email" inputmode="email" aria-label="Email">
+          <button class="price-cta" type="submit">Notify me when it launches</button>
+          <p class="price-wl-fine">One email when this plan launches, with a confirmation link first. Unsubscribe anytime. <a href="privacy.html">Privacy</a></p>
+        </form>
       </div>
       <div class="price-card">
         <div class="price-name">Pro</div>
@@ -1530,7 +1542,11 @@ body.editor-open .lang-hint{display:none}
           <li>Batch processing (coming soon)</li>
           <li>Save projects to your account</li>
         </ul>
-        <button class="price-cta ghost soon" onclick="showPlanSoon('pro')">Coming soon</button>
+        <form class="price-wl" onsubmit="return proWaitlist(event, 'pro')">
+          <input type="email" required maxlength="254" placeholder="you@example.com" autocomplete="email" inputmode="email" aria-label="Email">
+          <button class="price-cta" type="submit">Notify me when it launches</button>
+          <p class="price-wl-fine">One email when this plan launches, with a confirmation link first. Unsubscribe anytime. <a href="privacy.html">Privacy</a></p>
+        </form>
       </div>
     </div>
     <p class="price-note">Planned prices in US dollars; CHF and euro amounts are approximate. The final price is shown in your currency at checkout.</p>
@@ -1702,7 +1718,7 @@ body.editor-open .lang-hint{display:none}
         <label class="es-gate-l" for="gateEmail">Email for your free download</label>
         <input type="email" id="gateEmail" class="es-gate-in" placeholder="you@example.com" autocomplete="email" inputmode="email" maxlength="254" enterkeyhint="go">
         <p class="es-gate-err" id="gateErr" role="alert" style="display:none"></p>
-        <label class="exp-chk"><input type="checkbox" id="gateNews"><span id="gateNewsTxt">Send me occasional tips &amp; updates about Gluephs. Unsubscribe anytime.</span></label>
+        <label class="exp-chk"><input type="checkbox" id="gateNews"><span id="gateNewsTxt">Yes, send me new caption styles, tips and the launch offer for Pro plans. Unsubscribe anytime.</span></label>
         <p class="es-gate-fine">Free during beta, never a watermark. No newsletter unless you tick the box — then we send one confirmation link. <a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>
       </form>
       <button type="button" class="exp-btn hi" id="btnVideo" onclick="exportVideoWithCaptions()" disabled>
@@ -10655,10 +10671,31 @@ if (typeof window !== 'undefined' && window.addEventListener) {
 // Erfolgreicher MP4-Export → ein Zähler für den verwendeten, eingebauten Style (keine eigenen Looks/Vorlagen)
 function statExport() {
   if (!TELE_ON) return;
+  trackEv('export_done');
   var s = (typeof STYLES !== 'undefined') && STYLES.filter(function(x){ return x.id === activeId; })[0];
   if (!s || s._isTpl || s.id === 'custom' || !/^[a-z0-9_-]{1,32}$/.test(s.id)) return;
   telePost('api/stat', { style: s.id });
 }
+// Trichter-Zähler (api/track → track.php): anonym, ohne Cookies/ID/IP-Speicherung; nur Ereignisname, Quelle (utm_source oder Host der
+// verweisenden Seite, sonst «direct») und Sprache. Nicht bei «Do Not Track»/GPC und nicht auf localhost (TELE_ON).
+var _trkSrc = null, _trkVisited = false;
+function trackSrc() {
+  if (_trkSrc !== null) return _trkSrc;
+  var v = 'direct';
+  try {
+    var q = new URLSearchParams(location.search).get('utm_source');
+    if (q) v = q;
+    else if (document.referrer) { var h = new URL(document.referrer).hostname.replace(/^www\./, ''); if (h && h !== location.hostname.replace(/^www\./, '')) v = h; }
+  } catch (e) {}
+  _trkSrc = String(v).toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 40) || 'direct';
+  return _trkSrc;
+}
+function trackEv(e) {
+  if (!TELE_ON) return;
+  telePost('api/track', { e: e, s: trackSrc(), l: (document.documentElement.lang || 'en').slice(0, 2) });
+}
+// Seitenaufruf einmal zählen (nicht für erkennbare Bots)
+setTimeout(function() { try { if (!_trkVisited && !/bot|crawl|spider|headless|lighthouse/i.test(navigator.userAgent)) { _trkVisited = true; trackEv('visit'); } } catch (e) {} }, 800);
 // «Trending»-Abzeichen: die 3 meistexportierten Looks der letzten 30 Tage, erst ab genug Daten (sonst Zufall)
 var TREND_MIN_TOTAL = 50;
 function applyTrending(res) {
@@ -11005,6 +11042,24 @@ async function openPortal() {
 // Landing-Preiskarten: „Coming soon“ öffnet das Konto-Modal mit derselben ehrlichen Beta-Meldung
 // (anmelden lohnt sich trotzdem: entfernt das Wasserzeichen, speichert Projekte).
 function showPlanSoon(plan) { showAcct(); startCheckout(plan); }
+// «Pro vormerken»: Warteliste für die Bezahlpläne (Zahlungssignal). Double-Opt-in über api/lead (Bestätigungsmail), Push an den Betreiber.
+function proWaitlist(ev, plan) {
+  if (ev && ev.preventDefault) ev.preventDefault();
+  var f = ev && ev.target, inp = f && f.querySelector('input'), btn = f && f.querySelector('button');
+  var v = String((inp && inp.value) || '').trim();
+  if (!isEmail(v)) { if (inp) inp.focus(); return false; }
+  if (btn) { btn.disabled = true; }
+  fetch('api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+    email: v, newsletter: true, consent_text: 'Notify me once when the ' + plan + ' plan launches.', source: 'waitlist-' + plan,
+    lang: (navigator.language || '').slice(0, 20) }) })
+  .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('http ' + r.status)); })
+  .then(function() {
+    trackEv('pro_interest');
+    f.innerHTML = '<p class="price-wl-msg">' + _t('Thanks! Please check your inbox and confirm with the link — then we will tell you when it launches.') + '</p>';
+  })
+  .catch(function() { if (btn) btn.disabled = false; capToast(_t('Could not save that right now — please try again.')); });
+  return false;
+}
 // ── Projekte (Cloud, Supabase) ──
 // user_id setzt die DB selbst per DEFAULT auth.uid(); RLS stellt sicher, dass jeder nur seine
 // eigenen Zeilen sieht/ändert — deshalb braucht keine Query hier einen user-Filter.
@@ -11437,6 +11492,7 @@ function passEmailGate() {
   if (err) err.style.display = 'none';
   var nw = document.getElementById('gateNews'), nt = document.getElementById('gateNewsTxt');
   saveLead(v, !!(nw && nw.checked), nt ? nt.textContent : '');
+  trackEv('gate_pass');
   g.style.display = 'none';
   return true;
 }
@@ -12421,6 +12477,7 @@ function loadVideo(file, opts) {
   _autosaveKey = null; _lastTrMeta = null;
   if (_expTok) cancelExport(); // läuft noch ein Export des alten Videos: abbrechen
   releaseLastExport(); showExportMain(); // neues Video → alte Export-Datei freigeben
+  trackEv('upload');
   currentFile   = file;
   fmtHintDone = false; fmtHintArmed = false; // N3: «Als 9:16-Reel?» gilt pro Video
   wordTimestamps = []; captionBlocks = []; _lastKey = null; _lastBi = -1; captionsEdited = false;
@@ -14322,6 +14379,7 @@ async function exportVideoWithCaptions(opts) {
   if (opts && typeof opts.preventDefault === 'function') opts = null; // als Event-Handler aufgerufen
   if (isExporting || _expTok) { if (opts && opts.onSettle) opts.onSettle('error', _t('Another export is still running.')); return; } // Doppelklick/Enter während eines laufenden Exports
   if (_q.exp && !opts) { capToast(_t('Wait until the export of all clips is finished — or cancel it in the Clips list.')); return; }
+  if (!opts) trackEv('export_click');
   if (!opts && !passEmailGate()) return; // Beta: erst E-Mail, dann Download (ohne Wasserzeichen)
   if (!opts && _gateResume) { var resume = _gateResume; _gateResume = null; syncGateBatchUI(); closeExportSheet(); resume(); return; } // Warteschlange wartete auf die E-Mail → Durchgang starten
   var tok = newExportToken(); // ab hier abbrechbar (auch während „Preparing“)
@@ -16816,6 +16874,7 @@ function queueSetStatus(c, ev) { c.status = queueNextStatus(c.status, ev); }
 // ── Rückmeldung von Transkription / Wiederherstellung (aus transcribeVideo, restoreOrTranscribe, loadVideo.onerror) ──
 // kind: 'ok' (Captions stehen) | 'restored' (aus Schnappschuss/Autosave) | 'error'
 function trNotify(kind, info) {
+  if (kind === 'ok') trackEv('transcribed');
   var c = queueActiveClip();
   if (c && c.file === currentFile) {
     if (kind === 'ok') { c.words = wordTimestamps.length; c.err = ''; c.errKind = ''; queueSetStatus(c, 'transcribed'); }

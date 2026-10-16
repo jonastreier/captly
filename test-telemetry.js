@@ -77,6 +77,28 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
       ok(q1.status === 503 && q2.status === 503, 'ohne Config: 503 bei POST (' + q1.status + ',' + q2.status + ')');
       const off = await (await fetch(b2 + 'stat.php')).json(); ok(off.configured === false && off.total === 0, 'ohne Config: GET liefert leere Rangliste');
     } finally { php2.kill(); fs.rmSync(dir2, { recursive: true, force: true }); }
+    // ── track.php (Trichter-Zähler, ohne Datenbank, Zähler in Datei)
+    const dir3 = fs.mkdtempSync(path.join(os.tmpdir(), 'crtrk-')); const p3 = await freePort(); const data3 = path.join(dir3, 'data');
+    for (const f of ['track.php', 'trackstore.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir3, f));
+    fs.writeFileSync(path.join(dir3, 'config.php'), `<?php return ['TRACK_DIR'=>'${data3}'];`);
+    const php3 = spawn('php', ['-S', '127.0.0.1:' + p3, '-t', dir3], { env: Object.assign({}, process.env, { TMPDIR: dir3 }), stdio: 'ignore' });
+    await new Promise(r => setTimeout(r, 800));
+    try {
+      const b3 = 'http://127.0.0.1:' + p3 + '/', tp = body => fetch(b3 + 'track.php', { method: 'POST', body: typeof body === 'string' ? body : JSON.stringify(body) }).then(r => r.status);
+      ok((await (await fetch(b3 + 'track.php')).json()).service === 'gluephs-track', 'track: GET meldet den Dienst');
+      ok(await tp({ e: 'visit', s: 'Reddit.com', l: 'de' }) === 204 && await tp({ e: 'visit', s: 'reddit.com', l: 'de' }) === 204 && await tp({ e: 'export_done', s: 'x', l: 'en' }) === 204, 'track: gültige Ereignisse → 204');
+      ok(await tp({ e: 'limit_user' }) === 400 && await tp({ e: 'limit_site' }) === 400 && await tp({ e: 'drop table' }) === 400 && await tp('kein json') === 400, 'track: Server-Ereignisse und Unbekanntes vom Browser abgelehnt (400)');
+      const f3 = fs.readdirSync(data3).filter(f => /^track-\d{6}\.json$/.test(f))[0];
+      const c3 = JSON.parse(fs.readFileSync(path.join(data3, f3), 'utf8'));
+      const dKey = new Date().toISOString().slice(0, 10);
+      ok(c3[dKey + '|visit|reddit.com|de'] === 2 && c3[dKey + '|export_done|x|en'] === 1, 'track: Zähler je Tag|Ereignis|Quelle|Sprache, Quelle klein geschrieben');
+      ok(!/127\.0\.0\.1|User-Agent|Mozilla/i.test(JSON.stringify(c3)), 'track: weder IP noch User-Agent in den Zählern');
+      await tp({ e: 'upload', s: '<script>alert(1)</script>-und-sehr-lang-' + 'x'.repeat(80) });
+      const c4 = JSON.parse(fs.readFileSync(path.join(data3, f3), 'utf8')); const bad = Object.keys(c4).filter(k => /[<>()]/.test(k) || k.split('|')[2].length > 40);
+      ok(bad.length === 0, 'track: Quelle wird bereinigt und gekürzt');
+      let limited = 0; for (let i = 0; i < 125; i++) if (await tp({ e: 'visit' }) === 429) limited++;
+      ok(limited > 0, 'track: Drosselung pro Adresse (429 nach 120 Aufrufen/Stunde)');
+    } finally { php3.kill(); fs.rmSync(dir3, { recursive: true, force: true }); }
   } finally { php.kill(); sb.close(); fs.rmSync(dir, { recursive: true, force: true }); }
   console.log(fails ? `${fails}/${n} FEHLER` : `test-telemetry: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);

@@ -118,6 +118,12 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
       const lim = await sendC(form()); ok(lim.status === 429 && /Stunde|hour/.test(await lim.text()), 'contact: 6. Nachricht pro Stunde → 429');
       ok(sbLog.length === dbBefore, 'contact: nichts in der Datenbank gespeichert');
     }
+
+    // 8) Warteliste «Pro vormerken» (source waitlist-…): normaler Eintrag mit Double-Opt-in, Quelle bleibt erhalten
+    const mBefore = mails.length;
+    const wl = await post('lead.php', { email: 'warte@example.com', newsletter: true, consent_text: 'Notify me once when the pro plan launches.', source: 'waitlist-pro', lang: 'en' });
+    ok(wl.s === 200 && wl.j.ok && wl.j.confirm_mail === true && mails.length === mBefore + 1, 'Warteliste: 200, Bestätigungsmail verschickt');
+    ok(leads.some(l => l.email === 'warte@example.com' && l.source === 'waitlist-pro' && l.newsletter === true), 'Warteliste: Eintrag mit Quelle waitlist-pro und Newsletter-Einwilligung gespeichert');
   } finally { php.kill(); sb.close(); smtp.close(); fs.rmSync(dir, { recursive: true, force: true }); }
   console.log(fails ? `${fails}/${n} FEHLER` : `test-lead: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);
