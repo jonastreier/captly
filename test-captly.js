@@ -7463,6 +7463,10 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     }
   }
 
+  // ═══ UI-Sweep-Funde: Kit-Schrift wechselt wirklich die Schrift · main-Landmark der Landing sprengt die Spalte nicht ═══
+  ok(/function brandFont\(v\) \{[\s\S]{0,400}getElementById\('csFont'\); if \(cf\) cf\.value = f; onFontPick\(/.test(script), 'Sweep: brandFont setzt #csFont (buildCustomStyle liest die Schrift dort) — vorher änderte die Kit-Schrift nur das Gewicht');
+  ok(/#landMain\{display:flex;flex-direction:column;align-items:center;width:100%\}/.test(htmlContent) && htmlContent.indexOf('<main id="landMain">') > 0, 'Sweep: #landMain ist volle Spalte (sonst schrumpft main auf die Showcase-Breite → horizontales Scrollen auf dem Handy)');
+
   console.log(fails === 0 ? 'ALLE TESTGRUPPEN BESTANDEN' : fails + ' FEHLER');
   process.exit(fails ? 1 : 0);
 })();
