@@ -1535,7 +1535,7 @@ body.editor-open .lang-hint{display:none}
         <form class="price-wl" onsubmit="return proWaitlist(event, 'creator')">
           <input type="email" required maxlength="254" placeholder="you@example.com" autocomplete="email" inputmode="email" aria-label="Email">
           <button class="price-cta" type="submit">Notify me when it launches</button>
-          <p class="price-wl-fine">One email when this plan launches, with a confirmation link first. Unsubscribe anytime. <a href="privacy.html">Privacy</a></p>
+          <p class="price-wl-fine">One-time early-bird discount for everyone on the list. One email when this plan launches, with a confirmation link first. Unsubscribe anytime. <a href="privacy.html">Privacy</a></p>
         </form>
       </div>
       <div class="price-card">
@@ -1551,7 +1551,7 @@ body.editor-open .lang-hint{display:none}
         <form class="price-wl" onsubmit="return proWaitlist(event, 'pro')">
           <input type="email" required maxlength="254" placeholder="you@example.com" autocomplete="email" inputmode="email" aria-label="Email">
           <button class="price-cta" type="submit">Notify me when it launches</button>
-          <p class="price-wl-fine">One email when this plan launches, with a confirmation link first. Unsubscribe anytime. <a href="privacy.html">Privacy</a></p>
+          <p class="price-wl-fine">One-time early-bird discount for everyone on the list. One email when this plan launches, with a confirmation link first. Unsubscribe anytime. <a href="privacy.html">Privacy</a></p>
         </form>
       </div>
     </div>
@@ -1735,7 +1735,7 @@ body.editor-open .lang-hint{display:none}
       <p class="es-last" id="expLast" style="display:none">Last export: <b id="expLastName"></b> · <button type="button" class="es-link" onclick="downloadLastExport()" title="Save the same file again — no new rendering">Download again</button></p>
       <div class="exp-upsell" id="expUpsell" style="display:none" role="region" aria-label="Plans">
         <b>Enjoying Gluephs?</b>
-        Creator plans (from $7.99/month) will bring 300 minutes a month, translation and saved projects. Want one email when they launch?
+        Creator plans (from $7.99/month) will bring 300 minutes a month, translation and saved projects. Want one email when they launch, with a one-time early-bird discount?
         <div class="eu-row"><button type="button" class="eu-yes" onclick="proUpsellYes()">Yes, notify me</button><button type="button" onclick="proUpsellNo()">No thanks</button></div>
       </div>
       <p class="es-render" id="expRender" style="display:none">Rendering on your device — keep this tab open. <button type="button" class="es-link es-cancel" id="expCancel" onclick="cancelExport()" title="Stop the export — nothing is downloaded">Cancel</button></p>
@@ -11062,7 +11062,7 @@ function proWaitlist(ev, plan) {
   if (!isEmail(v)) { if (inp) inp.focus(); return false; }
   if (btn) { btn.disabled = true; }
   fetch('api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-    email: v, newsletter: true, consent_text: 'Notify me once when the ' + plan + ' plan launches.', source: 'waitlist-' + plan,
+    email: v, newsletter: true, consent_text: 'Notify me once when the ' + plan + ' plan launches, with the one-time early-bird discount.', source: 'waitlist-' + plan,
     lang: (navigator.language || '').slice(0, 20) }) })
   .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('http ' + r.status)); })
   .then(function() {
@@ -14339,7 +14339,7 @@ function proUpsellYes() {
   var em = (typeof meEmail !== 'undefined' && meEmail) || leadEmail();
   if (!em || !isEmail(em)) { proUpsellSet('1'); return; } // ohne bekannte Adresse nichts senden (das Gate sorgt normalerweise dafür, dass sie da ist)
   fetch('api/lead', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
-    email: em, newsletter: true, consent_text: 'Notify me once when the paid plans launch.', source: 'waitlist-export', lang: (navigator.language || '').slice(0, 20) }) })
+    email: em, newsletter: true, consent_text: 'Notify me once when the paid plans launch, with the one-time early-bird discount.', source: 'waitlist-export', lang: (navigator.language || '').slice(0, 20) }) })
   .then(function(r) { return r.ok ? r.json() : Promise.reject(new Error('http ' + r.status)); })
   .then(function() { trackEv('pro_interest'); proUpsellSet('2'); capToast(_t('Thanks! Check your inbox and confirm with the link — then we will tell you when plans launch.')); })
   .catch(function() { capToast(_t('Could not save that right now — please try again.')); });
