@@ -878,4 +878,11 @@ module.exports = {
   "Transcribe the remaining {0} clips": "Verbleibende {0} Clips transkribieren",
   "Download {0} clip as ZIP": "{0} Clip als ZIP herunterladen",
   "Download {0} clips as ZIP": "{0} Clips als ZIP herunterladen",
+  "Spelling": "Rechtschreibung",
+  "German spelling": "Deutsche Rechtschreibung",
+  "Standard German spelling with ß (Germany, Austria)": "Standarddeutsch mit ß (Deutschland, Österreich)",
+  "Swiss spelling: ss instead of ß": "Schweizer Schreibweise: ss statt ß",
+  "German spelling for captions and subtitle files": "Rechtschreibung für Untertitel und Untertiteldateien",
+  "ß (Germany, Austria)": "ß (Deutschland, Österreich)",
+  "ss (Switzerland)": "ss (Schweiz)"
 };

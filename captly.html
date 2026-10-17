@@ -1333,6 +1333,7 @@ body.editor-open .lang-hint{display:none}
 }
 /* Sehr schmale Handys: Preise + Sprache + Anmelden müssen in eine Zeile passen (FAQ bleibt im Footer/Seite erreichbar) */
 @media (max-width:360px){.land-nav-links{gap:10px;margin-left:8px}.land-nav-links a[href="#faq"]{display:none}.land-nav .nav-cta{padding-left:12px;padding-right:12px}}
+#spellRow[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -2067,6 +2068,16 @@ body.editor-open .lang-hint{display:none}
               <option value="asis">Style default</option><option value="upper">UPPERCASE</option><option value="lower">lowercase</option><option value="orig">As typed</option>
             </select>
           </div>
+          <div class="q-row case-row" id="spellRow" hidden>
+            <span class="q-k">Spelling</span>
+            <div class="pos-row seg cs-seg" data-sel="spellSel" role="group" aria-label="German spelling">
+              <button type="button" class="pos-btn on" data-v="de" aria-pressed="true" onclick="csSegPick(this)" title="Standard German spelling with ß (Germany, Austria)">ß</button>
+              <button type="button" class="pos-btn" data-v="ch" aria-pressed="false" onclick="csSegPick(this)" title="Swiss spelling: ss instead of ß">ss</button>
+            </div>
+            <select id="spellSel" class="cs-hide" tabindex="-1" aria-hidden="true" onchange="setCaptionSpell(this.value)" title="German spelling for captions and subtitle files">
+              <option value="de">ß (Germany, Austria)</option><option value="ch">ss (Switzerland)</option>
+            </select>
+          </div>
           <div class="cs-cols">
             <div class="cs-chipcol" title="Text color">
               <span class="cs-sw" id="csTextDot"><input type="color" id="csText" class="cs-col" value="#ffffff" aria-label="Text color" oninput="csColorPick('csText','text')"></span>
@@ -2649,6 +2660,7 @@ var openaiKey       = ''; // nur im Speicher — wird nie persistiert
 var timeOff         = 0;    // Timing-Feinschliff in Sekunden (+ = Captions früher)
 var capNoPunct      = false; // „Remove punctuation“: nur Darstellung (Vorschau + Video), Daten/Untertiteldateien bleiben
 var capCase         = 'asis'; // 'asis' | 'upper' | 'lower' — Darstellung + SRT/VTT/TXT
+var capSpell        = spellPref(); // 'de' = Whisper-Schreibweise mit ß (D/A) | 'ch' = Schweizer Schreibweise (ß → ss) — nur bei Deutsch, Vorschau + Export
 var hlKeywords      = [];   // Wörter, die dauerhaft in Highlight-Farbe erscheinen
 var doTranslate     = false;
 // Eigenes Vokabular („Names & terms“) → Whisper-`prompt` (verbessert Schreibweise von Hof-/Marken-/Ortsnamen).
@@ -5522,7 +5534,7 @@ function capLogoDecision(s, lgP) {
   var tx = '';
   for (var i = 0; i < captionBlocks.length; i++) tx += captionBlocks[i].text + '\u0001' + captionBlocks[i].words.length + (emKw ? blockEmph(captionBlocks[i]) ? emMaskKey(blockEmph(captionBlocks[i])) : '-' : '') + '\u0002';
   var key = [Wp, Hp, [lgP.x, lgP.y, lgP.w, lgP.h].map(Math.round).join(','), s.id, s.font, s.fw, s.fs, s.ls, s.fi, s.tt, s.boxBg, s.pill ? 1 : 0, s.hlPillBg ? 1 : 0, s.hlFont, s.emFont, capMotion(s), capLineH(s), capWordGap(s),
-             fontSize, CAPTION_LINES, capPairWrap() ? 1 : 0, capPos, capVOff, capHOff, capFree ? 1 : 0, _capFontGen, capNoPunct ? 1 : 0, capCase, capHyphLang(), emphScale(s),
+             fontSize, CAPTION_LINES, capPairWrap() ? 1 : 0, capPos, capVOff, capHOff, capFree ? 1 : 0, _capFontGen, capNoPunct ? 1 : 0, capCase, spellActive() ? 1 : 0, capHyphLang(), emphScale(s),
              SAFE_ZONE.left, SAFE_ZONE.right, tx].join('|');
   if (_capLgDec.key === key) return _capLgDec.val;
   var svLay = _capLayoutCache, svCyc = _capCycBase, ctx = capMeasureCtx(), rects = [];
@@ -7092,7 +7104,7 @@ function capAutoChars(s) {
   var gapS = (s.id === 'custom' && typeof _csBase !== 'undefined' && _csBase) ? _csBase : s;
   var gapW = capWordGap(gapS, true) * fRef / CAP_SH_REF; // Kontur-Ring und Box-Abstand schriftrelativ (capOutK)
   var key = [Math.round(fontSize / frameW * 20000), s.id, s.font, s.fw, s.fi, s.tt, s.fs, s.ls, s.hlFont, s.hlItalic, s.hlUpper, s.hlPillBg ? 1 : 0, s.circle ? 1 : 0,
-             s.boxBg ? 1 : 0, s.pill ? 1 : 0, s.ts, Math.round(gapW * 100), capCase, _capFontGen, capMotion(s)].join('|');
+             s.boxBg ? 1 : 0, s.pill ? 1 : 0, s.ts, Math.round(gapW * 100), capCase, spellActive() ? 1 : 0, _capFontGen, capMotion(s)].join('|');
   if (_capAutoCharsCache[key]) return _capAutoCharsCache[key];
   var ctx = capMeasureCtx();
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1, sz = fRef * fsMul;
@@ -11195,7 +11207,7 @@ function restoreAutosave(entry, opts) {
   applyProjectPayload(d);
   if (Array.isArray(d.words) && d.words.length) wordTimestamps = d.words;
   captionsEdited = !!d.edited;
-  _lastTrMeta = d.meta || null;
+  _lastTrMeta = d.meta || null; syncTextFormatUI();
   _vocabUsed = (d.meta && typeof d.meta.vocab === 'string') ? d.meta.vocab : cleanVocab(vocabText);
   syncVocabApply();
   document.getElementById('retryWrap').style.display = 'none';
@@ -11234,7 +11246,7 @@ function projectPayload() {
   var p = { title: projTitle, fontRel: Math.round(fontSize / previewFrameW() * 10000) / 10000,
            blocks: captionBlocks, style: activeId, pos: capPos, voff: capVOff, hoff: capHOff, free: capFree, fontSize: fontSize, wpb: WORDS_PER_BLOCK,
            lines: CAPTION_LINES, maxChars: CAP_MAX_CHARS, mode: displayMode, keywords: hlKeywords, timeOff: timeOff,
-           noPunct: capNoPunct, textCase: capCase, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts,
+           noPunct: capNoPunct, textCase: capCase, spell: capSpell, cuts: sceneCuts.slice(0, 500), breakAtCuts: breakAtCuts,
            emph: { kw: emKw, emoji: emEmoji, zoom: emZoom, src: emSrc } };
   if (hookOn || hookText) p.hook = { on: hookOn, text: hookText.slice(0, HOOK_CHARS), dur: hookDur, ai: hookAi.slice(0, HOOK_CHARS) }; // fehlt = aus
   if (exportAspect !== 'original') p.fmt = exportFormatState(); // Zielformat + Ausfüllart + Ausschnitt (Original = Standard, kein Eintrag)
@@ -11345,6 +11357,7 @@ function applyProjectPayload(p) {
   syncAutoCutUI();
   if (Array.isArray(p.cuts)) sceneCuts = p.cuts.map(Number).filter(function(c){ return isFinite(c) && c > 0; }).sort(function(a, b){ return a - b; });
   if (p.textCase) capCase = (['upper', 'lower', 'orig'].indexOf(p.textCase) >= 0) ? p.textCase : 'asis';
+  if (p.spell === 'ch' || p.spell === 'de') capSpell = p.spell;
   syncTextFormatUI();
   if (p.pos) capPos = p.pos;
   capHOff = (typeof p.hoff === 'number' && isFinite(p.hoff)) ? Math.max(-50, Math.min(50, p.hoff)) : 0; // ältere Projekte: mittig
@@ -12179,7 +12192,7 @@ async function transcribeVideo(file) {
     captionBlocks = buildCaptionBlocks(wordTimestamps);
     captionsEdited = false;
     tlSpeech = tlCleanSpeech(speech); tlSel = -1;
-    _lastTrMeta = { model: whisperModel, lang: usedLang, langSetting: whisperLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length };
+    _lastTrMeta = { model: whisperModel, lang: usedLang, langSetting: whisperLang, translate: doTranslate, vocab: vocab, words: wordTimestamps.length }; syncTextFormatUI();
     updateTrSetSum();
 
     var qWarn = looksRepetitive(wordTimestamps) || wordTimestamps.length < 5;
@@ -12634,7 +12647,15 @@ function stripPunct(w) {
   });
   return out || w; // reine Satzzeichen-Token (z. B. „…“) nicht zu leeren Wörtern machen
 }
-function applyCase(t) { return capCase === 'upper' ? String(t).toUpperCase() : capCase === 'lower' ? String(t).toLowerCase() : String(t); }
+// Schweizer Schreibweise: ß → ss ist eindeutig und immer richtig (gross, Strasse, heisst). Die Gegenrichtung nicht (Masse ≠ Maße),
+// darum bleibt ß die Basis (so liefert Whisper Deutsch) und «ch» wandelt nur beim Anzeigen/Exportieren um.
+function spellActive() { return capSpell === 'ch' && capLang() === 'de'; }
+function swissSpell(t) { return String(t).replace(/ß/g, 'ss').replace(/ẞ/g, 'SS'); }
+function spellPref() { // gespeicherte Wahl, sonst Browsersprache de-CH → Schweiz
+  try { var v = localStorage.getItem('capivo.spell'); if (v === 'ch' || v === 'de') return v; } catch (e) {}
+  try { return /^de-ch/i.test(navigator.language || '') ? 'ch' : 'de'; } catch (e) { return 'de'; }
+}
+function applyCase(t) { var s = spellActive() ? swissSpell(t) : String(t); return capCase === 'upper' ? s.toUpperCase() : capCase === 'lower' ? s.toLowerCase() : s; }
 // Typografie nur für die Anzeige (Untertiteldateien behalten den Originaltext): „...“ → „…“,
 // gerader Apostroph zwischen/nach Buchstaben → typografischer („geht's“ → „geht’s“, „don't“ → „don’t“).
 function capTypo(w) { return String(w).replace(/\.\.\./g, '…').replace(/(\p{L})'(?=\p{L}|$)/gu, '$1’'); }
@@ -12644,10 +12665,17 @@ function syncTextFormatUI() {
   var pb = document.getElementById('punctBtn'); if (pb) { pb.checked = capNoPunct; if (pb.classList) pb.classList.toggle('on', capNoPunct); }
   var cs = document.getElementById('caseSel'); if (cs) cs.value = capCase;
   var co = document.getElementById('caseOrig'); if (co) co.checked = capCase === 'orig';
+  var sp = document.getElementById('spellSel'); if (sp) sp.value = capSpell;
+  var sr = document.getElementById('spellRow'); if (sr) sr.hidden = capLang() !== 'de'; // nur bei deutschen Untertiteln
   syncCsSegs();
 }
 function togglePunct() { return lookUndoRun(null, togglePunctRaw); }
 function togglePunctRaw() { capNoPunct = !capNoPunct; syncTextFormatUI(); onCapMetricsChange('punct'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
+function setCaptionSpell(v) { // Sprachwunsch, kein Look: ohne Look-Undo, als Browser-Vorgabe gemerkt
+  capSpell = v === 'ch' ? 'ch' : 'de';
+  try { localStorage.setItem('capivo.spell', capSpell); } catch (e) {}
+  syncTextFormatUI(); onCapMetricsChange('spell'); _lastKey = null; updateOverlay(); scheduleAutosave();
+}
 function setCaptionCase(v) { return lookUndoRun(null, function(){ setCaseRaw(v); }); }
 function setCaseRaw(v) { capCase = (['upper', 'lower', 'orig'].indexOf(v) >= 0) ? v : 'asis'; syncTextFormatUI(); onCapMetricsChange('case'); _lastKey = null; updateOverlay(); scheduleAutosave(); }
 // EIN Schalter für Groß/Klein: „Style default“ (asis) lässt den Style entscheiden (z. B. Bold Pop = GROSS);
@@ -14845,7 +14873,7 @@ function capDomVMetrics(words, s, px, lineTarget, em) {
 function capLayout(ctx, b, bi, wi, s, W, H) {
   var emk = blockEmph(b), esc = emphScale(s);
   var bandK = capBlurBand(W, H), key = [bi, s.id, W, H, fontSize, CAPTION_LINES, capPairWrap() ? 'pw' : '', capPos, capVOff, capFree ? 1 : 0, previewFrameW(), previewFrameH(), bandK ? Math.round(bandK.top) + ':' + Math.round(bandK.bot) : '-',
-             _capFontGen, capNoPunct ? 1 : 0, capCase, b.text, b.words.length, capHyphLang(), emMaskKey(emk), esc, capMotion(s)].join('|');
+             _capFontGen, capNoPunct ? 1 : 0, capCase, spellActive() ? 1 : 0, b.text, b.words.length, capHyphLang(), emMaskKey(emk), esc, capMotion(s)].join('|');
   var c = _capLayoutCache;
   if (c.key === key && c.s === s && c.ctx === ctx) return c.val;
   var fsMul = s.fs ? (parseFloat(s.fs) || 1) : 1;

@@ -90,7 +90,7 @@ polishEnabled:polishEnabled,turboFallbackOk:turboFallbackOk,polishInPlace:polish
 splitShadows:splitShadows,setSb:function(x){_sb=x;},syncTemplatesWithCloud:syncTemplatesWithCloud,pushTemplatesToCloud:pushTemplatesToCloud,
 loadProjects:loadProjects,restoreSavedStyle:restoreSavedStyle,setUserTemplates:function(l){userTemplates=l;},pruneTemplates:pruneTemplates,
 TPL_ROW_TITLE:TPL_ROW_TITLE,snapWordTimings:snapWordTimings,onTimeOffChange:onTimeOffChange,getTimeOff:function(){return timeOff;},
-countMatches:countMatches,replaceAllCaptions:replaceAllCaptions,wordSwap:wordSwap,fixAllHits:fixAllHits,fixWordEverywhere:fixWordEverywhere,displayWord:displayWord,togglePunct:togglePunct,setCaptionCase:setCaptionCase,
+countMatches:countMatches,replaceAllCaptions:replaceAllCaptions,wordSwap:wordSwap,fixAllHits:fixAllHits,fixWordEverywhere:fixWordEverywhere,displayWord:displayWord,setCaptionSpell:setCaptionSpell,applyCase:applyCase,swissSpell:swissSpell,getSpell:function(){return capSpell;},setLangForce:function(l){_capLangForce=l;},togglePunct:togglePunct,setCaptionCase:setCaptionCase,
 transcriptText:transcriptText,copyTranscript:copyTranscript,exportTXT:exportTXT,seedCustomFields:seedCustomFields,buildCustomStyle:buildCustomStyle,
 setCsDirty:function(d){_csDirty=d;},saveTemplate:saveTemplate,loadTemplates:loadTemplates,getUserTemplates:function(){return userTemplates;},
 mergeTemplates:mergeTemplates,importTemplatesFromText:importTemplatesFromText,renameTemplate:renameTemplate,duplicateTemplate:duplicateTemplate,
@@ -891,6 +891,16 @@ ok(sk.includes('border-radius:50%') && sk.includes('MAP'), 'Sketch: Kringel + Up
   ok(/HALLO/.test(document.getElementById('capOverlay').innerHTML) && !/HALLO,/.test(document.getElementById('capOverlay').innerHTML), 'Vorschau formatiert');
   T.exportSRT();
   ok(/HALLO, WELT\./.test(global.LASTBLOB.content), 'SRT: Case ja, Satzzeichen bleiben: ' + JSON.stringify(global.LASTBLOB.content.slice(0, 60)));
+  // Schweizer Schreibweise (ß → ss): nur bei Deutsch, nur Anzeige/Export, Case bleibt kombinierbar
+  T.setCaptionCase('asis'); T.setLangForce('de'); T.setCaptionSpell('de');
+  ok(T.applyCase('Große Straße, heißt weiß') === 'Große Straße, heißt weiß', 'Spelling de: ß bleibt');
+  T.setCaptionSpell('ch');
+  ok(T.applyCase('Große Straße, heißt weiß') === 'Grosse Strasse, heisst weiss', 'Spelling ch: ß → ss');
+  T.setCaptionCase('upper'); ok(T.applyCase('Straße') === 'STRASSE', 'Spelling ch + UPPERCASE'); T.setCaptionCase('asis');
+  ok(T.swissSpell('ẞ') === 'SS' && T.swissSpell('Masse muss dass') === 'Masse muss dass', 'Spelling: ss-Wörter bleiben unverändert');
+  T.setLangForce('en'); ok(T.applyCase('Straße') === 'Straße', 'Spelling ch wirkt nur bei Deutsch');
+  T.setLangForce('de'); ok(T.displayWord('Größe') === 'Grösse', 'Spelling ch: Vorschau/Export (displayWord)');
+  T.setLangForce(null); T.setCaptionSpell('de');
   T.setCaptionCase('asis'); T.togglePunct();
   ok(T.transcriptText() === 'Hallo, Welt.\n\nWie geht es?', 'TXT: Absatz nach Satzende + Pause: ' + JSON.stringify(T.transcriptText()));
   T.setCaptionCase('upper');
@@ -5958,7 +5968,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
     const badPh = Object.keys(dui).filter(k => phs(k) !== phs(dui[k]));
     badPh.forEach(k => console.log('  Platzhalter weichen ab: ' + JSON.stringify(k.slice(0, 70))));
     ok(badPh.length === 0, 'i18n Editor: Platzhalter {0}/{1} in jeder Übersetzung wie im Original');
-    ok(!Object.values(dui).some(v => /ß/.test(v)), 'i18n Editor: Schweizer Schreibweise (kein ß)');
+    ok(!Object.values(dui).some(v => /ß/.test(v) && !/^(ß \(|Standarddeutsch mit ß|Schweizer Schreibweise: ss statt ß)/.test(v)), 'i18n Editor: Schweizer Schreibweise (kein ß, ausser im Rechtschreib-Schalter selbst)');
     ok(!Object.keys(dui).some(k => /^(capivo|csg|tb[A-Z]|exp[A-Z])/.test(k) || /^[a-z]+[A-Z][A-Za-z]+$/.test(k)), 'i18n Editor: Wörterbuch enthält keine internen IDs/Schlüssel');
     // Laufzeit: _t ersetzt Platzhalter (EN unverändert), DE-Seite trägt das Wörterbuch, EN-Seite nicht
     const fnSrc = htmlContent.match(/var UI_DICT = null;\nfunction _t\(s\) \{[\s\S]*?\n\}\n[\s\S]*?function _tn\([\s\S]*?\n\}\n/);

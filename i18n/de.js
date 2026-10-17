@@ -68,7 +68,7 @@ module.exports = {
     ['<a href="privacy.html" target="_blank" rel="noopener">Privacy</a></p>', '<a href="datenschutz.html" target="_blank" rel="noopener">Datenschutz</a></p>'],
   ],
   // Editor-Texte, die auf DE bewusst gleich bleiben (Marken, Dateiformate, Schriftnamen, Kürzel)
-  keepUi: ['Gluephs', 'glue', 'phs', 'Export', 'Original', 'Format', 'Impressum', 'SRT', 'VTT', 'TXT', 'gluephs-video.mp4', '&times;',
+  keepUi: ['Gluephs', 'ss', 'glue', 'phs', 'Export', 'Original', 'Format', 'Impressum', 'SRT', 'VTT', 'TXT', 'gluephs-video.mp4', '&times;',
     '9:16 · Reels, TikTok, Shorts', '16:9 · YouTube, LinkedIn', '9:16 · Reels', '4:5 · Feed', 'AA', 'aa',
     'Shift+← →', 'Ctrl/⌘+Z', 'Ctrl/⌘+Shift+Z', 'Esc', 'Enter', 'Timeline:', 'Delete', 'Alt', '0px', '8px',
     'Poppins', 'Anton', 'Bangers', 'Playfair Display', 'Kalam', 'Bebas Neue', 'Montserrat', 'Space Grotesk', 'Caveat', 'Inter', 'Oswald'],
