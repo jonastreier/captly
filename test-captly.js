@@ -473,9 +473,12 @@ T.setMe('anon', '');
   }
   ok(/ca\. CHF 6\.50/.test(de) && /approx\./.test(htmlContent), 'A5: ca.-Kennzeichnung (DE «ca.», EN «approx.»)');
   // .bill-only folgt billingOn()
-  const bo = { hidden: true }, prevQ = document.querySelectorAll; document.querySelectorAll = () => [bo];
+  const bo = { hidden: true }, prevQ = document.querySelectorAll; document.querySelectorAll = sel => /bill-only/.test(sel) ? [bo] : [];
   T.setBillingState(null); T.renderBilling(); ok(bo.hidden === true, 'A5: Billing aus → .bill-only bleibt verborgen');
   T.setMe('anon', ''); T.setBillingState({ enabled: true, loggedIn: false, plan: 'anon', limits: {} }); T.renderBilling(); ok(bo.hidden === false, 'A5: Billing an → .bill-only sichtbar');
+  const be = { hidden: false }; document.querySelectorAll = sel => /beta-only/.test(sel) ? [be] : [];
+  T.setBillingState(null); T.renderBilling(); ok(be.hidden === false, 'A5: Billing aus → .beta-only («kein Wasserzeichen») sichtbar');
+  T.setMe('anon', ''); T.setBillingState({ enabled: true, loggedIn: false, plan: 'anon', limits: {} }); T.renderBilling(); ok(be.hidden === true, 'A5: Billing an → .beta-only verborgen');
   T.setBillingState(null); T.setMe('anon', ''); document.querySelectorAll = prevQ;
 }
 
@@ -484,7 +487,7 @@ T.setMe('anon', '');
   const nav = htmlContent.slice(htmlContent.indexOf('<nav class="land-nav-links">'), htmlContent.indexOf('</nav>', htmlContent.indexOf('<nav class="land-nav-links">')));
   ok(/<a href="#pricing">/.test(nav) && /<a href="#faq">/.test(nav) && /class="nav-lang"/.test(nav) && !/nl-opt" href="#pricing"|nl-opt" href="#faq"/.test(nav), 'A6: Preise, FAQ und Sprache sind auch mobil in der Nav');
   ok(/\.land-nav-links \.nl-opt\{display:none\}/.test(htmlContent) && !/\.land-nav-links\{display:none\}/.test(htmlContent), 'A6: mobil nur die Nebenlinks ausgeblendet, die Nav bleibt');
-  ok(/<div class="hero-free"><a href="#pricing">[\s\S]{0,120}Free during the beta<\/a>[\s\S]{0,160}No watermark[\s\S]{0,160}No account/.test(htmlContent), 'A6 + Gratis-Push: Preis-Anker im Hero («Free during the beta» → #pricing) + No watermark + No account');
+  ok(/<div class="hero-free"><a href="#pricing">[\s\S]{0,120}Free during the beta<\/a>[\s\S]{0,160}No watermark[\s\S]{0,320}No account/.test(htmlContent), 'A6 + Gratis-Push: Preis-Anker im Hero («Free during the beta» → #pricing) + No watermark + No account');
 }
 
 // 9g) Lokaler Autosave: Roundtrip, LRU (5), Quota, Restore statt Transkription
@@ -6645,7 +6648,7 @@ ok(T.fastExportVideoCodecs(720, 1280, 30).every(function (c) { return c.mux === 
       const hi = T.brandLogoRect(1080, 1920, mkLogo({ w: 10, h: 1000, size: 30 }), 'off', false);
       ok(hi.h <= 1920 * 0.3 + 1e-6, 'C5 Logo: sehr hohes Logo wird auf 30 % der Höhe begrenzt');
       // Wasserzeichen: drawWatermark-Fläche (Referenz über einen Aufzeichnungs-Kontext) und Logo kollidieren nie
-      const rec = []; const ctxW = { font: '', measureText(t) { const m = /([\d.]+)px/.exec(this.font); return { width: t.length * (m ? +m[1] : 16) * 0.6 }; }, save() {}, restore() {}, fillText(t, x, y) { rec.push({ t, x, y }); }, fillRect(x, y, w, h) { rec.push({ rect: [x, y, w, h] }); } };
+      const rec = []; const ctxW = { font: '', measureText(t) { const m = /([\d.]+)px/.exec(this.font); return { width: t.length * (m ? +m[1] : 16) * 0.6 }; }, save() {}, restore() {}, fillText(t, x, y) { rec.push({ t, x, y }); }, fillRect(x, y, w, h) { rec.push({ rect: [x, y, w, h] }); }, drawImage(im, x, y, w, h) { rec.push({ rect: [x, y, w, h] }); } };
       T.drawWatermark(ctxW, 1080, 1920, true);
       const wr = rec.find(r => r.rect).rect, wm = T.brandWmRect(1080, 1920);
       ok(wr[0] >= wm.x0 && wr[0] + wr[2] <= wm.x1 + 1 && wr[1] >= wm.y0 - 1 && wr[1] + wr[3] <= wm.y1 + 1, 'C5 Wasserzeichen-Fläche (brandWmRect) deckt das gezeichnete Gluephs-Zeichen ab: ' + wr.map(Math.round) + ' ⊂ ' + [wm.x0, wm.y0, wm.x1, wm.y1].map(Math.round));

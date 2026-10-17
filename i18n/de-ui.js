@@ -891,6 +891,8 @@ module.exports = {
   "Export all clips": "Alle Clips exportieren",
   "{0} clip · MP4 · no watermark": "{0} Clip · MP4 · ohne Wasserzeichen",
   "{0} clips · MP4 · no watermark": "{0} Clips · MP4 · ohne Wasserzeichen",
+  "{0} clip · MP4": "{0} Clip · MP4",
+  "{0} clips · MP4": "{0} Clips · MP4",
   "No template": "Ohne Template",
   "Not as default": "Nicht als Standard",
   "Transcribe the remaining {0} clip": "Verbleibenden {0} Clip transkribieren",

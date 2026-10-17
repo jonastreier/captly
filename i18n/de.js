@@ -78,9 +78,9 @@ module.exports = {
   keepJs: ['<span>Auch auf Deutsch verfügbar.</span><a href="/de" hreflang="de">Wechseln →</a>'],
   landing: [
     // Gratis-Vorteil (Abschnitt #free) + neue FAQ
-    ["<h2 class=\"show-h\">Free. No watermark. No account.</h2>", "<h2 class=\"show-h\">Gratis. Kein Wasserzeichen. Ohne Konto.</h2>"],
+    ["<h2 class=\"show-h\"><span class=\"beta-only\">Free. No watermark. No account.</span><span class=\"bill-only\" hidden>Free to start. No account.</span></h2>", "<h2 class=\"show-h\"><span class=\"beta-only\">Gratis. Kein Wasserzeichen. Ohne Konto.</span><span class=\"bill-only\" hidden>Gratis starten. Ohne Konto.</span></h2>"],
     ["<p class=\"show-sub\">Many free caption tools put their logo on your video or ask you to create an account first. Gluephs doesn’t.</p>", "<p class=\"show-sub\">Viele Gratis-Untertitel-Tools setzen ihr Logo in dein Video oder verlangen zuerst ein Konto. Gluephs nicht.</p>"],
-    ["<h3>No watermark</h3><p>Your MP4 is clean and ready to post. No logo, no end card.</p>", "<h3>Kein Wasserzeichen</h3><p>Dein MP4 ist sauber und bereit zum Posten. Kein Logo, kein Abspann.</p>"],
+    ["<h3 class=\"beta-only\">No watermark</h3><p class=\"beta-only\">Your MP4 is clean and ready to post. No logo, no end card.</p><h3 class=\"bill-only\" hidden>Clean MP4s</h3><p class=\"bill-only\" hidden>2 videos a day without watermark on Free, none ever on Creator and Pro.</p>", "<h3 class=\"beta-only\">Kein Wasserzeichen</h3><p class=\"beta-only\">Dein MP4 ist sauber und bereit zum Posten. Kein Logo, kein Abspann.</p><h3 class=\"bill-only\" hidden>Saubere MP4s</h3><p class=\"bill-only\" hidden>2 Videos pro Tag ohne Wasserzeichen im Free-Plan, bei Creator und Pro nie.</p>"],
     ["<h3>No account needed</h3><p>Open the page, upload a clip, download the video. Just your email before the download.</p>", "<h3>Kein Konto nötig</h3><p>Seite öffnen, Clip hochladen, Video herunterladen. Nur deine E-Mail vor dem Download.</p>"],
     ["<h3>All styles included</h3><p>Every caption style, the editor, SRT and VTT – free during the beta.</p>", "<h3>Alle Styles inklusive</h3><p>Alle Untertitel-Styles, der Editor, SRT und VTT – gratis während der Beta.</p>"],
     ["<h3>Your video stays with you</h3><p>The video is rendered in your browser. Only the audio is sent for transcription.</p>", "<h3>Dein Video bleibt bei dir</h3><p>Das Video wird in deinem Browser gerendert. Nur die Tonspur geht zur Transkription.</p>"],
@@ -92,7 +92,7 @@ module.exports = {
     ['<a class="nav-lang" href="/de" hreflang="de" lang="de" title="Deutsch">DE</a>', '<a class="nav-lang" href="/" hreflang="en" lang="en" title="English">EN</a>'],
     ['<a href="/" hreflang="en" lang="en" aria-current="page">English</a><a href="/de" hreflang="de" lang="de">Deutsch</a>',
      '<a href="/" hreflang="en" lang="en">English</a><a href="/de" hreflang="de" lang="de" aria-current="page">Deutsch</a>'],
-    ['<a href="#pricing"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Free during the beta</a><span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>No watermark</span><span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>No account</span>', '<a href="#pricing"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Gratis während der Beta</a><span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Kein Wasserzeichen</span><span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Ohne Konto</span>'],
+    ['<a href="#pricing"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Free during the beta</a><span class="beta-only"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>No watermark</span><span class="bill-only" hidden><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>2 clean videos a day</span><span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>No account</span>', '<a href="#pricing"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Gratis während der Beta</a><span class="beta-only"><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Kein Wasserzeichen</span><span class="bill-only" hidden><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>2 saubere Videos pro Tag</span><span><svg class="ic" aria-hidden="true"><use href="#i-check"/></svg>Ohne Konto</span>'],
     ['>How it works<', '>So funktioniert’s<'],
     ['>Features<', '>Funktionen<'],
     ['>Pricing<', '>Preise<'],
@@ -148,7 +148,7 @@ module.exports = {
     ['<h3>Post caption &amp; hashtags</h3><p>Get a suggested text and hashtags for your post, in the language of your video.</p>',
      '<h3>Post-Text &amp; Hashtags</h3><p>Erhalte einen Vorschlag für Post-Text und Hashtags, in der Sprache deines Videos.</p>'],
     ['<h3>Renders on your device</h3><p>Only the audio is sent for transcription; the MP4 is made in your browser.</p>', '<h3>Rendert auf deinem Gerät</h3><p>Nur die Tonspur geht zur Transkription; das MP4 entsteht in deinem Browser.</p>'],
-    ['<p>A ready-to-post MP4 without watermark, or subtitle files for your editing app or YouTube.</p>', '<p>Ein fertiges MP4 ohne Wasserzeichen oder Untertiteldateien für dein Schnittprogramm oder YouTube.</p>'],
+    ['<p>A ready-to-post MP4, or subtitle files for your editing app or YouTube.</p>', '<p>Ein fertiges MP4 oder Untertiteldateien für dein Schnittprogramm oder YouTube.</p>'],
     // Preise
     ['Simple, honest pricing.', 'Einfache, ehrliche Preise.'],
     ['Start free. Plans with more transcription minutes will follow.', 'Starte kostenlos. Pläne mit mehr Transkriptionsminuten folgen.'],
@@ -157,7 +157,9 @@ module.exports = {
     ['<li>AI transcription (Whisper large-v3)</li>', '<li>KI-Transkription (Whisper large-v3)</li>'],
     ['<li>All 30+ caption styles</li>', '<li>Alle 30+ Untertitel-Styles</li>'],
     ['<li>MP4, SRT &amp; VTT export</li>', '<li>Export als MP4, SRT &amp; VTT</li>'],
-    ['<li>Free during beta · no watermark · just your email</li>', '<li>Gratis während der Beta · ohne Wasserzeichen · nur deine E-Mail</li>'],
+    ['<li class="beta-only">Free during beta · no watermark · just your email</li>', '<li class="beta-only">Gratis während der Beta · ohne Wasserzeichen · nur deine E-Mail</li>'],
+    ['<li class="bill-only" hidden>2 videos a day without watermark, then a small Gluephs mark</li>', '<li class="bill-only" hidden>2 Videos pro Tag ohne Wasserzeichen, danach ein kleines Gluephs-Zeichen</li>'],
+    ['<li class="bill-only" hidden>No watermark</li>', '<li class="bill-only" hidden>Kein Wasserzeichen</li>'],
     ['>Start for free<', '>Kostenlos starten<'],
     ['<span>/mo</span>', '<span>/Monat</span>'],
     ['<div class="price-approx">≈ CHF 6.50 / € 7 (approx.)</div>', '<div class="price-approx">ca. CHF 6.50 / € 7</div>'],
@@ -174,8 +176,8 @@ module.exports = {
     // FAQ (die JSON-LD-Strukturdaten entstehen aus diesen Einträgen)
     ['Frequently asked questions', 'Häufige Fragen'],
     ['>Is Gluephs free? Is there a watermark?<', '>Ist Gluephs kostenlos? Gibt es ein Wasserzeichen?<'],
-    ['<p>Yes — free during the beta, no account needed. Generate captions and export MP4 without watermark, SRT and VTT; we only ask for your email before the first video download. Creator and Pro plans with more transcription minutes are coming soon. During the beta there is never a watermark.</p>',
-     '<p>Ja – kostenlos während der Beta, ohne Konto. Untertitel erstellen und als MP4 ohne Wasserzeichen, SRT und VTT exportieren; vor dem ersten Video-Download fragen wir nur nach deiner E-Mail. Creator- und Pro-Pläne mit mehr Transkriptionsminuten folgen bald. Während der Beta gibt es nie ein Wasserzeichen.</p>'],
+    ['<p>Yes — free during the beta, no account needed. Generate captions and export MP4, SRT and VTT; we only ask for your email before the first video download. Creator and Pro plans with more transcription minutes are coming soon. <span class="beta-only">During the beta there is never a watermark.</span></p>',
+     '<p>Ja – kostenlos während der Beta, ohne Konto. Untertitel erstellen und als MP4, SRT und VTT exportieren; vor dem ersten Video-Download fragen wir nur nach deiner E-Mail. Creator- und Pro-Pläne mit mehr Transkriptionsminuten folgen bald. <span class="beta-only">Während der Beta gibt es nie ein Wasserzeichen.</span></p>'],
     // Gilt nur bei aktivem Billing (class="bill-only", in der Beta ausgeblendet; nicht im JSON-LD)
     ['<p class="bill-only" hidden>Free will stay without watermark for the first 2 videos each day; from the 3rd video per day a small watermark appears. Paid plans never have a watermark.</p>',
      '<p class="bill-only" hidden>Gratis bleibt für die ersten 2 Videos pro Tag ohne Wasserzeichen; ab dem 3. Video pro Tag erscheint ein kleines Wasserzeichen. Bezahlpläne haben nie ein Wasserzeichen.</p>'],
