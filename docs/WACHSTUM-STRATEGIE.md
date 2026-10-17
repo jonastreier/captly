@@ -16,7 +16,7 @@ Entstanden aus drei Recherchen (Konkurrenz-Wachstum, SEO, Launch-Kanäle) und ei
 
 ## Entscheide und Empfehlungen vom 16.10.2026 (Nachtrag)
 
-- **Preisplan:** Aktuell bleibt alles gratis. In ca. 2 Monaten (Dezember 2026) kommen Batch (bis 10 Clips), Brand-Kit/Logo und ein höheres Tageslimit hinter die Bezahlpläne. Wer sich jetzt auf die Warteliste setzt, bekommt einen **einmaligen Frühbucher-Rabatt von 30 %** (Entscheid 17.10.2026; Bedingungen wie «erste Zahlung oder erste Monate» noch festlegen). Paddle-Konto fehlt, Anleitung: [PADDLE-ANLEITUNG.md](PADDLE-ANLEITUNG.md).
+- **Preisplan:** Aktuell bleibt alles gratis. In ca. 2 Monaten (Dezember 2026) kommen Batch (bis 10 Clips), Brand-Kit/Logo und ein höheres Tageslimit hinter die Bezahlpläne. Wer sich jetzt auf die Warteliste setzt, bekommt **30 % Frühbucher-Rabatt auf die ersten drei Monate** (Entscheid 17.10.2026; Einlösefrist noch festlegen). Paddle-Konto fehlt, Anleitung: [PADDLE-ANLEITUNG.md](PADDLE-ANLEITUNG.md).
 - **Schweizer Akzent:** Ein 9-Minuten-Clip (Landwirtschaft, Schweizer Hochdeutsch) wurde sehr gut erkannt, einzelne Fachwörter falsch; es war keine Mundart. Darum gibt es die Seite «Untertitel für Videos mit Schweizer Akzent» und keine Behauptung zu Mundart. Fachwörter: Feld «Namen & Begriffe» nutzen.
 - **Newsletter-Tool (Fakten aus Websuchen, vor Entscheid auf den Preisseiten prüfen):**
 

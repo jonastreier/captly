@@ -21,7 +21,7 @@ Ziel: In ca. 2 Monaten (Dezember 2026) Bezahlpläne scharf schalten. Der Code (C
 
 **Rückerstattung.** *(Vorschlag, deine Entscheidung: 14 Tage.)* Du kannst innerhalb von 14 Tagen nach dem ersten Kauf ohne Angabe von Gründen die Rückerstattung verlangen: E-Mail an hello@gluephs.com oder über die Abrechnungsseite von Paddle. Danach sind bezahlte Perioden nicht rückerstattbar, ausser das Gesetz verlangt es.
 
-**Einmaliger Frühbucher-Rabatt:** Wer sich auf die Warteliste setzt, bekommt beim Start einen einmaligen Rabatt von **30 %** (Entscheid Jonas 17.10.2026). Offen vor dem Versand: Gilt er auf die erste Zahlung oder auf die ersten Monate, und bis wann ist der Code einlösbar? Der Code wird in Paddle als «Discount» (Prozent, Einmalcode oder zeitlich begrenzt) angelegt und per E-Mail an die bestätigten Adressen verschickt. Die Wartelisten-Texte versprechen «einmaligen Rabatt von 30 %»; die Bedingungen müssen dazu passen.
+**Einmaliger Frühbucher-Rabatt:** Wer sich auf die Warteliste setzt, bekommt beim Start **30 % Rabatt auf die ersten drei Monate** (Entscheid Jonas 17.10.2026). In Paddle als «Discount» (Prozent) anlegen, der für die ersten drei Abrechnungsperioden gilt (Paddle: Discount mit begrenzter Zahl an Wiederholungen bei Abos), und per E-Mail an die bestätigten Adressen verschicken. Noch offen: bis wann der Code einlösbar ist (Vorschlag: 30 Tage nach dem Start-Mail). Die Wartelisten-Texte versprechen genau «30 % auf die ersten drei Monate».
 
 Datenschutzerklärung: Abschnitt «Zahlung» ergänzen (Paddle verarbeitet Zahlungs- und Rechnungsdaten als eigene Verantwortliche; wir sehen keine Kartendaten).
 
