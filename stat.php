@@ -2,9 +2,11 @@
 /**
  * Gluephs – anonyme Style-Zählung.
  *   POST /api/stat {style}  → zählt einen Export pro Tag und Style hoch (public.style_stats, keine Nutzerdaten, keine IP gespeichert)
- *   GET  /api/stat          → {total, top:[{style,n}]} der letzten 30 Tage, 1 Stunde gecached (für das «Trending»-Abzeichen)
+ *   GET  /api/stat          → {total, top:[{style,n}], all:[{style,n}]} der letzten 30 Tage, 1 Stunde gecached
+ *                              (top = «Trending»-Abzeichen im Editor, all = wöchentliche Style-Rotation: scripts/style-report.js)
  */
 $cfg = is_file(__DIR__ . '/config.php') ? (include __DIR__ . '/config.php') : [];
+require_once __DIR__ . '/ratelimit.php'; // gl_rl_ip(): IPv6 je /64 — gemeinsamer Schlüssel aller Limits
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 function out($code, $arr = null) { http_response_code($code); if ($arr !== null) echo json_encode($arr); exit; }
@@ -23,7 +25,7 @@ function sbcall($method, $path, $body = null) {
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
   header('Cache-Control: no-store');
-  $ip = $_SERVER['REMOTE_ADDR'] ?? 'x'; $now = time();
+  $ip = gl_rl_ip(); $now = time();
   $rf = sys_get_temp_dir() . '/capivo_stat_' . md5($ip) . '.json'; $hits = [];
   if (is_file($rf)) { $d = json_decode((string)@file_get_contents($rf), true); if (is_array($d)) $hits = array_values(array_filter($d, function($t) use ($now) { return $t > $now - 3600; })); }
   if (count($hits) >= 20) out(429, ['error' => 'rate_limited']);
@@ -45,6 +47,7 @@ $sum = []; $total = 0;
 foreach ($rows as $r) { if (!isset($r['style'], $r['n'])) continue; $sum[$r['style']] = ($sum[$r['style']] ?? 0) + (int)$r['n']; $total += (int)$r['n']; }
 arsort($sum);
 $top = []; foreach (array_slice($sum, 0, 5, true) as $s => $n) $top[] = ['style' => (string)$s, 'n' => $n];
-$json = json_encode(['configured' => true, 'total' => $total, 'top' => $top]);
+$all = []; foreach (array_slice($sum, 0, 200, true) as $s => $n) $all[] = ['style' => (string)$s, 'n' => $n];
+$json = json_encode(['configured' => true, 'total' => $total, 'top' => $top, 'all' => $all]);
 @file_put_contents($cf, $json, LOCK_EX);
 echo $json;

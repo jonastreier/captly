@@ -46,7 +46,7 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
   }).listen(smtpPort);
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'crlead-'));
-  for (const f of ['lead.php', 'confirm.php', 'unsubscribe.php', 'contact.php', 'mail.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
+  for (const f of ['lead.php', 'confirm.php', 'unsubscribe.php', 'contact.php', 'mail.php', 'ratelimit.php']) fs.copyFileSync(path.join(__dirname, f), path.join(dir, f));
   fs.writeFileSync(path.join(dir, 'config.php'), `<?php return ['SUPABASE_URL'=>'http://127.0.0.1:${sbPort}','SUPABASE_SERVICE_KEY'=>'svc','LEAD_SECRET'=>'geheim','SITE_URL'=>'http://127.0.0.1:${phpPort}','MAIL_FROM'=>'noreply@example.com','SMTP_HOST'=>'127.0.0.1','SMTP_PORT'=>${smtpPort},'SMTP_SECURE'=>'none'];`);
   const php = spawn('php', ['-S', '127.0.0.1:' + phpPort, '-t', dir], { env: Object.assign({}, process.env, { TMPDIR: dir }), stdio: 'ignore' });
   await new Promise(r => setTimeout(r, 800));
@@ -68,7 +68,8 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
 
     // 2) Bestätigung (DOI) nicht kaputt
     const tok = body.match(/api\/confirm\?t=([a-f0-9]{48})/);
-    const c = await fetch(base + 'confirm.php?t=' + tok[1]); ok(c.status === 200 && /bestätigt|confirmed/i.test(await c.text()) && !!leads[0].confirmed_at, 'confirm setzt confirmed_at');
+    const cg = await fetch(base + 'confirm.php?t=' + tok[1]); ok(cg.status === 200 && /method="post"/.test(await cg.text()) && !leads[0].confirmed_at, 'confirm: GET (Mail-Scanner/Vorabruf) zeigt nur den Knopf, setzt nichts');
+    const c = await fetch(base + 'confirm.php?t=' + tok[1], { method: 'POST' }); ok(c.status === 200 && /bestätigt|confirmed/i.test(await c.text()) && !!leads[0].confirmed_at, 'confirm: POST des Knopfs setzt confirmed_at');
 
     // 3) GET meldet NICHT ab (Mail-Scanner), zeigt nur die Frage
     const g = await fetch(url); const gt = await g.text();
@@ -124,6 +125,11 @@ const freePort = () => new Promise(r => { const s = net.createServer().listen(0,
     const wl = await post('lead.php', { email: 'warte@example.com', newsletter: true, consent_text: 'Notify me once when the pro plan launches.', source: 'waitlist-pro', lang: 'en' });
     ok(wl.s === 200 && wl.j.ok && wl.j.confirm_mail === true && mails.length === mBefore + 1, 'Warteliste: 200, Bestätigungsmail verschickt');
     ok(leads.some(l => l.email === 'warte@example.com' && l.source === 'waitlist-pro' && l.newsletter === true), 'Warteliste: Eintrag mit Quelle waitlist-pro und Newsletter-Einwilligung gespeichert');
+    // 9) Mail-Bomben-Schutz: höchstens 10 Bestätigungsmails pro Absender und Tag (2 sind schon raus) — Eintrag bleibt, Mail nicht
+    const mB = mails.length, res9 = [];
+    for (let i = 0; i < 9; i++) res9.push(await post('lead.php', { email: 'bulk' + i + '@example.com', newsletter: true, consent_text: 'ok', lang: 'en' }));
+    ok(res9.slice(0, 8).every(r => r.j.confirm_mail === true) && res9[8].s === 200 && res9[8].j.confirm_mail === null && mails.length === mB + 8,
+       'lead: ab der 11. Bestätigungsmail pro Absender/Tag nur noch Eintrag, keine Mail (' + res9.map(r => r.j.confirm_mail).join() + ')');
   } finally { php.kill(); sb.close(); smtp.close(); fs.rmSync(dir, { recursive: true, force: true }); }
   console.log(fails ? `${fails}/${n} FEHLER` : `test-lead: ${n} Prüfungen grün`);
   process.exit(fails ? 1 : 0);

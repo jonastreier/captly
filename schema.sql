@@ -33,6 +33,29 @@ create policy "own projects: delete" on public.projects for delete using (auth.u
 revoke all on public.projects from anon;
 grant select, insert, update, delete on public.projects to authenticated;
 
+-- Missbrauchsschutz (Audit 2026-10-16): ohne Grenze kann ein (kostenloses) Konto die Datenbank füllen → Zusatzkosten.
+-- Grosszügig gewählt (ein Projekt mit Wort-Timings liegt weit darunter, Templates mit Logos ≤ 0,9 Mio. Zeichen):
+-- Payload ≤ 6 MB als Text, Titel ≤ 200 Zeichen, höchstens 500 Zeilen pro Nutzer (inkl. Template-Zeile).
+-- «not valid» = gilt für neue/geänderte Zeilen, bestehende Daten werden nicht geprüft (kein Abbruch beim Einspielen).
+do $$ begin
+  if not exists (select 1 from pg_constraint where conname = 'projects_payload_size') then
+    alter table public.projects add constraint projects_payload_size check (octet_length(payload::text) <= 6000000) not valid;
+  end if;
+  if not exists (select 1 from pg_constraint where conname = 'projects_title_len') then
+    alter table public.projects add constraint projects_title_len check (char_length(title) <= 200) not valid;
+  end if;
+end $$;
+create or replace function public.projects_quota() returns trigger
+  language plpgsql security definer set search_path = public as $$
+begin
+  if (select count(*) from public.projects where user_id = new.user_id) >= 500 then
+    raise exception 'project_quota' using errcode = 'P0001', hint = 'Höchstens 500 Projekte pro Konto';
+  end if;
+  return new;
+end $$;
+drop trigger if exists projects_quota on public.projects;
+create trigger projects_quota before insert on public.projects for each row execute function public.projects_quota();
+
 -- Hinweis: Eigene Caption-Templates eines Nutzers liegen als EINE reservierte Zeile in dieser Tabelle
 -- (title = '__capivo_templates__', payload = { kind: 'capivo_templates', templates: [...] }).
 -- Kein eigenes Schema nötig — die RLS-Policies oben schützen sie wie jedes Projekt; das Frontend
